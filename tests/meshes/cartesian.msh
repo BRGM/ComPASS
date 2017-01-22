@@ -1,0 +1,10 @@
+ Corner Point Geometry grid with erosions
+ Topo Cartesien en XY et erosion possible en Z
+ Number of vertices
+          -1
+Numbers of cells along directions 
+301 201 1
+Domain size
+3000 2000 100
+Origin
+-1500 -1000 -1600

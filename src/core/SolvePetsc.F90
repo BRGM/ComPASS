@@ -1,0 +1,2339 @@
+! Note: well is only consided in cpramg with pressure
+!       i.e. SolvePetsc_cpramgPCApply_P_multiplicative
+!       well is not added in SolvePetsc_At
+
+module SolvePetsc
+
+  use CommonMPI
+  use CommonType
+  use MeshSchema
+
+  use Jacobian
+
+#include <finclude/petscdef.h>
+  use petsc
+
+  implicit none
+
+  ! Solver: A_mpi x_mpi = Sm_mpi
+  Mat, private :: A_mpi  
+  Vec, private :: Sm_mpi
+  Vec, private :: x_mpi
+
+  KSP, private :: ksp_mpi ! ksp
+  PC,  private :: pc_mpi  ! pc
+
+  ! sync mat and vec
+  Mat, private :: M_s ! xs = M_s * x_mpi, (_s means sync)
+  Vec, private :: x_s 
+
+  ! Preconditioner CPR-AMG
+  Mat, private :: Ap       ! Pression part of A_mpi
+  PC,  private :: pcamg_p  ! pc amg for pression
+  PC,  private :: pcilu0   ! pc ilu0 for all
+  Vec, private :: v_pt, P1v_pt, P1v, AP1v ! tmp vectors
+
+#ifdef _THERMIQUE_
+  Mat, private :: At       ! Temperature part of A_mpi
+  PC,  private :: pcamg_t  ! pc amg for temperature
+  Vec, private :: AP1v_t, P2AP1v, AP2AP1v, P2AP1v_t
+
+  logical, allocatable, dimension(:) :: & 
+       IsTprimNodeFracOwn, & ! T is prim/secd, element in (node own, frac own)
+       IsTprimNodeFracLocal  ! T is prim/secd, element in (node local, frac local)
+#endif
+
+  integer, private :: kspitmax          ! max nb of iterations
+  double precision, private :: PetscKspTol   ! tolerance
+
+  ! vector contains history of convergence
+  double precision, allocatable, dimension(:), private :: &
+       kspHistory             
+
+  ! size of A_mpi
+  integer, private :: &
+       NBlockrowL, & ! number of local (block) rows
+       NBlockcolL, & ! number of local (block) cols
+       NBlockrowG, & ! number of global (block) rows
+       NBlockcolG    ! number of global (block) cols
+
+  integer, private :: &
+       NrowL, & ! number of local (point) rows
+       NcolL, & ! number of local (point) cols
+       NrowG, & ! number of global (point) rows
+       NcolG    ! number of global (point) cols
+
+  ! size of M_s: matrix used for sync
+  integer, private :: &
+       NrowL_s, &
+       NcolL_s, &
+       NrowG_s, &
+       NcolG_s
+
+  ! Blockrowstart(i): sum of block rows (node own + frac own + well own) before proc i
+  ! Blockcolstart(i): sum of block cols (node own + frac own + well own) before proc i = Blockrowstart
+  integer, allocatable, dimension(:), private :: &
+       Blockrowstart, & 
+       Blockcolstart    
+
+  ! rowstart(i): sum of rows before proc i: (node own+frac own) * NbCompThermique + well own
+  ! colstart(i): sum of cols before proc i: (node own+frac own) * NbCompThermique + well own = rowstart
+  integer, allocatable, dimension(:), private :: &
+       rowstart, & 
+       colstart 
+
+  integer, allocatable, dimension(:), private :: &
+       RowLToRowGBlock, &
+       ColLToColGBlock, &
+       RowLToRowG, &
+       ColLToColG
+
+  ! tmp values
+  integer, private ::   &
+       NbNodeOwn,       &
+       NbNodeLocal,     &
+       NbFracOwn,       &
+       NbFracLocal,     &
+       NbCellLocal,     &
+       NbWellInjOwn,    &
+       NbWellProdOwn,   &
+       NbWellInjLocal,  &
+       NbWellProdLocal
+
+  public :: &
+       SolvePetsc_Init,           &
+       SolvePetsc_cpramgInit,    &
+       
+       SolvePetsc_SetUp,          &
+       SolvePetsc_KspSolve,       &
+       
+       SolvePetsc_SyncMat,        &
+       SolvePetsc_Sync,           &
+       SolvePetsc_GetSolNodeFracWell, &
+       
+       SolvePetsc_Free,           &
+       SolvePetsc_cpramgFree
+
+  private :: &
+       SolvePetsc_CreateKsp,  &
+       SolvePetsc_CreateAmpi, &
+       SolvePetsc_CreateSm,   &
+       SolvePetsc_SetAmpi,    &
+       SolvePetsc_SetSm,      &
+                                !
+       SolvePetsc_cpramgCreateApAt,  &
+       SolvePetsc_cpramgCreateKsp,   &
+       SolvePetsc_cpramgPCSetUp,     &
+                                !
+       SolvePetsc_cpramgPCApply_P_multiplicative,  &
+       SolvePetsc_cpramgPCApply_P_additive,  &       
+                                !
+       SolvePetsc_SetAp,       &
+       SolvePetsc_LtoG,        &
+       SolvePetsc_RowColStart, &
+       SolvePetsc_rowcolnum
+
+#ifdef _THERMIQUE_
+
+  private :: &
+       SolvePetsc_SetAt, &
+       SolvePetsc_cpramgPCApply_PT_multiplicative, &
+       SolvePetsc_cpramgPCApply_PT_additive, &
+       SolvePetsc_cpramgPCApply_T_multiplicative
+#endif
+
+contains
+
+  ! create structure of mat and solver
+  subroutine SolvePetsc_Init(kspitmax_in, ksptol_in)
+
+    integer, intent(in) :: kspitmax_in
+    double precision, intent(in) :: ksptol_in
+
+    integer :: i
+
+    kspitmax = kspitmax_in
+    PetscKspTol = ksptol_in
+
+    ! set tmp values
+    NbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
+    NbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
+    NbFracOwn = NbFracOwn_Ncpus(commRank+1)
+    NbFracLocal = NbFracLocal_Ncpus(commRank+1)
+    NbCellLocal = NbCellLocal_Ncpus(commRank+1)
+
+    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1) 
+    NbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
+    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1) 
+    NbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
+
+    ! local row/col size:  node own and frac own and well own
+    NBlockrowL = NbNodeOwn + NbFracOwn + NbWellInjOwn + NbWellProdOwn ! =JacA%Nb
+    NBlockcolL = NBlockrowL
+
+    ! global row/col size: sum of all procs
+    NBlockrowG = 0
+    do i=1, Ncpus
+       NBlockrowG = NBlockrowG + NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i) &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+    NBlockcolG = NBlockrowG
+
+    ! array contains history of convergence
+    ! must be allocated before SolvePetsc_CreateKsp
+    allocate(kspHistory(kspitmax+1))
+
+    call SolvePetsc_RowColStart
+    call SolvePetsc_CreateAmpi
+    call SolvePetsc_CreateSm
+    call SolvePetsc_CreateKsp
+
+    ! compute RowLToRowG and ColLToColG
+    call SolvePetsc_LtoG
+    call SolvePetsc_LtoGBlock
+
+    ! delete row/col start
+    deallocate(rowstart)
+    deallocate(colstart)
+    deallocate(Blockrowstart)
+    deallocate(Blockcolstart)
+
+  end subroutine SolvePetsc_Init
+
+
+  ! CPR-AMG: create structure
+  subroutine SolvePetsc_cpramgInit(kspitmax_in, ksptol_in)
+
+    integer, intent(in) :: kspitmax_in
+    double precision, intent(in) :: ksptol_in
+
+    integer :: i
+    PetscErrorCode :: Ierr
+
+    kspitmax = kspitmax_in
+    PetscKspTol = ksptol_in
+
+    ! set tmp values
+    NbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
+    NbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
+    NbFracOwn = NbFracOwn_Ncpus(commRank+1)
+    NbFracLocal = NbFracLocal_Ncpus(commRank+1)
+    NbCellLocal = NbCellLocal_Ncpus(commRank+1)
+
+    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1) 
+    NbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
+    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1) 
+    NbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
+
+    ! local row/col size:  node own and frac own and well own
+    NBlockrowL = NbNodeOwn + NbFracOwn + NbWellInjOwn + NbWellProdOwn ! =JacA%Nb
+    NBlockcolL = NBlockrowL
+
+    ! global row/col size: sum of all procs
+    NBlockrowG = 0
+    do i=1, Ncpus
+       NBlockrowG = NBlockrowG + NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i) &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+    NBlockcolG = NBlockrowG
+
+    ! array contain history of convergence
+    ! must be allocated before SolvePetsc_CreateKsp
+    allocate(kspHistory(kspitmax+1))
+
+    call SolvePetsc_RowColStart
+    call SolvePetsc_CreateAmpi
+    call SolvePetsc_CreateSm
+
+    call SolvePetsc_cpramgCreateApAt
+    call SolvePetsc_cpramgCreateKsp
+
+    ! create tmp vectors for CPR-AMG
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NBlockrowL, NBlockrowG, v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(v_pt, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NBlockrowL, NBlockrowG, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(P1v_pt, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL, NrowG, P1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(P1v, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(P1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(P1v, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL, NrowG, AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(AP1v, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+#ifdef _THERMIQUE_
+
+    ! AP1v_t
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NBlockrowL, NBlockrowG, AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(AP1v_t, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P2AP1v_t
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NBlockrowL, NBlockrowG, P2AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(P2AP1v_t, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(P2AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(P2AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P2AP1v
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL, NrowG, P2AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(P2AP1v, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(P2AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(P2AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P2AP1v
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL, NrowG, AP2AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecSet(AP2AP1v, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(AP2AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(AP2AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    allocate(IsTprimNodeFracOwn(NbNodeOwn_Ncpus(commRank+1)+NbFracOwn_Ncpus(commRank+1)))
+    allocate(IsTprimNodeFracLocal(NbNodeLocal_Ncpus(commRank+1)+NbFracLocal_Ncpus(commRank+1)))
+
+#endif
+
+    ! compute RowLToRowG and ColLToColG
+    call SolvePetsc_LtoG
+    call SolvePetsc_LtoGBlock
+
+    ! delete row/col start
+    deallocate(rowstart)
+    deallocate(colstart)
+    deallocate(Blockrowstart)
+    deallocate(Blockcolstart)
+
+  end subroutine SolvePetsc_cpramgInit
+
+
+  ! compute Blockrowstart and Blockcolstart
+  ! compute rowstart and colstart
+  subroutine SolvePetsc_RowColStart
+
+    integer :: i
+
+    ! Blockrowstart(i) and Blockcolstart(i):
+    !     sum of node own and frac own and well own before proc i,
+    !     the block element(node/frac) is considered as 1 row/col
+    ! the rows between Blockrowstart(i)+1 and Blockrowstart(i+1)
+    !     are in proc i-1, where i=1,2,...,Ncpus
+    allocate(Blockrowstart(Ncpus))
+    allocate(Blockcolstart(Ncpus))
+
+    Blockrowstart(1) = 0
+    do i=1, Ncpus-1 ! 
+       Blockrowstart(i+1) = Blockrowstart(i) &
+            + NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)  &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+    Blockcolstart(:) = Blockrowstart(:)
+
+    ! rowstart(i) and colstart(i):
+    !    sum of node own and frac own and well own before proc i
+    !    the block element (node/frac) is considered as NbCompthermique row/col
+    ! the rows between Blockrowstart(i)+1 and Blockrowstart(i+1)
+    !    are in proc i-1, where i=1,2,...,Ncpus
+    allocate(rowstart(Ncpus))
+    allocate(colstart(Ncpus))
+
+    rowstart(1) = 0
+    do i=1, Ncpus-1 ! 
+       rowstart(i+1) = rowstart(i) &
+            + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique  &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+    colstart(:) = rowstart(:)
+
+  end subroutine SolvePetsc_RowColStart
+
+
+  ! Setup: set values mat and second member
+  subroutine SolvePetsc_SetUp
+
+    PetscErrorCode :: Ierr
+
+    ! set values: Ampi and Sm
+    call SolvePetsc_SetAmpi
+    call SolvePetsc_SetSm
+
+    call PCSetUp(pc_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call KSPSetUp(ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_SetUp
+
+
+  ! do setup required for shell pc cpr-amg
+  subroutine SolvePetsc_cpramgPCSetUp(pcin, Ierr)
+
+    PC, intent(inout) :: pcin
+    PetscErrorCode, intent(out) :: Ierr
+
+    ! set values: Ap, At
+    call SolvePetsc_SetAp
+
+! #ifdef _THERMIQUE_
+!     call SolvePetsc_SetAt
+! #endif
+
+    call PCSetUp(pcamg_p, Ierr)
+    CHKERRQ(Ierr)
+
+    call PCSetUp(pcilu0, Ierr)
+    CHKERRQ(Ierr)
+
+! #ifdef _THERMIQUE_
+
+!     call PCSetUp(pcamg_t, Ierr)
+!     CHKERRQ(Ierr)
+! #endif
+
+  end subroutine SolvePetsc_cpramgPCSetUp
+
+
+  ! Create Mat A_mpi in AIJ format (the default parallel PETSc format)
+  !
+  ! A_mpi for 3 mpi procs example:
+  !     node own/frac own(mpi=0), (mpi=1),  (mpi=2)              
+  !         |   a11,                a12,     a13    | mpi 0, node own/frac own
+  ! A_mpi = |   a21,                a22,     a22    | mpi 1
+  !         |   a31,                a32,     a33    | mpi 2
+  !
+  ! In mpi 0, insert its JacA to (a11, a12, a13)
+  ! In mpi 1,  ...            to (a21, a22, a23)
+  !    ...
+  ! Rq important:
+  !    the rows of JacA is composed with node own and frac own
+  !    the cols of JacA is composed with node local and frac local
+  subroutine SolvePetsc_CreateAmpi
+
+    integer, allocatable, dimension(:) :: &
+         d_nnz, & ! number of nonzeros per row in diagonal portion
+         o_nnz    ! number of nonzeros per row in the off-diagonal portion 
+
+    ! some tmp values, explained when setting values
+    integer :: Nl_Fo, Nl_Fl, Nl_Fl_WIo, Nl_Fl_WIl, Nl_Fl_WIl_WPo, Nl_Fl_WIl_WPl
+
+
+    ! tmp values
+    integer :: i, li, j, s, lj, start, Ierr, colend 
+
+    ! local row/col size:  node own and frac own
+    NrowL = (NbNodeOwn + NbFracOwn) * NbCompThermique &
+         + NbWellInjOwn + NbWellProdOwn 
+    NcolL = NrowL
+
+    ! global row/col size: sum of all procs
+    NrowG = 0
+    do i=1, Ncpus
+       NrowG = NrowG &
+            + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+    NcolG = NrowG
+
+    ! number of nonzeros per row in diag or off-diag portion
+    allocate(d_nnz(NrowL))
+    allocate(o_nnz(NrowL))
+    d_nnz(:) = 0
+    o_nnz(:) = 0
+
+    ! the diagonal portion is between colstart and colend
+    colend = colstart(commRank+1) + NcolL
+
+    ! N: Node, F: Frac, WI: well inj, WP: well prod
+    ! l: local, o: own
+    Nl_Fo = NbNodeLocal + NbFracOwn 
+    Nl_Fl = NbNodeLocal + NbFracLocal
+    Nl_Fl_WIo = NbNodeLocal + NbFracLocal + NbWellInjOwn
+    Nl_Fl_WIl = NbNodeLocal + NbFracLocal + NbWellInjLocal
+    Nl_Fl_WIl_WPo = NbNodeLocal + NbFracLocal + NbWellInjLocal + NbWellProdOwn
+    Nl_Fl_WIl_WPl = NbNodeLocal + NbFracLocal + NbWellInjLocal + NbWellProdLocal
+
+    ! rows associated with node own and frac own
+    do i=1, NbNodeOwn + NbFracOwn
+
+       do j=JacA%Pt(i)+1, JacA%Pt(i+1)
+
+          lj = JacA%Num(j)
+
+          if (lj<=NbNodeOwn) then ! node own
+             do s=1, NbCompThermique
+                d_nnz((i-1)*(NbCompThermique)+s) = d_nnz((i-1)*(NbCompThermique)+s) + NbCompThermique
+             end do
+
+          else if (NbNodeOwn<lj .and. lj<=NbNodeLocal) then ! node ghost
+             do s=1, NbCompThermique
+                o_nnz((i-1)*(NbCompThermique)+s) = o_nnz((i-1)*(NbCompThermique)+s) + NbCompThermique
+             end do
+
+          else if (NbNodeLocal<lj .and. lj<=Nl_Fo) then
+             do s=1, NbCompThermique ! frac own
+                d_nnz((i-1)*(NbCompThermique)+s) = d_nnz((i-1)*(NbCompThermique)+s) + NbCompThermique
+             end do
+
+          else if(Nl_Fo<lj .and. lj<= Nl_Fl) then
+             do s=1, NbCompThermique ! frac ghost
+                o_nnz((i-1)*(NbCompThermique)+s) = o_nnz((i-1)*(NbCompThermique)+s) + NbCompThermique
+             end do
+
+          else if(Nl_Fl<lj .and. lj<= Nl_Fl_WIo) then
+             do s=1, NbCompThermique ! well inj own
+                d_nnz((i-1)*(NbCompThermique)+s) = d_nnz((i-1)*(NbCompThermique)+s) + 1
+             end do
+
+          else if(Nl_Fl_WIo<lj .and. lj<= Nl_Fl_WIl) then
+             do s=1, NbCompThermique ! well inj ghost
+                o_nnz((i-1)*(NbCompThermique)+s) = o_nnz((i-1)*(NbCompThermique)+s) + 1
+             end do
+
+          else if(Nl_Fl_WIl<lj .and. lj<= Nl_Fl_WIl_WPo) then
+             do s=1, NbCompThermique ! well prod own
+                d_nnz((i-1)*(NbCompThermique)+s) = d_nnz((i-1)*(NbCompThermique)+s) + 1
+             end do
+          else
+             do s=1, NbCompThermique ! well prod ghost
+                o_nnz((i-1)*(NbCompThermique)+s) = o_nnz((i-1)*(NbCompThermique)+s) + 1
+             end do
+          end if
+       end do
+    end do
+
+    ! rows associated with well inj own and well prod own
+    start = (NbNodeOwn+NbFracOwn) * NbCompThermique
+
+    do i=1, NbWellInjOwn+NbWellProdOwn
+
+       li = i + NbNodeOwn + NbFracOwn
+
+       do j=JacA%Pt(li)+1, JacA%Pt(li+1)
+
+          lj = JacA%Num(j)
+
+          if (lj<=NbNodeOwn) then ! node own
+             d_nnz(start+i) = d_nnz(start+i) + NbCompThermique
+
+          else if (NbNodeOwn<lj .and. lj<=NbNodeLocal) then ! node ghost
+             o_nnz(start+i) = o_nnz(start+i) + NbCompThermique
+
+          else if (NbNodeLocal<lj .and. lj<=Nl_Fo) then ! frac own
+             d_nnz(start+i) = d_nnz(start+i) + NbCompThermique
+
+          else if(Nl_Fo<lj .and. lj<= Nl_Fl) then ! frac ghost
+             o_nnz(start+i) = o_nnz(start+i) + NbCompThermique
+
+          else if(Nl_Fl<lj .and. lj<= Nl_Fl_WIo) then ! well inj own
+             d_nnz(start+i) = d_nnz(start+i) + 1
+
+          else if(Nl_Fl_WIo<lj .and. lj<= Nl_Fl_WIl) then ! well inj ghost
+             o_nnz(start+i) = o_nnz(start+i) + 1
+
+          else if(Nl_Fl_WIl<lj .and. lj<= Nl_Fl_WIl_WPo) then ! well prod own
+             d_nnz(start+i) = d_nnz(start+i) + 1
+
+          else if(Nl_Fl_WIl_WPo<lj .and. lj<=Nl_Fl_WIl_WPl) then ! well prod ghost
+             o_nnz(start+i) = o_nnz(start+i) + 1
+          else
+             print*, "error in create ampi"
+          end if
+       end do
+    end do
+
+    ! create matrix
+    call MatCreateAIJ(ComPASS_COMM_WORLD, &
+         NrowL, NcolL, &
+         NrowG, NcolG, &
+         0, d_nnz, 0, o_nnz, A_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    deallocate(d_nnz)
+    deallocate(o_nnz)
+
+  end subroutine SolvePetsc_CreateAmpi
+
+
+  ! Set values A_mpi
+  subroutine SolvePetsc_SetAmpi
+
+    integer :: i, j, lj, s
+    integer :: row, col
+    PetscErrorCode :: Ierr
+
+    integer :: &
+         m, idxm(NbCompThermique), & ! number of rows and their global indices
+         n, idxn(NbCompThermique)    ! number of cols and their global indices
+
+    m = NbCompThermique
+    n = NbCompThermique
+
+    ! cols of JacA are (node, frac, wellinj, wellprod)
+    ! insert JacA(i,j), i is node own or frac own or wellinj own or wellprod own;
+    !                   j is node or frac or wellinj or wellprod
+    ! insert value JacA%Val(:,:,*), the index of "*" in A_mpi is (row, col)
+
+    ! rows associated with node own and frac own
+    do i=1, NbNodeOwn + NbFracOwn
+       
+       do j=JacA%Pt(i)+1, JacA%Pt(i+1)
+
+          row = RowLToRowG(i) - 1             ! 0-based in petsc
+          col = ColLToColG( JacA%Num(j) ) - 1 ! 0-based in petsc
+
+          ! if(commRank==0 .and. i==10) then
+          !    print*, i, j, row+1, col+1, JacA%Num(j)
+          ! end if
+
+          ! col is node or frac, insert JacA%Val(:,:,j)
+          if(JacA%Num(j) <= (NbNodeLocal+NbFracLocal)) then
+             
+             do s=1, NbCompThermique
+                idxm(s) = row + s - 1
+                idxn(s) = col + s - 1
+             end do
+
+             call MatSetValues(A_mpi, m, idxm, n, idxn, JacA%Val(:,:,j), INSERT_VALUES, Ierr)
+             CHKERRQ(Ierr)
+
+          else ! col is wellinj or wellprod, insert JacA%Val(1,:,j)
+
+             do s=1, NbCompThermique
+                idxm(s) = row + s - 1
+             end do
+             idxn(1) = col
+
+             ! index order of matrix JacBigA(:,:,j) is (col,row)
+             call MatSetValues(A_mpi, m, idxm, 1, idxn, JacA%Val(1,:,j), INSERT_VALUES, Ierr)
+             CHKERRQ(Ierr)
+          end if
+       end do
+    end do
+
+    ! rows associated with  wellinj own and wellprod own
+    do i=(NbNodeOwn+NbFracOwn)+1, (NbNodeOwn+NbFracOwn+NbWellInjOwn+NbWellProdOwn)
+
+       do j=JacA%Pt(i)+1, JacA%Pt(i+1)
+
+          row = RowLToRowG(i) - 1             ! 0-based in petsc
+          col = ColLToColG( JacA%Num(j) ) - 1 ! 0-based in petsc
+
+          ! col is node or frac, insert JacA%Val(:,1,j)
+          if(JacA%Num(j) <= (NbNodeLocal+NbFracLocal)) then
+
+             do s=1, NbCompThermique
+                idxn(s) = col + s - 1
+             end do
+             idxm(1) = row
+
+             call MatSetValues(A_mpi, 1, idxm, n, idxn, JacA%Val(:,1,j), INSERT_VALUES, Ierr)
+             CHKERRQ(Ierr)
+
+          else ! col is wellinj or wellprod, insert JacA%Val(1,1,j)
+
+             idxm(1) = row
+             idxn(1) = col
+
+             call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1,1,j), INSERT_VALUES, Ierr)
+             CHKERRQ(Ierr)
+          end if
+       end do
+    end do
+
+    call MatAssemblyBegin(A_mpi,MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+    call MatAssemblyEnd(A_mpi,MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+
+    ! call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+
+  end subroutine SolvePetsc_SetAmpi
+
+
+  ! Set values Ap: part pression of A_mpi
+  subroutine SolvePetsc_SetAp
+
+    integer :: i, j
+    integer :: row, col
+    PetscErrorCode :: Ierr
+
+    ! cols of JacA are (node, frac)
+    ! insert value JacA%Val(1,1,*)
+    do i=1, JacA%Nb
+
+       row = RowLToRowGBlock(i) - 1             ! 0-based in petsc
+
+       do j= JacA%Pt(i)+1, JacA%Pt(i+1)
+
+          col = ColLToColGBlock( JacA%Num(j) ) - 1 ! 0-based in petsc
+          
+          call MatSetValue(Ap, row, col, JacA%Val(1,1,j), INSERT_VALUES, Ierr)
+          CHKERRQ(Ierr)
+       end do
+    end do
+
+    call MatAssemblyBegin(Ap, MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+    call MatAssemblyEnd(Ap, MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+
+    ! call MatView(Ap,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+
+  end subroutine SolvePetsc_SetAp
+
+
+#ifdef _THERMIQUE_
+
+  ! Set values At, temperature part of A_mpi
+  subroutine SolvePetsc_SetAt
+
+    ! TODO: add well 
+    
+    integer :: i, j
+    integer :: row, col
+    PetscErrorCode :: Ierr
+
+    logical :: IsTprimbyContext(NbContexte)
+
+    do i=1, NbContexte
+       if(psprim(2,i)==2) then
+          IsTprimbyContext(i) = .true. ! For context i, T is prim
+       else
+          IsTprimbyContext(i) = .false. ! For context i, T is secd
+       end if
+    end do
+
+    ! T is prim or secd for unknowns (node and frac)
+    ! IsTprimNodeFracOwn: unknowns (node own, frac own)
+    ! IsTprimNodeFracLocal: unknowns (node local, frac local)
+    do i=1, NbNodeOwn_Ncpus(commRank+1)
+       IsTprimNodeFracOwn(i) = IsTprimbyContext(IncNode(i)%ic)
+    end do
+    do i=1, NbFracOwn_Ncpus(commRank+1)
+       IsTprimNodeFracOwn(NbNodeOwn_Ncpus(commRank+1)+i) &
+            = IsTprimbyContext(IncFrac(i)%ic)
+    end do
+
+    do i=1, NbNodeLocal_Ncpus(commRank+1)
+       IsTprimNodeFracLocal(i) = IsTprimbyContext(IncNode(i)%ic)
+    end do
+    do i=1, NbFracLocal_Ncpus(commRank+1)
+       IsTprimNodeFracLocal(NbNodeLocal_Ncpus(commRank+1)+i) &
+            = IsTprimbyContext(IncFrac(i)%ic)
+    end do
+
+    ! cols of JacA are (node, frac)
+    ! insert value JacA%Val(2,2,*)
+    ! if T is send for i, At(i,:)=0, At(:,i)=0, At(i,i)=1
+    do i=1, JacA%Nb
+
+       row = RowLToRowGBlock(i) - 1 ! 0-based in petsc
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then ! for i, T is prim
+
+          do j= JacA%Pt(i)+1, JacA%Pt(i+1)
+
+             col = ColLToColGBlock( JacA%Num(j) ) - 1 ! 0-based in petsc
+
+             if(IsTprimNodeFracLocal( JacA%Num(j) ) .eqv. .true.) then ! for j, T is prim
+                call MatSetValue(At, row, col, JacA%Val(2,2,j), INSERT_VALUES, Ierr)
+                CHKERRQ(Ierr)
+             else
+                call MatSetValue(At, row, col, 0.d0, INSERT_VALUES, Ierr)
+                CHKERRQ(Ierr)
+             end if
+          end do
+
+       else ! for i, T is secd
+
+          do j= JacA%Pt(i)+1, JacA%Pt(i+1)
+
+             col = ColLToColGBlock( JacA%Num(j) ) - 1 ! 0-based in petsc
+
+             if(row==col) then
+                call MatSetValue(At, row, col, 1.d0, INSERT_VALUES, Ierr)
+                CHKERRQ(Ierr)
+             else
+                call MatSetValue(At, row, col, 0.d0, INSERT_VALUES, Ierr)
+                CHKERRQ(Ierr)
+             end if
+          end do
+
+       end if
+    end do
+
+    call MatAssemblyBegin(At, MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+    call MatAssemblyEnd(At, MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+
+    ! call MatView(At,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+
+  end subroutine SolvePetsc_SetAt
+
+#endif
+
+  ! Create ksp
+  subroutine SolvePetsc_CreateKsp
+
+    PetscErrorCode :: Ierr
+
+    ! ksp solver create
+    call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
+    CHKERRQ(Ierr) 
+    call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
+    CHKERRQ(Ierr) 
+    call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
+    CHKERRQ(Ierr)
+    call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
+    CHKERRQ(Ierr)
+    call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
+    CHKERRQ(Ierr)
+
+    if(.not. allocated(kspHistory)) then
+       allocate( kspHistory(kspitmax+1))
+    end if
+    call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! ! monitor
+    ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
+    !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! set preconditioner
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)                                   
+    CHKERRQ(Ierr)
+
+    ! ! non preconditioner
+    ! call PCSetType(pc_mpi,PCNONE,Ierr)   
+    ! CHKERRQ(Ierr)
+
+    ! hypre pc
+    call PCSetType(pc_mpi, PCHYPRE, Ierr)
+    CHKERRQ(Ierr)
+
+    ! ! Euclid in hypre: ILU(k), k is level
+    ! call PCHYPRESetType(pc_mpi, "euclid", Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr) 
+    ! CHKERRQ(Ierr)
+    ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! boomeramg preconditioner in hypre
+    call PCHYPRESetType(pc_mpi,'boomeramg',Ierr)
+    CHKERRQ(Ierr)
+
+    ! Sets KSP options from the options database
+    call KSPSetFromOptions(ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_CreateKsp
+
+
+  ! Set up ksp for CPR-AMG preconditioner
+  subroutine SolvePetsc_cpramgCreateKsp
+
+    PetscErrorCode :: Ierr
+
+    ! 1. KSP
+    ! 2. PC Pression
+    ! 3. PC ilu0
+    ! 4. PC Temperature (if thermal)
+
+    ! 1. ksp solver create
+    call KSPCreate(ComPASS_COMM_WORLD,ksp_mpi,Ierr)
+    CHKERRQ(Ierr)
+    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
+    CHKERRQ(Ierr) 
+    call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
+    CHKERRQ(Ierr) 
+    call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
+    CHKERRQ(Ierr)
+    call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
+    CHKERRQ(Ierr)
+    call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
+    CHKERRQ(Ierr)
+
+    if(.not. allocated(kspHistory)) then
+       allocate( kspHistory(kspitmax+1))
+    end if
+    call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
+    CHKERRQ(Ierr)
+
+    ! ! monitor
+    ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
+    !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! set preconditioner CPR-AMG
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)                                   
+    CHKERRQ(Ierr)
+    call PCSetType(pc_mpi, PCSHELL, Ierr)   
+    CHKERRQ(Ierr)
+
+    ! apply shell pc
+#ifdef _THERMIQUE_
+
+
+    ! call PCShellSetApply(pc_mIpi, SolvePetsc_cpramgPCApply_P_additive, Ierr)
+    call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_P_multiplicative, Ierr)
+
+    ! call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_PT_additive, Ierr)
+
+    ! call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_PT_multiplicative, Ierr)
+    ! call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_T_multiplicative, Ierr)
+    CHKERRQ(Ierr)
+#else
+    call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_P_multiplicative, Ierr)
+    CHKERRQ(Ierr)
+#endif
+
+    ! setup shell pc and solver
+    call PCShellSetSetUp(pc_mpi, SolvePetsc_cpramgPCSetUp,Ierr)
+    CHKERRQ(Ierr)
+
+    ! Set KSP options from the options database
+    call KSPSetFromOptions(ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! 2. PC Pression
+    call PCCreate(ComPASS_COMM_WORLD, pcamg_p, Ierr)
+    CHKERRQ(Ierr)
+    call PCSetOperators(pcamg_p, Ap, Ap, Ierr)
+    CHKERRQ(Ierr)
+    call PCSetType(pcamg_p, PCHYPRE, Ierr)
+    CHKERRQ(Ierr)
+    call PCHYPRESetType(pcamg_p, "boomeramg", Ierr)
+    CHKERRQ(Ierr)
+    call PetscOptionsSetValue("-pc_hypre_boomeramg_strong_threshold","0.5",Ierr)
+    CHKERRQ(Ierr)
+    call PCSetFromOptions(pcamg_p, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! 3. PC ilu0
+    call PCCreate(ComPASS_COMM_WORLD, pcilu0, Ierr)
+    CHKERRQ(Ierr)
+    call PCSetOperators(pcilu0, A_mpi, A_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call PCSetType(pcilu0, PCHYPRE, Ierr)
+    CHKERRQ(Ierr)
+    call PCHYPRESetType(pcilu0, "euclid", Ierr)
+    CHKERRQ(Ierr)
+    call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr) 
+    CHKERRQ(Ierr)
+    call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
+    CHKERRQ(Ierr)
+    call PCSetFromOptions(pcilu0, Ierr) 
+    CHKERRQ(Ierr)
+
+! #ifdef _THERMIQUE_
+
+    ! ! 4. PC Temperature
+    ! call PCCreate(ComPASS_COMM_WORLD, pcamg_t, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PCSetOperators(pcamg_t, At, At, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! call PCSetType(pcamg_t, PCHYPRE, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PCHYPRESetType(pcamg_t, "boomeramg", Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PetscOptionsSetValue("-pc_hypre_boomeramg_strong_threshold","0.5",Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PCSetFromOptions(pcamg_t, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! call PCSetType(pcamg_t, PCLU, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PCFactorSetMatSolverPackage(pcamg_t, MATSOLVERSUPERLU_DIST, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call PCFactorSetMatSolverPackage(pcamg_t, MATSOLVERMUMPS, Ierr)
+    ! CHKERRQ(Ierr)
+
+! #endif
+
+  end subroutine SolvePetsc_cpramgCreateKsp
+
+
+  ! *** AMG for pression first, ILU0 second *** !
+  !   P1^{-1}: amg for pression
+  !   P2^{-1}: ilu0 for all
+
+  ! Preconditioner: v -> P^{-1}v, no thermal
+  ! P^{-1}v = P1^{-1}v + P2^{-1}(v-A_mpi*P_1^{-1}*v)
+  ! Ps: v must not be modified
+  subroutine SolvePetsc_cpramgPCApply_P_multiplicative(pcin, v, Pv, Ierr)
+
+    PC, intent(inout) :: pcin
+    Vec, intent(inout) :: v, Pv
+    PetscErrorCode, intent(inout) :: Ierr
+
+    double precision, pointer :: ptr1(:)
+    double precision, pointer :: ptr2(:)
+    integer :: NbNodeFrac, NbWell, i, iv
+
+    NbNodeFrac = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
+    NbWell = NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
+    
+    ! Pression part of v:
+    ! v_pt = R1*v, R1: restriction matrix to pression
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, NbNodeFrac
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(i) = ptr1(iv)
+    end do
+
+    do i=1, NbWell
+       iv = NbNodeFrac*NbCompThermique + i
+       ptr2(i+NbNodeFrac) = ptr1(iv)
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_1^{-1} v_pt, AMG
+    call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v has been initialized as 0
+    ! The part hors pression is always 0
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, NbNodeFrac
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(iv) = ptr1(i)
+    end do
+
+    do i=1, NbWell
+       iv = NbNodeFrac*NbCompThermique + i
+       ptr2(iv) = ptr1(i+NbNodeFrac)
+    end do
+    
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = A*P1v
+    call MatMult(A_mpi, P1v, AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = v - AP1v
+    call VecAYPX(AP1v, -1.d0, v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = P_2^{-1} AP1v, ILU(0)
+    call PCApply(pcilu0, AP1v, Pv, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = Pv + P1v
+    call VecAXPY(Pv, 1.d0, P1v, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! ! *** ILU0 first, AMG second *** !
+    ! !   P1^{-1}: ilu0 for all
+    ! !   P2^{-1}: amg for pression
+
+    ! ! Pv = P_2^{-1} v, ILU(0)
+    ! call PCApply(pcilu0, v, Pv, Ierr)
+    ! CHKERRQ(Ierr)    
+
+    ! call MatMult(A_mpi, Pv, AP1v, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! call VecAYPX(AP1v, -1.d0, v, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! call VecGetArrayReadF90(AP1v, ptr1, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call VecGetArrayF90(v_pt, ptr2, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! do i=1, Nb
+    !    iv = (i-1)*NbCompThermique + 1
+    !    ptr2(i) = ptr1(iv)
+    ! end do
+
+    ! call VecRestoreArrayReadF90(AP1v, ptr1, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! ! P1v_pt = P_1^{-1} v_pt, AMG
+    ! call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
+    ! CHKERRQ(Ierr)
+
+
+    ! call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call VecGetArrayF90(Pv, ptr2, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! do i=1, Nb
+    !       iv = (i-1)*NbCompThermique + 1
+    !       ptr2(iv) = ptr2(iv) + ptr1(i)
+    ! end do
+
+    ! call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call VecRestoreArrayF90(Pv, ptr2, Ierr)
+    ! CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_cpramgPCApply_P_multiplicative
+
+
+  ! *** AMG for pression and ILU0 second (additive) *** !
+  !   P1^{-1}: amg for pression
+  !   P2^{-1}: ilu0 for all  
+  ! Preconditioner: v -> P^{-1}v, thermal
+  ! Ps: v must not be modified
+  subroutine SolvePetsc_cpramgPCApply_P_additive(pcin, v, pv, Ierr)
+
+    PC, intent(inout) :: pcin
+    Vec, intent(inout) :: v, pv
+    PetscErrorCode, intent(inout) :: Ierr
+
+    double precision, pointer :: ptr1(:)
+    double precision, pointer :: ptr2(:)
+    integer :: Nb, i, iv
+
+    Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
+
+    ! Pv = P_2^{-1} v, ILU(0)
+    call PCApply(pcilu0, v, Pv, Ierr)
+    CHKERRQ(Ierr)    
+
+    ! Pression part of v:
+    ! v_pt = R1*v, R1: restriction matrix to pression
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(i) = ptr1(iv)
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_1^{-1} v_pt, AMG
+    call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v has been initialized as 0
+    ! The part hors pression and temperature is always 0
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(Pv, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb 
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(iv) = ptr2(iv) + ptr1(i)
+    end do
+
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_cpramgPCApply_P_additive
+
+
+#ifdef _THERMIQUE_
+
+
+  ! *** AMG for pression first, AMG for temperature second, ILU0 third *** !
+  !   P1^{-1}: amg for pression
+  !   P2^{-1}: amg for temperature
+  !   P3^{-1}: ilu0 for all  
+  ! Preconditioner: v -> P^{-1}v, thermal
+  ! Ps: v must not be modified
+  subroutine SolvePetsc_cpramgPCApply_PT_multiplicative(pcin, v, pv, Ierr)
+
+    PC, intent(inout) :: pcin
+    Vec, intent(inout) :: v, pv
+    PetscErrorCode, intent(inout) :: Ierr
+
+    double precision, pointer :: ptr1(:)
+    double precision, pointer :: ptr2(:)
+    integer :: Nb, i, iv
+
+    Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
+
+    ! Pression part of v
+    ! v_pt = R1*v, R1: restriction matrix to pression
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(i) = ptr1(iv)
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_1^{-1} v_pt, AMG
+    call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v has been initialized as 0
+    ! The part hors pression is always 0
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(iv) = ptr1(i)
+    end do
+
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = A*P1v
+    call MatMult(A_mpi, P1v, AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = v - AP1v
+    call VecAYPX(AP1v, -1.d0, v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Temperature part of AP1v
+    ! AP1v_t = R2*AP1v, R2: restriction matrix to temperature
+    call VecGetArrayReadF90(AP1v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(AP1v_t, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(i) = ptr1(iv)
+       else
+          ptr2(i) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(AP1v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(AP1v_t, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P2AP1v_t = P_2^{-1} AP1v_t, AMG
+    call PCApply(pcamg_t, AP1v_t, P2AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P2AP1v has been initialized as 0
+    ! The part hors temperature is always 0
+    call VecGetArrayReadF90(P2AP1v_t, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P2AP1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(iv) = ptr1(i)
+       else
+          ptr2(iv) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(P2AP1v_t, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P2AP1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP2AP1v = A * P2AP1v
+    call MatMult(A_mpi, P2AP1v, AP2AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP2AP1v = AP1v - AP2AP1v
+    call VecAYPX(AP2AP1v, -1.d0, AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = P_3^{-1} AP2AP1v, ILU(0)
+    call PCApply(pcilu0, AP2AP1v, Pv, Ierr)
+    CHKERRQ(Ierr)    
+
+    ! Pv = Pv + P2AP1v
+    call VecAXPY(Pv, 1.d0, P2AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = Pv + P1v
+    call VecAXPY(Pv, 1.d0, P1v, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_cpramgPCApply_PT_multiplicative
+
+
+  ! *** AMG for pression and AMG for temperature first (additive), ILU0 second (multiplicative) *** !
+  !   P1^{-1}: amg for pression
+  !   P2^{-1}: amg for temperature
+  !   P3^{-1}: ilu0 for all  
+  ! Preconditioner: v -> P^{-1}v, thermal
+  ! Ps: v must not be modified
+  subroutine SolvePetsc_cpramgPCApply_PT_additive(pcin, v, pv, Ierr)
+
+    PC, intent(inout) :: pcin
+    Vec, intent(inout) :: v, pv
+    PetscErrorCode, intent(inout) :: Ierr
+
+    double precision, pointer :: ptr1(:)
+    double precision, pointer :: ptr2(:)
+    integer :: Nb, i, iv
+
+    Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
+
+    ! Pression part of v:
+    ! v_pt = R1*v, R1: restriction matrix to pression
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(i) = ptr1(iv)
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_1^{-1} v_pt, AMG
+    call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v has been initialized as 0
+    ! The part hors pression and temperature is always 0
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb 
+       iv = (i-1)*NbCompThermique + 1
+       ptr2(iv) = ptr1(i)
+    end do
+
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! Temperature part of v:
+    ! v_pt = R2*v, R2: restriction matrix to temperature
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(i) = ptr1(iv)
+       else
+          ptr2(i) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_2^{-1} v_pt, AMG
+    call PCApply(pcamg_t, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb 
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(iv) = ptr1(i)
+       else
+          ptr2(iv) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = A*P1v
+    call MatMult(A_mpi, P1v, AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = v - AP1v
+    call VecAYPX(AP1v, -1.d0, v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = P_3^{-1} AP1v, ILU(0)
+    call PCApply(pcilu0, AP1v, Pv, Ierr)
+    CHKERRQ(Ierr)    
+
+    ! Pv = Pv + P1v
+    call VecAXPY(Pv, 1.d0, P1v, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_cpramgPCApply_PT_additive
+
+
+  ! *** AMG for temperature, ILU0 second (multiplicative) *** !
+  !   P2^{-1}: amg for temperature
+  !   P3^{-1}: ilu0 for all  
+  ! Preconditioner: v -> P^{-1}v, thermal
+  ! Ps: v must not be modified
+  subroutine SolvePetsc_cpramgPCApply_T_multiplicative(pcin, v, pv, Ierr)
+
+    PC, intent(inout) :: pcin
+    Vec, intent(inout) :: v, pv
+    PetscErrorCode, intent(inout) :: Ierr
+
+    double precision, pointer :: ptr1(:)
+    double precision, pointer :: ptr2(:)
+    integer :: Nb, i, iv
+
+    Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
+
+    ! Temperature part of v:
+    ! v_pt = R2*v, R2: restriction matrix to temperature
+    call VecGetArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(i) = ptr1(iv)
+       else
+          ptr2(i) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(v, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(v_pt, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! P1v_pt = P_2^{-1} v_pt, AMG
+    call PCApply(pcamg_t, v_pt, P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecGetArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, Nb 
+       iv = (i-1)*NbCompThermique + 2
+
+       if(IsTprimNodeFracOwn(i) .eqv. .true.) then
+          ptr2(iv) = ptr1(i)
+       else
+          ptr2(iv) = 0.d0
+       end if
+    end do
+
+    call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
+    CHKERRQ(Ierr)
+    call VecRestoreArrayF90(P1v, ptr2, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = A*P1v
+    call MatMult(A_mpi, P1v, AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! AP1v = v - AP1v
+    call VecAYPX(AP1v, -1.d0, v, Ierr)
+    CHKERRQ(Ierr)
+
+    ! Pv = P_3^{-1} AP1v, ILU(0)
+    call PCApply(pcilu0, AP1v, Pv, Ierr)
+    CHKERRQ(Ierr)    
+
+    ! Pv = Pv + P1v
+    call VecAXPY(Pv, 1.d0, P1v, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_cpramgPCApply_T_multiplicative
+
+#endif
+
+
+  ! Create Sm_mpi and x_mpi
+  subroutine SolvePetsc_CreateSm
+
+    integer :: i, j
+    PetscErrorCode :: Ierr
+
+    ! create Sm_mpi
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL, NrowG, &
+         Sm_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecSet(Sm_mpi, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(Sm_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(Sm_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    ! create x_mpi
+    call VecDuplicate(Sm_mpi, x_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecSet(x_mpi, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(x_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(x_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_CreateSm
+
+
+  ! Set Sm_mpi
+  subroutine SolvePetsc_SetSm
+
+    integer :: i, j
+    integer :: start, blockstart
+    double precision, dimension(:), pointer :: ptr
+    PetscErrorCode :: Ierr
+
+    ! set Sm to Sm_mpi
+    call VecGetArrayF90(Sm_mpi, ptr, Ierr)
+    CHKERRQ(Ierr)
+
+    do i=1, NbNodeOwn+NbFracOwn
+
+       do j=1, NbCompThermique
+          ptr((i-1)*NbCompThermique+j) = Sm(j,i)
+       end do
+    end do
+
+    start = (NbNodeOwn + NbFracOwn) * NbCompThermique
+    blockstart = NbNodeOwn + NbFracOwn
+
+    do i=1, NbWellInjOwn+NbWellProdOwn
+       ptr(i+start) = Sm(1,i+blockstart)
+    end do
+
+    call VecRestoreArrayF90(Sm_mpi, ptr, Ierr)
+    CHKERRQ(Ierr)
+
+
+    ! call VecSetValues(Sm_mpi, JacA%Nb, Sm_ix, Sm, INSERT_VALUES, Ierr)
+
+    ! call VecAssemblyBegin(Sm_mpi, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call VecAssemblyEnd(Sm_mpi, Ierr)
+    ! CHKERRQ(Ierr)
+
+    ! call VecView(Sm_mpi, PETSC_VIEWER_STDOUT_WORLD, Ierr)
+
+  end subroutine SolvePetsc_SetSm
+
+
+  ! Create Ap and At
+  subroutine SolvePetsc_cpramgCreateApAt
+
+    integer, allocatable, dimension(:) :: &
+         d_nnz, & ! number of nonzeros per row in diagonal portion
+         o_nnz    ! number of nonzeros per row in the off-diagonal portion 
+
+    ! some tmp values, explained when setting values
+    integer :: Nl_Fo, Nl_Fl, Nl_Fl_WIo, Nl_Fl_WIl, Nl_Fl_WIl_WPo, Nl_Fl_WIl_WPl
+
+    ! tmp values
+    integer :: i, j, lj
+    PetscErrorCode :: Ierr
+
+    ! number of nonzeros per row in diag or off-diag portion
+    allocate(d_nnz(NBlockrowL))
+    allocate(o_nnz(NBlockrowL))
+    d_nnz(:) = 0
+    o_nnz(:) = 0
+
+    ! N: Node, F: Frac, WI: well inj, WP: well prod
+    ! l: local, o: own
+    Nl_Fo = NbNodeLocal + NbFracOwn 
+    Nl_Fl = NbNodeLocal + NbFracLocal
+    Nl_Fl_WIo = NbNodeLocal + NbFracLocal + NbWellInjOwn
+    Nl_Fl_WIl = NbNodeLocal + NbFracLocal + NbWellInjLocal
+    Nl_Fl_WIl_WPo = NbNodeLocal + NbFracLocal + NbWellInjLocal + NbWellProdOwn
+    Nl_Fl_WIl_WPl = NbNodeLocal + NbFracLocal + NbWellInjLocal + NbWellProdLocal
+
+    do i=1, NBlockrowL
+
+       do j=JacA%Pt(i)+1,JacA%Pt(i+1)
+
+          lj = JacA%Num(j)
+
+          if (lj<=NbNodeOwn) then ! node own
+             d_nnz(i) = d_nnz(i) + 1
+          else if (NbNodeOwn<lj .and. lj<=NbNodeLocal) then ! node ghost
+             o_nnz(i) = o_nnz(i) + 1
+          else if (NbNodeLocal<lj .and. lj<=Nl_Fo) then
+             d_nnz(i) = d_nnz(i) + 1
+          else if(Nl_Fo<lj .and. lj<=Nl_Fl) then
+             o_nnz(i) = o_nnz(i) + 1
+          else if(Nl_Fl<lj .and. lj<=Nl_Fl_WIo) then
+             d_nnz(i) = d_nnz(i) + 1
+          else if(Nl_Fl_WIo<lj .and. lj<=Nl_Fl_WIl) then
+             o_nnz(i) = o_nnz(i) + 1
+          else if(Nl_Fl_WIl<lj .and. lj<=Nl_Fl_WIl_WPo) then
+             d_nnz(i) = d_nnz(i) + 1
+          else if(Nl_Fl_WIl_WPo<lj .and. lj<=Nl_Fl_WIl_WPl) then
+             o_nnz(i) = o_nnz(i) + 1
+          end if
+       end do
+    end do
+
+    ! create matrix Ap and At
+    call MatCreateAIJ(ComPASS_COMM_WORLD, &
+         NBlockrowL, NBlockcolL, &
+         NBlockrowG, NBlockcolG, &
+         0, d_nnz, 0, o_nnz, Ap, Ierr)
+    CHKERRQ(Ierr)
+
+! #ifdef _THERMIQUE_
+
+!     call MatCreateAIJ(ComPASS_COMM_WORLD, &
+!          NBlockrowL, NBlockcolL, &
+!          NBlockrowG, NBlockcolG, &
+!          0, d_nnz, 0, o_nnz, At, Ierr)
+!     CHKERRQ(Ierr)
+! #endif
+
+    deallocate(d_nnz)
+    deallocate(o_nnz)
+
+  end subroutine SolvePetsc_CpramgCreateApAt
+
+
+  ! Solve A_mpi x = Sm_mpi
+  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput)
+
+    ! if converge: kspid>0
+    ! if not converge: kspid<0
+    integer, intent(out) :: NkspIter
+    double precision, dimension(:), intent(inout) :: &
+         kspHistoryOutput
+
+    integer :: i
+    PetscErrorCode :: Ierr
+    KSPConvergedReason :: reason
+
+    ! solve
+    call KSPSolve(ksp_mpi, Sm_mpi, x_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    ! solver converge reason
+    ! <0: diverge
+    call KSPGetConvergedReason(ksp_mpi, reason, Ierr)
+    CHKERRQ(Ierr)
+
+    if(reason<0) then
+
+       NkspIter = reason
+
+       do i=1, kspitmax
+          kspHistoryOutput(i) = kspHistory(i)
+       end do
+    else
+
+       call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations 
+       CHKERRQ(Ierr)
+
+       NkspIter = NkspIter + 1 
+    end if
+
+    ! call VecView(Sm_mpi, PETSC_VIEWER_STDOUT_WORLD, Ierr)
+
+  end subroutine SolvePetsc_KspSolve
+
+
+  subroutine SolvePetsc_SyncMat
+
+    integer :: i, j, &
+         row, col
+    PetscErrorCode :: Ierr
+
+    integer, allocatable, dimension(:) :: &
+         d_nnz, o_nnz    ! number of non zeros each row, diag/non-diag
+
+    integer, allocatable, dimension(:) :: &
+         RowNum, ColNum  ! the index of element i is (RowNum(i), ColNum(i)) 
+
+    double precision, parameter :: c1 = 1.d0
+
+    ! NrowL, NcolL, NrowG, NcolG
+    NrowL_s = (NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1)) * NbCompThermique &
+         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1)
+
+    NcolL_s = (NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)) * NbCompThermique &
+         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
+
+    NrowG_s = 0
+    NcolG_s = 0
+    do i=1, Ncpus
+       NrowG_s = NrowG_s + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i)) * NbCompThermique &
+            + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
+
+       NcolG_s = NcolG_s + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+
+    ! d_nnz, o_nnz
+    allocate(d_nnz(NrowL_s))
+    allocate(o_nnz(NrowL_s))
+
+    ! node own
+    do i=1, NbNodeOwn*NbCompThermique
+       d_nnz(i) = 1
+       o_nnz(i) = 0
+    end do
+
+    ! node ghost
+    do i=NbNodeOwn*NbCompThermique+1, &
+         NbNodeLocal*NbCompThermique
+       d_nnz(i) = 0
+       o_nnz(i) = 1
+    end do
+
+    ! frac own
+    do i=NbNodeLocal*NbCompThermique+1, &
+         (NbNodeLocal+NbFracOwn)*NbCompThermique
+       d_nnz(i) = 1
+       o_nnz(i) = 0
+    end do
+
+    ! frac ghost
+    do i=(NbNodeLocal+NbFracOwn)*NbCompThermique+1, &
+         (NbNodeLocal+NbFracLocal)*NbCompThermique
+       d_nnz(i) = 0
+       o_nnz(i) = 1
+    end do
+
+    ! well inj own
+    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+1, &
+         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjOwn
+       d_nnz(i) = 1
+       o_nnz(i) = 0
+    end do
+
+    ! well inj ghost
+    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjOwn+1, &
+         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal
+       d_nnz(i) = 0
+       o_nnz(i) = 1
+    end do
+
+    ! well prod own
+    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+1, &
+         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdOwn
+       d_nnz(i) = 1
+       o_nnz(i) = 0
+    end do
+
+    ! well prod ghost
+    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdOwn+1, &
+         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdLocal
+       d_nnz(i) = 0
+       o_nnz(i) = 1
+    end do
+
+    ! print*, NrowL, NcolL, NrowG, NcolG, commRank
+
+    ! allocate Ms
+    call MatCreateAIJ(ComPASS_COMM_WORLD, &
+         NrowL_s, NcolL_s, &
+         NrowG_s, NcolG_s, &
+         0, d_nnz, 0, o_nnz, M_s, Ierr)
+    CHKERRQ(Ierr)
+
+    ! set value Ms
+    allocate(RowNum(NrowL_s))
+    allocate(ColNum(NrowL_s))
+
+    call SolvePetsc_rowcolnum(RowNum, ColNum) ! make RowNum and ColNum
+
+    do i=1, NrowL_s
+
+       row = RowNum(i) - 1
+       col = ColNum(i) - 1
+
+       call MatSetValue(M_s, row, col, &
+            c1, INSERT_VALUES, Ierr) ! 0-based in petsc
+       CHKERRQ(Ierr)
+    end do
+
+    ! Mat create fin
+    call MatAssemblyBegin(M_s,MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+    call MatAssemblyEnd(M_s,MAT_FINAL_ASSEMBLY,Ierr)
+    CHKERRQ(Ierr)
+
+    deallocate(RowNum)
+    deallocate(ColNum)
+
+    ! call MatView(M_s,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+
+    ! create x_s
+    call VecCreateMPI(ComPASS_COMM_WORLD, &
+         NrowL_s, NrowG_s, &
+         x_s, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecSet(x_s, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecAssemblyBegin(x_s, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(x_s, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_SyncMat
+
+
+  ! x_s = M_s * x_mpi 
+  subroutine SolvePetsc_Sync
+
+    integer :: Ierr
+    double precision :: tmp
+
+    call MatMult(M_s, x_mpi, x_s, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_Sync
+
+
+  subroutine SolvePetsc_GetSolNodeFracWell(NewtonIncreNode, NewtonIncreFrac, &
+       NewtonIncreWellInj, NewtonIncreWellProd)
+
+    double precision, dimension(:,:), intent(out) :: &
+         NewtonIncreNode, &
+         NewtonIncreFrac
+
+    double precision, dimension(:), intent(out) :: &
+         NewtonIncreWellInj, &
+         NewtonIncreWellProd
+
+    integer :: i, j, start
+    PetscErrorCode :: Ierr
+    double precision, pointer :: ptr(:)
+
+    ! get values from x_s
+    call VecGetArrayF90(x_s, ptr, Ierr)
+    CHKERRQ(Ierr)
+
+    ! increment node
+    do i=1, NbNodeLocal_Ncpus(commRank+1)
+
+       start = (i-1) * NbCompThermique
+
+       do j=1, NbCompThermique
+          NewtonIncreNode(j,i) = ptr(start+j)
+       end do
+    end do
+
+    ! increment frac
+    do i=1, NbFracLocal_Ncpus(commRank+1)
+
+       start = (i+NbNodeLocal_Ncpus(commRank+1)-1) * NbCompThermique
+
+       do j=1, NbCompThermique
+          NewtonIncreFrac(j,i) = ptr(start+j)
+       end do
+    end do
+
+    ! increment well inj
+    start = (NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1)) * NbCompThermique
+    do i=1, NbWellInjLocal_Ncpus(commRank+1)
+       NewtonIncreWellInj(i) = ptr(start+i)
+    end do
+
+    ! increment well prod
+    start = start + NbWellInjLocal_Ncpus(commRank+1)
+    do i=1, NbWellProdLocal_Ncpus(commRank+1)
+       NewtonIncreWellProd(i) = ptr(start+i)
+    end do
+
+    call VecRestoreArrayF90(x_s, ptr, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_GetSolNodeFracWell
+
+  ! Free
+  subroutine SolvePetsc_Free
+
+    PetscErrorCode :: Ierr
+
+    ! Destroy
+    call KSPDestroy(ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call MatDestroy(A_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    ! free ksp convergence history vector
+    if(allocated(kspHistory)) then
+       deallocate(kspHistory)
+    end if
+
+    ! free RowLToRowG ColLToColG
+    deallocate(RowLToRowGBlock)
+    deallocate(ColLToColGBlock)
+
+    deallocate(RowLToRowG)
+    deallocate(ColLToColG)
+
+    call VecDestroy(Sm_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(x_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    ! sync
+    call MatDestroy(M_s, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecDestroy(x_s, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_Free
+
+
+  ! Free
+  subroutine SolvePetsc_cpramgFree
+
+    PetscErrorCode :: Ierr
+
+    call SolvePetsc_free
+
+    ! Destroy
+    call PCDestroy(pc_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call KSPDestroy(ksp_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call MatDestroy(A_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    call PCDestroy(pcamg_p, Ierr)
+    CHKERRQ(Ierr)
+    call PCDestroy(pcilu0, Ierr)
+    CHKERRQ(Ierr)
+    call MatDestroy(Ap, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecDestroy(v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(P1v_pt, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(P1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+#ifdef _THERMIQUE_
+    ! call PCDestroy(pcamg_t, Ierr)
+    ! CHKERRQ(Ierr)
+    ! call MatDestroy(At, Ierr)
+    ! CHKERRQ(Ierr)
+
+    call VecDestroy(AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(P2AP1v, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(P2AP1v_t, Ierr)
+    CHKERRQ(Ierr)
+    call VecDestroy(AP2AP1v, Ierr)
+    CHKERRQ(Ierr)
+
+    deallocate(IsTprimNodeFracOwn)
+    deallocate(IsTprimNodeFracLocal)
+#endif
+
+  end subroutine SolvePetsc_cpramgFree
+
+
+  ! row/col local to row/col global
+  ! RowLtoRowG(i): gloabl row i in A_mpi where i is row in JacA
+  ! ColLToColG(i): gloabl col i in A_mpi where i is col in JacA
+  subroutine SolvePetsc_LtoG
+
+    integer :: i, ipc, j, start, ndisp
+
+    ! RowLtoRowG
+    ! idea: add sum of numbers of own nodes/frac/well in the procs before commRank (rowstart)
+    allocate( RowLToRowG(NBlockrowL) )
+
+    ! node/frac
+    do i=1, NbNodeOwn + NbFracOwn
+       RowLToRowG(i) = rowstart(commRank+1) + (i-1)*NbCompThermique + 1
+    end do
+
+    ! well
+    start = NbNodeOwn + NbFracOwn
+    ndisp = rowstart(commRank+1) + (NbNodeOwn+NbFracOwn)*NbCompThermique
+    
+    do i=1, NbWellInjOwn + NbWellProdOwn
+       RowLToRowG(i+start) = ndisp + i
+    end do
+
+    ! Colltocolg(i), where i is in (node local, frac local, well local)
+    allocate( ColLToColG(NbNodeLocal+NbFracLocal &
+         + NbWellInjLocal+NbWellProdLocal) )
+    ColLToColG(:) = 0
+
+    ! part node local in ColLtocolG
+    do i=1, NumNodebyProc%Nb
+       do j=NumNodebyProc%Pt(i)+1, NumNodebyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumNodebyProc%Val(j)
+          
+          ColLToColG(j) = (NumNodebyProc%Num(j)-1) * NbCompThermique + 1  &
+               + colstart(ipc+1)
+       end do
+    end do
+
+    ! part frac in ColLtocolG
+    do i=1,NumFracbyProc%Nb
+       do j=NumFracbyProc%Pt(i)+1, NumFracbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumFracbyProc%Val(j)
+
+          ColLToColG(j+NbNodeLocal) = (NumFracbyProc%Num(j)-1) * NbCompThermique + 1 &
+               + colstart(ipc+1) + NbNodeOwn_Ncpus(ipc+1) * NbCompThermique ! frac is after node own in proc ipc
+
+
+          ! if(commRank==0 .and. i==2) then
+          !    print*, NumFracbyProc%Num(j), j+NbNodeLocal, ColLToColG(j+NbNodeLocal)
+          ! end if
+          
+       end do
+    end do
+
+    ! part well inj in ColLtoColG
+    start = NbNodeLocal + NbFracLocal
+    do i=1, NumWellInjbyProc%Nb
+
+       do j=NumWellInjbyProc%Pt(i)+1, NumWellInjbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumWellInjbyProc%Val(j)
+
+          ColLToColG(j+start) = NumWellInjbyProc%Num(j) &
+               + colstart(ipc+1) + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
+       end do
+    end do
+
+    ! part well prod in ColLtoColG
+    start = NbNodeLocal + NbFracLocal + NbWellInjLocal
+    do i=1, NumWellProdbyProc%Nb
+
+       do j=NumWellProdbyProc%Pt(i)+1, NumWellProdbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumWellProdbyProc%Val(j)
+
+          ColLToColG(j+start) = NumWellProdbyProc%Num(j) &
+               + colstart(ipc+1) + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique + NbWellInjOwn_Ncpus(ipc+1)
+       end do
+    end do
+
+    ! if(commRank==1) then
+    !    print*, ""
+    !    print*, ""
+    !    print*, ColLToColG
+    ! end if
+
+  end subroutine SolvePetsc_LtoG
+
+
+
+  subroutine SolvePetsc_LtoGBlock
+
+    integer :: i, ipc, j, start
+
+    ! RowLtoRowGBlock
+    ! idea: add sum of numbers of own nodes/frac/well in the procs before commRank (rowstart)
+    allocate( RowLToRowGBlock(NBlockrowL) ) 
+    do i=1, NBlockrowL
+       RowLToRowGBlock(i) = Blockrowstart(commRank+1) + i
+    end do
+
+    ! ColLtoColGBlock(i), where i is in (node local, frac local, well local)
+    allocate( ColLToColGBlock(NbNodeLocal+NbFracLocal &
+         + NbWellInjLocal+NbWellProdLocal) )
+    ColLToColGBlock(:) = 0
+
+    ! part node local in ColLtocolGBlock
+    do i=1, NumNodebyProc%Nb
+
+       do j=NumNodebyProc%Pt(i)+1, NumNodebyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumNodebyProc%Val(j)
+
+          ColLToColGBlock(j) = NumNodebyProc%Num(j) + Blockcolstart(ipc+1)
+       end do
+    end do
+
+    ! part frac in ColLtocolGBlock
+    do i=1,NumFracbyProc%Nb
+
+       do j=NumFracbyProc%Pt(i)+1, NumFracbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumFracbyProc%Val(j)
+
+          ColLToColGBlock(j+NbNodeLocal) = NumFracbyProc%Num(j) + Blockcolstart(ipc+1) &
+               + NbNodeOwn_Ncpus(ipc+1) ! frac is after node own in proc ipc
+       end do
+    end do
+
+    ! part well inj in ColLtoColGBlock
+    start = NbNodeLocal + NbFracLocal
+    do i=1, NumWellInjbyProc%Nb
+
+       do j=NumWellInjbyProc%Pt(i)+1, NumWellInjbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumWellInjbyProc%Val(j)
+
+          ColLToColGBlock(j+start) = NumWellInjbyProc%Num(j) + Blockcolstart(ipc+1) &
+               + NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)
+       end do
+    end do
+
+    ! part well prod in ColLtoColGBlock
+    start = NbNodeLocal + NbFracLocal + NbWellInjLocal
+    do i=1, NumWellProdbyProc%Nb
+
+       do j=NumWellProdbyProc%Pt(i)+1, NumWellProdbyProc%Pt(i+1)
+
+          ! j is in proc ipc
+          ipc = NumWellProdbyProc%Val(j)
+
+          ColLToColGBlock(j+start) = NumWellProdbyProc%Num(j) + Blockcolstart(ipc+1) &
+               + NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1) + NbWellInjOwn_Ncpus(ipc+1)
+       end do
+    end do
+
+    ! if(commRank==1) then
+    !    print*, ""
+    !    print*, ""
+    !    print*, ColLToColGBlock
+    ! end if
+
+  end subroutine SolvePetsc_LtoGBlock
+
+  
+
+  ! Row/Col num:  RowNum, ColNum
+  subroutine SolvePetsc_rowcolnum(RowNum, ColNum)
+
+    integer, allocatable, dimension(:), intent(inout) :: &
+         RowNum, ColNum
+
+    integer, allocatable, dimension(:) :: &
+         NbSumRow, NbSumCol
+    integer :: i, j, ipc, start, s
+
+    ! number of node and frac in the procs before commRank
+    ! used for RowNum
+    allocate(NbSumRow(Ncpus))
+    NbSumRow(:) = 0
+    do i=1, Ncpus-1
+       NbSumRow(i+1) = NbSumRow(i) &
+            + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i)) * NbCompThermique &
+            + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
+    end do
+
+    ! number of node own and frac own in the procs before commRank
+    ! used for ColNum
+    allocate(NbSumCol(Ncpus))
+    NbSumCol(:) = 0
+    do i=1, Ncpus-1
+       NbSumCol(i+1) = NbSumCol(i) &
+            + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
+            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+    end do
+
+    ! RowNum, node
+    do i=1, NbNodeLocal * NbCompThermique
+       RowNum(i) = i + NbSumRow(commRank+1)
+    end do
+
+    ! RowNum, frac
+    start = NbNodeLocal * NbCompThermique
+    do i=1, NbFracLocal * NbCompThermique
+       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
+    end do
+
+    ! RowNum, well inj
+    start = (NbNodeLocal + NbFracLocal) * NbCompThermique
+    do i=1, NbWellInjLocal
+       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
+    end do
+
+    ! RowNum, well prod
+    start = (NbNodeLocal + NbFracLocal) * NbCompThermique + NbWellInjLocal
+    do i=1, NbWellProdLocal
+       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
+    end do
+
+    ! ColNum, node
+    do i=1, NbNodeLocal
+
+       ipc = NumNodebyProc%Val(i) ! this node is in proc ipc 
+
+       ! NumNodebyProc%Num(i) is the num of this node in the proc that it's own
+       do s=1, NbCompThermique
+          ColNum((i-1)*NbCompThermique+s) = (NumNodebyProc%Num(i)-1) * NbCompThermique + s + NbSumCol(ipc+1)
+
+          ! if(commRank==0) then
+          !    print*, (i-1)*NbCompThermique+s, ColNum((i-1)*NbCompThermique+s), NumNodebyProc%Num(i), ipc, NbSumCol(ipc+1)
+          ! end if          
+       end do
+    end do
+
+    ! ColNum, frac
+    start = NbNodeLocal * NbCompThermique
+    do i=1, NbFracLocal
+
+       ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc 
+
+       ! NumFracbyProc%Num(i) is the num of this frac in the proc that it's own
+       do s=1, NbCompThermique
+          ColNum(start+(i-1)*NbCompThermique+s) = (NumFracbyProc%Num(i)-1) * NbCompThermique + s &
+               + NbSumCol(ipc+1) + NbNodeOwn_Ncpus(ipc+1) * NbCompThermique
+       end do
+    end do
+
+    ! ColNum, well inj
+    start = (NbNodeLocal + NbFracLocal) * NbCompThermique
+    do i=1, NbWellInjLocal
+
+       ipc = NumWellInjbyProc%Val(i) ! this well inj is in proc ipc
+
+       ! NumWellInjbyProc%Num(i) is the num of this well inj in the proc that it's own
+       ColNum(start+i) = NumWellInjbyProc%Num(i) + NbSumCol(ipc+1) &
+            + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
+
+       ! if(commRank==1) then
+       !    print*, start+i, ColNum(start+i), ipc, NumWellInjbyProc%Num(i)
+       ! end if
+
+    end do
+
+    ! ColNum, well prod
+    start = (NbNodeLocal + NbFracLocal) * NbCompThermique + NbWellInjLocal
+    do i=1, NbWellProdLocal
+
+       ipc = NumWellProdbyProc%Val(i) ! this well inj is in proc ipc
+
+       ! NumWellInjbyProc%Num(i) is the num of this well inj in the proc that it's own
+       ColNum(start+i) = NumWellProdbyProc%Num(i) + NbSumCol(ipc+1) &
+            + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique + NbWellInjOwn_Ncpus(ipc+1)
+    end do
+
+    deallocate(NbSumRow)
+    deallocate(NbSumCol)
+
+  end subroutine SolvePetsc_rowcolnum
+
+end module SolvePetsc
