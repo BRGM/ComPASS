@@ -79,7 +79,7 @@ end subroutine GlobalMesh_SetDirBC
 !> \brief User set well for car mesh
 subroutine GlobalMesh_SetWellCar(nx,ny,nz)
 
-  integer :: i, j
+  integer :: i, j, iwell, jwell
   integer, intent(in) :: nx, ny, nz
 
   ! one injection well
@@ -98,7 +98,7 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   !    end do
   ! end do
 
-  ! 0 production well
+  ! 1 production well
   NbWellProd = 1
   allocate(NbEdgebyWellProd(NbWellProd))
   allocate(NumNodebyEdgebyWellProd(2,nz,NbWellProd))
@@ -106,11 +106,13 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   NbEdgebyWellProd(1) = nz
   NumNodebyEdgebyWellProd(:,:,:) = -1    
 
+  iwell = nx/3
+  jwell = ny/2
+  
   do i=1,NbWellProd
      do j=1,NbEdgebyWellProd(i)
-
-        NumNodebyEdgebyWellProd(1,j,i) = j*(nx+1)*(ny+1) + (ny/2) * (nx+1) + (nx/2) + 1
-        NumNodebyEdgebyWellProd(2,j,i) = (j-1)*(nx+1)*(ny+1) + (ny/2) * (nx+1) + (nx/2) + 1
+        NumNodebyEdgebyWellProd(1,j,i) = j*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
+        NumNodebyEdgebyWellProd(2,j,i) = (j-1)*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
      end do
   end do
   
