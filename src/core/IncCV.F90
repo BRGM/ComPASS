@@ -6,8 +6,10 @@ module IncCV
   use NumbyContext  
   use CommonMPI
 
+#ifdef _HDF5_
   use hdf5
   use h5lt
+#endif
 
   use iso_c_binding
 
@@ -1081,6 +1083,7 @@ contains
 
 
 
+#ifdef _HDF5_
   ! hyperslab visual example
   ! +------------+
   ! | xx xx xx xx|
@@ -1916,5 +1919,6 @@ contains
 
   end subroutine IncCV_ReadSolFromFile
 
+#endif
 
 end module IncCV
