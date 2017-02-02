@@ -34,10 +34,6 @@ if(DEF_THERMIQUE)
 endif(DEF_THERMIQUE)
 
 option(DEF_VISU "Visualization with VTK" ON)
-if(DEF_VISU)
-  add_definitions(-D_VISU_)
-endif(DEF_VISU)
-
 option(DEF_HDF5 "Checkpointing with HDF5" OFF)
 
 option(DEF_DISPMODULE "Third Party debug using displaymodule" OFF)
@@ -75,10 +71,14 @@ if(${PETSC_VERSION} VERSION_GREATER 3.6)
     message(FATAL_ERROR "PETSC version should not be greater than 3.5.x")
 endif()
 find_package(LAPACK REQUIRED)
+
 # vtk
 # set(VTK_DIR ${LIB_PREFIX}/include/vtk-7.1)
-find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
+if(DEF_VISU)
+  add_definitions(-D_VISU_)
+  find_package(VTK REQUIRED)
+  include(${VTK_USE_FILE})
+endif(DEF_VISU)
 
 # hdf5
 if(DEF_HDF5)
