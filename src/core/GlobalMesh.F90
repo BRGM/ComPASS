@@ -255,9 +255,10 @@ contains
        end if
     end do
 
-    ! print*, Mesh_xmax, Mesh_xmin
-    ! print*, Mesh_ymax, Mesh_ymin
-    ! print*, Mesh_zmax, Mesh_zmin
+    print*, "Bounding box:"
+    print*, Mesh_xmin, "< X <", Mesh_xmax
+    print*, Mesh_ymin, "< Y <", Mesh_ymax
+    print*, Mesh_zmin, "< Z <", Mesh_zmax
 
   end subroutine GlobalMesh_Make
 
@@ -318,9 +319,9 @@ contains
        enddo
     enddo
 
-    XNode(:,1) = XNode(:,1) + Ox
-    XNode(:,2) = XNode(:,2) + Oy
-    XNode(:,3) = XNode(:,3) + Oz
+    XNode(1,:) = XNode(1,:) + Ox
+    XNode(2,:) = XNode(2,:) + Oy
+    XNode(3,:) = XNode(3,:) + Oz
     
     FacebyCell%Nb = NbCell
     allocate (FacebyCell%Pt(NbCell+1))

@@ -39,9 +39,6 @@ if(DEF_VISU)
 endif(DEF_VISU)
 
 option(DEF_HDF5 "Checkpointing with HDF5" OFF)
-if(DEF_HDF5)
-  add_definitions(-D_HDF5_)
-endif(DEF_HDF5)
 
 option(DEF_DISPMODULE "Third Party debug using displaymodule" OFF)
 if(DEF_DISPMODULE)
@@ -84,20 +81,19 @@ find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
 # hdf5
-# FIXME: find_package(HDF5) # if option HDF5 ?
+if(DEF_HDF5)
+  add_definitions(-D_HDF5_)
 set(HDF5_USE_STATIC_LIBRARIES OFF)
 option(HDF5_PREFER_PARALLEL "HDF5 prefers parallel" ON)
-# FIXME: If option is changed find_package will not reload the correct hdf5 version
-# FIXME: inforce parallel ? h5pset_fapl_mpio_f_ is needed ?
-# FIXME: Even is DEF_DHF5 is not set code needs to be linked against HDF5
-# if(DEF_HDF5)
-  find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
+  # FIXME: If option is changed find_package will not reload the correct hdf5 version
+  # FIXME: inforce parallel ? h5pset_fapl_mpio_f_ is needed ?
+  find_package(HDF5 REQUIRED COMPONENTS Fortran Fortran_HL)
   if(HDF5_FOUND)
       message(STATUS "HDF5 version: " ${HDF5_VERSION})
   else()
       message(FATAL_ERROR "HDF5 was required but was not found on the system, CMake will exit." )
   endif()
-# endif()
+endif(DEF_HDF5)
 
 enable_testing()
 

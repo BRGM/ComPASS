@@ -123,7 +123,7 @@ module DefModel
   ! ! * tetrahedron-triangle
   ! ! * wedge
   character(len=40), parameter :: &
-      MESH_TYPE = "tetrahedron-triangle"
+      MESH_TYPE = "cartesian-quad"
 
 
   ! ! ****** Times ****** ! !

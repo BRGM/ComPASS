@@ -57,6 +57,7 @@ program NN
   double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
   
   ! Time variables
+  logical :: EnterMainLoop = .True.
   double precision :: Delta_t, TimeCurrent, TimeOutput
   integer :: TimeIter = 0, VisuTimeIter = 1
   double precision :: Psat, dTsat
@@ -138,10 +139,14 @@ program NN
   ! OutputDir = "output"
 
   if(argc==4) then
-     call GetArg(4, TimeIterstr)
-     read (TimeIterstr,'(I10)') TimeIter
+    call GetArg(4, TimeIterstr)
+    read (TimeIterstr,'(I10)') TimeIter
+    if(TimeIter<0) then
+      EnterMainLoop = .False.
+      TimeIter = 0
+    end if
   else
-     TimeIter = 0
+    TimeIter = 0
   end if
 
   ! Meshname = "car2_1_1.msh"
@@ -577,7 +582,7 @@ program NN
   end if
 #endif
 
-  do while (TimeCurrent<(TimeFinal+eps))
+  do while (EnterMainLoop .and. TimeCurrent<(TimeFinal+eps))
    
      ! init start time
      comptime_start = MPI_WTIME()
