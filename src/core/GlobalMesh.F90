@@ -128,7 +128,8 @@ module GlobalMesh
        GlobalMesh_free
 
   private :: &
-       GlobalMesh_ReadMeshCar ,         & ! generate cartesian mesh
+       GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
+       GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
        GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
        GlobalMesh_SetPorosite,          & ! set porosite
        GlobalMesh_CellByNodeGlobal,     & ! make CellbyNode
@@ -141,6 +142,46 @@ module GlobalMesh
 
 contains
 
+  subroutine GlobalMesh_MeshBoundingBox
+  
+    integer :: i
+    
+    Mesh_xmax = XNode(1,1)
+    Mesh_xmin = XNode(1,1)
+    Mesh_ymax = XNode(2,1)
+    Mesh_ymin = XNode(2,1)
+    Mesh_zmax = XNode(3,1)
+    Mesh_zmin = XNode(3,1)
+
+    do i=2, NbNode
+        
+       if(XNode(1,i)<Mesh_xmin) then
+          Mesh_xmin = XNode(1,i)
+       else if(XNode(1,i)>Mesh_xmax) then
+          Mesh_xmax = XNode(1,i)
+       end if
+
+       if(XNode(2,i)<Mesh_ymin) then
+          Mesh_ymin = XNode(2,i)
+       else if(XNode(2,i)>Mesh_ymax) then
+          Mesh_ymax = XNode(2,i)
+       end if
+
+       if(XNode(3,i)<Mesh_zmin) then
+          Mesh_zmin = XNode(3,i)
+       else if(XNode(3,i)>Mesh_zmax) then
+          Mesh_zmax = XNode(3,i)
+       end if
+
+    end do
+
+    print*, "Bounding box:"
+    print*, Mesh_xmin, "< X <", Mesh_xmax
+    print*, Mesh_ymin, "< Y <", Mesh_ymax
+    print*, Mesh_zmin, "< Z <", Mesh_zmax
+
+  end subroutine GlobalMesh_MeshBoundingBox
+    
   ! include two subroutines:
   !   GlobalMesh_SetDirBC: set dir boundary
   !   GlobalMesh_SetFrac:  set face fracture
@@ -190,6 +231,8 @@ contains
        call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
     end if
 
+    call GlobalMesh_MeshBoundingBox
+    
     !< \TODO: input porosite
     call GlobalMesh_SetPorosite
 
@@ -224,41 +267,6 @@ contains
     if(allocated(IdNodeFromFile)) then
        deallocate(IdNodeFromFile)
     end if
-
-    ! Mesh size
-    ! FIXME: bounding box as a subroutine
-    Mesh_xmax = XNode(1,1)
-    Mesh_xmin = XNode(1,1)
-    Mesh_ymax = XNode(2,1)
-    Mesh_ymin = XNode(2,1)
-    Mesh_zmax = XNode(3,1)
-    Mesh_zmin = XNode(3,1)
-
-    do i=2, NbNode
-
-       if(XNode(1,i)<Mesh_xmin) then
-          Mesh_xmin = XNode(1,i)
-       else if(XNode(1,i)>Mesh_xmax) then
-          Mesh_xmax = XNode(1,i)
-       end if
-
-       if(XNode(2,i)<Mesh_ymin) then
-          Mesh_ymin = XNode(2,i)
-       else if(XNode(2,i)>Mesh_ymax) then
-          Mesh_ymax = XNode(2,i)
-       end if
-
-       if(XNode(3,i)<Mesh_zmin) then
-          Mesh_zmin = XNode(3,i)
-       else if(XNode(3,i)>Mesh_zmax) then
-          Mesh_zmax = XNode(3,i)
-       end if
-    end do
-
-    print*, "Bounding box:"
-    print*, Mesh_xmin, "< X <", Mesh_xmax
-    print*, Mesh_ymin, "< Y <", Mesh_ymax
-    print*, Mesh_zmin, "< Z <", Mesh_zmax
 
   end subroutine GlobalMesh_Make
 
