@@ -72,7 +72,7 @@ subroutine GlobalMesh_SetDirBC
      end if
 
   end do
-
+  
 end subroutine GlobalMesh_SetDirBC
 
 
@@ -83,20 +83,22 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   integer, intent(in) :: nx, ny, nz
 
   ! one injection well
-  NbWellInj = 0
+  NbWellInj = 1
   allocate(NbEdgebyWellInj(NbWellInj))
   allocate(NumNodebyEdgebyWellInj(2,nz,NbWellInj))
   
-  ! NbEdgebyWellInj(1) = nz
-  ! NumNodebyEdgebyWellInj(:,:,:) = -1    
+   NbEdgebyWellInj(1) = nz
+   NumNodebyEdgebyWellInj(:,:,:) = -1    
 
-  ! do i=1,NbWellInj
-  !    do j=1,NbEdgebyWellInj(i)
+  iwell = 2*nx/3
+  jwell = ny/2
 
-  !       NumNodebyEdgebyWellInj(1,j,i) = j*(nx+1)*(ny+1) + (ny/2) * (nx+1) + (nx/2) + 1
-  !       NumNodebyEdgebyWellInj(2,j,i) = (j-1)*(nx+1)*(ny+1) + (ny/2) * (nx+1) + (nx/2) + 1
-  !    end do
-  ! end do
+  do i=1,NbWellInj
+      do j=1,NbEdgebyWellInj(i)
+         NumNodebyEdgebyWellInj(1,j,i) = j*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
+         NumNodebyEdgebyWellInj(2,j,i) = (j-1)*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
+      end do
+   end do
 
   ! 1 production well
   NbWellProd = 1

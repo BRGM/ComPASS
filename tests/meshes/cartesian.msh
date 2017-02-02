@@ -1,9 +1,9 @@
- Corner Point Geometry grid with erosions
- Topo Cartesien en XY et erosion possible en Z
+Cartesian mesh 
+If number of vertices is negative FCFA Benchmark format is bypassed and a grid definition is read instead
  Number of vertices
           -1
 Numbers of cells along directions 
-301 201 1
+61 41 1
 Domain size
 3000 2000 100
 Origin

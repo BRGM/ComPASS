@@ -1,0 +1,3 @@
+OUTPUTDIR="doublet-case"
+mkdir -p ${OUTPUTDIR}
+mpirun -n $1 ~/build-ComPASS/bin/ComPASS-monothermal_1inj_1prod meshes/cartesian.msh ${OUTPUTDIR}/compass.log ${OUTPUTDIR}

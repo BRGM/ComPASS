@@ -130,16 +130,17 @@ module DefModel
 
   ! One day
   double precision, parameter :: OneDay = 24.d0 * 3600.d0
+  double precision, parameter :: OneMonth = 3.d1 * OneDay
+  double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
   ! time step init and max 
-  double precision, parameter :: TimeFinal = 50.d5 * OneDay
-  ! double precision, parameter :: TimeFinal = 3.d4 * OneDay
+  double precision, parameter :: TimeFinal = 30 * OneYear
 
-  double precision, parameter :: TimeStepInit = 4.d4 * OneDay
-  double precision, parameter :: TimeStepMax1 = 4.d4 * OneDay
+  double precision, parameter :: TimeStepInit = OneDay
+  double precision, parameter :: TimeStepMax1 = OneYear
 
   ! output_frequency for visu
-  double precision, parameter :: output_frequency = 5.d4
+  double precision, parameter :: output_frequency = OneYear
 
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
