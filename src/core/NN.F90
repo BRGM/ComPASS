@@ -604,7 +604,7 @@ program NN
            write(j,*) ""
            write(j,*) ""
            write(j, '(A,I0)') "Time Step: ", TimeIter
-           write(j,'(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay
+           write(j,'(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay, "days", TimeCurrent/OneYear, "years"
 
            write(j,*)
            write(j,'(A)',advance="no") "   -- Initial time step: "
@@ -876,11 +876,11 @@ program NN
         
      TimeCurrent = TimeCurrent + Delta_t
 
-     ! ! compute Delta_t for the next time step
-     ! call IncCV_ComputeTimeStep(Delta_t, TimeCurrent)
-
+     ! FiXME: What is the policy for time step management
+     ! compute Delta_t for the next time step
+     call IncCV_ComputeTimeStep(Delta_t, TimeCurrent)
      ! ???
-     Delta_t = TimeStepInit
+     ! Delta_t = TimeStepInit
      
      ! total computation time and computation time of this time step
      comptime_timestep = MPI_WTIME() - comptime_start
@@ -1034,6 +1034,7 @@ program NN
              comptime_total, comptime_timestep)
 #endif
 
+        ! FIXME: we may loose some outputs
         do while(TimeOutput < TimeCurrent)
            TimeOutput = TimeOutput + output_frequency
         end do
