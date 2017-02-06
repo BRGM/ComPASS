@@ -1,4 +1,4 @@
-program NN
+module NN
 
   use GlobalMesh
   use PartitionMesh
@@ -29,15 +29,10 @@ program NN
   implicit none
 
   ! Mesh file and Perm file
-  character (100) :: &
-       Meshname, MeshFile,    &
-       Reportname, OutputDir, &
-       Wellinfoname, &
-       TimeIterstr
+  character (100) :: Wellinfoname
 
   character(len=100) :: cmd
   
-  integer :: argc
   integer :: Ierr, errcode
   logical :: file_exists
 
@@ -57,9 +52,8 @@ program NN
   double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
   
   ! Time variables
-  logical :: EnterMainLoop = .True.
   double precision :: Delta_t, TimeCurrent, TimeOutput
-  integer :: TimeIter = 0, VisuTimeIter = 1
+  integer :: VisuTimeIter = 1
   double precision :: Psat, dTsat
 
   ! Computation time variables
@@ -124,36 +118,13 @@ program NN
   double precision :: f, CC(NbComp), SS(NbPhase), dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
   ! ! ********************************** ! !
+  
+  contains
 
-  ! Input mesh name
-  argc = IARGC()
+  subroutine NN_init(MeshFile, LogFile, OutputDir)
 
-  call GetArg(1, Meshname)
-  call GetArg(2, Reportname)
-  call GetArg(3, OutputDir)
-
-  ! Meshname = "hexa4_wellinjprod.msh"
-
-  ! Meshname = "mesh500k.msh"
-  ! Reportname = "report.txt"
-  ! OutputDir = "output"
-
-  if(argc==4) then
-    call GetArg(4, TimeIterstr)
-    read (TimeIterstr,'(I10)') TimeIter
-    if(TimeIter<0) then
-      EnterMainLoop = .False.
-      TimeIter = 0
-    end if
-  else
-    TimeIter = 0
-  end if
-
-  ! Meshname = "car2_1_1.msh"
-  ! Meshname = "hexa-cpg.msh"
-  ! Meshname = "hexa4.msh"
-  ! Meshname = "ggf1m_1z.msh"
-
+    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
+  
   ! initialisation petsc/MPI
   call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
   CHKERRQ(Ierr)
@@ -163,9 +134,6 @@ program NN
 
 
   ! *** Global Mesh *** !
-
-  ! Mesh file
-  MeshFile = trim(meshname)
 
   ! check if the mesh file existe
   inquire(FILE=MeshFile, EXIST=file_exists)
@@ -185,7 +153,7 @@ program NN
 
   ! Report file
   if(commRank==0) then
-     open(11,file=trim(Reportname),status="unknown")
+     open(11,file=LogFile,status="unknown")
   end if
 
   allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
@@ -573,6 +541,13 @@ program NN
 
   Delta_t = TimeStepInit
 
+end subroutine NN_init
+
+subroutine NN_main(TimeIter, OutputDir)
+
+    integer, intent(inout) :: TimeIter
+    character(len=*), intent(in) :: OutputDir
+
 #ifdef _HDF5_
   if( TimeIter > 0) then
      call IncCV_ReadSolFromFile(OutputDir, &
@@ -582,7 +557,7 @@ program NN
   end if
 #endif
 
-  do while (EnterMainLoop .and. TimeCurrent<(TimeFinal+eps))
+    do while (TimeCurrent<(TimeFinal+eps))
    
      ! init start time
      comptime_start = MPI_WTIME()
@@ -1059,7 +1034,10 @@ program NN
 
   end do ! end of time steps
 
+end subroutine NN_main
   
+subroutine NN_finalize()
+
   ! ! compute errors
   ! errlocal_cell_L1 = 0.d0
   ! errlocal_cell_L2 = 0.d0
@@ -1181,8 +1159,9 @@ program NN
   end if
   call PetscFinalize(Ierr)
 
-end program NN
+end subroutine NN_finalize
 
+! FIXME: Spare comments? Remove them?
 
 ! if(commRank==0) then
 
@@ -1585,3 +1564,4 @@ end program NN
 !    end if
 ! end do
 
+end module NN
