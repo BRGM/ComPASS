@@ -153,7 +153,7 @@ module NN
 
   ! Report file
   if(commRank==0) then
-     open(11,file=LogFile,status="unknown")
+      open(11,file=trim(LogFile),status="unknown")
   end if
 
   allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11

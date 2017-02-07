@@ -2,6 +2,8 @@
 
     use NN
 
+    implicit none
+    
     logical :: EnterMainLoop = .True.
     integer :: TimeIter = 0
     integer :: argc
@@ -14,10 +16,15 @@
     argc = IARGC()
 
     call GetArg(1, meshfile)
+    meshfile = trim(meshfile)
+    
     call GetArg(2, logfile)
+    logfile = trim(logfile)
+    
     call GetArg(3, outputdir)
-
-    call NN_init(trim(meshfile), trim(logfile), trim(outputdir))
+    outputdir = trim(outputdir)
+    
+    call NN_init(meshfile, logfile, outputdir)
 
     if(argc==4) then
         call GetArg(4, TimeIterStr)
