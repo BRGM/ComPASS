@@ -119,53 +119,51 @@ module NN
 
   ! ! ********************************** ! !
   
-  contains
+    contains
 
-  subroutine NN_init(MeshFile, LogFile, OutputDir)
+    subroutine NN_init_output_streams(Logfile)
+    
+    character(len=*), intent(in) :: LogFile
 
-    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
-  
-  ! initialisation petsc/MPI
-  call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
-  CHKERRQ(Ierr)
+    ! Report file
+    if(commRank==0) then
+        open(11,file=trim(LogFile),status="unknown")
+    end if
 
-  ! init mpi, communicator/commRank/commSize
-  call CommonMPI_init(PETSC_COMM_WORLD)
+    allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
+    ! allocate(fd(1)); fd = (/11/)
 
+    end subroutine NN_init_output_streams
+    
+    
+    subroutine NN_read_and_partition_mesh(MeshFile, status)
 
-  ! *** Global Mesh *** !
+    character(len=*), intent(in   ) :: MeshFile
+    logical,          intent(  out) :: status
 
-  ! check if the mesh file existe
-  inquire(FILE=MeshFile, EXIST=file_exists)
-  if(file_exists .eqv. .false.) then
-     if(commRank==0) then
+    !FIXME: This is more of an assertion for consistency, might be removed
+    if(.NOT.commRank==0) then
+        print*, "Mesh is supposed to be read by master process."
+        status = .false.
+        return
+    end if
+
+    inquire(FILE=MeshFile, EXIST=file_exists)
+    if(file_exists .eqv. .false.) then
         print*, " "
         print*, "Mesh does not exist   ", MeshFile
         print*, " "
-     end if
+        status = .false.
+        return
+    end if
+    print*, "Mesh read from file: ", MeshFile
 
-     call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-  else
-     if(commRank==0) then
-        print*, "Mesh read from file: ", MeshFile
-     end if    
-  end if
+    comptime_readmesh = MPI_WTIME()
 
-  ! Report file
-  if(commRank==0) then
-      open(11,file=trim(LogFile),status="unknown")
-  end if
+    ! Read Global Mesh
+    call GlobalMesh_Make(MeshFile)
 
-  allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
-  ! allocate(fd(1)); fd = (/11/)
-  
-  comptime_readmesh = MPI_WTIME()
-
-  if(commRank==0) then
-     ! Read Global Mesh
-     call GlobalMesh_Make(MeshFile)
-
-     do i=1,size(fd)
+    do i=1,size(fd)
         j = fd(i)
         write(j,*) "Mesh file: ", trim(MeshFile)
         write(j,*) "  NbCell:      ", NbCell
@@ -181,56 +179,70 @@ module NN
         write(j,*) "  Ncpus :      ", commSize
         write(j,*) ""
         write(j,*) "Final time: ", TimeFinal/OneDay
-        write(j,*) ""  
-     end do
+        write(j,*) ""
+    end do
 
-  end if
-
-  comptime_readmesh = MPI_WTIME() - comptime_readmesh
-  if(commRank==0) then
-     do i=1,size(fd)
+    comptime_readmesh = MPI_WTIME() - comptime_readmesh
+    do i=1,size(fd)
         write(fd(i),'(A,F16.3)') "Computation time of reading mesh: ", &
-             comptime_readmesh
-     end do
-  end if
+            comptime_readmesh
+    end do
 
-  comptime_meshmake = MPI_WTIME()
+    comptime_meshmake = MPI_WTIME()
 
-  ! compute well index
-  if(commRank==0) then
+    ! compute well index
+    call DefWell_Make(NbWellInj, NbWellProd, &
+        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+        PermCell, PermFrac)
 
-     call DefWell_Make(NbWellInj, NbWellProd, &
-          NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-          PermCell, PermFrac)
-  end if
+    ! ****
+    ! Partition Global Mesh
+    ! Output:
+    !        ProcbyCell
+    call PartitionMesh_Metis(Ncpus)
 
-  
-  if(commRank==0) then
-     ! ****
-     ! Partition Global Mesh
-     ! Output:
-     !        ProcbyCell
-     call PartitionMesh_Metis(Ncpus)
+    ! make local mesh
+    call LocalMesh_Make
 
-     ! make local mesh
-     call LocalMesh_Make
+    ! free global mesh
+    call GlobalMesh_free
 
-     ! free global mesh
-     call GlobalMesh_free
+    comptime_meshmake = MPI_WTIME() - comptime_meshmake
 
-  end if
-
-  comptime_meshmake = MPI_WTIME() - comptime_meshmake
-
-  if(commRank==0) then
-     do i=1,size(fd)
+    do i=1,size(fd)
         write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
-             comptime_meshmake
-     end do
+            comptime_meshmake
+    end do
+
+    status = .true.
+    
+    end subroutine NN_read_and_partition_mesh
+
+    
+  subroutine NN_init(MeshFile, LogFile, OutputDir)
+
+    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
+    logical                      :: ok, all_ok
+    
+  ! initialisation petsc/MPI
+  call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
+  CHKERRQ(Ierr)
+
+  ! init mpi, communicator/commRank/commSize
+  call CommonMPI_init(PETSC_COMM_WORLD)
+
+  call NN_init_output_streams(Logfile)
+
+  ! *** Global Mesh *** !
+
+  if(commRank==0) then
+      call NN_read_and_partition_mesh(MeshFile, ok)
+      if(.NOT. ok) then
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
   end if
-
   call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
-
 
   ! *** Global Mesh -> Local Mesh *** !
 
@@ -323,7 +335,7 @@ module NN
   comptime_start = MPI_WTIME()
   if(commRank==0) then
      do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time of VAG:          ", &
+        write(fd(i),'(A,F16.3)') "Computation time VAG init.        :", &
              comptime_part
      end do
   end if
@@ -420,8 +432,6 @@ module NN
   end if
 
   comptime_total = comptime_total + comptime_part
-
-  ! *** Time loop *** !
 
   ! set dir bc values
   call IncCV_SetDirBCValue
