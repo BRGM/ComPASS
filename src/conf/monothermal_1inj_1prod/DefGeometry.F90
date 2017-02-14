@@ -26,7 +26,7 @@ end subroutine GlobalMesh_SetFrac
 
 
 ! Set dirichlet boundary
-!    car mesh:   manually
+!    cartesian mesh:   manually
 !    other mesh: manually or
 !                according to IdNodeFromfile could be served
 ! The node index read from mesh file is: IdNodeFromfile (integer)

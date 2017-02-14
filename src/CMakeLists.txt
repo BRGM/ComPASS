@@ -15,7 +15,7 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-	ComPASS.F90
+    ComPASS.F90
     GlobalMesh.F90
     IncCV.F90
     Flux.F90

@@ -490,6 +490,8 @@ contains
       NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
 
       ! loop of nodes in cell
+      ! FIXME: do ptnumi = NodebyCellLocal%Pt(k), NodebyCellLocal%Pt(k+1)
+      ! FIXME: numi = NodebyCellLocal%Num(ptnumi)
       do i=1, NbNodeCell
 
         numi = NodebyCellLocal%Num( NodebyCellLocal%Pt(k)+i)

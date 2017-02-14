@@ -47,6 +47,8 @@ module CommonType
   end type CSRArray2dble
   
   !> Store data of Node about own/ghost; fractures and boundary conditions
+  ! FIXME: P stands for "mass balance equationS"
+  ! FIXME: T stands for "energy balance equation"
   type Type_IdNode
      sequence
      character :: Proc  !< "o"/"g": own/ghost
