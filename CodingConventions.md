@@ -12,13 +12,19 @@ Commits should be carefully formatted (from [Chris Beams] (https://chris.beams.i
   * Use the body to explain what and why vs. how
 
 
-The first word of the commit subject may give hints about the nature of the commit:
+The first word of the commit subject may give hints about the nature of the commit (*e.g.*):
 
   * WIP: Work In Progress
-  * BugFix
+  * BugFix: Commit corresponding to a bug fix. If any try to reference the issue corresponding to the bug.
 
+You can add references in issue or merge request descriptions or in comments. This will update the issue with info about anything related :
+  * to reference an issue: #123
+  * to reference a merge request: !123
+  * to reference a code snippet: $123
+
+Note that issues can be automatically closed through commits using a sepcial syntax (cf. [gitlab documentaiton](https://docs.gitlab.com/ee/user/project/issues/automatic_issue_closing.html)).
   
-Branch names should begin by the name of their owner.
+Branch names should begin by the name of their owner. Don't be shy on branch naming as branch are to be deleted when merge request to the default branch is closed.
 
 ## Inside the code
 
