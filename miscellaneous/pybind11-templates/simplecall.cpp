@@ -5,10 +5,10 @@ int add(int i, int j)
 	return i + j;
 }
 
-int my_fortran_add(int, int);
 
 extern "C"
 {
+	int my_fortran_add(int, int);
 	int my_fortran_add_byref(int&, int&);
 }
 
