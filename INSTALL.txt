@@ -13,6 +13,8 @@ libmetis-dev
 mpi-default-dev
 libvtk6-dev
 
+On Ubuntu lower than 16.10 you may also need to install libproj-dev package.
+
 Useful environment variables
 #  PETSC_DIR - directory in which PETSc resides
 #  PETSC_ARCH - build architecture
