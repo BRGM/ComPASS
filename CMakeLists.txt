@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.2)
 
 project(ComPASS Fortran C CXX)
 
-# don't set CMAKE_BUILD_TYPE here, it is already in the cache
-# This statically specifies what build type (configuration) will be built in this build tree. Possible values are empty, Debug, Release, RelWithDebInfo and MinSizeRel. This variable is only meaningful to single-configuration generators (such as make and Ninja)
-# set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_BUILD_TYPE Release)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 # make sure our own modules are found
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
@@ -76,7 +77,7 @@ find_package(LAPACK REQUIRED)
 # set(VTK_DIR ${LIB_PREFIX}/include/vtk-7.1)
 if(DEF_VISU)
   add_definitions(-D_VISU_)
-  find_package(VTK REQUIRED)
+  find_package(VTK 6 REQUIRED)
   include(${VTK_USE_FILE})
 endif(DEF_VISU)
 
