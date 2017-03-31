@@ -119,6 +119,11 @@ module NN
 
   ! ! ********************************** ! !
   
+public :: &
+    NN_init, &
+    NN_main, &
+    NN_finalize
+    
     contains
 
     subroutine NN_init_output_streams(Logfile)

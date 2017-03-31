@@ -118,6 +118,79 @@ foreach(_conf ${CONFIGURATIONS})
     endif(DEF_VISU)
 endforeach()
 
+set( WRAPPERS_SRCS
+  NNWrapper.F90
+  StringWrapper.F90
+)
+
+unset(_tmp)
+foreach(_src ${WRAPPERS_SRCS})
+    list(APPEND _tmp wrappers/${_src})
+endforeach()
+set(WRAPPERS_SRCS ${_tmp})
+
+find_package(pybind11 REQUIRED)
+
+## 
+## FIXME
+## WARNING: Only the first configuration is used to generate the python module.
+##          All of this is to be removed when all configuration options are factorized.
+##
+unset(python_module_done)
+
+foreach(_conf ${CONFIGURATIONS})
+    set(CONF_DIR conf/${_conf})
+    set(CONF_TARGETNAME ComPASSlib-${_conf})
+    set(CONF_ALL_SRCS ${ComPASSCore_SRCS})
+    foreach(_src ${CONF_SRCS})
+        list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
+    endforeach()
+    add_library(${CONF_TARGETNAME} SHARED ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
+    set_target_properties(${CONF_TARGETNAME}
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC wrappers)
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
+    set_target_properties(${CONF_TARGETNAME}
+        PROPERTIES
+        COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
+    )
+    target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
+    target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
+    # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
+    target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_lapack_LIBRARY})
+    if(DEF_HDF5)
+        target_include_directories(${CONF_TARGETNAME} PUBLIC ${HDF5_INCLUDE_DIRS})
+        target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
+        target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
+    endif(DEF_HDF5)
+    if(DEF_VISU)
+        target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
+        target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
+    endif(DEF_VISU)
+
+    ## FIXME: Only the first configuration is used to generate the python module.
+    if(NOT python_module_done)
+      pybind11_add_module(ComPASS wrappers/NNWrapper.cpp)
+      target_link_libraries(ComPASS ${CONF_TARGETNAME})
+      set(python_module_done TRUE)
+      # set(pyComPASS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+      set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python")
+      set_target_properties(ComPASS
+          PROPERTIES
+          LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
+          LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
+          LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
+      )
+    endif(NOT python_module_done)
+    
+endforeach()
+
 #CHECKME: Should we install libraries/binaries?
 # install(TARGETS NN DESTINATION bin)
     

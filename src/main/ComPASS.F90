@@ -8,10 +8,10 @@
     integer :: TimeIter = 0
     integer :: argc
     !FIXME: 250 (is this always enough for long pathnames ?)
-    character (250) :: &
+    character (250), target :: &
         meshfile, logfile, outputdir, &
         TimeIterStr
-
+    
     ! Input mesh name
     argc = IARGC()
 
