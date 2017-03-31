@@ -1,5 +1,7 @@
 module NN
 
+  use PathUtilities
+
   use GlobalMesh
   use PartitionMesh
   use LocalMesh
@@ -31,7 +33,7 @@ module NN
   ! Mesh file and Perm file
   character (100) :: Wellinfoname
 
-  character(len=100) :: cmd
+  character(len=200) :: output_path
   
   integer :: Ierr, errcode
   logical :: file_exists
@@ -472,9 +474,9 @@ public :: &
   if(NbWellInjOwn_Ncpus(commRank+1)>0 .or. &
        NbWellProdOwn_Ncpus(commRank+1)>0) then
 
-     write(cmd, '(A,A)')  "mkdir -p ", trim(OutputDir) // "/wellinfo" 
-     call system(cmd)
-
+     write(output_path, '(A)')  trim(OutputDir) // "/wellinfo" 
+     call make_directory(output_path)
+     
      write(Wellinfoname, '(A,I0,A)') &
           trim(OutputDir) // "/wellinfo/proc_", commRank, ".txt" 
 
@@ -943,9 +945,8 @@ subroutine NN_main(TimeIter, OutputDir)
              NbWellProdOwn_Ncpus(commRank+1)>0) then
 
            ! write well data to file
-           write(cmd, '(A,A,I0)')  &
-                "mkdir -p ", trim(OutputDir) // "/wellinfo/time_", VisuTimeIter
-           call system(cmd)
+           write(output_path, '(A,I0)') trim(OutputDir) // "/wellinfo/time_", VisuTimeIter
+           call make_directory(output_path)
 
            write(Wellinfoname, '(A,I0,A,I0,A)') &
                 trim(OutputDir) // "/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt" 

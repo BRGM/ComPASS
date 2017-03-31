@@ -1,5 +1,7 @@
 module VisuVTK
 
+  use PathUtilities
+
   use CommonType
   use CommonMPI
   use MeshSchema
@@ -285,15 +287,15 @@ contains
     double precision, dimension(:), intent(in) :: &
         datacell, datafrac, datawellinj, datawellprod
 
-    character(len=100) :: cmd
+    character(len=200) :: output_path
     integer :: Ierr, i, start
 
     NbVisuTimes = NbVisuTimes + 1
 
     VisuTimes(NbVisuTimes) = t ! all timesteps for .pvd are stored here
 
-    write(cmd, '(A,A,A,I0)')  "mkdir -p ", trim(OutputDir), "/time_", NbVisuTimes-1
-    call system(cmd)
+    write(output_path, '(A,A,I0)')  trim(OutputDir), "/time_", NbVisuTimes-1
+    call make_directory(output_path)
 
     call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 

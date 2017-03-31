@@ -58,6 +58,7 @@ set(ComPASSCore_SRCS ${_tmp})
 
 set( MAIN_SRCS
   ComPASS.F90
+  PathUtilities.F90
 )
 
 unset(_tmp)
@@ -121,6 +122,8 @@ endforeach()
 set( WRAPPERS_SRCS
   NNWrapper.F90
   StringWrapper.F90
+  PathUtilities.F90
+  PathUtilities.cpp
 )
 
 unset(_tmp)
