@@ -15,7 +15,6 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-    ComPASS.F90
     GlobalMesh.F90
     IncCV.F90
     Flux.F90
@@ -57,6 +56,16 @@ foreach(_src ${ComPASSCore_SRCS})
 endforeach()
 set(ComPASSCore_SRCS ${_tmp})
 
+set( MAIN_SRCS
+  ComPASS.F90
+)
+
+unset(_tmp)
+foreach(_src ${MAIN_SRCS})
+    list(APPEND _tmp main/${_src})
+endforeach()
+set(MAIN_SRCS ${_tmp})
+
 # Configuration to be built
 set( CONFIGURATIONS
     # default
@@ -80,7 +89,7 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
-    add_executable(${CONF_TARGETNAME} ${CONF_ALL_SRCS})
+    add_executable(${CONF_TARGETNAME} ${CONF_ALL_SRCS} ${MAIN_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
