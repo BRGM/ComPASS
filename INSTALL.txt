@@ -20,3 +20,7 @@ Useful environment variables
 #  PETSC_ARCH - build architecture
 HDF5_ROOT
 
+If you have Anaconda on your path it may help to place it at the end of your path.
+cmake -DPYTHON_EXECUTABLE:FILEPATH=`which python` may also help to use pybind11.
+
+
