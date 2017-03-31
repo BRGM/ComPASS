@@ -15,10 +15,10 @@
     function fortran_string(wrapper) result(s)
 
     type(cpp_string_wrapper), intent(in) :: wrapper
-    character(c_char), pointer           :: s(:)
+    character(kind=c_char, len=wrapper%length), pointer :: s
 
-    call c_f_pointer(wrapper%p, s, (/wrapper%length/))
-    
+    call c_f_pointer(wrapper%p, s)
+
     end function fortran_string
 
 
