@@ -27,6 +27,19 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 # set(CMAKE_C_COMPILER mpicc)
 # set(CMAKE_CXX_COMPILER mpicxx)
 
+set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
+find_package(pybind11 REQUIRED)
+
+# The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+if(NOT ${PYTHONINTERP_FOUND})
+  message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
+endif(NOT ${PYTHONINTERP_FOUND})
+
+# The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+if(NOT ${PYTHONLIBS_FOUND})
+  message(FATAL_ERROR "python libraries are mandatory, CMake will stop.")
+endif(NOT ${PYTHONLIBS_FOUND})
+
 ########### Configuration options
 
 option(DEF_THERMIQUE "Thermique" ON)
@@ -75,9 +88,10 @@ find_package(LAPACK REQUIRED)
 
 # vtk
 # set(VTK_DIR ${LIB_PREFIX}/include/vtk-7.1)
+# WARNING: Does not include python libraries from VTK so that they do not interfere with pybind11
 if(DEF_VISU)
   add_definitions(-D_VISU_)
-  find_package(VTK 6 REQUIRED)
+  find_package(VTK 6 REQUIRED COMPONENTS vtkRenderingCore vtkIOXML NO_MODULE)
   include(${VTK_USE_FILE})
 endif(DEF_VISU)
 

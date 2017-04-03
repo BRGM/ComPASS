@@ -120,7 +120,6 @@ foreach(_conf ${CONFIGURATIONS})
 endforeach()
 
 set( WRAPPERS_SRCS
-  GlobalMeshWrapper.F90
   NNWrapper.F90
   StringWrapper.F90
   PathUtilities.F90
@@ -132,8 +131,6 @@ foreach(_src ${WRAPPERS_SRCS})
     list(APPEND _tmp wrappers/${_src})
 endforeach()
 set(WRAPPERS_SRCS ${_tmp})
-
-find_package(pybind11 REQUIRED)
 
 ## 
 ## FIXME
@@ -157,11 +154,13 @@ foreach(_conf ${CONFIGURATIONS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
     target_include_directories(${CONF_TARGETNAME} PUBLIC wrappers)
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
         COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
     )
+    target_link_libraries(${CONF_TARGETNAME} ${PYTHON_LIBRARIES})
     target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
     target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
