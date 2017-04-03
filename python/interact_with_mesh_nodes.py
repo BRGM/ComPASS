@@ -25,11 +25,10 @@ ComPASS.init_up_to_mesh(meshfile, logfile, outputdir)
 # FIXME: This would have to be renamed global mesh vertices
 if comm.rank==0:
   vertices = np.array(ComPASS.get_vertices(), copy = False)
-  # Vertices array is in "Fortran order"
   print(vertices.shape)
-  print(vertices[:,:5].transpose())
-  print('Bounding box min corner:', vertices.min(axis=1))
-  print('Bounding box max corner:', vertices.max(axis=1))
+  print(vertices[:5])
+  print('Bounding box min corner:', vertices.min(axis=0))
+  print('Bounding box max corner:', vertices.max(axis=0))
 # The following deallocate global mesh
 ComPASS.init_phase2(outputdir)
 ComPASS.finalize()

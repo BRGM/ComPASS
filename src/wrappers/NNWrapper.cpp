@@ -57,9 +57,9 @@ PYBIND11_PLUGIN(ComPASS)
           sizeof(double),                          /* Size of one scalar */
           py::format_descriptor<double>::format(), /* Python struct-style format descriptor */
           2,                                      /* Number of dimensions */
-          { 3, V.nb_points },                 /* Buffer dimensions */
-          { sizeof(double),             /* Strides (in bytes) for each index */
-            sizeof(double) * 3 }
+          { V.nb_points, 3 },                 /* Buffer dimensions */
+          { sizeof(double) * 3,             /* Strides (in bytes) for each index */
+            sizeof(double) }
         );
       });
   module.def("get_vertices", []() {

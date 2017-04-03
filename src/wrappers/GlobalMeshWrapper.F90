@@ -24,6 +24,11 @@
           if (commRank == 0) then
              buffer%p = c_loc(XNode(1, 1))
              buffer%n = size(XNode, 2)
+          else
+             !CHECKME: Maybe MPI_abort would be better here
+             print *, "Mesh is supposed to be read by master process."
+             buffer%p = c_null_ptr
+             buffer%n = 0
           end if
 
        end subroutine vertices_buffer
