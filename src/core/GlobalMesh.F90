@@ -14,6 +14,9 @@ module GlobalMesh
 
   ! 3. IdFace, Mesh Part
 
+  ! This for array that are interfaced with python/C++
+  use iso_c_binding, only: c_double
+
   use CommonType
   use CommonMPI
   use DefModel
@@ -61,7 +64,8 @@ module GlobalMesh
        Mesh_zmax, & !< Global size of the mesh zmax, known by proc master only
        Mesh_zmin    !< Global size of the mesh zmin, known by proc master only
 
-  double precision, allocatable, dimension(:,:), protected, target :: &
+  ! kind_c_double is because array is interfaced with python/C++ (cf. target attirbute)
+  real(kind=c_double), allocatable, dimension(:,:), protected, target :: &
        XNode      !< Global coordinates of nodes
 
   type(CSR), protected :: &

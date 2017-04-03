@@ -23,6 +23,22 @@
 
       end subroutine NN_init_from_C
 
+      subroutine NN_init_up_to_mesh_from_C(MeshFile, LogFile, OutputDir) bind(C, name="NN_init_up_to_mesh")
+
+        type(cpp_string_wrapper), intent(in) :: MeshFile, LogFile, OutputDir
+        
+        call NN_init_up_to_mesh(fortran_string(MeshFile), fortran_string(LogFile), fortran_string(OutputDir))
+
+      end subroutine NN_init_up_to_mesh_from_C
+
+      subroutine NN_init_phase2_from_C(OutputDir) bind(C, name="NN_init_phase2")
+
+        type(cpp_string_wrapper), intent(in) :: OutputDir
+        
+        call NN_init_phase2(fortran_string(OutputDir))
+
+      end subroutine NN_init_phase2_from_C
+
       subroutine NN_main_from_C(TimeIter, OutputDir) bind(C, name="NN_main")
       
         integer(c_int), value,    intent(in) :: TimeIter

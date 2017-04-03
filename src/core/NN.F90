@@ -142,12 +142,13 @@ public :: &
 
     end subroutine NN_init_output_streams
     
-    
-    subroutine NN_read_and_partition_mesh(MeshFile, status)
+    subroutine NN_read_mesh(MeshFile, status)
 
     character(len=*), intent(in   ) :: MeshFile
     logical,          intent(  out) :: status
 
+    status = .true.
+    
     !FIXME: This is more of an assertion for consistency, might be removed
     if(.NOT.commRank==0) then
         print*, "Mesh is supposed to be read by master process."
@@ -202,6 +203,21 @@ public :: &
         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
         PermCell, PermFrac)
 
+    end subroutine NN_read_mesh
+    
+    subroutine NN_partition_mesh(status)
+
+    logical,          intent(  out) :: status
+
+    status = .true.
+
+    !FIXME: This is more of an assertion for consistency, might be removed
+    if(.NOT.commRank==0) then
+        print*, "Mesh is supposed to be partitioned by master process."
+        status = .false.
+        return
+    end if
+
     ! ****
     ! Partition Global Mesh
     ! Output:
@@ -221,15 +237,13 @@ public :: &
             comptime_meshmake
     end do
 
-    status = .true.
-    
-    end subroutine NN_read_and_partition_mesh
+    end subroutine NN_partition_mesh
 
     
-  subroutine NN_init(MeshFile, LogFile, OutputDir)
+  subroutine NN_init_up_to_mesh(MeshFile, LogFile, OutputDir)
 
     character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
-    logical                      :: ok, all_ok
+    logical                      :: ok
     
   ! initialisation petsc/MPI
   call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
@@ -243,7 +257,22 @@ public :: &
   ! *** Global Mesh *** !
 
   if(commRank==0) then
-      call NN_read_and_partition_mesh(MeshFile, ok)
+      call NN_read_mesh(MeshFile, ok)
+      if(.NOT. ok) then
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+  end if
+  call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+
+  end subroutine NN_init_up_to_mesh
+
+  subroutine NN_init_phase2(OutputDir)
+
+     character(len=*), intent(in) :: OutputDir
+   logical                      :: ok, all_ok
+  if(commRank==0) then
+      call NN_partition_mesh(ok)
       if(.NOT. ok) then
         !CHECKME: MPI_Abort is supposed to end all MPI processes
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
@@ -558,7 +587,16 @@ public :: &
 
   Delta_t = TimeStepInit
 
-end subroutine NN_init
+   end subroutine NN_init_phase2
+
+  subroutine NN_init(MeshFile, LogFile, OutputDir)
+
+    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
+    
+    call NN_init_up_to_mesh(MeshFile, LogFile, OutputDir)
+    call NN_init_phase2(OutputDir)
+    
+  end subroutine NN_init
 
 subroutine NN_main(TimeIter, OutputDir)
 
