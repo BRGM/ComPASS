@@ -120,6 +120,7 @@ foreach(_conf ${CONFIGURATIONS})
 endforeach()
 
 set( WRAPPERS_SRCS
+  GlobalMeshWrapper.F90
   NNWrapper.F90
   StringWrapper.F90
   PathUtilities.F90
