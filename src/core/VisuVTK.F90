@@ -14,7 +14,7 @@ module VisuVTK
   type(c_ptr), private :: visuptr
 
   ! output dir 
-  character(len=100), private :: OutputDir
+  character(len=200), private :: OutputDir
 
   ! Two types of Mesh
   !  1. Cartesien/Tetra/Hexahedron: in vtk, not need to define faces
@@ -240,7 +240,7 @@ contains
 
     integer, intent(in) :: meshtype
 
-    character(100), intent(in) :: dirname
+    character(*), intent(in) :: dirname
 
     double precision, intent(in) :: &
         Tf, &      ! final time
@@ -251,7 +251,6 @@ contains
         IndThermique
 
     OutputDir = dirname
-
 
     ! init visu structure
     visuptr = visuvtk_time_initcxx(meshtype, trim(OutputDir)//C_NULL_CHAR, &
@@ -294,7 +293,7 @@ contains
 
     VisuTimes(NbVisuTimes) = t ! all timesteps for .pvd are stored here
 
-    write(output_path, '(A,A,I0)')  trim(OutputDir), "/time_", NbVisuTimes-1
+    write(output_path, '(A,I0)')  trim(OutputDir) // "/time_", NbVisuTimes-1
     call make_directory(output_path)
 
     call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)

@@ -61,7 +61,7 @@ module GlobalMesh
        Mesh_zmax, & !< Global size of the mesh zmax, known by proc master only
        Mesh_zmin    !< Global size of the mesh zmin, known by proc master only
 
-  double precision, allocatable, dimension(:,:), protected :: &
+  double precision, allocatable, dimension(:,:), protected, target :: &
        XNode      !< Global coordinates of nodes
 
   type(CSR), protected :: &
