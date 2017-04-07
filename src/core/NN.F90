@@ -66,8 +66,8 @@ module NN
        comptime_part
 
   double precision ::     &
-       comptime_readmesh, &
-       comptime_meshmake
+       comptime_readmesh !, &
+       !comptime_meshmake
 
   ! Newton variables
   logical :: NewtonConv
@@ -163,39 +163,10 @@ public :: &
     end if
     print*, "Mesh read from file: ", MeshFile
 
-    comptime_readmesh = MPI_WTIME()
-
     ! Read Global Mesh
     call GlobalMesh_Make_read_file(MeshFile)
 
     call GlobalMesh_Make_post_read()
-
-    do i=1,size(fd)
-        j = fd(i)
-        write(j,*) "Mesh file: ", trim(MeshFile)
-        write(j,*) "  NbCell:      ", NbCell
-        write(j,*) "  NbFace:      ", NbFace
-        write(j,*) "  NbNode:      ", NbNode
-        write(j,*) "  NbFrac:      ", NbFrac
-        write(j,*) "  NbWellInj    ", NbWellInj
-        write(j,*) "  NbWellProd   ", NbWellProd
-        write(j,*) "  NbDirNode P: ", NbDirNodeP
-#ifdef _THERMIQUE_
-        write(j,*) "  NbDirNode T: ", NbDirNodeT
-#endif
-        write(j,*) "  Ncpus :      ", commSize
-        write(j,*) ""
-        write(j,*) "Final time: ", TimeFinal/OneDay
-        write(j,*) ""
-    end do
-
-    comptime_readmesh = MPI_WTIME() - comptime_readmesh
-    do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time of reading mesh: ", &
-            comptime_readmesh
-    end do
-
-    comptime_meshmake = MPI_WTIME()
 
     ! compute well index
     call DefWell_Make(NbWellInj, NbWellProd, &
@@ -204,6 +175,30 @@ public :: &
 
     end subroutine NN_init_read_mesh
     
+    subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+
+    real(kind=c_double), intent(in)  :: Ox, Oy, Oz
+    real(kind=c_double), intent(in)  :: lx, ly, lz
+    integer(kind=c_int), intent(in)  :: nx, ny, nz
+	
+    !FIXME: This is more of an assertion for consistency, might be removed
+    if(.NOT.commRank==0) then
+        print*, "Mesh is supposed to be built by master process."
+			!CHECKME: MPI_Abort is supposed to end all MPI processes
+			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
+	
+	call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+	
+    call GlobalMesh_Make_post_read()
+
+    ! compute well index
+    call DefWell_Make(NbWellInj, NbWellProd, &
+        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+        PermCell, PermFrac)
+
+    end subroutine NN_init_build_grid
+
     subroutine NN_partition_mesh(status)
 
     logical,          intent(  out) :: status
@@ -229,12 +224,12 @@ public :: &
     ! free global mesh
     call GlobalMesh_free
 
-    comptime_meshmake = MPI_WTIME() - comptime_meshmake
+    !comptime_meshmake = MPI_WTIME() - comptime_meshmake
 
-    do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
-            comptime_meshmake
-    end do
+    !do i=1,size(fd)
+    !    write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
+    !        comptime_meshmake
+    !end do
 
     end subroutine NN_partition_mesh
 
@@ -251,6 +246,8 @@ public :: &
   call CommonMPI_init(PETSC_COMM_WORLD)
 
   call NN_init_output_streams(Logfile)
+
+    comptime_readmesh = MPI_WTIME()
 
   end subroutine NN_init_warmup
 
@@ -273,7 +270,34 @@ public :: &
 
      character(len=*), intent(in) :: OutputDir
    logical                      :: ok, all_ok
-  if(commRank==0) then
+
+    do i=1,size(fd)
+        j = fd(i)
+        write(j,*) "  NbCell:      ", NbCell
+        write(j,*) "  NbFace:      ", NbFace
+        write(j,*) "  NbNode:      ", NbNode
+        write(j,*) "  NbFrac:      ", NbFrac
+        write(j,*) "  NbWellInj    ", NbWellInj
+        write(j,*) "  NbWellProd   ", NbWellProd
+        write(j,*) "  NbDirNode P: ", NbDirNodeP
+#ifdef _THERMIQUE_
+        write(j,*) "  NbDirNode T: ", NbDirNodeT
+#endif
+        write(j,*) "  Ncpus :      ", commSize
+        write(j,*) ""
+        write(j,*) "Final time: ", TimeFinal/OneDay
+        write(j,*) ""
+    end do
+
+    comptime_readmesh = MPI_WTIME() - comptime_readmesh
+    do i=1,size(fd)
+        write(fd(i),'(A,F16.3)') "Computation time warm up and reading mesh: ", &
+            comptime_readmesh
+    end do
+
+    !comptime_meshmake = MPI_WTIME()
+
+	if(commRank==0) then
       call NN_partition_mesh(ok)
       if(.NOT. ok) then
         !CHECKME: MPI_Abort is supposed to end all MPI processes

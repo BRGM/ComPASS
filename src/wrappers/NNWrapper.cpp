@@ -2,7 +2,7 @@
 #include <cassert>
 #include <iterator>
 
-# include<iostream>
+#include<iostream>
 
 #include <StringWrapper.h>
 
@@ -137,6 +137,7 @@ extern "C"
 	void NN_init_warmup_and_read_mesh(const StringWrapper&, const StringWrapper&);
 	void NN_init_warmup(const StringWrapper&);
 	void NN_init_read_mesh(const StringWrapper&);
+	void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
 	void NN_init_phase2(const StringWrapper&);
 	void NN_main(int, const StringWrapper&);
 	void NN_finalize();
@@ -156,28 +157,49 @@ PYBIND11_PLUGIN(ComPASS)
 		NN_init(MeshFile, LogFile, OutputDir);
 	},
 		"Initialisation of ComPASS.");
+
 	module.def("init_warmup_and_read_mesh",
 	[](const std::string& MeshFile, const std::string& LogFile) {
 		NN_init_warmup_and_read_mesh(MeshFile, LogFile);
 	},
 	"Initialisation of ComPASS up to the point where the global mesh is loaded.  Next logical step is init_phase2.");
+
 	module.def("init_warmup",
 	[](const std::string& LogFile) {
 		NN_init_warmup(LogFile);
 	},
-	"Initialisation of ComPASS - warmup phase. Next logical step is init_read_mesh.");
+	"Initialisation of ComPASS - warmup phase. Next logical step is init_read_mesh or init_build_grid.");
+
 	module.def("init_read_mesh",
 	[](const std::string& MeshFile) {
 		NN_init_read_mesh(MeshFile);
 	},
 	"Initialisation of ComPASS - read the mesh file. Next logical step is init_phase2.");
+
+	//module.def("init_build_grid", [](py::sequence origin, py::sequence extent, py::sequence shape) {
+	//	NN_init_build_grid(
+	//		origin[0], origin[1], origin[2], 
+	//		extent[0], extent[1], extent[2], 
+	//		shape[0], shape[1], shape[2] 
+	//	);
+	//},
+	//"Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
+	//module.def("init_build_grid", [](double Ox, double Oy, double Oz, double lx, double ly, double lz, int nx, int ny, int nz) {
+	//	NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz);
+	//},
+			   //"Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
+	module.def("init_build_grid", &NN_init_build_grid,
+			   "Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
+	
 	module.def("init_phase2",
 		[](const std::string& OutputDir) {
 		NN_init_phase2(OutputDir);
 	},
 		"Initialisation of ComPASS phase 2 : partition and distribute.");
+	
 	module.def("main_loop", [](int TimeIter, const std::string& OutputDir) { NN_main(TimeIter, OutputDir); },
 		"Main loop of ComPASS.");
+	
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
 
 	py::class_<Vertices>(module, "VerticesHandle", py::buffer_protocol())
@@ -192,6 +214,7 @@ PYBIND11_PLUGIN(ComPASS)
 			  sizeof(double) }
 		);
 	});
+	
 	module.def("get_vertices", []() {
 		Vertices V;
 		retrieve_vertices(V);
