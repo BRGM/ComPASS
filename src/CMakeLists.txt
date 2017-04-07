@@ -120,7 +120,16 @@ foreach(_conf ${CONFIGURATIONS})
 endforeach()
 
 set( WRAPPERS_SRCS
+  COC.h
+  COC_wrappers.h
+  COC_wrappers.cpp
+  ComPASS_module.cpp
   GlobalMeshWrapper.F90
+  MeshUtilities.h
+  MeshUtilities_wrappers.h
+  MeshUtilities_wrappers.cpp
+  NN_wrappers.h
+  NNWrapper.cpp
   NNWrapper.F90
   PathUtilities.F90
   PathUtilities.cpp
@@ -181,7 +190,7 @@ foreach(_conf ${CONFIGURATIONS})
 
     ## FIXME: Only the first configuration is used to generate the python module.
     if(NOT python_module_done)
-      pybind11_add_module(ComPASS wrappers/NNWrapper.cpp)
+      pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
       target_link_libraries(ComPASS ${CONF_TARGETNAME})
       set(python_module_done TRUE)
       # set(pyComPASS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
