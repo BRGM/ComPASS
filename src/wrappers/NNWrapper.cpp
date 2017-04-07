@@ -176,18 +176,6 @@ PYBIND11_PLUGIN(ComPASS)
 	},
 	"Initialisation of ComPASS - read the mesh file. Next logical step is init_phase2.");
 
-	//module.def("init_build_grid", [](py::sequence origin, py::sequence extent, py::sequence shape) {
-	//	NN_init_build_grid(
-	//		origin[0], origin[1], origin[2], 
-	//		extent[0], extent[1], extent[2], 
-	//		shape[0], shape[1], shape[2] 
-	//	);
-	//},
-	//"Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
-	//module.def("init_build_grid", [](double Ox, double Oy, double Oz, double lx, double ly, double lz, int nx, int ny, int nz) {
-	//	NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz);
-	//},
-			   //"Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
 	module.def("init_build_grid", &NN_init_build_grid,
 			   "Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
 	
