@@ -129,8 +129,8 @@ set( WRAPPERS_SRCS
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   NN_wrappers.h
-  NNWrapper.cpp
-  NNWrapper.F90
+  NN_wrappers.cpp
+  NN_wrappers.F90
   PathUtilities.F90
   PathUtilities.cpp
   StringWrapper.h
