@@ -142,18 +142,15 @@ public :: &
 
     end subroutine NN_init_output_streams
     
-    subroutine NN_read_mesh(MeshFile, status)
+    subroutine NN_init_read_mesh(MeshFile)
 
     character(len=*), intent(in   ) :: MeshFile
-    logical,          intent(  out) :: status
 
-    status = .true.
-    
     !FIXME: This is more of an assertion for consistency, might be removed
     if(.NOT.commRank==0) then
         print*, "Mesh is supposed to be read by master process."
-        status = .false.
-        return
+			!CHECKME: MPI_Abort is supposed to end all MPI processes
+			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 
     inquire(FILE=MeshFile, EXIST=file_exists)
@@ -161,15 +158,17 @@ public :: &
         print*, " "
         print*, "Mesh does not exist   ", MeshFile
         print*, " "
-        status = .false.
-        return
+			!CHECKME: MPI_Abort is supposed to end all MPI processes
+			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
     print*, "Mesh read from file: ", MeshFile
 
     comptime_readmesh = MPI_WTIME()
 
     ! Read Global Mesh
-    call GlobalMesh_Make(MeshFile)
+    call GlobalMesh_Make_read_file(MeshFile)
+
+    call GlobalMesh_Make_post_read()
 
     do i=1,size(fd)
         j = fd(i)
@@ -203,7 +202,7 @@ public :: &
         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
         PermCell, PermFrac)
 
-    end subroutine NN_read_mesh
+    end subroutine NN_init_read_mesh
     
     subroutine NN_partition_mesh(status)
 
@@ -240,10 +239,9 @@ public :: &
     end subroutine NN_partition_mesh
 
     
-  subroutine NN_init_up_to_mesh(MeshFile, LogFile, OutputDir)
+  subroutine NN_init_warmup(LogFile)
 
-    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
-    logical                      :: ok
+    character(len=*), intent(in) :: LogFile
     
   ! initialisation petsc/MPI
   call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
@@ -254,18 +252,22 @@ public :: &
 
   call NN_init_output_streams(Logfile)
 
-  ! *** Global Mesh *** !
+  end subroutine NN_init_warmup
+
+  subroutine NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+
+    character(len=*), intent(in) :: MeshFile, LogFile
+    
+	call NN_init_warmup(Logfile)
+	
+	! *** Global Mesh *** !
 
   if(commRank==0) then
-      call NN_read_mesh(MeshFile, ok)
-      if(.NOT. ok) then
-        !CHECKME: MPI_Abort is supposed to end all MPI processes
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
+      call NN_init_read_mesh(MeshFile)
   end if
   call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
-  end subroutine NN_init_up_to_mesh
+  end subroutine NN_init_warmup_and_read_mesh
 
   subroutine NN_init_phase2(OutputDir)
 
@@ -593,7 +595,7 @@ public :: &
 
     character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
     
-    call NN_init_up_to_mesh(MeshFile, LogFile, OutputDir)
+    call NN_init_warmup_and_read_mesh(MeshFile, LogFile)
     call NN_init_phase2(OutputDir)
     
   end subroutine NN_init

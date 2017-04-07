@@ -19,9 +19,8 @@ if not os.path.exists(outputdir):
 
 logfile = os.path.join(outputdir, 'mytest.log')
 
-# ComPASS.init(meshfile, logfile, outputdir)
-ComPASS.init_up_to_mesh(meshfile, logfile, outputdir)
-# ComPASS.main_loop(0, outputdir)
+ComPASS.init_warmup_and_read_mesh(meshfile, logfile)
+
 # FIXME: This would have to be renamed global mesh vertices
 if comm.rank==0:
   vertices = np.array(ComPASS.get_vertices(), copy = False)
@@ -29,6 +28,20 @@ if comm.rank==0:
   print(vertices[:5])
   print('Bounding box min corner:', vertices.min(axis=0))
   print('Bounding box max corner:', vertices.max(axis=0))
-# The following deallocate global mesh
+  con = ComPASS.get_connectivity()
+  #for cell in con.NodebyCell:
+  #  print(np.array(cell, copy=False))
+  boundary_faces = np.array([fi for fi, face in enumerate(con.CellbyFace) if len(face)==1])
+  boundary_faces_centers = np.array([
+    vertices[
+      np.array(con.NodebyFace[fi], copy=False) - 1 # fortran indexes start at 1
+    ].mean(axis=0)
+    for fi in boundary_faces
+  ])
+  print(boundary_faces_centers)
+  
+# FIXME: The following line is mandatory as it allocates structures
+# that will be deallocated afterwards
 ComPASS.init_phase2(outputdir)
+# The following deallocate global mesh
 ComPASS.finalize()

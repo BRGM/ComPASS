@@ -3,6 +3,8 @@ from mpi4py import MPI
 import numpy as np
 import ComPASS
 
+comm = MPI.COMM_WORLD
+
 head, tail = os.path.split(ComPASS.__file__)
 compassdir, tail = os.path.split(head)
 assert tail=='python'
@@ -17,6 +19,11 @@ if not os.path.exists(outputdir):
 
 logfile = os.path.join(outputdir, 'mytest.log')
 
-ComPASS.init(meshfile, logfile, outputdir)
+# The following calls are equivalent to ComPASS.init(meshfile, logfile, outputdir)
+ComPASS.init_warmup(logfile)
+if comm.rank==0:
+  ComPASS.init_read_mesh(meshfile)
+ComPASS.init_phase2(outputdir)
+
 ComPASS.main_loop(0, outputdir)
 ComPASS.finalize()

@@ -1,5 +1,8 @@
 module CommonType
 
+  ! This for arrays that are interfaced with python/C++
+  use iso_c_binding, only: c_int
+
   implicit none
 
   !> Array 1d integer
@@ -22,13 +25,20 @@ module CommonType
     double precision, allocatable, dimension(:,:,:) :: Array3d
   end type ARRAY3dble
 
-  !> Standar type CSR with Pt, Num, and Val (1d integer)
+  !> Standard type CSR with Pt, Num, and Val (1d integer)
+    ! kind=c_int is because csr are to be interfaced with python/C++
   type CSR
-    integer :: Nb
-    integer, allocatable, dimension(:) :: Pt
-    integer, allocatable, dimension(:) :: Num
-    integer, allocatable, dimension(:) :: Val
+    integer(kind=c_int) :: Nb
+    integer(kind=c_int), allocatable, dimension(:) :: Pt
+    integer(kind=c_int), allocatable, dimension(:) :: Num
+    integer(kind=c_int), allocatable, dimension(:) :: Val
   end type CSR
+
+  type COC
+    integer(kind=c_int)                            :: Nb
+    integer(kind=c_int), allocatable, dimension(:) :: Pt
+    integer(kind=c_int), allocatable, dimension(:) :: Num
+  end type COC
 
   !> Standar type CSR with Pt, Num, and Val (1d double precision)
   type CSRdble
@@ -130,6 +140,18 @@ contains
     end if
 
   end subroutine CommonType_deallocCSR
+
+  subroutine CommonType_deallocCOC(COC1)
+
+    type(COC), intent(inout) :: COC1
+
+    deallocate(COC1%Pt)
+
+    if(allocated(COC1%Num)) then
+      deallocate(COC1%Num)
+    end if
+
+  end subroutine CommonType_deallocCOC
 
   !> \brief Deallocate CSRdble (\%Pt, \%Num and \%Val)
   subroutine CommonType_deallocCSRdble(CSR1)

@@ -64,7 +64,7 @@ module GlobalMesh
        Mesh_zmax, & !< Global size of the mesh zmax, known by proc master only
        Mesh_zmin    !< Global size of the mesh zmin, known by proc master only
 
-  ! kind_c_double is because array is interfaced with python/C++ (cf. target attirbute)
+  ! kind=c_double is because array is interfaced with python/C++ (cf. target attirbute)
   real(kind=c_double), allocatable, dimension(:,:), protected, target :: &
        XNode      !< Global coordinates of nodes
 
@@ -74,7 +74,7 @@ module GlobalMesh
 
   ! Connectivities 
   type(CSR), protected :: &
-       NodebyCell, & !< CSR list of Nodes surrounding each Cell
+       NodebyCell, &  !< CSR list of Nodes surrounding each Cell
        CellbyNode, & !< CSR list of Cells surrounding each Node
        CellbyCell, & !< CSR list of Cells surrounding each Cell
        CellbyFace    !< CSR list of Cells surrounding each Face
@@ -117,6 +117,7 @@ module GlobalMesh
   double precision, allocatable, dimension(:), protected :: &
        PermFrac !< Permeability constant for each fracture face, set by user in file DefModel.F90
 
+  ! Used to ouput well information
   integer, protected :: fdGm
   ! integer, protected :: fdGm_unit
 
@@ -128,7 +129,8 @@ module GlobalMesh
 
   ! main subroutine in this module
   public :: &
-       GlobalMesh_Make, &
+       GlobalMesh_Make_read_file, &
+       GlobalMesh_Make_post_read, &
        GlobalMesh_free
 
   private :: &
@@ -191,29 +193,11 @@ contains
   !   GlobalMesh_SetFrac:  set face fracture
 #include "DefGeometry.F90"
 
-  !> \brief Read mesh; build connectivity; set porosity and permeability;
-  !! compute well indexes (Peaceman formula)
-  !!
-  !! Read mesh from meshfile or build a cartesian mesh;
-  !! then build connectivity of the global mesh;
-  !! set identificators for the fractures and the boundaries;
-  !! set the porosity and the permeability;
-  !! and compute the well indexes (using Peaceman formula).
-  subroutine GlobalMesh_Make(fileMesh)
+  subroutine GlobalMesh_Make_read_file(fileMesh)
 
     character(len=*), intent(in) :: fileMesh
     integer :: i, ios
     character :: lignevide
-
-    ! #define _DEBUG_LVL1_
-#if defined _DEBUG_ && defined _DEBUG_LVL1_
-    fdGm = 6 ! stdout: 6, scratch (temprary discarded file): 12
-    ! fdGm_unit = -3
-#else
-    open(unit=12, status='SCRATCH')
-    fdGm = 12
-    ! fdGm_unit = -1
-#endif
 
     ! Read NbNode:
     !   <0 cartesian;
@@ -235,11 +219,10 @@ contains
        call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
     end if
 
-    call GlobalMesh_MeshBoundingBox
-    
-    !< \TODO: input porosite
-    call GlobalMesh_SetPorosite
+  end subroutine GlobalMesh_Make_read_file
 
+  subroutine GlobalMesh_Compute_all_connectivies()
+      
     ! CellbyNode
     call GlobalMesh_CellByNodeGlobal
 
@@ -249,6 +232,33 @@ contains
     ! CellbyFace
     call GlobalMesh_CellbyFaceGlobal
 
+  end subroutine GlobalMesh_Compute_all_connectivies
+
+  
+  !> \brief Read mesh; build connectivity; set porosity and permeability;
+  !! compute well indexes (Peaceman formula)
+  !!
+  !! Read mesh from meshfile or build a cartesian mesh;
+  !! then build connectivity of the global mesh;
+  !! set identificators for the fractures and the boundaries;
+  !! set the porosity and the permeability;
+  !! and compute the well indexes (using Peaceman formula).
+  subroutine GlobalMesh_Make_post_read
+
+    ! #define _DEBUG_LVL1_
+#if defined _DEBUG_ && defined _DEBUG_LVL1_
+    fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
+    ! fdGm_unit = -3
+#else
+    open(unit=12, status='SCRATCH')
+    fdGm = 12
+    ! fdGm_unit = -1
+#endif
+
+    call GlobalMesh_MeshBoundingBox
+
+    call GlobalMesh_Compute_all_connectivies
+    
     ! Frac
     call GlobalMesh_SetFrac
 
@@ -261,6 +271,9 @@ contains
     ! Fill FracbyNode
     call GlobalMesh_FracbyNode
 
+    !< \TODO: input porosite
+    call GlobalMesh_SetPorosite
+
     ! set permeabilites from file DefModel
     call DefModel_SetPerm(NbCell, IdCell, NbFace, &
          PermCell, PermFrac)
@@ -272,41 +285,15 @@ contains
        deallocate(IdNodeFromFile)
     end if
 
-  end subroutine GlobalMesh_Make
+  end subroutine GlobalMesh_Make_post_read
 
-  !> \brief Make cartesian mesh given a Meshfile with domain informations.
-  !!
-  !! Meshfile contains the size of the domain and the number of nodes in each direction.  <br>
-  !! Then the coordinates of Nodes and the connectivity FacebyCell, NodebyFace, NodebyCell
-  !! and IdFace are build.
-  !  Nodes in cell ordre of vtk_voxel
-  !  Nodes in face order cicle (not same as vtk_pixel!)
-  subroutine GlobalMesh_ReadMeshCar(fileMesh)
+  subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
-    ! Mesh file
-    character(len=*), intent(in) :: fileMesh
-
-    ! temporary vectors
-    character (1)  ::lignevide
-    double precision :: aux
-    integer :: i,kk,j,k,numFb,id,lect(50),is,ios
-
-    ! domain informations read from meshfile
-    double precision :: lx,ly,lz
-    double precision :: Ox,Oy,Oz
-    integer :: nx,ny,nz
-
-    ! Read nx, ny, nz and lx, ly, lz
-    open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
-    do i=1, 5
-       read (15,'(a1)') lignevide
-    enddo
-
-    read (15,*) nx,ny,nz 
-    read (15,'(a1)') lignevide
-    read (15,*) lx,ly,lz
-    read (15,'(a1)') lignevide
-    read (15,*) Ox,Oy,Oz
+    real(kind=c_double), intent(in)  :: Ox, Oy, Oz
+    real(kind=c_double), intent(in)  :: lx, ly, lz
+    integer(kind=c_int), intent(in)  :: nx, ny, nz
+    real(kind=c_double) :: aux
+    integer :: i,kk,j,k,numFb,id,is,ios
 
     write(*,*) 'Building cartesian grid: ', nx, 'x', ny, 'x', nz
     write(*,*) 'Domain size: ', lx, 'x', ly, 'x', lz
@@ -506,10 +493,46 @@ contains
        enddo
     enddo
 
-    close(15)
-
     call GlobalMesh_SetWellCar(nx,ny,nz)
+
+  end subroutine GlobalMesh_Build_cartesian_grid
+
+  !> \brief Make cartesian mesh given a Meshfile with domain informations.
+  !!
+  !! Meshfile contains the size of the domain and the number of nodes in each direction.  <br>
+  !! Then the coordinates of Nodes and the connectivity FacebyCell, NodebyFace, NodebyCell
+  !! and IdFace are build.
+  !  Nodes in cell ordre of vtk_voxel
+  !  Nodes in face order cicle (not same as vtk_pixel!)
+  subroutine GlobalMesh_ReadMeshCar(fileMesh)
+
+    ! Mesh file
+    character(len=*), intent(in) :: fileMesh
+
+    ! temporary vectors
+    character (1)  ::lignevide
+
+    ! domain informations read from meshfile
+    double precision :: lx,ly,lz
+    double precision :: Ox,Oy,Oz
+    integer :: i, ios, nx, ny, nz
+
+    ! Read nx, ny, nz and lx, ly, lz
+    open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
+    do i=1, 5
+       read (15,'(a1)') lignevide
+    enddo
+
+    read (15,*) nx,ny,nz 
+    read (15,'(a1)') lignevide
+    read (15,*) lx,ly,lz
+    read (15,'(a1)') lignevide
+    read (15,*) Ox,Oy,Oz
+
+    call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
     
+        close(15)
+        
   end subroutine GlobalMesh_ReadMeshCar
 
   !> \brief Read mesh from Meshfile.
