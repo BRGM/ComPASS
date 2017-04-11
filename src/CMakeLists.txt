@@ -119,6 +119,13 @@ foreach(_conf ${CONFIGURATIONS})
     endif(DEF_VISU)
 endforeach()
 
+#CHECKME: To be removed eventually (dependance on boost::variant -> C++17 variant)
+#Boost headers only
+find_package(Boost REQUIRED)
+if(NOT ${Boost_FOUND})
+  message(FATAL_ERROR "Boost libraries are mandatory when building python module, CMake will stop.")
+endif(NOT ${Boost_FOUND})
+
 set( WRAPPERS_SRCS
   COC.h
   COC_wrappers.h
@@ -135,6 +142,9 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   StringWrapper.h
   StringWrapper.F90
+  Well.h
+  Well_wrappers.h
+  Well_wrappers.cpp
 )
 
 unset(_tmp)
@@ -167,6 +177,7 @@ foreach(_conf ${CONFIGURATIONS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${Boost_INCLUDE_DIRS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
         COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
@@ -189,19 +200,21 @@ foreach(_conf ${CONFIGURATIONS})
     endif(DEF_VISU)
 
     ## FIXME: Only the first configuration is used to generate the python module.
-    if(NOT python_module_done)
-      pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
-      target_link_libraries(ComPASS ${CONF_TARGETNAME})
-      set(python_module_done TRUE)
-      # set(pyComPASS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
-      set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python")
-      set_target_properties(ComPASS
-          PROPERTIES
-          LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
-          LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
-          LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
-      )
-    endif(NOT python_module_done)
+    if(DEF_Python_BINDINGS)
+        if(NOT python_module_done)
+          pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
+          target_link_libraries(ComPASS ${CONF_TARGETNAME})
+          set(python_module_done TRUE)
+          # set(pyComPASS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+          set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python")
+          set_target_properties(ComPASS
+              PROPERTIES
+              LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
+              LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
+              LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
+          )
+        endif(NOT python_module_done)
+    endif(DEF_Python_BINDINGS)
     
 endforeach()
 

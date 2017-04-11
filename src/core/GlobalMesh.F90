@@ -234,17 +234,8 @@ contains
 
   end subroutine GlobalMesh_Compute_all_connectivies
 
+subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
   
-  !> \brief Read mesh; build connectivity; set porosity and permeability;
-  !! compute well indexes (Peaceman formula)
-  !!
-  !! Read mesh from meshfile or build a cartesian mesh;
-  !! then build connectivity of the global mesh;
-  !! set identificators for the fractures and the boundaries;
-  !! set the porosity and the permeability;
-  !! and compute the well indexes (using Peaceman formula).
-  subroutine GlobalMesh_Make_post_read
-
     ! #define _DEBUG_LVL1_
 #if defined _DEBUG_ && defined _DEBUG_LVL1_
     fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
@@ -271,6 +262,10 @@ contains
     ! Fill FracbyNode
     call GlobalMesh_FracbyNode
 
+end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
+	
+subroutine GlobalMesh_Make_post_read_set_poroperm()
+
     !< \TODO: input porosite
     call GlobalMesh_SetPorosite
 
@@ -278,13 +273,36 @@ contains
     call DefModel_SetPerm(NbCell, IdCell, NbFace, &
          PermCell, PermFrac)
 
-    ! Building well connectivity
+	end subroutine GlobalMesh_Make_post_read_set_poroperm
+	
+	subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
+
+	    ! Building well connectivity
     call GlobalMesh_WellConnectivity
 
     if(allocated(IdNodeFromFile)) then
        deallocate(IdNodeFromFile)
     end if
 
+	
+	end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip
+	
+	!> \brief Read mesh; build connectivity; set porosity and permeability;
+  !! compute well indexes (Peaceman formula)
+  !!
+  !! Read mesh from meshfile or build a cartesian mesh;
+  !! then build connectivity of the global mesh;
+  !! set identificators for the fractures and the boundaries;
+  !! set the porosity and the permeability;
+  !! and compute the well indexes (using Peaceman formula).
+  subroutine GlobalMesh_Make_post_read
+
+	call GlobalMesh_Make_post_read_fracture_and_dirBC
+  
+	call GlobalMesh_Make_post_read_set_poroperm
+	
+	call GlobalMesh_Make_post_read_well_connectivity_and_ip
+	
   end subroutine GlobalMesh_Make_post_read
 
   subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
