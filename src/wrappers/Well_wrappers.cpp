@@ -7,21 +7,13 @@
 
 using namespace ComPASS::Well;
 
-std::ostream& operator<<(std::ostream& os, const Well_geometry::Branch_geometry& branch)
-{
-	os << "Branch:(";
-	std::copy(branch.begin(), branch.end(), std::ostream_iterator<Well_geometry::Node_id_type>(os, ", "));
-	os << ")";
-	return os;
-}
-
 std::ostream& operator<<(std::ostream& os, const Well& well)
 {
 	auto& geometry = well.geometry;
 	os << "Well with radius " << geometry.radius << std::endl;
-	os << "and " << geometry.branches.size() << " branches:";
-	for (auto&& branch : geometry.branches) {
-		os << std::endl << branch;
+	os << "and segments:";
+	for (auto&& S : geometry.segments) {
+		os << std::endl << S[0] << "->" << S[1];
 	}
 	return os;
 }
@@ -33,14 +25,16 @@ void add_well_wrappers(py::module& module)
 	py::class_<Well_geometry>(module, "WellGeometry")
 		.def(py::init<>())
 		.def_readwrite("radius", &Well_geometry::radius)
-		.def("add_branch", [](Well_geometry& instance, py::iterable& nodes) {
-		Well_geometry::Branch_geometry branch;
-		for (auto&& node : nodes) {
-			branch.push_back(node.cast<int>());
+		.def("add_segments", [](Well_geometry& instance, py::iterable& segments) {
+		auto to_segment = [](py::sequence& s) { 
+			return Well_geometry::Segment_type{ { s[0].cast<Well_geometry::Node_id_type>(), s[1].cast<Well_geometry::Node_id_type>() } };
+		};
+		for (auto&& S : segments) {
+			auto seq = S.cast<py::sequence>();
+			instance.segments.push_back(to_segment(seq));
 		}
-		assert(branch.size() > 1);
-		instance.branches.push_back(branch);
-	});
+	})
+		.def("clear_segments", [](Well_geometry& instance) { instance.segments.clear(); });
 
 	py::class_<Well>(module, "Well")
 		.def(py::init<>())

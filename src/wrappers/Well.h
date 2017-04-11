@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 #include <list>
 #include <iterator>
@@ -18,9 +19,9 @@ namespace ComPASS
 		struct Well_geometry
 		{
 			typedef int Node_id_type;
-			typedef std::vector<Node_id_type> Branch_geometry;
+			typedef std::array<Node_id_type, 2> Segment_type;
 			double radius;
-			std::list<Branch_geometry> branches;
+			std::vector<Segment_type> segments;
 		};
 
 		struct Flowrate_operating_conditions
