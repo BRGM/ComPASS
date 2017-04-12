@@ -24,87 +24,75 @@ namespace ComPASS
 			std::vector<Segment_type> segments;
 		};
 
+		struct Undefined_operating_conditions
+		{};
+
 		struct Flowrate_operating_conditions
 		{
 			double flowrate;
 			double pressure_limit;
+			Flowrate_operating_conditions(double Q, double Plim) :
+				flowrate{ Q },
+				pressure_limit{ Plim } {}
 		};
 
 		struct Pressure_operating_conditions
 		{
 			double pressure;
 			double flowrate_limit;
+			Pressure_operating_conditions(double P, double Qlim) :
+				pressure{ P },
+				flowrate_limit{ Qlim } {}
 		};
 
-		typedef boost::variant<Flowrate_operating_conditions, Pressure_operating_conditions> Operating_conditions;
+		typedef boost::variant<Undefined_operating_conditions, Flowrate_operating_conditions, Pressure_operating_conditions> Operating_conditions;
 
-		struct Stopped_well_control
+		struct Stopped_well_status
 		{};
 
-		struct Injection_well_control
+		struct Production_well_status
+		{};
+
+		struct Injection_well_status
 		{
-			Operating_conditions operating_conditions;
 			// FIXME: Add PhysicalState structures, including temperature
 			double temperature;
+			Injection_well_status(double T) :
+				temperature{ T } {}
 		};
 
-		struct Production_well_control
+		typedef boost::variant<Stopped_well_status, Injection_well_status, Production_well_status> Well_status;
+
+		template <typename HeldType>
+		struct Check_variant : public boost::static_visitor<bool> {
+			template <typename T>
+			result_type operator()(const T&) const { return false; }
+			result_type operator()(const HeldType&) const { return true; }
+		};
+
+		struct Well_control
 		{
 			Operating_conditions operating_conditions;
-		};
-
-		typedef boost::variant<Stopped_well_control, Injection_well_control, Production_well_control> Well_control;
-
-		struct Is_stopped_well : public boost::static_visitor<bool> {
-			template <typename T>
-			result_type operator()(const T&) const { return false; }
-			result_type operator()(const Stopped_well_control&) const { return true; }
-		};
-
-		struct Is_injection_well : public boost::static_visitor<bool> {
-			template <typename T>
-			result_type operator()(const T&) const { return false; }
-			result_type operator()(const Injection_well_control&) const { return true; }
-		};
-
-		struct Is_production_well : public boost::static_visitor<bool> {
-			template <typename T>
-			result_type operator()(const T&) const { return false; }
-			result_type operator()(const Production_well_control&) const { return true; }
-		};
-
-		struct Is_pressure_operating : public boost::static_visitor<bool> {
-			template <typename T>
-			result_type operator()(const T&) const { return false; }
-			result_type operator()(const Injection_well_control& control) const {
-				return boost::apply_visitor(Is_pressure_operating(), control.operating_conditions);
-			}
-			result_type operator()(const Production_well_control& control) const {
-				return boost::apply_visitor(Is_pressure_operating(), control.operating_conditions);
-			}
-			result_type operator()(const Pressure_operating_conditions&) const { return true; }
-		};
-
-		struct Is_flowrate_operating : public boost::static_visitor<bool> {
-			template <typename T>
-			result_type operator()(const T&) const { return false; }
-			result_type operator()(const Injection_well_control& control) const {
-				return boost::apply_visitor(Is_flowrate_operating(), control.operating_conditions);
-			}
-			result_type operator()(const Production_well_control& control) const {
-				return boost::apply_visitor(Is_flowrate_operating(), control.operating_conditions);
-			}
-			result_type operator()(const Flowrate_operating_conditions&) const { return true; }
+			Well_status status;
+			template <typename WellStatus>
+			bool check_status() const { return boost::apply_visitor(Check_variant<WellStatus>(), status); }
+			template <typename WellOperatingConditions>
+			bool check_operating_conditions() const { return boost::apply_visitor(Check_variant<WellOperatingConditions>(), operating_conditions); }
+			bool is_stopped() const { return check_status<Stopped_well_status>(); }
+			bool is_injecting() const { return check_status<Injection_well_status>(); }
+			bool is_producing() const { return check_status<Production_well_status>(); }
+			bool is_flowrate_operating() const { return check_operating_conditions<Flowrate_operating_conditions>(); }
+			bool is_pressure_operating() const { return check_operating_conditions<Pressure_operating_conditions>(); }
 		};
 
 		struct Well {
 			Well_geometry geometry;
 			Well_control control;
-			bool is_stopped() const { return boost::apply_visitor(Is_stopped_well(), control); }
-			bool is_injecting() const { return boost::apply_visitor(Is_injection_well(), control); }
-			bool is_producing() const { return boost::apply_visitor(Is_production_well(), control); }
-			bool is_flowrate_operating() const { return boost::apply_visitor(Is_flowrate_operating(), control); }
-			bool is_pressure_operating() const { return boost::apply_visitor(Is_pressure_operating(), control); }
+			bool is_stopped() const { return control.is_stopped(); }
+			bool is_injecting() const { return control.is_injecting(); }
+			bool is_producing() const { return control.is_producing(); }
+			bool operates_on_flowrate() const { return control.is_flowrate_operating(); }
+			bool operates_on_pressure() const { return control.is_pressure_operating(); }
 		};
 
 	} // end of namespace Well
