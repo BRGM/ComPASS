@@ -31,7 +31,7 @@ module NN
   implicit none
 
   ! Mesh file and Perm file
-  character (100) :: Wellinfoname
+  character(len=200) :: Wellinfoname
 
   character(len=200) :: output_path
   
@@ -168,8 +168,8 @@ public :: &
 
     call GlobalMesh_Make_post_read()
 
-    ! compute well index
-    call DefWell_Make(NbWellInj, NbWellProd, &
+	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+    call DefWell_Make_ComputeWellIndex( &
         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
         PermCell, PermFrac)
 
@@ -190,10 +190,12 @@ public :: &
 	
 	call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 	
+    call GlobalMesh_SetWellCar(nx,ny,nz)
+
     call GlobalMesh_Make_post_read()
 
-    ! compute well index
-    call DefWell_Make(NbWellInj, NbWellProd, &
+	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+    call DefWell_Make_ComputeWellIndex( &
         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
         PermCell, PermFrac)
 
@@ -271,6 +273,7 @@ public :: &
      character(len=*), intent(in) :: OutputDir
    logical                      :: ok, all_ok
 
+	if(commRank==0) then
     do i=1,size(fd)
         j = fd(i)
         write(j,*) "  NbCell:      ", NbCell
@@ -294,6 +297,7 @@ public :: &
         write(fd(i),'(A,F16.3)') "Computation time warm up and reading mesh: ", &
             comptime_readmesh
     end do
+end if
 
     !comptime_meshmake = MPI_WTIME()
 

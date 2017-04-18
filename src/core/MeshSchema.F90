@@ -926,6 +926,14 @@ contains
     ! Free TYPE MPI_DATANODEWELL
     call MPI_Type_free(MPI_DATANODEWELL, Ierr)
 
+	!do i=1, size(DataWellInjLocal)
+	!	write(*,*) "%%", "local injection data on proc", commRank
+	!	call DefWell_print_DataWellInj(DataWellInjLocal(i))
+	!end do
+	!do i=1, size(DataWellProdLocal)
+	!	write(*,*) "%%", "local production data on proc", commRank
+	!	call DefWell_print_DataWellProd(DataWellProdLocal(i))
+	!end do
     
   end subroutine MeshSchema_sendrecv
 

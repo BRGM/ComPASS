@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <vector>
 
 struct COC_container
 {
@@ -83,5 +85,21 @@ public:
 		assert(i >= 0);
 		assert(i < nb_containers);
 		return *COC_iterator{ &container_offset[i], &container_content[container_offset[i]] };
+	}
+	/** Wrap contiguous vector as COC.
+	\todo FIXME This is just a convenience function a more robust C++ side API to COC<T> is to be developed/used.
+	The problem here is that COC and vectors lifetimes are not bound.
+	*/
+	static auto wrap(std::vector<int>& offsets, std::vector<int>& content)
+	{
+		assert(offsets.front() == 0);
+		assert(offsets.back() == content.size());
+		assert(offsets.size() > 0);
+		assert(std::all_of(offsets.begin(), offsets.end(), [](const int& i) { return i >= 0; }));
+		COC coc;
+		coc.nb_containers = offsets.size() - 1;
+		coc.container_offset = offsets.data();
+		coc.container_content = content.data();
+		return coc;
 	}
 };

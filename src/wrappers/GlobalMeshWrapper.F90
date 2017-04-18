@@ -1,145 +1,146 @@
 
     module GlobalMeshWrapper
 
-       use, intrinsic :: iso_c_binding
+    use, intrinsic :: iso_c_binding
 
-       use CommonType
-       use GlobalMesh
+    use CommonTypesWrapper
+    use CommonMPI
+    use GlobalMesh
+    use DefWell
 
-       implicit none
+    implicit none
 
-       integer :: Ierr, errcode
-       
-       type, bind(C) :: cpp_array_wrapper
-          type(c_ptr)       :: p
-          integer(c_size_t) :: n
-       end type cpp_array_wrapper
+    integer :: Ierr, errcode
 
-       ! Container of container
-       type, bind(C) :: cpp_COC
-          integer(c_int)    :: nb_containers
-          type(c_ptr)       :: container_offset
-          type(c_ptr)       :: container_content
-       end type cpp_COC
-
-       type, bind(C) :: cpp_CSR
-          integer(c_int)    :: nb_rows
-          type(c_ptr)       :: row_begin
-          type(c_ptr)       :: row_columns
-          type(c_ptr)       :: row_nonzeros
-       end type cpp_CSR
-
-       type, bind(C) :: cpp_MeshConnectivity
-	    type(cpp_COC) :: NodebyCell
-	    type(cpp_COC) :: NodebyFace;
-	    type(cpp_COC) :: FacebyCell;
-	    type(cpp_COC) :: CellbyNode;
-	    type(cpp_COC) :: CellbyFace;
-	    type(cpp_COC) :: CellbyCell;
-       end type cpp_MeshConnectivity
+    type, bind(C) :: cpp_MeshConnectivity
+        type(cpp_COC) :: NodebyCell
+        type(cpp_COC) :: NodebyFace;
+        type(cpp_COC) :: FacebyCell;
+        type(cpp_COC) :: CellbyNode;
+        type(cpp_COC) :: CellbyFace;
+        type(cpp_COC) :: CellbyCell;
+    end type cpp_MeshConnectivity
 
     protected :: &
-            f2c_integer_array_to_pointer, &
-            f2c_double_array_to_pointer, &
-            f2c_double_array, &
-            retrieve_coc
+        check_mesh_allocation
 
     public :: &
-          retrieve_vertices, &
-            retrieve_mesh_connectivity
-
+        retrieve_vertices, &
+        retrieve_mesh_connectivity, &
+        GlobalMesh_build_cartesian_grid_from_C, &
+        GlobalMesh_make_post_read_from_C, &
+        DefWell_make_compute_well_index_from_C
 
     contains
 
-       subroutine f2c_integer_array_to_pointer(array, p)
+    subroutine retrieve_vertices(cpp_array) bind(C, name="retrieve_vertices")
 
-         integer(kind=c_int), allocatable, dimension(:), target, intent(in) :: array
-         type(c_ptr), intent(inout) :: p
+    type(cpp_array_wrapper), intent(inout) :: cpp_array
 
-          p = c_loc(array(1))
-         
-end subroutine f2c_integer_array_to_pointer
+    if (commRank /= 0) then
+        !CHECKME: Maybe MPI_abort would be better here
+        !buffer%p = c_null_ptr
+        !buffer%n = 0
+        print *, "Mesh is supposed to be read by master process."
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
 
-       subroutine f2c_double_array_to_pointer(array, p)
+    if (.not. allocated(XNode)) then
+        print *, "Mesh vertices are not allocated."
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
 
-         real(kind=c_double), allocatable, dimension(:), target, intent(in) :: array
-         type(c_ptr), intent(inout) :: p
+    cpp_array%p = c_loc(XNode(1, 1))
+    cpp_array%n = size(XNode, 2)
 
-          p = c_loc(array(1))
-         
-end subroutine f2c_double_array_to_pointer
+    end subroutine retrieve_vertices
 
-subroutine f2c_double_array(fortran_array, cpp_array)
+    subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
 
-          real(kind=c_double), allocatable, dimension(:), target, intent(in) :: fortran_array
-          type(cpp_array_wrapper), intent(out) :: cpp_array
+    type(cpp_MeshConnectivity), intent(inout) :: connectivity
 
-          if (.NOT. allocated(fortran_array)) then
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
+    call retrieve_coc(NodebyCell, connectivity%NodebyCell)
+    call retrieve_coc(NodebyFace, connectivity%NodebyFace)
+    call retrieve_coc(FacebyCell, connectivity%FacebyCell)
+    call retrieve_coc(CellbyNode, connectivity%CellbyNode)
+    call retrieve_coc(CellbyFace, connectivity%CellbyFace)
+    call retrieve_coc(CellbyCell, connectivity%CellbyCell)
 
-          call f2c_double_array_to_pointer(fortran_array, cpp_array%p)
-          cpp_array%n = size(fortran_array)
+    end subroutine retrieve_mesh_connectivity
 
-       end subroutine f2c_double_array
+    subroutine GlobalMesh_build_cartesian_grid_from_C(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz) &
+        bind(C, name="GlobalMesh_build_cartesian_grid")
 
-       subroutine retrieve_vertices(cpp_array) bind(C, name="retrieve_vertices")
+    real(kind=c_double), value, intent(in)  :: Ox, Oy, Oz
+    real(kind=c_double), value, intent(in)  :: lx, ly, lz
+    integer(kind=c_int), value, intent(in)  :: nx, ny, nz
+    ! FIXME: set consistent values to error codes
+    integer :: errcode, Ierr
 
-          type(cpp_array_wrapper), intent(inout) :: cpp_array
+    if (commRank /= 0) then
+        print *, "Mesh is supposed to be created by master process."
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
 
-          if (commRank /= 0) then
-             !CHECKME: Maybe MPI_abort would be better here
-             !buffer%p = c_null_ptr
-             !buffer%n = 0
-             print *, "Mesh is supposed to be read by master process."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
+    call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
-          if (.not. allocated(XNode)) then
-             print *, "Mesh vertices are not allocated."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
+    end subroutine GlobalMesh_build_cartesian_grid_from_C
 
-          cpp_array%p = c_loc(XNode(1, 1))
-          cpp_array%n = size(XNode, 2)
+    subroutine GlobalMesh_make_post_read_from_C() &
+        bind(C, name="GlobalMesh_make_post_read")
 
-       end subroutine retrieve_vertices
+    if (commRank /= 0) then
+        print *, "GlobalMesh_make_post_read_from_C is supposed to be run by master process."
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
 
-         subroutine retrieve_coc(fortran_csr, retrieved_coc)
-         
-          type(CSR), intent(in) :: fortran_csr
-          type(cpp_COC), intent(inout) :: retrieved_coc
+    call GlobalMesh_Make_post_read()
+    
+    end subroutine GlobalMesh_make_post_read_from_C
 
-          if ((.not. allocated(fortran_csr%Pt)) .or. &
-              (.not. allocated(fortran_csr%Num)) .or. &
-              allocated(fortran_csr%Val)) &
-             then
-             print *, "Trying to retrieve as COC a CSR which is not allocated."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
+    
+    function check_mesh_allocation() result(status)
+    
+    logical :: status
+    
+    status = .false.
+    
+    if (commRank /= 0) then
+        print *, "check_mesh_allocation is supposed to be run by master process"
+        return
+    end if
+    
+    if(.not.allocated(XNode)) then
+        print *, "Node array is not allocated."
+        return
+    end if
+    
+    if(size(XNode, 2)/=NbNode) then
+        print *, "Node array is not consistent with number of nodes."
+        return
+    end if
+    
+    status = .true.
 
-          retrieved_coc%nb_containers = fortran_csr%Nb
-          call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
-          call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
+    end function check_mesh_allocation
+    
+    subroutine DefWell_make_compute_well_index_from_C() &
+        bind(C, name="DefWell_make_compute_well_index")
 
-       end subroutine retrieve_coc
+    if (.not.check_mesh_allocation()) then
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
 
-       subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
-
-         type(cpp_MeshConnectivity), intent(inout) :: connectivity
-
-         call retrieve_coc(NodebyCell, connectivity%NodebyCell)
-	 call retrieve_coc(NodebyFace, connectivity%NodebyFace)
-	 call retrieve_coc(FacebyCell, connectivity%FacebyCell)
-	 call retrieve_coc(CellbyNode, connectivity%CellbyNode)
-	 call retrieve_coc(CellbyFace, connectivity%CellbyFace)
-  call retrieve_coc(CellbyCell, connectivity%CellbyCell)
-  
-        end subroutine retrieve_mesh_connectivity
+    call DefWell_Make_ComputeWellIndex( &
+        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+        PermCell, PermFrac)
+    
+    end subroutine DefWell_make_compute_well_index_from_C
 
     end module GlobalMeshWrapper
-         
+

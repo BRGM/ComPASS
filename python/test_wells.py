@@ -34,3 +34,16 @@ W2.operate_on_pressure = 4E5, 300
 W2.inject(273.15 + 30)
 
 display_wells()
+
+W3 = ComPASS.Well()
+W3.geometry.radius = np.pi
+segments = np.transpose(np.vstack([np.arange(10, 18), np.arange(11, 19)]))
+W3.geometry.add_segments(segments)
+W3.operate_on_pressure = 1E5, 300
+W3.produce()
+
+print('Well W3:', W3)
+
+wells = [W1, W2, W3]
+ComPASS.set_well_geometries(wells)
+ComPASS.set_well_data(wells)

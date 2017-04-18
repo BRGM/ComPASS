@@ -37,17 +37,23 @@ module GlobalMesh
        NbDirNodeP !< Total number of Dirichlet nodes Darcy
 
   ! Well
-  integer, protected :: &
+  ! FIXME: protected has been removed here to acces variable from C API
+  !        bad practice : use getter/setter subroutines instead
+  integer :: &
        NbWellInj, & !< Total number of injection wells
        NbWellProd   !< Total number of production wells
 
   ! Number of Edges by Well
-  integer, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed here to acces array from C
+  !        bad practice : use getter/setter subroutines instead
+  integer, allocatable, dimension(:) :: &
        NbEdgebyWellInj, & !< Total number of edges for each injection well
        NbEdgebyWellProd   !< Total number of edges for each production well
 
   ! list of Edge by Well oriented (1:parent or 2:son,num_edge,num_well)
-  integer, allocatable, dimension(:,:,:), protected :: &
+  ! FIXME: protected has been removed here to acces array from C
+  !        bad practice : use getter/setter subroutines instead
+  integer, allocatable, dimension(:,:,:) :: &
        NumNodebyEdgebyWellInj, & !< Oriented list of edge by injection well (Id_parent Id_son)
        NumNodebyEdgebyWellProd   !< Oriented list of edge by production well (Id_parent Id_son)
 
@@ -511,8 +517,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        enddo
     enddo
 
-    call GlobalMesh_SetWellCar(nx,ny,nz)
-
   end subroutine GlobalMesh_Build_cartesian_grid
 
   !> \brief Make cartesian mesh given a Meshfile with domain informations.
@@ -550,9 +554,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
     
         close(15)
+	
+	    call GlobalMesh_SetWellCar(nx,ny,nz)
         
   end subroutine GlobalMesh_ReadMeshCar
-
+  
   !> \brief Read mesh from Meshfile.
   !!
   !! Meshfile contains the number of elements (Nodes, Faces, Cells, Wells),
@@ -1141,12 +1147,12 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     integer :: i, j, ival
     integer, allocatable, dimension(:) :: OrderedNodes
     integer, allocatable, dimension(:) :: Parents
-
-    write(fdGm,*) 'Edges'
+    
+	write(fdGm,*) 'Edges'
     write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
     write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
 
-    ! allocation and initiaization
+    ! allocation and initialization
     allocate(OrderedNodes(size(NumNodebyEdgebyWell, 2) + 1))
     allocate(Parents(size(NumNodebyEdgebyWell, 2) + 1))
     allocate(NodebyWell%Pt(NbWell+1))

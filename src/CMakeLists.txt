@@ -127,11 +127,15 @@ if(NOT ${Boost_FOUND})
 endif(NOT ${Boost_FOUND})
 
 set( WRAPPERS_SRCS
+  ArrayWrapper.h
   COC.h
   COC_wrappers.h
   COC_wrappers.cpp
+  CommonTypesWrapper.F90
   ComPASS_module.cpp
   GlobalMeshWrapper.F90
+  GlobalMesh_wrappers.h
+  GlobalMesh_wrappers.cpp
   MeshUtilities.h
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
@@ -145,6 +149,7 @@ set( WRAPPERS_SRCS
   Well.h
   Well_wrappers.h
   Well_wrappers.cpp
+  Well_wrappers.F90
 )
 
 unset(_tmp)

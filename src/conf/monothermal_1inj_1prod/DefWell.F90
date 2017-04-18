@@ -1,5 +1,6 @@
 module DefWell
 
+  use CommonMPI
   use DefModel
 
   implicit none
@@ -79,6 +80,27 @@ module DefWell
 
 contains
 
+  subroutine DefWell_print_DataWellInj(datawell)
+  
+  type(TYPE_DataWellInj), intent(in) :: datawell
+  
+  write(*,*) "%%", "iwd", datawell%Radius, &
+	datawell%Temperature, datawell%compTotal(:), &
+	datawell%PressionMax, datawell%FlowrateImposed, &
+	datawell%IndWell 
+  
+  end subroutine DefWell_print_DataWellInj
+    
+  subroutine DefWell_print_DataWellProd(datawell)
+  
+  type(TYPE_DataWellProd), intent(in) :: datawell
+  
+  write(*,*) "%%", "pwd", datawell%Radius, &
+  datawell%PressionMin, datawell%FlowrateImposed, &
+  datawell%IndWell 
+  
+  end subroutine DefWell_print_DataWellProd
+    
   ! allocate DataWellInj and set Radius
   subroutine DefWell_SetDataWellInj(NbWell)
 
@@ -124,25 +146,43 @@ contains
 
   !! ----------------------------------------------------!!
 
+  subroutine DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+    integer, intent(in) :: NbWellInj, NbWellProd
+  
+    call DefWell_SetDataWellInj(NbWellInj)   ! allocate DataWellInj and set Radius
+    call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
 
-  subroutine DefWell_Make(NbWellInj, NbWellProd, &
-       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-       PermCell, PermFrac)
+  end subroutine DefWell_Make_SetDataWell
+  
+  subroutine DefWell_Make_ComputeWellIndex( &
+       NbNode, XNode, CellbyNode, NodebyCell, &
+	   FracbyNode, NodebyFace, PermCell, PermFrac)
 
-    integer, intent(in) :: NbWellInj, NbWellProd, NbNode
+    integer, intent(in) :: NbNode
     double precision, allocatable, dimension(:,:), intent(in) :: XNode
     type(CSR), intent(in) :: CellbyNode, NodebyCell, FracbyNode, NodebyFace
 
     double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
     double precision, allocatable, dimension(:), intent(in) :: PermFrac
 
+    integer :: NbWellInj, NbWellProd
     double precision, allocatable, dimension(:) :: WellRadius
+    ! FIXME: set consistent values to error codes
+    integer :: errcode, Ierr
 
-    ! Set DataWell
-    call DefWell_SetDataWellInj(NbWellInj)   ! allocate DataWellInj and set Radius
-    call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
-
-    ! Compute Well Index (Darcy and Fourier)
+    if(.NOT.allocated(DataWellProd)) then
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+		write(*,*) "ERROR DataWellProd is not allocated."
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
+	NbWellProd = size(DataWellProd)
+    if(.NOT.allocated(DataWellInj)) then
+        !CHECKME: MPI_Abort is supposed to end all MPI processes
+		write(*,*) "ERROR DataWellInj is not allocated."
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    end if
+	NbWellInj = size(DataWellInj)
+	
     allocate(WellRadius(max(NbWellInj,NbWellProd)))
 
     WellRadius(:) = 0
@@ -158,6 +198,27 @@ contains
          PermCell, PermFrac)
 
     deallocate(WellRadius)
+
+	end subroutine DefWell_Make_ComputeWellIndex 
+	
+	subroutine DefWell_Make(NbWellInj, NbWellProd, &
+       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+       PermCell, PermFrac)
+
+    integer, intent(in) :: NbWellInj, NbWellProd, NbNode
+    double precision, allocatable, dimension(:,:), intent(in) :: XNode
+    type(CSR), intent(in) :: CellbyNode, NodebyCell, FracbyNode, NodebyFace
+
+    double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
+    double precision, allocatable, dimension(:), intent(in) :: PermFrac
+
+    double precision, allocatable, dimension(:) :: WellRadius
+
+	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+	
+	call DefWell_Make_ComputeWellIndex( &
+       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+       PermCell, PermFrac)
 
   end subroutine DefWell_Make
 

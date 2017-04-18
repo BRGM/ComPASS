@@ -19,7 +19,18 @@ if not os.path.exists(outputdir):
 
 logfile = os.path.join(outputdir, 'mytest.log')
 
-ComPASS.init_warmup_and_read_mesh(meshfile, logfile)
+#ComPASS.init_warmup_and_read_mesh(meshfile, logfile)
+ComPASS.init_warmup(logfile)
+if comm.rank==0:
+    origin = (-1500., -1000., -1600.)
+    extent = (3000., 2000., 100.)
+    shape = (3, 2, 1)
+    wells = [] # no wells
+    ComPASS.build_grid(shape = shape, origin = origin, extent = extent)
+    ComPASS.set_well_geometries(wells)
+    ComPASS.global_mesh_make_post_read()
+    ComPASS.set_well_data(wells)
+    ComPASS.compute_well_indices()
 
 # FIXME: This would have to be renamed global mesh vertices
 if comm.rank==0:

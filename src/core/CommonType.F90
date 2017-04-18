@@ -215,6 +215,37 @@ contains
 
   end subroutine CommonType_printCSRdble
 
+  !> Print CSRdble
+  subroutine CommonType_printCSRArray2dble(CSR1)
+
+    type(CSRArray2dble), intent(inout) :: CSR1
+    integer :: i, j
+
+    write(*,'(A4,I3)') "Nb:  ", CSR1%Nb
+    do i=1,CSR1%Nb
+      write(*,"(A4,I3,A8,I2)") "Row  ", i, " : size=", CSR1%Pt(i+1)-CSR1%Pt(i)
+
+      do j=CSR1%Pt(i)+1,CSR1%Pt(i+1)
+        write(*,"(I3)",advance="no") CSR1%Num(j)
+      end do
+      print*,""
+    end do
+
+    print*, ""
+    print*, ""
+
+    do i=1,CSR1%Nb
+      write(*,"(A4,I3,A8,I2)") "Row  ", i, " : size=", CSR1%Pt(i+1)-CSR1%Pt(i)
+
+      do j=CSR1%Pt(i)+1,CSR1%Pt(i+1)
+        ! write(*,"(D2.6)",advance="no"), CSR1%Val(j)
+        print*, CSR1%Val(j, :, :)
+      end do
+      print*,""
+    end do
+
+  end subroutine CommonType_printCSRArray2dble
+
   
   !> \brief Define operator = between two TYPE_IdNode:  x2 = x1
   subroutine assign_IdNode_equal(x2, x1)
