@@ -210,8 +210,7 @@ foreach(_conf ${CONFIGURATIONS})
           pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
           target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
           set(python_module_done TRUE)
-          # set(pyComPASS_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
-          set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python")
+          set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
           set_target_properties(ComPASS
               PROPERTIES
               LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}

@@ -5,17 +5,17 @@ import ComPASS
 
 comm = MPI.COMM_WORLD
 
-head, tail = os.path.split(ComPASS.__file__)
-compassdir, tail = os.path.split(head)
-assert tail=='python'
-dirname = os.path.join(compassdir,'tests')
-meshdir = os.path.join(dirname, 'meshes')
+compass_package_dir, tail = os.path.split(ComPASS.__file__)
+compass_python_dir, tail = os.path.split(compass_package_dir)
+outputdir = os.path.join(compass_python_dir, 'tests',
+                         'output-' + os.path.splitext(os.path.basename(__file__))[0])
+outputdir = os.path.abspath(outputdir)
 
-meshfile = os.path.join(meshdir, 'cartesian.msh')
-
-outputdir = os.path.abspath('./mytest')
-if not os.path.exists(outputdir):
-  os.makedirs(outputdir)
+# master proc manages directory creation
+if comm.rank==0:
+    if not os.path.exists(outputdir):
+      os.makedirs(outputdir)
+comm.Barrier() # wait for every process to synchronize
 
 logfile = os.path.join(outputdir, 'mytest.log')
 
@@ -34,7 +34,7 @@ if comm.rank==0:
 
 # FIXME: This would have to be renamed global mesh vertices
 if comm.rank==0:
-  vertices = np.array(ComPASS.get_vertices(), copy = False)
+  vertices = ComPASS.get_vertices()
   print(vertices.shape)
   print(vertices[:5])
   print('Bounding box min corner:', vertices.min(axis=0))

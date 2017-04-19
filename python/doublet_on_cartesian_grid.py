@@ -5,12 +5,17 @@ import ComPASS
 
 comm = MPI.COMM_WORLD
 
-compassdir, tail = os.path.split(ComPASS.__file__)
-outputdir = os.path.join(compassdir, 'tests',
+compass_package_dir, tail = os.path.split(ComPASS.__file__)
+compass_python_dir, tail = os.path.split(compass_package_dir)
+outputdir = os.path.join(compass_python_dir, 'tests',
                          'output-' + os.path.splitext(os.path.basename(__file__))[0])
 outputdir = os.path.abspath(outputdir)
-if not os.path.exists(outputdir):
-  os.makedirs(outputdir)
+
+# master proc manages directory creation
+if comm.rank==0:
+    if not os.path.exists(outputdir):
+      os.makedirs(outputdir)
+comm.Barrier() # wait for every process to synchronize
 
 logfile = os.path.join(outputdir, 'mytest.log')
 
@@ -23,7 +28,7 @@ shape = (61, 41, 1)
 tons_per_hour = 1E3 / 3600 # 1000 kg / 3600 s
 
 def make_well(xy):
-    vertices = np.array(ComPASS.get_vertices(), copy = False)
+    vertices = ComPASS.get_vertices()
     x, y, z = (vertices[:, col] for col in range(3))
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]

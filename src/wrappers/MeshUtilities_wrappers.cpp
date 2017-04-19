@@ -25,7 +25,7 @@ void add_mesh_utilities_wrappers(py::module& module)
 		);
 	});
 
-	module.def("get_vertices", []() {
+	module.def("get_vertices_buffer", []() {
 		Vertices V;
 		retrieve_vertices(V);
 		return V;
