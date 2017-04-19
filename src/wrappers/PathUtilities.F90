@@ -22,7 +22,7 @@
         character(len=*), intent(in)  :: path
         character(len=1, kind=c_char), target     :: path_as_C_string(len(path) + 1)
 
-        write (path_as_C_string, '(A)') trim(path)//C_NULL_CHAR
+        path_as_C_string = trim(path)//C_NULL_CHAR
         call c_make_directory( c_loc(path_as_C_string) )
 
       end subroutine make_directory
