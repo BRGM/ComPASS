@@ -1332,7 +1332,7 @@ contains
          NewtonNiterTotal, NewtonNbFailure, &
          KspNiterTotal, KspNbFailure
 
-    character(len=100) :: filename  ! filename
+    character(len=300) :: filename  ! filename
 
     integer(HID_T) :: file_id       ! File identifier
     integer(HID_T) :: dset_id       ! Dataset identifier
@@ -1681,7 +1681,7 @@ contains
          NewtonNiterTotal, NewtonNbFailure, &
          KspNiterTotal, KspNbFailure
 
-    character(len=100) :: filename  ! filename
+    character(len=300) :: filename  ! filename
 
     integer(HID_T) :: file_id       ! File identifier
     integer(HID_T) :: dset_id       ! Dataset identifier

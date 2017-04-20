@@ -17,13 +17,17 @@
 
     contains
 
-      subroutine make_directory(path)
+      subroutine make_directory(fortran_path)
 
-        character(len=*), intent(in)  :: path
-        character(len=1, kind=c_char), target     :: path_as_C_string(len(path) + 1)
+        character(len=*), intent(in) :: fortran_path
+        character(len=1, kind=c_char), target :: path_as_C_string(len(fortran_path) + 1)
+        integer :: i
 
-        path_as_C_string = trim(path)//C_NULL_CHAR
-        call c_make_directory( c_loc(path_as_C_string) )
+        do i=1, len(fortran_path)
+            path_as_C_string(i) = fortran_path(i:i)
+        end do
+        path_as_C_string(len(fortran_path)+1) = C_NULL_CHAR
+        call c_make_directory( c_loc(path_as_C_string(1)) )
 
       end subroutine make_directory
 
