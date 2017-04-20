@@ -58,7 +58,8 @@ def select_fractures():
     fractures_centers = ComPASS.compute_face_centers()
     dz = extent[2] / shape[2]
     # select horizontal fault axis in the middle of the simulation domain
-    return np.abs(fractures_centers[:, 1] - (origin[2] + 0.5 * extent[2])) < 0.5 * dz
+    zfrac = origin[2] + 0.5 * extent[2]
+    return np.abs(fractures_centers[:, 2] - zfrac) < 0.5 * dz
 
 # The following calls are equivalent to ComPASS.init(meshfile, logfile, outputdir)
 ComPASS.init_warmup(logfile)
