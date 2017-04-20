@@ -8,6 +8,18 @@ def get_vertices():
 def get_id_faces():
    return np.array(ComPASS.get_id_faces_buffer(), copy = False)
 
+def get_cell_permeability():
+   return np.array(ComPASS.get_cell_permeability_buffer(), copy = False)
+
+def get_fracture_permeability():
+   return np.array(ComPASS.get_fracture_permeability_buffer(), copy = False)
+
+def get_cell_porosity():
+   return np.array(ComPASS.get_cell_porosity_buffer(), copy = False)
+
+def get_fracture_porosity():
+   return np.array(ComPASS.get_fracture_porosity_buffer(), copy = False)
+
 def compute_face_centers():
     vertices = get_vertices()
     connectivity = get_connectivity()

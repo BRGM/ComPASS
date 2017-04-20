@@ -114,14 +114,17 @@ module GlobalMesh
        IdNodeFromFile  !< Temporary vector to read identifier from meshfile
 
   ! Porosite
-  double precision, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed to access arrays from C
+  real(c_double), allocatable, dimension(:), target :: &
        PorositeCell, & !< Porosity of each Cell, set by user in file DefGeometry.F90
        PorositeFace    !< Porosity of each fracture face, set by user in file DefGeometry.F90
 
   ! Permeability
-  double precision, allocatable, dimension(:,:,:), protected :: &
+  ! FIXME: protected has been removed to access array from C
+  real(c_double), allocatable, dimension(:,:,:), target :: &
        PermCell !< Permeability tensor for each cell, set by user in file DefModel.F90
-  double precision, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed to access array from C
+  real(c_double), allocatable, dimension(:), target :: &
        PermFrac !< Permeability constant for each fracture face, set by user in file DefModel.F90
 
   ! Used to ouput well information

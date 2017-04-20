@@ -28,6 +28,10 @@
           retrieve_vertices, &
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &
+          retrieve_cell_porosity, &
+          retrieve_fracture_porosity, &
+          retrieve_cell_permeability, &
+          retrieve_fracture_permeability, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_make_post_read_from_C, &
           GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
@@ -89,6 +93,94 @@
           cpp_array%n = size(IdFace)
 
        end subroutine retrieve_id_faces
+
+       subroutine retrieve_cell_porosity(cpp_array) &
+          bind(C, name="retrieve_cell_porosity")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(PorositeCell)) then
+             print *, "Cell porosity array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(PorositeCell(1))
+          cpp_array%n = size(PorositeCell)
+
+       end subroutine retrieve_cell_porosity
+
+       subroutine retrieve_fracture_porosity(cpp_array) &
+          bind(C, name="retrieve_fracture_porosity")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(PorositeFace)) then
+             print *, "Fracture porosity array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(PorositeFace(1))
+          cpp_array%n = size(PorositeFace)
+
+       end subroutine retrieve_fracture_porosity
+
+       subroutine retrieve_cell_permeability(cpp_array) &
+          bind(C, name="retrieve_cell_permeability")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(PermCell)) then
+             print *, "Cell permeability array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(PermCell(1,1,1))
+          cpp_array%n = size(PermCell, 3)
+
+       end subroutine retrieve_cell_permeability
+
+       subroutine retrieve_fracture_permeability(cpp_array) &
+          bind(C, name="retrieve_fracture_permeability")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(PermFrac)) then
+             print *, "Fracture permeability array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(PermFrac(1))
+          cpp_array%n = size(PermFrac)
+
+       end subroutine retrieve_fracture_permeability
 
        subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
 

@@ -56,5 +56,6 @@ auto retrieve_buffer(std::function <void(ArrayWrapper&)> retrieve)
 typedef PyBufferWrapper<int> IntBuffer;
 typedef PyBufferWrapper<double> DoubleBuffer;
 typedef PyBufferWrapper<double, 3> CoordinatesBuffer;
+typedef PyBufferWrapper<double, 3, 3> TensorBuffer;
 
 void add_pybuffer_wrappers(py::module&);
