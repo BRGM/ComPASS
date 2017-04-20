@@ -144,6 +144,8 @@ set( WRAPPERS_SRCS
   NN_wrappers.F90
   PathUtilities.F90
   PathUtilities.cpp
+  PyBuffer_wrappers.h
+  PyBuffer_wrappers.cpp
   StringWrapper.h
   StringWrapper.F90
   Well.h

@@ -1,10 +1,13 @@
+#include "ArrayWrapper.h"
+#include "PyBuffer_wrappers.h"
 #include "MeshUtilities.h"
 
 // Fortran functions
 extern "C"
 {
-	void retrieve_vertices(Vertices&);
+	void retrieve_vertices(ArrayWrapper&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
+	void retrieve_id_faces(ArrayWrapper&);
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -12,26 +15,13 @@ extern "C"
 void add_mesh_utilities_wrappers(py::module& module)
 {
 
-	py::class_<Vertices>(module, "VerticesHandle", py::buffer_protocol())
-		.def_buffer([](Vertices &V) -> py::buffer_info {
-		return py::buffer_info(
-			V.p,                               /* Pointer to buffer */
-			sizeof(double),                          /* Size of one scalar */
-			py::format_descriptor<double>::format(), /* Python struct-style format descriptor */
-			2,                                      /* Number of dimensions */
-			{ V.nb_points, 3 },                 /* Buffer dimensions */
-			{ sizeof(double) * 3,             /* Strides (in bytes) for each index */
-			sizeof(double) }
-		);
-	});
+	module.def("get_vertices_buffer",
+		[]() { return retrieve_buffer<CoordinatesBuffer>(retrieve_vertices); },
+		"Get node coordinates.");
 
-	module.def("get_vertices_buffer", []() {
-		Vertices V;
-		retrieve_vertices(V);
-		return V;
-	},
-		"Get node coordinates."
-		);
+	module.def("get_id_faces_buffer",
+		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },
+		"Get faces integer flag. Can be used to specify fracture faces setting the flag to -2.");
 
 	py::class_<MeshConnectivity>(module, "MeshConnectivity")
 		.def_readwrite("NodebyCell", &MeshConnectivity::NodebyCell)

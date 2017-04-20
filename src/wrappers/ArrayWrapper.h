@@ -5,17 +5,20 @@
 class ArrayWrapper
 {
 protected:
-	const void * pointer;
-	size_t length;
+	void * pointer;
+	std::size_t length;
 	ArrayWrapper() :
-		pointer(NULL),
-		length(0) {}
+		pointer{ nullptr },
+		length{ 0 } {}
 public:
+	static auto make_empty() { return ArrayWrapper(); }
 	template <typename T>
-	static auto wrap(const std::vector<T>& v) {
+	static auto wrap(std::vector<T>& v) {
 		ArrayWrapper wrapper;
-		wrapper.pointer = static_cast<const void *>(v.data());
+		wrapper.pointer = static_cast<void *>(v.data());
 		wrapper.length = v.size();
 		return wrapper;
 	}
+	template <typename T, std::size_t ...extend> 
+	friend class PyBufferWrapper;
 };

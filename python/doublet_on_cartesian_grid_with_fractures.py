@@ -22,7 +22,7 @@ logfile = os.path.join(outputdir, 'mytest.log')
 # Simulation domain
 origin = (-1500., -1000., -1600.)
 extent = (3000., 2000., 100.)
-shape = (31, 21, 3)
+shape = (31, 21, 11)
 
 # units
 tons_per_hour = 1E3 / 3600 # 1000 kg / 3600 s
@@ -54,6 +54,12 @@ def make_wells(interwell_distance=None):
         injector.inject(333) # FIXME
         return [producer, injector]
 
+def select_fractures():
+    fractures_centers = ComPASS.compute_face_centers()
+    dz = extent[2] / shape[2]
+    # select horizontal fault axis in the middle of the simulation domain
+    return np.abs(fractures_centers[:, 1] - (origin[2] + 0.5 * extent[2])) < 0.5 * dz
+
 # The following calls are equivalent to ComPASS.init(meshfile, logfile, outputdir)
 ComPASS.init_warmup(logfile)
 if comm.rank==0:
@@ -62,7 +68,7 @@ if comm.rank==0:
     ComPASS.set_well_geometries(wells)
     ComPASS.global_mesh_mesh_bounding_box()
     ComPASS.global_mesh_compute_all_connectivies()
-    ComPASS.global_mesh_set_frac()
+    ComPASS.set_fractures(select_fractures())
     ComPASS.global_mesh_node_of_frac()
     ComPASS.global_mesh_set_dir_BC()
     ComPASS.global_mesh_frac_by_node()

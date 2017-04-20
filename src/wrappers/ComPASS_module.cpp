@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 
+#include "PyBuffer_wrappers.h"
 #include "NN_wrappers.h"
 #include "COC_wrappers.h"
 #include "GlobalMesh_wrappers.h"
@@ -11,6 +12,7 @@ PYBIND11_PLUGIN(ComPASS)
 
 	py::module module("ComPASS", "pybind11 ComPASS library interface");
 	
+	add_pybuffer_wrappers(module);
 	add_NN_wrappers(module);
 	add_coc_wrappers(module);
 	add_GlobalMesh_wrappers(module);

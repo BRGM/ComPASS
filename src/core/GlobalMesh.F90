@@ -96,7 +96,8 @@ module GlobalMesh
 
   ! IdFace is filled in GlobalMesh_ReadMesh for Dir
   !                     GlobalMesh_Frac for Frac: IdFace(fracface)=-2
-  integer, allocatable, dimension(:), protected :: &
+  ! FIXME: protected attribute has been removed
+  integer(c_int), allocatable, dimension(:), target :: &
        IdFace !< Identifier of each Face (1 to 6 to identify boundary faces and -2 for fracture faces)
 
   ! IdCell
@@ -139,7 +140,9 @@ module GlobalMesh
        GlobalMesh_Make_post_read, &
        GlobalMesh_free
 
-  private :: &
+  !FIXME: All routines are made public here
+  !private :: &
+  public :: &
        GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
        GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
        GlobalMesh_ReadMeshFromFile,     & ! read mesh from file

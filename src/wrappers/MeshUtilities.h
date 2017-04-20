@@ -4,16 +4,6 @@
 
 #include "COC.h"
 
-struct Vertices
-{
-	double * p;
-	std::size_t nb_points;
-	Vertices() :
-		p(NULL),
-		nb_points(0)
-	{}
-};
-
 struct MeshConnectivity
 {
 	COC NodebyCell;
