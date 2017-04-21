@@ -1,1254 +1,1276 @@
 module NN
 
-  use PathUtilities
+   use PathUtilities
 
-  use GlobalMesh
-  use PartitionMesh
-  use LocalMesh
-  use MeshSchema
+   use GlobalMesh
+   use PartitionMesh
+   use LocalMesh
+   use MeshSchema
 
-  use DefModel
-  use NumbyContext
-  use IncCV
-  use VAGFrac
+   use DefModel
+   use NumbyContext
+   use IncCV
+   use VAGFrac
 
-  use LoisThermoHydro
-  use Flux
-  use Residu
-  use Jacobian
-  use SolvePetsc
+   use LoisThermoHydro
+   use Flux
+   use Residu
+   use Jacobian
+   use SolvePetsc
 
-  use DefFlash
+   use DefFlash
 
 #include <finclude/petscdef.h>
-  use petsc
+   use petsc
 
 !! FIXME: This is define through CMake options #define _VISU_
 #ifdef _VISU_
-  use VisuVTK
+   use VisuVTK
 #endif
 
-  implicit none
+   implicit none
 
-  ! Mesh file and Perm file
-  character(len=200) :: Wellinfoname
+   ! Mesh file and Perm file
+   character(len=200) :: Wellinfoname
 
-  character(len=200) :: output_path
-  
-  integer :: Ierr, errcode
-  logical :: file_exists
+   character(len=200) :: output_path
 
-  integer :: i, j, k, s, iph, fi, numj, head
-  integer :: nsf, is, n, fk
-  integer, allocatable, dimension(:) :: fd
-  integer :: rowk, nz, colk
-  double precision, pointer :: ptr(:)
+   integer :: Ierr, errcode
+   logical :: file_exists
 
-  double precision :: err_cell_L1, err_cell_L2, err_cell_Linf
-  double precision :: errlocal_cell_L1, errlocal_cell_L2, errlocal_cell_Linf
-  double precision :: err_frac_L1, err_frac_L2, err_frac_Linf
-  double precision :: errlocal_frac_L1, errlocal_frac_L2, errlocal_frac_Linf
+   integer :: i, j, k, s, iph, fi, numj, head
+   integer :: nsf, is, n, fk
+   integer, allocatable, dimension(:) :: fd
+   integer :: rowk, nz, colk
+   double precision, pointer :: ptr(:)
 
-  double precision :: sol
+   double precision :: err_cell_L1, err_cell_L2, err_cell_Linf
+   double precision :: errlocal_cell_L1, errlocal_cell_L2, errlocal_cell_Linf
+   double precision :: err_frac_L1, err_frac_L2, err_frac_Linf
+   double precision :: errlocal_frac_L1, errlocal_frac_L2, errlocal_frac_Linf
 
-  double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
-  
-  ! Time variables
-  double precision :: Delta_t, TimeCurrent, TimeOutput
-  integer :: VisuTimeIter = 1
-  double precision :: Psat, dTsat
+   double precision :: sol
 
-  ! Computation time variables
-  double precision ::  &
-       comptime_total, &
-       comptime_timestep,  &
-       comptime_start, &
-       comptime_part
+   double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
 
-  double precision ::     &
-       comptime_readmesh !, &
-       !comptime_meshmake
+   ! Time variables
+   double precision :: Delta_t, TimeCurrent, TimeOutput
+   integer :: VisuTimeIter = 1
+   double precision :: Psat, dTsat
 
-  ! Newton variables
-  logical :: NewtonConv
-  integer :: NewtonIter
-  double precision :: NewtonResNormRel( NewtonNiterMax)
-  double precision :: NewtonRelax
-  integer :: NewtonNiterTotal = 0
-  integer :: NewtonNbFailure = 0
-  double precision :: &   ! Residu relative norm from first Newton iteration
-       NewtonResConvInit(NbCompThermique), &
-       NewtonResClosInit
+   ! Computation time variables
+   double precision :: &
+      comptime_total, &
+      comptime_timestep, &
+      comptime_start, &
+      comptime_part
 
-  ! ksp variables
-  double precision, allocatable, dimension(:) :: KspHistory
+   double precision :: &
+      comptime_readmesh !, &
+   !comptime_meshmake
 
-  logical :: KspConv
-  integer :: KspNiter, KspNiterTimeStep
-  integer :: KspNiterTotal = 0
-  integer :: KspNbFailure  = 0
+   ! Newton variables
+   logical :: NewtonConv
+   integer :: NewtonIter
+   double precision :: NewtonResNormRel(NewtonNiterMax)
+   double precision :: NewtonRelax
+   integer :: NewtonNiterTotal = 0
+   integer :: NewtonNbFailure = 0
+   double precision :: & ! Residu relative norm from first Newton iteration
+      NewtonResConvInit(NbCompThermique), &
+      NewtonResClosInit
 
-  ! Newton increment (NbInc,NbNodelocal)
-  double precision, dimension(:,:), allocatable :: &
-       NewtonIncreNode, &
-       NewtonIncreFrac, &
-       NewtonIncreCell
+   ! ksp variables
+   double precision, allocatable, dimension(:) :: KspHistory
 
-  ! as well have only one unknown (pressure), only a vector (NbWellLocal)
-  double precision, dimension(:), allocatable :: &
-       NewtonIncreWellInj, &
-       NewtonIncreWellProd
+   logical :: KspConv
+   integer :: KspNiter, KspNiterTimeStep
+   integer :: KspNiterTotal = 0
+   integer :: KspNbFailure = 0
 
-  !  ! Perm
-  !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
-  !  double precision, dimension(:), allocatable :: PermFracLocal
+   ! Newton increment (NbInc,NbNodelocal)
+   double precision, dimension(:, :), allocatable :: &
+      NewtonIncreNode, &
+      NewtonIncreFrac, &
+      NewtonIncreCell
 
-  ! Conductivities thermal
-#ifdef _THERMIQUE_  
-  double precision, dimension(:,:,:), allocatable :: CondThermalCellLocal
-  double precision, dimension(:), allocatable :: CondThermalFracLocal
+   ! as well have only one unknown (pressure), only a vector (NbWellLocal)
+   double precision, dimension(:), allocatable :: &
+      NewtonIncreWellInj, &
+      NewtonIncreWellProd
+
+   !  ! Perm
+   !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
+   !  double precision, dimension(:), allocatable :: PermFracLocal
+
+   ! Conductivities thermal
+#ifdef _THERMIQUE_
+   double precision, dimension(:, :, :), allocatable :: CondThermalCellLocal
+   double precision, dimension(:), allocatable :: CondThermalFracLocal
 #endif
 
 #ifdef _VISU_
-  ! vectors used for visu
-  double precision, dimension(:), allocatable :: &
-       datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
+   ! vectors used for visu
+   double precision, dimension(:), allocatable :: &
+      datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
 #endif
 
-  double precision :: visutime
+   double precision :: visutime
 
-  double precision :: f, CC(NbComp), SS(NbPhase), dPf, dTf, dCf(NbComp), dSf(NbPhase)
+   double precision :: f, CC(NbComp), SS(NbPhase), dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-  ! ! ********************************** ! !
-  
-public :: &
-    NN_init, &
-    NN_main, &
-    NN_finalize
-    
-    contains
+   ! ! ********************************** ! !
 
-    subroutine NN_init_output_streams(Logfile)
-    
-    character(len=*), intent(in) :: LogFile
+   public :: &
+      NN_init, &
+      NN_main, &
+      NN_finalize
 
-    ! Report file
-    if(commRank==0) then
-        open(11,file=trim(LogFile),status="unknown")
-    end if
+contains
 
-    allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
-    ! allocate(fd(1)); fd = (/11/)
+   subroutine NN_init_output_streams(Logfile)
 
-    end subroutine NN_init_output_streams
-    
-    subroutine NN_init_read_mesh(MeshFile)
+      character(len=*), intent(in) :: LogFile
 
-    character(len=*), intent(in   ) :: MeshFile
-
-    !FIXME: This is more of an assertion for consistency, might be removed
-    if(.NOT.commRank==0) then
-        print*, "Mesh is supposed to be read by master process."
-			!CHECKME: MPI_Abort is supposed to end all MPI processes
-			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-
-    inquire(FILE=MeshFile, EXIST=file_exists)
-    if(file_exists .eqv. .false.) then
-        print*, " "
-        print*, "Mesh does not exist   ", MeshFile
-        print*, " "
-			!CHECKME: MPI_Abort is supposed to end all MPI processes
-			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-    print*, "Mesh read from file: ", MeshFile
-
-    ! Read Global Mesh
-    call GlobalMesh_Make_read_file(MeshFile)
-
-    call GlobalMesh_Make_post_read()
-
-	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-    call DefWell_Make_ComputeWellIndex( &
-        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-        PermCell, PermFrac)
-
-    end subroutine NN_init_read_mesh
-    
-    subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-
-    real(kind=c_double), intent(in)  :: Ox, Oy, Oz
-    real(kind=c_double), intent(in)  :: lx, ly, lz
-    integer(kind=c_int), intent(in)  :: nx, ny, nz
-	
-    !FIXME: This is more of an assertion for consistency, might be removed
-    if(.NOT.commRank==0) then
-        print*, "Mesh is supposed to be built by master process."
-			!CHECKME: MPI_Abort is supposed to end all MPI processes
-			call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-	
-	call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-	
-    call GlobalMesh_SetWellCar(nx,ny,nz)
-
-    call GlobalMesh_Make_post_read()
-
-	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-    call DefWell_Make_ComputeWellIndex( &
-        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-        PermCell, PermFrac)
-
-    end subroutine NN_init_build_grid
-
-    subroutine NN_partition_mesh(status)
-
-    logical,          intent(  out) :: status
-
-    status = .true.
-
-    !FIXME: This is more of an assertion for consistency, might be removed
-    if(.NOT.commRank==0) then
-        print*, "Mesh is supposed to be partitioned by master process."
-        status = .false.
-        return
-    end if
-
-    ! ****
-    ! Partition Global Mesh
-    ! Output:
-    !        ProcbyCell
-    call PartitionMesh_Metis(Ncpus)
-
-    ! make local mesh
-    call LocalMesh_Make
-
-    ! free global mesh
-    call GlobalMesh_free
-
-    !comptime_meshmake = MPI_WTIME() - comptime_meshmake
-
-    !do i=1,size(fd)
-    !    write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
-    !        comptime_meshmake
-    !end do
-
-    end subroutine NN_partition_mesh
-
-    
-  subroutine NN_init_warmup(LogFile)
-
-    character(len=*), intent(in) :: LogFile
-    
-  ! initialisation petsc/MPI
-  call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
-  CHKERRQ(Ierr)
-
-  ! init mpi, communicator/commRank/commSize
-  call CommonMPI_init(PETSC_COMM_WORLD)
-
-  call NN_init_output_streams(Logfile)
-
-    comptime_readmesh = MPI_WTIME()
-
-  end subroutine NN_init_warmup
-
-  subroutine NN_init_warmup_and_read_mesh(MeshFile, LogFile)
-
-    character(len=*), intent(in) :: MeshFile, LogFile
-    
-	call NN_init_warmup(Logfile)
-	
-	! *** Global Mesh *** !
-
-  if(commRank==0) then
-      call NN_init_read_mesh(MeshFile)
-  end if
-  call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
-
-  end subroutine NN_init_warmup_and_read_mesh
-
-  subroutine NN_init_phase2(OutputDir)
-
-     character(len=*), intent(in) :: OutputDir
-   logical                      :: ok, all_ok
-
-	if(commRank==0) then
-    do i=1,size(fd)
-        j = fd(i)
-        write(j,*) "  NbCell:      ", NbCell
-        write(j,*) "  NbFace:      ", NbFace
-        write(j,*) "  NbNode:      ", NbNode
-        write(j,*) "  NbFrac:      ", NbFrac
-        write(j,*) "  NbWellInj    ", NbWellInj
-        write(j,*) "  NbWellProd   ", NbWellProd
-        write(j,*) "  NbDirNode P: ", NbDirNodeP
-#ifdef _THERMIQUE_
-        write(j,*) "  NbDirNode T: ", NbDirNodeT
-#endif
-        write(j,*) "  Ncpus :      ", commSize
-        write(j,*) ""
-        write(j,*) "Final time: ", TimeFinal/OneDay
-        write(j,*) ""
-    end do
-
-    comptime_readmesh = MPI_WTIME() - comptime_readmesh
-    do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time warm up and reading mesh: ", &
-            comptime_readmesh
-    end do
-end if
-
-    !comptime_meshmake = MPI_WTIME()
-
-	if(commRank==0) then
-      call NN_partition_mesh(ok)
-      if(.NOT. ok) then
-        !CHECKME: MPI_Abort is supposed to end all MPI processes
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      ! Report file
+      if (commRank == 0) then
+         open (11, file=trim(LogFile), status="unknown")
       end if
-  end if
-  call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
-  ! *** Global Mesh -> Local Mesh *** !
+      allocate (fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
+      ! allocate(fd(1)); fd = (/11/)
 
-  ! Main subroutine of module MeshSchema
-  ! This module constains all infos of local mesh
-  !   1. Send mesh from proc 0 to other procs
-  !   2. compute XCellLocal, XFaceLocal
-  !   3. compute VolCelllocal, SurfFracLocal
-  !   4. compute NbNodeCellmax, NbFracCellMax, NbNodeFaceMax
+   end subroutine NN_init_output_streams
 
-  call MeshSchema_make
+   subroutine NN_init_read_mesh(MeshFile)
 
-  ! free some tmps in LocalMesh
-  if(commRank==0) then
-     call LocalMesh_Free
-  end if
+      character(len=*), intent(in) :: MeshFile
 
-  comptime_start = MPI_WTIME() ! total time start
-  comptime_total = 0.d0
+      !FIXME: This is more of an assertion for consistency, might be removed
+      if (.NOT. commRank == 0) then
+         print *, "Mesh is supposed to be read by master process."
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
 
-  ! if(commRank==0) then
-  !    print*, sum(NbNodeOwn_Ncpus)
-  !    print*, sum(NbFaceOwn_Ncpus)
-  !    print*, sum(NbFracOwn_Ncpus)
-  !    print*, sum(NbCellOwn_Ncpus)
-  !    ! print*, NbFracLocal_Ncpus
-  !    ! print*, NbNodeLocal_Ncpus
-  !    ! print*, NbCellLocal_Ncpus
-  !    ! print*, NbWellInjOwn_Ncpus
-  !    ! print*, NbWellInjLocal_Ncpus
-  !    ! print*, NbWellProdOwn_Ncpus
-  !    ! print*, NbWellProdLocal_Ncpus
-  ! end if
-  
-  ! if(commRank==1) then
-  !    print*, DataWellInjLocal(:)%Radius
-  !    print*, DataWellInjLocal(:)%Temperature
-  !    print*, DataWellInjLocal(:)%IndWell
-  !    print*, DataWellInjLocal(:)%PressionMax
-  !    print*, DataWellInjLocal(:)%Flowrate
-  !    print*, ""
+      inquire (FILE=MeshFile, EXIST=file_exists)
+      if (file_exists .eqv. .false.) then
+         print *, " "
+         print *, "Mesh does not exist   ", MeshFile
+         print *, " "
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+      print *, "Mesh read from file: ", MeshFile
 
-  !    print*, DataWellProdLocal(:)%Radius
-  !    print*, DataWellProdLocal(:)%IndWell
-  !    print*, DataWellProdLocal(:)%PressionMin
-  !    print*, DataWellProdLocal(:)%Flowrate
-  ! end if
+      ! Read Global Mesh
+      call GlobalMesh_Make_read_file(MeshFile)
 
-  ! if(commRank==0) then
-  !    k = 1
-  !    do s=NodebyWellInjLocal%Pt(k)+1, NodebyWellInjLocal%Pt(k+1)
-  !       print*, DataofNodebyWellInjLocal%Val(s)%WID
-  !    end do
-  ! end if
+      call GlobalMesh_Make_post_read()
 
-  ! *** Numeratation derived from model *** !
+      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+      call DefWell_Make_ComputeWellIndex( &
+         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+         PermCell, PermFrac)
 
-  call NumbyContext_make
+   end subroutine NN_init_read_mesh
 
-  ! *** VAG Transmissivity *** !
+   subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
-  ! set conductivities thermal
+      real(kind=c_double), intent(in)  :: Ox, Oy, Oz
+      real(kind=c_double), intent(in)  :: lx, ly, lz
+      integer(kind=c_int), intent(in)  :: nx, ny, nz
+
+      !FIXME: This is more of an assertion for consistency, might be removed
+      if (.NOT. commRank == 0) then
+         print *, "Mesh is supposed to be built by master process."
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+
+      call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+
+      call GlobalMesh_SetWellCar(nx, ny, nz)
+
+      call GlobalMesh_Make_post_read()
+
+      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+      call DefWell_Make_ComputeWellIndex( &
+         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+         PermCell, PermFrac)
+
+   end subroutine NN_init_build_grid
+
+   subroutine NN_partition_mesh(status)
+
+      logical, intent(out) :: status
+
+      status = .true.
+
+      !FIXME: This is more of an assertion for consistency, might be removed
+      if (.NOT. commRank == 0) then
+         print *, "Mesh is supposed to be partitioned by master process."
+         status = .false.
+         return
+      end if
+
+      ! ****
+      ! Partition Global Mesh
+      ! Output:
+      !        ProcbyCell
+      call PartitionMesh_Metis(Ncpus)
+
+      ! make local mesh
+      call LocalMesh_Make
+
+      ! free global mesh
+      call GlobalMesh_free
+
+      !comptime_meshmake = MPI_WTIME() - comptime_meshmake
+
+      !do i=1,size(fd)
+      !    write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
+      !        comptime_meshmake
+      !end do
+
+   end subroutine NN_partition_mesh
+
+   subroutine NN_init_warmup(LogFile)
+
+      character(len=*), intent(in) :: LogFile
+
+      ! initialisation petsc/MPI
+      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
+      CHKERRQ(Ierr)
+
+      ! init mpi, communicator/commRank/commSize
+      call CommonMPI_init(PETSC_COMM_WORLD)
+
+      call NN_init_output_streams(Logfile)
+
+      comptime_readmesh = MPI_WTIME()
+
+   end subroutine NN_init_warmup
+
+   subroutine NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+
+      character(len=*), intent(in) :: MeshFile, LogFile
+
+      call NN_init_warmup(Logfile)
+
+      ! *** Global Mesh *** !
+
+      if (commRank == 0) then
+         call NN_init_read_mesh(MeshFile)
+      end if
+      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+
+   end subroutine NN_init_warmup_and_read_mesh
+
+   subroutine NN_init_phase2(OutputDir)
+
+      character(len=*), intent(in) :: OutputDir
+      logical                      :: ok, all_ok
+
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            j = fd(i)
+            write (j, *) "  NbCell:      ", NbCell
+            write (j, *) "  NbFace:      ", NbFace
+            write (j, *) "  NbNode:      ", NbNode
+            write (j, *) "  NbFrac:      ", NbFrac
+            write (j, *) "  NbWellInj    ", NbWellInj
+            write (j, *) "  NbWellProd   ", NbWellProd
+            write (j, *) "  NbDirNode P: ", NbDirNodeP
 #ifdef _THERMIQUE_
-  call DefModel_SetCondThermique(NbCellLocal_Ncpus(commRank+1), IdCellLocal, &
-       NbFracLocal_Ncpus(commRank+1), &
-       CondThermalCellLocal, CondThermalFracLocal)
+            write (j, *) "  NbDirNode T: ", NbDirNodeT
+#endif
+            write (j, *) "  Ncpus :      ", commSize
+            write (j, *) ""
+            write (j, *) "Final time: ", TimeFinal/OneDay
+            write (j, *) ""
+         end do
+
+         comptime_readmesh = MPI_WTIME() - comptime_readmesh
+         do i = 1, size(fd)
+            write (fd(i), '(A,F16.3)') "Computation time warm up and reading mesh: ", &
+               comptime_readmesh
+         end do
+      end if
+
+      !comptime_meshmake = MPI_WTIME()
+
+      if (commRank == 0) then
+         call NN_partition_mesh(ok)
+         if (.NOT. ok) then
+            !CHECKME: MPI_Abort is supposed to end all MPI processes
+            call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+         end if
+      end if
+      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+
+      ! *** Global Mesh -> Local Mesh *** !
+
+      ! Main subroutine of module MeshSchema
+      ! This module constains all infos of local mesh
+      !   1. Send mesh from proc 0 to other procs
+      !   2. compute XCellLocal, XFaceLocal
+      !   3. compute VolCelllocal, SurfFracLocal
+      !   4. compute NbNodeCellmax, NbFracCellMax, NbNodeFaceMax
+
+      call MeshSchema_make
+
+      ! free some tmps in LocalMesh
+      if (commRank == 0) then
+         call LocalMesh_Free
+      end if
+
+      comptime_start = MPI_WTIME() ! total time start
+      comptime_total = 0.d0
+
+      ! if(commRank==0) then
+      !    print*, sum(NbNodeOwn_Ncpus)
+      !    print*, sum(NbFaceOwn_Ncpus)
+      !    print*, sum(NbFracOwn_Ncpus)
+      !    print*, sum(NbCellOwn_Ncpus)
+      !    ! print*, NbFracLocal_Ncpus
+      !    ! print*, NbNodeLocal_Ncpus
+      !    ! print*, NbCellLocal_Ncpus
+      !    ! print*, NbWellInjOwn_Ncpus
+      !    ! print*, NbWellInjLocal_Ncpus
+      !    ! print*, NbWellProdOwn_Ncpus
+      !    ! print*, NbWellProdLocal_Ncpus
+      ! end if
+
+      ! if(commRank==1) then
+      !    print*, DataWellInjLocal(:)%Radius
+      !    print*, DataWellInjLocal(:)%Temperature
+      !    print*, DataWellInjLocal(:)%IndWell
+      !    print*, DataWellInjLocal(:)%PressionMax
+      !    print*, DataWellInjLocal(:)%Flowrate
+      !    print*, ""
+
+      !    print*, DataWellProdLocal(:)%Radius
+      !    print*, DataWellProdLocal(:)%IndWell
+      !    print*, DataWellProdLocal(:)%PressionMin
+      !    print*, DataWellProdLocal(:)%Flowrate
+      ! end if
+
+      ! if(commRank==0) then
+      !    k = 1
+      !    do s=NodebyWellInjLocal%Pt(k)+1, NodebyWellInjLocal%Pt(k+1)
+      !       print*, DataofNodebyWellInjLocal%Val(s)%WID
+      !    end do
+      ! end if
+
+      ! *** Numeratation derived from model *** !
+
+      call NumbyContext_make
+
+      ! *** VAG Transmissivity *** !
+
+      ! set conductivities thermal
+#ifdef _THERMIQUE_
+      call DefModel_SetCondThermique(NbCellLocal_Ncpus(commRank + 1), IdCellLocal, &
+                                     NbFracLocal_Ncpus(commRank + 1), &
+                                     CondThermalCellLocal, CondThermalFracLocal)
 #endif
 
-  call VAGFrac_TransDarcy( PermCellLocal, PermFracLocal)
+      call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
 
 #ifdef _THERMIQUE_
-  call VAGFrac_TransFourier( CondThermalCellLocal, CondThermalFracLocal)
+      call VAGFrac_TransFourier(CondThermalCellLocal, CondThermalFracLocal)
 #endif
 
-  deallocate(PermCellLocal)
-  deallocate(PermFracLocal)
+      deallocate (PermCellLocal)
+      deallocate (PermFracLocal)
 
 #ifdef _THERMIQUE_
-  deallocate(CondThermalCellLocal)
-  deallocate(CondThermalFracLocal)
+      deallocate (CondThermalCellLocal)
+      deallocate (CondThermalFracLocal)
 #endif
 
-  call VAGFrac_VolsDarcy
+      call VAGFrac_VolsDarcy
 
 #ifdef _THERMIQUE_
-  call VAGFrac_VolsFourier
+      call VAGFrac_VolsFourier
 #endif
 
-  comptime_part = MPI_WTIME() - comptime_start
-  comptime_start = MPI_WTIME()
-  if(commRank==0) then
-     do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time VAG init.        :", &
-             comptime_part
-     end do
-  end if
+      comptime_part = MPI_WTIME() - comptime_start
+      comptime_start = MPI_WTIME()
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            write (fd(i), '(A,F16.3)') "Computation time VAG init.        :", &
+               comptime_part
+         end do
+      end if
 
-  comptime_total = comptime_total + comptime_part
+      comptime_total = comptime_total + comptime_part
 
-  ! **** allocate structure **** !
+      ! **** allocate structure **** !
 
-  ! unknowns allocate
-  call IncCV_allocate
+      ! unknowns allocate
+      call IncCV_allocate
 
-  ! allcoate Loisthermohydro
-  call LoisThermoHydro_allocate
+      ! allcoate Loisthermohydro
+      call LoisThermoHydro_allocate
 
-  ! allocate flux
-  call Flux_allocate
+      ! allocate flux
+      call Flux_allocate
 
-  ! allocate Residu
-  call Residu_allocate
+      ! allocate Residu
+      call Residu_allocate
 
-  ! csr sturcture of Jacobian
-  ! allocate memory of Jacobian ans Sm
-  call Jacobian_StrucJacBigA
+      ! csr sturcture of Jacobian
+      ! allocate memory of Jacobian ans Sm
+      call Jacobian_StrucJacBigA
 
-  ! csr sturcture of Jacobian after Schur
-  ! allocate memory of Jacobian and Sm after Schur
-  call Jacobian_StrucJacA
+      ! csr sturcture of Jacobian after Schur
+      ! allocate memory of Jacobian and Sm after Schur
+      call Jacobian_StrucJacA
 
-  ! init solver: allocate mat, vector, etc.
-  ! call SolvePetsc_Init(KspNiterMax, KspTol)
-  call SolvePetsc_cpramgInit(KspNiterMax, KspTol)
+      ! init solver: allocate mat, vector, etc.
+      ! call SolvePetsc_Init(KspNiterMax, KspTol)
+      call SolvePetsc_cpramgInit(KspNiterMax, KspTol)
 
-  ! allocate KspHistory
-  allocate(KspHistory(KspNiterMax+1))
+      ! allocate KspHistory
+      allocate (KspHistory(KspNiterMax + 1))
 
-  ! sync mat create and set value
-  call SolvePetsc_SyncMat 
+      ! sync mat create and set value
+      call SolvePetsc_SyncMat
 
-  ! allocate increment
-  allocate( NewtonIncreNode &
-       ( NbIncPTCSMax, NbNodeLocal_Ncpus(commRank+1)) )
-  allocate( NewtonIncreFrac &
-       ( NbIncPTCSMax, NbFracLocal_Ncpus(commRank+1)) )
-  allocate( NewtonIncreCell &
-       ( NbIncPTCSMax, NbCellLocal_Ncpus(commRank+1)) )
-  allocate( NewtonIncreWellInj &
-       ( NbWellInjLocal_Ncpus(commRank+1)) )
-  allocate( NewtonIncreWellProd &
-       ( NbWellProdLocal_Ncpus(commRank+1)) )
+      ! allocate increment
+      allocate (NewtonIncreNode &
+                (NbIncPTCSMax, NbNodeLocal_Ncpus(commRank + 1)))
+      allocate (NewtonIncreFrac &
+                (NbIncPTCSMax, NbFracLocal_Ncpus(commRank + 1)))
+      allocate (NewtonIncreCell &
+                (NbIncPTCSMax, NbCellLocal_Ncpus(commRank + 1)))
+      allocate (NewtonIncreWellInj &
+                (NbWellInjLocal_Ncpus(commRank + 1)))
+      allocate (NewtonIncreWellProd &
+                (NbWellProdLocal_Ncpus(commRank + 1)))
 
 #ifdef _VISU_
 
-  ! initialize visu
-  if(trim(MESH_TYPE)=="cartesian-quad") then
-     call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
-          NbComp, NbPhase, MCP, IndThermique)
+      ! initialize visu
+      if (trim(MESH_TYPE) == "cartesian-quad") then
+         call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
 
-  else if(trim(MESH_TYPE)=="hexahedron-quad") then
-     call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
-          NbComp, NbPhase, MCP, IndThermique)
+      else if (trim(MESH_TYPE) == "hexahedron-quad") then
+         call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
 
-  else if(trim(MESH_TYPE)=="tetrahedron-triangle") then
-     call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
-          NbComp, NbPhase, MCP, IndThermique)
+      else if (trim(MESH_TYPE) == "tetrahedron-triangle") then
+         call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
 
-  else if(trim(MESH_TYPE)=="wedge") then
-     call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
-          NbComp, NbPhase, MCP, IndThermique)
-  else
-     write(*,*) ""
-     write(*,*) "This mesh type is not supported!"
-     call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-  end if
+      else if (trim(MESH_TYPE) == "wedge") then
+         call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
+      else
+         write (*, *) ""
+         write (*, *) "This mesh type is not supported!"
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
 
-  ! vectors that regroup datas (P, T, C, S) from IncCV(:)
-  allocate( datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank+1)))
-  allocate( datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank+1)))
+      ! vectors that regroup datas (P, T, C, S) from IncCV(:)
+      allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
+      allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
 
-  ! pressure at well edges, inj/prod
-  n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank+1)))
-  allocate( datavisuwellinj(n))
-  n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank+1)))
-  allocate( datavisuwellprod(n))
-  
+      ! pressure at well edges, inj/prod
+      n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
+      allocate (datavisuwellinj(n))
+      n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank + 1)))
+      allocate (datavisuwellprod(n))
+
 #endif
 
-  comptime_part = MPI_WTIME() - comptime_start
-  comptime_start = MPI_WTIME()
-  if(commRank==0) then
-     do i=1,size(fd)
-        write(fd(i),'(A,F16.3)') "Computation time of allocation:   ", &
-             comptime_part
-     end do
-  end if
+      comptime_part = MPI_WTIME() - comptime_start
+      comptime_start = MPI_WTIME()
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            write (fd(i), '(A,F16.3)') "Computation time of allocation:   ", &
+               comptime_part
+         end do
+      end if
 
-  comptime_total = comptime_total + comptime_part
+      comptime_total = comptime_total + comptime_part
 
-  ! set dir bc values
-  call IncCV_SetDirBCValue
+      ! set dir bc values
+      call IncCV_SetDirBCValue
 
-  ! initial value
-  call IncCV_SetInitialValue
+      ! initial value
+      call IncCV_SetInitialValue
 
-  ! init and sort for flash
-  call DefFlash_allocate
+      ! init and sort for flash
+      call DefFlash_allocate
 
 #ifdef _VISU_
 
-  ! visu initial solution
+      ! visu initial solution
 
-  ! visutime = MPI_WTIME()
+      ! visutime = MPI_WTIME()
 
-  if(commRank==0) then
-     do i=1,size(fd)
-        write(fd(i),*) ""
-        write(fd(i),*) " *** Warning : visualization vtk of data of wells has not been implemented ***"
-     end do
-  end if
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            write (fd(i), *) ""
+            write (fd(i), *) " *** Warning : visualization vtk of data of wells has not been implemented ***"
+         end do
+      end if
 
-  call IncCV_ToVec( &
-       datavisucell, datavisufrac, &
-       datavisuwellinj, datavisuwellprod)
-  
-  call VisuVTK_VisuTime_writedata(0.d0,    &
-       datavisucell, datavisufrac,         &
-       datavisuwellinj, datavisuwellprod)
+      call IncCV_ToVec( &
+         datavisucell, datavisufrac, &
+         datavisuwellinj, datavisuwellprod)
 
-  ! if this proc constains at least one well, then write data to file
-  if(NbWellInjOwn_Ncpus(commRank+1)>0 .or. &
-       NbWellProdOwn_Ncpus(commRank+1)>0) then
+      call VisuVTK_VisuTime_writedata(0.d0, &
+                                      datavisucell, datavisufrac, &
+                                      datavisuwellinj, datavisuwellprod)
 
-     write(output_path, '(A)')  trim(OutputDir) // "/wellinfo" 
-     call make_directory(output_path)
-     
-     write(Wellinfoname, '(A,I0,A)') &
-          trim(OutputDir) // "/wellinfo/proc_", commRank, ".txt" 
+      ! if this proc constains at least one well, then write data to file
+      if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
+          NbWellProdOwn_Ncpus(commRank + 1) > 0) then
 
-     open(12,file=Wellinfoname,status="unknown")
+         write (output_path, '(A)') trim(OutputDir)//"/wellinfo"
+         call make_directory(output_path)
 
-     write(12,*) "Nb of mpi procs"
-     write(12,*) commSize
+         write (Wellinfoname, '(A,I0,A)') &
+            trim(OutputDir)//"/wellinfo/proc_", commRank, ".txt"
 
-     ! nb of well inj of all procs
-     write(12,*) "Nb of injection wells of all procs"
-     do i=1, commSize
-        write(12,'(I0,A)',advance="no") NbWellInjOwn_Ncpus(i), " "
-     end do
-     write(12,*) ""
+         open (12, file=Wellinfoname, status="unknown")
 
-     ! nb of well prod of all procs
-     write(12,*) "Nb of production wells of all procs"
-     do i=1, commSize
-        write(12,'(I0,A)',advance="no") NbWellProdOwn_Ncpus(i), " "
-     end do
-     write(12,*) ""
-     write(12,*) ""
+         write (12, *) "Nb of mpi procs"
+         write (12, *) commSize
 
-     ! perforation nodes info of well inj
-     do i=1, NbWellInjOwn_Ncpus(commRank+1)
+         ! nb of well inj of all procs
+         write (12, *) "Nb of injection wells of all procs"
+         do i = 1, commSize
+            write (12, '(I0,A)', advance="no") NbWellInjOwn_Ncpus(i), " "
+         end do
+         write (12, *) ""
 
-        write(12,'(A,I0)') &
-             "Nb of perforation nodes of own inj well ", i
-        write(12,'(I0,A)') &
-             NodebyWellInjLocal%Pt(i+1)-NodebyWellInjLocal%Pt(i), " "
+         ! nb of well prod of all procs
+         write (12, *) "Nb of production wells of all procs"
+         do i = 1, commSize
+            write (12, '(I0,A)', advance="no") NbWellProdOwn_Ncpus(i), " "
+         end do
+         write (12, *) ""
+         write (12, *) ""
 
-        ! coordinate of perforation nodes
-        write(12,'(A,I0)') &
-             "Coordinate of perforation nodes of own inj well ", i
-        do j=NodebyWellInjLocal%Pt(i)+1, NodebyWellInjLocal%Pt(i+1)
-           numj = NodebyWellInjLocal%Num(j)
-           write(12,'(F15.6, F15.6, F15.6)') &
-                XNodeLocal(1,numj), XNodeLocal(2,numj), XNodeLocal(3,numj)
-        end do
-     end do
+         ! perforation nodes info of well inj
+         do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
 
-     ! perforation nodes info of well prod
-     do i=1, NbWellProdOwn_Ncpus(commRank+1)
+            write (12, '(A,I0)') &
+               "Nb of perforation nodes of own inj well ", i
+            write (12, '(I0,A)') &
+               NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
 
-        write(12,'(A,I0)') &
-             "Nb of perforation nodes of own prod well ", i
-        write(12,'(I0,A)') &
-             NodebyWellProdLocal%Pt(i+1)-NodebyWellProdLocal%Pt(i), " "
+            ! coordinate of perforation nodes
+            write (12, '(A,I0)') &
+               "Coordinate of perforation nodes of own inj well ", i
+            do j = NodebyWellInjLocal%Pt(i) + 1, NodebyWellInjLocal%Pt(i + 1)
+               numj = NodebyWellInjLocal%Num(j)
+               write (12, '(F15.6, F15.6, F15.6)') &
+                  XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
+            end do
+         end do
 
-        ! coordinate of perforation nodes
-        write(12,'(A,I0)') &
-             "Coordinate of perforation nodes of own prod well ", i
-        do j=NodebyWellProdLocal%Pt(i)+1, NodebyWellProdLocal%Pt(i+1)
-           numj = NodebyWellProdLocal%Num(j)
-           write(12,'(F15.6, F15.6, F15.6)') &
-                XNodeLocal(1,numj), XNodeLocal(2,numj), XNodeLocal(3,numj)
-        end do
-     end do
+         ! perforation nodes info of well prod
+         do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
 
-     close(12)
+            write (12, '(A,I0)') &
+               "Nb of perforation nodes of own prod well ", i
+            write (12, '(I0,A)') &
+               NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
 
-     VisuTimeIter = 1
+            ! coordinate of perforation nodes
+            write (12, '(A,I0)') &
+               "Coordinate of perforation nodes of own prod well ", i
+            do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
+               numj = NodebyWellProdLocal%Num(j)
+               write (12, '(F15.6, F15.6, F15.6)') &
+                  XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
+            end do
+         end do
 
-  end if
-     
-  ! visutime = MPI_WTIME() - visutime
-  ! if(commRank==0) then
-  !    print*, "visutime is", visutime
-  ! end if
+         close (12)
+
+         VisuTimeIter = 1
+
+      end if
+
+      ! visutime = MPI_WTIME() - visutime
+      ! if(commRank==0) then
+      !    print*, "visutime is", visutime
+      ! end if
 #endif
 
-  comptime_total = comptime_total + (MPI_WTIME() - comptime_start)
-  comptime_start = MPI_WTIME()
+      comptime_total = comptime_total + (MPI_WTIME() - comptime_start)
+      comptime_start = MPI_WTIME()
 
-  ! *** Time steps *** !
+      ! *** Time steps *** !
 
-  TimeCurrent = 0.d0
-  TimeOutput = 0.d0
+      TimeCurrent = 0.d0
+      TimeOutput = 0.d0
 
-  Delta_t = TimeStepInit
+      Delta_t = TimeStepInit
 
    end subroutine NN_init_phase2
 
-  subroutine NN_init(MeshFile, LogFile, OutputDir)
+   subroutine NN_init(MeshFile, LogFile, OutputDir)
 
-    character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
-    
-    call NN_init_warmup_and_read_mesh(MeshFile, LogFile)
-    call NN_init_phase2(OutputDir)
-    
-  end subroutine NN_init
+      character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
 
-subroutine NN_main(TimeIter, OutputDir)
+      call NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+      call NN_init_phase2(OutputDir)
 
-    integer, intent(inout) :: TimeIter
-    character(len=*), intent(in) :: OutputDir
+   end subroutine NN_init
 
-#ifdef _HDF5_
-  if( TimeIter > 0) then
-     call IncCV_ReadSolFromFile(OutputDir, &
-          TimeIter, TimeCurrent, Delta_t, TimeOutput, &
-          NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
-          comptime_total, comptime_timestep)
-  end if
+   subroutine NN_main_output_visu(TimeIter, OutputDir)
+
+      integer, intent(inout) :: TimeIter
+      character(len=*), intent(in) :: OutputDir
+
+#ifdef _VISU_
+
+      call IncCV_ToVec( &
+         datavisucell, datavisufrac, &
+         datavisuwellinj, datavisuwellprod)
+
+      call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
+                                      datavisucell, datavisufrac, &
+                                      datavisuwellinj, datavisuwellprod)
+
+      ! max and min temperature
+      Tempmaxloc = -1.d4
+      Tempminloc = 1.d4
+
+      do k = 1, NbCellOwn_Ncpus(commRank + 1)
+         Tempmaxloc = max(IncCell(k)%Temperature, Tempmaxloc)
+         Tempminloc = min(IncCell(k)%Temperature, Tempminloc)
+      end do
+      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
+         Tempmaxloc = max(IncNode(k)%Temperature, Tempmaxloc)
+         Tempminloc = min(IncNode(k)%Temperature, Tempminloc)
+      end do
+      do k = 1, NbFracOwn_Ncpus(commRank + 1)
+         Tempmaxloc = max(IncFrac(k)%Temperature, Tempmaxloc)
+         Tempminloc = min(IncFrac(k)%Temperature, Tempminloc)
+      end do
+
+      call MPI_AllReduce(Tempmaxloc, Tempmax, 1, MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+      call MPI_AllReduce(Tempminloc, Tempmin, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+
+      ! if(commRank==0) then
+
+      !    ! print*, ""
+      !    ! print*, ""
+      !    ! print*, Tempmax, Tempmin
+
+      !    do k=1, NbCellOwn_Ncpus(commRank+1)
+
+      !       if( abs(IncCell(k)%Temperature-Tempmax)<1.d-5) then
+      !          print*, "cell ", k, XCellLocal(:,k)
+      !       end if
+      !    end do
+
+      !    do k=1, NbNodeOwn_Ncpus(commRank+1)
+
+      !       if( abs(IncNode(k)%Temperature-Tempmax)<1.d-5) then
+      !          print*, "node ", k, XNodeLocal(:,k)
+      !       end if
+      !    end do
+
+      !    do k=1, NbFracOwn_Ncpus(commRank+1)
+
+      !       if( abs(IncFrac(k)%Temperature-Tempmax)<1.d-5) then
+      !          print*, "frac ", k, XCellLocal(:,FracToFaceLocal(k))
+      !       end if
+      !    end do
+      ! end if
+
+      ! if this proc constains at least one well, then write well data to file
+      if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
+          NbWellProdOwn_Ncpus(commRank + 1) > 0) then
+
+         ! write well data to file
+         write (output_path, '(A,I0)') trim(OutputDir)//"/wellinfo/time_", VisuTimeIter
+         call make_directory(output_path)
+
+         write (Wellinfoname, '(A,I0,A,I0,A)') &
+            trim(OutputDir)//"/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
+
+         open (12, file=Wellinfoname, status="unknown")
+
+         ! time step info
+         write (12, *) "TimeStep"
+         write (12, *) TimeIter
+         write (12, *) "Time"
+         write (12, '(F16.5)') TimeCurrent/OneDay
+
+         ! data of perforation nodes of inj well
+         do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
+
+            head = NodebyWellInjLocal%Pt(i + 1) ! head
+
+            write (12, '(A,I0)') &
+               "Nb of perforation nodes of own inj well ", i
+            write (12, '(I0,A)') &
+               NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
+
+            ! data of head perforation node
+            write (12, '(A,I0)') &
+               "Data of head perforation node of own inj well ", i
+
+            write (12, '(ES17.7)', advance='no') IncPressionWellInj(i) ! pressure
+            write (12, '(ES17.7)', advance='no') PerfoWellInj(head)%Temperature ! temperature
+! FIXME: headmolarFluxInj is not defined in all configuration files
+!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux
+            write (12, *) ""
+         end do
+
+         ! data of perforation nodes of prod well
+         do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
+
+            write (12, '(A,I0)') &
+               "Nb of perforation nodes of own prod well ", i
+            write (12, '(I0,A)') &
+               NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
+
+            ! data of head perforation node
+            write (12, '(A,I0,A)') &
+               "Data of head perforation node of own prod well ", i, &
+               ":  Pressure / Temperature / cumulFluxmolar / cumulFluxEnergy"
+            head = NodebyWellProdLocal%Pt(i + 1)
+
+            do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
+
+               ! write(12,'(ES17.7)',advance='no') IncPressionWellProd(i)     ! pressure
+               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Pression ! pressure
+               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Temperature ! temperature
+               write (12, '(ES17.7)', advance='no') summolarFluxProd(:, j) ! head molar flux
+               write (12, '(ES17.7)', advance='no') sumnrjFluxProd(j) ! head energy flux
+               write (12, *) ""
+            end do
+         end do
+
+         ! max and min temperature
+         write (12, '(A)') "max/min temperature"
+         write (12, '(ES17.7)', advance='no') Tempmax
+         write (12, '(ES17.7)', advance='no') Tempmin
+         write (12, *) ""
+
+         close (12)
+
+         VisuTimeIter = VisuTimeIter + 1
+
+      end if
 #endif
 
-    do while (TimeCurrent<(TimeFinal+eps))
-   
-     ! init start time
-     comptime_start = MPI_WTIME()
+   end subroutine NN_main_output_visu
 
-     TimeIter = TimeIter + 1
+   subroutine NN_main_checkpoint(OutputDir)
 
-     NewtonConv = .false.
-     KspConv = .false.
+      character(len=*), intent(in) :: OutputDir
 
-     ! save current status, copy Inc* to Inc*PrevisousTimeStep
-     call IncCV_SaveIncPreviousTimeStep
+#ifdef _HDF5_
+      call IncCV_WriteSolToFile(OutputDir, &
+                                TimeIter, TimeCurrent, Delta_t, TimeOutput, &
+                                NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
+                                comptime_total, comptime_timestep)
+#endif
 
-     call IncCV_PressureDropWellInj  ! compute PerfoWellInj%Pression
-     call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+   end subroutine NN_main_checkpoint
 
-     if(commRank==0) then
-        do i=1,size(fd)
-           j = fd(i)
-           write(j,*) ""
-           write(j,*) ""
-           write(j, '(A,I0)') "Time Step: ", TimeIter
-           write(j,'(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay, "days", TimeCurrent/OneYear, "years"
+   subroutine NN_main_make_timestep()
 
-           write(j,*)
-           write(j,'(A)',advance="no") "   -- Initial time step: "
-           write(j,*) Delta_t/OneDay        
-        end do
-     end if
+      ! init start time
+      comptime_start = MPI_WTIME()
 
-     ! *** Newton iterations *** !  
+      NewtonConv = .false.
+      KspConv = .false.
 
-     ! if Jacobian Ksp solver doesn't converge
-     !   restart a new Newton with a smaller time step
-     ! else if converge,
-     !   KspConv will is set as .true.
+      ! save current status, copy Inc* to Inc*PrevisousTimeStep
+      call IncCV_SaveIncPreviousTimeStep
 
-     ! if Newton doesn't converge
-     !   restart a new Newton with a smaller time step
-     ! else if converge
-     !   NewtonConv and KspConv are set as .true.
-     do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.) )
+      call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
+      call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
 
-        ! init as false
-        NewtonConv = .false.
-        KspConv    = .false.
+      ! *** Newton iterations *** !
 
-        KspNiterTimeStep = 0 ! total nb of Ksp of time step
+      ! if Jacobian Ksp solver doesn't converge
+      !   restart a new Newton with a smaller time step
+      ! else if converge,
+      !   KspConv will is set as .true.
 
-        ! Newton iteration
-        ! if Newton converge
-        !   NewtonConv will be set as .true.
-        !   KspConv will also be set as .true.
-        do NewtonIter=1, NewtonNiterMax
+      ! if Newton doesn't converge
+      !   restart a new Newton with a smaller time step
+      ! else if converge
+      !   NewtonConv and KspConv are set as .true.
+      do while ((NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
 
+         ! init as false
+         NewtonConv = .false.
+         KspConv = .false.
 
-           ! Copy Dir boundary values to Inc
-           call IncCV_UpdateDirBCValue
+         KspNiterTimeStep = 0 ! total nb of Ksp of time step
 
-        ! compute pressure of perforations with well pressure
+         ! Newton iteration
+         ! if Newton converge
+         !   NewtonConv will be set as .true.
+         !   KspConv will also be set as .true.
+         do NewtonIter = 1, NewtonNiterMax
+
+            ! Copy Dir boundary values to Inc
+            call IncCV_UpdateDirBCValue
+
+            ! compute pressure of perforations with well pressure
 !           IncPressionWellInj(:) = 2.d7
-           call IncCV_PressureDropWellInj
-           call IncCV_PressureDropWellProd
+            call IncCV_PressureDropWellInj
+            call IncCV_PressureDropWellProd
 
-        if(commRank==0) then
-           write(*,*) 'begin Newton loop'
-        end if
+            if (commRank == 0) then
+               write (*, *) 'begin Newton loop'
+            end if
 
-           ! LoisThermohydro
-           call LoisThermoHydro_compute
+            ! LoisThermohydro
+            call LoisThermoHydro_compute
 
-        if(commRank==0) then
-           write(*,*) 'begin Newton loop 2'
-        end if
-           ! compute flux cell/frac
-           call Flux_DarcyFlux_Cell
-           call Flux_DarcyFlux_Frac
+            if (commRank == 0) then
+               write (*, *) 'begin Newton loop 2'
+            end if
+            ! compute flux cell/frac
+            call Flux_DarcyFlux_Cell
+            call Flux_DarcyFlux_Frac
 
 #ifdef _THERMIQUE_
-           call Flux_FourierFlux_Cell
-           call Flux_FourierFlux_Frac
+            call Flux_FourierFlux_Cell
+            call Flux_FourierFlux_Frac
 #endif
 
-           ! compute Residu
-           call Residu_compute(Delta_t, NewtonIter)
-
-           ! if(commRank==1) then
-           !    ! print*, ResiduNode
-           !    ! print*, ResiduCell
-           !    ! print*, ResiduWellInj
-           ! end if
-           
-           ! write(*,*) ""
-           ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-           
-           ! test Newton converge
-           call Residu_RelativeNorm(NewtonIter, Delta_t, &
-                NewtonResNormRel(NewtonIter), NewtonResConvInit, NewtonResClosInit)
-
-           if(commRank==0) then
-              if(NewtonIter==1) then
-                 do i=1, size(fd)
-                    j = fd(i)
-                    write(j,*) ""
-                    write(j,'(A)',advance='no') "     *Residu init conv:  "
-                    do k=1, NbCompThermique
-                       write(j,'(A,ES12.5)', advance='no') "  ", NewtonResConvInit(k)
-                    end do
-                    write(j,*) ""
-                    write(j,'(A,ES12.5)') "     *Residu init clos:    ", NewtonResClosInit
-                    write(j,*) ""
-                 end do
-              end if
-
-              do i=1, size(fd)
-                 j = fd(i)
-                 write(j,'(A,I4)', advance="no") "     *Newton iter:", NewtonIter
-                 write(j,'(A,E18.10)',advance="no") "      Newton res norm:", NewtonResNormRel(NewtonIter)
-              end do
-           end if
-
-           if( NewtonResNormRel(NewtonIter)<NewtonTol) then
-
-              NewtonConv = .true.
-              KspConv = .true.
-              exit 
-           end if
-
-           ! Jacobian and second member
-           !   inputs:  Residu
-           !   outputs: JacA, Sm
-           call Jacobian_ComputeJacSm(Delta_t)
-
-           ! set values of matrix, vector, Ksp solver
-           !   inputs : JacA, Sm
-           !   outputs : solver Petsc
-
-           call SolvePetsc_SetUp
-
-           ! write(*,*) ""
-           ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-
-           ! solve, return nb of iterations
-           ! if KspNiter<0, not converge
-           call SolvePetsc_KspSolve(KspNiter, KspHistory)
-
-           if(commRank==0) then
-              do i=1,size(fd)
-                 write(fd(i),'(A,I5)',advance="no") "    Nb of Ksp iter:  ", KspNiter
-              end do
-           end if
-
-           if(KspNiter<0) then ! not converge
-
-              ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-
-              KspConv = .false. ! solver not converge
-              KspNbFailure = KspNbFailure + 1
-
-              ! restart a new Newton with a smaller time step
-              Delta_t = Delta_t * 0.5d0
-
-              ! load status 
-              call IncCV_LoadIncPreviousTimeStep
-              call IncCV_PressureDropWellInj  ! compute PerfoWellInj%Pression
-              call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
-              
-              ! print residu if Ksp failure
-              if(commRank==0) then
-                 do i=1,size(fd)
-                    j = fd(i)
-                    write(j,*) ""
-                    do k=1, KspNiterMax
-                       write(j,'(A,I4,A,ES18.10)') &
-                            "             Ksp iter:   ", k, "    res:  ", KspHistory(k)
-                    end do
-
-                    write(j,*)""
-                    write(j,'(A)',advance="no") &
-                         "   -- Restart a Newton with a smaller time step (Ksp does not converge): "
-                    write(j,*) Delta_t/OneDay
-                 end do
-              end if
-
-              exit
-           else
-              KspConv = .true.
-              KspNiterTimeStep = KspNiterTimeStep + KspNiter
-
-              call SolvePetsc_Sync ! sync for ghost
-
-              ! Get increment prim of node, frac and wells
-              ! Increment of prim is NewtonIncre(1:NbComp+IndThermique)
-              ! Get values from vector of petsc/trilinos
-              call SolvePetsc_GetSolNodeFracWell( &
-                   NewtonIncreNode, NewtonIncreFrac, &
-                   NewtonIncreWellInj, NewtonIncreWellProd)
-
-              ! print*, NewtonIncreWellInj
-              
-              ! Compute increment prim of cell
-              ! Inverse Schur
-              call Jacobian_GetSolCell( NewtonIncreNode, &
-                   NewtonIncreFrac, NewtonIncreCell)              
-
-              ! Compute incremment increment of secd using increment prim
-              !   Input : increment prim is NewtonIncre(1:NbComp+IndThermique)
-              !   Output: complete increment = (prim and secd, acc)
-              call LoisThermoHydro_PrimToSecd( &
-                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell)
-
-              ! compute Newton relaxation
-              call IncCV_NewtonRelax( &
-                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, NewtonRelax)
-              
-              ! ???
-              ! NewtonRelax = 1.d0
-              
-              if(commRank==0) then
-                 do i=1,size(fd)
-                    write(fd(i),'(A,F12.7)') "    Relaxation:", NewtonRelax
-                 end do
-              end if
-
-              ! update Inc with Increment
-              call IncCV_NewtonIncrement( &
-                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell,&
-                   NewtonIncreWellInj, NewtonIncreWellProd, NewtonRelax)
-
-              call IncCV_UpdateDirBCValue
-
-              ! call IncCV_ToVec( &
-              !      dataviscuell, datavisufrac, &
-              !      datavisuwellinj, datavisuwellprod)
-              
-              ! call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-              !      datavisucell, datavisufrac,         &
-              !      datavisuwellinj, datavisuwellprod)
-                            
-              ! Flash
-              call DefFlash_Flash
-
-              ! if(commRank==0) then
-              !    ! print*, ""
-              !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
-              !    ! write(*,'(A,E15.3)') "pressure prod", IncPressionWellProd
-              ! end if
-              
-           end if ! end if converge/not converge
-
-           ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-
-        end do ! end of : NewtonIter=1, NewtonNiterMax
-
-
-        if(NewtonConv .eqv. .true.) then
-
-           NewtonNiterTotal = NewtonNiterTotal + NewtonIter
-           KspNiterTotal = KspNiterTotal + KspNiterTimeStep
-
-        else if((NewtonConv .eqv. .false.) .and. &
-             (KspConv .eqv. .true.)) then
-
-           NewtonNbFailure = NewtonNbFailure + 1
-
-           ! restart a new Newton with a smaller time step
-           Delta_t = Delta_t * 0.5d0
-
-           if(commRank==0) then
-              write(*, *) ""
-              write(*,'(A)',advance="no") &
-                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-              write(*,*) Delta_t/OneDay
-
-              write(11, *) ""
-              write(11,'(A)',advance="no") &
-                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-              write(11,*) Delta_t/OneDay
-           end if
-
-           ! load status 
-           call IncCV_LoadIncPreviousTimeStep
-           call IncCV_PressureDropWellInj  ! compute PerfoWellInj%Pression
-           call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
-
-           ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-        end if
-        
-     end do ! end of do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
-     
-     call DefFlash_TimeFlash
-        
-     TimeCurrent = TimeCurrent + Delta_t
-
-     ! FiXME: What is the policy for time step management
-     ! compute Delta_t for the next time step
-     call IncCV_ComputeTimeStep(Delta_t, TimeCurrent)
-     ! ???
-     ! Delta_t = TimeStepInit
-     
-     ! total computation time and computation time of this time step
-     comptime_timestep = MPI_WTIME() - comptime_start
-     comptime_total = comptime_total + comptime_timestep
-
-     ! checkpoint and visu
-     if(TimeCurrent > TimeOutput) then
-
-#ifdef _VISU_
-        
-        call IncCV_ToVec( &
-             datavisucell, datavisufrac, &
-             datavisuwellinj, datavisuwellprod)
-
-        call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-             datavisucell, datavisufrac,         &
-             datavisuwellinj, datavisuwellprod)
-
-
-        ! max and min temperature
-        Tempmaxloc = -1.d4
-        Tempminloc = 1.d4
-        
-        do k=1, NbCellOwn_Ncpus(commRank+1)
-           Tempmaxloc = max(IncCell(k)%Temperature, Tempmaxloc)
-           Tempminloc = min(IncCell(k)%Temperature, Tempminloc)
-        end do
-        do k=1, NbNodeOwn_Ncpus(commRank+1)
-           Tempmaxloc = max(IncNode(k)%Temperature, Tempmaxloc)
-           Tempminloc = min(IncNode(k)%Temperature, Tempminloc)
-        end do
-        do k=1, NbFracOwn_Ncpus(commRank+1)
-           Tempmaxloc = max(IncFrac(k)%Temperature, Tempmaxloc)
-           Tempminloc = min(IncFrac(k)%Temperature, Tempminloc)
-        end do
-        
-        call MPI_AllReduce(Tempmaxloc,Tempmax,1,MPI_DOUBLE,MPI_MAX,ComPASS_COMM_WORLD,Ierr)
-        call MPI_AllReduce(Tempminloc,Tempmin,1,MPI_DOUBLE,MPI_MIN,ComPASS_COMM_WORLD,Ierr)
-
-        ! if(commRank==0) then
-
-        !    ! print*, ""
-        !    ! print*, ""
-        !    ! print*, Tempmax, Tempmin
-
-        !    do k=1, NbCellOwn_Ncpus(commRank+1)
-
-        !       if( abs(IncCell(k)%Temperature-Tempmax)<1.d-5) then
-        !          print*, "cell ", k, XCellLocal(:,k)
-        !       end if
-        !    end do
-
-        !    do k=1, NbNodeOwn_Ncpus(commRank+1)
-
-        !       if( abs(IncNode(k)%Temperature-Tempmax)<1.d-5) then
-        !          print*, "node ", k, XNodeLocal(:,k)
-        !       end if
-        !    end do
-
-        !    do k=1, NbFracOwn_Ncpus(commRank+1)
-
-        !       if( abs(IncFrac(k)%Temperature-Tempmax)<1.d-5) then
-        !          print*, "frac ", k, XCellLocal(:,FracToFaceLocal(k))
-        !       end if
-        !    end do
-        ! end if
-        
-        ! if this proc constains at least one well, then write well data to file
-        if(NbWellInjOwn_Ncpus(commRank+1)>0 .or. &
-             NbWellProdOwn_Ncpus(commRank+1)>0) then
-
-           ! write well data to file
-           write(output_path, '(A,I0)') trim(OutputDir) // "/wellinfo/time_", VisuTimeIter
-           call make_directory(output_path)
-
-           write(Wellinfoname, '(A,I0,A,I0,A)') &
-                trim(OutputDir) // "/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt" 
-
-           open(12,file=Wellinfoname, status="unknown")
-
-           ! time step info
-           write(12,*) "TimeStep"
-           write(12,*) TimeIter
-           write(12,*) "Time"
-           write(12,'(F16.5)') TimeCurrent/OneDay
-
-           ! data of perforation nodes of inj well
-           do i=1, NbWellInjOwn_Ncpus(commRank+1)
-
-              head = NodebyWellInjLocal%Pt(i+1) ! head
-
-              write(12,'(A,I0)') &
-                   "Nb of perforation nodes of own inj well ", i
-              write(12,'(I0,A)') &
-                   NodebyWellInjLocal%Pt(i+1)-NodebyWellInjLocal%Pt(i), " "
-
-              ! data of head perforation node
-              write(12,'(A,I0)') &
-                   "Data of head perforation node of own inj well ", i
-
-              write(12,'(ES17.7)',advance='no') IncPressionWellInj(i) ! pressure
-              write(12,'(ES17.7)',advance='no') PerfoWellInj(head)%Temperature ! temperature
-! FIXME: headmolarFluxInj is not defined in all configuration files
-!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux 
-              write(12,*) ""
-           end do
-
-           ! data of perforation nodes of prod well
-           do i=1, NbWellProdOwn_Ncpus(commRank+1)
-
-              write(12,'(A,I0)') &
-                   "Nb of perforation nodes of own prod well ", i
-              write(12,'(I0,A)') &
-                   NodebyWellProdLocal%Pt(i+1)-NodebyWellProdLocal%Pt(i), " "
-
-              ! data of head perforation node
-              write(12,'(A,I0,A)') &
-                   "Data of head perforation node of own prod well ", i, &
-                   ":  Pressure / Temperature / cumulFluxmolar / cumulFluxEnergy"
-              head = NodebyWellProdLocal%Pt(i+1)
-
-              do j=NodebyWellProdLocal%Pt(i)+1, NodebyWellProdLocal%Pt(i+1)
-              
-                 ! write(12,'(ES17.7)',advance='no') IncPressionWellProd(i)     ! pressure
-                 write(12,'(ES17.7)',advance='no') PerfoWellProd(j)%Pression    ! pressure
-                 write(12,'(ES17.7)',advance='no') PerfoWellProd(j)%Temperature ! temperature
-                 write(12,'(ES17.7)',advance='no') summolarFluxProd(:,j)   ! head molar flux 
-                 write(12,'(ES17.7)',advance='no') sumnrjFluxProd(j)       ! head energy flux
-                 write(12,*) ""
-              end do
-           end do
-
-           ! max and min temperature
-           write(12,'(A)') "max/min temperature"
-           write(12,'(ES17.7)',advance='no') Tempmax
-           write(12,'(ES17.7)',advance='no') Tempmin
-           write(12,*) ""
-           
-           close(12)
-
-           VisuTimeIter = VisuTimeIter + 1
-
-        end if
-#endif
+            ! compute Residu
+            call Residu_compute(Delta_t, NewtonIter)
+
+            ! if(commRank==1) then
+            !    ! print*, ResiduNode
+            !    ! print*, ResiduCell
+            !    ! print*, ResiduWellInj
+            ! end if
+
+            ! write(*,*) ""
+            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
+            ! test Newton converge
+            call Residu_RelativeNorm(NewtonIter, Delta_t, &
+                                     NewtonResNormRel(NewtonIter), NewtonResConvInit, NewtonResClosInit)
+
+            if (commRank == 0) then
+               if (NewtonIter == 1) then
+                  do i = 1, size(fd)
+                     j = fd(i)
+                     write (j, *) ""
+                     write (j, '(A)', advance='no') "     *Residu init conv:  "
+                     do k = 1, NbCompThermique
+                        write (j, '(A,ES12.5)', advance='no') "  ", NewtonResConvInit(k)
+                     end do
+                     write (j, *) ""
+                     write (j, '(A,ES12.5)') "     *Residu init clos:    ", NewtonResClosInit
+                     write (j, *) ""
+                  end do
+               end if
+
+               do i = 1, size(fd)
+                  j = fd(i)
+                  write (j, '(A,I4)', advance="no") "     *Newton iter:", NewtonIter
+                  write (j, '(A,E18.10)', advance="no") "      Newton res norm:", NewtonResNormRel(NewtonIter)
+               end do
+            end if
+
+            if (NewtonResNormRel(NewtonIter) < NewtonTol) then
+
+               NewtonConv = .true.
+               KspConv = .true.
+               exit
+            end if
+
+            ! Jacobian and second member
+            !   inputs:  Residu
+            !   outputs: JacA, Sm
+            call Jacobian_ComputeJacSm(Delta_t)
+
+            ! set values of matrix, vector, Ksp solver
+            !   inputs : JacA, Sm
+            !   outputs : solver Petsc
+
+            call SolvePetsc_SetUp
+
+            ! write(*,*) ""
+            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
+            ! solve, return nb of iterations
+            ! if KspNiter<0, not converge
+            call SolvePetsc_KspSolve(KspNiter, KspHistory)
+
+            if (commRank == 0) then
+               do i = 1, size(fd)
+                  write (fd(i), '(A,I5)', advance="no") "    Nb of Ksp iter:  ", KspNiter
+               end do
+            end if
+
+            if (KspNiter < 0) then ! not converge
+
+               ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
+               KspConv = .false. ! solver not converge
+               KspNbFailure = KspNbFailure + 1
+
+               ! restart a new Newton with a smaller time step
+               Delta_t = Delta_t*0.5d0
+
+               ! load status
+               call IncCV_LoadIncPreviousTimeStep
+               call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
+               call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+
+               ! print residu if Ksp failure
+               if (commRank == 0) then
+                  do i = 1, size(fd)
+                     j = fd(i)
+                     write (j, *) ""
+                     do k = 1, KspNiterMax
+                        write (j, '(A,I4,A,ES18.10)') &
+                           "             Ksp iter:   ", k, "    res:  ", KspHistory(k)
+                     end do
+
+                     write (j, *) ""
+                     write (j, '(A)', advance="no") &
+                        "   -- Restart a Newton with a smaller time step (Ksp does not converge): "
+                     write (j, *) Delta_t/OneDay
+                  end do
+               end if
+
+               exit
+            else
+               KspConv = .true.
+               KspNiterTimeStep = KspNiterTimeStep + KspNiter
+
+               call SolvePetsc_Sync ! sync for ghost
+
+               ! Get increment prim of node, frac and wells
+               ! Increment of prim is NewtonIncre(1:NbComp+IndThermique)
+               ! Get values from vector of petsc/trilinos
+               call SolvePetsc_GetSolNodeFracWell( &
+                  NewtonIncreNode, NewtonIncreFrac, &
+                  NewtonIncreWellInj, NewtonIncreWellProd)
+
+               ! print*, NewtonIncreWellInj
+
+               ! Compute increment prim of cell
+               ! Inverse Schur
+               call Jacobian_GetSolCell(NewtonIncreNode, &
+                                        NewtonIncreFrac, NewtonIncreCell)
+
+               ! Compute incremment increment of secd using increment prim
+               !   Input : increment prim is NewtonIncre(1:NbComp+IndThermique)
+               !   Output: complete increment = (prim and secd, acc)
+               call LoisThermoHydro_PrimToSecd( &
+                  NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell)
+
+               ! compute Newton relaxation
+               call IncCV_NewtonRelax( &
+                  NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, NewtonRelax)
+
+               ! ???
+               ! NewtonRelax = 1.d0
+
+               if (commRank == 0) then
+                  do i = 1, size(fd)
+                     write (fd(i), '(A,F12.7)') "    Relaxation:", NewtonRelax
+                  end do
+               end if
+
+               ! update Inc with Increment
+               call IncCV_NewtonIncrement( &
+                  NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
+                  NewtonIncreWellInj, NewtonIncreWellProd, NewtonRelax)
+
+               call IncCV_UpdateDirBCValue
+
+               ! call IncCV_ToVec( &
+               !      dataviscuell, datavisufrac, &
+               !      datavisuwellinj, datavisuwellprod)
+
+               ! call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
+               !      datavisucell, datavisufrac,         &
+               !      datavisuwellinj, datavisuwellprod)
+
+               ! Flash
+               call DefFlash_Flash
+
+               ! if(commRank==0) then
+               !    ! print*, ""
+               !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
+               !    ! write(*,'(A,E15.3)') "pressure prod", IncPressionWellProd
+               ! end if
+
+            end if ! end if converge/not converge
+
+            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
+         end do ! end of : NewtonIter=1, NewtonNiterMax
+
+         if (NewtonConv .eqv. .true.) then
+
+            NewtonNiterTotal = NewtonNiterTotal + NewtonIter
+            KspNiterTotal = KspNiterTotal + KspNiterTimeStep
+
+         else if ((NewtonConv .eqv. .false.) .and. &
+                  (KspConv .eqv. .true.)) then
+
+            NewtonNbFailure = NewtonNbFailure + 1
+
+            ! restart a new Newton with a smaller time step
+            Delta_t = Delta_t*0.5d0
+
+            if (commRank == 0) then
+               write (*, *) ""
+               write (*, '(A)', advance="no") &
+                  "   -- Restart a Newton with a smaller time step (Newton does not converge): "
+               write (*, *) Delta_t/OneDay
+
+               write (11, *) ""
+               write (11, '(A)', advance="no") &
+                  "   -- Restart a Newton with a smaller time step (Newton does not converge): "
+               write (11, *) Delta_t/OneDay
+            end if
+
+            ! load status
+            call IncCV_LoadIncPreviousTimeStep
+            call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
+            call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+
+            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+         end if
+
+      end do ! end of do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
+
+      call DefFlash_TimeFlash
+
+      TimeCurrent = TimeCurrent + Delta_t
+
+      ! FiXME: What is the policy for time step management
+      ! compute Delta_t for the next time step
+      call IncCV_ComputeTimeStep(Delta_t, TimeCurrent)
+      ! ???
+      ! Delta_t = TimeStepInit
+
+      ! total computation time and computation time of this time step
+      comptime_timestep = MPI_WTIME() - comptime_start
+      comptime_total = comptime_total + comptime_timestep
+
+   end subroutine NN_main_make_timestep
+
+   subroutine NN_main(TimeIter, OutputDir)
+
+      integer, intent(inout) :: TimeIter
+      character(len=*), intent(in) :: OutputDir
 
 #ifdef _HDF5_
-        call IncCV_WriteSolToFile(OutputDir, &
-             TimeIter, TimeCurrent, Delta_t, TimeOutput, &
-             NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
-             comptime_total, comptime_timestep)
+      if (TimeIter > 0) then
+         call IncCV_ReadSolFromFile(OutputDir, &
+                                    TimeIter, TimeCurrent, Delta_t, TimeOutput, &
+                                    NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
+                                    comptime_total, comptime_timestep)
+      end if
 #endif
 
-        ! FIXME: we may loose some outputs
-        do while(TimeOutput < TimeCurrent)
-           TimeOutput = TimeOutput + output_frequency
-        end do
+      do while (TimeCurrent < (TimeFinal + eps))
 
-     end if
+         TimeIter = TimeIter + 1
 
-     if(commRank==0) then
-        do i=1,size(fd)
-           j = fd(i)
-           write(j,*)
-           write(j,*)
-           write(j,'(A,I0)') "     -Total nb of Newton iters:     ", NewtonNiterTotal
-           write(j,'(A,I0)') "     -Total nb of Ksp iters:        ", KspNiterTotal
-           write(j,'(A,I0)') "     -Total nb of Newton failures:  ", NewtonNbFailure
-           write(j,'(A,I0)') "     -Total nb of Ksp failures:     ", KspNbFailure
+         if (commRank == 0) then
+            do i = 1, size(fd)
+               j = fd(i)
+               write (j, *) ""
+               write (j, *) ""
+               write (j, '(A,I0)') "Time Step: ", TimeIter
+               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay, "days", TimeCurrent/OneYear, "years"
 
-           write(j,*)
-           write(j,'(A,F15.3)') "     -Total Computation time:              ", comptime_total
-           write(j,'(A,F15.3)') "     -Computation time of this time step:  ", comptime_timestep
-        end do
-     end if
+               write (j, *)
+               write (j, '(A)', advance="no") "   -- Initial time step: "
+               write (j, *) Delta_t/OneDay
+            end do
+         end if
 
-  end do ! end of time steps
+         call NN_main_make_timestep
 
-end subroutine NN_main
-  
-subroutine NN_finalize()
+         ! checkpoint and visu
+         if (TimeCurrent > TimeOutput) then
 
-  ! ! compute errors
-  ! errlocal_cell_L1 = 0.d0
-  ! errlocal_cell_L2 = 0.d0
-  ! errlocal_cell_Linf = 0.d0
+            call NN_main_output_visu(TimeIter, OutputDir)
 
-  ! errlocal_frac_L1 = 0.d0
-  ! errlocal_frac_L2 = 0.d0
-  ! errlocal_frac_Linf = 0.d0
+            call NN_main_checkpoint(OutputDir)
 
-  ! do k=1, NbCellOwn_Ncpus(commRank+1)
+            ! FIXME: we may loose some outputs
+            do while (TimeOutput < TimeCurrent)
+               TimeOutput = TimeOutput + output_frequency
+            end do
 
-  !    call DefModel_AnalyticSol(XCellLocal(:,k),sol)
-     
-  !    errlocal_cell_L2   = errlocal_cell_L2 + (IncCell(k)%Pression - sol)**2 * VolCellLocal(k)
-  !    errlocal_cell_L1   = errlocal_cell_L1 + abs(IncCell(k)%Pression - sol) * VolCellLocal(k)
-  !    errlocal_cell_Linf = max(abs(IncCell(k)%Pression - sol), errlocal_cell_Linf)
-  ! end do
+         end if
 
-  ! do k=1, NbFracOwn_Ncpus(commRank+1)
+         if (commRank == 0) then
+            call NN_main_summarize_time_step
+         end if
 
-  !    call DefModel_AnalyticSol(XFaceLocal(:,FracToFaceLocal(k)),sol)
-     
-  !    errlocal_frac_L2   = errlocal_frac_L2 + (IncFrac(k)%Pression - sol)**2 * SurfFracLocal(k)
-  !    errlocal_frac_L1   = errlocal_frac_L1 + abs(IncFrac(k)%Pression - sol) * SurfFracLocal(k)
-  !    errlocal_frac_Linf = max(abs(IncFrac(k)%Pression - sol), errlocal_frac_Linf)
-  ! end do
-  
-  ! call MPI_Reduce(errlocal_cell_L2, err_cell_L2, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
-  ! call MPI_Reduce(errlocal_cell_L1, err_cell_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
-  ! call MPI_Reduce(errlocal_cell_Linf, err_cell_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
+      end do ! end of time steps
 
-  ! call MPI_Reduce(errlocal_frac_L2, err_frac_L2, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
-  ! call MPI_Reduce(errlocal_frac_L1, err_frac_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
-  ! call MPI_Reduce(errlocal_frac_Linf, err_frac_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
+   end subroutine NN_main
 
-  
-  ! if(commRank==0) then
-  !    print*, ""
-  !    print*, "errl2cell[mm] =", sqrt(err_cell_L2) / (2000.d0)**3
-  !    print*, "errl1cell[mm] =", err_cell_L1 / (2000.d0)**3
-  !    print*, "errlinfcell[mm] =", err_cell_Linf 
+   subroutine NN_main_summarize_time_step()
 
-  !    print*, ""
-  !    print*, "errl2frac[mm] =", sqrt(err_frac_L2) / (2000.d0)**2
-  !    print*, "errl1frac[mm] =", err_frac_L1 / (2000.d0)**2
-  !    print*, "errlinffrac[mm] =", err_frac_Linf 
-  ! end if
-     
-    ! *** Report *** !
-    if(commRank==0) then
-      do i=1,size(fd)
-        j = fd(i)
-        write(j,*) ""
-        write(j,*) ""
-        write(j,*) "Final Report"
+      do i = 1, size(fd)
+         j = fd(i)
+         write (j, *)
+         write (j, *)
+         write (j, '(A,I0)') "     -Total nb of Newton iters:     ", NewtonNiterTotal
+         write (j, '(A,I0)') "     -Total nb of Ksp iters:        ", KspNiterTotal
+         write (j, '(A,I0)') "     -Total nb of Newton failures:  ", NewtonNbFailure
+         write (j, '(A,I0)') "     -Total nb of Ksp failures:     ", KspNbFailure
 
-        write(j,*) ""
-        write(j,*) "    *Final time:  ", TimeFinal/OneDay
-
-        write(j,*) ""
-        write(j,*) "    *Mesh:"
-        write(j,'(A,I0)') "        -Nb of cells:  ", NbCell
-        write(j,'(A,I0)') "        -Nb of faces:  ", NbFace
-        write(j,'(A,I0)') "        -Nb of nodes:  ", NbNode
-        write(j,'(A,I0)') "        -Nb of fracs:  ", NbFrac
-
-        write(j,*) ""
-        write(j,*) "    *Newton/Ksp Iterations:"
-        write(j,'(A,I0)') "        -Total nb of Newton iters:  ", NewtonNiterTotal
-        write(j,'(A,I0)') "        -Total nb of Ksp iters:  ", KspNiterTotal
-
-        write(j,*) ""
-        write(j,*) "    *Newton/Ksp Failures:"
-        write(j,'(A,I0)') "        -Total nb of Newton failures:  ", NewtonNbFailure
-        write(j,'(A,I0)') "        -Total nb of Ksp failures:  ", KspNbFailure
-
-
-        write(j,*) ""
-        write(j,*) "    *Total simulation time:  ", comptime_total
+         write (j, *)
+         write (j, '(A,F15.3)') "     -Total Computation time:              ", comptime_total
+         write (j, '(A,F15.3)') "     -Computation time of this time step:  ", comptime_timestep
       end do
-    end if
 
-  ! *** Free *** !
+   end subroutine NN_main_summarize_time_step
+
+   subroutine NN_finalize()
+
+      ! ! compute errors
+      ! errlocal_cell_L1 = 0.d0
+      ! errlocal_cell_L2 = 0.d0
+      ! errlocal_cell_Linf = 0.d0
+
+      ! errlocal_frac_L1 = 0.d0
+      ! errlocal_frac_L2 = 0.d0
+      ! errlocal_frac_Linf = 0.d0
+
+      ! do k=1, NbCellOwn_Ncpus(commRank+1)
+
+      !    call DefModel_AnalyticSol(XCellLocal(:,k),sol)
+
+      !    errlocal_cell_L2   = errlocal_cell_L2 + (IncCell(k)%Pression - sol)**2 * VolCellLocal(k)
+      !    errlocal_cell_L1   = errlocal_cell_L1 + abs(IncCell(k)%Pression - sol) * VolCellLocal(k)
+      !    errlocal_cell_Linf = max(abs(IncCell(k)%Pression - sol), errlocal_cell_Linf)
+      ! end do
+
+      ! do k=1, NbFracOwn_Ncpus(commRank+1)
+
+      !    call DefModel_AnalyticSol(XFaceLocal(:,FracToFaceLocal(k)),sol)
+
+      !    errlocal_frac_L2   = errlocal_frac_L2 + (IncFrac(k)%Pression - sol)**2 * SurfFracLocal(k)
+      !    errlocal_frac_L1   = errlocal_frac_L1 + abs(IncFrac(k)%Pression - sol) * SurfFracLocal(k)
+      !    errlocal_frac_Linf = max(abs(IncFrac(k)%Pression - sol), errlocal_frac_Linf)
+      ! end do
+
+      ! call MPI_Reduce(errlocal_cell_L2, err_cell_L2, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Reduce(errlocal_cell_L1, err_cell_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Reduce(errlocal_cell_Linf, err_cell_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
+
+      ! call MPI_Reduce(errlocal_frac_L2, err_frac_L2, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Reduce(errlocal_frac_L1, err_frac_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Reduce(errlocal_frac_Linf, err_frac_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
+
+      ! if(commRank==0) then
+      !    print*, ""
+      !    print*, "errl2cell[mm] =", sqrt(err_cell_L2) / (2000.d0)**3
+      !    print*, "errl1cell[mm] =", err_cell_L1 / (2000.d0)**3
+      !    print*, "errlinfcell[mm] =", err_cell_Linf
+
+      !    print*, ""
+      !    print*, "errl2frac[mm] =", sqrt(err_frac_L2) / (2000.d0)**2
+      !    print*, "errl1frac[mm] =", err_frac_L1 / (2000.d0)**2
+      !    print*, "errlinffrac[mm] =", err_frac_Linf
+      ! end if
+
+      ! *** Report *** !
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            j = fd(i)
+            write (j, *) ""
+            write (j, *) ""
+            write (j, *) "Final Report"
+
+            write (j, *) ""
+            write (j, *) "    *Final time:  ", TimeFinal/OneDay
+
+            write (j, *) ""
+            write (j, *) "    *Mesh:"
+            write (j, '(A,I0)') "        -Nb of cells:  ", NbCell
+            write (j, '(A,I0)') "        -Nb of faces:  ", NbFace
+            write (j, '(A,I0)') "        -Nb of nodes:  ", NbNode
+            write (j, '(A,I0)') "        -Nb of fracs:  ", NbFrac
+
+            write (j, *) ""
+            write (j, *) "    *Newton/Ksp Iterations:"
+            write (j, '(A,I0)') "        -Total nb of Newton iters:  ", NewtonNiterTotal
+            write (j, '(A,I0)') "        -Total nb of Ksp iters:  ", KspNiterTotal
+
+            write (j, *) ""
+            write (j, *) "    *Newton/Ksp Failures:"
+            write (j, '(A,I0)') "        -Total nb of Newton failures:  ", NewtonNbFailure
+            write (j, '(A,I0)') "        -Total nb of Ksp failures:  ", KspNbFailure
+
+            write (j, *) ""
+            write (j, *) "    *Total simulation time:  ", comptime_total
+         end do
+      end if
+
+      ! *** Free *** !
 #ifdef _VISU_
-  call VisuVTK_VisuTime_pvdwriter ! write pvd file
-  call VisuVTK_VisuTime_free
-  deallocate(datavisucell)
-  deallocate(datavisufrac)
-  deallocate(datavisuwellinj)
-  deallocate(datavisuwellprod)
+      call VisuVTK_VisuTime_pvdwriter ! write pvd file
+      call VisuVTK_VisuTime_free
+      deallocate (datavisucell)
+      deallocate (datavisufrac)
+      deallocate (datavisuwellinj)
+      deallocate (datavisuwellprod)
 #endif
 
-  deallocate(NewtonIncreNode)
-  deallocate(NewtonIncreFrac)
-  deallocate(NewtonIncreCell)
-  deallocate(NewtonIncreWellInj)
-  deallocate(NewtonIncreWellProd)
-  deallocate(KspHistory)
-  if(allocated(fd)) then
-     deallocate(fd)
-  end if
+      deallocate (NewtonIncreNode)
+      deallocate (NewtonIncreFrac)
+      deallocate (NewtonIncreCell)
+      deallocate (NewtonIncreWellInj)
+      deallocate (NewtonIncreWellProd)
+      deallocate (KspHistory)
+      if (allocated(fd)) then
+         deallocate (fd)
+      end if
 
-  call SolvePetsc_free
-  call Jacobian_free
-  call Residu_free
-  call Flux_free
-  call VAGFrac_free
-  call LoisThermoHydro_free
-  call IncCV_free
-  ! call DefFlash_free
-  call MeshSchema_free
+      call SolvePetsc_free
+      call Jacobian_free
+      call Residu_free
+      call Flux_free
+      call VAGFrac_free
+      call LoisThermoHydro_free
+      call IncCV_free
+      ! call DefFlash_free
+      call MeshSchema_free
 
-  call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
-  if(commRank==0) then
-     close(11)
-     write(*,*) ""
-     write(*,*) "NN Finalize"
-  end if
-  call PetscFinalize(Ierr)
+      if (commRank == 0) then
+         close (11)
+         write (*, *) ""
+         write (*, *) "NN Finalize"
+      end if
+      call PetscFinalize(Ierr)
 
-end subroutine NN_finalize
+   end subroutine NN_finalize
 
 ! FIXME: Spare comments? Remove them?
 
 ! if(commRank==0) then
-
 
 !    do i=1, NbPhasePresente_ctx(IncCell(1)%ic)
 !       iph = NumPhasePresente_ctx(i,IncCell(1)%ic)
@@ -1258,7 +1280,6 @@ end subroutine NN_finalize
 
 ! write(*,'(ES22.14)'), DensiteMassiqueCell(i,1)
 ! print*, ""
-
 
 ! do j=1, NbIncPTCSPrimMax
 !    write(*,'(ES22.14)'), divDensiteMassiqueCell(j,i,1)
@@ -1310,18 +1331,12 @@ end subroutine NN_finalize
 !    print*, ""
 ! end do
 
-
-
-
-
 ! do j=1, NbIncPTCSPrimMax
 !    write(*,'(ES22.14)'), divDensitemolaireKrViscoEnthalpieCell(j,i,1)
 ! end do
 ! print*, ""
 ! write(*,'(ES22.14)'), SmDensitemolaireKrViscoEnthalpieCell(i,1)
 ! print*, ""
-
-
 
 !    ! *** !
 
@@ -1334,9 +1349,6 @@ end subroutine NN_finalize
 !    end do
 
 ! end if
-
-
-
 
 ! if(commRank==1) then
 ! do k=1, NbCellLocal_Ncpus(commRank+1) ! loop of cell
@@ -1405,7 +1417,6 @@ end subroutine NN_finalize
 !    end do
 ! end do
 
-
 ! if(commRank==1) then
 !    do i=1, NbCellLocal_Ncpus(commRank+1) &
 !         + NbNodeOwn_Ncpus(commRank+1)+NbFracOwn_Ncpus(commRank+1)
@@ -1436,15 +1447,12 @@ end subroutine NN_finalize
 !    end do
 ! end if
 
-
-
 ! if(commRank==1) then
 !    print*, bigSm(:,1)
 !    print*, Sm(:,1)
 ! end if
 
 ! do i=1, NbNodeOwn_Ncpus(commRank+1)+NbFracOwn_Ncpus(commRank+1)
-
 
 !    tmp(:) = 0.d0
 !    do j=JacA%Pt(i)+1, JacA%Pt(i+1)
@@ -1470,7 +1478,6 @@ end subroutine NN_finalize
 !    end do
 ! end if
 
-
 ! if(commRank==0) then
 
 !    ! do i=JacA%Pt(j)+1, JacBigA%Pt(j+1)
@@ -1479,7 +1486,6 @@ end subroutine NN_finalize
 !    !       exit
 !    !    end if
 !    ! end do
-
 
 !    ! do i=1, 5
 !    !    print*, JacA%Pt(i+1)-JacA%Pt(i)
@@ -1508,7 +1514,6 @@ end subroutine NN_finalize
 !    end do
 ! end if
 
-
 ! if(commRank==1) then
 
 !    do i=1,12
@@ -1533,7 +1538,6 @@ end subroutine NN_finalize
 !    print*, IncFrac(1)%Saturation(:)
 !    print*, ""
 ! end if
-
 
 ! VolDarcyCell(:) = 0.5d3
 ! PoroVolDarcyCell(:) = 0.5d3
@@ -1581,7 +1585,6 @@ end subroutine NN_finalize
 !    end do
 ! end do
 
-
 ! if(commRank==1) then
 !    print*, PoroVolDarcyCell(:)
 !    print*, PoroVolFourierCell(:)
@@ -1606,13 +1609,11 @@ end subroutine NN_finalize
 ! PoroVolFourierNode(:) = 0.d0
 ! Poro_1volFourierNode(:) = 0.d0
 
-
 ! open(unit=12, file="res.log", status="unknown")
 ! do i=1, NewtonIter
 !    write(12,*) NewtonResNormRel(i)
 ! end do
 ! close(12)
-
 
 ! if(commRank==0) then
 !    ! print*, XCellLocal(:,1)
@@ -1627,8 +1628,6 @@ end subroutine NN_finalize
 
 ! print*, ""
 ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-
-
 
 ! do i=1, NbNodeLocal_Ncpus(commRank+1)
 !    if(IncNode(i)%Temperature>451.d0) then
