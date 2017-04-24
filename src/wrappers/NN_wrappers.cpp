@@ -10,6 +10,9 @@ extern "C"
 	void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
 	void NN_init_phase2(const StringWrapper&);
 	void NN_main(int, const StringWrapper&);
+	void NN_main_make_timestep();
+	void NN_main_output_visu(int, const StringWrapper&);
+	void NN_main_summarize_timestep();
 	void NN_finalize();
 }
 
@@ -53,7 +56,15 @@ void add_NN_wrappers(py::module& module)
 	
 	module.def("main_loop", [](int TimeIter, const std::string& OutputDir) { NN_main(TimeIter, OutputDir); },
 		"Main loop of ComPASS.");
-	
+
+	module.def("make_timestep", &NN_main_make_timestep);
+
+	// This is transitory to output visualisation files
+	module.def("output_visu", [](int TimeIter, const std::string& OutputDir) { NN_main_output_visu(TimeIter, OutputDir); },
+		"This function is transitory and is bound to disappear. It is here to output visualisation files through original fortran code.");
+
+	module.def("summarize_timestep", &NN_main_summarize_timestep);
+
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
 
 }

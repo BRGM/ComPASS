@@ -73,5 +73,35 @@ if comm.rank==0:
 
 ComPASS.init_phase2(outputdir)
 
-ComPASS.main_loop(0, outputdir)
+oneday = 60 * 60 * 24
+oneyear = oneday * 365.25
+
+if comm.rank==0:
+    print('Final time: %.1f years' % (ComPASS.get_final_time() / oneyear))
+ComPASS.set_final_time(oneyear)
+if comm.rank==0:
+    print('Final time: %.1f years' % (ComPASS.get_final_time() / oneyear))
+comm.Barrier() # wait for every process to synchronize
+
+final_time = 30 * oneyear
+n = 0
+output_frequency = oneyear
+t_output = 0
+while ComPASS.get_current_time() <= final_time:
+    n+= 1
+    if comm.rank==0:
+        print()
+        print('Time Step (iteration):', n)
+        print('Current time: %.1f years' % (ComPASS.get_current_time() / oneyear), ' -> final time:', final_time/oneyear)
+        print('Timestep: %.3f days' % (ComPASS.get_timestep() / oneday))
+    ComPASS.make_timestep()
+    t = ComPASS.get_current_time()
+    if t > t_output:
+        ComPASS.output_visu(n, outputdir)
+    # WARNING / CHECKME we may loose some outputs
+    while (t_output < t):
+        t_output = t_output + output_frequency
+    if comm.rank==0:
+        ComPASS.summarize_timestep()
+
 ComPASS.finalize()

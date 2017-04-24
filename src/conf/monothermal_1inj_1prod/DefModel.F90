@@ -134,7 +134,8 @@ module DefModel
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
   ! time step init and max 
-  double precision, parameter :: TimeFinal = 30 * OneYear
+  ! FIXME: parameter is removed to assign variable from python
+  double precision :: TimeFinal = 30 * OneYear
 
   double precision, parameter :: TimeStepInit = OneDay
   double precision, parameter :: TimeStepMax1 = OneYear

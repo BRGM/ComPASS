@@ -124,6 +124,9 @@ module NN
    public :: &
       NN_init, &
       NN_main, &
+      NN_main_make_timestep, &
+      NN_main_output_visu, &
+      NN_main_summarize_timestep, &
       NN_finalize
 
 contains
@@ -535,6 +538,9 @@ contains
          write (output_path, '(A)') trim(OutputDir)//"/wellinfo"
          call make_directory(output_path)
 
+         ! CHECKME: This to prevent OSError when several proc are attempting to create the same directory
+         call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+
          write (Wellinfoname, '(A,I0,A)') &
             trim(OutputDir)//"/wellinfo/proc_", commRank, ".txt"
 
@@ -629,7 +635,7 @@ contains
 
    subroutine NN_main_output_visu(TimeIter, OutputDir)
 
-      integer, intent(inout) :: TimeIter
+      integer, intent(in) :: TimeIter
       character(len=*), intent(in) :: OutputDir
 
 #ifdef _VISU_
@@ -698,6 +704,9 @@ contains
          write (output_path, '(A,I0)') trim(OutputDir)//"/wellinfo/time_", VisuTimeIter
          call make_directory(output_path)
 
+         ! CHECKME: This to prevent OSError when several proc are attempting to create the same directory
+         call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+         
          write (Wellinfoname, '(A,I0,A,I0,A)') &
             trim(OutputDir)//"/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
 
@@ -1120,14 +1129,14 @@ contains
          end if
 
          if (commRank == 0) then
-            call NN_main_summarize_time_step
+            call NN_main_summarize_timestep
          end if
 
       end do ! end of time steps
 
    end subroutine NN_main
 
-   subroutine NN_main_summarize_time_step()
+   subroutine NN_main_summarize_timestep()
 
       do i = 1, size(fd)
          j = fd(i)
@@ -1143,7 +1152,7 @@ contains
          write (j, '(A,F15.3)') "     -Computation time of this time step:  ", comptime_timestep
       end do
 
-   end subroutine NN_main_summarize_time_step
+   end subroutine NN_main_summarize_timestep
 
    subroutine NN_finalize()
 

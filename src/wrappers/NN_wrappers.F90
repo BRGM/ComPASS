@@ -16,6 +16,9 @@
           NN_init_build_grid_from_C, &
           NN_init_phase2_from_C, &
           NN_main_from_C, &
+          NN_main_make_timestep_from_C, &
+          NN_main_output_visu_from_C, &
+          NN_main_summarize_time_step_from_C, &
           NN_finalize_from_C
 
     contains
@@ -88,6 +91,30 @@
           call NN_main(TimeIter_tmp, fortran_string(OutputDir))
 
        end subroutine NN_main_from_C
+
+       subroutine NN_main_make_timestep_from_C() &
+          bind(C, name="NN_main_make_timestep")
+
+          call NN_main_make_timestep
+
+       end subroutine NN_main_make_timestep_from_C
+
+       subroutine NN_main_output_visu_from_C(TimeIter, OutputDir) &
+          bind(C, name="NN_main_output_visu")
+
+          integer(c_int), value, intent(in) :: TimeIter
+          type(cpp_string_wrapper), intent(in) :: OutputDir
+
+          call NN_main_output_visu(TimeIter, fortran_string(OutputDir))
+
+       end subroutine NN_main_output_visu_from_C
+
+       subroutine NN_main_summarize_time_step_from_C() &
+          bind(C, name="NN_main_summarize_timestep")
+
+          call NN_main_summarize_timestep
+
+       end subroutine NN_main_summarize_time_step_from_C
 
        subroutine NN_finalize_from_C() &
           bind(C, name="NN_finalize")

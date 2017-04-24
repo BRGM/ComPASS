@@ -136,6 +136,9 @@ set( WRAPPERS_SRCS
   GlobalMeshWrapper.F90
   GlobalMesh_wrappers.h
   GlobalMesh_wrappers.cpp
+  GlobalVariables_wrappers.F90
+  GlobalVariables_wrappers.h
+  GlobalVariables_wrappers.cpp
   MeshUtilities.h
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp

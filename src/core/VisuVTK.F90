@@ -296,6 +296,7 @@ contains
     write(output_path, '(A,I0)')  trim(OutputDir) // "/time_", NbVisuTimes-1
     call make_directory(output_path)
 
+    ! CHECKME: This to prevent OSError when several proc are attempting to create the same directory
     call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
     ! write data 
