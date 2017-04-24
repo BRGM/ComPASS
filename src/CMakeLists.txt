@@ -84,6 +84,9 @@ foreach(_conf ${CONFIGURATIONS})
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
+
+    set_target_properties(${CONF_TARGETNAME} PROPERTIES LINKER_LANGUAGE Fortran)
+
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
@@ -96,7 +99,7 @@ foreach(_conf ${CONFIGURATIONS})
     target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
     # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-    target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_lapack_LIBRARY})
+    target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
     if(DEF_HDF5)
         target_include_directories(${CONF_TARGETNAME} PUBLIC ${HDF5_INCLUDE_DIRS})
         target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})

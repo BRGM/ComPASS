@@ -12,6 +12,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules"
 
 include(ComPASSCMakeUtils)
 
+message(STATUS "%% PETSC:" ${PETSC_DIR})
+
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
   message(FATAL_ERROR
 "-------------------------------
