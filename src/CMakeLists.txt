@@ -95,6 +95,9 @@ foreach(_conf ${CONFIGURATIONS})
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
+    
+    set_target_properties(${CONF_TARGETNAME} PROPERTIES LINKER_LANGUAGE Fortran)
+
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
