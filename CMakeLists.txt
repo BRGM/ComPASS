@@ -27,6 +27,8 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 # set(CMAKE_C_COMPILER mpicc)
 # set(CMAKE_CXX_COMPILER mpicxx)
 
+set( CMAKE_CXX_STANDARD 14)
+
 option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
 
 if(DEF_Python_BINDINGS)
@@ -93,7 +95,7 @@ find_package(LAPACK REQUIRED)
 # WARNING: Does not include python libraries from VTK so that they do not interfere with pybind11
 if(DEF_VISU)
   add_definitions(-D_VISU_)
-  find_package(VTK 6 REQUIRED COMPONENTS vtkRenderingCore vtkIOXML NO_MODULE)
+  find_package(VTK REQUIRED COMPONENTS vtkRenderingCore vtkIOXML NO_MODULE)
   include(${VTK_USE_FILE})
 endif(DEF_VISU)
 

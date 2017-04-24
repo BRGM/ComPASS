@@ -21,10 +21,8 @@
           type(cpp_COC) :: CellbyCell; 
        end type cpp_MeshConnectivity
 
-       protected :: &
-          check_mesh_allocation
-
        public :: &
+          check_mesh_allocation, &
           retrieve_vertices, &
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &

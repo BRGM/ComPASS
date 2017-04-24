@@ -25,12 +25,10 @@
         character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode
     end type Injector_data
 
-    protected :: &
+    public :: &
         Well_allocate_specific_well_geometries, &
         Well_set_producers_data, &
-        Well_set_injectors_data
-
-    public :: &
+        Well_set_injectors_data, &
         Well_allocate_well_geometries_from_C, &
         Well_set_wells_data_from_C
 
