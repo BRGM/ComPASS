@@ -21,7 +21,7 @@ def print_iteration_info():
     print('Time Step (iteration):', n)
     print('Current time: %.1f years' % (ComPASS.get_current_time() / year), ' -> final time:', final_time / year)
     print('Timestep: %.3f days' % (ComPASS.get_timestep() / day))
-    
+
 final_time = 30 * year
 n = 0
 output_frequency = 1 * year

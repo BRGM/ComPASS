@@ -7,11 +7,15 @@ ComPASS.set_output_directory_and_logfile(__file__)
 
 def fractures_fractory(grid):
     def fractures():
+        nz, Lz, Oz = grid.shape[2], grid.extent[2], grid.origin[2]
         face_centers = ComPASS.compute_face_centers()
-        dz = grid.extent[2] / grid.shape[2]
+        zfaces = face_centers[:, 2]
+        face_normals = ComPASS.compute_face_normals()
+        ux, uy = face_normals[:, 0], face_normals[:, 1]
+        dz = Lz / nz
         # select horizontal fault axis in the middle of the simulation domain
-        zfrac = grid.origin[2] + 0.5 * grid.extent[2]
-        return np.abs(face_centers[:, 2] - zfrac) < 0.5 * dz
+        zfrac = Oz + 0.5 * Lz
+        return (np.abs(zfaces - zfrac) < dz) & (ux==0) & (uy==0) 
     return fractures
 
 def face_permeability_factory(grid, channel_width=None):

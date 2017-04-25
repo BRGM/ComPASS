@@ -128,6 +128,23 @@ def compute_face_centers():
       ])
     return centers
 
+def compute_face_normals():
+    vertices = get_vertices()
+    connectivity = get_connectivity()
+    # fortran indexes start at 1
+    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace]
+    normals = np.array([
+        np.cross(
+            vertices[nodes[1]]-vertices[nodes[0]],
+            vertices[nodes[2]]-vertices[nodes[0]])
+        for nodes in face_nodes
+    ])
+    # normalize
+    norms = np.linalg.norm(normals, axis=1)
+    norms.shape = (-1, 1)
+    normals /= norms
+    return normals
+
 def set_fractures(faces):
     idfaces = get_id_faces()
     idfaces[faces] = -2
