@@ -2,6 +2,9 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 
+def interwell_distance(grid):
+    return grid.extent[0]/3
+
 def make_well(xy):
     vertices = ComPASS.get_vertices()
     x, y, z = (vertices[:, col] for col in range(3))
@@ -18,12 +21,11 @@ def make_well(xy):
 
 def make_wells_factory(grid):
     def make_wells():
-        interwell_distance = grid.extent[0]/3
-        producer = make_well((-0.5 * interwell_distance, 0))
+        producer = make_well((-0.5 * interwell_distance(grid), 0))
         #producer.operate_on_flowrate = 300, 1E5
         producer.operate_on_pressure = 10E6, 100 * ton / hour
         producer.produce()
-        injector = make_well((0.5 * interwell_distance, 0))
+        injector = make_well((0.5 * interwell_distance(grid), 0))
         #injector.operate_on_flowrate = 300, 30E6
         injector.operate_on_pressure = 30E6, 100 * ton / hour
         injector.inject(degC2K(30))

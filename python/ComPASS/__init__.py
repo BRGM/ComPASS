@@ -45,8 +45,9 @@ def init(
     wells = lambda: [],
     fracture_faces = lambda: None,
     cells_porosity = lambda: None,
-    fracture_porosity = lambda: None,
+    face_porosity = lambda: None,
     cells_permeability = lambda: None,
+    face_permeability = lambda: None,
     fracture_permeability = lambda: None,
 ):
     assert meshfile is None or grid is None
@@ -69,11 +70,27 @@ def init(
         ComPASS.set_well_geometries(well_list)
         ComPASS.global_mesh_mesh_bounding_box()
         ComPASS.global_mesh_compute_all_connectivies()
-        ComPASS.global_mesh_set_frac()
+        fractures = fracture_faces()
+        if fractures is not None:
+            set_fractures(fractures)
+        else:
+            ComPASS.global_mesh_set_frac()
         ComPASS.global_mesh_node_of_frac()
         ComPASS.global_mesh_set_dir_BC()
         ComPASS.global_mesh_frac_by_node()
+        # The following line is necessary to allocate arrays in the fortran code
         ComPASS.global_mesh_make_post_read_set_poroperm()
+        faceperm = face_permeability()
+        fracperm = fracture_permeability()
+        if fractures is not None:
+            if faceperm is not None:
+                assert fracperm is None
+                assert ComPASS.get_face_permeability().shape==faceperm.shape
+                ComPASS.get_face_permeability()[:] = faceperm
+            elif fracperm is not None:
+                assert faceperm is None
+                assert fracperm.shape==tuple(np.count(fractures))
+                ComPASS.get_face_permeability()[fractures] = fracperm
         ComPASS.global_mesh_make_post_read_well_connectivity_and_ip()
         ComPASS.set_well_data(well_list)
         ComPASS.compute_well_indices()
@@ -91,14 +108,14 @@ def get_id_faces():
 def get_cell_permeability():
    return np.array(ComPASS.get_cell_permeability_buffer(), copy = False)
 
-def get_fracture_permeability():
-   return np.array(ComPASS.get_fracture_permeability_buffer(), copy = False)
+def get_face_permeability():
+   return np.array(ComPASS.get_face_permeability_buffer(), copy = False)
 
 def get_cell_porosity():
    return np.array(ComPASS.get_cell_porosity_buffer(), copy = False)
 
-def get_fracture_porosity():
-   return np.array(ComPASS.get_fracture_porosity_buffer(), copy = False)
+def get_face_porosity():
+   return np.array(ComPASS.get_face_porosity_buffer(), copy = False)
 
 def compute_face_centers():
     vertices = get_vertices()

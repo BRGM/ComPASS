@@ -27,9 +27,9 @@
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
-          retrieve_fracture_porosity, &
+          retrieve_face_porosity, &
           retrieve_cell_permeability, &
-          retrieve_fracture_permeability, &
+          retrieve_face_permeability, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_make_post_read_from_C, &
           GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
@@ -114,8 +114,8 @@
 
        end subroutine retrieve_cell_porosity
 
-       subroutine retrieve_fracture_porosity(cpp_array) &
-          bind(C, name="retrieve_fracture_porosity")
+       subroutine retrieve_face_porosity(cpp_array) &
+          bind(C, name="retrieve_face_porosity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -126,7 +126,7 @@
           end if
 
           if (.not. allocated(PorositeFace)) then
-             print *, "Fracture porosity array is not allocated."
+             print *, "face porosity array is not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
@@ -134,7 +134,7 @@
           cpp_array%p = c_loc(PorositeFace(1))
           cpp_array%n = size(PorositeFace)
 
-       end subroutine retrieve_fracture_porosity
+       end subroutine retrieve_face_porosity
 
        subroutine retrieve_cell_permeability(cpp_array) &
           bind(C, name="retrieve_cell_permeability")
@@ -158,8 +158,8 @@
 
        end subroutine retrieve_cell_permeability
 
-       subroutine retrieve_fracture_permeability(cpp_array) &
-          bind(C, name="retrieve_fracture_permeability")
+       subroutine retrieve_face_permeability(cpp_array) &
+          bind(C, name="retrieve_face_permeability")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -170,7 +170,7 @@
           end if
 
           if (.not. allocated(PermFrac)) then
-             print *, "Fracture permeability array is not allocated."
+             print *, "face permeability array is not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
@@ -178,7 +178,7 @@
           cpp_array%p = c_loc(PermFrac(1))
           cpp_array%n = size(PermFrac)
 
-       end subroutine retrieve_fracture_permeability
+       end subroutine retrieve_face_permeability
 
        subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
 

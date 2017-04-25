@@ -15,7 +15,6 @@ ComPASS.init(
     wells = doublet_utils.make_wells_factory(grid),
 )
 
-
 @ComPASS.on_master_proc
 def print_iteration_info():
     print()
@@ -23,7 +22,6 @@ def print_iteration_info():
     print('Current time: %.1f years' % (ComPASS.get_current_time() / year), ' -> final time:', final_time / year)
     print('Timestep: %.3f days' % (ComPASS.get_timestep() / day))
     
-
 final_time = 30 * year
 n = 0
 output_frequency = 1 * year
