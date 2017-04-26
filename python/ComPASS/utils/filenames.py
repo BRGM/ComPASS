@@ -3,17 +3,14 @@ from mpi4py import MPI
 
 default_case_name = 'compass'
 
-def output_directory(case_name=None):
-    tmp, tail = os.path.split(__file__)
-    tmp, tail = os.path.split(tmp)
-    assert tail=='utils'
-    tmp, tail = os.path.split(tmp)
-    assert tail=='ComPASS'
-    compass_python_directory, tail = os.path.split(tmp)
+def output_directory(case_name=None, rootname=None):
+    if rootname is None:
+        rootname = os.getcwd()
     if case_name is None:
         case_name = default_case_name
-    output = os.path.join(compass_python_directory, 'tests',
-                                'output-' + os.path.splitext(os.path.basename(case_name))[0])
+    else:
+        case_name = os.path.splitext(os.path.basename(case_name))[0]
+    output = os.path.join('output-' + os.path.splitext(os.path.basename(case_name))[0])
     output = os.path.abspath(output)
     # master proc manages directory creation
     comm = MPI.COMM_WORLD
