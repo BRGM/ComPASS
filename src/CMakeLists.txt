@@ -135,7 +135,6 @@ set( WRAPPERS_SRCS
   COC_wrappers.h
   COC_wrappers.cpp
   CommonTypesWrapper.F90
-  ComPASS_module.cpp
   GlobalMeshWrapper.F90
   GlobalMesh_wrappers.h
   GlobalMesh_wrappers.cpp
@@ -152,6 +151,7 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
+#  Score-P.cpp
   StringWrapper.h
   StringWrapper.F90
   Well.h
