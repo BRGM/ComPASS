@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+
+# We must load mpi4py first so that MPI is  initialized before calling PETSC_Initialize
 from mpi4py import MPI
 
 from .ComPASS import *

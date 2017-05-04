@@ -1,5 +1,6 @@
     program ComPASS
 
+    use CommonMPI
     use NN
 
     implicit none
@@ -24,6 +25,11 @@
     call GetArg(3, outputdir)
     outputdir = trim(outputdir)
     
+    ! This initialize MPI first consequently PetscInitialize will not call it 
+    ! and will adapt a symmetric behavior letting us call MPI_finaliaze at the end
+    ! of our program
+    call MPI_Init(Ierr)
+
     call NN_init(meshfile, logfile, outputdir)
 
     if(argc==4) then
@@ -42,5 +48,8 @@
     end if
 
     call NN_finalize()
+
+    ! MPI_Init symmetric call (cf. supra)
+    call MPI_Finalize(Ierr)
 
     end program ComPASS
