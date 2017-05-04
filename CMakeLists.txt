@@ -95,7 +95,7 @@ find_package(LAPACK REQUIRED)
 # WARNING: Does not include python libraries from VTK so that they do not interfere with pybind11
 if(DEF_VISU)
   add_definitions(-D_VISU_)
-  find_package(VTK REQUIRED COMPONENTS vtkRenderingCore vtkIOXML NO_MODULE)
+  find_package(VTK REQUIRED COMPONENTS vtkCommonCore vtkIOXML NO_MODULE)
   include(${VTK_USE_FILE})
 endif(DEF_VISU)
 
