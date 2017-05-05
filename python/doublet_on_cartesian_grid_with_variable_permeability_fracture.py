@@ -4,7 +4,7 @@ from ComPASS.utils.units import *
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-def fractures_fractory(grid):
+def fractures_factory(grid):
     def fractures():
         nz, Lz, Oz = grid.shape[2], grid.extent[2], grid.origin[2]
         face_centers = ComPASS.compute_face_centers()
@@ -45,8 +45,8 @@ grid = ComPASS.Grid(
 ComPASS.init(
     grid = grid,
     wells = doublet_utils.make_wells_factory(grid),
-    fracture_faces = fractures_fractory(grid),
-    face_permeability = face_permeability_factory(grid),
+    fracture_faces = fractures_factory(grid),
+    faces_permeability = face_permeability_factory(grid),
 )
 
 @ComPASS.on_master_proc

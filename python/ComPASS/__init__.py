@@ -47,10 +47,10 @@ def init(
     wells = lambda: [],
     fracture_faces = lambda: None,
     cells_porosity = lambda: None,
-    face_porosity = lambda: None,
+    faces_porosity = lambda: None,
     cells_permeability = lambda: None,
-    face_permeability = lambda: None,
-    fracture_permeability = lambda: None,
+    faces_permeability = lambda: None,
+    fractures_permeability = lambda: None,
 ):
     assert meshfile is None or grid is None
     assert not(meshfile is None and grid is None)
@@ -82,16 +82,23 @@ def init(
         ComPASS.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code
         ComPASS.global_mesh_make_post_read_set_poroperm()
-        faceperm = face_permeability()
-        fracperm = fracture_permeability()
+        cellperm = cells_permeability()
+        if cellperm is not None:
+            ComPASS.get_cell_permeability()[:] = cellperm
+        faceperm = faces_permeability()
+        fracperm = fractures_permeability()
         if fractures is not None:
             if faceperm is not None:
                 assert fracperm is None
-                assert ComPASS.get_face_permeability().shape==faceperm.shape
+                # the following assert is annoying when we just want to broadcast a values (typically a scalar value)
+                # anyway assignement through the numpy.ndarray interface will fail
+                # assert ComPASS.get_face_permeability().shape==faceperm.shape
                 ComPASS.get_face_permeability()[:] = faceperm
             elif fracperm is not None:
                 assert faceperm is None
-                assert fracperm.shape==tuple(np.count(fractures))
+                #the following assert is annoying when we just want to broadcast a values (typically a scalar value) 
+                # anyway assignement through the numpy.ndarray interface will fail
+                #assert fracperm.shape==tuple(np.count(fractures))
                 ComPASS.get_face_permeability()[fractures] = fracperm
         ComPASS.global_mesh_make_post_read_well_connectivity_and_ip()
         ComPASS.set_well_data(well_list)
@@ -118,6 +125,17 @@ def get_cell_porosity():
 
 def get_face_porosity():
    return np.array(ComPASS.get_face_porosity_buffer(), copy = False)
+
+def compute_cell_centers():
+    vertices = get_vertices()
+    connectivity = get_connectivity()
+    centers = np.array([
+        vertices[
+          np.array(cell_nodes, copy=False) - 1 # fortran indexes start at 1
+        ].mean(axis=0)
+        for cell_nodes in connectivity.NodebyCell
+      ])
+    return centers
 
 def compute_face_centers():
     vertices = get_vertices()
