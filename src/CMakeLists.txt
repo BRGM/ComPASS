@@ -181,6 +181,7 @@ foreach(_conf ${CONFIGURATIONS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
     add_library(${CONF_TARGETNAME} SHARED ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
+target_compile_features(${CONF_TARGETNAME} PUBLIC cxx_std_14)
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -216,7 +217,8 @@ foreach(_conf ${CONFIGURATIONS})
     if(DEF_Python_BINDINGS)
         if(NOT python_module_done)
           pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
-	message(STATUS "%%" ${pybind11_INCLUDE_DIR})  
+target_compile_features(ComPASS PUBLIC cxx_std_14)
+message(STATUS "%%" ${pybind11_INCLUDE_DIR})  
 	include_directories(${pybind11_INCLUDE_DIR})
 	target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
 	  target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
