@@ -15,11 +15,11 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-		File.F90
-	  GlobalMesh.F90
-		CompassMesh.F90
-		GmshMesh.F90
-		Mesh.F90
+        File.F90
+      GlobalMesh.F90
+        CompassMesh.F90
+        GmshMesh.F90
+        Mesh.F90
     IncCV.F90
     Flux.F90
     Jacobian.F90 
@@ -78,7 +78,7 @@ set( CONFIGURATIONS
     # Injector_Pimposed_frac
     # Productor_Pimposed_frac
     # Productor_Qimposed_frac
-		diphasic
+        diphasic
 )
 
 set( CONF_SRCS
@@ -179,12 +179,8 @@ foreach(_src ${WRAPPERS_SRCS})
 endforeach()
 set(WRAPPERS_SRCS ${_tmp})
 
-## 
-## FIXME
-## WARNING: Only the first configuration is used to generate the python module.
-##          All of this is to be removed when all configuration options are factorized.
-##
-unset(python_module_done)
+set(pyComPASS_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
+set(pyComPASS_EOS_DIRECTORY "${pyComPASS_DIRECTORY}/eos")
 
 foreach(_conf ${CONFIGURATIONS})
     set(CONF_DIR conf/${_conf})
@@ -196,7 +192,7 @@ foreach(_conf ${CONFIGURATIONS})
     add_library(${CONF_TARGETNAME} SHARED ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
-	CXX_STANDARD 14
+    CXX_STANDARD 14
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -230,23 +226,22 @@ foreach(_conf ${CONFIGURATIONS})
 
     ## FIXME: Only the first configuration is used to generate the python module.
     if(DEF_Python_BINDINGS)
-        if(NOT python_module_done)
-			pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
-			set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
-			set_target_properties(ComPASS
-				PROPERTIES
-				CXX_STANDARD 14
-				CXX_STANDARD_REQUIRED YES
-				CXX_EXTENSIONS NO
-				LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
-				LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
-				LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
-			)
-			include_directories(${pybind11_INCLUDE_DIR})
-			target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
-			target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
-			set(python_module_done TRUE)
-        endif(NOT python_module_done)
+        # pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
+        set(eos_target ${_conf})
+        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
+        target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})
+        set_target_properties(${eos_target}
+            PROPERTIES
+            CXX_STANDARD 14
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+            LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_EOS_DIRECTORY}
+            LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_EOS_DIRECTORY}
+            LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_EOS_DIRECTORY}
+        )
+        include_directories(${pybind11_INCLUDE_DIR})
+        target_include_directories(${eos_target} PUBLIC ${pybind11_INCLUDE_DIR})
+        target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
     endif(DEF_Python_BINDINGS)
     
 endforeach()
