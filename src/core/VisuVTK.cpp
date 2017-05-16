@@ -997,7 +997,6 @@ void pvtuwriterwellprod( char* dirname, int Np )
 }
 
 
-
 // write .pvd file master proc
 // pvdname: file name;
 // t: current time;
@@ -1011,9 +1010,15 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   using namespace std;
 
+  // FIXME: This is to be removed !!!!
+  std::string pathroot("./");
+  // Check if path is absolute
+  if(dirname[0]=='/') pathroot.clear();
+
   // cell data .pvdcell
-  char pvdname[30];
-  sprintf( pvdname, "./%s/celldata.pvd", dirname );
+  // FIXME: Stille a hard coded length
+  char pvdname[300];
+  sprintf( pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname );
 
   ofstream pvd;
   pvd.open( pvdname );
@@ -1039,7 +1044,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // frac data .pvd
 
-  sprintf( pvdname, "./%s/fracdata.pvd", dirname );
+  sprintf( pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
@@ -1063,7 +1068,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // injection well data .pvd
 
-  sprintf( pvdname, "./%s/wellinjdata.pvd", dirname );
+  sprintf( pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
@@ -1087,7 +1092,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // production well data .pvd
 
-  sprintf( pvdname, "./%s/wellproddata.pvd", dirname );
+  sprintf( pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
