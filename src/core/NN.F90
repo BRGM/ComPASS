@@ -833,16 +833,9 @@ contains
             call IncCV_PressureDropWellInj
             call IncCV_PressureDropWellProd
 
-            if (commRank == 0) then
-               write (*, *) 'begin Newton loop'
-            end if
-
             ! LoisThermohydro
             call LoisThermoHydro_compute
 
-            if (commRank == 0) then
-               write (*, *) 'begin Newton loop 2'
-            end if
             ! compute flux cell/frac
             call Flux_DarcyFlux_Cell
             call Flux_DarcyFlux_Frac

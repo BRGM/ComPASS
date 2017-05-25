@@ -1154,9 +1154,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     integer, allocatable, dimension(:) :: OrderedNodes
     integer, allocatable, dimension(:) :: Parents
     
-	write(fdGm,*) 'Edges'
-    write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
-    write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
+    ! write(fdGm,*) 'Edges', NbWell, NbEdgebyWell
+    ! write(fdGm,*) NumNodebyEdgebyWell 
+    ! ! The following output seems to fail
+    ! write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
+    ! write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
 
     ! allocation and initialization
     allocate(OrderedNodes(size(NumNodebyEdgebyWell, 2) + 1))
@@ -1190,17 +1192,17 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     end do
     NodeDatabyWell%Num(:) = NodebyWell%Num(:)
 
-    write(fdGm,*) '+ + + + + + + + + + + + + + + + + + + + +'
-    do i=1,NbWell
-       write(fdGm,*) 'Well #', i
-       do j=1,NbEdgebyWell(i)+1
-          ival = NodebyWell%Pt(i) + j
-          write(fdGm,*) NodebyWell%Num(ival)
-          write(fdGm,*) NodeDatabyWell%Val(ival)%Parent
-       end do
-       ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
-       ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
-    end do
+    ! write(fdGm,*) '+ + + + + + + + + + + + + + + + + + + + +'
+    ! do i=1,NbWell
+    !    write(fdGm,*) 'Well #', i
+    !    do j=1,NbEdgebyWell(i)+1
+    !       ival = NodebyWell%Pt(i) + j
+    !       write(fdGm,*) NodebyWell%Num(ival)
+    !       write(fdGm,*) NodeDatabyWell%Val(ival)%Parent
+    !    end do
+    !    ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
+    !    ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
+    ! end do
     
     deallocate(OrderedNodes)
     deallocate(Parents)
@@ -1260,36 +1262,36 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        if(pl > 0) then
           NbEdgesbyNode(pl) = NbEdgesbyNode(pl) + 1
        end if
-       write(fdGm,'(4(a3,i3))') 'ig', ig, 'il', il, 'pg', pg, 'pl', pl
-       write(fdGm,'(a22,i3,a8,i3,a1,i3,i3)') 'NbEdgesbyNode(current=', ig, ',parent=',pg ,')' , NbEdgesbyNode(il)
-       write(fdGm,*)
+       !write(fdGm,'(4(a3,i3))') 'ig', ig, 'il', il, 'pg', pg, 'pl', pl
+       !write(fdGm,'(a22,i3,a8,i3,a1,i3,i3)') 'NbEdgesbyNode(current=', ig, ',parent=',pg ,')' , NbEdgesbyNode(il)
+       !write(fdGm,*)
     end do
     ! call disp('NbEdgesbyNode ', NbEdgesbyNode, unit=fdGm_unit) ! sons connected to how many nodes ?
 
     io = 1
     do i=1,ne
        ig = Edges(2, i); il = LocalIdx(ig)
-       write(fdGm,*) '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
-       write(fdGm,*) '> ig', ig, 'NbEdgesbyNode', NbEdgesbyNode(il)
+       !write(fdGm,*) '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
+       !write(fdGm,*) '> ig', ig, 'NbEdgesbyNode', NbEdgesbyNode(il)
        ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
        ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
        if (Edges(1, i) == Edges(2, i)) then
-          write(*,*) 'single/orphan node', Edges(1, i), 'not permitted, check your mesh !'
+          !write(*,*) 'single/orphan node', Edges(1, i), 'not permitted, check your mesh !'
           call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
        end if
        if(NbEdgesbyNode(il) == 1) then
           ! is a queue or head
-          write(fdGm,*) '--> current queue', ig, 'io', io
+          !write(fdGm,*) '--> current queue', ig, 'io', io
           do ! infinite loop, we should detect pathologic cases like loops
              pg = Edges(1, il); pl = LocalIdx(pg)
-             if(pl > 0) then
-                write(fdGm,*) ' parent of', ig, ' is ', pg, 'connected to ', NbEdgesbyNode(pl), ' edges'
-             else
-                write(fdGm,*) ' parent of', ig, ' is ', pg
-             end if
+             ! if(pl > 0) then
+             !    write(fdGm,*) ' parent of', ig, ' is ', pg, 'connected to ', NbEdgesbyNode(pl), ' edges'
+             ! else
+             !    write(fdGm,*) ' parent of', ig, ' is ', pg
+             ! end if
              if(pl == 0) then
                 ! head
-                write(fdGm,*) '(h) ig ', ig, ' pg ', pg
+                ! write(fdGm,*) '(h) ig ', ig, ' pg ', pg
                 ! store this point
                 OrderedNodes(io) = Edges(2, il)
                 Parents(io) = Edges(1, il)
@@ -1306,7 +1308,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
                 ! node between 2 edges, OK, continue to go up
                 OrderedNodes(io) = Edges(2, il)
                 Parents(io) = Edges(1, il)
-                write(fdGm,*) '(++,continue) new current node', ig
+                ! write(fdGm,*) '(++,continue) new current node', ig
                 ! write(*,*) '++ (p,s)', OrderedNodes(io), Parents(io)
                 ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
                 ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
@@ -1322,10 +1324,10 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
                 ! write(*,*) '++ (p,s)', OrderedNodes(io), Parents(io)
                 ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
                 ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
-                write(fdGm,*) '(--,break) decrement NbEdgesbyNode for parent', pg, ' and quit loop for node', ig
+                ! write(fdGm,*) '(--,break) decrement NbEdgesbyNode for parent', pg, ' and quit loop for node', ig
                 exit
              else if(NbEdgesbyNode(pl) == 0) then
-                write(fdGm,*) '(break) orphan node ', ig, ' is not connected to a well'
+                !write(fdGm,*) '(break) orphan node ', ig, ' is not connected to a well'
                 exit
              end if
           end do
@@ -1364,16 +1366,16 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     call BuildWellConnectivity(NbWellProd,NbEdgebyWellProd,NumNodebyEdgebyWellProd,&
          NodebyWellProd,NodeDatabyWellProd)
 
-    write(fdGm,*) 'NodebyWellInj%Nb              ', NodebyWellInj%Nb
-    write(fdGm,*) 'NodebyWellInj%Pt              ', NodebyWellInj%Pt
-    write(fdGm,*) 'NodebyWellInj%Num             ', NodebyWellInj%Num
-    write(fdGm,*) 'NodeDatabyWellInj%Val%Parent', NodeDatabyWellInj%Val%Parent
+    ! write(fdGm,*) 'NodebyWellInj%Nb              ', NodebyWellInj%Nb
+    ! write(fdGm,*) 'NodebyWellInj%Pt              ', NodebyWellInj%Pt
+    ! write(fdGm,*) 'NodebyWellInj%Num             ', NodebyWellInj%Num
+    ! write(fdGm,*) 'NodeDatabyWellInj%Val%Parent', NodeDatabyWellInj%Val%Parent
 
-    write(fdGm,*) '------------------------------------'
-    write(fdGm,*) 'NodebyWellProd%Nb              ', NodebyWellProd%Nb
-    write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
-    write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
-    write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
+    ! write(fdGm,*) '------------------------------------'
+    ! write(fdGm,*) 'NodebyWellProd%Nb              ', NodebyWellProd%Nb
+    ! write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
+    ! write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
+    ! write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
     
   end subroutine GlobalMesh_WellConnectivity
 

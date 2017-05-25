@@ -135,7 +135,6 @@ set( WRAPPERS_SRCS
   COC_wrappers.h
   COC_wrappers.cpp
   CommonTypesWrapper.F90
-  ComPASS_module.cpp
   GlobalMeshWrapper.F90
   GlobalMesh_wrappers.h
   GlobalMesh_wrappers.cpp
@@ -152,6 +151,7 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
+#  Score-P.cpp
   StringWrapper.h
   StringWrapper.F90
   Well.h
@@ -183,6 +183,9 @@ foreach(_conf ${CONFIGURATIONS})
     add_library(${CONF_TARGETNAME} SHARED ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
+	CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
@@ -216,7 +219,12 @@ foreach(_conf ${CONFIGURATIONS})
     if(DEF_Python_BINDINGS)
         if(NOT python_module_done)
           pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
-	message(STATUS "%%" ${pybind11_INCLUDE_DIR})  
+        set_target_properties(ComPASS
+            PROPERTIES
+            CXX_STANDARD 14
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+        )
 	include_directories(${pybind11_INCLUDE_DIR})
 	target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
 	  target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
