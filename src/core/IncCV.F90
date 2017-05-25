@@ -18,9 +18,9 @@ module IncCV
   !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
   TYPE TYPE_IncCV
 
-     integer :: ic !< context (???)
+     integer(c_int) :: ic !< context (???)
 
-     double precision ::         & ! values of Inc
+     real(c_double) ::         & ! values of Inc
           Pression,              & !< Pressure of the element
           Temperature,           & !< Temperature of the element
           Comp(NbComp, NbPhase), & !< Molar composition of the element
@@ -71,7 +71,7 @@ module IncCV
        PerfoWellProd   !< Production Well informations at each perforation for current time step 
 
   ! Dir BC
-  TYPE(TYPE_IncCV), allocatable, dimension(:), public :: &
+  TYPE(TYPE_IncCV), allocatable, dimension(:), target, public :: &
        IncNodeDirBC !< Dirichlet boundary unknowns for current time step (size NbNodeLocal)
 
   ! Inc for previous time step: current time step - 1
