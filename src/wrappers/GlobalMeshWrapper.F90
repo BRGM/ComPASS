@@ -30,6 +30,7 @@
           retrieve_face_porosity, &
           retrieve_cell_permeability, &
           retrieve_face_permeability, &
+          retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_make_post_read_from_C, &
           GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
@@ -179,6 +180,29 @@
           cpp_array%n = size(PermFrac)
 
        end subroutine retrieve_face_permeability
+
+       subroutine retrieve_global_id_node(cpp_array) &
+          bind(C, name="retrieve_global_id_node")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Id node is a global array and is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(IdNode)) then
+             print *, "Global id node is not allocated."
+             print *, "It is possible that the mesh is already distributed."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(IdNode(1))
+          cpp_array%n = size(IdNode)
+
+       end subroutine retrieve_global_id_node
 
        subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
 

@@ -1,7 +1,7 @@
 module CommonType
 
   ! This for arrays that are interfaced with python/C++
-  use iso_c_binding, only: c_int
+  use iso_c_binding, only: c_int, c_char
 
   implicit none
 
@@ -61,10 +61,10 @@ module CommonType
   ! FIXME: T stands for "energy balance equation"
   type Type_IdNode
      sequence
-     character :: Proc  !< "o"/"g": own/ghost
-     character :: Frac  !< "y"/"n": node in fracture/not in fracture
-     character :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
-     character :: T     !< "d"/"n"/"i": dirichlet/newmann/interior for the Temperature
+     character(c_char) :: Proc  !< "o"/"g": own/ghost
+     character(c_char) :: Frac  !< "y"/"n": node in fracture/not in fracture
+     character(c_char) :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
+     character(c_char) :: T     !< "d"/"n"/"i": dirichlet/newmann/interior for the Temperature
   end type Type_IdNode
 
   !> Array 1d type_IdNode

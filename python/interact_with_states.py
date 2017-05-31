@@ -24,7 +24,7 @@ def output_states(X):
     print(X.accumulation[:2])
 
 @ComPASS.on_master_proc
-def output_node_states():
+def output_all_states():
     print('*'*5, 'boundary nodes')
     output_states(ComPASS.boundary_node_states())
     print('*'*5, 'nodes')
@@ -34,6 +34,6 @@ def output_node_states():
     print('*'*5, 'cells')
     output_states(ComPASS.cell_states())
 
-output_node_states()
+output_all_states()
 
 ComPASS.finalize()

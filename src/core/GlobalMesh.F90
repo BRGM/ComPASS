@@ -105,7 +105,8 @@ module GlobalMesh
        IdCell !< Integer Identifier of each Cell, useful if heterogeneous domain (different rocktype)
 
   ! IdNode
-  type(Type_IdNode), allocatable, dimension(:), protected :: &
+  ! FIXME: protected attribute has been removed
+  type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNode !< Characters Identifiers of each node (related to node own or ghost; boundaries and fractures)
 
   ! IdNode read from mesh file

@@ -61,7 +61,7 @@ module MeshSchema
        IdCellLocal, &
        IdFaceLocal
 
-  type(Type_IdNode), allocatable, dimension(:), protected :: &
+  type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNodeLocal
 
   ! Well 

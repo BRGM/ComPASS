@@ -8,7 +8,8 @@ from .ComPASS import *
 import ComPASS.utils.filenames
 import ComPASS.runtime as runtime
 
-is_on_master_proc = MPI.COMM_WORLD.rank==0
+proc_rank = MPI.COMM_WORLD.rank
+is_on_master_proc = proc_rank==0
 
 def on_master_proc(f):
     def call(*args, **kwargs):
