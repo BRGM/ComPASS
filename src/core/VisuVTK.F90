@@ -270,8 +270,9 @@ contains
         !
         XNodeLocal, XCellLocal)
 
-    ! allocate VisuTimes
-    allocate(VisuTimes( int(Tf/output_frequency)+3 ))
+    ! allocate VisuTimes 
+    ! FIXME: The array is copied and expanded each time a visualaisation ouput is made
+    allocate(VisuTimes(NbVisuTimes))
 
   end subroutine VisuVTK_VisuTime_Init
 
@@ -288,9 +289,17 @@ contains
 
     character(len=200) :: output_path
     integer :: Ierr, i, start
+    double precision, dimension(size(VisuTimes)) :: TmpVisuTimes  
 
+    ! FIXME: The allocation/deallocation is done at each output
+    TmpVisuTimes = VisuTimes
+    deallocate(VisuTimes)
+    
     NbVisuTimes = NbVisuTimes + 1
-
+    
+    allocate(VisuTimes(NbVisuTimes))
+    VisuTimes(1:NbVisuTimes-1) = TmpVisuTimes
+ 
     VisuTimes(NbVisuTimes) = t ! all timesteps for .pvd are stored here
 
     write(output_path, '(A,I0)')  trim(OutputDir) // "/time_", NbVisuTimes-1
