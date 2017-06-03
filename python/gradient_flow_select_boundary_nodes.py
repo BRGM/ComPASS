@@ -64,19 +64,23 @@ set_boundary_conditions()
 set_initial_values()
 
 final_time = 30 * year
-n = 0
 output_frequency = 1 * year
+nitermax = 1E10
+t = 0
+n = 0
 t_output = 0
-while ComPASS.get_current_time() <= final_time: # and n<1:
+while t <= final_time and n < nitermax:
+    if t >= t_output:
+        ComPASS.output_visualization_files(n)
+        # WARNING / CHECKME we may loose some outputs
+        while (t_output < t):
+            t_output = t_output + output_frequency
     n+= 1
     print_iteration_info()
     ComPASS.make_timestep()
     t = ComPASS.get_current_time()
-    if t > t_output:
-        ComPASS.output_visualization_files(n)
-    # WARNING / CHECKME we may loose some outputs
-    while (t_output < t):
-        t_output = t_output + output_frequency
     ComPASS.timestep_summary()
+# Output final time
+ComPASS.output_visualization_files(n)
 
 ComPASS.finalize()
