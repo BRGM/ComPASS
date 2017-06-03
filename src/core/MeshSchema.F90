@@ -53,7 +53,7 @@ module MeshSchema
        NumNodebyEdgebyWellProdLocal
 
   ! 3. X node
-  double precision, allocatable, dimension(:,:), protected :: &
+  double precision, allocatable, dimension(:,:), target :: &
        XNodeLocal
 
   ! 4. IdCell/IdFace/IdNode

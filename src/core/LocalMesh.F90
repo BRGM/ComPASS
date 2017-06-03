@@ -149,7 +149,7 @@ module LocalMesh
        FaceToFracLocal_Ncpus
 
   !! XNode Local
-  type(ARRAY2dble), dimension(:), allocatable, public :: &
+  type(ARRAY2dble), dimension(:), allocatable, target, public :: &
        XNodeRes_Ncpus
 
   ! Porosite

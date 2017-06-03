@@ -53,6 +53,7 @@ def init(
     cells_permeability = lambda: None,
     faces_permeability = lambda: None,
     fractures_permeability = lambda: None,
+    set_dirichlet_nodes = lambda: None
 ):
     assert meshfile is None or grid is None
     if meshfile:
@@ -97,15 +98,21 @@ def init(
                 # anyway assignement through the numpy.ndarray interface will fail
                 #assert fracperm.shape==tuple(np.count(fractures))
                 ComPASS.get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
+        dirichlet = set_dirichlet_nodes()
+        if dirichlet is not None:
+            info = np.rec.array(global_node_info(), copy=False)
+            tmp = info.pressure.view('c')
+            print('%'*20, 'before', np.count_nonzero(tmp==b'd'), 'vs', np.count_nonzero(dirichlet))
+            for a in [info.pressure.view('c'), info.temperature.view('c')]:
+                a[:] = b'i'
+                a[dirichlet] = b'd'
+            info = np.rec.array(global_node_info(), copy=False)
+            print('%'*20, 'after', np.count_nonzero(info.pressure.view('c')==b'd'))
         ComPASS.global_mesh_make_post_read_well_connectivity_and_ip()
         ComPASS.set_well_data(well_list)
         ComPASS.compute_well_indices()
     ComPASS.init_phase2(runtime.output_directory)
     synchronize() # wait for every process to synchronize
-
-
-def get_vertices():
-   return np.array(ComPASS.get_vertices_buffer(), copy = False)
 
 def get_id_faces():
    return np.array(ComPASS.get_id_faces_buffer(), copy = False)
@@ -123,7 +130,7 @@ def get_face_porosity():
    return np.array(ComPASS.get_face_porosity_buffer(), copy = False)
 
 def compute_cell_centers():
-    vertices = get_vertices()
+    vertices = global_vertices()
     connectivity = get_connectivity()
     centers = np.array([
         vertices[
@@ -134,7 +141,7 @@ def compute_cell_centers():
     return centers
 
 def compute_face_centers():
-    vertices = get_vertices()
+    vertices = global_vertices()
     connectivity = get_connectivity()
     centers = np.array([
         vertices[
@@ -145,7 +152,7 @@ def compute_face_centers():
     return centers
 
 def compute_face_normals():
-    vertices = get_vertices()
+    vertices = global_vertices()
     connectivity = get_connectivity()
     # fortran indexes start at 1
     face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace]
@@ -160,6 +167,28 @@ def compute_face_normals():
     norms.shape = (-1, 1)
     normals /= norms
     return normals
+
+def get_boundary_faces():
+    connectivity = get_connectivity()
+    return np.array([
+        np.array(face_cells, copy=False).shape[0]==1
+        for face_cells in connectivity.CellbyFace
+      ])
+
+def get_boundary_vertices():
+    connectivity = get_connectivity()
+    boundary_faces = get_boundary_faces()
+    vertices_id = np.unique(
+            np.hstack([
+                np.array(face_nodes, copy=False)
+                for boundary, face_nodes in zip(boundary_faces, connectivity.NodebyFace) if boundary       
+            ])
+        )
+    vertices_id -= 1 # Fortran index...
+    nbnodes = len(connectivity.CellbyNode)
+    res = np.zeros(nbnodes, dtype=np.bool)
+    res[vertices_id] = True
+    return res
 
 def set_fractures(faces):
     idfaces = get_id_faces()

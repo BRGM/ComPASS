@@ -27,6 +27,7 @@ void add_coc_wrappers(py::module& module)
 			py::keep_alive<0, 1>() /* Keep COC alive while iterator is used */
 		)
 		.def("__getitem__", [](COC& coc, int i) -> COC_container { return coc[i]; })
-		;
+		.def("__len__", [](const COC& coc) { return coc.number_of_containers(); })
+	;
 
 }

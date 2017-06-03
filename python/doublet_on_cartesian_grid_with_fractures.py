@@ -28,7 +28,7 @@ shape = (31, 21, 11)
 tons_per_hour = 1E3 / 3600 # 1000 kg / 3600 s
 
 def make_well(xy):
-    vertices = ComPASS.get_vertices()
+    vertices = ComPASS.global_vertices()
     x, y, z = (vertices[:, col] for col in range(3))
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]

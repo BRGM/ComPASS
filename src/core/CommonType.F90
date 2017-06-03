@@ -1,7 +1,7 @@
 module CommonType
 
   ! This for arrays that are interfaced with python/C++
-  use iso_c_binding, only: c_int, c_char
+  use iso_c_binding, only: c_int, c_char, c_double
 
   implicit none
 
@@ -17,7 +17,7 @@ module CommonType
   
   !> Array 2d double precision
   type ARRAY2dble
-    double precision, allocatable, dimension(:,:) :: Array2d
+    real(c_double), allocatable, dimension(:,:) :: Array2d
   end type ARRAY2dble
 
   !> Array 3d double precision

@@ -102,4 +102,5 @@ public:
 		coc.container_content = content.data();
 		return coc;
 	}
+	auto number_of_containers() const { return nb_containers; }
 };

@@ -20,10 +20,16 @@ struct NodeInfo
 #endif
 };
 
+struct Point
+{
+	double x, y, z;
+};
+
 // Fortran functions
 extern "C"
 {
-	void retrieve_vertices(ArrayWrapper&);
+	void retrieve_vertices(XArrayWrapper<Point>&);
+	void retrieve_global_vertices(XArrayWrapper<Point>&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
 	void retrieve_id_faces(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
@@ -39,9 +45,9 @@ extern "C"
 void add_mesh_utilities_wrappers(py::module& module)
 {
 
-	module.def("get_vertices_buffer",
-		[]() { return retrieve_buffer<CoordinatesBuffer>(retrieve_vertices); },
-		"Get node coordinates.");
+	PYBIND11_NUMPY_DTYPE(Point, x, y, z);
+	add_array_wrapper(module, "global_vertices", retrieve_global_vertices);
+	add_array_wrapper(module, "vertices", retrieve_vertices);
 
 	module.def("get_id_faces_buffer",
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },

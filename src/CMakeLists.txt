@@ -144,6 +144,7 @@ set( WRAPPERS_SRCS
   IncCV_wrappers.h
   IncCV_wrappers.cpp
   IncCV_wrappers.F90
+  LocalMeshWrapper.F90
   MeshUtilities.h
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp

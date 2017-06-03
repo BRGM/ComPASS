@@ -23,7 +23,7 @@
 
        public :: &
           check_mesh_allocation, &
-          retrieve_vertices, &
+          retrieve_global_vertices, &
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
@@ -46,8 +46,8 @@
 
     contains
 
-       subroutine retrieve_vertices(cpp_array) &
-          bind(C, name="retrieve_vertices")
+       subroutine retrieve_global_vertices(cpp_array) &
+          bind(C, name="retrieve_global_vertices")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -69,7 +69,7 @@
           cpp_array%p = c_loc(XNode(1, 1))
           cpp_array%n = size(XNode, 2)
 
-       end subroutine retrieve_vertices
+       end subroutine retrieve_global_vertices
 
        subroutine retrieve_id_faces(cpp_array) &
           bind(C, name="retrieve_id_faces")

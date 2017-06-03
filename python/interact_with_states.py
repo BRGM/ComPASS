@@ -25,8 +25,8 @@ def output_states(X):
 
 @ComPASS.on_master_proc
 def output_all_states():
-    print('*'*5, 'boundary nodes')
-    output_states(ComPASS.boundary_node_states())
+    print('*'*5, 'dirichlet nodes')
+    output_states(ComPASS.dirichlet_node_states())
     print('*'*5, 'nodes')
     output_states(ComPASS.node_states())
     print('*'*5, 'fractures')
