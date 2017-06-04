@@ -83,4 +83,3 @@ while t <= final_time and n < nitermax:
 # Output final time
 ComPASS.output_visualization_files(n)
 
-ComPASS.finalize()

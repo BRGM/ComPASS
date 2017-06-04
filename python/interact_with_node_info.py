@@ -43,5 +43,3 @@ def output_local_node_info():
 # output_global_node_info()
 
 output_local_node_info()
-
-ComPASS.finalize()

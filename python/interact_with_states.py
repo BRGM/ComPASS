@@ -35,5 +35,3 @@ def output_all_states():
     output_states(ComPASS.cell_states())
 
 output_all_states()
-
-ComPASS.finalize()

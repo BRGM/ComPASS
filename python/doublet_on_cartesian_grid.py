@@ -37,5 +37,3 @@ while ComPASS.get_current_time() <= final_time:
     while (t_output < t):
         t_output = t_output + output_frequency
     ComPASS.timestep_summary()
-
-ComPASS.finalize()

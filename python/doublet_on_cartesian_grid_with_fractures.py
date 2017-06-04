@@ -81,4 +81,4 @@ if comm.rank==0:
 ComPASS.init_phase2(outputdir)
 
 ComPASS.main_loop(0, outputdir)
-ComPASS.finalize()
+

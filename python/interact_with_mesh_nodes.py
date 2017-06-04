@@ -54,5 +54,4 @@ if comm.rank==0:
 # FIXME: The following line is mandatory as it allocates structures
 # that will be deallocated afterwards
 ComPASS.init_phase2(outputdir)
-# The following deallocate global mesh
-ComPASS.finalize()
+

@@ -1,4 +1,5 @@
 import sys
+import atexit
 import numpy as np
 
 # We must load mpi4py first so that MPI is  initialized before calling PETSC_Initialize
@@ -8,6 +9,7 @@ from .ComPASS import *
 import ComPASS.utils.filenames
 import ComPASS.runtime as runtime
 
+initialized = False
 proc_rank = MPI.COMM_WORLD.rank
 is_on_master_proc = proc_rank==0
 
@@ -55,6 +57,9 @@ def init(
     fractures_permeability = lambda: None,
     set_dirichlet_nodes = lambda: None
 ):
+    # FUTURE: This could be managed through a context manager ? 
+    global initialized
+    assert not initialized
     assert meshfile is None or grid is None
     if meshfile:
         print('Loading mesh from file is not implemented here')
@@ -113,6 +118,9 @@ def init(
         ComPASS.compute_well_indices()
     ComPASS.init_phase2(runtime.output_directory)
     synchronize() # wait for every process to synchronize
+    # FUTURE: This could be managed through a context manager ? 
+    initialized = True
+    atexit.register(finalize)
 
 def get_id_faces():
    return np.array(ComPASS.get_id_faces_buffer(), copy = False)
