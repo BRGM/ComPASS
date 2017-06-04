@@ -1,7 +1,9 @@
 import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
-np = ComPASS.np
+from ComPASS.timeloops import standard_loop
+
+import numpy as np
 
 pleft, pright = 30 * MPa, 10 * MPa
 p0 = pright
@@ -44,42 +46,13 @@ def set_initial_values():
         state.S[:] = [0, 1]
         state.C[:] = 1.
 
-@ComPASS.on_master_proc
-def print_iteration_info():
-    print()
-    print('Time Step (iteration):', n)
-    print('Current time: %.1f years' % (ComPASS.get_current_time() / year), ' -> final time:', final_time / year)
-    print('Timestep: %.3f days' % (ComPASS.get_timestep() / day))
-
 # %%% Simulation %%% 
 
 ComPASS.set_output_directory_and_logfile(__file__)
-
 ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = select_dirichlet_nodes
 )
-
 set_boundary_conditions()
 set_initial_values()
-
-final_time = 30 * year
-output_frequency = 1 * year
-nitermax = 1E10
-t = 0
-n = 0
-t_output = 0
-while t <= final_time and n < nitermax:
-    if t >= t_output:
-        ComPASS.output_visualization_files(n)
-        # WARNING / CHECKME we may loose some outputs
-        while (t_output < t):
-            t_output = t_output + output_frequency
-    n+= 1
-    print_iteration_info()
-    ComPASS.make_timestep()
-    t = ComPASS.get_current_time()
-    ComPASS.timestep_summary()
-# Output final time
-ComPASS.output_visualization_files(n)
-
+standard_loop(final_time = 30 * year, output_frequency = year)
