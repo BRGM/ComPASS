@@ -269,8 +269,59 @@ contains
       call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
    end subroutine NN_init_warmup_and_read_mesh
+   
+subroutine init_visualization(OutputDir)
+    
+      character(len=*), intent(in) :: OutputDir
 
-   subroutine NN_init_phase2(OutputDir)
+#ifdef _VISU_
+
+      ! initialize visu
+      if (trim(MESH_TYPE) == "cartesian-quad") then
+         call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
+
+      else if (trim(MESH_TYPE) == "hexahedron-quad") then
+         call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
+
+      else if (trim(MESH_TYPE) == "tetrahedron-triangle") then
+         call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
+
+      else if (trim(MESH_TYPE) == "wedge") then
+         call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
+                                    NbComp, NbPhase, MCP, IndThermique)
+      else
+         write (*, *) ""
+         write (*, *) "This mesh type is not supported!"
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+
+      ! vectors that regroup datas (P, T, C, S) from IncCV(:)
+      allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
+      allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
+
+      ! pressure at well edges, inj/prod
+      n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
+      allocate (datavisuwellinj(n))
+      n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank + 1)))
+      allocate (datavisuwellprod(n))
+
+      if (commRank == 0) then
+         do i = 1, size(fd)
+            write (fd(i), *) ""
+            write (fd(i), *) " *** Warning : visualization vtk of data of wells has not been implemented ***"
+         end do
+      end if
+
+#endif
+
+    VisuTimeIter = 0
+
+end subroutine init_visualization
+
+subroutine NN_init_phase2(OutputDir)
 
       character(len=*), intent(in) :: OutputDir
       logical                      :: ok, all_ok
@@ -453,42 +504,8 @@ contains
                 (NbWellInjLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreWellProd &
                 (NbWellProdLocal_Ncpus(commRank + 1)))
-
-#ifdef _VISU_
-
-      ! initialize visu
-      if (trim(MESH_TYPE) == "cartesian-quad") then
-         call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "hexahedron-quad") then
-         call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "tetrahedron-triangle") then
-         call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "wedge") then
-         call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-      else
-         write (*, *) ""
-         write (*, *) "This mesh type is not supported!"
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      ! vectors that regroup datas (P, T, C, S) from IncCV(:)
-      allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
-      allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
-
-      ! pressure at well edges, inj/prod
-      n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
-      allocate (datavisuwellinj(n))
-      n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank + 1)))
-      allocate (datavisuwellprod(n))
-
-#endif
+      
+      call init_visualization(OutputDir)
 
       comptime_part = MPI_WTIME() - comptime_start
       comptime_start = MPI_WTIME()
@@ -516,92 +533,85 @@ contains
 
       ! visutime = MPI_WTIME()
 
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            write (fd(i), *) ""
-            write (fd(i), *) " *** Warning : visualization vtk of data of wells has not been implemented ***"
-         end do
-      end if
-
-      call IncCV_ToVec( &
-         datavisucell, datavisufrac, &
-         datavisuwellinj, datavisuwellprod)
-
-      call VisuVTK_VisuTime_writedata(0.d0, &
-                                      datavisucell, datavisufrac, &
-                                      datavisuwellinj, datavisuwellprod)
-
-      ! if this proc constains at least one well, then write data to file
-      if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
-          NbWellProdOwn_Ncpus(commRank + 1) > 0) then
-
-         write (output_path, '(A)') trim(OutputDir)//"/wellinfo"
-         call make_directory(output_path)
-
-         write (Wellinfoname, '(A,I0,A)') &
-            trim(OutputDir)//"/wellinfo/proc_", commRank, ".txt"
-
-         open (12, file=Wellinfoname, status="unknown")
-
-         write (12, *) "Nb of mpi procs"
-         write (12, *) commSize
-
-         ! nb of well inj of all procs
-         write (12, *) "Nb of injection wells of all procs"
-         do i = 1, commSize
-            write (12, '(I0,A)', advance="no") NbWellInjOwn_Ncpus(i), " "
-         end do
-         write (12, *) ""
-
-         ! nb of well prod of all procs
-         write (12, *) "Nb of production wells of all procs"
-         do i = 1, commSize
-            write (12, '(I0,A)', advance="no") NbWellProdOwn_Ncpus(i), " "
-         end do
-         write (12, *) ""
-         write (12, *) ""
-
-         ! perforation nodes info of well inj
-         do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
-
-            write (12, '(A,I0)') &
-               "Nb of perforation nodes of own inj well ", i
-            write (12, '(I0,A)') &
-               NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
-
-            ! coordinate of perforation nodes
-            write (12, '(A,I0)') &
-               "Coordinate of perforation nodes of own inj well ", i
-            do j = NodebyWellInjLocal%Pt(i) + 1, NodebyWellInjLocal%Pt(i + 1)
-               numj = NodebyWellInjLocal%Num(j)
-               write (12, '(F15.6, F15.6, F15.6)') &
-                  XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
-            end do
-         end do
-
-         ! perforation nodes info of well prod
-         do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
-
-            write (12, '(A,I0)') &
-               "Nb of perforation nodes of own prod well ", i
-            write (12, '(I0,A)') &
-               NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
-
-            ! coordinate of perforation nodes
-            write (12, '(A,I0)') &
-               "Coordinate of perforation nodes of own prod well ", i
-            do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
-               numj = NodebyWellProdLocal%Num(j)
-               write (12, '(F15.6, F15.6, F15.6)') &
-                  XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
-            end do
-         end do
-
-         close (12)
-
-         VisuTimeIter = 1
-
-      end if
+      !call IncCV_ToVec( &
+      !   datavisucell, datavisufrac, &
+      !   datavisuwellinj, datavisuwellprod)
+      !
+      !call VisuVTK_VisuTime_writedata(0.d0, &
+      !                                datavisucell, datavisufrac, &
+      !                                datavisuwellinj, datavisuwellprod)
+      !
+      !! if this proc constains at least one well, then write data to file
+      !if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
+      !    NbWellProdOwn_Ncpus(commRank + 1) > 0) then
+      !
+      !   write (output_path, '(A)') trim(OutputDir)//"/wellinfo"
+      !   call make_directory(output_path)
+      !
+      !   write (Wellinfoname, '(A,I0,A)') &
+      !      trim(OutputDir)//"/wellinfo/proc_", commRank, ".txt"
+      !
+      !   open (12, file=Wellinfoname, status="unknown")
+      !
+      !   write (12, *) "Nb of mpi procs"
+      !   write (12, *) commSize
+      !
+      !   ! nb of well inj of all procs
+      !   write (12, *) "Nb of injection wells of all procs"
+      !   do i = 1, commSize
+      !      write (12, '(I0,A)', advance="no") NbWellInjOwn_Ncpus(i), " "
+      !   end do
+      !   write (12, *) ""
+      !
+      !   ! nb of well prod of all procs
+      !   write (12, *) "Nb of production wells of all procs"
+      !   do i = 1, commSize
+      !      write (12, '(I0,A)', advance="no") NbWellProdOwn_Ncpus(i), " "
+      !   end do
+      !   write (12, *) ""
+      !   write (12, *) ""
+      !
+      !   ! perforation nodes info of well inj
+      !   do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
+      !
+      !      write (12, '(A,I0)') &
+      !         "Nb of perforation nodes of own inj well ", i
+      !      write (12, '(I0,A)') &
+      !         NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
+      !
+      !      ! coordinate of perforation nodes
+      !      write (12, '(A,I0)') &
+      !         "Coordinate of perforation nodes of own inj well ", i
+      !      do j = NodebyWellInjLocal%Pt(i) + 1, NodebyWellInjLocal%Pt(i + 1)
+      !         numj = NodebyWellInjLocal%Num(j)
+      !         write (12, '(F15.6, F15.6, F15.6)') &
+      !            XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
+      !      end do
+      !   end do
+      !
+      !   ! perforation nodes info of well prod
+      !   do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
+      !
+      !      write (12, '(A,I0)') &
+      !         "Nb of perforation nodes of own prod well ", i
+      !      write (12, '(I0,A)') &
+      !         NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
+      !
+      !      ! coordinate of perforation nodes
+      !      write (12, '(A,I0)') &
+      !         "Coordinate of perforation nodes of own prod well ", i
+      !      do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
+      !         numj = NodebyWellProdLocal%Num(j)
+      !         write (12, '(F15.6, F15.6, F15.6)') &
+      !            XNodeLocal(1, numj), XNodeLocal(2, numj), XNodeLocal(3, numj)
+      !      end do
+      !   end do
+      !
+      !   close (12)
+      !
+      !   VisuTimeIter = 1
+      !
+      !end if
 
       ! visutime = MPI_WTIME() - visutime
       ! if(commRank==0) then

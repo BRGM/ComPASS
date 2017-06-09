@@ -1,23 +1,15 @@
 import sys
+import atexit
+
+# We must load mpi wrapper first so that MPI is  initialized before calling PETSC_Initialize
+import ComPASS.mpi as mpi
+from ComPASS.ComPASS import *
+import ComPASS.runtime as runtime
+import ComPASS.utils.filenames
+
 import numpy as np
 
-# We must load mpi4py first so that MPI is  initialized before calling PETSC_Initialize
-from mpi4py import MPI
-
-from .ComPASS import *
-import ComPASS.utils.filenames
-import ComPASS.runtime as runtime
-
-is_on_master_proc = MPI.COMM_WORLD.rank==0
-
-def on_master_proc(f):
-    def call(*args, **kwargs):
-        if is_on_master_proc:
-            f(*args, **kwargs)
-    return call
-
-def synchronize():
-    MPI.COMM_WORLD.Barrier() # wait for every process to synchronize
+initialized = False
 
 def set_output_directory_and_logfile(case_name):
     runtime.output_directory, runtime.logfile = ComPASS.utils.filenames.output_directory_and_logfile(case_name)
@@ -52,7 +44,11 @@ def init(
     cells_permeability = lambda: None,
     faces_permeability = lambda: None,
     fractures_permeability = lambda: None,
+    set_dirichlet_nodes = lambda: None
 ):
+    # FUTURE: This could be managed through a context manager ? 
+    global initialized
+    assert not initialized
     assert meshfile is None or grid is None
     if meshfile:
         print('Loading mesh from file is not implemented here')
@@ -60,19 +56,18 @@ def init(
         sys.exit(-1)
     else: 
         ComPASS.init_warmup(runtime.logfile)
-        if is_on_master_proc:
+        if mpi.is_on_master_proc:
             assert grid is not None
             ComPASS.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
-    if is_on_master_proc:
+    if mpi.is_on_master_proc:
         well_list = list(wells())
         ComPASS.set_well_geometries(well_list)
         ComPASS.global_mesh_mesh_bounding_box()
         ComPASS.global_mesh_compute_all_connectivies()
         fractures = fracture_faces()
         if fractures is not None:
+            print("Youkaidi")
             set_fractures(fractures)
-        else:
-            ComPASS.global_mesh_set_frac()
         ComPASS.global_mesh_node_of_frac()
         ComPASS.global_mesh_set_dir_BC()
         ComPASS.global_mesh_frac_by_node()
@@ -96,15 +91,20 @@ def init(
                 # anyway assignement through the numpy.ndarray interface will fail
                 #assert fracperm.shape==tuple(np.count(fractures))
                 ComPASS.get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
+        dirichlet = set_dirichlet_nodes()
+        if dirichlet is not None:
+            info = np.rec.array(global_node_info(), copy=False)
+            for a in [info.pressure.view('c'), info.temperature.view('c')]:
+                a[:] = b'i'
+                a[dirichlet] = b'd'
         ComPASS.global_mesh_make_post_read_well_connectivity_and_ip()
         ComPASS.set_well_data(well_list)
         ComPASS.compute_well_indices()
     ComPASS.init_phase2(runtime.output_directory)
-    synchronize() # wait for every process to synchronize
-
-
-def get_vertices():
-   return np.array(ComPASS.get_vertices_buffer(), copy = False)
+    mpi.synchronize() # wait for every process to synchronize
+    # FUTURE: This could be managed through a context manager ? 
+    initialized = True
+    atexit.register(finalize)
 
 def get_id_faces():
    return np.array(ComPASS.get_id_faces_buffer(), copy = False)
@@ -122,7 +122,7 @@ def get_face_porosity():
    return np.array(ComPASS.get_face_porosity_buffer(), copy = False)
 
 def compute_cell_centers():
-    vertices = get_vertices()
+    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
     connectivity = get_connectivity()
     centers = np.array([
         vertices[
@@ -133,7 +133,7 @@ def compute_cell_centers():
     return centers
 
 def compute_face_centers():
-    vertices = get_vertices()
+    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
     connectivity = get_connectivity()
     centers = np.array([
         vertices[
@@ -144,10 +144,9 @@ def compute_face_centers():
     return centers
 
 def compute_face_normals():
-    vertices = get_vertices()
+    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
     connectivity = get_connectivity()
-    # fortran indexes start at 1
-    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace]
+    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace] # fortran indexes start at 1
     normals = np.array([
         np.cross(
             vertices[nodes[1]]-vertices[nodes[0]],
@@ -160,15 +159,38 @@ def compute_face_normals():
     normals /= norms
     return normals
 
+def get_boundary_faces():
+    connectivity = get_connectivity()
+    return np.array([
+        np.array(face_cells, copy=False).shape[0]==1
+        for face_cells in connectivity.CellbyFace
+      ])
+
+def get_boundary_vertices():
+    connectivity = get_connectivity()
+    boundary_faces = get_boundary_faces()
+    vertices_id = np.unique(
+            np.hstack([
+                np.array(face_nodes, copy=False)
+                for boundary, face_nodes in zip(boundary_faces, connectivity.NodebyFace) if boundary       
+            ])
+        )
+    vertices_id -= 1 # Fortran index...
+    nbnodes = len(connectivity.CellbyNode)
+    res = np.zeros(nbnodes, dtype=np.bool)
+    res[vertices_id] = True
+    return res
+
 def set_fractures(faces):
     idfaces = get_id_faces()
     idfaces[faces] = -2
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 
-@on_master_proc
+@mpi.on_master_proc
 def timestep_summary():
     ComPASS.summarize_timestep()
 
 def output_visualization_files(iteration):
     ComPASS.output_visu(iteration, runtime.output_directory)
+
 

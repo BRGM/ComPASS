@@ -9,8 +9,8 @@ def center(grid):
     return tuple(grid.origin[i] + 0.5 * grid.extent[i] for i in range(3))
 
 def make_well(xy):
-    vertices = ComPASS.get_vertices()
-    x, y, z = (vertices[:, col] for col in range(3))
+    vertices = np.rec.array(ComPASS.global_vertices())
+    x, y, z = vertices.x, vertices.y, vertices.z
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]
     well_nodes = np.nonzero((x == x_well) & (y == y_well))[0]
