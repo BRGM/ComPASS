@@ -50,11 +50,14 @@ extern "C"
 	void retrieve_node_states(StateArray&);
 	void retrieve_fracture_states(StateArray&);
 	void retrieve_cell_states(StateArray&);
+	void retrieve_injection_whp(XArrayWrapper<double>&);
+	void retrieve_production_whp(XArrayWrapper<double>&);
 }
 
 #include "IncCV_wrappers.h"
 #include <pybind11/numpy.h>
 //#include <pybind11/stl.h>
+#include "PyXArrayWrapper.h"
 
 template<typename AttributeType, typename PyClass>
 auto add_attribute_array(PyClass& states, const char *name, std::size_t offset,
@@ -103,5 +106,8 @@ void add_IncCV_wrappers(py::module& module)
 	//	retrieve_boundary_states(wrapper);
 	//	return py::array_t<X, py::array::c_style>{wrapper.length, wrapper.pointer};
 	//});
+
+	add_array_wrapper(module, "injection_whp", retrieve_injection_whp);
+	add_array_wrapper(module, "production_whp", retrieve_production_whp);
 
 }
