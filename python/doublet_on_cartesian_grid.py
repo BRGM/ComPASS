@@ -3,8 +3,6 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
-ComPASS.set_output_directory_and_logfile(__file__)
-
 grid = ComPASS.Grid(
     shape = (31, 21, 3),
     extent = (3000., 2000., 100.),

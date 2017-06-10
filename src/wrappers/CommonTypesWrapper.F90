@@ -3,7 +3,7 @@
 
        use, intrinsic :: iso_c_binding
 
-      use CommonMPI
+       use CommonMPI
        use CommonType
 
        implicit none
@@ -31,6 +31,7 @@
           f2c_integer_array_to_pointer, &
           f2c_double_array_to_pointer, &
           f2c_double_array, &
+          retrieve_double_array, &
           retrieve_coc
 
     contains
@@ -69,6 +70,21 @@
           cpp_array%n = size(fortran_array)
 
        end subroutine f2c_double_array
+
+       subroutine retrieve_double_array(fortran_array, cpp_array)
+
+          real(kind=c_double), allocatable, dimension(:), target, intent(in) :: fortran_array
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+
+          if (.not. allocated(fortran_array)) then
+             cpp_array%p = C_NULL_PTR
+             cpp_array%n = 0
+          else
+             cpp_array%p = c_loc(fortran_array(1))
+             cpp_array%n = size(fortran_array)
+          end if
+
+       end subroutine retrieve_double_array
 
        subroutine retrieve_coc(fortran_csr, retrieved_coc)
 

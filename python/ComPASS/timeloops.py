@@ -2,11 +2,23 @@ import ComPASS
 from ComPASS.utils.units import day, year
 mpi = ComPASS.mpi
 
+def check_well_pressure():
+    p_min, p_max = float('Inf'), -float('Inf')
+    for state in [ComPASS.node_states(), ComPASS.fracture_states(), ComPASS.cell_states()]:
+        if state.p.shape[0]>0:
+            p_min = min(p_min, state.p.min())
+            p_max = max(p_max, state.p.max())
+    # whp = well head pressure
+    ComPASS.production_whp()[:] = p_min - 1.
+    ComPASS.injection_whp()[:] = p_max + 1.
+
 def standard_loop(final_time, output_frequency = None, nb_output = 10, nitermax = None, tstart=0):
     if output_frequency is None:
         nb_output = max(2, nb_output)
         output_frequency = (max(tstart, final_time) - tstart) / (nb_output - 1)
     assert output_frequency is not None and output_frequency>0
+    # this is necessary for well operating on pressures
+    check_well_pressure()
     t = tstart
     n = 0
     t_output = 0

@@ -16,7 +16,9 @@
           retrieve_dirichlet_node_states, &
           retrieve_node_states, &
           retrieve_fracture_states, &
-          retrieve_cell_states
+          retrieve_cell_states, &
+          retrieve_injection_whp, &
+          retrieve_production_whp
 
     contains
 
@@ -77,6 +79,18 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           call retrieve_state_array(IncCell, cpp_array)
        end subroutine retrieve_cell_states
+
+       subroutine retrieve_injection_whp(cpp_array) &
+          bind(C, name="retrieve_injection_whp")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          call retrieve_double_array(IncPressionWellInj, cpp_array)
+       end subroutine retrieve_injection_whp
+
+       subroutine retrieve_production_whp(cpp_array) &
+          bind(C, name="retrieve_production_whp")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          call retrieve_double_array(IncPressionWellProd, cpp_array)
+       end subroutine retrieve_production_whp
 
     end module IncCVWrapper
 

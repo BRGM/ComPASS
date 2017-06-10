@@ -61,7 +61,7 @@ module IncCV
        IncNode    !< Node unknowns for current time step
 
   ! well pressure for current time step
-  double precision, allocatable, dimension(:), target, public :: &
+  real(c_double), allocatable, dimension(:), target, public :: &
        IncPressionWellInj, & !< Injection Well unknown: head pressure for current time step
        IncPressionWellProd   !< Production Well unknown: head pressure for current time step
 
