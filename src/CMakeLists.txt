@@ -75,6 +75,7 @@ set( CONFIGURATIONS
     # Productor_Pimposed_frac
     # Productor_Qimposed_frac
     monothermal_1inj_1prod 
+    andra
 )
 
 set( CONF_SRCS
