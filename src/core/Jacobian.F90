@@ -4105,7 +4105,11 @@ contains
           sumcol = sumcol + abs( JacBigA%Val(i,j,nz))
        end do
 
-       if(sumcol<eps) then ! col i is null
+       ! warning
+       ! eps*1e-3 for small permeability in the pressure equation
+       ! TODO
+       ! find an automatic scaling
+       if(sumcol<eps*1e-3) then ! col i is null
 
           ! look for component C_{i}^alpha corresponding to the col i
 
