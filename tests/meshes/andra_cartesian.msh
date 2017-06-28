@@ -1,0 +1,10 @@
+Cartesian mesh 
+If number of vertices is negative FCFA Benchmark format is bypassed and a grid definition is read instead
+ Number of vertices
+          -1
+Numbers of cells along directions 
+10 1 100
+Domain size
+100 1 15
+Origin
+0 0 0
