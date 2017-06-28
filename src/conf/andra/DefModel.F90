@@ -119,18 +119,18 @@ module DefModel
   ! ! ****** Times ****** ! !
 
   ! One day
-  double precision, parameter :: OneSecond = 1
+  double precision, parameter :: OneSecond = 1.d0
   double precision, parameter :: OneMinute = 60.d0 * OneSecond
   double precision, parameter :: OneHour = 60.d0 * OneMinute
   double precision, parameter :: OneDay = 24.d0 * OneHour
-  double precision, parameter :: OneMonth = 3.d1 * OneDay
+  double precision, parameter :: OneMonth = 30.5d0 * OneDay
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
   ! time step init and max 
   ! FIXME: parameter is removed to assign variable from python
-  double precision :: TimeFinal = 30 * OneYear
+  double precision :: TimeFinal = 200 * OneYear
 
-  double precision, parameter :: TimeStepInit = OneDay
+  double precision, parameter :: TimeStepInit = OneSecond
   double precision, parameter :: TimeStepMax1 = OneYear
 
   ! output_frequency for visu
@@ -139,12 +139,12 @@ module DefModel
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
   integer, parameter :: NewtonNiterMax = 40
-  double precision, parameter :: NewtonTol = 1.d-5
+  double precision, parameter :: NewtonTol = 1.d-9
 
 
   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
   integer, parameter :: KspNiterMax = 150        ! max nb of iterations
-  double precision, parameter :: KspTol = 1.d-6  ! tolerance
+  double precision, parameter :: KspTol = 1.d-14  ! tolerance
 
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
