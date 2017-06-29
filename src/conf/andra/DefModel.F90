@@ -134,7 +134,7 @@ module DefModel
   double precision, parameter :: TimeStepMax1 = OneYear
 
   ! output_frequency for visu
-  double precision, parameter :: output_frequency = OneYear
+  double precision, parameter :: output_frequency = OneSecond
 
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
