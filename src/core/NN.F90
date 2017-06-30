@@ -2,6 +2,7 @@ module NN
 
    use PathUtilities
 
+   use Mesh
    use GlobalMesh
    use PartitionMesh
    use LocalMesh
@@ -149,6 +150,8 @@ contains
 
       character(len=*), intent(in) :: MeshFile
 
+      INTEGER :: mesh_format
+
       !FIXME: This is more of an assertion for consistency, might be removed
       if (.NOT. commRank == 0) then
          print *, "Mesh is supposed to be read by master process."
@@ -167,7 +170,8 @@ contains
       print *, "Mesh read from file: ", MeshFile
 
       ! Read Global Mesh
-      call GlobalMesh_Make_read_file(MeshFile)
+      CALL Mesh_select_mesh_format(MeshFile, mesh_format)
+      CALL Mesh_read_mesh_file(MeshFile, mesh_format)
 
       call GlobalMesh_Make_post_read()
 
@@ -1064,6 +1068,15 @@ subroutine NN_init_phase2(OutputDir)
       call DefFlash_TimeFlash
 
       TimeCurrent = TimeCurrent + Delta_t
+
+      do k=1, NbNodeLocal_Ncpus(commRank+1)
+        IF(IncNode(k)%Temperature < 293)THEN
+          PRINT*, ''
+          PRINT*, ''
+          PRINT*, 'TEMP', IncNode(k)%Temperature
+        ENDIF
+      ENDDO
+            
 
       ! FiXME: What is the policy for time step management
       ! compute Delta_t for the next time step

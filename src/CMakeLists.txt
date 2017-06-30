@@ -15,7 +15,11 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-    GlobalMesh.F90
+		File.F90
+	  GlobalMesh.F90
+		CompassMesh.F90
+		GmshMesh.F90
+		Mesh.F90
     IncCV.F90
     Flux.F90
     Jacobian.F90 
