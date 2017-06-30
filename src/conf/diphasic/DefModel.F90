@@ -1,7 +1,10 @@
-! Model: 2 phase 1 comp thermal, MCP=(1,1)
-
+! Model: 2 phase 2 comp thermal, MCP=(1,1,1,1)
+!                 
 ! 1: Gas
-! 2: Water
+! 2: Liquid
+!                 
+! 1: Air
+! 2: H2O
 
 module DefModel
 
@@ -12,20 +15,20 @@ module DefModel
   ! ! ****** Model ****** ! !
 
   integer, parameter :: &
-       NbComp = 1, & !< Number of Component
-       NbPhase = 1   !< Number of Phase
+       NbComp = 2, & !< Number of Component
+       NbPhase = 2   !< Number of Phase
 
   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
   ! MCP 
   integer, parameter, dimension(NbComp, NbPhase) :: &
-      MCP = reshape( &
-      (/ 1 /), (/NbComp, NbPhase/))
+      MCP = RESHAPE( &
+      (/ 1, 1, 1, 1 /), (/NbComp, NbPhase/))
 
   ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-  integer, parameter :: PHASE_GAS = 2
-  integer, parameter :: PHASE_WATER = 1
+  integer, parameter :: PHASE_GAS = 1
+  integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
   double precision, parameter :: Gravite = 0.d0 !< Gravity constant
@@ -74,13 +77,17 @@ module DefModel
   integer, parameter :: pschoice = 1
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
-       psprim = reshape( (/ &
-       1, 2 & ! ic=1
-       /), (/ NbIncPTCSPrimMax, NbContexte/))
+    psprim = RESHAPE( (/ &
+      1, 2, 3, & ! ic=1
+      1, 2, 3, & ! ic=1
+      1, 2, 7  & ! ic=3
+      /), (/ NbIncPTCSPrimMax, NbContexte/))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
-       pssecd = reshape( (/ &
-       3 & ! ic=1
+       pssecd = RESHAPE( (/ &
+       4, 5, 6, 0, & ! ic=1
+       4, 5, 6, 0, & ! ic=2
+       3, 4, 5, 6  & ! ic=3
        /), (/ NbIncPTCSecondMax, NbContexte/))
 
   ! ! ****** Alignment method ****** ! !
@@ -102,8 +109,17 @@ module DefModel
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
        aligmat = reshape( (/ &
-       1.d0, 0.d0, & ! ic=1
-       0.d0, 1.d0  &
+       1.d0, 0.d0, 0.d0, & ! ic=1
+       0.d0, 1.d0, 0.d0, &
+       0.d0, 0.d0, 1.d0, &
+       &
+       1.d0, 0.d0, 0.d0, & ! ic=2
+       0.d0, 1.d0, 0.d0, &
+       0.d0, 0.d0, 1.d0, &
+       &
+       1.d0, 0.d0, 0.d0, & ! ic=3
+       0.d0, 1.d0, 0.d0, &
+       0.d0, 0.d0, 1.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /))
 
 

@@ -78,8 +78,7 @@ set( CONFIGURATIONS
     # Injector_Pimposed_frac
     # Productor_Pimposed_frac
     # Productor_Qimposed_frac
-    monothermal_1inj_1prod 
-    andra
+		diphasic
 )
 
 set( CONF_SRCS
