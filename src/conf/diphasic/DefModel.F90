@@ -31,10 +31,10 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
   
   ! CpRoche
-  double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< ???
+  double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
 
   ! thickness of frac
   double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
@@ -78,16 +78,16 @@ module DefModel
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
-      1, 2, 3, & ! ic=1
-      1, 2, 3, & ! ic=1
-      1, 2, 7  & ! ic=3
+      1, 4, 2, & ! ic=1
+      1, 3, 2, & ! ic=2
+      1, 5, 7  & ! ic=3
       /), (/ NbIncPTCSPrimMax, NbContexte/))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
-       4, 5, 6, 0, & ! ic=1
-       4, 5, 6, 0, & ! ic=2
-       3, 4, 5, 6  & ! ic=3
+       3, 0, 0, 0, & ! ic=1
+       4, 0, 0, 0, & ! ic=2
+       2, 3, 4, 6  & ! ic=3
        /), (/ NbIncPTCSecondMax, NbContexte/))
 
   ! ! ****** Alignment method ****** ! !
@@ -108,19 +108,17 @@ module DefModel
 
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
-       aligmat = reshape( (/ &
-       1.d0, 0.d0, 0.d0, & ! ic=1
+       aligmat = RESHAPE( (/ &
+       1.d0, 1.d0, 0.d0, & ! ic=1
        0.d0, 1.d0, 0.d0, &
        0.d0, 0.d0, 1.d0, &
-       &
-       1.d0, 0.d0, 0.d0, & ! ic=2
-       0.d0, 1.d0, 0.d0, &
+       1.d0, 1.d0, 0.d0, & ! ic=2
+       1.d0, 0.d0, 0.d0, &
        0.d0, 0.d0, 1.d0, &
-       &
-       1.d0, 0.d0, 0.d0, & ! ic=3
-       0.d0, 1.d0, 0.d0, &
+       1.d0, 1.d0, 0.d0, & ! ic=3
+       1.d0, 0.d0, 0.d0, &
        0.d0, 0.d0, 1.d0  &
-       /), (/ NbCompThermique, NbCompThermique, NbContexte /))
+       /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
 
 
   ! ! ******* Mesh type ****** ! !
@@ -216,7 +214,9 @@ contains
 
   ! *** Physics *** !
 
-  ! Fugacity
+  ! Fugacity coefficient
+  ! f * c_i
+  ! P = Pg pression de reference
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_Fugacity(iph,icp,P,T,C,S,f,DPf,DTf,DCf)
@@ -231,22 +231,63 @@ contains
     double precision :: PSat, dTSat
     
     if(iph==PHASE_GAS) then
-
        f = P 
        dPf = 1.d0
        dTf = 0.d0
-
     else if(iph==PHASE_WATER) then
-
-       call DefModel_Psat(T, Psat, dTSat)
-       f = Psat
-       dPf = 0.d0
-       dTf = dTSat
+      IF(icp==1)THEN
+        CALL air_henry(T,f)
+        dPf = 0.d0
+        CALL air_henry_dT(T,dTf)
+      ELSE
+        CALL DefModel_Psat(T, Psat, dTSat)
+        f = Psat
+        dPf = 0.d0
+        dTf = dTSat
+      ENDIF
     end if
-
     dCf(:) = 0.d0 
-    
    end subroutine f_Fugacity
+
+
+   SUBROUTINE air_henry(T,H)
+
+     DOUBLE PRECISION, INTENT(IN) :: T
+     DOUBLE PRECISION, INTENT(OUT) :: H
+
+     DOUBLE PRECISION :: T1
+     DOUBLE PRECISION :: T2
+     DOUBLE PRECISION :: H1
+     DOUBLE PRECISION :: H2
+
+     T1 = 293.d0
+     T2 = 353.d0
+
+     H1 = 6.d+9
+     H2 = 10.d+9
+
+     H = H1 + (H2-H1)*(T-T1)/(T2-T1)
+   END SUBROUTINE
+
+
+   SUBROUTINE air_henry_dT(T,H_dt)
+
+     DOUBLE PRECISION, INTENT(IN) :: T
+     DOUBLE PRECISION, INTENT(OUT) :: H_dt
+
+     DOUBLE PRECISION :: T1
+     DOUBLE PRECISION :: T2
+     DOUBLE PRECISION :: H1
+     DOUBLE PRECISION :: H2
+
+     T1 = 293.d0
+     T2 = 353.d0
+
+     H1 = 6.d+9
+     H2 = 10.d+9
+
+     H_dt = (H2-H1)/(T2-T1)
+   END SUBROUTINE
 
 
   ! Densite molaire 
@@ -255,24 +296,48 @@ contains
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
     ! input
-    integer, intent(in) :: iph
-    double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
+    INTEGER, INTENT(IN) :: iph
+    DOUBLE PRECISION, INTENT(IN) :: P, T, C(NbComp), S(NbPhase)
 
     ! output
-    double precision, intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+    DOUBLE PRECISION, INTENT(OUT) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    double precision :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
-    double precision :: u, R, T0, d, Z, ds, ss, rs, dZ
-    double precision :: Psat, dT_Psat
+    DOUBLE PRECISION :: Rgp
     
-    f = 1000.d0/0.018d0
+    Rgp = 8.314d0
 
-    dPf = 0.d0
-    dTf = 0.d0
-    dCf = 0.d0
-    dSf = 0.d0
+    IF(iph==PHASE_GAS)THEN
+      f = P/(Rgp*T)
 
+      dPf = 1/(Rgp*T)
+      dTf = -P/Rgp/T**2
+      dCf = 0.d0
+      dSf = 0.d0
+    ELSE
+      f = 1000.d0/0.018d0
+
+      dPf = 0.d0
+      dTf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
+    ENDIF
   end subroutine f_DensiteMolaire
+
+
+  SUBROUTINE air_MasseMolaire(m)
+
+    DOUBLE PRECISION, INTENT(OUT) :: m
+
+    m = 29.d-3
+  END SUBROUTINE air_MasseMolaire
+
+
+  SUBROUTINE H2O_MasseMolaire(m)
+
+    DOUBLE PRECISION, INTENT(OUT) :: m
+
+    m = 18d-3
+  END SUBROUTINE H2O_MasseMolaire
 
 
   ! Densite Massique 
@@ -287,12 +352,22 @@ contains
     ! output
     double precision, intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    f = 1000.d0
+    double precision :: zeta, air_m, H2O_m, m
 
-    dPf = 0.d0
-    dTf = 0.d0
-    dCf = 0.d0
-    dSf = 0.d0
+    CALL f_DensiteMolaire(iph,P,T,C,S,zeta,dPf,dTf,dCf,dSf)
+
+    CALL air_MasseMolaire(air_m)
+    CALL H2O_MasseMolaire(H2O_m)
+
+    m = C(1)*air_m + C(2)*H2O_m
+
+    f = zeta * m
+
+    dPf = dPf * m
+    dTf = dTf * m
+    dCf(1) = dCf(1) * m + zeta * air_m
+    dCf(2) = dCf(2) * m + zeta * H2O_m
+    dSf = dSf * m
 
   end subroutine f_DensiteMassique
 
@@ -312,7 +387,11 @@ contains
 
     double precision :: a, ss, ds, Cs, T1
     
-    f = 1.0E-3  
+    IF(iph==PHASE_GAS)THEN
+      f = 18.51d-6
+    ELSE
+      f = 1.0d-3  
+    ENDIF
 
     dPf = 0.d0
     dTf = 0.d0
@@ -334,11 +413,57 @@ contains
     ! output
     double precision, intent(out) :: f, DSf(NbPhase)
 
-    f = 1.d0
+    double precision :: Slrk, Sgrk, rNvgk, rMvgk
+    double precision :: Sbl, ss, Sblc, rkrlc, ds
+    double precision :: c
 
     dSf = 0.d0
 
-  end subroutine f_PermRel
+    Slrk = 0.4d0 
+    Sgrk = 0.d0 
+    rNvgk = 1.49d0
+    rMvgk = 1.d0-1.d0/rNvgk
+
+    IF(iph==PHASE_GAS)THEN
+      Sbl = (1.d0-S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
+      ss = 1.d0 - (Sbl)**(1.d0/rMvgk)
+      if (S(iph).le.Sgrk) then
+        f = 0.d0
+        dSf(iph) = 0.d0
+      else if (S(iph).ge.1.d0-Slrk) then
+        f = 1.d0
+        dSf(iph) = 0.d0
+      else
+        f = dsqrt(1.d0-Sbl)*( 1.d0-(Sbl)**(1.d0/rMvgk) )**(rMvgk*2.d0)
+
+        dSf(iph) = ( 1.d0/2.d0/dsqrt(1.d0-Sbl)*ss**(rMvgk*2.d0) &
+          + 2.d0*dsqrt(1.d0-Sbl)*ss**(2.d0*rMvgk-1.d0) &
+          *Sbl**(1.d0/rMvgk-1) )/(1.d0-Slrk-Sgrk)
+      endif
+    ELSE
+      Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
+      ss = 1.d0 - ( 1.d0 - (Sbl)**(1.d0/rMvgk) )**rMvgk
+      c = 1.0E-2
+      Sblc = (1.d0-c-Slrk)/(1.d0-Slrk-Sgrk)
+      rkrlc = dsqrt(Sblc)*( 1.d0 - (1.d0-(Sblc)**(1/rMvgk) )**rMvgk)**2
+      if (S(iph).le.Slrk) then
+         f = 0.d0
+         dSf(iph) = 0.d0
+      else if ( (S(iph).ge.Slrk).and.(S(iph).le.1-c) ) then 
+         f = dsqrt(Sbl)*(1.d0 - (1.d0-(Sbl)**(1.d0/rMvgk))**rMvgk)**2
+         ds = Sbl**(1.d0/rMvgk-1.d0) &
+           *( 1.d0-(Sbl)**(1.d0/rMvgk) )**(rMvgk-1.d0)
+         dSf(iph) = ( ss**2/(2.d0*dsqrt(Sbl)) + 2.d0*ss*ds*dsqrt(Sbl) ) &
+               /(1.d0-Slrk-Sgrk)
+      else if ( (S(iph).gt.1.0-c).and.(S(iph).lt.1.0-Sgrk) ) then
+        f = (1.d0 - rkrlc)/c*S(iph) - (1.d0 - c - rkrlc)/c
+        dSf(iph) = (1.d0 - rkrlc )/c
+      else
+        f = 1.d0
+        dSf(iph) = 0.d0
+      endif 
+    ENDIF
+  END SUBROUTINE f_PermRel
 
 
   ! Pressions Capillaires des Phases et leurs derivees
@@ -352,11 +477,67 @@ contains
     ! output
     double precision, intent(out) :: f, DSf(NbPhase)
 
-    f = 0.d0
-    dSf = 0.d0
+    double precision :: Slrk,Prvgk,rNvgk,rMvgk
+    double precision :: Sbl, dSbl, Sbl1, Pc1, Sgrk
 
-  end subroutine f_PressionCapillaire
+    IF(iph==PHASE_GAS)THEN
+      f = 0.d0
+      dSf = 0.d0
+    ELSE
+      Slrk = 0.4d0
+      Prvgk = 15.d+6
+      rNvgk = 1.49d0
+      rMvgk = 1.d0-1.d0/rNvgk
 
+      Sgrk = 0.d0
+
+      Sbl = (S(PHASE_WATER)-Slrk)/(1.d0-Slrk-Sgrk)
+      dSbl = 1.d0/(1.d0-Slrk-Sgrk)
+
+      Sbl1 = 0.999d0    ! 0.97
+      Pc1 = Prvgk*( Sbl1**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk)
+
+      if (Sbl < 1.0E-7) then
+        write(*,*)' Sbl < 1.0E-7 ',Sbl,S(PHASE_WATER)  
+        stop
+      ELSE IF (Sbl < Sbl1) THEN
+        f = Prvgk*( Sbl**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk) 
+        dSf(PHASE_WATER) = - Prvgk*dSbl/(rNvgk*rMvgk)*Sbl**(-1.d0/rMvgk-1.d0) &
+          *( Sbl**(-1.d0/rMvgk) -1.d0 )**(1.d0/rNvgk-1.d0)
+      ELSE IF  ( Sbl <= 1.0 ) THEN
+        f = Pc1/(Sbl1-1.d0)*(Sbl-Sbl1) + Pc1
+        dSf(PHASE_WATER) = Pc1/(Sbl1-1.d0)*dSbl
+      ELSE
+        f = 0.d0
+        dSf(PHASE_WATER) = 0.d0
+      ENDIF    
+      dSf(PHASE_GAS) = - dSf(PHASE_WATER)
+
+      f = -f
+      dSf = -dSf
+    ENDIF
+  END SUBROUTINE f_PressionCapillaire
+
+
+  SUBROUTINE f_Sl(Pc,Sl)
+
+    DOUBLE PRECISION, INTENT(IN) :: Pc
+    
+    DOUBLE PRECISION, INTENT(OUT) :: Sl
+
+    DOUBLE PRECISION :: Slrk, Prvgk, rNvgk, rMvgk
+
+    Slrk = 0.4d0
+    Prvgk = 15.d+6
+    rNvgk = 1.49d0
+    rMvgk = 1.d0-1.d0/rNvgk
+
+    IF(Pc < 0.d0) THEN 
+      Sl = 1.d0 
+    ELSE
+      Sl = Slrk + (1.d0-Slrk)*( 1.d0 + (Pc/Prvgk)**rNvgk )**(-rMvgk)
+    ENDIF   
+  END SUBROUTINE
 
 #ifdef _THERMIQUE_
 
@@ -391,27 +572,51 @@ contains
     double precision, intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
     double precision :: a,b,cc,d,T0,ss
+    double precision :: m
 
-    a = -14.4319d+3
-    b = +4.70915d+3
-    cc = -4.87534
-    d = 1.45008d-2
-    T0 = 273.d0
+    IF(iph==PHASE_GAS)THEN
+      CALL f_CpGaz(cc)
+      CALL air_MasseMolaire(m)
 
-    ss = a + b*(T-T0) + cc*(T-T0)**2 + d*(T-T0)**3
+      f = cc * m * T
 
-    f = ss * 18d-3
-    f = 0.d0
+      dPf = 0.d0
+      dTf =  cc * m
+      dTf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
+    ELSE
+      a = -14.4319d+3
+      b = +4.70915d+3
+      cc = -4.87534
+      d = 1.45008d-2
+      T0 = 273.d0
 
-    ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
+      ss = a + b*(T-T0) + cc*(T-T0)**2 + d*(T-T0)**3
 
-    dPf = 0.d0
-    dTf = ss * 18d-3
-    dTf = 0.d0
-    dCf = 0.d0
-    dSf = 0.d0
+      CALL H2O_MasseMolaire(m)
+
+      f = ss * m
+      f = 0.d0
+
+      ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
+
+      dPf = 0.d0
+      dTf = ss * m
+      dTf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
+    ENDIF
 
   end subroutine f_Enthalpie
+
+
+  SUBROUTINE f_CpGaz(c)
+
+    DOUBLE PRECISION, INTENT(OUT) :: c
+
+    c = 1000.d0  
+  END SUBROUTINE
 
 #endif
   
