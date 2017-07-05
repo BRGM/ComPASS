@@ -4139,8 +4139,9 @@ contains
              print*, "Regularization error: icp=0"
              write(*,'(A,4I8)') "    row/col/i/commRank=", rowk, colk, i, commRank
              errcode = 52
-             ! write(*,*) "j ", j, "cv ", cv, " ic ", IncFrac(k)%ic
-             ! write(*,*) "sumcol ", sumcol
+             write(*,*) "j ", j, "cv ", cv, " ic ", IncCell(k)%ic
+             write(*,*) "sumcol ", sumcol
+             write(*,*) "i", i
              ! write(*,*) "x ", XFaceLocal(:,FracToFaceLocal(k))
 
              ! write(*,*) "Pression ", IncFrac(k)%Pression
