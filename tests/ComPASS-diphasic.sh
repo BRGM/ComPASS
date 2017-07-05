@@ -2,10 +2,10 @@
 
 N_PROC=1
 
-EXE=../build/bin/ComPASS-andra
-MESH=meshes/andra_cartesian.msh
+EXE=../build/bin/ComPASS-diphasic
+MESH=meshes/gallery.msh
 
-OUTPUT=ComPASS-andra
+OUTPUT=ComPASS-diphasic
 LOG=${OUTPUT}/output.log 
 
 mkdir -p ${OUTPUT}

@@ -81,17 +81,20 @@ contains
 
     integer :: k
     double precision :: Psat, dTsat, Tsat
+    integer :: rocktype
 
+    rocktype = 1
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncNode(k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(rocktype, IncNode(k), PoroVolDarcyNode(k))
     end do
 
+    rocktype = 2
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncFrac(k), PoroVolDarcyFrac(k))
+       call DefFlash_Flash_cv(rocktype, IncFrac(k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncCell(k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(rocktype, IncCell(k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
@@ -233,8 +236,9 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(inc, porovol)
+  subroutine DefFlash_Flash_cv(rocktype, inc, porovol)
 
+    INTEGER, INTENT(IN) :: rocktype
     type(Type_IncCV), intent(inout) :: inc
     double precision, intent(in) :: porovol ! porovol
 
@@ -242,21 +246,68 @@ contains
     double precision :: DensiteMolaire(NbComp), acc1, acc2, &
          dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    double precision :: Tsat, dP_Tsat, Psat, dT_Psat
+    double precision :: T, Ha
+    double precision :: RZetal
+    double precision :: Psat, dTSat
+    double precision :: S(NbPhase), Pc, DSPc(NbPhase)
+    double precision :: Cal, Cel
+    double precision :: PgCag, PgCeg
+    double precision :: Pg
+    double precision :: Cag
+    double precision :: Slrk
 
     ic = inc%ic
+    Slrk = 0.4d0 
 
-    if(ic==2) then
+    IF(ic == 2)THEN
+      T = inc%Temperature
 
-       inc%ic = 2
+      CALL air_henry(T,Ha)
+      PgCag = inc%Comp(1,PHASE_WATER) * Ha
 
-       inc%Saturation(PHASE_GAS) = 0.d0
-       inc%Saturation(PHASE_WATER) = 1.d0
+      RZetal = 8.314d0 * 1000.d0 / 0.018d0
+      CALL DefModel_Psat(T, Psat, dTSat)
 
-       inc%Comp(:,:) = 1.d0
-!    else
-!       print*, "Error in Flash: no such context"
-    end if
+      iph = 2
+      S = inc%Saturation
+      CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
+
+      PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
+
+      Pg = inc%Pression
+      IF(PgCag + PgCeg > Pg)THEN
+        inc%ic = 3
+        inc%Saturation(PHASE_GAS) = eps
+        inc%Saturation(PHASE_WATER) = 1.d0 - eps
+
+        Cag = MIN(MAX(PgCag/Pg,0.d0),1.d0)
+        inc%Comp(1,PHASE_GAS) = Cag
+        inc%Comp(2,PHASE_GAS) = 1 - Cag
+      ENDIF
+      Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
+      inc%Comp(1,PHASE_WATER) = Cal
+      inc%Comp(2,PHASE_WATER) = 1 - Cal
+    ELSE IF(ic == 3)THEN
+      IF(inc%Saturation(PHASE_GAS) < 0)THEN
+        inc%ic = 2
+        inc%Saturation(PHASE_GAS) = 0
+        inc%Saturation(PHASE_WATER) = 1
+      ELSE IF(inc%Saturation(PHASE_WATER) < Slrk)THEN
+        inc%Saturation(PHASE_GAS) = 1 - Slrk - eps
+        inc%Saturation(PHASE_WATER) = Slrk + eps
+
+        Cag = MIN(MAX(inc%Comp(1,PHASE_GAS),0.d0),1.d0)
+        inc%Comp(1,PHASE_GAS) = Cag
+        inc%Comp(2,PHASE_GAS) = 1 - Cag
+      ENDIF
+      Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
+      inc%Comp(1,PHASE_WATER) = Cal
+      inc%Comp(2,PHASE_WATER) = 1 - Cal
+    ELSE
+      PRINT*, "Error in Flash: no such context"
+      PRINT*, "only gas in porous medium"
+      STOP
+    END IF
 
   end subroutine DefFlash_Flash_cv
 

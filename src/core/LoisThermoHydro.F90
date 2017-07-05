@@ -484,7 +484,7 @@ contains
 
     ! compute dF/dX
     ! dFsurdX: (col, row) index order
-    call LoisThermoHydro_dFsurdX_cv(inc, dFsurdX, SmF)
+    call LoisThermoHydro_dFsurdX_cv(inc, rocktypeinc, dFsurdX, SmF)
 
     ! choose inconnues prim and secd
     call LoisThermoHydro_ps_cv(inc, dFsurdX, pschoice, &
@@ -734,26 +734,27 @@ contains
 
 
   ! compute dFsurdX for each control volume
-  subroutine LoisThermoHydro_dFsurdX_cv(inc, dFsurdX, SmF)
+  subroutine LoisThermoHydro_dFsurdX_cv(inc, rocktypeinc, dFsurdX, SmF)
 
     type(Type_IncCV), intent(in) :: inc
+    integer, intent(in) :: rocktypeinc
     double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
 
     double precision, intent(out) :: &
          SmF(NbEqFermetureMax)
 
-    integer :: i, mi, iph, iph1, iph2, icp, j, numj, numc1, numc2
+    integer :: i, mi, iph, iph1, iph2, icp, j, jph, numj, numc1, numc2
     double precision :: &
-         f1, dPf1, dTf1, dCf1(NbComp), &
-         f2, dPf2, dTf2, dCf2(NbComp)
+         f1, dPf1, dTf1, dCf1(NbComp), dSf1(NbPhase), &
+         f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase)
 
     dFsurdX(:,:) = 0.d0
     SmF(:) = 0.d0
 
-    ! 1. sum_alpha C_i^alpha = 1, for i
+    ! 1. F = sum_icp C_icp^iph(i) - 1, for i
 
-    ! loop for rows associate with C_i^alpha in dFsurdX
+    ! loop for rows associate with C_icp^iph(i) in dFsurdX
 
     j = 1 + IndThermique
 
@@ -776,7 +777,7 @@ contains
 
     mi = NbPhasePresente ! row is mi+i
 
-    ! 2. f_i^alpha * C_i^alpha = f_i^beta * C_i^beta
+    ! 2. F = f_i^alpha * C_i^alpha - f_i^beta * C_i^beta
     do i=1, NbEqEquilibre ! 
 
        icp = NumCompEqEquilibre(i) ! component
@@ -788,12 +789,12 @@ contains
        numc2 = NumIncComp2NumIncPTC(icp,iph2) ! num of C_i^beta in IncPTC
 
        ! fugacity and div
-       call f_Fugacity(iph1, icp, inc%Pression, inc%Temperature, &
+       call f_Fugacity(rocktypeinc, iph1, icp, inc%Pression, inc%Temperature, &
             inc%Comp(:,iph1), inc%Saturation, &
-            f1, dPf1, dTf1, dCf1)
-       call f_Fugacity(iph2, icp, inc%Pression, inc%Temperature, &
+            f1, dPf1, dTf1, dCf1, dSf1)
+       call f_Fugacity(rocktypeinc, iph2, icp, inc%Pression, inc%Temperature, &
             inc%Comp(:,iph2), inc%Saturation, &
-            f2, dPf2, dTf2, dCf2)
+            f2, dPf2, dTf2, dCf2, dSf2)
 
        ! div Pression
        dFsurdX(1,i+mi) = dPf1*inc%Comp(icp,iph1) - dPf2*inc%Comp(icp,iph2) 
@@ -826,6 +827,24 @@ contains
              dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
                   - inc%Comp(j,iph2)*dCf2(j)
           end if
+       end do
+
+       ! div Saturation
+       do j=1, NbPhasePresente-1 ! row is i, col is j
+         numj = j + NbIncPTC 
+         jph = NumPhasePresente(j)
+
+         dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
+           + dSf1(jph)*inc%Comp(icp,iph1) - dSf2(jph)*inc%Comp(icp,iph2)
+       end do
+
+       ! div Saturation secondaire
+       jph = NumPhasePresente(NbPhasePresente)
+       do j=1, NbPhasePresente-1 ! row is i, col is j
+         numj = j + NbIncPTC 
+
+         dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
+           - (dSf1(jph)*inc%Comp(icp,iph1) - dSf2(jph)*inc%Comp(icp,iph2))
        end do
 
        ! SmF
@@ -980,7 +999,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: icp, iph, j, jc
+    integer :: i, icp, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -992,7 +1011,8 @@ contains
 
     dfdX_secd(:,:) = 0.d0
 
-    do iph=1, NbPhase
+    do i=1, NbPhasePresente
+       iph = NumPhasePresente(i)
 
        call f_DensiteMassique(iph,inc%Pression,inc%Temperature, &
             inc%Comp(:,iph), inc%Saturation, &

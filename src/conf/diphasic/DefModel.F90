@@ -78,10 +78,10 @@ module DefModel
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
-      1, 4, 2, & ! ic=1
-      1, 3, 2, & ! ic=2
-      1, 5, 7  & ! ic=3
-      /), (/ NbIncPTCSPrimMax, NbContexte/))
+      1, 2, 4, & ! ic=1
+      1, 2, 3, & ! ic=2
+      1, 7, 5  & ! ic=3
+      /), (/ NbIncPTCSPrimMax, NbContexte /))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
@@ -104,20 +104,20 @@ module DefModel
   ! aligmethod=2, inverse diagnal
   !     it is necessary to define aligmat formally for compile
 
-  integer, parameter :: aligmethod = 1
+  integer, parameter :: aligmethod = 2
 
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
        aligmat = RESHAPE( (/ &
        1.d0, 1.d0, 0.d0, & ! ic=1
+       0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0, &
-       0.d0, 0.d0, 1.d0, &
        1.d0, 1.d0, 0.d0, & ! ic=2
-       1.d0, 0.d0, 0.d0, &
        0.d0, 0.d0, 1.d0, &
-       1.d0, 1.d0, 0.d0, & ! ic=3
        1.d0, 0.d0, 0.d0, &
-       0.d0, 0.d0, 1.d0  &
+       1.d0, 1.d0, 0.d0, & ! ic=3
+       0.d0, 0.d0, 1.d0, &
+       1.d0, 0.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
 
 
@@ -153,30 +153,28 @@ module DefModel
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
   integer, parameter :: NewtonNiterMax = 40
-  double precision, parameter :: NewtonTol = 1.d-9
+  double precision, parameter :: NewtonTol = 1.d-4
 
 
   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
   integer, parameter :: KspNiterMax = 150        ! max nb of iterations
-  double precision, parameter :: KspTol = 1.d-14  ! tolerance
+  double precision, parameter :: KspTol = 1.d-10  ! tolerance
 
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter ::  &
-      NewtonIncreObj_P = 5.d7,   &
-      NewtonIncreObj_T = 20.d0,  &
-      NewtonIncreObj_C = 1.d0,   &
-      NewtonIncreObj_S = 0.2d0
+  double precision, parameter :: NewtonIncreObj_P = 1.d5
+  double precision, parameter :: NewtonIncreObj_T = 20.d0
+  double precision, parameter :: NewtonIncreObj_C = 0.4d0
+  double precision, parameter :: NewtonIncreObj_S = 0.1d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
-  double precision, parameter :: &
-      TimeStepObj_P = 5.d7,     &
-      TimeStepObj_T = 20.d0,    &
-      TimeStepObj_C = 1.d0,     &
-      TimeStepObj_S = 0.6d0
+  double precision, parameter :: TimeStepObj_P = 1.d5
+  double precision, parameter :: TimeStepObj_T = 20.d0
+  double precision, parameter :: TimeStepObj_C = 0.8d0
+  double precision, parameter :: TimeStepObj_S = 0.2d0
 
 
   ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
@@ -219,34 +217,45 @@ contains
   ! P = Pg pression de reference
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_Fugacity(iph,icp,P,T,C,S,f,DPf,DTf,DCf)
+  subroutine f_Fugacity(rocktype, iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
-    integer, intent(in) :: iph, icp
+    integer, intent(in) :: rocktype, iph, icp
     double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
 
     ! output
-    double precision, intent(out) :: f, DPf, DTf, DCf(NbComp)
+    double precision, intent(out) :: f, DPf, DTf, DCf(NbComp),DSf(NbPhase)
 
-    double precision :: PSat, dTSat
+    double precision :: PSat, dTSat, Pc, DSPc(NbPhase)
+    DOUBLE PRECISION :: RZetal
     
-    if(iph==PHASE_GAS) then
+    RZetal = 8.314d0 * 1000.d0 / 0.018d0
+    
+    IF(iph == PHASE_GAS)THEN
        f = P 
        dPf = 1.d0
        dTf = 0.d0
-    else if(iph==PHASE_WATER) then
+       dCf = 0.d0 
+       dSf = 0.d0
+    ELSE IF(iph == PHASE_WATER)THEN
       IF(icp==1)THEN
         CALL air_henry(T,f)
         dPf = 0.d0
-        CALL air_henry_dT(T,dTf)
+        CALL air_henry_dT(dTf)
+        dCf = 0.d0 
+        dSf = 0.d0
       ELSE
+        CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
         CALL DefModel_Psat(T, Psat, dTSat)
-        f = Psat
+
+        f = Psat * DEXP(Pc/(T*RZetal))
+
         dPf = 0.d0
-        dTf = dTSat
+        dTf = (dTSat - Psat*Pc/RZetal/(T**2))*DEXP(Pc/(T*RZetal))
+        dCf = 0.d0 
+        dSf = DSPc * f/(T*RZetal)
       ENDIF
-    end if
-    dCf(:) = 0.d0 
+    END IF
    end subroutine f_Fugacity
 
 
@@ -270,9 +279,8 @@ contains
    END SUBROUTINE
 
 
-   SUBROUTINE air_henry_dT(T,H_dt)
+   SUBROUTINE air_henry_dT(H_dt)
 
-     DOUBLE PRECISION, INTENT(IN) :: T
      DOUBLE PRECISION, INTENT(OUT) :: H_dt
 
      DOUBLE PRECISION :: T1
@@ -310,7 +318,7 @@ contains
       f = P/(Rgp*T)
 
       dPf = 1/(Rgp*T)
-      dTf = -P/Rgp/T**2
+      dTf = P/Rgp * (-1/T**2)
       dCf = 0.d0
       dSf = 0.d0
     ELSE
@@ -440,6 +448,7 @@ contains
           + 2.d0*dsqrt(1.d0-Sbl)*ss**(2.d0*rMvgk-1.d0) &
           *Sbl**(1.d0/rMvgk-1) )/(1.d0-Slrk-Sgrk)
       endif
+      dSf(PHASE_WATER) = -dSf(PHASE_GAS)
     ELSE
       Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
       ss = 1.d0 - ( 1.d0 - (Sbl)**(1.d0/rMvgk) )**rMvgk
@@ -462,6 +471,7 @@ contains
         f = 1.d0
         dSf(iph) = 0.d0
       endif 
+      dSf(PHASE_GAS) = -dSf(PHASE_WATER)
     ENDIF
   END SUBROUTINE f_PermRel
 
