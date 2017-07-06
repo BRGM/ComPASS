@@ -276,10 +276,6 @@ contains
 
       Pg = inc%Pression
 
-!      PRINT*,
-!      PRINT*, 'flash'
-!      PRINT*, 'pg, PgCag, PgCeg', Pg, PgCag, PgCeg
-!      STOP
       IF(PgCag + PgCeg >= Pg)THEN
         inc%ic = 3
         inc%Saturation(PHASE_GAS) = 0.d0
@@ -288,6 +284,11 @@ contains
         Cag = MIN(MAX(PgCag/(PgCag+PgCeg),0.d0),1.d0)
         inc%Comp(1,PHASE_GAS) = Cag
         inc%Comp(2,PHASE_GAS) = 1.d0 - Cag
+
+        PRINT*,
+        PRINT*, 'flash'
+        PRINT*, 'pg, PgCag, PgCeg', Pg, PgCag, PgCeg
+        STOP
       ENDIF
       Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
       inc%Comp(1,PHASE_WATER) = Cal

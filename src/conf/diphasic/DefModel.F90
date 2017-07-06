@@ -74,7 +74,7 @@ module DefModel
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
-  integer, parameter :: pschoice = 3
+  integer, parameter :: pschoice = 1
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
@@ -153,12 +153,12 @@ module DefModel
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
   integer, parameter :: NewtonNiterMax = 40
-  double precision, parameter :: NewtonTol = 1.d-4
+  double precision, parameter :: NewtonTol = 1.d-10
 
 
   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
   integer, parameter :: KspNiterMax = 150        ! max nb of iterations
-  double precision, parameter :: KspTol = 1.d-10  ! tolerance
+  double precision, parameter :: KspTol = 1.d-12  ! tolerance
 
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
