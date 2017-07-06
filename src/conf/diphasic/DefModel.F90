@@ -31,7 +31,7 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
   
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
@@ -74,7 +74,7 @@ module DefModel
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
-  integer, parameter :: pschoice = 1
+  integer, parameter :: pschoice = 3
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
@@ -163,18 +163,18 @@ module DefModel
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter :: NewtonIncreObj_P = 1.d5
+  double precision, parameter :: NewtonIncreObj_P = 2.d5
   double precision, parameter :: NewtonIncreObj_T = 20.d0
   double precision, parameter :: NewtonIncreObj_C = 0.4d0
-  double precision, parameter :: NewtonIncreObj_S = 0.1d0
+  double precision, parameter :: NewtonIncreObj_S = 0.3d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
-  double precision, parameter :: TimeStepObj_P = 1.d5
-  double precision, parameter :: TimeStepObj_T = 20.d0
-  double precision, parameter :: TimeStepObj_C = 0.8d0
-  double precision, parameter :: TimeStepObj_S = 0.2d0
+  double precision, parameter :: TimeStepObj_P = 5.d5
+  double precision, parameter :: TimeStepObj_T = 40.d0
+  double precision, parameter :: TimeStepObj_C = 0.9d0
+  double precision, parameter :: TimeStepObj_S = 0.9d0
 
 
   ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
@@ -448,6 +448,7 @@ contains
           + 2.d0*dsqrt(1.d0-Sbl)*ss**(2.d0*rMvgk-1.d0) &
           *Sbl**(1.d0/rMvgk-1) )/(1.d0-Slrk-Sgrk)
       endif
+      dSf(PHASE_WATER) = 0.d0
       dSf(PHASE_WATER) = -dSf(PHASE_GAS)
     ELSE
       Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
@@ -471,7 +472,8 @@ contains
         f = 1.d0
         dSf(iph) = 0.d0
       endif 
-      dSf(PHASE_GAS) = -dSf(PHASE_WATER)
+      dSf(PHASE_GAS) = 0.d0
+      dSf(PHASE_GAS) = -DSf(PHASE_WATER)
     ENDIF
   END SUBROUTINE f_PermRel
 
@@ -521,7 +523,8 @@ contains
         f = 0.d0
         dSf(PHASE_WATER) = 0.d0
       ENDIF    
-      dSf(PHASE_GAS) = - dSf(PHASE_WATER)
+      dSf(PHASE_GAS) = 0.d0
+      dSf(PHASE_GAS) = -dSf(PHASE_WATER) 
 
       f = -f
       dSf = -dSf
