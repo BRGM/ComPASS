@@ -3,7 +3,7 @@ If number of vertices is negative FCFA Benchmark format is bypassed and a grid d
  Number of vertices
           -1
 Numbers of cells along directions 
-1 1 1500
+3 3 300
 Domain size
 1 1 15
 Origin
