@@ -74,7 +74,7 @@ module DefModel
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
-  integer, parameter :: pschoice = 1
+  integer, parameter :: pschoice = 3
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
@@ -142,10 +142,10 @@ module DefModel
 
   ! time step init and max 
   ! FIXME: parameter is removed to assign variable from python
-  double precision :: TimeFinal = 200 * OneYear
+  double precision :: TimeFinal =  200 * OneYear
 
   double precision, parameter :: TimeStepInit = OneSecond
-  double precision, parameter :: TimeStepMax1 = OneYear
+  double precision, parameter :: TimeStepMax1 = 200 * OneYear
 
   ! output_frequency for visu
   double precision, parameter :: output_frequency = OneSecond
@@ -165,13 +165,13 @@ module DefModel
 
   double precision, parameter :: NewtonIncreObj_P = 2.d5
   double precision, parameter :: NewtonIncreObj_T = 20.d0
-  double precision, parameter :: NewtonIncreObj_C = 0.4d0
-  double precision, parameter :: NewtonIncreObj_S = 0.3d0
+  double precision, parameter :: NewtonIncreObj_C = 0.2d0
+  double precision, parameter :: NewtonIncreObj_S = 0.2d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
-  double precision, parameter :: TimeStepObj_P = 5.d5
+  double precision, parameter :: TimeStepObj_P = 5.d6
   double precision, parameter :: TimeStepObj_T = 40.d0
   double precision, parameter :: TimeStepObj_C = 0.9d0
   double precision, parameter :: TimeStepObj_S = 0.9d0
@@ -318,7 +318,7 @@ contains
       f = P/(Rgp*T)
 
       dPf = 1/(Rgp*T)
-      dTf = P/Rgp * (-1/T**2)
+      dTf = -P/Rgp/T**2
       dCf = 0.d0
       dSf = 0.d0
     ELSE
@@ -336,7 +336,7 @@ contains
 
     DOUBLE PRECISION, INTENT(OUT) :: m
 
-    m = 29.d-3
+    m = 29d-3
   END SUBROUTINE air_MasseMolaire
 
 
@@ -448,8 +448,6 @@ contains
           + 2.d0*dsqrt(1.d0-Sbl)*ss**(2.d0*rMvgk-1.d0) &
           *Sbl**(1.d0/rMvgk-1) )/(1.d0-Slrk-Sgrk)
       endif
-      dSf(PHASE_WATER) = 0.d0
-      dSf(PHASE_WATER) = -dSf(PHASE_GAS)
     ELSE
       Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
       ss = 1.d0 - ( 1.d0 - (Sbl)**(1.d0/rMvgk) )**rMvgk
@@ -472,8 +470,6 @@ contains
         f = 1.d0
         dSf(iph) = 0.d0
       endif 
-      dSf(PHASE_GAS) = 0.d0
-      dSf(PHASE_GAS) = -DSf(PHASE_WATER)
     ENDIF
   END SUBROUTINE f_PermRel
 
@@ -492,9 +488,9 @@ contains
     double precision :: Slrk,Prvgk,rNvgk,rMvgk
     double precision :: Sbl, dSbl, Sbl1, Pc1, Sgrk
 
+    dSf = 0.d0
     IF(iph==PHASE_GAS)THEN
       f = 0.d0
-      dSf = 0.d0
     ELSE
       Slrk = 0.4d0
       Prvgk = 15.d+6
@@ -503,28 +499,26 @@ contains
 
       Sgrk = 0.d0
 
-      Sbl = (S(PHASE_WATER)-Slrk)/(1.d0-Slrk-Sgrk)
+      Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
       dSbl = 1.d0/(1.d0-Slrk-Sgrk)
 
       Sbl1 = 0.999d0    ! 0.97
       Pc1 = Prvgk*( Sbl1**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk)
 
       if (Sbl < 1.0E-7) then
-        write(*,*)' Sbl < 1.0E-7 ',Sbl,S(PHASE_WATER)  
+        write(*,*)' Sbl < 1.0E-7 ',Sbl,S(iph)  
         stop
       ELSE IF (Sbl < Sbl1) THEN
         f = Prvgk*( Sbl**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk) 
-        dSf(PHASE_WATER) = - Prvgk*dSbl/(rNvgk*rMvgk)*Sbl**(-1.d0/rMvgk-1.d0) &
+        dSf(iph) = - Prvgk*dSbl/(rNvgk*rMvgk)*Sbl**(-1.d0/rMvgk-1.d0) &
           *( Sbl**(-1.d0/rMvgk) -1.d0 )**(1.d0/rNvgk-1.d0)
       ELSE IF  ( Sbl <= 1.0 ) THEN
         f = Pc1/(Sbl1-1.d0)*(Sbl-Sbl1) + Pc1
-        dSf(PHASE_WATER) = Pc1/(Sbl1-1.d0)*dSbl
+        dSf(iph) = Pc1/(Sbl1-1.d0)*dSbl
       ELSE
         f = 0.d0
-        dSf(PHASE_WATER) = 0.d0
+        dSf(iph) = 0.d0
       ENDIF    
-      dSf(PHASE_GAS) = 0.d0
-      dSf(PHASE_GAS) = -dSf(PHASE_WATER) 
 
       f = -f
       dSf = -dSf
@@ -610,7 +604,6 @@ contains
       CALL H2O_MasseMolaire(m)
 
       f = ss * m
-      f = 0.d0
 
       ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
 
