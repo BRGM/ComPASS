@@ -8,6 +8,7 @@ MESH=meshes/gallery.msh
 OUTPUT=ComPASS-diphasic
 LOG=${OUTPUT}/output.log 
 
+rm -r proc.*
 rm -r ${OUTPUT}/{time_*,*data.pvd}
 mkdir -p ${OUTPUT}
 
