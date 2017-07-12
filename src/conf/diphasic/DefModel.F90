@@ -153,7 +153,7 @@ module DefModel
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
   integer, parameter :: NewtonNiterMax = 40
-  double precision, parameter :: NewtonTol = 1.d-10
+  double precision, parameter :: NewtonTol = 1.d-7
 
 
   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
@@ -589,7 +589,6 @@ contains
 
       dPf = 0.d0
       dTf =  cc * m
-      dTf = 0.d0
       dCf = 0.d0
       dSf = 0.d0
     ELSE
@@ -609,7 +608,6 @@ contains
 
       dPf = 0.d0
       dTf = ss * m
-      dTf = 0.d0
       dCf = 0.d0
       dSf = 0.d0
     ENDIF
