@@ -293,8 +293,8 @@ contains
         inc%Saturation(PHASE_GAS) = 0
         inc%Saturation(PHASE_WATER) = 1.d0
       ELSE IF(S(PHASE_WATER) <= Slrk)THEN
-        inc%Saturation(PHASE_GAS) = 1.d0 - Slrk - eps
-        inc%Saturation(PHASE_WATER) = Slrk + eps
+        inc%Saturation(PHASE_GAS) = 1.d0 - Slrk - 1.d-6
+        inc%Saturation(PHASE_WATER) = Slrk + 1.d-6
       ENDIF
       Cag = MIN(MAX(inc%Comp(1,PHASE_GAS),0.d0),1.d0)
       inc%Comp(1,PHASE_GAS) = Cag

@@ -45,7 +45,7 @@ subroutine IncCV_SetDirBCValue
   PlPor = 40.0d+5
   SgPor = 0.d0
   SlPor = 1.d0
-  TPor = 303.d0
+  TPor = 333.d0
 
   SPor = (/ SgPor, SlPor /)
   CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
@@ -59,32 +59,32 @@ subroutine IncCV_SetDirBCValue
   CalPor = 0.d0
   CelPor = 1.d0
 
-   !!!!!!!!!!!!!!!!!!!!!!!
- 
-   icPor=3
- 
-   PgPor = 1.d5
-   TPor = 333.d0
-   HurPor = 0.5d0
- 
-   PPor = PgPor
- 
-   CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
- 
-   CegPor = PsatPor*HurPor/PgPor
-   CagPor = 1.d0 - CegPor
- 
-   CALL air_henry(TPor,Ha)
-   CalPor = CagPor*PgPor/Ha
-   CelPor = 1.d0 - CalPor
- 
-   RZetal = 8.314d0 * 1000.d0 / 0.018d0
-   PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
- 
-   CALL f_Sl(PcPor,SlPor)
-   SgPor = 1 - SlPor
-  
-  !!!!!!!!!!!!!!!!!!!!!!!
+!   !!!!!!!!!!!!!!!!!!!!!!!
+! 
+!   icPor=3
+! 
+!   PgPor = 1.d5
+!   TPor = 333.d0
+!   HurPor = 0.5d0
+! 
+!   PPor = PgPor
+! 
+!   CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
+! 
+!   CegPor = PsatPor*HurPor/PgPor
+!   CagPor = 1.d0 - CegPor
+! 
+!   CALL air_henry(TPor,Ha)
+!   CalPor = CagPor*PgPor/Ha
+!   CelPor = 1.d0 - CalPor
+! 
+!   RZetal = 8.314d0 * 1000.d0 / 0.018d0
+!   PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
+! 
+!   CALL f_Sl(PcPor,SlPor)
+!   SgPor = 1 - SlPor
+!  
+!  !!!!!!!!!!!!!!!!!!!!!!!
 
   icGal=3
 
@@ -199,30 +199,30 @@ subroutine IncCV_SetInitialValue
   CalPor = 0.d0
   CelPor = 1.d0
 
-  !!!!!!!!!!!!!!!!!!!
-  
-  icPor=3
-
-  PgPor = 1.d5
-  TPor = 303.d0
-  HurPor = 0.5d0
-
-  PPor = PgPor
-
-  CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
-
-  CegPor = PsatPor*HurPor/PgPor
-  CagPor = 1.d0 - CegPor
-
-  CALL air_henry(TPor,Ha)
-  CalPor = CagPor*PgPor/Ha
-  CelPor = 1.d0 - CalPor
-
-  RZetal = 8.314d0 * 1000.d0 / 0.018d0
-  PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
-
-  CALL f_Sl(PcPor,SlPor)
-  SgPor = 1 - SlPor
+!  !!!!!!!!!!!!!!!!!!!
+!  
+!  icPor=3
+!
+!  PgPor = 1.d5
+!  TPor = 303.d0
+!  HurPor = 0.5d0
+!
+!  PPor = PgPor
+!
+!  CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
+!
+!  CegPor = PsatPor*HurPor/PgPor
+!  CagPor = 1.d0 - CegPor
+!
+!  CALL air_henry(TPor,Ha)
+!  CalPor = CagPor*PgPor/Ha
+!  CelPor = 1.d0 - CalPor
+!
+!  RZetal = 8.314d0 * 1000.d0 / 0.018d0
+!  PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
+!
+!  CALL f_Sl(PcPor,SlPor)
+!  SgPor = 1 - SlPor
 
 
   ! Node
