@@ -163,7 +163,7 @@ module DefModel
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter :: NewtonIncreObj_P = 1.d5
+  double precision, parameter :: NewtonIncreObj_P = 1.d6
   double precision, parameter :: NewtonIncreObj_T = 10.d0
   double precision, parameter :: NewtonIncreObj_C = 0.2d0
   double precision, parameter :: NewtonIncreObj_S = 0.1d0
@@ -171,7 +171,7 @@ module DefModel
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
-  double precision, parameter :: TimeStepObj_P = 2.d5
+  double precision, parameter :: TimeStepObj_P = 2.d6
   double precision, parameter :: TimeStepObj_T = 20.d0
   double precision, parameter :: TimeStepObj_C = 0.4d0
   double precision, parameter :: TimeStepObj_S = 0.2d0
