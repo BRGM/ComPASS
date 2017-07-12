@@ -12,36 +12,83 @@
 ! Set dir bc values: IncNodeDirBC
 subroutine IncCV_SetDirBCValue
 
-  integer :: i, icPor, icGal, rocktype
+  integer :: i, rocktype
   double precision :: sizeZ, sol
 
-  double precision :: PgPor, PlPor, PcPor, PPor
+  integer :: icPor
+  double precision :: PlPor
+  double precision :: SPor(NbPhase)
+  double precision :: PcPor, PgPor, PPor
   double precision :: TPor
-  double precision :: SgPor, SlPor, SPor(NbPhase)
-  double precision :: DSf(NbPhase)
+  double precision :: HurPor
+  double precision :: PsatPor, dT_PSatPor
+  double precision :: CegPor, CagPor
+  double precision :: CelPor, CalPor
+  double precision :: SlPor, SgPor
+  integer :: icGal
   double precision :: PcGal, PgGal, PGal
   double precision :: TGal
   double precision :: HurGal
   double precision :: PsatGal, dT_PSatGal
   double precision :: CegGal, CagGal
   double precision :: CelGal, CalGal
-  double precision :: RZetal
   double precision :: SlGal, SgGal
+  double precision :: RZetal
+  double precision :: DSf(NbPhase)
   double precision :: Ha
+  double precision :: Pc
 
   rocktype = 1
 
-  PlPor = 40.0d+5
   icPor = 2
+
+  PlPor = 40.0d+5
   SgPor = 0.d0
   SlPor = 1.d0
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
   CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
+
   PPor = PlPor - PcPor
-    
-  PgGal = 2.d5
+  PgPor = PPor
+
+  CagPor = 0.d0
+  CegPor = 1.d0 - CagPor
+
+  CalPor = 0.d0
+  CelPor = 1.d0
+
+   !!!!!!!!!!!!!!!!!!!!!!!
+ 
+   icPor=3
+ 
+   PgPor = 1.d5
+   TPor = 333.d0
+   HurPor = 0.5d0
+ 
+   PPor = PgPor
+ 
+   CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
+ 
+   CegPor = PsatPor*HurPor/PgPor
+   CagPor = 1.d0 - CegPor
+ 
+   CALL air_henry(TPor,Ha)
+   CalPor = CagPor*PgPor/Ha
+   CelPor = 1.d0 - CalPor
+ 
+   RZetal = 8.314d0 * 1000.d0 / 0.018d0
+   PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
+ 
+   CALL f_Sl(PcPor,SlPor)
+   SgPor = 1 - SlPor
+  
+  !!!!!!!!!!!!!!!!!!!!!!!
+
+  icGal=3
+
+  PgGal = 1.d5
   TGal = 303.d0
   HurGal = 0.5d0
 
@@ -49,25 +96,18 @@ subroutine IncCV_SetDirBCValue
 
   CALL DefModel_Psat(TGal, PsatGal, dT_PSatGal)
 
-  CegGal = MIN(MAX(PsatGal*HurGal/PgGal,0.d0),1.d0)
+  CegGal = PsatGal*HurGal/PgGal
   CagGal = 1.d0 - CegGal
 
+  CALL air_henry(TGal,Ha)
+  CalGal = CagGal*PgGal/Ha
+  CelGal = 1.d0 - CalGal
+
   RZetal = 8.314d0 * 1000.d0 / 0.018d0
-  PcGal = LOG(CegGal*PgGal/PsatGal) * RZetal * TGal
+  PcGal = DLOG(CelGal/HurGal) * RZetal * TGal
 
-  IF(PcGal < 0)THEN
-    icGal=2
-    SlGal = 1.d0
-    SgGal = 0.d0
-  ELSE
-    icGal=3
-    CALL f_Sl(PcGal,SlGal)
-    SgGal = 1 - SlGal
-
-    CALL air_henry(TGal,Ha)
-    CalGal = MIN(MAX(CagGal*PgGal/Ha,0.d0),1.d0)
-    CelGal = 1.d0 - CalGal
-  ENDIF
+  CALL f_Sl(PcGal,SlGal)
+  SgGal = 1 - SlGal
 
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
@@ -75,33 +115,24 @@ subroutine IncCV_SetDirBCValue
 
         if( abs(XNodeLocal(3,i)-Mesh_zmin)<eps ) then
 
-          IncNodeDirBC(i)%ic = icGal
-          IncNodeDirBC(i)%Pression = PGal
-          IncNodeDirBC(i)%Saturation(PHASE_GAS) = SgGal
+        IncNodeDirBC(i)%ic = icGal
+        IncNodeDirBC(i)%Pression = PGal
+        IncNodeDirBC(i)%Saturation(PHASE_GAS) = SgGal
           IncNodeDirBC(i)%Saturation(PHASE_WATER) = SlGal
           IncNodeDirBC(i)%Temperature = TGal
-          IncNodeDirBC(i)%Comp(1,PHASE_GAS) = CagGal
-          IncNodeDirBC(i)%Comp(2,PHASE_GAS) = CegGal
-          IncNodeDirBC(i)%Comp(1,PHASE_WATER) = CalGal
-          IncNodeDirBC(i)%Comp(2,PHASE_WATER) = CelGal
+        IncNodeDirBC(i)%Comp(1,PHASE_GAS) = CagGal
+        IncNodeDirBC(i)%Comp(2,PHASE_GAS) = CegGal
+        IncNodeDirBC(i)%Comp(1,PHASE_WATER) = CalGal
+        IncNodeDirBC(i)%Comp(2,PHASE_WATER) = CelGal
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
         else if( abs(XNodeLocal(3,i)-Mesh_zmax)<eps ) then
 
-          IncNodeDirBC(i)%ic = icPor
-          IncNodeDirBC(i)%Pression = PPor
-          IncNodeDirBC(i)%Temperature = TPor
-          IncNodeDirBC(i)%Saturation(PHASE_GAS) = SgPor
-          IncNodeDirBC(i)%Saturation(PHASE_WATER) = SlPor
-
-          ! # NbComp, NbPhase
-          IncNodeDirBC(i)%Comp(1,PHASE_GAS) = 1.d0
-          IncNodeDirBC(i)%Comp(2,PHASE_GAS) = 0.d0
-          IncNodeDirBC(i)%Comp(1,PHASE_WATER) = 0.d0
-          IncNodeDirBC(i)%Comp(2,PHASE_WATER) = 1.d0
+        IncNodeDirBC(i)%ic = icPor
+        IncNodeDirBC(i)%Pression = PPor
+        IncNodeDirBC(i)%Saturation(PHASE_GAS) = SgPor
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
-          !IncNodeDirBC(i)%Temperature = 30.d0 + 273.d0   
         end if
     ENDIF
   end do
@@ -111,12 +142,19 @@ end subroutine IncCV_SetDirBCValue
 
 subroutine IncCV_SetInitialValue
 
-  integer :: i, icPor, rocktype
+  integer :: i, rocktype
   double precision :: sizeZ, sol
 
-  double precision :: PgPor, PlPor, PcPor, PPor
+  integer :: icPor
+  double precision :: PlPor, PgPor, PcPor, PPor
   double precision :: TPor
-  double precision :: SgPor, SlPor, SPor(NbPhase)
+  double precision :: HurPor
+  double precision :: PsatPor, dT_PSatPor
+  double precision :: CegPor, CagPor
+  double precision :: CelPor, CalPor
+  double precision :: RZetal
+  double precision :: SlPor, SgPor, SPor(NbPhase)
+  double precision :: Ha
   double precision :: DSf(NbPhase)
 
   rocktype = 1
@@ -131,6 +169,56 @@ subroutine IncCV_SetInitialValue
   CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
   PPor = PlPor - PcPor
 
+  CalPor = 0.d0
+  CelPor = 1.d0 - CalPor
+
+  !!!!!!!!!!!!!!!!!!!
+
+  icPor = 2
+
+  PlPor = 40.0d+5
+  SgPor = 0.d0
+  SlPor = 1.d0
+  TPor = 303.d0
+
+  SPor = (/ SgPor, SlPor /)
+  CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
+
+  PPor = PlPor - PcPor
+  PgPor = PPor
+
+  CagPor = 0.d0
+  CegPor = 1.d0 - CagPor
+
+  CalPor = 0.d0
+  CelPor = 1.d0
+
+  !!!!!!!!!!!!!!!!!!!
+  
+  icPor=3
+
+  PgPor = 1.d5
+  TPor = 303.d0
+  HurPor = 0.5d0
+
+  PPor = PgPor
+
+  CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
+
+  CegPor = PsatPor*HurPor/PgPor
+  CagPor = 1.d0 - CegPor
+
+  CALL air_henry(TPor,Ha)
+  CalPor = CagPor*PgPor/Ha
+  CelPor = 1.d0 - CalPor
+
+  RZetal = 8.314d0 * 1000.d0 / 0.018d0
+  PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
+
+  CALL f_Sl(PcPor,SlPor)
+  SgPor = 1 - SlPor
+
+
   ! Node
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
@@ -139,10 +227,10 @@ subroutine IncCV_SetInitialValue
     IncNode(i)%Saturation(PHASE_GAS) = SgPor
     IncNode(i)%Saturation(PHASE_WATER) = SlPor
     IncNode(i)%Temperature = TPor
-    IncNode(i)%Comp(1,PHASE_GAS) = 1.d0
-    IncNode(i)%Comp(2,PHASE_GAS) = 0.d0
-    IncNode(i)%Comp(1,PHASE_WATER) = 0.d0
-    IncNode(i)%Comp(2,PHASE_WATER) = 1.d0
+    IncNode(i)%Comp(1,PHASE_GAS) = CagPor
+    IncNode(i)%Comp(2,PHASE_GAS) = CegPor
+    IncNode(i)%Comp(1,PHASE_WATER) = CalPor
+    IncNode(i)%Comp(2,PHASE_WATER) = CelPor
     IncNode(i)%AccVol(:) = 0.d0
 
   end do
@@ -155,10 +243,10 @@ subroutine IncCV_SetInitialValue
     IncCell(i)%Saturation(PHASE_GAS) = SgPor
     IncCell(i)%Saturation(PHASE_WATER) = SlPor
     IncCell(i)%Temperature = TPor
-    IncCell(i)%Comp(1,PHASE_GAS) = 1.d0
-    IncCell(i)%Comp(2,PHASE_GAS) = 0.d0
-    IncCell(i)%Comp(1,PHASE_WATER) = 0.d0
-    IncCell(i)%Comp(2,PHASE_WATER) = 1.d0
+    IncCell(i)%Comp(1,PHASE_GAS) = CagPor
+    IncCell(i)%Comp(2,PHASE_GAS) = CegPor
+    IncCell(i)%Comp(1,PHASE_WATER) = CalPor
+    IncCell(i)%Comp(2,PHASE_WATER) = CelPor
     IncCell(i)%AccVol(:) = 0.d0
 
   end do

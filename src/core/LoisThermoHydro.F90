@@ -844,7 +844,7 @@ contains
          numj = j + NbIncPTC 
 
          dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-           - (dSf1(jph)*inc%Comp(icp,iph1) - dSf2(jph)*inc%Comp(icp,iph2))
+           - dSf1(jph)*inc%Comp(icp,iph1) + dSf2(jph)*inc%Comp(icp,iph2)
        end do
 
        ! SmF

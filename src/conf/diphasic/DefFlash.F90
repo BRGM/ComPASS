@@ -259,9 +259,11 @@ contains
     ic = inc%ic
     Slrk = 0.4d0 
 
-    IF(ic == 2)THEN
-      T = inc%Temperature
+    Pg = inc%Pression
+    T = inc%Temperature
+    S = inc%Saturation
 
+    IF(ic == 2)THEN
       CALL air_henry(T,Ha)
       PgCag = inc%Comp(1,PHASE_WATER) * Ha
 
@@ -269,40 +271,38 @@ contains
       CALL DefModel_Psat(T, Psat, dTSat)
 
       iph = 2
-      S = inc%Saturation
       CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
-      Pg = inc%Pression
       IF(PgCag + PgCeg > Pg)THEN
         inc%ic = 3
-        inc%Saturation(PHASE_GAS) = eps
-        inc%Saturation(PHASE_WATER) = 1.d0 - eps
+        inc%Saturation(PHASE_GAS) = 0.d0
+        inc%Saturation(PHASE_WATER) = 1.d0
 
-        Cag = MIN(MAX(PgCag/Pg,0.d0),1.d0)
+        Cag = MIN(MAX(PgCag/(PgCag+PgCeg),0.d0),1.d0)
         inc%Comp(1,PHASE_GAS) = Cag
-        inc%Comp(2,PHASE_GAS) = 1 - Cag
+        inc%Comp(2,PHASE_GAS) = 1.d0 - Cag
       ENDIF
       Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
       inc%Comp(1,PHASE_WATER) = Cal
-      inc%Comp(2,PHASE_WATER) = 1 - Cal
+      inc%Comp(2,PHASE_WATER) = 1.d0 - Cal
     ELSE IF(ic == 3)THEN
-      IF(inc%Saturation(PHASE_GAS) < 0)THEN
+      IF(S(PHASE_GAS) <= 0.d0)THEN
         inc%ic = 2
         inc%Saturation(PHASE_GAS) = 0
-        inc%Saturation(PHASE_WATER) = 1
-      ELSE IF(inc%Saturation(PHASE_WATER) < Slrk)THEN
-        inc%Saturation(PHASE_GAS) = 1 - Slrk - eps
+        inc%Saturation(PHASE_WATER) = 1.d0
+      ELSE IF(S(PHASE_WATER) <= Slrk)THEN
+        inc%Saturation(PHASE_GAS) = 1.d0 - Slrk - eps
         inc%Saturation(PHASE_WATER) = Slrk + eps
-
-        Cag = MIN(MAX(inc%Comp(1,PHASE_GAS),0.d0),1.d0)
-        inc%Comp(1,PHASE_GAS) = Cag
-        inc%Comp(2,PHASE_GAS) = 1 - Cag
       ENDIF
+      Cag = MIN(MAX(inc%Comp(1,PHASE_GAS),0.d0),1.d0)
+      inc%Comp(1,PHASE_GAS) = Cag
+      inc%Comp(2,PHASE_GAS) = 1.d0 - Cag
+
       Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
       inc%Comp(1,PHASE_WATER) = Cal
-      inc%Comp(2,PHASE_WATER) = 1 - Cal
+      inc%Comp(2,PHASE_WATER) = 1.d0 - Cal
     ELSE
       PRINT*, "Error in Flash: no such context"
       PRINT*, "only gas in porous medium"
