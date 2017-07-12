@@ -74,7 +74,7 @@ module DefModel
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
-  integer, parameter :: pschoice = 1
+  integer, parameter :: pschoice = 3
 
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
@@ -104,7 +104,7 @@ module DefModel
   ! aligmethod=2, inverse diagnal
   !     it is necessary to define aligmat formally for compile
 
-  integer, parameter :: aligmethod = 1
+  integer, parameter :: aligmethod = 2
 
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
@@ -163,18 +163,18 @@ module DefModel
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter :: NewtonIncreObj_P = 2.d5
-  double precision, parameter :: NewtonIncreObj_T = 20.d0
+  double precision, parameter :: NewtonIncreObj_P = 1.d6
+  double precision, parameter :: NewtonIncreObj_T = 10.d0
   double precision, parameter :: NewtonIncreObj_C = 0.2d0
-  double precision, parameter :: NewtonIncreObj_S = 0.2d0
+  double precision, parameter :: NewtonIncreObj_S = 0.1d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
-  double precision, parameter :: TimeStepObj_P = 5.d6
-  double precision, parameter :: TimeStepObj_T = 40.d0
-  double precision, parameter :: TimeStepObj_C = 0.9d0
-  double precision, parameter :: TimeStepObj_S = 0.9d0
+  double precision, parameter :: TimeStepObj_P = 2.d6
+  double precision, parameter :: TimeStepObj_T = 20.d0
+  double precision, parameter :: TimeStepObj_C = 0.4d0
+  double precision, parameter :: TimeStepObj_S = 0.2d0
 
 
   ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
@@ -228,7 +228,7 @@ contains
 
     double precision :: PSat, dTSat, Pc, DSPc(NbPhase)
     DOUBLE PRECISION :: RZetal
-    
+
     RZetal = 8.314d0 * 1000.d0 / 0.018d0
     
     IF(iph == PHASE_GAS)THEN
@@ -311,7 +311,7 @@ contains
     DOUBLE PRECISION, INTENT(OUT) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
     DOUBLE PRECISION :: Rgp
-    
+
     Rgp = 8.314d0
 
     IF(iph==PHASE_GAS)THEN
@@ -578,18 +578,31 @@ contains
     ! output
     double precision, intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    double precision :: a,b,cc,d,T0,ss
-    double precision :: m
+    double precision :: a,b,cc,d,Ts,T0,ss,cp
+    double precision :: H2O_m, air_m, m
 
     IF(iph==PHASE_GAS)THEN
-      CALL f_CpGaz(cc)
-      CALL air_MasseMolaire(m)
+      a = 1990.89d+3
+      b = 190.16d+3
+      cc = -1.91264d+3
+      d = 0.2997d+3
 
-      f = cc * m * T
+      Ts = T/100.d0 
+
+      ss = a + b*Ts + cc*Ts**2 + d*Ts**3
+
+      CALL H2O_MasseMolaire(H2O_m)
+
+      CALL f_CpGaz(cp)
+      CALL air_MasseMolaire(air_m)
+
+      f = C(1)*cp*air_m*T + C(2)*ss*H2O_m
+
+!      CALL f_DensiteMolaire(iph,P,T,C,S,zeta,dPf,dTf,dCf,dSf)
 
       dPf = 0.d0
-      dTf =  cc * m
-      dCf = 0.d0
+      dTf = C(1)*cp*air_m + C(2)*H2O_m*(b + 2*cc*Ts + 3*d*Ts**2)/100
+      dCf = (/  cp*air_m*T, ss*H2O_m /)
       dSf = 0.d0
     ELSE
       a = -14.4319d+3
@@ -623,7 +636,7 @@ contains
   END SUBROUTINE
 
 #endif
-  
+
   !> \brief User set permeability
   !!
   !! \param[in] NbCellG,NbFracG Global number of cell and fracture face
@@ -638,9 +651,9 @@ contains
     integer, dimension(:), intent(in) :: IdCellG
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-        PermCellG
+      PermCellG
     double precision, dimension(:), allocatable, intent(inout) :: &
-        PermFracG
+      PermFracG
 
     integer :: i
 
@@ -655,7 +668,7 @@ contains
 
     allocate(PermFracG(NbFaceG))
     PermFracG(:) = 1.d-11
-    
+
   end subroutine DefModel_SetPerm
 
 
@@ -670,9 +683,9 @@ contains
 
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-        CondThermalCellLocal
+      CondThermalCellLocal
     double precision, dimension(:), allocatable, intent(inout) :: &
-        CondThermalFracLocal
+      CondThermalFracLocal
 
     integer :: i
 

@@ -131,6 +131,12 @@ subroutine IncCV_SetDirBCValue
         IncNodeDirBC(i)%ic = icPor
         IncNodeDirBC(i)%Pression = PPor
         IncNodeDirBC(i)%Saturation(PHASE_GAS) = SgPor
+        IncNodeDirBC(i)%Saturation(PHASE_WATER) = SlPor
+        IncNodeDirBC(i)%Temperature = TPor
+        IncNodeDirBC(i)%Comp(1,PHASE_GAS) = CagPor
+        IncNodeDirBC(i)%Comp(2,PHASE_GAS) = CegPor
+        IncNodeDirBC(i)%Comp(1,PHASE_WATER) = CalPor
+        IncNodeDirBC(i)%Comp(2,PHASE_WATER) = CelPor
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
         end if

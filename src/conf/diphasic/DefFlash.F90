@@ -275,7 +275,7 @@ contains
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
-      IF(PgCag + PgCeg > Pg)THEN
+      IF(PgCag + PgCeg >= Pg)THEN
         inc%ic = 3
         inc%Saturation(PHASE_GAS) = 0.d0
         inc%Saturation(PHASE_WATER) = 1.d0
