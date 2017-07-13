@@ -156,8 +156,8 @@ module GlobalMesh
        GlobalMesh_CellbyFaceGlobal,     & ! make CellbyFace
        GlobalMesh_NodeOfFrac,           & ! IdNode()%Frac
        GlobalMesh_FracbyNode,           & ! Make FracbyNode for Well Index
-       GlobalMesh_WellConnectivity        ! NodebyWell and NodeDatabyWell
-
+       GlobalMesh_WellConnectivity,     & ! NodebyWell and NodeDatabyWell
+	   GlobalMesh_create_mesh
 
 contains
 
@@ -1379,5 +1379,147 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
     
   end subroutine GlobalMesh_WellConnectivity
+
+       subroutine fill_CSR(ptr, indices, csrdata, c_indexing)
+
+          integer(c_int), dimension(:), intent(in) :: ptr
+          integer(c_int), dimension(:), intent(in) :: indices
+		  type(CSR), intent(inout) :: csrdata
+          logical, optional, intent(in) :: c_indexing
+          integer :: n
+
+          n = size(ptr) - 1
+          csrdata%Nb = n
+          if (allocated(csrdata%Pt)) deallocate (csrdata%Pt)
+          allocate (csrdata%Pt(n + 1))
+          csrdata%Pt = ptr
+          if (allocated(csrdata%Num)) deallocate (csrdata%Num)
+          allocate (csrdata%Num(ptr(n + 1)))
+		  if(present(c_indexing).and.c_indexing) then
+			  csrdata%Num = indices + 1
+		  else
+			  csrdata%Num = indices
+		  end if
+		  if (allocated(csrdata%Val)) deallocate (csrdata%Val)
+		  ! CHECKME: val is NOT reallocated... should use COC strtucture here
+
+	   end subroutine fill_CSR
+
+	   ! CHECKME/IMPROVE: data is copied... should work with C structures ?!
+       subroutine GlobalMesh_create_mesh(nodes, &
+                                     cell_faces_ptr, cell_faces_val, &
+                                     cell_nodes_ptr, cell_nodes_val, &
+                                     face_nodes_ptr, face_nodes_val, &
+                                     cell_id, face_id, & 
+		                             c_indexing)
+
+          real(c_double), dimension(:, :), intent(in) :: nodes
+          integer(c_int), dimension(:), intent(in) :: cell_faces_ptr
+          integer(c_int), dimension(:), intent(in) :: cell_faces_val
+          integer(c_int), dimension(:), intent(in) :: cell_nodes_ptr
+          integer(c_int), dimension(:), intent(in) :: cell_nodes_val
+          integer(c_int), dimension(:), intent(in) :: face_nodes_ptr
+          integer(c_int), dimension(:), intent(in) :: face_nodes_val
+          integer(c_int), dimension(:), intent(in) :: cell_id
+          integer(c_int), dimension(:), intent(in) :: face_id
+          logical, optional, intent(in) :: c_indexing
+		  logical :: check, use_c_indexing
+          integer :: Ierr, errcode ! used for MPI_Abort
+		  
+          NbNode = size(nodes, 2)
+          NbCell = size(cell_id)
+          NbFace = size(face_id)
+
+		  check = .True.
+		  if(size(nodes, 1)/=3) check = .False.
+		  if(size(cell_faces_ptr)/=NbCell+1) check = .False.
+		  if(size(cell_faces_val)/=cell_faces_ptr(NbCell+1)) check = .False.
+		  if(size(cell_nodes_ptr)/=NbCell+1) check = .False.
+		  if(size(cell_nodes_val)/=cell_nodes_ptr(NbCell+1)) check = .False.
+		  if(size(face_nodes_ptr)/=NbFace+1) check = .False.
+		  if(size(face_nodes_val)/=face_nodes_ptr(NbFace+1)) check = .False.
+		  if(.not.check) then
+			  write(*,*) 'Unconsistent mesh data!'
+			  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)			  
+		  end if
+		  
+		  if(allocated(XNode)) deallocate(XNode)
+          allocate (XNode(3, NbNode))
+          XNode = nodes
+
+		  use_c_indexing = present(c_indexing).and.c_indexing
+          call fill_csr(cell_faces_ptr, cell_faces_val, FacebyCell, use_c_indexing)
+          call fill_csr(cell_nodes_ptr, cell_nodes_val, NodebyCell, use_c_indexing)
+          call fill_csr(face_nodes_ptr, face_nodes_val, NodebyFace, use_c_indexing)
+
+		  if(allocated(IdCell)) deallocate(IdCell)
+          allocate (IdCell(NbCell))
+		  IdCell = cell_id
+		  
+		  if(allocated(IdFace)) deallocate(IdFace)
+          allocate (IdFace(NbFace))
+		  IdFace = face_id
+		  
+          !! Number of injection wells
+          !read (16, '(a1)') lignevide
+          !read (16, *) NbWellInj
+		  NbWellInj = 0 ! FIXME !
+          if(allocated(NbEdgebyWellInj)) deallocate(NbEdgebyWellInj)
+		  !allocate (NbEdgebyWellInj(NbWellInj))
+          !
+          !! Edges / Wells - counting, 1st step
+          !do i = 1, NbWellInj
+          !   read (16, '(a1)') lignevide
+          !   read (16, *) NbEdgebyWellInj(i)
+          !   do j = 1, NbEdgebyWellInj(i)
+          !      read (16, '(a1)') lignevide
+          !   end do
+          !end do
+          !NbEdgesMaxInj = maxval(NbEdgebyWellInj)
+          !
+          !! Number of production wells
+          !read (16, '(a1)') lignevide
+          !read (16, *) NbWellProd
+		  NbWellProd = 0 ! FIXME !
+          if(allocated(NbEdgebyWellProd)) deallocate(NbEdgebyWellProd)
+          !allocate (NbEdgebyWellProd(NbWellProd))
+          !
+          !! Edges / Wells - counting, 1st step
+          !do i = 1, NbWellProd
+          !   read (16, '(a1)') lignevide
+          !   read (16, *) NbEdgebyWellProd(i)
+          !   do j = 1, NbEdgebyWellProd(i)
+          !      read (16, '(a1)') lignevide
+          !   end do
+          !end do
+          !NbEdgesMaxProd = maxval(NbEdgebyWellProd)
+          !
+          !allocate (NumNodebyEdgebyWellInj(2, NbEdgesMaxInj, NbWellInj))
+          !allocate (NumNodebyEdgebyWellProd(2, NbEdgesMaxProd, NbWellProd))
+          !NumNodebyEdgebyWellInj = -1
+          !NumNodebyEdgebyWellProd = -1
+
+		  !! Edges / Wells - filling, step 2
+          !do i=1,NbWellInj
+          !   read(16,'(a1)') lignevide
+          !   read(16,'(a1)') lignevide
+          !   do j=1,NbEdgebyWellInj(i)
+          !      read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
+          !   enddo
+          !enddo
+          !
+          !read(16,'(a1)') lignevide
+          !read(16,'(a1)') lignevide
+          !
+          !! Edges / Wells - filling, step 2
+          !do i=1,NbWellProd
+          !   read(16,'(a1)') lignevide
+          !   read(16,'(a1)') lignevide
+          !   do j=1,NbEdgebyWellProd(i)
+          !      read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
+          !   enddo
+          !enddo
+
+		  end subroutine GlobalMesh_create_mesh
 
 end module GlobalMesh

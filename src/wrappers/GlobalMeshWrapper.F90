@@ -3,6 +3,7 @@
 
        use, intrinsic :: iso_c_binding
 
+       use CommonType
        use CommonTypesWrapper
        use CommonMPI
        use GlobalMesh
@@ -42,7 +43,8 @@
           GlobalMesh_NodeOfFrac_from_C, &
           GlobalMesh_SetDirBC_from_C, &
           GlobalMesh_FracbyNode_from_C, &
-          DefWell_make_compute_well_index_from_C
+          DefWell_make_compute_well_index_from_C, &
+          GlobalMesh_create_mesh_from_C
 
     contains
 
@@ -154,7 +156,7 @@
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(PermCell(1,1,1))
+          cpp_array%p = c_loc(PermCell(1, 1, 1))
           cpp_array%n = size(PermCell, 3)
 
        end subroutine retrieve_cell_permeability
@@ -338,6 +340,36 @@
              PermCell, PermFrac)
 
        end subroutine DefWell_make_compute_well_index_from_C
+
+       subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
+                                                nodes, &
+                                                cell_faces_ptr, cell_faces_val, &
+                                                cell_nodes_ptr, cell_nodes_val, &
+                                                face_nodes_ptr, face_nodes_val, &
+                                                cell_id, face_id) &
+          bind(C, name="GlobalMesh_create_mesh")
+
+          integer(c_int), value, intent(in) :: nbnodes
+          integer(c_int), value, intent(in) :: nbcells
+          integer(c_int), value, intent(in) :: nbfaces
+          real(c_double), dimension(3, nbnodes), intent(in) :: nodes
+          integer(c_int), dimension(nbcells + 1), intent(in) :: cell_faces_ptr
+          integer(c_int), dimension(cell_faces_ptr(nbcells + 1)), intent(in) :: cell_faces_val
+          integer(c_int), dimension(nbcells + 1), intent(in) :: cell_nodes_ptr
+          integer(c_int), dimension(cell_nodes_ptr(nbcells + 1)), intent(in) :: cell_nodes_val
+          integer(c_int), dimension(nbfaces + 1), intent(in) :: face_nodes_ptr
+          integer(c_int), dimension(face_nodes_ptr(nbfaces + 1)), intent(in) :: face_nodes_val
+          integer(c_int), dimension(nbcells), intent(in) :: cell_id
+          integer(c_int), dimension(nbfaces), intent(in) :: face_id
+
+          call GlobalMesh_create_mesh(nodes, &
+                                      cell_faces_ptr, cell_faces_val, &
+                                      cell_nodes_ptr, cell_nodes_val, &
+                                      face_nodes_ptr, face_nodes_val, &
+                                      cell_id, face_id, &
+                                      .true.)
+
+       end subroutine GlobalMesh_create_mesh_from_C
 
     end module GlobalMeshWrapper
 

@@ -1,18 +1,19 @@
 // Fortran functions
 extern "C"
 {
-  void GlobalMesh_build_cartesian_grid(double, double, double, double, double, double, int, int, int);
-  void GlobalMesh_make_post_read();
-  void GlobalMesh_make_post_read_fracture_and_dirBC();
-  void GlobalMesh_make_post_read_set_poroperm();
-  void GlobalMesh_make_post_read_well_connectivity_and_ip();
-  void GlobalMesh_mesh_bounding_box();
-  void GlobalMesh_compute_all_connectivies();
-  void GlobalMesh_set_frac();
-  void GlobalMesh_node_of_frac();
-  void GlobalMesh_set_dir_BC();
-  void GlobalMesh_frac_by_node();
-  void DefWell_make_compute_well_index();
+	void GlobalMesh_build_cartesian_grid(double, double, double, double, double, double, int, int, int);
+	void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
+	void GlobalMesh_make_post_read();
+	void GlobalMesh_make_post_read_fracture_and_dirBC();
+	void GlobalMesh_make_post_read_set_poroperm();
+	void GlobalMesh_make_post_read_well_connectivity_and_ip();
+	void GlobalMesh_mesh_bounding_box();
+	void GlobalMesh_compute_all_connectivies();
+	void GlobalMesh_set_frac();
+	void GlobalMesh_node_of_frac();
+	void GlobalMesh_set_dir_BC();
+	void GlobalMesh_frac_by_node();
+	void DefWell_make_compute_well_index();
 }
 
 #include "GlobalMesh_wrappers.h"
@@ -31,10 +32,10 @@ void add_GlobalMesh_wrappers(py::module& module)
 			origin_tuple[0].cast<double>(), origin_tuple[1].cast<double>(), origin_tuple[2].cast<double>(),
 			extent_tuple[0].cast<double>(), extent_tuple[1].cast<double>(), extent_tuple[2].cast<double>(),
 			shape_tuple[0].cast<int>(), shape_tuple[1].cast<int>(), shape_tuple[2].cast<int>()
-			);
+		);
 	},
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
-		"Build a cartesian grid. This routine must be called by the master process." );
+		"Build a cartesian grid. This routine must be called by the master process.");
 
 	// This is only transitory
 	module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");
