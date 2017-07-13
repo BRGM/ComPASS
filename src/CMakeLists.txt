@@ -149,6 +149,10 @@ set( WRAPPERS_SRCS
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   MeshSchema_wrappers.F90
+  meshtools.h
+  meshtools.cpp
+  meshtools-wrapper.h
+  meshtools-wrapper.cpp
   NN_wrappers.h
   NN_wrappers.cpp
   NN_wrappers.F90
@@ -238,16 +242,6 @@ foreach(_conf ${CONFIGURATIONS})
 			target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
 			target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
 			set(python_module_done TRUE)
-			pybind11_add_module(_MeshTools wrappers/meshtools-wrapper.cpp)
-			set_target_properties(_MeshTools
-				PROPERTIES
-				CXX_STANDARD 14
-				CXX_STANDARD_REQUIRED YES
-				CXX_EXTENSIONS NO
-				LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
-				LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
-				LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
-			)
         endif(NOT python_module_done)
     endif(DEF_Python_BINDINGS)
     

@@ -18,8 +18,17 @@ extern "C"
 
 #include "GlobalMesh_wrappers.h"
 
+#include "meshtools.h"
+#include "meshtools-wrapper.h"
+
+namespace MT = MeshTools;
+
 void add_GlobalMesh_wrappers(py::module& module)
 {
+
+	// add meshtools submodule
+	auto mesh_tools_module = module.def_submodule("_MeshTools", "MeshTools submodules.");
+	add_mesh_tools(mesh_tools_module);
 
 	module.def("build_grid",
 		[](py::object shape, py::object extent, py::object origin) {
@@ -36,6 +45,41 @@ void add_GlobalMesh_wrappers(py::module& module)
 	},
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
+
+	module.def("create_mesh",
+		[](const MT::TetMesh& mesh) { py::print(mesh); },
+		"Builds a mesh from vertices information."
+	);
+
+	//void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
+	//subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
+	//	nodes, &
+	//	cell_faces_ptr, cell_faces_val, &
+	//	cell_nodes_ptr, cell_nodes_val, &
+	//	face_nodes_ptr, face_nodes_val, &
+	//	cell_id, face_id) &
+	//	bind(C, name = "GlobalMesh_create_mesh")
+
+	//	integer(c_int), value, intent(in) ::nbnodes
+	//	integer(c_int), value, intent(in) ::nbcells
+	//	integer(c_int), value, intent(in) ::nbfaces
+	//	real(c_double), dimension(3, nbnodes), intent(in) ::nodes
+	//	integer(c_int), dimension(nbcells + 1), intent(in) ::cell_faces_ptr
+	//	integer(c_int), dimension(cell_faces_ptr(nbcells + 1)), intent(in) ::cell_faces_val
+	//	integer(c_int), dimension(nbcells + 1), intent(in) ::cell_nodes_ptr
+	//	integer(c_int), dimension(cell_nodes_ptr(nbcells + 1)), intent(in) ::cell_nodes_val
+	//	integer(c_int), dimension(nbfaces + 1), intent(in) ::face_nodes_ptr
+	//	integer(c_int), dimension(face_nodes_ptr(nbfaces + 1)), intent(in) ::face_nodes_val
+	//	integer(c_int), dimension(nbcells), intent(in) ::cell_id
+	//	integer(c_int), dimension(nbfaces), intent(in) ::face_id
+
+	//	call GlobalMesh_create_mesh(nodes, &
+	//		cell_faces_ptr, cell_faces_val, &
+	//		cell_nodes_ptr, cell_nodes_val, &
+	//		face_nodes_ptr, face_nodes_val, &
+	//		cell_id, face_id, &
+	//		.true.)
+
 
 	// This is only transitory
 	module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");

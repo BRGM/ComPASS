@@ -61,13 +61,6 @@ namespace MeshTools
 		static constexpr auto VTK_ID = VTK_ID_type{ 10 };
 	};
 
-	// FIXME: This is a bit redundant but gcc asks for both definition and declaration of static types
-	// cf. https://stackoverflow.com/questions/8016780/undefined-reference-to-static-constexpr-char
-	constexpr decltype(Vertex_info::facets) Vertex_info::facets;
-	constexpr decltype(Segment_info::facets) Segment_info::facets;
-	constexpr decltype(Triangle_info::facets) Triangle_info::facets;
-	constexpr decltype(Tetrahedron_info::facets) Tetrahedron_info::facets;
-
 	template <typename ElementType>
 	constexpr auto max_node_id()
 	{
@@ -442,11 +435,6 @@ namespace MeshTools
 	{
 		return Origin<T, dim>::build();
 	}
-
-	//// FIXME: This is a bit redundant but gcc asks for both definition and declaration of static types
-	//// cf. https://stackoverflow.com/questions/8016780/undefined-reference-to-static-constexpr-char
-	//constexpr decltype(Origin<double, 3>::value) Origin<double, 3>::value;
-
 
 	template <typename PointIterator>
 	auto compute_center(PointIterator first, PointIterator last) {

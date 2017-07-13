@@ -218,15 +218,9 @@ void add_mesh(py::module& module, const char *classname, const char *factoryname
 	module.def(factoryname, (decltype(&make_mesh<Mesh>)) &make_mesh<Mesh>);
 }
 
-PYBIND11_PLUGIN(_MeshTools)
+py::module& add_mesh_tools(py::module& module)
 {
-
-	py::module module("_MeshTools", "pybind11 transitory mesh tools (quick and dirty!!!)");
-
 	add_mesh<MT::TetMesh>(module, "TetMesh", "tetmesh");
-
 	module.def("idtype", []() { return py::dtype::of<ElementId>(); });
-
-	return module.ptr();
-
+	return module;
 }
