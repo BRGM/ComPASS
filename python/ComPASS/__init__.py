@@ -35,8 +35,10 @@ class Grid:
         self.extent = extent
         self.origin = origin
 
+# FIXME: grid is kept for backward compatibility, should be deprecated
+#        then mesh should not default to None and be explicitely provided
 def init(
-    meshfile=None, grid=None,
+    mesh=None, grid=None,
     wells = lambda: [],
     fracture_faces = lambda: None,
     cells_porosity = lambda: None,
@@ -49,16 +51,29 @@ def init(
     # FUTURE: This could be managed through a context manager ? 
     global initialized
     assert not initialized
-    assert meshfile is None or grid is None
-    if meshfile:
+    # FIXME: grid is kept for backward compatibility, should be deprecated
+    assert not (grid is None and mesh is None)
+    if grid is not None:
+        assert mesh is None
+        mesh = grid
+    if type(mesh) is str:
+        if not os.path.exists(mesh):
+            print('Mesh file (%s) not found!' % mesh)
         print('Loading mesh from file is not implemented here')
         # FIXME: This should be something like MPI.Abort()
-        sys.exit(-1)
-    else: 
+        sys.exit(-1) 
+    elif type(mesh) is Grid:
         ComPASS.init_warmup(runtime.logfile)
         if mpi.is_on_master_proc:
-            assert grid is not None
             ComPASS.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
+    elif type(mesh) is MeshTools.TetMesh:
+        ComPASS.init_warmup(runtime.logfile)
+        if mpi.is_on_master_proc:
+            ComPASS.create_mesh(mesh)
+    else:
+        print('Mesh type not understood!')
+        # FIXME: This should be something like MPI.Abort()
+        sys.exit(-1)
     if mpi.is_on_master_proc:
         well_list = list(wells())
         ComPASS.set_well_geometries(well_list)
@@ -66,10 +81,17 @@ def init(
         ComPASS.global_mesh_compute_all_connectivies()
         fractures = fracture_faces()
         if fractures is not None:
-            print("Youkaidi")
             set_fractures(fractures)
         ComPASS.global_mesh_node_of_frac()
-        ComPASS.global_mesh_set_dir_BC()
+        #ComPASS.global_mesh_set_dir_BC()
+        ComPASS.global_mesh_allocate_id_nodes()
+        dirichlet = set_dirichlet_nodes()
+        if dirichlet is not None:
+            info = np.rec.array(global_node_info(), copy=False)
+            for a in [info.pressure.view('c'), info.temperature.view('c')]:
+                a[:] = b'i'
+                a[dirichlet] = b'd'
+        ComPASS.global_mesh_count_dirichlet_nodes()
         ComPASS.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code
         ComPASS.global_mesh_make_post_read_set_poroperm()
@@ -91,12 +113,6 @@ def init(
                 # anyway assignement through the numpy.ndarray interface will fail
                 #assert fracperm.shape==tuple(np.count(fractures))
                 ComPASS.get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
-        dirichlet = set_dirichlet_nodes()
-        if dirichlet is not None:
-            info = np.rec.array(global_node_info(), copy=False)
-            for a in [info.pressure.view('c'), info.temperature.view('c')]:
-                a[:] = b'i'
-                a[dirichlet] = b'd'
         ComPASS.global_mesh_make_post_read_well_connectivity_and_ip()
         ComPASS.set_well_data(well_list)
         ComPASS.compute_well_indices()

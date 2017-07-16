@@ -2,7 +2,7 @@
 extern "C"
 {
 	void GlobalMesh_build_cartesian_grid(double, double, double, double, double, double, int, int, int);
-	void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
+	void GlobalMesh_create_mesh(int, int, int, const double[], const int[], const int[], const int[], const int[], const int[], const int[], const int[], const int[]);
 	void GlobalMesh_make_post_read();
 	void GlobalMesh_make_post_read_fracture_and_dirBC();
 	void GlobalMesh_make_post_read_set_poroperm();
@@ -14,6 +14,8 @@ extern "C"
 	void GlobalMesh_set_dir_BC();
 	void GlobalMesh_frac_by_node();
 	void DefWell_make_compute_well_index();
+	void GlobalMesh_allocate_id_nodes();
+	void GlobalMesh_count_dirichlet_nodes();
 }
 
 #include "GlobalMesh_wrappers.h"
@@ -23,11 +25,45 @@ extern "C"
 
 namespace MT = MeshTools;
 
+auto create_mesh(const MT::TetMesh& mesh)
+{
+	const auto& vertices = mesh.vertices;
+	const auto& cells = mesh.connectivity.cells;
+	const auto& faces = mesh.connectivity.faces;
+	const auto cellnodes = MT::FSCoC_as_COC(cells.nodes);
+	auto cellnodes_pointers = std::get<0>(cellnodes);
+	auto cellnodes_values = std::get<1>(cellnodes);
+	const auto cellfaces = MT::FSCoC_as_COC(cells.faces);
+	auto cellfaces_pointers = std::get<0>(cellfaces);
+	auto cellfaces_values = std::get<1>(cellfaces);
+	const auto facenodes = MT::FSCoC_as_COC(faces.nodes);
+	auto facenodes_pointers = std::get<0>(facenodes);
+	auto facenodes_values = std::get<1>(facenodes);
+	std::vector<int> cellids;
+	std::size_t n = cells.nb();
+	for (; n != 0; --n) {
+		cellids.emplace_back(0);
+	}
+	std::vector<int> faceids;
+	n = faces.nb();
+	for (; n != 0; --n) {
+		faceids.emplace_back(0);
+	}
+	GlobalMesh_create_mesh(
+		vertices.size(), cells.nb(), faces.nb(),
+		vertices.data()->data(),
+		cellfaces_pointers.data(), cellfaces_values,
+		cellnodes_pointers.data(), cellnodes_values,
+		facenodes_pointers.data(), facenodes_values,
+		cellids.data(), faceids.data()
+	);
+}
+
 void add_GlobalMesh_wrappers(py::module& module)
 {
 
 	// add meshtools submodule
-	auto mesh_tools_module = module.def_submodule("_MeshTools", "MeshTools submodules.");
+	auto mesh_tools_module = module.def_submodule("MeshTools", "MeshTools submodules.");
 	add_mesh_tools(mesh_tools_module);
 
 	module.def("build_grid",
@@ -46,8 +82,7 @@ void add_GlobalMesh_wrappers(py::module& module)
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
 
-	module.def("create_mesh",
-		[](const MT::TetMesh& mesh) { py::print(mesh); },
+	module.def("create_mesh", &create_mesh,
 		"Builds a mesh from vertices information."
 	);
 
@@ -90,8 +125,10 @@ void add_GlobalMesh_wrappers(py::module& module)
 	module.def("global_mesh_compute_all_connectivies", &GlobalMesh_compute_all_connectivies);
 	module.def("global_mesh_set_frac", &GlobalMesh_set_frac);
 	module.def("global_mesh_node_of_frac", &GlobalMesh_node_of_frac);
-	module.def("global_mesh_set_dir_BC", &GlobalMesh_set_dir_BC);
+	//module.def("global_mesh_set_dir_BC", &GlobalMesh_set_dir_BC);
 	module.def("global_mesh_frac_by_node", &GlobalMesh_frac_by_node);
+	module.def("global_mesh_allocate_id_nodes", &GlobalMesh_allocate_id_nodes);
+	module.def("global_mesh_count_dirichlet_nodes", &GlobalMesh_count_dirichlet_nodes);
 
 	module.def("compute_well_indices", &DefWell_make_compute_well_index, "Compute all well indices.");
 

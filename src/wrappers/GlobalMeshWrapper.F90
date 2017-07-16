@@ -23,6 +23,8 @@
        end type cpp_MeshConnectivity
 
        public :: &
+          GlobalMesh_allocate_id_nodes, &
+          GlobalMesh_count_dirichlet_nodes, &
           check_mesh_allocation, &
           retrieve_global_vertices, &
           retrieve_id_faces, &
@@ -48,7 +50,35 @@
 
     contains
 
-       subroutine retrieve_global_vertices(cpp_array) &
+    subroutine GlobalMesh_allocate_id_nodes() &
+        bind(C, name="GlobalMesh_allocate_id_nodes")
+    
+    if(allocated(Idnode)) then
+        deallocate(IdNode)
+    end if
+    allocate(IdNode(NbNode))
+ 
+        end subroutine GlobalMesh_allocate_id_nodes
+
+    subroutine GlobalMesh_count_dirichlet_nodes() &
+        bind(C, name="GlobalMesh_count_dirichlet_nodes")
+
+    integer :: i
+
+    NbDirNodeP = 0
+#ifdef _THERMIQUE_
+    NbDirNodeT = 0
+#endif
+    do i=1, NbNode
+        if(IdNode(i)%P.eq."d") NbDirNodeP = NbDirNodeP + 1
+#ifdef _THERMIQUE_
+        if(IdNode(i)%T.eq."d") NbDirNodeT = NbDirNodeT + 1
+#endif
+    end do
+
+    end subroutine GlobalMesh_count_dirichlet_nodes
+
+    subroutine retrieve_global_vertices(cpp_array) &
           bind(C, name="retrieve_global_vertices")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array

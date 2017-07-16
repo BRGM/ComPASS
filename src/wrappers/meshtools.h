@@ -143,12 +143,27 @@ namespace MeshTools
 	template <typename T, ::std::size_t N>
 	using FSCoC = ::std::vector< ::std::array<T, N> >;
 
-	template <typename RowType, typename ColumnType, ::std::size_t N>
-	struct HomogeneousConnectivityTable :
-		FSCoC<NodeId, N> {
-		typedef RowType row_type;
-		typedef ColumnType col_type;
-	};
+	template <typename T, ::std::size_t N>
+	auto FSCoC_as_COC(const FSCoC<T,N>& fscoc)
+	{
+		std::vector<ElementId> pointers;
+		auto n = fscoc.size();
+		pointers.reserve(n + 1);
+		ElementId pos = 0;
+		pointers.emplace_back(pos);
+		for (; n != 0; --n) {
+			pos += N;
+			pointers.emplace_back(pos);
+		}
+		return std::make_tuple(pointers, fscoc.data()->data());
+	}
+
+	//template <typename RowType, typename ColumnType, ::std::size_t N>
+	//struct HomogeneousConnectivityTable :
+	//	FSCoC<NodeId, N> {
+	//	typedef RowType row_type;
+	//	typedef ColumnType col_type;
+	//};
 
 	//template <typename ElementType>
 	//struct LightweightHomogeneousMesh {

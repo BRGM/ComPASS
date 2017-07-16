@@ -29,7 +29,7 @@ module GlobalMesh
 #endif
 
   ! Mesh
-  integer, protected :: &
+  integer :: &
        NbCell, &  !< Total number of cells
        NbNode, &  !< Total number of nodes
        NbFace, &  !< Total number of faces
@@ -58,7 +58,7 @@ module GlobalMesh
        NumNodebyEdgebyWellProd   !< Oriented list of edge by production well (Id_parent Id_son)
 
 #ifdef _THERMIQUE_
-  integer, protected :: &
+  integer :: &
        NbDirNodeT    !< Total number of Dirichlet nodes Fourier
 #endif
 

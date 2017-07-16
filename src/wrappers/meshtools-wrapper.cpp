@@ -34,7 +34,7 @@ void set_mesh_cellnodes(Mesh& mesh,
 	constexpr auto nn = Element::nb_nodes();
 	auto& cellnodes = mesh.connectivity.cells.nodes;
 	typedef typename std::remove_reference<decltype(cellnodes)>::type::value_type CellNodes;
-	static_assert(std::tuple_size<CellNodes>::value==nn, "Inconsistent sizes.");
+	static_assert(std::tuple_size<CellNodes>::value == nn, "Inconsistent sizes.");
 	static_assert(sizeof(CellNodes) == nn * sizeof(ElementId), "Inconsistent sizes in memory.");
 	cells.attr("shape") = py::make_tuple(-1, nn);
 	auto raw = cells.unchecked<2>();
@@ -48,7 +48,7 @@ void set_mesh_cellnodes(Mesh& mesh,
 // FIXME: Returned type is mandatory for MSVC and decltype conversion in add_mesh
 template <typename Mesh>
 auto make_mesh(py::array_t<typename Mesh::Coordinate, py::array::c_style> vertices,
-				  IdArray cells) -> Mesh
+	IdArray cells) -> Mesh
 {
 	auto mesh = Mesh{};
 	set_mesh_vertices(mesh, vertices);
@@ -99,7 +99,7 @@ protected:
 public:
 	Range(Position p) :
 		first{ 0 },
-		last{ p } 
+		last{ p }
 	{}
 	Range(Position p1, Position p2) :
 		first{ p1 },
@@ -206,16 +206,44 @@ void add_mesh(py::module& module, const char *classname, const char *factoryname
 		.def("nb_vertices", [](const Mesh& mesh) { return mesh.vertices.size(); })
 		.def("nb_cells", [](const Mesh& mesh) { return mesh.connectivity.cells.nb(); })
 		.def("nb_faces", [](const Mesh& mesh) { return mesh.connectivity.faces.nb(); })
+		.def_property_readonly("vertices", [](const Mesh& mesh) {
+		constexpr auto dim = std::tuple_size<typename Mesh::Vertex>::value;
+		const auto& vertices = mesh.vertices;
+		return py::array_t<typename Mesh::Coordinate, py::array::c_style>{
+			{ vertices.size(), dim }, { dim * sizeof(typename Mesh::Coordinate), sizeof(typename Mesh::Coordinate) }, vertices.data()->data()
+		};
+	})
+		.def_property_readonly("cellfaces", [](const Mesh& mesh) {
+		constexpr auto nf = Mesh::Element::nb_facets();
+		const auto& cells = mesh.connectivity.cells;
+		return py::array_t<ElementId, py::array::c_style>{
+			{ cells.nb(), nf }, { nf * sizeof(ElementId), sizeof(ElementId) }, cells.faces.data()->data()
+		};
+	})
+		.def_property_readonly("cellnodes", [](const Mesh& mesh) {
+		constexpr auto nn = Mesh::Element::nb_nodes();
+		const auto& cells = mesh.connectivity.cells;
+		return py::array_t<ElementId, py::array::c_style>{
+			{ cells.nb(), nn }, { nn * sizeof(ElementId), sizeof(ElementId) }, cells.nodes.data()->data()
+		};
+	})
+		.def_property_readonly("facenodes", [](const Mesh& mesh) {
+		constexpr auto nfn = Mesh::Element::nb_facet_nodes();
+		const auto& faces = mesh.connectivity.faces;
+		return py::array_t<ElementId, py::array::c_style>{
+			{ faces.nb(), nfn }, { nfn * sizeof(ElementId), sizeof(ElementId) }, faces.nodes.data()->data()
+		};
+	})
 		//.def("cell_centers", py::overload_cast<const Mesh&, IdArray>(&cell_centers<Mesh>))
 		//.def("cell_centers", py::overload_cast<const Mesh&>(&all_cell_centers<Mesh>))
 		//.def("face_centers", py::overload_cast<const Mesh&, IdArray>(&face_centers<Mesh>))
 		//.def("face_centers", py::overload_cast<const Mesh&>(&all_face_centers<Mesh>))
-		.def("cell_centers", (decltype(&cell_centers<Mesh>)) &cell_centers<Mesh>)
-		.def("all_cell_centers", (decltype(&all_cell_centers<Mesh>)) &all_cell_centers<Mesh>)
-		.def("face_centers", (decltype(&face_centers<Mesh>)) &face_centers<Mesh>)
-		.def("all_face_centers", (decltype(&all_face_centers<Mesh>)) &all_face_centers<Mesh>)
-		.def("faces_ids", (decltype(&faces_ids<Mesh>)) &faces_ids<Mesh>);
-	module.def(factoryname, (decltype(&make_mesh<Mesh>)) &make_mesh<Mesh>);
+		.def("cell_centers", (decltype(&cell_centers<Mesh>))&cell_centers<Mesh>)
+		.def("all_cell_centers", (decltype(&all_cell_centers<Mesh>))&all_cell_centers<Mesh>)
+		.def("face_centers", (decltype(&face_centers<Mesh>))&face_centers<Mesh>)
+		.def("all_face_centers", (decltype(&all_face_centers<Mesh>))&all_face_centers<Mesh>)
+		.def("faces_ids", (decltype(&faces_ids<Mesh>))&faces_ids<Mesh>);
+	module.def(factoryname, (decltype(&make_mesh<Mesh>))&make_mesh<Mesh>);
 }
 
 py::module& add_mesh_tools(py::module& module)
