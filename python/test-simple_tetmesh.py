@@ -26,8 +26,9 @@ def select_dirichlet_nodes():
     return on_top
 
 def set_boundary_conditions():
-    dirichlet.p[topo_nodes] = 1E5
-    dirichlet.T[topo_nodes] = 30 + 273.15 
+    dirichlet = ComPASS.dirichlet_node_states()
+    dirichlet.p[topnodes] = 1E5
+    dirichlet.T[topnodes] = degC2K(30)
     dirichlet.context[:] = 2
     dirichlet.S[:] = [0, 1]
     dirichlet.C[:] = 1.
@@ -36,7 +37,7 @@ def set_initial_values():
     for state in [ComPASS.node_states(), ComPASS.fracture_states(), ComPASS.cell_states()]:
         state.context[:] = 2
         state.p[:] = 1E5
-        state.T[:] = 30 + 273.15 
+        state.T[:] = degC2K(30)
         state.S[:] = [0, 1]
         state.C[:] = 1.
 
@@ -50,4 +51,4 @@ set_boundary_conditions()
 set_initial_values()
 
 
-#standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 1E3 * year, output_frequency = 1E2 * year)

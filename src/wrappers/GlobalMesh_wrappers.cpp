@@ -16,6 +16,10 @@ extern "C"
 	void DefWell_make_compute_well_index();
 	void GlobalMesh_allocate_id_nodes();
 	void GlobalMesh_count_dirichlet_nodes();
+	void GlobalMesh_set_cartesian_mesh();
+	void GlobalMesh_set_hexahedron_mesh();
+	void GlobalMesh_set_tetrahedron_mesh();
+	void GlobalMesh_set_wedge_mesh();
 }
 
 #include "GlobalMesh_wrappers.h"
@@ -129,6 +133,10 @@ void add_GlobalMesh_wrappers(py::module& module)
 	module.def("global_mesh_frac_by_node", &GlobalMesh_frac_by_node);
 	module.def("global_mesh_allocate_id_nodes", &GlobalMesh_allocate_id_nodes);
 	module.def("global_mesh_count_dirichlet_nodes", &GlobalMesh_count_dirichlet_nodes);
+	module.def("global_mesh_set_cartesian_mesh", &GlobalMesh_set_cartesian_mesh);
+	module.def("global_mesh_set_hexahedron_mesh", &GlobalMesh_set_hexahedron_mesh);
+	module.def("global_mesh_set_tetrahedron_mesh", &GlobalMesh_set_tetrahedron_mesh);
+	module.def("global_mesh_set_wedge_mesh", &GlobalMesh_set_wedge_mesh);
 
 	module.def("compute_well_indices", &DefWell_make_compute_well_index, "Compute all well indices.");
 

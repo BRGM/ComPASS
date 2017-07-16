@@ -64,10 +64,12 @@ def init(
         sys.exit(-1) 
     elif type(mesh) is Grid:
         ComPASS.init_warmup(runtime.logfile)
+        ComPASS.global_mesh_set_cartesian_mesh()
         if mpi.is_on_master_proc:
             ComPASS.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
     elif type(mesh) is MeshTools.TetMesh:
         ComPASS.init_warmup(runtime.logfile)
+        ComPASS.global_mesh_set_tetrahedron_mesh()
         if mpi.is_on_master_proc:
             ComPASS.create_mesh(mesh)
     else:
