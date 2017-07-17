@@ -27,6 +27,7 @@
           GlobalMesh_count_dirichlet_nodes, &
           check_mesh_allocation, &
           retrieve_global_vertices, &
+          retrieve_global_nodeflags, &
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
@@ -106,6 +107,31 @@
           cpp_array%n = size(XNode, 2)
 
        end subroutine retrieve_global_vertices
+
+    subroutine retrieve_global_nodeflags(cpp_array) &
+          bind(C, name="retrieve_global_nodeflags")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(NodeFlags)) then
+             print *, "Node flags are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(NodeFlags(1))
+          cpp_array%n = size(NodeFlags)
+
+       end subroutine retrieve_global_nodeflags
 
        subroutine retrieve_id_faces(cpp_array) &
           bind(C, name="retrieve_id_faces")

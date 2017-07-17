@@ -46,7 +46,8 @@ def init(
     cells_permeability = lambda: None,
     faces_permeability = lambda: None,
     fractures_permeability = lambda: None,
-    set_dirichlet_nodes = lambda: None
+    set_dirichlet_nodes = lambda: None,
+    set_node_flags = None
 ):
     # FUTURE: This could be managed through a context manager ? 
     global initialized
@@ -76,6 +77,9 @@ def init(
         print('Mesh type not understood!')
         # FIXME: This should be something like MPI.Abort()
         sys.exit(-1)
+    if mpi.is_on_master_proc and set_node_flags is not None:
+        assert callable(set_node_flags)
+        set_node_flags()
     if mpi.is_on_master_proc:
         well_list = list(wells())
         ComPASS.set_well_geometries(well_list)
