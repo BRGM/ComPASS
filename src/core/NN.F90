@@ -858,11 +858,11 @@ subroutine NN_init_phase2(OutputDir)
             ! compute Residu
             call Residu_compute(Delta_t, NewtonIter)
 
-            ! if(commRank==1) then
+           !  if(commRank==1) then
             !    ! print*, ResiduNode
             !    ! print*, ResiduCell
             !    ! print*, ResiduWellInj
-            ! end if
+           !  end if
 
             ! write(*,*) ""
             ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
