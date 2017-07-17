@@ -31,7 +31,7 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
   
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
@@ -69,25 +69,34 @@ module DefModel
 
   ! pschoice=1: manually
   !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
+  !
+  ! WARNING 
+  ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
+  ! P est forcement primaire et en numero 1 
+  ! Si T est primaire elle doit etre en numero 2 
+  
   ! pschoice=2: Glouton method
   !     the matrix psprim and pssecd are defined formally for compile
+  
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
-  integer, parameter :: pschoice = 3
+  integer, parameter :: pschoice = 1
 
+
+  
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
-      1, 2, 4, & ! ic=1
-      1, 2, 3, & ! ic=2
-      1, 7, 5  & ! ic=3
+      1, 2, 3, & ! ic=1
+      1, 2, 4, & ! ic=2
+      1, 2, 7  & ! ic=3
       /), (/ NbIncPTCSPrimMax, NbContexte /))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
-       3, 0, 0, 0, & ! ic=1
-       4, 0, 0, 0, & ! ic=2
-       2, 3, 4, 6  & ! ic=3
+       4, 0, 0, 0, & ! ic=1
+       3, 0, 0, 0, & ! ic=2
+       3, 4, 5, 6  & ! ic=3
        /), (/ NbIncPTCSecondMax, NbContexte/))
 
   ! ! ****** Alignment method ****** ! !
@@ -104,20 +113,20 @@ module DefModel
   ! aligmethod=2, inverse diagnal
   !     it is necessary to define aligmat formally for compile
 
-  integer, parameter :: aligmethod = 2
+  integer, parameter :: aligmethod = 1
 
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
        aligmat = RESHAPE( (/ &
        1.d0, 1.d0, 0.d0, & ! ic=1
        0.d0, 0.d0, 1.d0, &
-       0.d0, 1.d0, 0.d0, &
+       1.d0, 0.d0, 0.d0, &
        1.d0, 1.d0, 0.d0, & ! ic=2
        0.d0, 0.d0, 1.d0, &
-       1.d0, 0.d0, 0.d0, &
+       0.d0, 1.d0, 0.d0, &
        1.d0, 1.d0, 0.d0, & ! ic=3
        0.d0, 0.d0, 1.d0, &
-       1.d0, 0.d0, 0.d0  &
+       0.d0, 1.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
 
 
@@ -142,39 +151,39 @@ module DefModel
 
   ! time step init and max 
   ! FIXME: parameter is removed to assign variable from python
-  double precision :: TimeFinal =  200 * OneYear
+  double precision :: TimeFinal =  200*OneYear
 
-  double precision, parameter :: TimeStepInit = OneSecond
-  double precision, parameter :: TimeStepMax1 = 200 * OneYear
+  double precision, parameter :: TimeStepInit = OneSecond*1000
+  double precision, parameter :: TimeStepMax1 = OneYear
 
   ! output_frequency for visu
   double precision, parameter :: output_frequency = OneSecond
 
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
-  integer, parameter :: NewtonNiterMax = 40
+  integer, parameter :: NewtonNiterMax = 80
   double precision, parameter :: NewtonTol = 1.d-7
 
 
   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
   integer, parameter :: KspNiterMax = 150        ! max nb of iterations
-  double precision, parameter :: KspTol = 1.d-12  ! tolerance
+  double precision, parameter :: KspTol = 1.d-7 ! tolerance
 
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter :: NewtonIncreObj_P = 1.d6
+  double precision, parameter :: NewtonIncreObj_P = 1.d+5
   double precision, parameter :: NewtonIncreObj_T = 10.d0
-  double precision, parameter :: NewtonIncreObj_C = 0.2d0
-  double precision, parameter :: NewtonIncreObj_S = 0.1d0
+  double precision, parameter :: NewtonIncreObj_C = 1.d0
+  double precision, parameter :: NewtonIncreObj_S = 0.2d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
 
   double precision, parameter :: TimeStepObj_P = 2.d6
   double precision, parameter :: TimeStepObj_T = 20.d0
-  double precision, parameter :: TimeStepObj_C = 0.4d0
-  double precision, parameter :: TimeStepObj_S = 0.2d0
+  double precision, parameter :: TimeStepObj_C = 1.d0
+  double precision, parameter :: TimeStepObj_S = 1.d0
 
 
   ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
@@ -269,13 +278,16 @@ contains
      DOUBLE PRECISION :: H1
      DOUBLE PRECISION :: H2
 
-     T1 = 293.d0
-     T2 = 353.d0
+  !   T1 = 293.d0
+  !   T2 = 353.d0
 
-     H1 = 6.d+9
-     H2 = 10.d+9
+  !   H1 = 6.d+9
+  !   H2 = 10.d+9
 
-     H = H1 + (H2-H1)*(T-T1)/(T2-T1)
+  !   H = H1 + (H2-H1)*(T-T1)/(T2-T1)
+
+     H = 1.d+8
+     
    END SUBROUTINE
 
 
@@ -288,13 +300,16 @@ contains
      DOUBLE PRECISION :: H1
      DOUBLE PRECISION :: H2
 
-     T1 = 293.d0
-     T2 = 353.d0
+!     T1 = 293.d0
+!     T2 = 353.d0
 
-     H1 = 6.d+9
-     H2 = 10.d+9
+!     H1 = 6.d+9
+!     H2 = 10.d+9
 
-     H_dt = (H2-H1)/(T2-T1)
+!     H_dt = (H2-H1)/(T2-T1)
+
+     H_dt = 0.d0
+     
    END SUBROUTINE
 
 
@@ -316,11 +331,17 @@ contains
 
     IF(iph==PHASE_GAS)THEN
       f = P/(Rgp*T)
-
       dPf = 1/(Rgp*T)
       dTf = -P/Rgp/T**2
       dCf = 0.d0
       dSf = 0.d0
+
+!      f = 1.d+5/(Rgp*300.d0)
+!      dPf = 0.d0
+!      dTf = 0.d0 
+!      dCf = 0.d0
+!      dSf = 0.d0
+      
     ELSE
       f = 1000.d0/0.018d0
 
@@ -407,6 +428,75 @@ contains
     dSf = 0.d0
 
   end subroutine f_Viscosite
+
+
+!!$  ! Permeabilites = S**2
+!!$  ! iph is an identificator for each phase: 
+!!$  ! PHASE_GAS = 1; PHASE_WATER = 2
+!!$  subroutine f_PermRel(iph,S,f,DSf)
+!!$
+!!$    ! input
+!!$    integer, intent(in) :: iph
+!!$    double precision, intent(in) :: S(NbPhase)
+!!$
+!!$    ! output
+!!$    double precision, intent(out) :: f, DSf(NbPhase)
+!!$
+!!$
+!!$    dSf = 0.d0
+!!$      
+!!$    if (S(iph).le.0.d0) then
+!!$       f = 0.d0
+!!$       dSf(iph) = 0.d0
+!!$    else if (S(iph).ge.1.d0) then
+!!$       f = 1.d0
+!!$       dSf(iph) = 0.d0
+!!$    else
+!!$       f = S(iph)**2
+!!$       dSf(iph) = 2.d0*S(iph)
+!!$    endif
+!!$
+!!$   
+!!$  END SUBROUTINE f_PermRel
+!!$
+!!$
+!!$  ! Pressions Capillaires des Phases et leurs derivees
+!!$  subroutine f_PressionCapillaire(rocktype,iph,S,f,DSf)
+!!$
+!!$    ! input
+!!$    integer, intent(in) :: rocktype
+!!$    integer, intent(in) :: iph
+!!$    double precision, intent(in) :: S(NbPhase)
+!!$
+!!$    ! output
+!!$    double precision, intent(out) :: f, DSf(NbPhase)
+!!$
+!!$
+!!$    
+!!$    f = 0.d0 
+!!$    dSf = 0.d0
+!!$
+!!$
+!!$    if (iph.eq.2) then
+!!$       f = dlog(1.d0-S(1))*1.d+8
+!!$       dSf(1) = -1.d+8/(1.d0- S(1))
+!!$    endif
+!!$    
+!!$  END SUBROUTINE f_PressionCapillaire
+!!$
+!!$
+!!$  SUBROUTINE f_Sl(Pc,Sl)
+!!$
+!!$    DOUBLE PRECISION, INTENT(IN) :: Pc
+!!$    
+!!$    DOUBLE PRECISION, INTENT(OUT) :: Sl
+!!$
+!!$    ! Pc >= 0 ici (donc Pc = - Pc(2) ) 
+!!$
+!!$    Sl = dexp(-Pc/1.d+8)
+!!$    
+!!$  END SUBROUTINE
+!!$  
 
 
   ! Permeabilites = S**2
@@ -546,6 +636,7 @@ contains
     ENDIF   
   END SUBROUTINE
 
+  
 #ifdef _THERMIQUE_
 
   ! EnergieInterne
@@ -596,14 +687,25 @@ contains
       CALL f_CpGaz(cp)
       CALL air_MasseMolaire(air_m)
 
+!      f = 0.d0
+!      dPf = 0.d0
+!      dTf = 0.d0 
+!      dCf = 0.d0
+!      dSf = 0.d0
+
+!      f = ss*H2O_m
+!      dPf = 0.d0
+!      dTf = H2O_m*(b + 2.d0*cc*Ts + 3.d0*d*Ts**2)/100.d0
+!      dCf = 0.d0
+!      dSf = 0.d0     
+      
+
       f = C(1)*cp*air_m*T + C(2)*ss*H2O_m
-
-!      CALL f_DensiteMolaire(iph,P,T,C,S,zeta,dPf,dTf,dCf,dSf)
-
       dPf = 0.d0
-      dTf = C(1)*cp*air_m + C(2)*H2O_m*(b + 2*cc*Ts + 3*d*Ts**2)/100
+      dTf = C(1)*cp*air_m + C(2)*H2O_m*(b + 2.d0*cc*Ts + 3.d0*d*Ts**2)/100.d0
       dCf = (/  cp*air_m*T, ss*H2O_m /)
       dSf = 0.d0
+      
     ELSE
       a = -14.4319d+3
       b = +4.70915d+3
@@ -612,17 +714,21 @@ contains
       T0 = 273.d0
 
       ss = a + b*(T-T0) + cc*(T-T0)**2 + d*(T-T0)**3
-
       CALL H2O_MasseMolaire(m)
-
-      f = ss * m
-
+      f = ss * m     
       ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
-
       dPf = 0.d0
       dTf = ss * m
       dCf = 0.d0
       dSf = 0.d0
+
+!      f = 0.d0
+!      dPf = 0.d0
+!      dTf = 0.d0
+!      dCf = 0.d0
+!      dSf = 0.d0
+
+      
     ENDIF
 
   end subroutine f_Enthalpie
@@ -708,8 +814,8 @@ contains
     double precision, intent(in) :: T
     double precision, intent(out) :: Psat, dT_PSat
 
-    Psat = 1.013E+5*exp(13.7d0 -5120.d0/T)
-    dT_PSat = 1.013d+5*5120.d0*exp(13.7d0 -5120.d0/T)/T**2 
+    Psat = 1.013E+5*dexp(13.7d0 -5120.d0/T)
+    dT_PSat = 5120.d0*Psat/T**2 
 
   end subroutine DefModel_Psat
 
@@ -720,8 +826,8 @@ contains
     double precision, intent(in) :: P
     double precision, intent(out) :: Tsat, dP_Tsat
 
-    Tsat = -5120.d0 / (13.7d0 - LOG(P/1.013E+5)) 
-    dP_Tsat = 1/P/1.013E+5 * -5120.d0/(13.7d0 - LOG(P/1.013E+5))**2 
+    Tsat = -5120.d0 / (13.7d0 - DLOG(P/1.013E+5)) 
+    dP_Tsat = - 5120.d0/P/(13.7d0 - DLOG(P/1.013E+5))**2 
 
   end subroutine DefModel_Tsat
 

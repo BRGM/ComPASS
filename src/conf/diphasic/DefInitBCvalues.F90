@@ -29,10 +29,11 @@ subroutine IncCV_SetDirBCValue
   double precision :: PcGal, PgGal, PGal
   double precision :: TGal
   double precision :: HurGal
-  double precision :: PsatGal, dT_PSatGal
+  double precision :: PsatGal, dT_PSatGal,Psatt
   double precision :: CegGal, CagGal
   double precision :: CelGal, CalGal
   double precision :: SlGal, SgGal
+  double precision :: SGal(NbPhase)  
   double precision :: RZetal
   double precision :: DSf(NbPhase)
   double precision :: Ha
@@ -42,10 +43,10 @@ subroutine IncCV_SetDirBCValue
 
   icPor = 2
 
-  PlPor = 40.0d+5
+  PlPor = 4.0d+6
   SgPor = 0.d0
   SlPor = 1.d0
-  TPor = 333.d0
+  TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
   CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
@@ -88,10 +89,25 @@ subroutine IncCV_SetDirBCValue
 
   icGal=3
 
+!  PgGal = 1.d5
+!  TGal = 303.d0
+!  SlGal = 0.5d0 
+!  SgGal = 1 - SlGal  
+!  PGal = PgGal
+!  SGal = (/ SgGal, SlGal /)
+!  CALL f_PressionCapillaire(rocktype,2,SGal,PcGal,DSf)   
+!  CALL DefModel_Psat(TGal, PsatGal, dT_PSatGal)
+!  RZetal = 8.314d0 * 1000.d0 / 0.018d0
+!  Psatt =  PsatGal*dexp(PcGal/RZetal / TGal)  
+!  CALL air_henry(TGal,Ha)
+!  CelGal = (Ha-PgGal)/(Ha-Psatt)
+!  CalGal = 1.d0 - CelGal
+!  CagGal = Ha*CalGal/PgGal
+!  CegGal = 1.d0 - CagGal
+
   PgGal = 1.d5
   TGal = 303.d0
   HurGal = 0.5d0
-
   PGal = PgGal
 
   CALL DefModel_Psat(TGal, PsatGal, dT_PSatGal)
@@ -109,6 +125,15 @@ subroutine IncCV_SetDirBCValue
   CALL f_Sl(PcGal,SlGal)
   SgGal = 1 - SlGal
 
+
+  write(*,*)' PgGal ',PgGal
+  write(*,*)' PcGal ',PcGal  
+  write(*,*)' TGal ',TGal
+  write(*,*)' Cg ',CagGal,CegGal
+  write(*,*)' Cl ',CalGal,CelGal
+  write(*,*)' Sg Sl ',SgGal,SlGal 
+ 
+  
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
     IF( IdNodeLocal(i)%P == "d") THEN

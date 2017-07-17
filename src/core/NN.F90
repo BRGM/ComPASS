@@ -345,7 +345,7 @@ subroutine NN_init_phase2(OutputDir)
 #endif
             write (j, *) "  Ncpus :      ", commSize
             write (j, *) ""
-            write (j, *) "Final time: ", TimeFinal/OneDay
+            write (j, *) "Final time: ", TimeFinal/OneSecond
             write (j, *) ""
          end do
 
@@ -862,11 +862,11 @@ subroutine NN_init_phase2(OutputDir)
             ! compute Residu
             call Residu_compute(Delta_t, NewtonIter)
 
-            ! if(commRank==1) then
-            !    ! print*, ResiduNode
-            !    ! print*, ResiduCell
-            !    ! print*, ResiduWellInj
-            ! end if
+           !  if(commRank==1) then
+           !      write(*,*)' res node ',ResiduNode
+           !      write(*,*)' res cell ',ResiduCell
+                ! print*, ResiduWellInj
+           !  end if
 
             ! write(*,*) ""
             ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
@@ -909,6 +909,7 @@ subroutine NN_init_phase2(OutputDir)
             !   outputs: JacA, Sm
             call Jacobian_ComputeJacSm(Delta_t)
 
+            
             ! set values of matrix, vector, Ksp solver
             !   inputs : JacA, Sm
             !   outputs : solver Petsc
@@ -1018,6 +1019,27 @@ subroutine NN_init_phase2(OutputDir)
                ! Flash
                call DefFlash_Flash
 
+
+!      do k=1, NbNodeLocal_Ncpus(commRank+1)
+!         write(*,*)' nodes '
+!         write(*,*)' ic ',k,IncNode(k)%ic         
+!         write(*,*)' P ',k,IncNode(k)%Pression
+!         write(*,*)' T ',k,IncNode(k)%Temperature
+!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
+!      ENDDO
+
+!      do k=1, NbCellLocal_Ncpus(commRank+1)
+!         write(*,*)' cells '
+!         write(*,*)' ic ',k,IncCell(k)%ic         
+!         write(*,*)' P ',k,IncCell(k)%Pression
+!         write(*,*)' T ',k,IncCell(k)%Temperature
+!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
+!      ENDDO      
+               
                ! if(commRank==0) then
                !    ! print*, ""
                !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
@@ -1047,12 +1069,14 @@ subroutine NN_init_phase2(OutputDir)
                write (*, *) ""
                write (*, '(A)', advance="no") &
                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-               write (*, *) Delta_t/OneDay
+               write (*, *) Delta_t/OneSecond
 
                write (11, *) ""
                write (11, '(A)', advance="no") &
                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-               write (11, *) Delta_t/OneDay
+               write (11, *) Delta_t/OneSecond
+
+               
             end if
 
             ! load status
@@ -1076,7 +1100,28 @@ subroutine NN_init_phase2(OutputDir)
           PRINT*, 'TEMP', IncNode(k)%Temperature
         ENDIF
       ENDDO
-            
+
+
+!      do k=1, NbNodeLocal_Ncpus(commRank+1)
+!         write(*,*)' nodes '
+!         write(*,*)' ic ',k,IncNode(k)%ic         
+!         write(*,*)' P ',k,IncNode(k)%Pression
+!         write(*,*)' T ',k,IncNode(k)%Temperature
+!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
+!      ENDDO
+
+!      do k=1, NbCellLocal_Ncpus(commRank+1)
+!         write(*,*)' cells '
+!         write(*,*)' ic ',k,IncCell(k)%ic         
+!         write(*,*)' P ',k,IncCell(k)%Pression
+!         write(*,*)' T ',k,IncCell(k)%Temperature
+!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
+!      ENDDO      
+      
 
       ! FiXME: What is the policy for time step management
       ! compute Delta_t for the next time step
@@ -1104,7 +1149,7 @@ subroutine NN_init_phase2(OutputDir)
       end if
 #endif
 
-      do while (TimeCurrent < (TimeFinal + eps))
+      do while (TimeCurrent < (TimeFinal - eps))
 
          TimeIter = TimeIter + 1
 
@@ -1114,11 +1159,11 @@ subroutine NN_init_phase2(OutputDir)
                write (j, *) ""
                write (j, *) ""
                write (j, '(A,I0)') "Time Step: ", TimeIter
-               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay, "days", TimeCurrent/OneYear, "years"
+               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneSecond, "seconds"
 
                write (j, *)
                write (j, '(A)', advance="no") "   -- Initial time step: "
-               write (j, *) Delta_t/OneDay
+               write (j, *) Delta_t/OneSecond
             end do
          end if
 
@@ -1222,7 +1267,7 @@ subroutine NN_init_phase2(OutputDir)
             write (j, *) "Final Report"
 
             write (j, *) ""
-            write (j, *) "    *Final time:  ", TimeFinal/OneDay
+            write (j, *) "    *Final time:  ", TimeFinal/OneSecond
 
             write (j, *) ""
             write (j, *) "    *Mesh:"

@@ -228,6 +228,7 @@ contains
     ! cells
     do k=1, NbCellLocal_Ncpus(commRank+1)
        call IncCV_NewtonIncrement_reservoir(IncCell(k),NewtonIncreCell(:,k), relax)
+  !     write(*,*) ' increment cell ',k,NewtonIncreCell(:,k)
     end do
 
     ! injection wells (head Pressure)
@@ -421,6 +422,9 @@ contains
     ! increment Pressure
     inc%Pression = inc%Pression + relax * incre(1)
 
+
+!    write(*,*)' increment P ',relax,incre(1)
+    
 #ifdef _THERMIQUE_
 
     ! increment Temperature
