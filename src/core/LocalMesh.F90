@@ -152,6 +152,9 @@ module LocalMesh
   type(ARRAY2dble), dimension(:), allocatable, target, public :: &
        XNodeRes_Ncpus
 
+  type(ARRAY1Int), dimension(:), allocatable, target, public :: &
+       NodeFlags_Ncpus
+
   ! Porosite
   type(ARRAY1dble), dimension(:), allocatable, public :: &
        PorositeCell_Ncpus, &
@@ -310,6 +313,7 @@ contains
     allocate(WellProdbyNodeOwn_Ncpus(Ncpus))
 
     allocate(XNodeRes_Ncpus(Ncpus))
+    allocate(NodeFlags_Ncpus(Ncpus))
 
     ! local element by proc
     allocate(CellbyProc(Ncpus))
@@ -394,7 +398,7 @@ contains
        call LocalMesh_FracbyFracOwn(i)    ! FracbyFracOwn_Ncpus(ip1)
        
        ! X node
-       call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1)
+       call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1) and distribute node flags
 
        ! porosity
        call LocalMesh_Porosite(i)         ! porosity
@@ -1362,16 +1366,18 @@ contains
 
     ! tmp
     integer :: cpt, iv, k, numNodeRes
-
+    
     ip1 = ip + 1
-    allocate(XNodeRes_Ncpus(ip1)%Array2d(3,NbNodeResS_Ncpus(ip1)) )
-
+    allocate(XNodeRes_Ncpus(ip1)%Array2d(3,NbNodeResS_Ncpus(ip1)))
+    allocate(NodeFlags_Ncpus(ip1)%Val(NbNodeResS_Ncpus(ip1)))
+    
     cpt = 0
     do iv = 1,NodebyProc(ip1)%Nb
        do k= NodebyProc(ip1)%Pt(iv)+1,NodebyProc(ip1)%Pt(iv+1)
           numNodeRes = NodebyProc(ip1)%Num(k)
           cpt = cpt+1
           XNodeRes_Ncpus(ip1)%Array2d(:,cpt) = XNode(:,numNodeRes)
+          NodeFlags_Ncpus(ip1)%Val(cpt) = NodeFlags(numNodeRes)
        enddo
     enddo
 

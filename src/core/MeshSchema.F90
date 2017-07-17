@@ -55,7 +55,9 @@ module MeshSchema
   ! 3. X node
   double precision, allocatable, dimension(:,:), target :: &
        XNodeLocal
-
+  integer(c_int), allocatable, dimension(:), target :: &
+       NodeFlagsLocal
+  
   ! 4. IdCell/IdFace/IdNode
   integer, allocatable, dimension(:), protected :: &
        IdCellLocal, &
@@ -354,11 +356,28 @@ contains
        call MPI_Recv(XNodeLocal,  NbNodeLocal_Ncpus(commRank+1)*3, MPI_DOUBLE, 0, 21, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
+    ! Send node flags    
+    if (commRank==0) then
+
+       do i=1,Ncpus-1
+          call MPI_Send(NodeFlags_Ncpus(i+1)%Val, NbNodeLocal_Ncpus(i+1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
+       end do
+
+       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
+       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val
+       
+    else
+       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(commRank+1)))
+       call MPI_Recv(NodeFlagsLocal,  NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
     if(commRank==0) then
        do i=1, Ncpus
           deallocate(XNodeRes_Ncpus(i)%Array2d)
+          deallocate(NodeFlags_Ncpus(i)%Val)
        end do
        deallocate(XNodeRes_Ncpus)
+       deallocate(NodeFlags_Ncpus)
     end if
 
 
@@ -1405,6 +1424,7 @@ contains
     call CommonType_deallocCSR(NodebyFaceLocal)
 
     deallocate(XNodeLocal)
+    deallocate(NodeFlagsLocal)
 
     deallocate(IdCellLocal)
     deallocate(IdFaceLocal)

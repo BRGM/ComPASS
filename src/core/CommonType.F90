@@ -7,7 +7,7 @@ module CommonType
 
   !> Array 1d integer
   type ARRAY1Int
-    integer, allocatable, dimension(:) :: Val
+    integer(c_int), allocatable, dimension(:) :: Val
   end type ARRAY1Int
 
   !> Array 1d double precision

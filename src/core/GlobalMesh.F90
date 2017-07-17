@@ -74,6 +74,9 @@ module GlobalMesh
   real(kind=c_double), allocatable, dimension(:,:), protected, target :: &
        XNode      !< Global coordinates of nodes
 
+  integer(c_int), allocatable, dimension(:), target :: &
+       NodeFlags
+
   type(CSR), protected :: &
        FacebyCell, & !< CSR list of Faces surrounding each Cell
        NodebyFace    !< CSR list of Nodes surrounding each Face
