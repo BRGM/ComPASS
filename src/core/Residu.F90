@@ -166,7 +166,7 @@ contains
   subroutine Residu_AccVol
 
     integer :: k, m, mph, i, ic, icp
-    integer :: tmpAccVol(NbComp)
+    real(c_double) :: tmpAccVol(NbComp)
 
     ! Cell    
     do k=1, NbCellLocal_Ncpus(commRank+1)
