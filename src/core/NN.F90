@@ -324,7 +324,7 @@ end subroutine init_visualization
 subroutine NN_init_phase2(OutputDir)
 
       character(len=*), intent(in) :: OutputDir
-      logical                      :: ok, all_ok
+      logical                      :: ok
 
       if (commRank == 0) then
          do i = 1, size(fd)

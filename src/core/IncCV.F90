@@ -463,11 +463,9 @@ contains
          incremaxlocal_P, &
          incremaxlocal_T, &
          incremaxlocal_C(NbComp, NbPhase), &
-         incremaxlocal_S(NbPhase), &
-         relaxlocal
+         incremaxlocal_S(NbPhase)
 
-    integer :: k, i, ic, iph, icp, j, Ierr
-    integer :: NbIncPTC
+    integer :: Ierr
 
     incremaxlocal_P = 0.d0
 
@@ -762,7 +760,7 @@ contains
     double precision, dimension(:), intent(inout) :: &
          datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
 
-    integer :: k, i, j, start, n1, n2
+    integer :: k, i, j, start
     integer :: NbCellOwn, NbFracOwn
 
     NbCellOwn = NbCellOwn_Ncpus(commRank+1)

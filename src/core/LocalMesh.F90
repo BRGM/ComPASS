@@ -259,7 +259,7 @@ contains
   subroutine LocalMesh_Make
 
     ! tmp value
-    integer :: i, j
+    integer :: i
 
     ! local mesh info res(own+ghost)
     allocate(NbCellResS_Ncpus(Ncpus))
@@ -522,10 +522,8 @@ contains
     integer :: ip1 ! ip1 = ip + 1 ip=0,1,..., ip1 used for array
 
     ! tmp 
-    integer :: cellv, i, j, k, procCV
-    integer :: ind, ipf, kipf, kf, procf
-    integer :: numCellRes, numFaceRes, numNodeRes
-    integer :: cpt, iv, Vsize
+    integer :: cellv, j, k, procCV
+    integer :: iv
     integer :: nbProcVoisinCell
 
     integer, allocatable, dimension(:) :: &
@@ -576,7 +574,7 @@ contains
           do j=CellbyCell%Pt(k)+1,CellbyCell%Pt(k+1)
              cellv = CellbyCell%Num(j) 
              procCV = ProcbyCell(cellv)
-             if (procCV/=ip) then      	  	 	
+             if (procCV/=ip) then
                 if (colorCell(cellv)==-1) then
 
                    do iv =2,nbProcVoisinCell
@@ -608,7 +606,7 @@ contains
           do j=CellbyCell%Pt(k)+1,CellbyCell%Pt(k+1)
              cellv =  CellbyCell%Num(j)
              procCV = ProcbyCell(cellv)
-             if (procCV/=ip) then      	  	 	
+             if (procCV/=ip) then
                 if (colorCell(cellv)==-1) then
                    do iv = 2,nbProcVoisinCell
                       if (procCV==CellbyProc(ip1)%Val(iv)) then
@@ -1431,7 +1429,7 @@ contains
   subroutine LocalMesh_NodebyWellRes(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1, i, k, numWellRes, Vsize, cpt
+    integer :: ip1, k, numWellRes, Vsize, cpt
 
     ip1 = ip + 1
 
@@ -1825,7 +1823,7 @@ contains
   subroutine LocalMesh_NodeDatabyWellLocal(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1, Nb, nnz, k, cpt, Data_cpt, numWellRes, num_parent, i
+    integer :: ip1, Nb, nnz, k, cpt, Data_cpt, numWellRes, num_parent
 
     ip1 = ip + 1
 

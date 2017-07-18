@@ -118,8 +118,6 @@ contains
   ! compute Jacobian
   subroutine Jacobian_ComputeJacSm(Delta_t)
 
-    integer :: i, j, m, n
-    
     double precision, intent(in) :: Delta_t
     integer :: errcode, Ierr
 
@@ -605,10 +603,10 @@ contains
 
 #endif
 
-    integer :: k, s, nums, sf, r, numr, rf, i, numi, j, start
+    integer :: k, s, nums, sf, r, numr, rf, i, j
     integer :: rows, cols, colr, nz
-    integer :: m, mph, icp
-    integer :: NbNodeCell, NbFracCell, NbNodeFrac
+    integer :: m
+    integer :: NbNodeCell, NbFracCell
 
     integer :: rowK, colk, &                    ! row/col of cell k in JacBigA
          rowSR( NbNodeCellMax+NbFracCellMax), & ! rows (in JacBigA) of nodes/frac in cell k
@@ -1178,9 +1176,9 @@ contains
          rowSR( NbNodeFaceMax), & ! rows (in JacBigA) of nodes in frac k
          colSR( NbNodeFaceMax)    ! cols (in JacBigA) of nodes in frac k
 
-    integer :: k, s, nums, sf, r, numr, rf, fk, i, numi, j, start
+    integer :: k, s, nums, r, numr, fk, i, j
     integer :: rows, cols, colr, nz
-    integer :: m, mph, icp
+    integer :: m
     integer :: nbNodeFrac
 
     divK1(:,:) = 0.d0
@@ -1411,7 +1409,7 @@ contains
   subroutine Jacobian_JacBigA_BigSm_wellinj
 
     integer :: k, rowk, colk, s, nums, rows, cols, m, icp, nz
-    double precision :: Tws, Ps_Pws, Ts, WIDws, WIFws, Pwmax_Pw
+    double precision :: Tws, Ps_Pws, Ts, WIDws, WIFws
     double precision :: dP_w(NbComp), dP_s(NbComp), dP_ER_w, dP_ER_s
 
     do k=1, NbWellInjLocal_Ncpus(commRank+1)
@@ -1558,7 +1556,7 @@ contains
   subroutine Jacobian_JacBigA_BigSm_wellprod
 
     integer :: k, rowk, colk, s, nums, rows, cols, m, mph, n, icp, nz
-    double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, Pw_Pwmin, Ps_Pws
+    double precision :: Pws, Ps, WIDws, WIFws, Ps_Pws
     double precision :: &
          dP_w(NbComp), dP_s(NbCompThermique,NbComp), &
          dP_ER_w, der_ER_s(NbCompThermique)
@@ -2273,7 +2271,7 @@ contains
          Sm0 ( NbComp)
 
     ! tmp
-    integer :: m, mph, j, icp, r, numr, rf, fk
+    integer :: m, mph, j, icp, r, numr, fk
     integer :: NbNodeFrac
 
     divK(:,:) = 0.d0
@@ -2657,7 +2655,7 @@ contains
          SmEg
 
     ! tmp
-    integer :: m, mph, j, r, numr, rf, fk
+    integer :: m, mph, j, r, numr, fk
     integer :: NbNodeFrac
 
     divEgK(:) = 0.d0
@@ -3214,7 +3212,7 @@ contains
     integer :: NbNodeFrac
     logical :: Id_Qks(NbPhase)
 
-    integer :: r, numr, rf, j, m, mph, fk
+    integer :: r, numr, j, m, mph, fk
     double precision :: sum_aks, sum_aksgz
 
     divDarcyFlux_r(:,:,:) = 0.d0
@@ -4036,8 +4034,6 @@ contains
   subroutine Jacobian_Regularization
 
     integer :: k, rowk, colk
-    integer :: errcode, Ierr
-    double precision :: sumcol
 
     ! rows of node own
     do k=1, NbNodeOwn_Ncpus(commRank+1)
@@ -4210,8 +4206,6 @@ contains
     double precision, dimension(NbCompThermique) :: &
          Smk
 
-    integer :: j
-
     ! look for the diag: JacA(:,:,nz)
     do i=JacA%Pt(rowk)+1, JacA%Pt(rowk+1)
        if( JacA%Num(i)==colk) then
@@ -4287,7 +4281,7 @@ contains
   subroutine Jacobian_Alignment_man_row(k, rowk, ic)
 
     integer, intent(in) :: k, rowk, ic
-    integer :: i, nz
+    integer :: i
 
     double precision, dimension(NbCompThermique, NbCompThermique) :: &
          AA, BB
@@ -4553,7 +4547,7 @@ contains
     integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
 
-    integer :: i, j, k, jf, inj, Nz, start
+    integer :: i, j, k, jf, Nz, start
     integer :: tmp
 
     integer :: &
@@ -4835,7 +4829,7 @@ contains
     integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
 
-    integer :: i, j, k, jf, inj, Nz, start
+    integer :: i, j, k, jf, Nz, start
     integer :: tmp
 
     integer :: &
@@ -5151,7 +5145,7 @@ contains
          rowSR( NbNodeFaceMax), &
          colSR( NbNodeFaceMax)
 
-    integer :: i, in, fk
+    integer :: i, fk
 
     fk = FracToFaceLocal(k) ! this frac is which face
 

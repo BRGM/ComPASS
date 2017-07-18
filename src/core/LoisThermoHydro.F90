@@ -477,8 +477,6 @@ contains
          SmEnthalpie(NbPhase)
 
 
-    integer :: i, j
-
     ! init tmp values for each cv
     call LoisThermoHydro_init_cv(inc)
 
@@ -980,7 +978,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: icp, iph, i, j, jc
+    integer :: iph, i, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1081,7 +1079,7 @@ do iph = 1, NbPhase
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     double precision :: f2 ! =f**2
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1177,7 +1175,7 @@ do iph = 1, NbPhase
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1338,7 +1336,7 @@ do iph = 1, NbPhase
     double precision, intent(out) :: dval(NbIncPTCSPrimMax, NbPhase)
 
     ! tmp
-    integer :: i, iph, j, jph
+    integer :: i
 
     dval(:,:) = 0.d0
 
@@ -1417,7 +1415,7 @@ do iph = 1, NbPhase
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1595,7 +1593,7 @@ do iph = 1, NbPhase
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1899,7 +1897,7 @@ do iph = 1, NbPhase
          val(NbPhase), dval(NbIncPTCSPrimMax, NbPhase), Smval(NbPhase)
 
     ! tmp
-    integer :: i, k, j
+    integer :: i, k
 
     val(:) = 0.d0
     dval(:,:) = 0.d0
