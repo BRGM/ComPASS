@@ -603,7 +603,7 @@ contains
   ! Set values A_mpi
   subroutine SolvePetsc_SetAmpi
 
-    integer :: i, j, lj, s
+    integer :: i, j, s
     integer :: row, col
     PetscErrorCode :: Ierr
 
@@ -1554,7 +1554,6 @@ contains
   ! Create Sm_mpi and x_mpi
   subroutine SolvePetsc_CreateSm
 
-    integer :: i, j
     PetscErrorCode :: Ierr
 
     ! create Sm_mpi
@@ -1747,7 +1746,7 @@ contains
 
   subroutine SolvePetsc_SyncMat
 
-    integer :: i, j, &
+    integer :: i, &
          row, col
     PetscErrorCode :: Ierr
 
@@ -1892,7 +1891,6 @@ contains
   subroutine SolvePetsc_Sync
 
     integer :: Ierr
-    double precision :: tmp
 
     call MatMult(M_s, x_mpi, x_s, Ierr)
     CHKERRQ(Ierr)
@@ -2231,7 +2229,7 @@ contains
 
     integer, allocatable, dimension(:) :: &
          NbSumRow, NbSumCol
-    integer :: i, j, ipc, start, s
+    integer :: i, ipc, start, s
 
     ! number of node and frac in the procs before commRank
     ! used for RowNum

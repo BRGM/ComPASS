@@ -326,8 +326,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     real(kind=c_double), intent(in)  :: Ox, Oy, Oz
     real(kind=c_double), intent(in)  :: lx, ly, lz
     integer(kind=c_int), intent(in)  :: nx, ny, nz
-    real(kind=c_double) :: aux
-    integer :: i,kk,j,k,numFb,id,is,ios
+    integer :: i,kk,j,k
 
     write(*,*) 'Building cartesian grid: ', nx, 'x', ny, 'x', nz
     write(*,*) 'Domain size: ', lx, 'x', ly, 'x', lz
@@ -584,7 +583,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     character (1)  ::lignevide
     double precision :: aux
-    integer :: i, kk , j, k, numFb, id, lect(50), is, ios
+    integer :: i, kk , j, lect(50), is, ios
     integer :: NbEdgesMaxInj, NbEdgesMaxProd
 
     open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
@@ -863,8 +862,8 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     integer :: i, j, k
     integer :: counterNumNodebyCell=0 
     integer, allocatable, dimension(:) :: colorNodes
-    integer :: beginFace, endFace, nbFacetempCell
-    integer :: beginNode, endNode, nbNodetempFace, faceLoad
+    integer :: beginFace, nbFacetempCell
+    integer :: beginNode, nbNodetempFace, faceLoad
 
     allocate(colorNodes(NbNode))
     colorNodes(:) = 0
@@ -1102,7 +1101,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt
   subroutine GlobalMesh_FracbyNode
 
-    integer :: i,j,n, num_face, num_node, npt
+    integer :: i,n, num_face, num_node, npt
     integer, allocatable, dimension(:) :: comptNode
 
     allocate(comptNode(NbNode))
@@ -1363,8 +1362,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   !> \brief Build global connectivity of injection and production wells.
   subroutine GlobalMesh_WellConnectivity
     
-    integer :: i, j
-
     write(fdGm,*) 'building injectors connectivity ...'
     call BuildWellConnectivity(NbWellInj,NbEdgebyWellInj,NumNodebyEdgebyWellInj, &
          NodebyWellInj,NodeDatabyWellInj)

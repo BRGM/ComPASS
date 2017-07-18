@@ -126,15 +126,14 @@ contains
         in1, in2, inf, & ! num (face) in Unknown in a face
         n1, n2 ! num (local) in Unknown in a cell
 
-    integer :: i,j,k,m,mm,nn,ii1,ipt,numik,jpt,nsj,numj,& 
-        jf,in,k1,k2,k1pt,k2pt,kn1,kn2,rt 
+    integer :: i,j,k,m,mm,nn,ipt,& 
+        in,k1,k2,kn1,kn2
 
     double precision, dimension(3) :: &
         xk, xf, x1, x2, xt, & ! cordinate
         v12k, v1fk, vf2k, v   ! normal directive
 
     double precision :: &
-        lxx,lyy,lzz,lxy,lxz,lyz, &
         ss
 
     double precision :: surf, volT
@@ -331,8 +330,8 @@ contains
     double precision, dimension(3,nbNodeFaceMax) :: GfT
 
     double precision, dimension(3) :: &
-        xk, xf, x1, x2, xt, xi(3), & ! cordinate
-        v                            ! normal directive
+        xf, x1, x2, xt,  & ! cordinate
+        v                      ! normal directive
 
     double precision :: &
         Surf12f     ! surface of a triangle with nodes 1,2 and center of face
@@ -346,7 +345,7 @@ contains
 
     integer :: &
         i, ifrac,    & ! i: loop of face frac, ifrac: num (local) of i
-        mm, k, j, m, &
+        mm, m, &
         i1, i2
 
     ! tmp values to simply notations

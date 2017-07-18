@@ -186,7 +186,7 @@ contains
   ! or copy (commRank=0) 
   subroutine MeshSchema_sendrecv
 
-    integer :: dest, Ierr, i, j, Nb, Nnnz
+    integer :: dest, Ierr, i, j, Nb
     integer stat(MPI_STATUS_SIZE)
 
     integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
@@ -963,7 +963,6 @@ contains
     type(CSR) :: csr1
     integer, intent(in) :: tag, dest, valsize
     integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
 
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
@@ -1016,7 +1015,6 @@ contains
     type(TYPE_CSRDataNodeWell) :: csr1
     integer, intent(in) :: tag, dest
     integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
 
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
@@ -1062,7 +1060,7 @@ contains
   ! List is oriented (Id_parent, Id_son)
   subroutine MeshSchema_NumNodebyEdgebyWellLocal
 
-    integer :: NbWellLocal, nnz, i, j, NbEdgemax, comptNode
+    integer :: NbWellLocal, i, j, NbEdgemax, comptNode
 
     !! INJ WELL
     NbWellLocal = NodeDatabyWellInjLocal%Nb ! Number of well inj
@@ -1159,7 +1157,7 @@ contains
 
     integer :: i,j,k,m,n1,n2
     double precision :: volk,volT
-    double precision, dimension(3) :: yk,xk,xT,x1,x2,xs,e0,e1,e2,e3
+    double precision, dimension(3) :: yk,xT,x1,x2,xs,e0,e1,e2,e3
 
     integer :: Ierr, errcode ! used for MPI_Abort
 
@@ -1226,7 +1224,7 @@ contains
   ! center of frac
   subroutine MeshSchema_XFaceLocal
 
-    integer :: ifrac, i, m
+    integer :: i, m
     integer :: nbFaceLocal
     double precision :: xf(3)
 
@@ -1253,8 +1251,8 @@ contains
   subroutine MeshSchema_SurfFracLocal
 
     double precision, dimension(3) :: &
-         xk, xf, x1, x2, xt, & ! cordinate
-         v                     ! normal directive
+         xf, x1, x2, xt ! cordinate
+         
 
     double precision :: &
          SurfFace, & ! surface of a face
@@ -1266,7 +1264,7 @@ contains
 
     integer :: &
          i, ifrac,    & ! i: loop of face frac, ifrac: num (local) of i
-         k, j, m
+         m
 
     integer :: errcode, Ierr
 
