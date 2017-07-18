@@ -980,7 +980,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: icp, iph, j, jc
+    integer :: icp, iph, i, j, jc
 
     ! 1. val
     ! 2. dval
@@ -992,7 +992,8 @@ contains
 
     dfdX_secd(:,:) = 0.d0
 
-    do iph=1, NbPhase
+    do i=1, NbPhasePresente
+       iph = NumPhasePresente(i)
 
        call f_DensiteMassique(iph,inc%Pression,inc%Temperature, &
             inc%Comp(:,iph), inc%Saturation, &
