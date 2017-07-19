@@ -132,11 +132,12 @@ module MeshSchema
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
   integer, private :: MPI_DATANODEWELL
 
+  ! FIXME: Removed because this is already defined in CommonType
   ! tmp constant values
-  integer, parameter, private :: &
-       VALSIZE_ZERO = 0, &
-       VALSIZE_NB   = 1, &
-       VALSIZE_NNZ  = 2
+  !integer, parameter, private :: &
+  !     VALSIZE_ZERO = 0, &
+  !     VALSIZE_NB   = 1, &
+  !     VALSIZE_NNZ  = 2
 
   private :: &
        MeshSchema_csrsend, &   ! send csr
