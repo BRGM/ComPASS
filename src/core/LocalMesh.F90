@@ -2176,9 +2176,7 @@ contains
     ! rq: if no frac, nf=0, %Pt=0
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyProc(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyProc(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyProc(ip1)%Nb
@@ -2398,9 +2396,7 @@ contains
     end do
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyCellLocal_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyCellLocal_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyCellLocal_Ncpus(ip1)%Nb
@@ -2614,9 +2610,7 @@ contains
     end do
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyNodeOwn_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyNodeOwn_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyNodeOwn_Ncpus(ip1)%Nb
