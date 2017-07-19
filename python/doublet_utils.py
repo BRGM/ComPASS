@@ -41,7 +41,8 @@ def make_well(xy):
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
     well = ComPASS.Well()
     well.geometry.radius = 0.1
-    segments = np.transpose(np.vstack([well_nodes[:-1], well_nodes[1:]]))
+    #segments = np.transpose(np.vstack([well_nodes[:-1], well_nodes[1:]]))
+    segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
     well.geometry.add_segments(segments + 1) # Fortran indices start at 1
     return well
 
