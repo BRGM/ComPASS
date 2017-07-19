@@ -45,13 +45,21 @@
 
           TYPE(TYPE_IncCV), allocatable, dimension(:), target, intent(inout) :: states
           type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: n
 
           if (.not. allocated(states)) then
-             cpp_array%p = C_NULL_PTR
-             cpp_array%n = 0
+              cpp_array%p = C_NULL_PTR
+              cpp_array%n = 0
           else
-             cpp_array%p = c_loc(states(1))
-             cpp_array%n = size(states)
+              n = size(states)
+              cpp_array%n = n
+              if (n==0) then
+                  ! FIXME: Remove comment
+                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+                  cpp_array%p = C_NULL_PTR
+              else
+                  cpp_array%p = c_loc(states(1))
+              end if
           end if
 
        end subroutine retrieve_state_array

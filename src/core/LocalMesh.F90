@@ -153,7 +153,9 @@ module LocalMesh
        XNodeRes_Ncpus
 
   type(ARRAY1Int), dimension(:), allocatable, target, public :: &
-       NodeFlags_Ncpus
+       NodeFlags_Ncpus, &
+       CellFlags_Ncpus, &
+       FaceFlags_Ncpus
 
   ! Porosite
   type(ARRAY1dble), dimension(:), allocatable, public :: &
@@ -314,6 +316,8 @@ contains
 
     allocate(XNodeRes_Ncpus(Ncpus))
     allocate(NodeFlags_Ncpus(Ncpus))
+    allocate(CellFlags_Ncpus(Ncpus))
+    allocate(FaceFlags_Ncpus(Ncpus))
 
     ! local element by proc
     allocate(CellbyProc(Ncpus))
@@ -398,8 +402,11 @@ contains
        call LocalMesh_FracbyFracOwn(i)    ! FracbyFracOwn_Ncpus(ip1)
        
        ! X node
-       call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1) and distribute node flags
+       call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1)
 
+       ! Flags
+       call LocalMesh_Flags(i)
+       
        ! porosity
        call LocalMesh_Porosite(i)         ! porosity
 
@@ -1355,12 +1362,40 @@ contains
   end subroutine LocalMesh_WellbyProc
 
 
+  subroutine LocalMesh_Flags(ip)
+    integer, intent(in) :: ip
+    integer :: k, n, ip1
+    
+    ip1 = ip + 1
+
+    n = size(NodebyProc(ip1)%Num)
+    allocate(NodeFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        NodeFlags_Ncpus(ip1)%Val(k) = NodeFlags(NodebyProc(ip1)%Num(k))
+    end do
+
+    n = size(CellbyProc(ip1)%Num)
+    allocate(CellFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        CellFlags_Ncpus(ip1)%Val(k) = CellFlags(CellbyProc(ip1)%Num(k))
+    end do
+
+    n = size(FacebyProc(ip1)%Num)
+    allocate(FaceFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        FaceFlags_Ncpus(ip1)%Val(k) = FaceFlags(FacebyProc(ip1)%Num(k))
+    end do
+
+  end subroutine LocalMesh_Flags
+  
+  
   ! Output:
   !  XNodeRes
   ! Use:
   !  XNode, NodebyProc
   subroutine LocalMesh_XNodeRes(ip)
 
+  
     integer, intent(in) :: ip
     integer :: ip1
 
@@ -1369,7 +1404,6 @@ contains
     
     ip1 = ip + 1
     allocate(XNodeRes_Ncpus(ip1)%Array2d(3,NbNodeResS_Ncpus(ip1)))
-    allocate(NodeFlags_Ncpus(ip1)%Val(NbNodeResS_Ncpus(ip1)))
     
     cpt = 0
     do iv = 1,NodebyProc(ip1)%Nb
@@ -1377,7 +1411,6 @@ contains
           numNodeRes = NodebyProc(ip1)%Num(k)
           cpt = cpt+1
           XNodeRes_Ncpus(ip1)%Array2d(:,cpt) = XNode(:,numNodeRes)
-          NodeFlags_Ncpus(ip1)%Val(cpt) = NodeFlags(numNodeRes)
        enddo
     enddo
 

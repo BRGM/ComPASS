@@ -84,7 +84,9 @@ void add_IncCV_wrappers(py::module& module)
 	});
 
 	// FUTURE: all the following until next FUTURE tag shall be useless soon (cf infra)
-	auto PyStateArray = py::class_<StateArray>(module, "States");
+	auto PyStateArray = py::class_<StateArray>(module, "States")
+		.def("size", [](const StateArray& states) { return states.length; })
+		.def_property_readonly("shape", [](const StateArray& states) { return py::make_tuple(states.length); });
 	add_attribute_array<X::Context>(PyStateArray, "context", offsetof(X, context));
 	add_attribute_array<X::Real>(PyStateArray, "p", offsetof(X, p));
 	add_attribute_array<X::Real>(PyStateArray, "T", offsetof(X, T));

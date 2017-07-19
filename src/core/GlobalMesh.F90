@@ -75,7 +75,9 @@ module GlobalMesh
        XNode      !< Global coordinates of nodes
 
   integer(c_int), allocatable, dimension(:), target :: &
-       NodeFlags
+       NodeFlags, &
+       CellFlags, &
+       FaceFlags
 
   type(CSR), protected :: &
        FacebyCell, & !< CSR list of Faces surrounding each Cell
@@ -321,6 +323,24 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 	
   end subroutine GlobalMesh_Make_post_read
 
+  subroutine GlobalMesh_allocate_flags()
+
+    call GlobalMesh_deallocate_flags
+  
+    allocate(NodeFlags(NbNode))
+    allocate(CellFlags(NbCell))
+    allocate(FaceFlags(NbFace))
+  
+  end subroutine GlobalMesh_allocate_flags
+
+  subroutine GlobalMesh_deallocate_flags()
+  
+    if(allocated(NodeFlags)) deallocate(NodeFlags)
+    if(allocated(CellFlags)) deallocate(CellFlags)
+    if(allocated(FaceFlags)) deallocate(FaceFlags)
+  
+  end subroutine GlobalMesh_deallocate_flags
+
   subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
     real(kind=c_double), intent(in)  :: Ox, Oy, Oz
@@ -339,7 +359,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     NbFace = nx*ny*(nz+1) + nx*(ny+1)*nz + (nx+1)*ny*nz
 
     allocate(XNode(3,NbNode))
-    allocate(NodeFlags(NbNode))
     kk = 0
     do k=1,nz+1
        do j=1,ny+1
@@ -528,6 +547,8 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        enddo
     enddo
 
+    call GlobalMesh_allocate_flags
+    
   end subroutine GlobalMesh_Build_cartesian_grid
 
   !> \brief Make cartesian mesh given a Meshfile with domain informations.
@@ -602,7 +623,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     ! Coordinates of nodes
     allocate(XNode(3,NbNode))
-    allocate(NodeFlags(NbNode))
     do i=1, NbNode
        read(16,*) XNode(1,i), XNode(2,i), XNode(3,i)
     end do
@@ -768,6 +788,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     enddo
 
     close(16)
+    
+    ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
+    call GlobalMesh_allocate_flags
 
   end subroutine GlobalMesh_ReadMeshFromFile
 
@@ -1040,8 +1063,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   subroutine GlobalMesh_free
 
     deallocate(XNode)
-    deallocate(NodeFlags)
 
+    call GlobalMesh_deallocate_flags
+    
     call CommonType_deallocCSR(FacebyCell)
     call CommonType_deallocCSR(NodebyFace)
     call CommonType_deallocCSR(NodebyCell)
@@ -1451,8 +1475,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 		  
 		  if(allocated(XNode)) deallocate(XNode)
           allocate (XNode(3, NbNode))
-		  if(allocated(NodeFlags)) deallocate(NodeFlags)
-          allocate (NodeFlags(NbNode))
           XNode = nodes
 
 		  use_c_indexing = present(c_indexing).and.c_indexing
@@ -1528,6 +1550,8 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           !   enddo
           !enddo
 
+          call GlobalMesh_allocate_flags
+          
 		  end subroutine GlobalMesh_create_mesh
 
 end module GlobalMesh
