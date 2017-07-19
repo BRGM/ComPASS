@@ -242,6 +242,10 @@ contains
             n = n + 1
 
             NumIncComp2NumIncPTC_ctx(icp, iph, ic) = n
+#ifndef NDEBUG              
+            ! FIXME: Remove comment
+            write(*,*) ic, 'NumIncPTC2NumIncComp_comp_ctx cp=', icp, 'ph=', iph, 'n=', n
+#endif !NDEBUG              
             NumIncPTC2NumIncComp_comp_ctx(n, ic) = icp
             NumIncPTC2NumIncComp_phase_ctx(n, ic) = iph
           end if

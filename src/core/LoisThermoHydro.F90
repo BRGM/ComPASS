@@ -990,6 +990,12 @@ contains
     dval(:,:) = 0.d0
     Smval(:) = 0.d0
 
+#ifndef NDEBUG
+do iph = 1, NbPhase
+          write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
+    end do
+#endif
+    
     dfdX_secd(:,:) = 0.d0
 
     do iph=1, NbPhase

@@ -54,8 +54,10 @@
               n = size(states)
               cpp_array%n = n
               if (n==0) then
+#ifndef NDEBUG              
                   ! FIXME: Remove comment
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif !NDEBUG              
                   cpp_array%p = C_NULL_PTR
               else
                   cpp_array%p = c_loc(states(1))
