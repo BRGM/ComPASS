@@ -47,7 +47,7 @@ def init(
     faces_permeability = lambda: None,
     fractures_permeability = lambda: None,
     set_dirichlet_nodes = lambda: None,
-    set_node_flags = None
+    set_global_flags = None
 ):
     # FUTURE: This could be managed through a context manager ? 
     global initialized
@@ -77,9 +77,9 @@ def init(
         print('Mesh type not understood!')
         # FIXME: This should be something like MPI.Abort()
         sys.exit(-1)
-    if mpi.is_on_master_proc and set_node_flags is not None:
-        assert callable(set_node_flags)
-        set_node_flags()
+    if mpi.is_on_master_proc and set_global_flags is not None:
+        assert callable(set_global_flags)
+        set_global_flags()
     if mpi.is_on_master_proc:
         well_list = list(wells())
         ComPASS.set_well_geometries(well_list)
@@ -143,43 +143,53 @@ def get_cell_porosity():
 def get_face_porosity():
    return np.array(ComPASS.get_face_porosity_buffer(), copy = False)
 
-def compute_cell_centers():
-    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
-    connectivity = get_connectivity()
-    centers = np.array([
-        vertices[
-          np.array(cell_nodes, copy=False) - 1 # fortran indexes start at 1
+def _compute_centers(points, elements):
+    return np.array([
+        points[
+          np.array(element, copy=False) - 1 # fortran indexes start at 1
         ].mean(axis=0)
-        for cell_nodes in connectivity.NodebyCell
+        for element in elements
       ])
-    return centers
+
+def compute_global_cell_centers():
+    return _compute_centers(
+        global_vertices().view(dtype=np.double).reshape((-1, 3)),
+        get_global_connectivity().NodebyCell
+    )
+
+def compute_global_face_centers():
+    return _compute_centers(
+        global_vertices().view(dtype=np.double).reshape((-1, 3)),
+        get_global_connectivity().NodebyFace
+    )
+
+def compute_cell_centers():
+    return _compute_centers(
+        vertices().view(dtype=np.double).reshape((-1, 3)),
+        get_connectivity().NodebyCell
+    )
 
 def compute_face_centers():
-    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
-    connectivity = get_connectivity()
-    centers = np.array([
-        vertices[
-          np.array(face_nodes, copy=False) - 1 # fortran indexes start at 1
-        ].mean(axis=0)
-        for face_nodes in connectivity.NodebyFace
-      ])
-    return centers
+    return _compute_centers(
+        vertices().view(dtype=np.double).reshape((-1, 3)),
+        get_connectivity().NodebyFace
+    )
 
-def compute_face_normals():
-    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
-    connectivity = get_connectivity()
-    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace] # fortran indexes start at 1
-    normals = np.array([
-        np.cross(
-            vertices[nodes[1]]-vertices[nodes[0]],
-            vertices[nodes[2]]-vertices[nodes[0]])
-        for nodes in face_nodes
-    ])
-    # normalize
-    norms = np.linalg.norm(normals, axis=1)
-    norms.shape = (-1, 1)
-    normals /= norms
-    return normals
+#def compute_face_normals():
+#    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
+#    connectivity = get_connectivity()
+#    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace] # fortran indexes start at 1
+#    normals = np.array([
+#        np.cross(
+#            vertices[nodes[1]]-vertices[nodes[0]],
+#            vertices[nodes[2]]-vertices[nodes[0]])
+#        for nodes in face_nodes
+#    ])
+#    # normalize
+#    norms = np.linalg.norm(normals, axis=1)
+#    norms.shape = (-1, 1)
+#    normals /= norms
+#    return normals
 
 def get_boundary_faces():
     connectivity = get_connectivity()

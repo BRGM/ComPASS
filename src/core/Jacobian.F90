@@ -2164,7 +2164,7 @@ contains
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
@@ -2552,7 +2552,7 @@ contains
           ! end if
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
              divEgS(j) = divEgS(j) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
           end do
@@ -2598,7 +2598,7 @@ contains
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
              divEgS(j) = divEgS(j) &
                   + divDensitemolaireKrViscoEnthalpieFrac(j,m,nums) * FluxDarcyKI(mph,sf,k) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
@@ -3062,7 +3062,7 @@ contains
             + sum_aksgz * Smrho_k(mph)    ! SmPressionCap=0
 
        ! divDarcyFlux_s
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
           divDarcyFlux_s(j,mph) = &
                sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
        end do
@@ -4389,16 +4389,17 @@ contains
 
        ! cycle if the row is dir node
 #ifdef _THERMIQUE_
-       
-       if((i<=NbNodeOwn_Ncpus(commRank+1)) .and. &
-            (IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then
-          cycle
-       end if
+    if(i<=NbNodeOwn_Ncpus(commRank+1)) then
+        if(IdNodeLocal(i)%P=="d" .and. (IdNodeLocal(i)%T=="d")) then
+            cycle
+        end if
+    end if
 #else
-       if((i<=NbNodeOwn_Ncpus(commRank+1)) .and. &
-            (IdNodeLocal(i)%P=="d")) then
-          cycle
-       end if
+    if(i<=NbNodeOwn_Ncpus(commRank+1)) then
+        if(IdNodeLocal(i)%P=="d") then
+            cycle
+        end if
+    end if
 #endif       
        
        do mi=JacBigA%Pt(i)+1, JacBigA%Pt(i+1) ! loop of non zeros in row i

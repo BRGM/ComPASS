@@ -31,7 +31,7 @@ ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     mesh = mesh,
-    set_node_flags = set_global_nodeflags
+    set_global_flags = set_global_nodeflags
 )
 
 if not check_nodeflags():
