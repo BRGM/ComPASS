@@ -240,7 +240,7 @@ contains
             n = n + 1
 
             NumIncComp2NumIncPTC_ctx(icp, iph, ic) = n
-#ifndef NDEBUG              
+#ifdef DEBUG_LOISTHEMOHYDRO              
             ! FIXME: Remove comment
             write(*,*) ic, 'NumIncPTC2NumIncComp_comp_ctx cp=', icp, 'ph=', iph, 'n=', n
 #endif        

@@ -85,7 +85,7 @@
               cpp_array%n = n
               if (n==0) then
                   ! FIXME: Remove comment
-#ifndef NDEBUG              
+#ifdef TRACK_ZERO_SIZE_ARRAY              
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
                   cpp_array%p = C_NULL_PTR
@@ -107,7 +107,7 @@
           retrieved_coc%nb_containers = n
           
           if(n==0) then
-#ifndef NDEBUG              
+#ifdef TRACK_ZERO_SIZE_ARRAY              
               write(*,*) 'WARNING - Retrieving zero size COC.'
 #endif    
               retrieved_coc%container_offset = C_NULL_PTR

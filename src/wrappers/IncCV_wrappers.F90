@@ -54,7 +54,7 @@
               n = size(states)
               cpp_array%n = n
               if (n==0) then
-#ifndef NDEBUG              
+#ifdef TRACK_ZERO_SIZE_ARRAY              
                   ! FIXME: Remove comment
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif             

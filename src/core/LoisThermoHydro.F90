@@ -988,7 +988,7 @@ contains
     dval(:,:) = 0.d0
     Smval(:) = 0.d0
 
-#ifndef NDEBUG
+#ifdef DEBUG_LOISTHEMOHYDRO
 do iph = 1, NbPhase
           write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
     end do
