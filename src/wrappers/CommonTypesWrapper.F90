@@ -87,7 +87,7 @@
                   ! FIXME: Remove comment
 #ifndef NDEBUG              
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
-#endif !NDEBUG              
+#endif
                   cpp_array%p = C_NULL_PTR
               else
                   cpp_array%p = c_loc(fortran_array(1))
@@ -109,7 +109,7 @@
           if(n==0) then
 #ifndef NDEBUG              
               write(*,*) 'WARNING - Retrieving zero size COC.'
-#endif !NDEBUG              
+#endif    
               retrieved_coc%container_offset = C_NULL_PTR
               retrieved_coc%container_content = C_NULL_PTR
           else        

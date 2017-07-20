@@ -57,7 +57,7 @@
 #ifndef NDEBUG              
                   ! FIXME: Remove comment
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
-#endif !NDEBUG              
+#endif             
                   cpp_array%p = C_NULL_PTR
               else
                   cpp_array%p = c_loc(states(1))

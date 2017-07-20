@@ -243,7 +243,7 @@ contains
 #ifndef NDEBUG              
             ! FIXME: Remove comment
             write(*,*) ic, 'NumIncPTC2NumIncComp_comp_ctx cp=', icp, 'ph=', iph, 'n=', n
-#endif !NDEBUG              
+#endif        
             NumIncPTC2NumIncComp_comp_ctx(n, ic) = icp
             NumIncPTC2NumIncComp_phase_ctx(n, ic) = iph
           end if
