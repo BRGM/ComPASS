@@ -93,7 +93,7 @@ contains
 
     double precision :: rho_ki_alpha(NbPhase)
     logical :: Id_Qki(NbPhase)
-    double precision :: Tkij, Pkj, zkj, Satki
+    double precision :: Tkij, Pkj, zkj
 
     FluxDarcyKI(:,:,:) = 0.d0
 
@@ -394,7 +394,7 @@ contains
     integer :: nph_i, numph_i, nph_k, numph_k
     integer :: NbNodeFrac
 
-    double precision :: Pkj, Satki, Tkij, zkj
+    double precision :: Pkj, Tkij, zkj
 
     double precision :: rho_ki_alpha(NbPhase)
     logical :: Id_Qki(NbPhase)
@@ -583,7 +583,7 @@ contains
 
   subroutine Flux_FourierFlux_Frac
 
-    integer :: k, fk, i, j, numi, numj
+    integer :: k, fk, i, j, numj
     integer :: NbNodeFrac
 
     FluxFourierFI(:,:) = 0

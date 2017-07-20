@@ -153,6 +153,10 @@ set( WRAPPERS_SRCS
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   MeshSchema_wrappers.F90
+  meshtools.h
+  meshtools.cpp
+  meshtools-wrapper.h
+  meshtools-wrapper.cpp
   NN_wrappers.h
   NN_wrappers.cpp
   NN_wrappers.F90
@@ -227,24 +231,21 @@ foreach(_conf ${CONFIGURATIONS})
     ## FIXME: Only the first configuration is used to generate the python module.
     if(DEF_Python_BINDINGS)
         if(NOT python_module_done)
-          pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
-        set_target_properties(ComPASS
-            PROPERTIES
-            CXX_STANDARD 14
-            CXX_STANDARD_REQUIRED YES
-            CXX_EXTENSIONS NO
-        )
-	include_directories(${pybind11_INCLUDE_DIR})
-	target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
-	  target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
-          set(python_module_done TRUE)
-          set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
-          set_target_properties(ComPASS
-              PROPERTIES
-              LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
-              LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
-              LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
-          )
+			pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
+			set(pyComPASS_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
+			set_target_properties(ComPASS
+				PROPERTIES
+				CXX_STANDARD 14
+				CXX_STANDARD_REQUIRED YES
+				CXX_EXTENSIONS NO
+				LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_OUTPUT_DIRECTORY}
+				LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_OUTPUT_DIRECTORY}
+				LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_OUTPUT_DIRECTORY}
+			)
+			include_directories(${pybind11_INCLUDE_DIR})
+			target_include_directories(ComPASS PUBLIC ${pybind11_INCLUDE_DIR})
+			target_link_libraries(ComPASS PRIVATE ${CONF_TARGETNAME})
+			set(python_module_done TRUE)
         endif(NOT python_module_done)
     endif(DEF_Python_BINDINGS)
     

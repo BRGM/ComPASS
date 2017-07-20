@@ -3,6 +3,7 @@
 
        use, intrinsic :: iso_c_binding
 
+       use CommonType
        use CommonTypesWrapper
        use CommonMPI
        use GlobalMesh
@@ -22,8 +23,11 @@
        end type cpp_MeshConnectivity
 
        public :: &
+          GlobalMesh_allocate_id_nodes, &
+          GlobalMesh_count_dirichlet_nodes, &
           check_mesh_allocation, &
           retrieve_global_vertices, &
+          retrieve_global_nodeflags, &
           retrieve_id_faces, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
@@ -42,11 +46,44 @@
           GlobalMesh_NodeOfFrac_from_C, &
           GlobalMesh_SetDirBC_from_C, &
           GlobalMesh_FracbyNode_from_C, &
-          DefWell_make_compute_well_index_from_C
+          DefWell_make_compute_well_index_from_C, &
+          GlobalMesh_create_mesh_from_C, &
+          GlobalMesh_set_cartesian_mesh, &
+          GlobalMesh_set_hexahedron_mesh, &
+          GlobalMesh_set_tetrahedron_mesh, &
+          GlobalMesh_set_wedge_mesh
 
     contains
 
-       subroutine retrieve_global_vertices(cpp_array) &
+    subroutine GlobalMesh_allocate_id_nodes() &
+        bind(C, name="GlobalMesh_allocate_id_nodes")
+    
+    if(allocated(Idnode)) then
+        deallocate(IdNode)
+    end if
+    allocate(IdNode(NbNode))
+ 
+        end subroutine GlobalMesh_allocate_id_nodes
+
+    subroutine GlobalMesh_count_dirichlet_nodes() &
+        bind(C, name="GlobalMesh_count_dirichlet_nodes")
+
+    integer :: i
+
+    NbDirNodeP = 0
+#ifdef _THERMIQUE_
+    NbDirNodeT = 0
+#endif
+    do i=1, NbNode
+        if(IdNode(i)%P.eq."d") NbDirNodeP = NbDirNodeP + 1
+#ifdef _THERMIQUE_
+        if(IdNode(i)%T.eq."d") NbDirNodeT = NbDirNodeT + 1
+#endif
+    end do
+
+    end subroutine GlobalMesh_count_dirichlet_nodes
+
+    subroutine retrieve_global_vertices(cpp_array) &
           bind(C, name="retrieve_global_vertices")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -70,6 +107,31 @@
           cpp_array%n = size(XNode, 2)
 
        end subroutine retrieve_global_vertices
+
+    subroutine retrieve_global_nodeflags(cpp_array) &
+          bind(C, name="retrieve_global_nodeflags")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(NodeFlags)) then
+             print *, "Node flags are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(NodeFlags(1))
+          cpp_array%n = size(NodeFlags)
+
+       end subroutine retrieve_global_nodeflags
 
        subroutine retrieve_id_faces(cpp_array) &
           bind(C, name="retrieve_id_faces")
@@ -154,7 +216,7 @@
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(PermCell(1,1,1))
+          cpp_array%p = c_loc(PermCell(1, 1, 1))
           cpp_array%n = size(PermCell, 3)
 
        end subroutine retrieve_cell_permeability
@@ -338,6 +400,56 @@
              PermCell, PermFrac)
 
        end subroutine DefWell_make_compute_well_index_from_C
+
+       subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
+                                                nodes, &
+                                                cell_faces_ptr, cell_faces_val, &
+                                                cell_nodes_ptr, cell_nodes_val, &
+                                                face_nodes_ptr, face_nodes_val, &
+                                                cell_id, face_id) &
+          bind(C, name="GlobalMesh_create_mesh")
+
+          integer(c_int), value, intent(in) :: nbnodes
+          integer(c_int), value, intent(in) :: nbcells
+          integer(c_int), value, intent(in) :: nbfaces
+          real(c_double), dimension(3, nbnodes), intent(in) :: nodes
+          integer(c_int), dimension(nbcells + 1), intent(in) :: cell_faces_ptr
+          integer(c_int), dimension(cell_faces_ptr(nbcells + 1)), intent(in) :: cell_faces_val
+          integer(c_int), dimension(nbcells + 1), intent(in) :: cell_nodes_ptr
+          integer(c_int), dimension(cell_nodes_ptr(nbcells + 1)), intent(in) :: cell_nodes_val
+          integer(c_int), dimension(nbfaces + 1), intent(in) :: face_nodes_ptr
+          integer(c_int), dimension(face_nodes_ptr(nbfaces + 1)), intent(in) :: face_nodes_val
+          integer(c_int), dimension(nbcells), intent(in) :: cell_id
+          integer(c_int), dimension(nbfaces), intent(in) :: face_id
+
+          call GlobalMesh_create_mesh(nodes, &
+                                      cell_faces_ptr, cell_faces_val, &
+                                      cell_nodes_ptr, cell_nodes_val, &
+                                      face_nodes_ptr, face_nodes_val, &
+                                      cell_id, face_id, &
+                                      .true.)
+
+          end subroutine GlobalMesh_create_mesh_from_C
+          
+          subroutine GlobalMesh_set_cartesian_mesh() &
+              bind(C, name="GlobalMesh_set_cartesian_mesh")
+          MESH_TYPE = "cartesian-quad"
+          end subroutine GlobalMesh_set_cartesian_mesh
+
+          subroutine GlobalMesh_set_hexahedron_mesh() &
+              bind(C, name="GlobalMesh_set_hexahedron_mesh")
+          MESH_TYPE = "hexahedron-quad"
+          end subroutine GlobalMesh_set_hexahedron_mesh
+
+          subroutine GlobalMesh_set_tetrahedron_mesh() &
+              bind(C, name="GlobalMesh_set_tetrahedron_mesh")
+          MESH_TYPE = "tetrahedron-triangle"
+          end subroutine GlobalMesh_set_tetrahedron_mesh
+
+          subroutine GlobalMesh_set_wedge_mesh() &
+              bind(C, name="GlobalMesh_set_wedge_mesh")
+          MESH_TYPE = "wedge"
+          end subroutine GlobalMesh_set_wedge_mesh
 
     end module GlobalMeshWrapper
 

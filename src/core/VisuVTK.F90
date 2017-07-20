@@ -288,7 +288,6 @@ contains
         datacell, datafrac, datawellinj, datawellprod
 
     character(len=200) :: output_path
-    integer :: Ierr, i, start
     double precision, dimension(size(VisuTimes)) :: TmpVisuTimes  
 
     ! FIXME: The allocation/deallocation is done at each output

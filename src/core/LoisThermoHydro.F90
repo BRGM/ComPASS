@@ -477,8 +477,6 @@ contains
          SmEnthalpie(NbPhase)
 
 
-    integer :: i, j
-
     ! init tmp values for each cv
     call LoisThermoHydro_init_cv(inc)
 
@@ -1014,7 +1012,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: i, icp, iph, j, jc
+    integer :: iph, i, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1109,7 +1107,7 @@ contains
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     double precision :: f2 ! =f**2
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1205,7 +1203,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1366,7 +1364,7 @@ contains
     double precision, intent(out) :: dval(NbIncPTCSPrimMax, NbPhase)
 
     ! tmp
-    integer :: i, iph, j, jph
+    integer :: i
 
     dval(:,:) = 0.d0
 
@@ -1401,11 +1399,6 @@ contains
     val(:) = 0.d0
     dval(:,:) = 0.d0
 
-
-! bug car on doit calculer la pc de ttes les phases, pas slt des phases presentes     
-!    do i=1, NbPhasePresente
-!       iph = NumPhasePresente(i)
-
     do iph=1, NbPhase        
 
        call f_PressionCapillaire(rocktypeinc, iph, inc%Saturation, f, dSf)
@@ -1417,7 +1410,6 @@ contains
        do j=1, NbPhasePresente - 1
           jph = NumPhasePresente(j)
 
-!          dval(j+NbIncPTCPrim,i) = dSf(jph) - dfS_secd          
           dval(j+NbIncPTCPrim,iph) = dSf(jph) - dfS_secd
        end do
        
@@ -1451,7 +1443,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1551,9 +1543,6 @@ contains
 
     dval(:) = 0.d0
     Smval = 0.d0
- 
-
-
     
     ! P is prim, T is prim: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)=2
 
@@ -1561,6 +1550,8 @@ contains
     ! P is prim, T is secd: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)>2
     ! TODO
 
+    ! TODO
+    ! Rewrite using ANY(NumIncPTCSPrimCV==1) and get index
     if((NumIncPTCSPrimCV(1)==1) .and. &
          (NumIncPTCSPrimCV(2)==2)) then ! P is prim, T is prim
 
@@ -1661,7 +1652,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1965,7 +1956,7 @@ contains
          val(NbPhase), dval(NbIncPTCSPrimMax, NbPhase), Smval(NbPhase)
 
     ! tmp
-    integer :: i, k, j
+    integer :: i, k
 
     val(:) = 0.d0
     dval(:,:) = 0.d0

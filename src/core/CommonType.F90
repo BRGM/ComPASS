@@ -7,7 +7,7 @@ module CommonType
 
   !> Array 1d integer
   type ARRAY1Int
-    integer, allocatable, dimension(:) :: Val
+    integer(c_int), allocatable, dimension(:) :: Val
   end type ARRAY1Int
 
   !> Array 1d double precision
@@ -73,7 +73,7 @@ module CommonType
   end type Array1IdNode
 
   ! tmp constant values
-  integer, parameter, private :: &
+  integer, parameter, public :: &
        VALSIZE_ZERO = 0, & !< Identifier used in communication, val is not used in CSR
        VALSIZE_NB   = 1, & !< Identifier used in communication, val is used in CSR and size(%Val)=%Nb
        VALSIZE_NNZ  = 2    !< Identifier used in communication, val is used in CSR and size(%Val)=Nnz=size(%Num)

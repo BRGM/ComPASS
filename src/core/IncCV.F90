@@ -467,11 +467,9 @@ contains
          incremaxlocal_P, &
          incremaxlocal_T, &
          incremaxlocal_C(NbComp, NbPhase), &
-         incremaxlocal_S(NbPhase), &
-         relaxlocal
+         incremaxlocal_S(NbPhase)
 
-    integer :: k, i, ic, iph, icp, j, Ierr
-    integer :: NbIncPTC
+    integer :: Ierr
 
     incremaxlocal_P = 0.d0
 
@@ -766,7 +764,7 @@ contains
     double precision, dimension(:), intent(inout) :: &
          datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
 
-    integer :: k, i, j, start, n1, n2
+    integer :: k, i, j, start
     integer :: NbCellOwn, NbFracOwn
 
     NbCellOwn = NbCellOwn_Ncpus(commRank+1)
@@ -952,108 +950,75 @@ contains
   end subroutine IncCV_PressureDropWellProd
 
 
+  subroutine IncCV_PressureDropWellInj_integrate(sfirst, slast, direction, Pfirst, T, C)
+
+  integer, intent(in) :: sfirst, slast
+  ! direction = 1 upwards / -1 downwards
+  integer, intent(in) :: direction
+  ! T and C are constant !!!
+  double precision, intent(in) :: Pfirst, T, C(NbComp)
+
+  integer :: n, s
+  ! nb pieces for discrete integration
+  ! FIXME: call quad or something similar
+  integer, parameter :: Npiece = 100
+  double precision :: Ptmp, Stmp(NbPhase), &
+      z1, z2, dz, Pdrop, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+#ifndef NDEBUG
+    integer :: Ierr, errcode ! used for MPI_Abort
+#endif
+
+  Ptmp = Pfirst
+  ! Saturation is fixed to liquid  
+  Stmp(PHASE_GAS) = 0.d0
+  Stmp(PHASE_WATER) = 1.d0
+  PerfoWellInj(sfirst)%Pression  = Pfirst
+  do s=sfirst, slast-direction, direction
+      z1 = ZSortedInj_Zval(s)
+      z2 = ZSortedInj_Zval(s+direction)
+#ifndef NDEBUG
+      if(direction*(z2-z1)<0) then
+          write(*,*) 'Nodes are badly sorted.'
+          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+#endif
+      dz = (z2-z1) / Npiece
+      do n=1, Npiece
+          call f_DensiteMolaire(PHASE_WATER, Ptmp, T, C, Stmp, &
+              Rhotmp, dPf, dTf, dCf, dSf)
+          Ptmp = Ptmp - direction * Gravite * Rhotmp * dz
+      end do
+      PerfoWellInj(s+direction)%Pression  = Ptmp
+  end do
+
+  end subroutine IncCV_PressureDropWellInj_integrate
+
   ! compute pressure drop of injection well
   ! integration from node head (w) to node (s)
   subroutine IncCV_PressureDropWellInj
 
-    integer :: k, s, n, i, numi, HeadZ, head
-    double precision :: Ptmp, Ttmp, Ctmp(NbComp), Stmp(NbPhase), &
-         z1, z2, dz, Pdrop, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+    integer :: s, wk, nbwells, bottom, head, headsortedpos
+    double precision :: Phead, T, C(NbComp)
 
-    integer, parameter :: Npiece = 100
-
-    do k=1, NbWellInjLocal_Ncpus(commRank+1)
-
-       Ttmp = DataWellInjLocal(k)%Temperature ! constant
-       Ctmp(:) = DataWellInjLocal(k)%CompTotal(:)
-       Stmp(PHASE_GAS) = 0.d0
-       Stmp(PHASE_WATER) = 1.d0
-
-       ! find head in sorted z-coordinate vector
-       head = NodebyWellInjLocal%Pt(k+1) ! head is the last one in well
-
-       do s=NodebyWellInjLocal%Pt(k+1), NodebyWellInjLocal%Pt(k)+1, -1
-          if( ZsortedInj_Znum(s) == head) then ! find head in ZsortedInj_Num: headZ
-             HeadZ = s
-             exit
-          end if
-       end do
-
-       ! init PressureDrop as zero. Ps. it is zero in head node
-       do s=NodebyWellInjLocal%Pt(k)+1, NodebyWellInjLocal%Pt(k+1)
-          PerfoWellInj(s)%PressureDrop = 0.d0
-       end do
-
-       ! integration of nodes with lower z-coordinate than the head node
-
-       Ptmp = IncPressionWellInj(k) ! init as head pressure
-
-       do s=HeadZ-1, NodebyWellInjLocal%Pt(k)+1, -1
-
-          ! integration z2 to z1 and times Gravite
-          ! head node is the first in wells
-          z1 = ZSortedInj_Zval(s+1)
-          z2 = ZSortedInj_Zval(s)
-
-          dz = abs(z1-z2) / Npiece
-
-          ! Pressure drop from z1 to z2
-          Pdrop = 0.d0 
-          do n=1, Npiece
-
-             call f_DensiteMolaire(PHASE_WATER, Ptmp, Ttmp, Ctmp, Stmp, &
-                  Rhotmp, dPf, dTf, dCf, dSf)
-
-             Pdrop = Pdrop + Gravite * Rhotmp * dz ! Pdrop is always positive
-             Ptmp = Ptmp + Gravite * Rhotmp * dz
-          end do
-
-          ! add Pdrop to all nodes with lower z-coordinate than z1
-          do i=s, NodebyWellInjLocal%Pt(k)+1, -1
-
-             numi = ZsortedInj_Znum(i)
-             PerfoWellInj(numi)%PressureDrop &
-                  = PerfoWellInj(numi)%PressureDrop + Pdrop ! "+" here
-          end do
-       end do
-
-       ! integration of nodes with larger z-coordinate than the head node
-
-       Ptmp = IncPressionWellInj(k) ! init as head pressure
-
-       do s=HeadZ+1, NodebyWellInjLocal%Pt(k+1)
-
-          ! integration z2 to z1 and times Gravite
-          ! head node is the first in wells
-          z1 = ZSortedInj_Zval(s)
-          z2 = ZSortedInj_Zval(s+1)
-
-          dz = abs(z1-z2) / Npiece
-
-          ! Pressure drop from z1 to z2
-          Pdrop = 0.d0 
-          do n=1, Npiece
-
-             call f_DensiteMolaire(PHASE_WATER, Ptmp, Ttmp, Ctmp, Stmp, &
-                  Rhotmp, dPf, dTf, dCf, dSf)
-
-             Pdrop = Pdrop + Gravite * Rhotmp * dz ! Pdrop is always positive
-             Ptmp = Ptmp - Gravite * Rhotmp * dz
-          end do
-
-          ! add Pdrop to all nodes with larger z-coordinate than z1
-          do i=s-1, NodebyWellInjLocal%Pt(k)+1, -1
-
-             numi = ZsortedInj_Znum(i)
-             PerfoWellInj(numi)%PressureDrop &
-                  = PerfoWellInj(numi)%PressureDrop - Pdrop ! "-" here 
-          end do
-       end do
-
-       ! Compute P_{w,s}
-       do s=NodebyWellInjLocal%Pt(k)+1, NodebyWellInjLocal%Pt(k+1)
-          PerfoWellInj(s)%Pression = IncPressionWellInj(k) + PerfoWellInj(s)%PressureDrop
-       end do
+    nbwells = NbWellInjLocal_Ncpus(commRank+1)
+    do s=NodebyWellInjLocal%Pt(1)+1, NodebyWellInjLocal%Pt(nbwells+1)
+        PerfoWellInj(s)%PressureDrop = 0.d0
+    end do
+    do wk=1, nbwells
+        ! Locate head
+        bottom = NodebyWellInjLocal%Pt(wk)+1
+        head = NodebyWellInjLocal%Pt(wk+1)
+        do headsortedpos=bottom, head
+            if(ZsortedInj_Znum(headsortedpos)==head) exit
+        end do
+        Phead = IncPressionWellInj(wk)
+        T = DataWellInjLocal(wk)%Temperature
+        C = DataWellInjLocal(wk)%CompTotal
+        call IncCV_PressureDropWellInj_integrate(headsortedpos,   head,  1, Phead, T, C)
+        call IncCV_PressureDropWellInj_integrate(headsortedpos, bottom, -1, Phead, T, C)
+        do s=bottom, head
+            PerfoWellInj(s)%PressureDrop = Phead - PerfoWellInj(s)%Pression
+        end do
     end do
 
   end subroutine IncCV_PressureDropWellInj

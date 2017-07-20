@@ -29,6 +29,8 @@ struct Point
 extern "C"
 {
 	void retrieve_vertices(XArrayWrapper<Point>&);
+	void retrieve_nodeflags(XArrayWrapper<int>&);
+	void retrieve_global_nodeflags(XArrayWrapper<int>&);
 	void retrieve_global_vertices(XArrayWrapper<Point>&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
 	void retrieve_id_faces(ArrayWrapper&);
@@ -47,7 +49,9 @@ void add_mesh_utilities_wrappers(py::module& module)
 
 	PYBIND11_NUMPY_DTYPE(Point, x, y, z);
 	add_array_wrapper(module, "global_vertices", retrieve_global_vertices);
+	add_array_wrapper(module, "global_nodeflags", retrieve_global_nodeflags);
 	add_array_wrapper(module, "vertices", retrieve_vertices);
+	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
 
 	module.def("get_id_faces_buffer",
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },

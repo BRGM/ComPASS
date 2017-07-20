@@ -75,8 +75,6 @@ contains
   ! main subroutine of this module
   subroutine NumbyContext_make
 
-    integer :: i, j, k
-
     ! IndPhase
     call NumbyContext_IndPhaseDeNumContexte
 

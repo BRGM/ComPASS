@@ -4,6 +4,7 @@ extern "C"
 	double get_current_time();
 	double get_delta_t();
 	double get_final_time();
+	double gravity();
 	void set_final_time(double);
 }
 
@@ -16,5 +17,6 @@ void add_global_variables_wrappers(py::module& module)
 	module.def("get_timestep", &get_delta_t);
 	module.def("get_final_time", &get_final_time);
 	module.def("set_final_time", &set_final_time);
+	module.def("gravity", &gravity);
 
 }

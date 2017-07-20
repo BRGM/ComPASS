@@ -328,7 +328,7 @@ end subroutine init_visualization
 subroutine NN_init_phase2(OutputDir)
 
       character(len=*), intent(in) :: OutputDir
-      logical                      :: ok, all_ok
+      logical                      :: ok
 
       if (commRank == 0) then
          do i = 1, size(fd)
@@ -863,9 +863,9 @@ subroutine NN_init_phase2(OutputDir)
             call Residu_compute(Delta_t, NewtonIter)
 
            !  if(commRank==1) then
-           !      write(*,*)' res node ',ResiduNode
-           !      write(*,*)' res cell ',ResiduCell
-                ! print*, ResiduWellInj
+            !    ! print*, ResiduNode
+            !    ! print*, ResiduCell
+            !    ! print*, ResiduWellInj
            !  end if
 
             ! write(*,*) ""

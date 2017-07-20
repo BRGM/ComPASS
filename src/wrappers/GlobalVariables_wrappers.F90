@@ -12,7 +12,8 @@
           get_current_time, &
           get_delta_t, &
           get_final_time, &
-          set_final_time
+          set_final_time, &
+          get_gravity
 
     contains
 
@@ -40,5 +41,11 @@
        TimeFinal = t
        end subroutine set_final_time
 
-    end module GlobalVariablesWrappers
+        function get_gravity() result(g) &
+          bind(C, name="gravity")
+        real(c_double) :: g
+        g = Gravite
+        end function get_gravity
+
+end module GlobalVariablesWrappers
 

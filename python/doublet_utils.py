@@ -8,6 +8,29 @@ def interwell_distance(grid):
 def center(grid):
     return tuple(grid.origin[i] + 0.5 * grid.extent[i] for i in range(3))
 
+def select_boundary_factory(grid):
+    on_xmin = lambda pts: pts[:,0] == grid.origin[0]
+    on_xmax = lambda pts: pts[:,0] == grid.origin[0] + grid.extent[0]
+    on_ymin = lambda pts: pts[:,1] == grid.origin[1]
+    on_ymax = lambda pts: pts[:,1] == grid.origin[1] + grid.extent[1]
+    def select():
+        vertices = ComPASS.global_vertices().view(np.double).reshape((-1, 3))
+        return on_xmin(vertices) | on_xmax(vertices) | on_ymin(vertices) | on_ymax(vertices)
+    return select
+
+def init_states(p, T):
+    def set_states(states):
+        states.context[:] = 2
+        states.p[:] = p
+        states.T[:] = degC2K(T)
+        states.S[:] = [0, 1]
+        states.C[:] = 1.
+    for states in [ComPASS.dirichlet_node_states(),
+                  ComPASS.node_states(),
+                  ComPASS.fracture_states(),
+                  ComPASS.cell_states()]:
+        set_states(states)
+
 def make_well(xy):
     vertices = np.rec.array(ComPASS.global_vertices())
     x, y, z = vertices.x, vertices.y, vertices.z
@@ -18,7 +41,7 @@ def make_well(xy):
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
     well = ComPASS.Well()
     well.geometry.radius = 0.1
-    segments = np.transpose(np.vstack([well_nodes[:-1], well_nodes[1:]]))
+    segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
     well.geometry.add_segments(segments + 1) # Fortran indices start at 1
     return well
 
