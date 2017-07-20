@@ -4389,16 +4389,17 @@ contains
 
        ! cycle if the row is dir node
 #ifdef _THERMIQUE_
-       
-       if((i<=NbNodeOwn_Ncpus(commRank+1)) .and. &
-            (IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then
-          cycle
-       end if
+    if(i<=NbNodeOwn_Ncpus(commRank+1)) then
+        if(IdNodeLocal(i)%P=="d" .and. (IdNodeLocal(i)%T=="d")) then
+            cycle
+        end if
+    end if
 #else
-       if((i<=NbNodeOwn_Ncpus(commRank+1)) .and. &
-            (IdNodeLocal(i)%P=="d")) then
-          cycle
-       end if
+    if(i<=NbNodeOwn_Ncpus(commRank+1)) then
+        if(IdNodeLocal(i)%P=="d") then
+            cycle
+        end if
+    end if
 #endif       
        
        do mi=JacBigA%Pt(i)+1, JacBigA%Pt(i+1) ! loop of non zeros in row i
