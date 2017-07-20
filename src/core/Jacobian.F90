@@ -2164,7 +2164,7 @@ contains
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
@@ -2552,7 +2552,7 @@ contains
           ! end if
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
              divEgS(j) = divEgS(j) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
           end do
@@ -2598,7 +2598,7 @@ contains
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
              divEgS(j) = divEgS(j) &
                   + divDensitemolaireKrViscoEnthalpieFrac(j,m,nums) * FluxDarcyKI(mph,sf,k) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
@@ -3062,7 +3062,7 @@ contains
             + sum_aksgz * Smrho_k(mph)    ! SmPressionCap=0
 
        ! divDarcyFlux_s
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
           divDarcyFlux_s(j,mph) = &
                sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
        end do
