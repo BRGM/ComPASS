@@ -796,8 +796,12 @@ subroutine NN_init_phase2(OutputDir)
 
    end subroutine NN_main_checkpoint
 
-   subroutine NN_main_make_timestep()
+   subroutine NN_main_make_timestep(initial_time_step)
 
+      real(c_double), optional, intent(in) :: initial_time_step
+   
+      if(present(initial_time_step)) Delta_t = max(0.d0, initial_time_step)
+      
       ! init start time
       comptime_start = MPI_WTIME()
 

@@ -12,7 +12,7 @@ def check_well_pressure():
     ComPASS.production_whp()[:] = p_min - 1.
     ComPASS.injection_whp()[:] = p_max + 1.
 
-def standard_loop(final_time, output_frequency = None, nb_output = 10, nitermax = None, tstart=0):
+def standard_loop(final_time, initial_timestep=1., output_frequency = None, nb_output = 10, nitermax = None, tstart=0):
     if output_frequency is None:
         nb_output = max(2, nb_output)
         output_frequency = (max(tstart, final_time) - tstart) / (nb_output - 1)
@@ -37,7 +37,7 @@ def standard_loop(final_time, output_frequency = None, nb_output = 10, nitermax 
                 t_output = t_output + output_frequency
         n+= 1
         print_iteration_info()
-        ComPASS.make_timestep()
+        ComPASS.make_timestep(initial_timestep)
         t = ComPASS.get_current_time()
         ComPASS.timestep_summary()
     # Output final time
