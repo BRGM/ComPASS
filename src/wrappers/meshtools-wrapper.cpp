@@ -197,6 +197,18 @@ auto faces_ids(const Mesh& mesh, IdArray nodes) ->  py::array_t<ElementId>
 }
 
 template <typename Mesh>
+auto boundary_faces(const Mesh& mesh) -> py::array_t<ElementId>
+{
+	// FIXME: This copy is superfluous (use py::array_t and keep_alive policy)
+	auto boundaries = mesh.connectivity.boundary_faces();
+	const auto n = boundaries.size();
+	auto result = py::array_t<ElementId>{ n };
+	auto rawres = result.mutable_unchecked<1>();
+	std::copy(boundaries.begin(), boundaries.end(), rawres.mutable_data(0));
+	return result;
+}
+
+template <typename Mesh>
 void add_mesh(py::module& module, const char *classname, const char *factoryname)
 {
 	// FIXME: The decltype conversions are necessary for gcc
@@ -242,7 +254,8 @@ void add_mesh(py::module& module, const char *classname, const char *factoryname
 		.def("all_cell_centers", (decltype(&all_cell_centers<Mesh>))&all_cell_centers<Mesh>)
 		.def("face_centers", (decltype(&face_centers<Mesh>))&face_centers<Mesh>)
 		.def("all_face_centers", (decltype(&all_face_centers<Mesh>))&all_face_centers<Mesh>)
-		.def("faces_ids", (decltype(&faces_ids<Mesh>))&faces_ids<Mesh>);
+		.def("faces_ids", (decltype(&faces_ids<Mesh>))&faces_ids<Mesh>)
+		.def("boundary_faces", (decltype(&boundary_faces<Mesh>))&boundary_faces<Mesh>);
 	module.def(factoryname, (decltype(&make_mesh<Mesh>))&make_mesh<Mesh>);
 }
 
