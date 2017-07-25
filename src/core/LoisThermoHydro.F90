@@ -1330,26 +1330,32 @@ contains
     double precision, intent(out) :: dval(NbIncPTCSPrimMax)
     double precision, intent(out) :: Smval
 
-    integer :: j
+    integer :: i
 
     dval(:) = 0.d0
 
-    ! P is prim, first in NumIncPTCSPrimCV
-    if( NumIncPTCSPrimCV(1)==1) then
-       dval(1) = 1.d0
-       Smval = 0.d0
-    else
-       do j=1, NbIncPTCSecond
-          if( NumIncPTCSecondCV(j)==1) then
-
-             ! row j of dXssurdXp (stored in (col, row) index order)
-             dval(1:NbIncPTCSPrim) = -dXssurdXp(1:NbIncPTCSPrim,j)
-             Smval = -SmdXs(j)
-             exit
-          end if
-
-       end do
-    end if
+    IF(ANY(NumIncPTCSPrimCV == 1))THEN ! P is prim
+      do i=1,NbIncPTCSPrimMax
+        if (NumIncPTCSPrimCV(i) == 1) then
+          dval(i) = 1.d0
+          Smval = 0.d0
+        endif
+      enddo
+    ELSE IF(ANY(NumIncPTCSecondCV == 1))THEN ! P is secd
+      do i=1,NbEqFermeture
+        if (NumIncPTCSecondCV(i) == 1) then
+          dval(:) = - dXssurdXp(:,i)
+          Smval = - SmdXs(i)
+        endif
+      enddo
+    ELSE ! P not found
+      write(*,*)' pb dans derprim, P non trouvee '
+      write(*,*)' primary unknown'
+      write(*,*) NumIncPTCSPrimCV
+      write(*,*)' secondary unknown'
+      write(*,*) NumIncPTCSecondCV
+      stop
+    ENDIF
 
   end subroutine LoisThermoHydro_Pression_cv
 
@@ -1539,92 +1545,33 @@ contains
     double precision :: dfdX(NbIncPTCSMax)    
     double precision :: dfdX_secd(NbIncPTCSecondMax)
 
-    integer :: j,jT
+    integer :: i
 
     dval(:) = 0.d0
     Smval = 0.d0
     
-    ! P is prim, T is prim: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)=2
-
-    
-    ! P is prim, T is secd: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)>2
-    ! TODO
-
-    ! TODO
-    ! Rewrite using ANY(NumIncPTCSPrimCV==1) and get index
-    if((NumIncPTCSPrimCV(1)==1) .and. &
-         (NumIncPTCSPrimCV(2)==2)) then ! P is prim, T is prim
-
-       dval(2) = 1.d0
-       Smval = 0.d0
-
-    else if((NumIncPTCSPrimCV(1)==1) .and. &
-         (NumIncPTCSPrimCV(2)>2)) then ! P is prim, T is secd
-
-       ! T = Tsat(P)
-    !   call DefModel_Tsat(inc%Pression, f, dPf)
-
-       ! Fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-     !  dfdX(:) = 0.d0
-
-     !  dfdX(1) = dPf  
-     !  dfdX(2) = 0.d0
-
-       jT = 0
-       do j=1,NbEqFermeture
-          if (NumIncPTCSecondCV(j).eq.2) then
-             jT = j 
-             dval(:) =  - dXssurdXp(:,j)
-             Smval = - SmdXs(j)
-          endif
-       enddo
-       if (jT.eq.0) then
-          write(*,*)' pb dans derprim temp T second non trouvee ',jT
-          stop
-       endif
-
-  ! autre calcul equivalent (mais plus couteux)        
-   !    dfdX(:) = 0.d0
-   !    dfdX(2) = 1.d0             
-       ! prim and secd part of dfdX
-    !   do j=1, NbIncPTCSPrim
-    !      dval(j) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-    !   end do
-
-    !   dfdX_secd(:) = 0.d0
-    !   do j=1, NbIncPTCSecond ! = NbEqFermeture
-    !      dfdX_secd(j) = dfdX( NumIncPTCSecondCV(j))
-    !   end do
-
-       ! dT/dXp - dT/dXs*dXs/dXp
-       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-       ! all the mats is in (col, row) index order, only need to consider as transpose    
-   !    call dgemm('N','N', NbIncPTCSPrim, 1, NbEqFermeture, &
-   !         -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
-       !     dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
-       
-    ! -dT/dXs*SmdXs
-  !  call dgemv('T', NbEqFermeture, 1,  &
-  !       -1.d0, dfdX_secd, NbIncPTCSecondMax, &
-  !       SmdXs, 1, 0.d0, Smval, 1)
-
-   ! debug: on compare les deux methodes : OK     
-   ! write(*,*)' - dXssurdXp 1 ',- dXssurdXp(:,jT)
-   ! write(*,*)' - SmdXs 1 ',- SmdXs(jT)
-   ! write(*,*)' dT ',dval
-   ! write(*,*)' SmT ',Smval
-   ! stop
-       
-    else if( NumIncPTCSPrimCV(1)==2) then 
-
-       ! TODO: P is secd, T is prim
-       print*, "TODO error in div Temperature"
-
-    else
-
-       ! TODO: P and T are both secd ?
-       print*, "TODO error in div Temperature"
-    end if
+    IF(ANY(NumIncPTCSPrimCV == 2))THEN ! T is prim
+      do i=1,NbIncPTCSPrimMax
+        if (NumIncPTCSPrimCV(i) == 2) then
+          dval(i) = 1.d0
+          Smval = 0.d0
+        endif
+      enddo
+    ELSE IF(ANY(NumIncPTCSecondCV == 2))THEN ! T is secd
+      do i=1,NbEqFermeture
+        if (NumIncPTCSecondCV(i) == 2) then
+          dval(:) = - dXssurdXp(:,i)
+          Smval = - SmdXs(i)
+        endif
+      enddo
+    ELSE ! T not found
+      write(*,*)' pb dans derprim, T non trouvee '
+      write(*,*)' primary unknown'
+      write(*,*) NumIncPTCSPrimCV
+      write(*,*)' secondary unknown'
+      write(*,*) NumIncPTCSecondCV
+      stop
+    ENDIF
 
   end subroutine LoisThermoHydro_Temperature_cv
 
