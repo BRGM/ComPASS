@@ -520,7 +520,10 @@ contains
     call LoisThermoHydro_PressionCapillaire_cv(rocktypeinc, inc, PressionCap, divPressionCap)
 
     ! Saturation div
-    call LoisThermoHydro_Saturation_cv(inc, divSaturation)
+    call LoisThermoHydro_Saturation_cv(inc, &
+      NumIncPTCSPrimCV, NumIncPTCSecondCV, &
+      dXssurdXp, &
+      divSaturation)
 
     ! term: DensiteMolaire * PermRel / Viscosite * Comp
     call LoisThermoHydro_DensitemolaireKrViscoComp_cv( inc, &
@@ -1361,28 +1364,57 @@ contains
 
 
 
-  subroutine LoisThermoHydro_Saturation_cv(inc, dval)
+  subroutine LoisThermoHydro_Saturation_cv(inc, &
+       NumIncPTCSPrimCV, NumIncPTCSecondCV, &
+       dXssurdXp, &
+       dval)
 
     ! input
     type(Type_IncCV), intent(in)  :: inc
+    integer, intent(in) :: &
+         NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
+         NumIncPTCSecondCV( NbEqFermetureMax)
+    double precision, intent(in) :: & ! (col, row) index order
+         dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax)
 
     ! output
     double precision, intent(out) :: dval(NbIncPTCSPrimMax, NbPhase)
 
     ! tmp
-    integer :: i
+    integer :: i, iph, k
 
     dval(:,:) = 0.d0
 
-    ! alpha=1,2,...,NbPhasePresente-1
-    do i=1, NbPhasePresente - 1
-       dval(i+NbIncPTCPrim,i) = 1.d0
-    end do
+    DO i=1, NbPhasePresente - 1
+      iph = NumPhasePresente(i)
 
-    ! alpha = NbPhasePresente
-    do i=1, NbPhasePresente - 1
-       dval(i+NbIncPTCPrim, NbPhasePresente) = -1.d0
-    end do
+      IF(ANY(NumIncPTCSPrimCV == i+NbIncPTC))THEN ! S is prim
+        do k=1,NbIncPTCSPrimMax
+          if (NumIncPTCSPrimCV(k) == i+NbIncPTC) then
+            dval(k,i) = 1.d0
+
+            dval(k,NbPhasePresente) = -1.d0
+          endif
+        enddo
+      ELSE IF(ANY(NumIncPTCSecondCV == i+NbIncPTC))THEN ! S is secd
+        do k=1,NbEqFermeture
+          if (NumIncPTCSecondCV(k) == i+NbIncPTC) then
+            dval(:,i) = - dXssurdXp(:,k)
+
+            dval(:,NbPhasePresente) = dXssurdXp(:,k)
+          endif
+        enddo
+      ELSE ! S not found
+        write(*,*)' pb dans derprim, S non trouvee '
+        write(*,*)' primary unknown'
+        write(*,*) NumIncPTCSPrimCV
+        write(*,*)' secondary unknown'
+        write(*,*) NumIncPTCSecondCV
+        write(*,*)' saturation'
+        write(*,*) i
+        stop
+      ENDIF
+    ENDDO
 
   end subroutine LoisThermoHydro_Saturation_cv
 
