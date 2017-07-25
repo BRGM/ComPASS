@@ -262,6 +262,7 @@ void add_mesh(py::module& module, const char *classname, const char *factoryname
 py::module& add_mesh_tools(py::module& module)
 {
 	add_mesh<MT::TetMesh>(module, "TetMesh", "tetmesh");
+	add_mesh<MT::HexMesh>(module, "HexMesh", "hexmesh");
 	module.def("idtype", []() { return py::dtype::of<ElementId>(); });
 	return module;
 }

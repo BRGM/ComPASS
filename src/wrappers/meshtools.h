@@ -51,14 +51,36 @@ namespace MeshTools
 		static constexpr auto VTK_ID = VTK_ID_type{ 5 };
 	};
 
+	struct Quad_info {
+		// CHECKME: to be removed cf. compiler error below
+		static constexpr auto nb_nodes = ::std::size_t{ 4 };
+		static constexpr auto facets = FacetList<Segment_info, 4>{ { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 0, 3 } } };
+		static constexpr auto nb_facet_nodes = ::std::size_t{ 2 };
+		static constexpr auto VTK_ID = VTK_ID_type{ 9 };
+	};
+
 	struct Tetrahedron_info {
 		// CHECKME: to be removed cf. compiler error below
 		static constexpr auto nb_nodes = ::std::size_t{ 4 };
 		// CHECKME: outward oriented
 		// Facets are CGAL compliant : Face n correspond to nth vertex missing
-		static constexpr auto facets = FacetList<Triangle_info, 4>{ { { 1, 2, 3 }, { 0, 3, 2 }, { 0, 1, 3 }, {0, 2, 1 } } };
+		static constexpr auto facets = FacetList<Triangle_info, 4>{ { { 1, 2, 3 },{ 0, 3, 2 },{ 0, 1, 3 },{ 0, 2, 1 } } };
 		static constexpr auto nb_facet_nodes = ::std::size_t{ 3 };
 		static constexpr auto VTK_ID = VTK_ID_type{ 10 };
+	};
+
+	struct Hexahedron_info {
+		// CHECKME: to be removed cf. compiler error below
+		static constexpr auto nb_nodes = ::std::size_t{ 8 };
+		// CHECKME: outward oriented
+		static constexpr auto facets = FacetList<Quad_info, 6>{ { { 0, 1, 2, 3 },
+		                                                          { 4, 5, 6, 7 },
+																  { 1, 2, 6, 5 },
+																  { 2, 6, 7, 3 },
+																  { 3, 7, 4, 0 },
+																  { 0, 1, 5, 4 } } };
+		static constexpr auto nb_facet_nodes = ::std::size_t{ 4 };
+		static constexpr auto VTK_ID = VTK_ID_type{ 12 };
 	};
 
 	template <typename ElementType>
@@ -136,34 +158,22 @@ namespace MeshTools
 	typedef Element<Vertex_info> Vertex;
 	typedef Element<Segment_info> Segment;
 	typedef Element<Triangle_info> Triangle;
+	typedef Element<Quad_info> Quad;
 	typedef Element<Tetrahedron_info> Tetrahedron;
+	typedef Element<Hexahedron_info> Hexahedron;
 
 	using Tet = Tetrahedron;
+	using Hex = Hexahedron;
 
 	template <typename T, ::std::size_t N>
 	using FSCoC = ::std::vector< ::std::array<T, N> >;
 
-	template <typename T, ::std::size_t N>
-	auto FSCoC_as_COC(const FSCoC<T,N>& fscoc)
-	{
-		std::vector<ElementId> pointers;
-		auto n = fscoc.size();
-		pointers.reserve(n + 1);
-		ElementId pos = 0;
-		pointers.emplace_back(pos);
-		for (; n != 0; --n) {
-			pos += N;
-			pointers.emplace_back(pos);
-		}
-		return std::make_tuple(pointers, fscoc.data()->data());
-	}
-
-	//template <typename RowType, typename ColumnType, ::std::size_t N>
-	//struct HomogeneousConnectivityTable :
-	//	FSCoC<NodeId, N> {
-	//	typedef RowType row_type;
-	//	typedef ColumnType col_type;
-	//};
+	template <typename RowType, typename ColumnType, ::std::size_t N>
+	struct HomogeneousConnectivityTable :
+		FSCoC<NodeId, N> {
+		typedef RowType row_type;
+		typedef ColumnType col_type;
+	};
 
 	//template <typename ElementType>
 	//struct LightweightHomogeneousMesh {
@@ -354,6 +364,7 @@ namespace MeshTools
 	//};
 	typedef ::std::array<double, 3> Point;
 	typedef Mesh<Point, Tet> TetMesh;
+	typedef Mesh<Point, Hex> HexMesh;
 
 	/** FIXME/IMPROVE Temporary because referenced elements are not copied in memory.
 	This might be safer using shared pointers.
