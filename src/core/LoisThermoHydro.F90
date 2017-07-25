@@ -1126,7 +1126,7 @@ contains
        iph = NumPhasePresente(i)
 
        call f_Viscosite(iph,inc%Pression,inc%Temperature, &
-            inc%Comp, inc%Saturation, &
+            inc%Comp(:,iph), inc%Saturation, &
             f, dPf, dTf, dCf, dSf)
 
        val(i) = 1.d0/f ! val
@@ -1497,7 +1497,7 @@ contains
        iph = NumPhasePresente(i)
 
        call f_EnergieInterne(iph,inc%Pression,inc%Temperature, &
-            inc%Comp, inc%Saturation, &
+            inc%Comp(:,iph), inc%Saturation, &
             f, dPf, dTf, dCf, dSf)
 
        val(i) = f ! val
@@ -1647,7 +1647,7 @@ contains
        iph = NumPhasePresente(i)
 
        call f_Enthalpie(iph,inc%Pression,inc%Temperature, &
-            inc%Comp, inc%Saturation, &
+            inc%Comp(:,iph), inc%Saturation, &
             f, dPf, dTf, dCf, dSf)
 
        val(i) = f ! val
