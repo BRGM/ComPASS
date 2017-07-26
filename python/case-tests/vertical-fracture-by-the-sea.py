@@ -22,8 +22,8 @@ slope = 200 / L
 # nb of cells along Ox and Oz
 n = 20
 
-with_fracture = True
-with_bottom_dirichlet_condition = True
+with_fractures = True
+with_bottom_dirichlet_conditions = True
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -63,14 +63,14 @@ def set_node_flags():
 def select_dirichlet_nodes():
     dirichlet = np.zeros(mesh.nb_vertices(), dtype=np.bool)
     dirichlet[topo_nodes] = True
-    dirichlet[bottom_nodes] = with_bottom_dirichlet_condition
+    dirichlet[bottom_nodes] = with_bottom_dirichlet_conditions
     return dirichlet
 
 assert ComPASS.gravity()>0
 
 def select_fractures():
     where = np.zeros(mesh.nb_faces(), dtype=np.bool)
-    where[fault_faces_id] = with_fracture
+    where[fault_faces_id] = with_fractures
     return where
 
 # This can be used to set different fractures id (and select properties accordingly)
