@@ -68,7 +68,16 @@ def init(
         ComPASS.global_mesh_set_cartesian_mesh()
         if mpi.is_on_master_proc:
             ComPASS.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
-    elif type(mesh) is MeshTools.TetMesh:
+    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
+        ComPASS.init_warmup(runtime.logfile)
+        if type(mesh) is MeshTools.TetMesh:
+            ComPASS.global_mesh_set_tetrahedron_mesh()
+        else:
+            assert type(mesh) is MeshTools.HexMesh
+            ComPASS.global_mesh_set_hexahedron_mesh()
+        if mpi.is_on_master_proc:
+            ComPASS.create_mesh(mesh)
+    elif type(mesh) is MeshTools.HexMesh:
         ComPASS.init_warmup(runtime.logfile)
         ComPASS.global_mesh_set_tetrahedron_mesh()
         if mpi.is_on_master_proc:
