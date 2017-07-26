@@ -8,23 +8,26 @@ from ComPASS.timeloops import standard_loop
 import ComPASS.GridTools as GT
 MT = ComPASS.ComPASS.MeshTools
 
+#import vtkwriters as vtkw
+
 patm = 1E5
-Tsea, Tatm = 30., 30.
+Tsea, Tatm = 5., 30.
 Tgrad = 0.03 # 30°C / km depth
 Lsea = 50. # transition length for seafloor temperature
-fracture_permeability = 1E-13
+fracture_permeability = 1E-12
 matrix_permeability = 1E-15
 
 L, P, H = 3.E3, 1.E3, 3.E3
-slope = 0* 200 / L
+slope = 200 / L
 # nb of cells along Ox and Oz
 n = 20
 
 with_fracture = True
+with_bottom_dirichlet_condition = True
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-gridshape = (n, 2*int(0.5*P/(L/n)), n)
+gridshape = (n, 2*max(1, int(0.5*P/(L/n))), n)
 # gridshape = (n, 1, n)
 gridextent = (L, P, H)
 #vertices, cells = GT.grid2tets(gridshape, gridextent)
@@ -58,11 +61,9 @@ def set_node_flags():
     flags[bottom_nodes] = 2
 
 def select_dirichlet_nodes():
-    print('Selecting', topo_nodes.shape[0], 'topography nodes.')
-    print('      and', bottom_nodes.shape[0], 'bottom nodes.')
     dirichlet = np.zeros(mesh.nb_vertices(), dtype=np.bool)
     dirichlet[topo_nodes] = True
-    #dirichlet[bottom_nodes] = True
+    dirichlet[bottom_nodes] = with_bottom_dirichlet_condition
     return dirichlet
 
 assert ComPASS.gravity()>0
@@ -123,10 +124,32 @@ def set_initial_values():
         states.C[:] = 1.
     xyz = ComPASS.vertices().view(np.double).reshape((-1, 3))
     set_states(ComPASS.node_states(), xyz)
-    xyz = ComPASS.compute_face_centers()[ComPASS.frac_face_id()]
+    xyz = ComPASS.compute_face_centers()[ComPASS.frac_face_id()-1] # Fotran indexing
     set_states(ComPASS.fracture_states(), xyz)
+    #states = ComPASS.fracture_states()
+    #vtkw.write_vtu(
+    #    vtkw.vtu_doc(ComPASS.vertices().view(np.double).reshape((-1, 3)),
+    #                 # Fotran indexing
+    #                 np.array([np.array(a, copy=False) - 1 for a in ComPASS.get_connectivity().NodebyFace])[ComPASS.frac_face_id()-1],
+    #                 celltypes=np.tile(vtkw.vtk_celltype['quad'], fracvert.shape[0]),
+    #                 celldata={'pressure': np.ascontiguousarray(states.p),
+    #                           'temperature': np.ascontiguousarray(states.T),
+    #                           'centerdepth': np.ascontiguousarray(compute_depth(xyz)),
+    #                           'elevation': np.ascontiguousarray(xyz[:,2])}),
+    #    'frac_state_%03d.vtu' % ComPASS.mpi.proc_rank
+    #)
     xyz = ComPASS.compute_cell_centers()
     set_states(ComPASS.cell_states(), xyz)
+    #states = ComPASS.cell_states()
+    #vtkw.write_vtu(
+    #    vtkw.vtu_doc(ComPASS.vertices().view(np.double).reshape((-1, 3)),
+    #                 # Fotran indexing
+    #                 np.array([np.array(a, copy=False) - 1 for a in ComPASS.get_connectivity().NodebyCell]),
+    #                 celldata={'pressure': np.ascontiguousarray(states.p),
+    #                           'temperature': np.ascontiguousarray(states.T),
+    #                           'centerdepth': np.ascontiguousarray(compute_depth(xyz))}),
+    #    'cell_state_%03d.vtu' % ComPASS.mpi.proc_rank
+    #)
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
@@ -150,4 +173,4 @@ del mesh
 del fault_faces_id
 
 ComPASS.set_maximum_timestep(1E2 * year)
-standard_loop(final_time = 1E3 * year, output_frequency = 1E2 * year, initial_timestep= 10 * day)
+standard_loop(final_time = 1E4 * year, output_frequency = 1E3 * year, initial_timestep= 1 * year)
