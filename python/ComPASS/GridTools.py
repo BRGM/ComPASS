@@ -5,7 +5,9 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     ncx, ncy, ncz = shape
     # number of nodes
     nx, ny, nz = ncx+1, ncy+1, ncz+1
-    dx, dy, dz = extent
+    dxyz = np.array([L/d for L, d in zip(extent, shape)], dtype=np.double)
+    assert np.all(dxyz>0)
+    dx, dy, dz = dxyz
     ncubes = (nx-1)*(ny-1)*(nz-1)
     nnodes = nx * ny * nz
     ncenters = (nx-1) * (ny-1) * (nz-1)
