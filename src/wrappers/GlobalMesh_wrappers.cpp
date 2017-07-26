@@ -29,7 +29,8 @@ extern "C"
 
 namespace MT = MeshTools;
 
-auto create_mesh(const MT::TetMesh& mesh)
+template <typename Mesh>
+auto create_mesh(const Mesh& mesh)
 {
 	const auto& vertices = mesh.vertices;
 	const auto& cells = mesh.connectivity.cells;
@@ -86,10 +87,11 @@ void add_GlobalMesh_wrappers(py::module& module)
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
 
-	module.def("create_mesh", &create_mesh,
-		"Builds a mesh from vertices information."
-	);
-
+	// CHECKME: The weird conversion is due to a gcc bug
+	// cf. https://stackoverflow.com/questions/45077622/using-a-template-function-pointer-inside-another-template-function?noredirect=1#comment77158283_45077622
+	module.def("create_mesh", (decltype(&create_mesh<MT::TetMesh>))(&create_mesh<MT::TetMesh>), "Creates a tet mesh.");
+	module.def("create_mesh", (decltype(&create_mesh<MT::HexMesh>))(&create_mesh<MT::HexMesh>), "Creates a hex mesh.");
+	
 	//void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
 	//subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
 	//	nodes, &
