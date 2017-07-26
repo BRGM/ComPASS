@@ -250,6 +250,8 @@ void add_mesh(py::module& module, const char *classname, const char *factoryname
 		//.def("cell_centers", py::overload_cast<const Mesh&>(&all_cell_centers<Mesh>))
 		//.def("face_centers", py::overload_cast<const Mesh&, IdArray>(&face_centers<Mesh>))
 		//.def("face_centers", py::overload_cast<const Mesh&>(&all_face_centers<Mesh>))
+		// CHECKME: The weird conversion is due to a gcc bug
+		// cf. https://stackoverflow.com/questions/45077622/using-a-template-function-pointer-inside-another-template-function?noredirect=1#comment77158283_45077622
 		.def("cell_centers", (decltype(&cell_centers<Mesh>))&cell_centers<Mesh>)
 		.def("all_cell_centers", (decltype(&all_cell_centers<Mesh>))&all_cell_centers<Mesh>)
 		.def("face_centers", (decltype(&face_centers<Mesh>))&face_centers<Mesh>)
