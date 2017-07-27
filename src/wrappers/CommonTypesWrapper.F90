@@ -75,13 +75,23 @@
 
           real(kind=c_double), allocatable, dimension(:), target, intent(in) :: fortran_array
           type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: n
 
           if (.not. allocated(fortran_array)) then
              cpp_array%p = C_NULL_PTR
              cpp_array%n = 0
           else
-             cpp_array%p = c_loc(fortran_array(1))
-             cpp_array%n = size(fortran_array)
+              n = size(fortran_array)
+              cpp_array%n = n
+              if (n==0) then
+                  ! FIXME: Remove comment
+#ifdef TRACK_ZERO_SIZE_ARRAY              
+                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+                  cpp_array%p = C_NULL_PTR
+              else
+                  cpp_array%p = c_loc(fortran_array(1))
+              end if
           end if
 
        end subroutine retrieve_double_array
@@ -91,21 +101,33 @@
           type(CSR), intent(in) :: fortran_csr
           type(cpp_COC), intent(inout) :: retrieved_coc
           ! FIXME: set consistent values to error codes
-          integer :: errcode, Ierr
+          integer :: n, errcode, Ierr
 
-          if ((.not. allocated(fortran_csr%Pt)) .or. &
-              (.not. allocated(fortran_csr%Num)) .or. &
-              allocated(fortran_csr%Val)) &
-             then
-             print *, "Trying to retrieve as COC a CSR which is not allocated."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          n = fortran_csr%Nb
+          retrieved_coc%nb_containers = n
+          
+          if(n==0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY              
+              write(*,*) 'WARNING - Retrieving zero size COC.'
+#endif    
+              retrieved_coc%container_offset = C_NULL_PTR
+              retrieved_coc%container_content = C_NULL_PTR
+          else        
+              if ((.not. allocated(fortran_csr%Pt)) .or. &
+                  (.not. allocated(fortran_csr%Num))) then
+                 print *, "Trying to retrieve as COC a CSR which is not allocated."
+                 !CHECKME: MPI_Abort is supposed to end all MPI processes
+                 call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+              end if
+              if (allocated(fortran_csr%Val)) then
+                 print *, "Trying to retrieve as COC a CSR which has allocated values (i.e. it is not a COC but rather a true CSR)."
+                 !CHECKME: MPI_Abort is supposed to end all MPI processes
+                 call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+              end if
+              call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
+              call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
           end if
-
-          retrieved_coc%nb_containers = fortran_csr%Nb
-          call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
-          call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
-
+          
        end subroutine retrieve_coc
 
     end module CommonTypesWrapper

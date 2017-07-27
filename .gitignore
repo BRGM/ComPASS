@@ -8,3 +8,4 @@ src/conf/dummy/
 tests/
 python/Lamentin/
 *.log
+*.vtu

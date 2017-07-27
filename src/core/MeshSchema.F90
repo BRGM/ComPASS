@@ -27,7 +27,7 @@ module MeshSchema
   ! 2. Mesh and connectivity
   !    Used to (1) calcul Transmissivities: TkLocal and TkFracLocal
   !            (2) Assembly
-  type(CSR), protected :: & 
+  type(CSR), public :: & 
        NodebyNodeOwn, &   ! (1)
        FracbyNodeOwn, &   ! (1)
        CellbyNodeOwn, &   ! (1)
@@ -56,7 +56,9 @@ module MeshSchema
   double precision, allocatable, dimension(:,:), target :: &
        XNodeLocal
   integer(c_int), allocatable, dimension(:), target :: &
-       NodeFlagsLocal
+       NodeFlagsLocal, &
+       CellFlagsLocal, &
+       FaceFlagsLocal
   
   ! 4. IdCell/IdFace/IdNode
   integer, allocatable, dimension(:), protected :: &
@@ -92,7 +94,7 @@ module MeshSchema
        WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
 
   ! 5. Frac to Face, Face to Frac 
-  integer, allocatable, dimension(:), protected :: &
+  integer(c_int), allocatable, dimension(:), target :: &
        FracToFaceLocal, &
        FaceToFracLocal
 
@@ -350,28 +352,57 @@ contains
        call MPI_Recv(XNodeLocal,  NbNodeLocal_Ncpus(commRank+1)*3, MPI_DOUBLE, 0, 21, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
-    ! Send node flags    
-    if (commRank==0) then
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(XNodeRes_Ncpus(i)%Array2d)
+       end do
+       deallocate(XNodeRes_Ncpus)
+    end if
 
+    ! Send flags    
+
+    if (commRank==0) then
        do i=1,Ncpus-1
           call MPI_Send(NodeFlags_Ncpus(i+1)%Val, NbNodeLocal_Ncpus(i+1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
        end do
-
        allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
-       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val
-       
+       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val    
     else
        allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(commRank+1)))
-       call MPI_Recv(NodeFlagsLocal,  NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
+       call MPI_Recv(NodeFlagsLocal, NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(CellFlags_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(CellFlagsLocal(NbCellLocal_Ncpus(1)))
+       CellFlagsLocal = CellFlags_Ncpus(1)%Val    
+    else
+       allocate(CellFlagsLocal(NbCellLocal_Ncpus(commRank+1)))
+       call MPI_Recv(CellFlagsLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(FaceFlags_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER, i, 24, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(1)))
+       FaceFlagsLocal = FaceFlags_Ncpus(1)%Val    
+    else
+       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(commRank+1)))
+       call MPI_Recv(FaceFlagsLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 24, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
     if(commRank==0) then
        do i=1, Ncpus
-          deallocate(XNodeRes_Ncpus(i)%Array2d)
           deallocate(NodeFlags_Ncpus(i)%Val)
+          deallocate(CellFlags_Ncpus(i)%Val)
+          deallocate(FaceFlags_Ncpus(i)%Val)
        end do
-       deallocate(XNodeRes_Ncpus)
        deallocate(NodeFlags_Ncpus)
+       deallocate(CellFlags_Ncpus)
+       deallocate(FaceFlags_Ncpus)
     end if
 
 
@@ -1417,6 +1448,8 @@ contains
 
     deallocate(XNodeLocal)
     deallocate(NodeFlagsLocal)
+    deallocate(CellFlagsLocal)
+    deallocate(FaceFlagsLocal)
 
     deallocate(IdCellLocal)
     deallocate(IdFaceLocal)

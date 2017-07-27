@@ -686,7 +686,7 @@ contains
 
 
     ! mesh Simon 5M, one well inj and one well prod
-    Delta_t = min(Delta_t, TimeStepMax1)
+    Delta_t = min(Delta_t, TimeStepMax)
     
     ! if(commRank==0) then
     !    print*, ""

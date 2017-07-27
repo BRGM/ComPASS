@@ -8,7 +8,8 @@
        use CommonMPI
        use GlobalMesh
        use DefWell
-
+       use MeshSchema
+    
        implicit none
 
        integer :: Ierr, errcode
@@ -28,7 +29,10 @@
           check_mesh_allocation, &
           retrieve_global_vertices, &
           retrieve_global_nodeflags, &
+          retrieve_global_cellflags, &
+          retrieve_global_faceflags, &
           retrieve_id_faces, &
+          retrieve_global_mesh_connectivity, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
           retrieve_face_porosity, &
@@ -132,6 +136,56 @@
           cpp_array%n = size(NodeFlags)
 
        end subroutine retrieve_global_nodeflags
+
+    subroutine retrieve_global_cellflags(cpp_array) &
+          bind(C, name="retrieve_global_cellflags")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(CellFlags)) then
+             print *, "cell flags are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(CellFlags(1))
+          cpp_array%n = size(CellFlags)
+
+       end subroutine retrieve_global_cellflags
+
+    subroutine retrieve_global_faceflags(cpp_array) &
+          bind(C, name="retrieve_global_faceflags")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(FaceFlags)) then
+             print *, "Face flags are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(FaceFlags(1))
+          cpp_array%n = size(FaceFlags)
+
+       end subroutine retrieve_global_faceflags
 
        subroutine retrieve_id_faces(cpp_array) &
           bind(C, name="retrieve_id_faces")
@@ -266,7 +320,8 @@
 
        end subroutine retrieve_global_id_node
 
-       subroutine retrieve_mesh_connectivity(connectivity) bind(C, name="retrieve_mesh_connectivity")
+       subroutine retrieve_global_mesh_connectivity(connectivity) &
+           bind(C, name="retrieve_global_mesh_connectivity")
 
           type(cpp_MeshConnectivity), intent(inout) :: connectivity
 
@@ -276,6 +331,24 @@
           call retrieve_coc(CellbyNode, connectivity%CellbyNode)
           call retrieve_coc(CellbyFace, connectivity%CellbyFace)
           call retrieve_coc(CellbyCell, connectivity%CellbyCell)
+
+       end subroutine retrieve_global_mesh_connectivity
+
+       subroutine retrieve_mesh_connectivity(connectivity) &
+           bind(C, name="retrieve_mesh_connectivity")
+
+       type(cpp_MeshConnectivity), intent(inout) :: connectivity
+       type(CSR) :: empty_CSR
+       empty_CSR%Nb = 0
+
+       call retrieve_coc(NodebyCellLocal, connectivity%NodebyCell)
+       call retrieve_coc(NodebyFaceLocal, connectivity%NodebyFace)
+       call retrieve_coc(FacebyCellLocal, connectivity%FacebyCell)
+       ! FIXME: Use a local connectivity structure
+       ! The following connectivity elements are not defined locally
+       call retrieve_coc(empty_CSR, connectivity%CellbyNode)
+       call retrieve_coc(empty_CSR, connectivity%CellbyFace)
+       call retrieve_coc(empty_CSR, connectivity%CellbyCell)
 
        end subroutine retrieve_mesh_connectivity
 

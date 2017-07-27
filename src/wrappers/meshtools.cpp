@@ -9,6 +9,7 @@ namespace MeshTools
 	constexpr decltype(Segment_info::facets) Segment_info::facets;
 	constexpr decltype(Triangle_info::facets) Triangle_info::facets;
 	constexpr decltype(Tetrahedron_info::facets) Tetrahedron_info::facets;
+	constexpr decltype(Hexahedron_info::facets) Hexahedron_info::facets;
 
 } // namespace MeshTools
 

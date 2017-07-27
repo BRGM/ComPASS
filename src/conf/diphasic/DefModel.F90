@@ -153,8 +153,8 @@ module DefModel
   ! FIXME: parameter is removed to assign variable from python
   double precision :: TimeFinal =  200*OneYear
 
-  double precision, parameter :: TimeStepInit = OneSecond*1000
-  double precision, parameter :: TimeStepMax1 = OneYear
+  double precision :: TimeStepInit = OneSecond*1000
+  double precision :: TimeStepMax = OneYear
 
   ! output_frequency for visu
   double precision, parameter :: output_frequency = OneSecond

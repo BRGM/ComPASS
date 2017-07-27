@@ -31,7 +31,12 @@ extern "C"
 	void retrieve_vertices(XArrayWrapper<Point>&);
 	void retrieve_nodeflags(XArrayWrapper<int>&);
 	void retrieve_global_nodeflags(XArrayWrapper<int>&);
+	void retrieve_cellflags(XArrayWrapper<int>&);
+	void retrieve_global_cellflags(XArrayWrapper<int>&);
+	void retrieve_faceflags(XArrayWrapper<int>&);
+	void retrieve_global_faceflags(XArrayWrapper<int>&);
 	void retrieve_global_vertices(XArrayWrapper<Point>&);
+	void retrieve_global_mesh_connectivity(MeshConnectivity&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
 	void retrieve_id_faces(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
@@ -40,6 +45,8 @@ extern "C"
 	void retrieve_face_permeability(ArrayWrapper&);
 	void retrieve_global_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_id_node(XArrayWrapper<NodeInfo>&);
+	void retrieve_frac_face_id(XArrayWrapper<int>&);
+	void retrieve_face_frac_id(XArrayWrapper<int>&);
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -50,8 +57,14 @@ void add_mesh_utilities_wrappers(py::module& module)
 	PYBIND11_NUMPY_DTYPE(Point, x, y, z);
 	add_array_wrapper(module, "global_vertices", retrieve_global_vertices);
 	add_array_wrapper(module, "global_nodeflags", retrieve_global_nodeflags);
+	add_array_wrapper(module, "global_cellflags", retrieve_global_cellflags);
+	add_array_wrapper(module, "global_faceflags", retrieve_global_faceflags);
 	add_array_wrapper(module, "vertices", retrieve_vertices);
 	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
+	add_array_wrapper(module, "cellflags", retrieve_cellflags);
+	add_array_wrapper(module, "faceflags", retrieve_faceflags);
+	add_array_wrapper(module, "face_frac_id", retrieve_face_frac_id);
+	add_array_wrapper(module, "frac_face_id", retrieve_frac_face_id);
 
 	module.def("get_id_faces_buffer",
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },
@@ -81,13 +94,20 @@ void add_mesh_utilities_wrappers(py::module& module)
 		.def_readwrite("CellbyFace", &MeshConnectivity::CellbyFace)
 		.def_readwrite("CellbyCell", &MeshConnectivity::CellbyCell);
 
+	module.def("get_global_connectivity", []() {
+		MeshConnectivity connectivity;
+		retrieve_global_mesh_connectivity(connectivity);
+		return connectivity;
+	},
+		"Get global mesh connectivity."
+		);
+
 	module.def("get_connectivity", []() {
 		MeshConnectivity connectivity;
 		retrieve_mesh_connectivity(connectivity);
-		//std::cout << connectivity << std::endl;
 		return connectivity;
 	},
-		"Get mesh connectivity."
+		"Get local mesh connectivity."
 		);
 
 	// FIXME: preprocessor directives to be removed!
