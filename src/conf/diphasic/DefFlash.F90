@@ -280,12 +280,9 @@ contains
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
-
-      
-
       IF(PgCag + PgCeg > Pg)THEN
 
-        write(*,*)' apparition gas ',Pg,PgCag,PgCeg
+        write(*,*)' apparition gas ', Pg, T
         
         inc%ic = 3
         inc%Saturation(PHASE_GAS) = 0.d0
@@ -309,7 +306,7 @@ contains
       
       IF(S(PHASE_GAS) < 0.d0)THEN
          
-        write(*,*)' disp du gaz ',S(PHASE_GAS),S(PHASE_WATER)
+        write(*,*)' disp du gaz ', Pg, T
          
         inc%ic = 2
         inc%Saturation(PHASE_GAS) = 0
@@ -338,7 +335,7 @@ contains
            inc%Pression = Psat
         endif     
           
-      
+
     ELSE
       PRINT*, "Error in Flash: no such context"
       PRINT*, "only gas in porous medium"

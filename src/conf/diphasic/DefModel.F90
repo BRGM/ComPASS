@@ -31,7 +31,7 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
   
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
@@ -153,8 +153,8 @@ module DefModel
   ! FIXME: parameter is removed to assign variable from python
   double precision :: TimeFinal =  200*OneYear
 
-  double precision :: TimeStepInit = OneSecond*1000
-  double precision :: TimeStepMax = OneYear
+  double precision :: TimeStepInit = OneSecond
+  double precision :: TimeStepMax = 200*OneYear
 
   ! output_frequency for visu
   double precision, parameter :: output_frequency = OneSecond
@@ -173,9 +173,9 @@ module DefModel
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
   double precision, parameter :: NewtonIncreObj_P = 1.d+5
-  double precision, parameter :: NewtonIncreObj_T = 10.d0
-  double precision, parameter :: NewtonIncreObj_C = 1.d0
-  double precision, parameter :: NewtonIncreObj_S = 0.2d0
+  double precision, parameter :: NewtonIncreObj_T = 1.d0
+  double precision, parameter :: NewtonIncreObj_C = 0.1d0
+  double precision, parameter :: NewtonIncreObj_S = 0.1d0
 
 
   ! ! ****** Obj values used to compute next time step ****** ! !
@@ -242,6 +242,7 @@ contains
     
     IF(iph == PHASE_GAS)THEN
        f = P 
+
        dPf = 1.d0
        dTf = 0.d0
        dCf = 0.d0 
@@ -278,16 +279,16 @@ contains
      DOUBLE PRECISION :: H1
      DOUBLE PRECISION :: H2
 
-  !   T1 = 293.d0
-  !   T2 = 353.d0
+     T1 = 293.d0
+     T2 = 353.d0
 
-  !   H1 = 6.d+9
-  !   H2 = 10.d+9
+     H1 = 6.d+9
+     H2 = 10.d+9
 
-  !   H = H1 + (H2-H1)*(T-T1)/(T2-T1)
+     H = H1 + (H2-H1)*(T-T1)/(T2-T1)
 
      H = 1.d+8
-     
+
    END SUBROUTINE
 
 
@@ -300,16 +301,16 @@ contains
      DOUBLE PRECISION :: H1
      DOUBLE PRECISION :: H2
 
-!     T1 = 293.d0
-!     T2 = 353.d0
+     T1 = 293.d0
+     T2 = 353.d0
 
-!     H1 = 6.d+9
-!     H2 = 10.d+9
+     H1 = 6.d+9
+     H2 = 10.d+9
 
-!     H_dt = (H2-H1)/(T2-T1)
+     H_dt = (H2-H1)/(T2-T1)
 
      H_dt = 0.d0
-     
+
    END SUBROUTINE
 
 
@@ -326,22 +327,26 @@ contains
     DOUBLE PRECISION, INTENT(OUT) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
     DOUBLE PRECISION :: Rgp
+    DOUBLE PRECISION :: Pg0, T0
 
     Rgp = 8.314d0
 
     IF(iph==PHASE_GAS)THEN
       f = P/(Rgp*T)
+
       dPf = 1/(Rgp*T)
       dTf = -P/Rgp/T**2
+
+      T0 = 300.d0
+      Pg0 = 1.0d+5
+
+      f = Pg0/(Rgp*T0)
+
+      dPf = 0.d0
+      dTf = 0.d0
+
       dCf = 0.d0
       dSf = 0.d0
-
-!      f = 1.d+5/(Rgp*300.d0)
-!      dPf = 0.d0
-!      dTf = 0.d0 
-!      dCf = 0.d0
-!      dSf = 0.d0
-      
     ELSE
       f = 1000.d0/0.018d0
 
@@ -611,7 +616,7 @@ contains
       ENDIF    
 
       f = -f
-      dSf = -dSf
+      dSf(iph) = -dSf(iph)
     ENDIF
   END SUBROUTINE f_PressionCapillaire
 
@@ -687,25 +692,13 @@ contains
       CALL f_CpGaz(cp)
       CALL air_MasseMolaire(air_m)
 
-!      f = 0.d0
-!      dPf = 0.d0
-!      dTf = 0.d0 
-!      dCf = 0.d0
-!      dSf = 0.d0
-
-!      f = ss*H2O_m
-!      dPf = 0.d0
-!      dTf = H2O_m*(b + 2.d0*cc*Ts + 3.d0*d*Ts**2)/100.d0
-!      dCf = 0.d0
-!      dSf = 0.d0     
-      
-
       f = C(1)*cp*air_m*T + C(2)*ss*H2O_m
+
       dPf = 0.d0
       dTf = C(1)*cp*air_m + C(2)*H2O_m*(b + 2.d0*cc*Ts + 3.d0*d*Ts**2)/100.d0
-      dCf = (/  cp*air_m*T, ss*H2O_m /)
+      dCf(1) = cp*air_m*T
+      dCf(2) = ss*H2O_m
       dSf = 0.d0
-      
     ELSE
       a = -14.4319d+3
       b = +4.70915d+3
@@ -714,23 +707,18 @@ contains
       T0 = 273.d0
 
       ss = a + b*(T-T0) + cc*(T-T0)**2 + d*(T-T0)**3
+
       CALL H2O_MasseMolaire(m)
+
       f = ss * m     
+
       ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
+
       dPf = 0.d0
       dTf = ss * m
       dCf = 0.d0
       dSf = 0.d0
-
-!      f = 0.d0
-!      dPf = 0.d0
-!      dTf = 0.d0
-!      dCf = 0.d0
-!      dSf = 0.d0
-
-      
     ENDIF
-
   end subroutine f_Enthalpie
 
 
@@ -826,8 +814,8 @@ contains
     double precision, intent(in) :: P
     double precision, intent(out) :: Tsat, dP_Tsat
 
-    Tsat = -5120.d0 / (13.7d0 - DLOG(P/1.013E+5)) 
-    dP_Tsat = - 5120.d0/P/(13.7d0 - DLOG(P/1.013E+5))**2 
+    Tsat = - 5120.d0 / (DLOG(P/1.013E+5) - 13.7d0)
+    dP_Tsat = 5120.d0 * ( 1.013E+5  / P ) / (DLOG(P/1.013E+5) - 13.7d0)**2 
 
   end subroutine DefModel_Tsat
 
