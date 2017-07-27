@@ -14,6 +14,7 @@ vtk_celltype = ({
     'point': 1, 'vertex': 1, 'pt': 1,
     'line': 3,
     'triangle': 5, 'tri': 5,
+    'quad': 9,
     'tetrahedron': 10, 'tet': 10,
     'hexahedron': 12, 'hex': 12,
     'wedge': 13,

@@ -92,10 +92,12 @@
 
        end subroutine NN_main_from_C
 
-       subroutine NN_main_make_timestep_from_C() &
+       subroutine NN_main_make_timestep_from_C(initial_timestep) &
           bind(C, name="NN_main_make_timestep")
 
-          call NN_main_make_timestep
+          real(c_double), value, intent(in) :: initial_timestep
+       
+          call NN_main_make_timestep(initial_timestep)
 
        end subroutine NN_main_make_timestep_from_C
 

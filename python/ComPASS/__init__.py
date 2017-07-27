@@ -68,7 +68,16 @@ def init(
         ComPASS.global_mesh_set_cartesian_mesh()
         if mpi.is_on_master_proc:
             ComPASS.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
-    elif type(mesh) is MeshTools.TetMesh:
+    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
+        ComPASS.init_warmup(runtime.logfile)
+        if type(mesh) is MeshTools.TetMesh:
+            ComPASS.global_mesh_set_tetrahedron_mesh()
+        else:
+            assert type(mesh) is MeshTools.HexMesh
+            ComPASS.global_mesh_set_hexahedron_mesh()
+        if mpi.is_on_master_proc:
+            ComPASS.create_mesh(mesh)
+    elif type(mesh) is MeshTools.HexMesh:
         ComPASS.init_warmup(runtime.logfile)
         ComPASS.global_mesh_set_tetrahedron_mesh()
         if mpi.is_on_master_proc:
@@ -91,12 +100,14 @@ def init(
         ComPASS.global_mesh_node_of_frac()
         #ComPASS.global_mesh_set_dir_BC()
         ComPASS.global_mesh_allocate_id_nodes()
+        # Node information is reset first
+        info = np.rec.array(global_node_info(), copy=False)
+        for a in [info.pressure, info.temperature]:
+            a[:] = ord('i')
         dirichlet = set_dirichlet_nodes()
         if dirichlet is not None:
-            info = np.rec.array(global_node_info(), copy=False)
-            for a in [info.pressure.view('c'), info.temperature.view('c')]:
-                a[:] = b'i'
-                a[dirichlet] = b'd'
+            for a in [info.pressure, info.temperature]:
+                a[dirichlet] = ord('d')
         ComPASS.global_mesh_count_dirichlet_nodes()
         ComPASS.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code

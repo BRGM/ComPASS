@@ -5,7 +5,6 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.GridTools as GT
 MT = ComPASS.ComPASS.MeshTools
-#import vtkwriters as vtkw
 
 gridshape = (1, 1, 1)
 gridextent = (1E3, 1E3, 1E3)

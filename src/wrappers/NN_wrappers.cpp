@@ -10,7 +10,7 @@ extern "C"
 	void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
 	void NN_init_phase2(const StringWrapper&);
 	void NN_main(int, const StringWrapper&);
-	void NN_main_make_timestep();
+	void NN_main_make_timestep(double);
 	void NN_main_output_visu(int, const StringWrapper&);
 	void NN_main_summarize_timestep();
 	void NN_finalize();
