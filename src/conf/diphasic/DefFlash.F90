@@ -285,38 +285,33 @@ contains
         write(*,*)' apparition gas ', Pg, T
         
         inc%ic = 3
-        inc%Saturation(PHASE_GAS) = 0.d0
-        inc%Saturation(PHASE_WATER) = 1.d0
-
-        if (T<=273.d0) then             
-           inc%Temperature = 273.d0 
-        endif
-        CALL DefModel_Psat(T, Psat, dTSat)
-
-        if (Pg<=1.d-3) then             
-           inc%Pression = Psat
-        endif        
-
+        inc%Pression = PgCeg
+        inc%Saturation(PHASE_GAS) = 0
+        inc%Saturation(PHASE_WATER) = 1
         inc%Comp(1,PHASE_GAS) = 0.d0 
         inc%Comp(2,PHASE_GAS) = 1.d0
+
       ENDIF
 
       
    ELSE IF(ic == 3)THEN
       
       IF(S(PHASE_GAS) < 0.d0)THEN
-         
+
         write(*,*)' disp du gaz ', Pg, T
-         
+
         inc%ic = 2
         inc%Saturation(PHASE_GAS) = 0
-        inc%Saturation(PHASE_WATER) = 1.d0
+        inc%Saturation(PHASE_WATER) = 1
         
       ELSE IF(S(PHASE_WATER) < Slrk)THEN
+
+        write(*,*)' slrk ', Pg, T
+
         inc%Saturation(PHASE_GAS) = 1.d0 - 1.d-12 - Slrk
         inc%Saturation(PHASE_WATER) = Slrk+1.d-12
-     ENDIF
-     
+      ENDIF
+
       Cag = MIN(MAX(inc%Comp(1,PHASE_GAS),0.d0),1.d0)
       inc%Comp(1,PHASE_GAS) = Cag
       inc%Comp(2,PHASE_GAS) = 1.d0 - Cag
@@ -324,16 +319,7 @@ contains
       Cal = MIN(MAX(inc%Comp(1,PHASE_WATER),0.d0),1.d0)
       inc%Comp(1,PHASE_WATER) = Cal
       inc%Comp(2,PHASE_WATER) = 1.d0 - Cal
-
-        if (T<=273.d0) then             
-           inc%Temperature = 273.d0 
-        endif
-        CALL DefModel_Psat(T, Psat, dTSat)
-
-
-        if (Pg<=1.d-3) then             
-           inc%Pression = Psat
-        endif     
+     
           
 
     ELSE

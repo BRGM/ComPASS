@@ -65,8 +65,8 @@ subroutine IncCV_SetDirBCValue
 !   icPor=3
 ! 
 !   PgPor = 1.d5
-!   TPor = 333.d0
-!   HurPor = 0.5d0
+!   TPor = 303.d0
+!   HurPor = 0.9d0
 ! 
 !   PPor = PgPor
 ! 
@@ -230,7 +230,7 @@ subroutine IncCV_SetInitialValue
 !
 !  PgPor = 1.d5
 !  TPor = 303.d0
-!  HurPor = 0.5d0
+!  HurPor = 0.9d0
 !
 !  PPor = PgPor
 !

@@ -923,7 +923,7 @@ contains
 
     ! parameters for lapack
     integer :: ipiv(NbEqFermetureMax), info, Ierr, errcode
-    integer :: i, j
+    integer :: i, j, iph
 
     ! from dFsurdX, take out the cols of prim and secd variable
     do j=1, NbIncPTCSPrim
@@ -949,8 +949,12 @@ contains
        write(*,*)' inc P ',inc%Pression
        write(*,*)' inc T ',inc%Temperature
        write(*,*)' Sat ',inc%Saturation
-       write(*,*)' Cg  ',inc%Comp(:,1)
-       write(*,*)' Cl  ',inc%Comp(:,2)
+       DO i=1,NbPhasePresente
+         iph = NumPhasePresente(i)
+         write(*,*)' phase  ', iph
+         write(*,*)' C_i  ',inc%Comp(:,iph)
+       ENDDO
+       write(*,*)
        
     do i=1, NbEqFermeture ! = NbIncPTCSecond
        do j=1, NbEqFermeture
@@ -1026,8 +1030,9 @@ contains
     Smval(:) = 0.d0
 
 #ifdef DEBUG_LOISTHEMOHYDRO
-do iph = 1, NbPhase
-          write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
+    do i = 1, NbPhasePresente
+      iph = NumPhasePresente(i)
+      write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
     end do
 #endif
     

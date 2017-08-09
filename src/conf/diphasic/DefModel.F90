@@ -153,7 +153,7 @@ module DefModel
   ! FIXME: parameter is removed to assign variable from python
   double precision :: TimeFinal =  200*OneYear
 
-  double precision :: TimeStepInit = OneSecond
+  double precision :: TimeStepInit = 1000*OneSecond
   double precision :: TimeStepMax = 200*OneYear
 
   ! output_frequency for visu
@@ -161,7 +161,7 @@ module DefModel
 
 
   ! ! ****** Newton iters max and stop condition ****** ! !   
-  integer, parameter :: NewtonNiterMax = 80
+  integer, parameter :: NewtonNiterMax = 100
   double precision, parameter :: NewtonTol = 1.d-7
 
 
