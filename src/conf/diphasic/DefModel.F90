@@ -31,7 +31,7 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
   
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
@@ -226,10 +226,10 @@ contains
   ! P = Pg pression de reference
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_Fugacity(rocktype, iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
+  subroutine f_Fugacity(id, iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
-    integer, intent(in) :: rocktype, iph, icp
+    integer, intent(in) :: id, iph, icp
     double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
 
     ! output
@@ -255,7 +255,7 @@ contains
         dCf = 0.d0 
         dSf = 0.d0
       ELSE
-        CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
+        CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
         CALL DefModel_Psat(T, Psat, dTSat)
 
         f = Psat * DEXP(Pc/(T*RZetal))
@@ -287,8 +287,6 @@ contains
 
      H = H1 + (H2-H1)*(T-T1)/(T2-T1)
 
-     H = 1.d+8
-
    END SUBROUTINE
 
 
@@ -308,8 +306,6 @@ contains
      H2 = 10.d+9
 
      H_dt = (H2-H1)/(T2-T1)
-
-     H_dt = 0.d0
 
    END SUBROUTINE
 
@@ -336,15 +332,6 @@ contains
 
       dPf = 1/(Rgp*T)
       dTf = -P/Rgp/T**2
-
-      T0 = 300.d0
-      Pg0 = 1.0d+5
-
-      f = Pg0/(Rgp*T0)
-
-      dPf = 0.d0
-      dTf = 0.d0
-
       dCf = 0.d0
       dSf = 0.d0
     ELSE
@@ -435,75 +422,6 @@ contains
   end subroutine f_Viscosite
 
 
-!!$  ! Permeabilites = S**2
-!!$  ! iph is an identificator for each phase: 
-!!$  ! PHASE_GAS = 1; PHASE_WATER = 2
-!!$  subroutine f_PermRel(iph,S,f,DSf)
-!!$
-!!$    ! input
-!!$    integer, intent(in) :: iph
-!!$    double precision, intent(in) :: S(NbPhase)
-!!$
-!!$    ! output
-!!$    double precision, intent(out) :: f, DSf(NbPhase)
-!!$
-!!$
-!!$    dSf = 0.d0
-!!$      
-!!$    if (S(iph).le.0.d0) then
-!!$       f = 0.d0
-!!$       dSf(iph) = 0.d0
-!!$    else if (S(iph).ge.1.d0) then
-!!$       f = 1.d0
-!!$       dSf(iph) = 0.d0
-!!$    else
-!!$       f = S(iph)**2
-!!$       dSf(iph) = 2.d0*S(iph)
-!!$    endif
-!!$
-!!$   
-!!$  END SUBROUTINE f_PermRel
-!!$
-!!$
-!!$  ! Pressions Capillaires des Phases et leurs derivees
-!!$  subroutine f_PressionCapillaire(rocktype,iph,S,f,DSf)
-!!$
-!!$    ! input
-!!$    integer, intent(in) :: rocktype
-!!$    integer, intent(in) :: iph
-!!$    double precision, intent(in) :: S(NbPhase)
-!!$
-!!$    ! output
-!!$    double precision, intent(out) :: f, DSf(NbPhase)
-!!$
-!!$
-!!$    
-!!$    f = 0.d0 
-!!$    dSf = 0.d0
-!!$
-!!$
-!!$    if (iph.eq.2) then
-!!$       f = dlog(1.d0-S(1))*1.d+8
-!!$       dSf(1) = -1.d+8/(1.d0- S(1))
-!!$    endif
-!!$    
-!!$  END SUBROUTINE f_PressionCapillaire
-!!$
-!!$
-!!$  SUBROUTINE f_Sl(Pc,Sl)
-!!$
-!!$    DOUBLE PRECISION, INTENT(IN) :: Pc
-!!$    
-!!$    DOUBLE PRECISION, INTENT(OUT) :: Sl
-!!$
-!!$    ! Pc >= 0 ici (donc Pc = - Pc(2) ) 
-!!$
-!!$    Sl = dexp(-Pc/1.d+8)
-!!$    
-!!$  END SUBROUTINE
-!!$  
-
-
   ! Permeabilites = S**2
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
@@ -570,10 +488,10 @@ contains
 
 
   ! Pressions Capillaires des Phases et leurs derivees
-  subroutine f_PressionCapillaire(rocktype,iph,S,f,DSf)
+  subroutine f_PressionCapillaire(id,iph,S,f,DSf)
 
     ! input
-    integer, intent(in) :: rocktype
+    integer, intent(in) :: id
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -755,15 +673,58 @@ contains
     allocate(PermCellG(3,3,NbCellG))
     do i=1, NbCellG
       PermCellG(:,:,i) = 0.d0
-      PermCellG(1,1,i) = 5.d-20
-      PermCellG(2,2,i) = 5.d-20
-      PermCellG(3,3,i) = 5.d-20
+
+      IF(IdCellG(i) == 1) THEN
+        PermCellG(1,1,i) = 5.d-20
+        PermCellG(2,2,i) = 5.d-20
+        PermCellG(3,3,i) = 5.d-20
+      ELSEIF(IdCellG(i) == 2)THEN
+        PermCellG(1,1,i) = 5.d-18
+        PermCellG(2,2,i) = 5.d-18
+        PermCellG(3,3,i) = 5.d-18
+      ELSE
+        PRINT*, 'error DefModel_SetPerm, unknow rocktype'
+        PRINT*, i, IdCellG(i) 
+        STOP
+      ENDIF
     end do
 
     allocate(PermFracG(NbFaceG))
     PermFracG(:) = 1.d-11
-
   end subroutine DefModel_SetPerm
+
+
+  subroutine DefModel_SetPorosite( &
+      NbCellG, IdCellG, NbFaceG, &
+      PorositeCell, PorositeFace)
+
+    integer, intent(in) :: NbCellG, NbFaceG
+    integer, dimension(:), intent(in) :: IdCellG
+    ! ouptuts:
+    double precision, dimension(:), allocatable, intent(inout) :: &
+      PorositeCell
+    double precision, dimension(:), allocatable, intent(inout) :: &
+      PorositeFace
+
+    integer :: i
+
+    allocate(PorositeCell(NbCellG))
+    do i=1, NbCellG
+
+      IF(IdCellG(i) == 1) THEN
+        PorositeCell(i) = 0.15d0
+      ELSEIF(IdCellG(i) == 2)THEN
+        PorositeCell(i) = 0.3d0
+      ELSE
+        PRINT*, 'error DefModel_SetPorosite, unknow rocktype'
+        PRINT*, i, IdCellG(i) 
+        STOP
+      ENDIF
+    end do
+
+    allocate(PorositeFace(NbFaceG))
+    PorositeFace(:) = 0.15d0
+  end subroutine DefModel_SetPorosite
 
 
 #ifdef _THERMIQUE_

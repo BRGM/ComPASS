@@ -155,7 +155,6 @@ module GlobalMesh
        GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
        GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
        GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
-       GlobalMesh_SetPorosite,          & ! set porosite
        GlobalMesh_CellByNodeGlobal,     & ! make CellbyNode
        GlobalMesh_CellByCellGlobal,     & ! make CellbyCell
        GlobalMesh_CellbyFaceGlobal,     & ! make CellbyFace
@@ -284,8 +283,9 @@ end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 	
 subroutine GlobalMesh_Make_post_read_set_poroperm()
 
-    !< \TODO: input porosite
-    call GlobalMesh_SetPorosite
+    ! set porosity from file DefModel
+    call DefModel_SetPorosite(NbCell, IdCell, NbFace, &
+         PorositeCell, PorositeFace)
 
     ! set permeabilites from file DefModel
     call DefModel_SetPerm(NbCell, IdCell, NbFace, &

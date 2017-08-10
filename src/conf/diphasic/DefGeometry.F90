@@ -117,20 +117,3 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   end do
   
 end subroutine GlobalMesh_SetWellCar
-
-!> \brief User set porosity
-!!
-!! PorositeCell contains the porosity of each cell;
-!! PorositeFace is restricted to PorositeFrac
-!! then distributed to PorositeFracLocal 
-subroutine GlobalMesh_SetPorosite
-
-  allocate(PorositeCell(NbCell))
-  allocate(PorositeFace(NbFace))
-
-  PorositeCell(:) = 0.15d0
-  PorositeFace(:) = 0.15d0
-
-  ! TODO: read from file if needed
-
-end subroutine GlobalMesh_SetPorosite
