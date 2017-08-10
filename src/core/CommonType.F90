@@ -61,6 +61,7 @@ module CommonType
   ! FIXME: T stands for "energy balance equation"
   type Type_IdNode
      sequence
+     integer :: id              !< int : rocktype
      character(c_char) :: Proc  !< "o"/"g": own/ghost
      character(c_char) :: Frac  !< "y"/"n": node in fracture/not in fracture
      character(c_char) :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
@@ -253,6 +254,7 @@ contains
     TYPE(TYPE_IdNode), intent(in) :: x1
     TYPE(TYPE_IdNode), intent(out) :: x2
 
+    x2%id = x1%id
     x2%Proc = x1%Proc
     x2%Frac = x1%Frac
     x2%P = x1%P

@@ -25,6 +25,34 @@ subroutine GlobalMesh_SetFrac
 end subroutine GlobalMesh_SetFrac
 
 
+! IdCell is read from mesh file
+! Reset IdCell if necessary
+subroutine GlobalMesh_SetIdCell
+
+  integer :: k, m
+  DOUBLE PRECISION :: xk(3)
+
+  allocate(IdCell(NbCell))
+  do k=1,NbCell
+
+    ! center of cell
+    xk(:) = 0.d0
+    do m = NodebyCell%Pt(k)+1, NodebyCell%Pt(k+1)
+      xk(:) = xk(:) + XNode(:, NodebyCell%Num(m))
+    enddo
+    xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
+
+    IF(xk(3) <= 1.d0)THEN
+      IdCell(k) = 2
+    ELSE
+      IdCell(k) = 1
+    ENDIF
+  enddo
+  
+end subroutine GlobalMesh_SetIdCell
+
+
+
 ! Set dirichlet boundary
 !    cartesian mesh:   manually
 !    other mesh: manually or
