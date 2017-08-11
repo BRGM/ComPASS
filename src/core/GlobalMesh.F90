@@ -205,10 +205,11 @@ contains
 
   end subroutine GlobalMesh_MeshBoundingBox
 
-  ! include two subroutines:
+  ! include the subroutines:
   !   GlobalMesh_SetDirBC: set dir boundary
-  !   GlobalMesh_SetIdCell: set IdCell
-  !   GlobalMesh_SetFrac:  set face fracture
+  !   GlobalMesh_SetFrac: set face fracture
+  !   GlobalMesh_SetCellFlags: set cell flag
+  !   GlobalMesh_SetFaceFlags: set face flag
 #include "DefGeometry.F90"
 
   subroutine GlobalMesh_Make_read_file(fileMesh)
@@ -284,45 +285,62 @@ end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 
 subroutine GlobalMesh_Make_post_read_set_poroperm()
 
-    call GlobalMesh_SetIdCell
+    CALL GlobalMesh_SetCellFlags
+    CALL GlobalMesh_SetFaceFlags
 
     ! set porosity from file DefModel
-    call DefModel_SetPorosite(NbCell, IdCell, NbFace, &
+    CALL DefModel_SetPorosite(NbCell, CellFlags, NbFace, &
       PorositeCell, PorositeFace)
 
     ! set permeabilites from file DefModel
-    call DefModel_SetPerm(NbCell, IdCell, NbFace, &
+    CALL DefModel_SetPerm(NbCell, CellFlags, NbFace, &
       PermCell, PermFrac)
 
-    call GlobalMesh_SetIdNode
-
+    CALL GlobalMesh_SetNodeFlags
   end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
-  SUBROUTINE GlobalMesh_SetIdNode
+  SUBROUTINE GlobalMesh_SetNodeFlags
     INTEGER :: i, kpt, k, id 
     DOUBLE PRECISION :: vk, v
 
-    do i=1, NbNode
-      kpt = CellbyNode%Pt(i)+1
-      k = CellbyNode%Num(kpt)
+    DO i=1, NbNode
+      IF(IdNode(i)%Frac == "y")THEN
+        kpt = FracbyNode%Pt(i)+1
+        k = FracbyNode%Num(kpt)
 
-      id = IdCell(k)
-      v = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+        id = FaceFlags(k)
+        v = PermFrac(k)/PorositeFace(k) 
 
-      do kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
+        do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
+          k = FracbyNode%Num(kpt)
+
+          vk = PermFrac(k)/PorositeFace(k) 
+          IF( id /= FaceFlags(k) .AND. v > vk )THEN
+
+            id = FaceFlags(k)
+            v = vk
+          ENDIF
+        ENDDO
+      ELSE
+        kpt = CellbyNode%Pt(i)+1
         k = CellbyNode%Num(kpt)
 
-        vk = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
-        IF( id /= IdCell(k) .AND. v > vk )THEN
+        id = CellFlags(k)
+        v = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
 
-          id = IdCell(k)
-          v = vk
-        ENDIF
-      ENDDO
-      IdNode(i)%id = id
+        do kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
+          k = CellbyNode%Num(kpt)
+
+          vk = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+          IF( id /= CellFlags(k) .AND. v > vk )THEN
+            id = CellFlags(k)
+            v = vk
+          ENDIF
+        ENDDO
+      ENDIF
+      NodeFlags(i) = id
     ENDDO
-
   END SUBROUTINE
 
 
@@ -522,6 +540,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           kk = kk + 8
         enddo
       enddo
+    enddo
+
+    allocate(IdCell(NbCell))
+    do i=1,NbCell
+       IdCell(i) = 1
     enddo
 
     allocate(IdFace(NbFace))

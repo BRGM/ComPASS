@@ -185,7 +185,7 @@ contains
     integer :: dest, Ierr, i, j, Nb
     integer stat(MPI_STATUS_SIZE)
 
-    integer :: blen(2), offsets(2), oldtypes(2), MPI_IDNODE
+    integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
     integer :: blocklen(4), arraytype(4)
     integer(kind=MPI_ADDRESS_KIND) ::disp(4)
 
@@ -695,14 +695,11 @@ contains
     ! ************************************* !
 
     ! new MPI type: MPI_IDNODE 
-    blen(1) = 1
-    blen(2) = 4
-    offsets(1) = 0 !  = 0
-    offsets(2) = 4 !  + integer
-    oldtypes(1) = MPI_INTEGER
-    oldtypes(2) = MPI_CHARACTER
+    blen(1) = 4
+    offsets(1) = 0
+    oldtypes(1) = MPI_CHARACTER
 
-    call MPI_Type_struct(2, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
+    call MPI_Type_struct(1, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
     call MPI_Type_commit(MPI_IDNODE, Ierr)
 
     ! Send IdNodeLocal

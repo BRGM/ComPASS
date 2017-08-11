@@ -656,11 +656,11 @@ contains
   !! \param[in,out] PermCellG Permeability tensor for each cell
   !! \param[in,out] PermFracG Permeability constant for each fracture face
   subroutine DefModel_SetPerm( &
-      NbCellG, IdCellG, NbFaceG, &
+      NbCellG, CellFlags, NbFaceG, &
       PermCellG, PermFracG)
 
     integer, intent(in) :: NbCellG, NbFaceG
-    integer, dimension(:), intent(in) :: IdCellG
+    integer, dimension(:), intent(in) :: CellFlags
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
       PermCellG
@@ -674,17 +674,17 @@ contains
     do i=1, NbCellG
       PermCellG(:,:,i) = 0.d0
 
-      IF(IdCellG(i) == 1) THEN
+      IF(CellFlags(i) == 1) THEN
         PermCellG(1,1,i) = 5.d-20
         PermCellG(2,2,i) = 5.d-20
         PermCellG(3,3,i) = 5.d-20
-      ELSEIF(IdCellG(i) == 2)THEN
+      ELSEIF(CellFlags(i) == 2)THEN
         PermCellG(1,1,i) = 5.d-18
         PermCellG(2,2,i) = 5.d-18
         PermCellG(3,3,i) = 5.d-18
       ELSE
         PRINT*, 'error DefModel_SetPerm, unknow rocktype'
-        PRINT*, i, IdCellG(i) 
+        PRINT*, i, CellFlags(i) 
         STOP
       ENDIF
     end do
@@ -695,11 +695,11 @@ contains
 
 
   subroutine DefModel_SetPorosite( &
-      NbCellG, IdCellG, NbFaceG, &
+      NbCellG, CellFlags, NbFaceG, &
       PorositeCell, PorositeFace)
 
     integer, intent(in) :: NbCellG, NbFaceG
-    integer, dimension(:), intent(in) :: IdCellG
+    integer, dimension(:), intent(in) :: CellFlags
     ! ouptuts:
     double precision, dimension(:), allocatable, intent(inout) :: &
       PorositeCell
@@ -711,13 +711,13 @@ contains
     allocate(PorositeCell(NbCellG))
     do i=1, NbCellG
 
-      IF(IdCellG(i) == 1) THEN
+      IF(CellFlags(i) == 1) THEN
         PorositeCell(i) = 0.15d0
-      ELSEIF(IdCellG(i) == 2)THEN
+      ELSEIF(CellFlags(i) == 2)THEN
         PorositeCell(i) = 0.3d0
       ELSE
         PRINT*, 'error DefModel_SetPorosite, unknow rocktype'
-        PRINT*, i, IdCellG(i) 
+        PRINT*, i, CellFlags(i) 
         STOP
       ENDIF
     end do

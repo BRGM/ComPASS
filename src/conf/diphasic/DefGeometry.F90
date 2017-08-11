@@ -25,31 +25,49 @@ subroutine GlobalMesh_SetFrac
 end subroutine GlobalMesh_SetFrac
 
 
-! IdCell is read from mesh file
-! Reset IdCell if necessary
-subroutine GlobalMesh_SetIdCell
 
-  integer :: k, m
+SUBROUTINE GlobalMesh_SetFaceFlags
+  INTEGER :: k, m
   DOUBLE PRECISION :: xk(3)
 
-  allocate(IdCell(NbCell))
-  do k=1,NbCell
+  NbFrac = 0
+  IdFace = 0
 
-    ! center of cell
+  DO k=1,NbFace
+    ! center of face
     xk(:) = 0.d0
-    do m = NodebyCell%Pt(k)+1, NodebyCell%Pt(k+1)
+    DO m = NodebyFace%Pt(k)+1, NodebyFace%Pt(k+1)
+      xk(:) = xk(:) + XNode(:, NodebyFace%Num(m))
+    ENDDO
+    xk(:) = xk(:)/dble(NodebyFace%Pt(k+1) - NodebyFace%Pt(k))
+
+    IF(xk(3) <= 1.d0)THEN
+      FaceFlags(k) = 2
+    ELSE
+      FaceFlags(k) = 1
+    ENDIF
+  ENDDO
+END SUBROUTINE GlobalMesh_SetFaceFlags
+
+
+SUBROUTINE GlobalMesh_SetCellFlags
+  INTEGER :: k, m
+  DOUBLE PRECISION :: xk(3)
+
+  DO k=1,NbCell
+    xk(:) = 0.d0
+    DO m = NodebyCell%Pt(k)+1, NodebyCell%Pt(k+1)
       xk(:) = xk(:) + XNode(:, NodebyCell%Num(m))
-    enddo
+    ENDDO
     xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
 
     IF(xk(3) <= 1.d0)THEN
-      IdCell(k) = 2
+      CellFlags(k) = 2
     ELSE
-      IdCell(k) = 1
+      CellFlags(k) = 1
     ENDIF
-  enddo
-  
-end subroutine GlobalMesh_SetIdCell
+  ENDDO
+END SUBROUTINE GlobalMesh_SetCellFlags
 
 
 
