@@ -448,9 +448,10 @@ contains
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
-    integer :: k, i, j, ifrac, numj, numi
+    integer :: k, i, j, ifrac, numj, numi, ptnumi
     integer :: Ierr, errcode
-    integer :: NbNodeCell
+    integer :: IdCell, IdNode
+    integer :: NbVolume, NbInternalVolume
 
     double precision :: s1, s2
 
@@ -486,20 +487,39 @@ contains
     ! loop of cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
-      NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
+      IdCell = CellFlagsLocal(k)
+
+      NbVolume = 0
+      NbInternalVolume = 0
 
       ! loop of nodes in cell
-      ! FIXME: do ptnumi = NodebyCellLocal%Pt(k), NodebyCellLocal%Pt(k+1)
-      ! FIXME: numi = NodebyCellLocal%Num(ptnumi)
-      do i=1, NbNodeCell
+      DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
 
-        numi = NodebyCellLocal%Num( NodebyCellLocal%Pt(k)+i)
+        numi = NodebyCellLocal%Num(ptnumi)
+        IdNode = NodeFlagsLocal(numi)
 
-        if(IdNodeLocal(numi)%P /= "d" .and. & ! not dir Pression
-            IdNodeLocal(numi)%Frac == "n") then ! nodes not in frac
+        IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
+          .AND. IdNodeLocal(numi)%Frac == "n" ) THEN ! nodes not in frac
 
-          s1 = omegaDarcyCell * VolCellLocal(k)
-          s2 = s1 * PorositeCellLocal(k) 
+          NbVolume = NbVolume + 1
+          IF(IdNode == IdCell) THEN ! same rocktype
+            NbInternalVolume = NbInternalVolume + 1
+          ENDIF
+        ENDIF
+      ENDDO
+
+      s1 = omegaDarcyCell * VolCellLocal(k) * NbVolume / NbInternalVolume
+      s2 = s1 * PorositeCellLocal(k) 
+
+      ! loop of nodes in cell
+      do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+
+        numi = NodebyCellLocal%Num(ptnumi)
+        IdNode = NodeFlagsLocal(numi)
+
+        IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
+          .AND. IdNodeLocal(numi)%Frac == "n" & ! nodes not in frac
+          .AND. IdNode == IdCell ) THEN ! same rocktype
 
           VolDarcyCell(k) = VolDarcyCell(k) - s1
           VolDarcyNode(numi) = VolDarcyNode(numi) + s1
