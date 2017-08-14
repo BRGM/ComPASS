@@ -448,9 +448,9 @@ contains
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
-    integer :: k, i, j, ifrac, numj, numi, ptnumi
+    integer :: k, i, ifrac, numi, ptnumi
     integer :: Ierr, errcode
-    integer :: IdCell, IdNode
+    integer :: IdCell, IdNode, IdFace
     integer :: NbVolume, NbInternalVolume
 
     double precision :: s1, s2
@@ -534,20 +534,44 @@ contains
 
       i = FracToFaceLocal(ifrac) ! num face
 
+      IdFace = FaceFlagsLocal(i)
+
+      NbVolume = 0
+      NbInternalVolume = 0
+
       ! loop of nodes in frac
-      do j=1, NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
+      DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
-        numj = NodebyFaceLocal%Num( NodebyFaceLocal%Pt(i)+j)
+        numi = NodebyFaceLocal%Num(ptnumi)
+        IdNode = NodeFlagsLocal(numi)
 
-        if(IdNodeLocal(numj)%P /= "d" ) then ! not dir Pression
+        IF( IdNodeLocal(numi)%P /= "d" ) THEN ! not dir Pression
 
-          s1 = Thickness * omegaDarcyFrac * SurfFracLocal(ifrac)
-          s2 = s1 * PorositeFracLocal(ifrac)! 
+          NbVolume = NbVolume + 1
+          IF(IdNode == IdFace) THEN ! same rocktype
+            NbInternalVolume = NbInternalVolume + 1
+          ENDIF
+        ENDIF
+      ENDDO
+
+      s1 = Thickness * omegaDarcyFrac * SurfFracLocal(ifrac) &
+        * NbVolume / NbInternalVolume
+
+      s2 = s1 * PorositeFracLocal(ifrac)
+
+      ! loop of nodes in frac
+      DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
+
+        numi = NodebyFaceLocal%Num(ptnumi)
+        IdNode = NodeFlagsLocal(numi)
+
+        IF( IdNodeLocal(numi)%P /= "d" &
+          .AND. IdNode == IdFace ) THEN ! not dir Pression
 
           VolDarcyFrac(ifrac) = VolDarcyFrac(ifrac) - s1
-          VolDarcyNode(numj) = VolDarcyNode(numj) + s1
+          VolDarcyNode(numi) = VolDarcyNode(numi) + s1
           PoroVolDarcyFrac(ifrac) = PoroVolDarcyFrac(ifrac) - s2
-          PoroVolDarcyNode(numj) = PoroVolDarcyNode(numj) + s2
+          PoroVolDarcyNode(numi) = PoroVolDarcyNode(numi) + s2
         end if
       end do
     end do
