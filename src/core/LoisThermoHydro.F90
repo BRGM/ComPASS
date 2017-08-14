@@ -219,9 +219,7 @@ contains
     ! cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
-       rocktypeinc = 1
-
-       call LoisThermoHydro_divPrim_cv(rocktypeinc, IncCell(k), &
+       call LoisThermoHydro_divPrim_cv(CellFlagsLocal(k), IncCell(k), &
                                 !
             dXssurdXpCell(:,:,k), &
             SmdXsCell(:,k), &
@@ -265,9 +263,9 @@ contains
     ! frac
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
-       rocktypeinc = 2
+       
 
-       call LoisThermoHydro_divPrim_cv(rocktypeinc, IncFrac(k), &
+       call LoisThermoHydro_divPrim_cv(FaceFlagsLocal(k), IncFrac(k), &
                                 !
             dXssurdXpFrac(:,:,k), &
             SmdXsFrac(:,k), &
@@ -311,13 +309,9 @@ contains
     ! node
     do k=1, NbNodeLocal_Ncpus(commRank+1)
 
-       if(IdNodeLocal(k)%Frac=="y") then
-          rocktypeinc = 2
-       else if(IdNodeLocal(k)%Frac=="n") then
-          rocktypeinc = 1
-       end if
+      
 
-       call LoisThermoHydro_divPrim_cv(rocktypeinc, IncNode(k), &
+       call LoisThermoHydro_divPrim_cv(NodeFlagsLocal(k), IncNode(k), &
                                 !
             dXssurdXpNode(:,:,k), &
             SmdXsNode(:,k), &
