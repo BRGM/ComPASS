@@ -213,7 +213,7 @@ contains
   ! subroutine Loisthermohydro_divPrim_cv compute all prim div for one control volume
   subroutine LoisThermoHydro_compute
 
-    integer :: k
+    integer :: k, kface
     integer :: rocktypeinc
 
     ! cell
@@ -263,9 +263,9 @@ contains
     ! frac
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
-       
+      kface = FracToFaceLocal(k) ! num face
 
-       call LoisThermoHydro_divPrim_cv(FaceFlagsLocal(k), IncFrac(k), &
+       call LoisThermoHydro_divPrim_cv(FaceFlagsLocal(kface), IncFrac(k), &
                                 !
             dXssurdXpFrac(:,:,k), &
             SmdXsFrac(:,k), &
