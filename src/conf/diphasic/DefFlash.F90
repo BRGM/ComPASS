@@ -81,20 +81,18 @@ contains
 
     integer :: k
     double precision :: Psat, dTsat, Tsat
-    integer :: rocktype
 
-    rocktype = 1
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(rocktype, IncNode(k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(NodeFlagsLocal(k), IncNode(k), PoroVolDarcyNode(k))
     end do
 
-    rocktype = 2
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(rocktype, IncFrac(k), PoroVolDarcyFrac(k))
+       kface = FracToFaceLocal(k)
+       call DefFlash_Flash_cv(FaceFlagsLocal(kface), IncFrac(k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(rocktype, IncCell(k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(CellFlagsLocal(k), IncCell(k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
@@ -236,9 +234,9 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(rocktype, inc, porovol)
+  subroutine DefFlash_Flash_cv(id, inc, porovol)
 
-    INTEGER, INTENT(IN) :: rocktype
+    INTEGER, INTENT(IN) :: id
     type(Type_IncCV), intent(inout) :: inc
     double precision, intent(in) :: porovol ! porovol
 
@@ -264,7 +262,7 @@ contains
     Slrk = 0.4d0     
 
     iph = 2
-    CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
+    CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
 
  !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
     
@@ -276,7 +274,7 @@ contains
       CALL DefModel_Psat(T, Psat, dTSat)
 
       iph = 2
-      CALL f_PressionCapillaire(rocktype,iph,S,Pc,DSPc)
+      CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
@@ -793,8 +791,7 @@ contains
     integer, intent(in) :: num_Well
     double precision, intent(out) :: Qw
 
-    integer :: s, k, nums, icp, m, mph, &
-         rocktypeinc
+    integer :: s, k, nums, icp, m, mph
     double precision :: Pws, Ps, WIDws
     double precision:: Flux_ks(NbComp)
 
