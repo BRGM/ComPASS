@@ -425,9 +425,10 @@ contains
   ! Permeabilites = S**2
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_PermRel(iph,S,f,DSf)
+  subroutine f_PermRel(id,iph,S,f,DSf)
 
     ! input
+    integer, intent(in) :: id
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -440,10 +441,20 @@ contains
 
     dSf = 0.d0
 
-    Slrk = 0.4d0 
-    Sgrk = 0.d0 
-    rNvgk = 1.49d0
-    rMvgk = 1.d0-1.d0/rNvgk
+    IF(id == 1)THEN
+      Slrk = 0.4d0 
+      Sgrk = 0.d0 
+      rNvgk = 1.49d0
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSEIF( id == 2 )THEN
+      Slrk = 0.01d0
+      Sgrk = 0.d0 
+      rNvgk = 1.54d0
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSE
+      PRINT*, 'error'
+      STOP
+    ENDIF
 
     IF(iph==PHASE_GAS)THEN
       Sbl = (1.d0-S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
@@ -501,17 +512,27 @@ contains
     double precision :: Slrk,Prvgk,rNvgk,rMvgk
     double precision :: Sbl, dSbl, Sbl1, Pc1, Sgrk
 
+    IF(id == 1)THEN
+      Slrk = 0.4d0 
+      Sgrk = 0.d0 
+      rNvgk = 1.49d0
+      Prvgk = 15.d+6
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSEIF( id == 2 )THEN
+      Slrk = 0.01d0
+      Sgrk = 0.d0 
+      rNvgk = 1.54d0
+      Prvgk = 2.d+6
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSE
+      PRINT*, 'error'
+      STOP
+    ENDIF
+
     dSf = 0.d0
     IF(iph==PHASE_GAS)THEN
       f = 0.d0
     ELSE
-      Slrk = 0.4d0
-      Prvgk = 15.d+6
-      rNvgk = 1.49d0
-      rMvgk = 1.d0-1.d0/rNvgk
-
-      Sgrk = 0.d0
-
       Sbl = (S(iph)-Slrk)/(1.d0-Slrk-Sgrk)
       dSbl = 1.d0/(1.d0-Slrk-Sgrk)
 
@@ -539,18 +560,32 @@ contains
   END SUBROUTINE f_PressionCapillaire
 
 
-  SUBROUTINE f_Sl(Pc,Sl)
+  SUBROUTINE f_Sl(id,Pc,Sl)
 
+    INTEGER, INTENT(IN) :: id
     DOUBLE PRECISION, INTENT(IN) :: Pc
     
     DOUBLE PRECISION, INTENT(OUT) :: Sl
 
-    DOUBLE PRECISION :: Slrk, Prvgk, rNvgk, rMvgk
+    DOUBLE PRECISION :: Slrk, Sgrk, Prvgk, rNvgk, rMvgk
 
-    Slrk = 0.4d0
-    Prvgk = 15.d+6
-    rNvgk = 1.49d0
-    rMvgk = 1.d0-1.d0/rNvgk
+    IF(id == 1)THEN
+      Slrk = 0.4d0 
+      Sgrk = 0.d0 
+      rNvgk = 1.49d0
+      Prvgk = 15.d+6
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSEIF( id == 2 )THEN
+      Slrk = 0.01d0
+      Sgrk = 0.d0 
+      rNvgk = 1.54d0
+      Prvgk = 2.d+6
+      rMvgk = 1.d0-1.d0/rNvgk
+    ELSE
+      PRINT*, 'error'
+      STOP
+    ENDIF
+
 
     IF(Pc < 0.d0) THEN 
       Sl = 1.d0 

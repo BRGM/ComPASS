@@ -26,6 +26,7 @@ subroutine IncCV_SetDirBCValue
   double precision :: CelPor, CalPor
   double precision :: SlPor, SgPor
   integer :: icGal
+  integer :: idGal
   double precision :: PcGal, PgGal, PGal
   double precision :: TGal
   double precision :: HurGal
@@ -105,6 +106,7 @@ subroutine IncCV_SetDirBCValue
 !  CagGal = Ha*CalGal/PgGal
 !  CegGal = 1.d0 - CagGal
 
+  idGal = 2
   PgGal = 1.d5
   TGal = 303.d0
   HurGal = 0.5d0
@@ -122,7 +124,7 @@ subroutine IncCV_SetDirBCValue
   RZetal = 8.314d0 * 1000.d0 / 0.018d0
   PcGal = DLOG(CelGal/HurGal) * RZetal * TGal
 
-  CALL f_Sl(PcGal,SlGal)
+  CALL f_Sl(idGal,PcGal,SlGal)
   SgGal = 1 - SlGal
 
 

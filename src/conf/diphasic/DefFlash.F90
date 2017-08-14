@@ -79,7 +79,7 @@ contains
   !! the mode of the well (flowrate or pressure).
   subroutine DefFlash_Flash
 
-    integer :: k
+    integer :: k, kface
     double precision :: Psat, dTsat, Tsat
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
@@ -259,7 +259,14 @@ contains
     T = inc%Temperature
     S = inc%Saturation
 
-    Slrk = 0.4d0     
+    IF(id == 1)THEN
+      Slrk = 0.4d0 
+    ELSEIF( id == 2 )THEN
+      Slrk = 0.01d0
+    ELSE
+      PRINT*, 'error'
+      STOP
+    ENDIF
 
     iph = 2
     CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
@@ -390,6 +397,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums
+    integer :: id
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -404,6 +412,7 @@ contains
        Sw(PHASE_WATER) = 1.d0                                           ! Monophasic liquid
 !       Sw(PHASE_GAS) = 0.d0
        Cw = DataWellInjLocal(nWell)%CompTotal
+       id = NodeFlagsLocal(s)
 
        ! PHASE_WATER (monophasic in injection well)
        ! Molar density
@@ -413,7 +422,7 @@ contains
        call f_Viscosite(PHASE_WATER, Pws, Tws, Cw, Sw, &
             Viscosity, dPf, dTf, dCf, dSf)
        ! Permrel
-       call f_PermRel(PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(id,PHASE_WATER, Sw, PermRel, dSf)
 
        Mob(PHASE_WATER, s) = PermRel * DensiteMolaire / Viscosity * WIDws
        ! initialization of RSorted before calling QuickSortCSR
@@ -530,6 +539,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums, m, mph, comptn
+    integer :: id
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -542,6 +552,7 @@ contains
        nums = NodebyWellProdLocal%Num(s)
        Ts = IncNode(nums)%Temperature      ! Ts: Temperature in matrix
        Sat(:) = IncNode(nums)%Saturation(:)  ! Sat in matrix
+       id = NodeFlagsLocal(s)
 
        ! loop over alpha in Q_s
        do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -559,7 +570,7 @@ contains
           call f_Viscosite(mph, Ps(mph), Ts, C(:,mph), Sat, &
                Viscosity, dPf, dTf, dCf, dSf)
           ! Permrel
-          call f_PermRel(mph, Sat, PermRel, dSf)
+          call f_PermRel(id, mph, Sat, PermRel, dSf)
 
           Mob(mph,s) = PermRel * DensiteMolaire / Viscosity * WIDws
 

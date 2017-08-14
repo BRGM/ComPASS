@@ -501,7 +501,7 @@ contains
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire)
 
     ! PermRel
-    call LoisThermoHydro_PermRel_cv(inc, PermRel, divPermRel)
+    call LoisThermoHydro_PermRel_cv(inc, flag, PermRel, divPermRel)
 
     ! Pression
     call LoisThermoHydro_Pression_cv(inc, &
@@ -1274,10 +1274,11 @@ contains
 
 
 
-  subroutine LoisThermoHydro_PermRel_cv(inc, val, dval)
+  subroutine LoisThermoHydro_PermRel_cv(inc, id, val, dval)
 
     ! input
     type(Type_IncCV), intent(in)  :: inc
+    INTEGER, INTENT(IN) :: id
 
     ! output
     double precision, intent(out) :: val(NbPhase)
@@ -1295,7 +1296,7 @@ contains
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
-       call f_PermRel(iph, inc%Saturation, f, dSf)
+       call f_PermRel(id, iph, inc%Saturation, f, dSf)
 
        val(i) = f
        dfS_secd = dSf( NumPhasePresente(NbPhasePresente)) ! the last is secd
@@ -2631,6 +2632,7 @@ contains
          Enthalpie, dP_Enthalpie
 
     double precision :: dSf(NbPhase), dTf, dCf(NbComp), PermRel
+    integer :: id
     integer :: s, i
 
     Sw(:) = 0
@@ -2644,8 +2646,10 @@ contains
        Tw = DataWellInjLocal(k)%Temperature     ! T_w
        Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w 
 
+       id = NodeFlagsLocal(s)
+
        ! Permrel
-       call f_PermRel(PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(id,PHASE_WATER, Sw, PermRel, dSf)
 
        ! Molar density
        call f_DensiteMolaire(PHASE_WATER, Pws, Tw, Cw, Sw, &
