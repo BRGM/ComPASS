@@ -316,7 +316,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           k = FracbyNode%Num(kpt)
 
           vk = PermFrac(k)/PorositeFace(k) 
-          IF( id /= FaceFlags(k) .AND. v > vk )THEN
+          IF( id /= FaceFlags(k) .AND. vk > v )THEN
 
             id = FaceFlags(k)
             v = vk
@@ -333,7 +333,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           k = CellbyNode%Num(kpt)
 
           vk = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
-          IF( id /= CellFlags(k) .AND. v > vk )THEN
+          IF( id /= CellFlags(k) .AND. vk > v )THEN
             id = CellFlags(k)
             v = vk
           ENDIF
