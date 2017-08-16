@@ -765,30 +765,30 @@ contains
 #ifdef _THERMIQUE_
 
   subroutine DefModel_SetCondThermique( &
-      NbCellLocal, IdCellLocal, NbFracLocal, &
-      CondThermalCellLocal, CondThermalFracLocal)
+      NbCellG, IdCellG, NbFracG, &
+      CondThermalCellG, CondThermalFracG)
 
-    integer, intent(in) :: NbCellLocal, NbFracLocal
-    integer, dimension(:), intent(in) :: IdCellLocal
+    integer, intent(in) :: NbCellG, NbFracG
+    integer, dimension(:), intent(in) :: IdCellG
 
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-      CondThermalCellLocal
+      CondThermalCellG
     double precision, dimension(:), allocatable, intent(inout) :: &
-      CondThermalFracLocal
+      CondThermalFracG
 
     integer :: i
 
-    allocate(CondThermalCellLocal(3,3,NbCellLocal))
-    do i=1, NbCellLocal
-      CondThermalCellLocal(:,:,i) = 0.d0
-      CondThermalCellLocal(1,1,i) = 2.d0
-      CondThermalCellLocal(2,2,i) = 2.d0
-      CondThermalCellLocal(3,3,i) = 2.d0
+    allocate(CondThermalCellG(3,3,NbCellG))
+    do i=1, NbCellG
+      CondThermalCellG(:,:,i) = 0.d0
+      CondThermalCellG(1,1,i) = 2.d0
+      CondThermalCellG(2,2,i) = 2.d0
+      CondThermalCellG(3,3,i) = 2.d0
     end do
 
-    allocate(CondThermalFracLocal(NbFracLocal))
-    CondThermalFracLocal(:) = 2.d0
+    allocate(CondThermalFracG(NbFracG))
+    CondThermalFracG(:) = 2.d0
 
   end subroutine DefModel_SetCondThermique
 
