@@ -1763,7 +1763,7 @@ contains
   !  PorositeCell_Ncpus(ip), PorositeFrac_Ncpus(ip)
   ! Use:
   !  CellbyProc(ip), PorositeCell,
-  !  FracbyProc(ip), PorositeFace
+  !  FracbyProc(ip), PorositeFrac
   subroutine LocalMesh_Porosite(ip)
 
     integer, intent(in) :: ip
@@ -1780,7 +1780,7 @@ contains
     Nb = FracbyProc(ip1)%Pt( FracbyProc(ip1)%Nb+1 )
     allocate(PorositeFrac_Ncpus(ip1)%Val(Nb))
     do i=1,Nb
-       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFace( FracbyProc(ip1)%Num(i))
+       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac( FracbyProc(ip1)%Num(i))
     end do
 
   end subroutine LocalMesh_Porosite

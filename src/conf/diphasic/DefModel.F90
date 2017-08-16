@@ -730,16 +730,16 @@ contains
 
 
   subroutine DefModel_SetPorosite( &
-      NbCellG, CellFlags, NbFaceG, &
-      PorositeCell, PorositeFace)
+      NbCellG, CellFlags, NbFracG, &
+      PorositeCell, PorositeFrac)
 
-    integer, intent(in) :: NbCellG, NbFaceG
+    integer, intent(in) :: NbCellG, NbFracG
     integer, dimension(:), intent(in) :: CellFlags
     ! ouptuts:
     double precision, dimension(:), allocatable, intent(inout) :: &
       PorositeCell
     double precision, dimension(:), allocatable, intent(inout) :: &
-      PorositeFace
+      PorositeFrac
 
     integer :: i
 
@@ -757,8 +757,8 @@ contains
       ENDIF
     end do
 
-    allocate(PorositeFace(NbFaceG))
-    PorositeFace(:) = 0.15d0
+    allocate(PorositeFrac(NbFracG))
+    PorositeFrac(:) = 0.15d0
   end subroutine DefModel_SetPorosite
 
 

@@ -242,14 +242,14 @@
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          if (.not. allocated(PorositeFace)) then
+          if (.not. allocated(PorositeFrac)) then
              print *, "face porosity array is not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(PorositeFace(1))
-          cpp_array%n = size(PorositeFace)
+          cpp_array%p = c_loc(PorositeFrac(1))
+          cpp_array%n = size(PorositeFrac)
 
        end subroutine retrieve_face_porosity
 

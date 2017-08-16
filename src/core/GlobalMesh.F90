@@ -123,7 +123,7 @@ module GlobalMesh
   ! FIXME: protected has been removed to access arrays from C
   real(c_double), allocatable, dimension(:), target :: &
     PorositeCell, & !< Porosity of each Cell, set by user in file DefGeometry.F90
-    PorositeFace    !< Porosity of each fracture face, set by user in file DefGeometry.F90
+    PorositeFrac    !< Porosity of each fracture face, set by user in file DefGeometry.F90
 
   ! Permeability
   ! FIXME: protected has been removed to access array from C
@@ -289,11 +289,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     CALL GlobalMesh_SetFaceFlags
 
     ! set porosity from file DefModel
-    CALL DefModel_SetPorosite(NbCell, CellFlags, NbFace, &
-      PorositeCell, PorositeFace)
+    CALL DefModel_SetPorosite(NbCell, CellFlags, NbFrac, &
+      PorositeCell, PorositeFrac)
 
     ! set permeabilites from file DefModel
-    CALL DefModel_SetPerm(NbCell, CellFlags, NbFace, &
+    CALL DefModel_SetPerm(NbCell, CellFlags, NbFrac, &
       PermCell, PermFrac)
 
     CALL GlobalMesh_SetNodeFlags
@@ -310,12 +310,12 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
         k = FracbyNode%Num(kpt)
 
         id = FaceFlags(k)
-        v = PermFrac(k)/PorositeFace(k) 
+        v = PermFrac(k)/PorositeFrac(k) 
 
         do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
           k = FracbyNode%Num(kpt)
 
-          vk = PermFrac(k)/PorositeFace(k) 
+          vk = PermFrac(k)/PorositeFrac(k) 
           IF( id /= FaceFlags(k) .AND. vk > v )THEN
 
             id = FaceFlags(k)
