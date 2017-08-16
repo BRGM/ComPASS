@@ -898,9 +898,9 @@ contains
 
     if(commRank==0) then
        do i=1, Ncpus
-          !          deallocate(PermCellLocal_Ncpus(i+1)%Array3d)    ! ???
+          deallocate(PermCellLocal_Ncpus(i)%Array3d)
        end do
-       ! deallocate(PermCellLocal_Ncpus)   ! ???
+       deallocate(PermCellLocal_Ncpus)
     end if
 
     ! send PermFracLocal
@@ -927,7 +927,7 @@ contains
        do i=1, Ncpus
           deallocate(PermFracLocal_Ncpus(i)%Val)
        end do
-       !       deallocate(PermFracLocal_Ncpus)   ! ???
+       deallocate(PermFracLocal_Ncpus)
     end if
 
 #ifdef _THERMIQUE_
