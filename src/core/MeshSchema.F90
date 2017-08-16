@@ -131,6 +131,14 @@ module MeshSchema
   double precision, dimension(:), allocatable, public :: &
        PermFracLocal
 
+#ifdef _THERMIQUE_
+  ! Thermal conductivity
+  double precision, dimension(:,:,:), allocatable, public :: &
+       CondThermalCellLocal
+  double precision, dimension(:), allocatable, public :: &
+       CondThermalFracLocal
+#endif
+
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
   integer, private :: MPI_DATANODEWELL
 
@@ -895,7 +903,7 @@ contains
        ! deallocate(PermCellLocal_Ncpus)   ! ???
     end if
 
-    ! send PermFrac
+    ! send PermFracLocal
     if (commRank==0) then
 
        ! proc >=1, send
@@ -922,6 +930,61 @@ contains
        !       deallocate(PermFracLocal_Ncpus)   ! ???
     end if
 
+#ifdef _THERMIQUE_
+    ! send CondThermalCellLocal
+    if (commRank==0) then
+
+       ! proc >=1, send
+       do i=1, Ncpus-1
+          Nb = NbCellLocal_Ncpus(i+1)
+          call MPI_Send(CondThermalCellLocal_Ncpus(i+1)%Array3d, Nb*9, MPI_DOUBLE, i, 13, ComPASS_COMM_WORLD, Ierr)
+       end do
+
+       ! proc=0, copy
+       Nb = NbCellLocal_Ncpus(1)
+       allocate(CondThermalCellLocal(3,3,Nb))
+       CondThermalCellLocal(:,:,:) = CondThermalCellLocal_Ncpus(1)%Array3d(:,:,:)
+
+    else   
+       Nb = NbCellLocal_Ncpus(commRank+1)
+       allocate(CondThermalCellLocal(3,3,Nb))
+       call MPI_Recv(CondThermalCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(CondThermalCellLocal_Ncpus(i)%Array3d)
+       end do
+       deallocate(CondThermalCellLocal_Ncpus)
+    end if
+
+    ! send CondThermalFracLocal
+    if (commRank==0) then
+
+       ! proc >=1, send
+       do i=1, Ncpus-1
+          Nb = NbFracLocal_Ncpus(i+1)
+          call MPI_Send(CondThermalFracLocal_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 14, ComPASS_COMM_WORLD, Ierr)
+       end do
+
+       ! proc=0, copy
+       Nb = NbFracLocal_Ncpus(1)
+       allocate(CondThermalFracLocal(Nb))
+       CondThermalFracLocal(:) = CondThermalFracLocal_Ncpus(1)%Val(:)
+
+    else   
+       Nb = NbFracLocal_Ncpus(commRank+1)
+       allocate(CondThermalFracLocal(Nb))
+       call MPI_Recv(CondThermalFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(CondThermalFracLocal_Ncpus(i)%Val)
+       end do
+       deallocate(CondThermalFracLocal_Ncpus)
+    end if
+#endif
 
 
     ! MPI TYPE for DataNodewell: MPI_DATANODEWELL

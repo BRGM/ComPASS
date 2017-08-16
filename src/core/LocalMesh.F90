@@ -168,6 +168,14 @@ module LocalMesh
   type(ARRAY1dble), dimension(:), allocatable, public :: &
        PermFracLocal_Ncpus
 
+#ifdef _THERMIQUE_
+  ! Thermal conductivity
+  type(ARRAY3dble), dimension(:), allocatable, public :: &
+       CondThermalCellLocal_Ncpus
+  type(ARRAY1dble), dimension(:), allocatable, public :: &
+       CondThermalFracLocal_Ncpus
+#endif
+
   ! Data of Node by Well (Parent, PtParent, WID, WIF)
   type(TYPE_CSRDataNodeWell), dimension(:), allocatable, public :: &
        NodeDatabyWellInjLocal_Ncpus, &
@@ -344,6 +352,12 @@ contains
     allocate(PermCellLocal_Ncpus(Ncpus))
     allocate(PermFracLocal_Ncpus(Ncpus))
 
+#ifdef _THERMIQUE_
+    ! Thermal conductivity
+    allocate(CondThermalCellLocal_Ncpus(Ncpus))
+    allocate(CondThermalFracLocal_Ncpus(Ncpus))
+#endif
+
     ! Data of Node by Well
     allocate(NodeDatabyWellInjLocal_Ncpus(Ncpus))
     allocate(NodeDatabyWellProdLocal_Ncpus(Ncpus))
@@ -412,6 +426,11 @@ contains
 
        ! permeability
        call LocalMesh_Perm(i)
+
+#ifdef _THERMIQUE_
+       ! permeability
+       call LocalMesh_CondThermal(i)
+#endif
 
        ! Data Node of well
        call LocalMesh_NodeDatabyWellLocal(i)  ! NodeDatabyWellLocal_Ncpus(ip1)
@@ -1811,6 +1830,33 @@ contains
     end do
 
   end subroutine LocalMesh_Perm
+
+
+  ! Output:
+  !  CondThermalCellLocal_Ncpus(ip), CondThermalFracLocal_Ncpus(ip)
+  ! Use:
+  !  CellbyProc(ip), CondThermalCell,
+  !  FracbyProc(ip), CondThermalFace
+  subroutine LocalMesh_CondThermal(ip)
+
+    integer, intent(in) :: ip
+    integer :: ip1, Nb, i
+
+    ip1 = ip + 1
+    
+    Nb = CellbyProc(ip1)%Pt( CellbyProc(ip1)%Nb+1 )
+    allocate(CondThermalCellLocal_Ncpus(ip1)%Array3d(3,3,Nb))
+    do i=1,Nb
+       CondThermalCellLocal_Ncpus(ip1)%Array3d(:,:,i) = CondThermalCell(:,:,CellbyProc(ip1)%Num(i))
+    end do
+
+    Nb = FracbyProc(ip1)%Pt( FracbyProc(ip1)%Nb+1 )
+    allocate(CondThermalFracLocal_Ncpus(ip1)%Val(Nb))
+    do i=1,Nb
+       CondThermalFracLocal_Ncpus(ip1)%Val(i) = CondThermalFrac(FracbyProc(ip1)%Num(i))
+    end do
+
+  end subroutine LocalMesh_CondThermal
 
 
   ! Output:

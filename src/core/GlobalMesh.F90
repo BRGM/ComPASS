@@ -133,14 +133,17 @@ module GlobalMesh
   real(c_double), allocatable, dimension(:), target :: &
     PermFrac !< Permeability constant for each fracture face, set by user in file DefModel.F90
 
+#ifdef _THERMIQUE_
+  ! Thermal conductivity
+  real(c_double), allocatable, dimension(:,:,:), target :: &
+    CondThermalCell !< Permeability tensor for each cell, set by user in file DefModel.F90
+  real(c_double), allocatable, dimension(:), target :: &
+    CondThermalFrac !< Permeability tensor for each cell, set by user in file DefModel.F90
+#endif
+
   ! Used to ouput well information
   integer, protected :: fdGm
   ! integer, protected :: fdGm_unit
-
-  ! ! CondThermic
-  ! double precision, allocatable, dimension(:), protected :: &
-  !      CondThermicCell, &
-  !      CondThermicFrac
 
 
   ! main subroutine in this module
@@ -297,6 +300,14 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
       PermCell, PermFrac)
 
     CALL GlobalMesh_SetNodeFlags
+
+    ! set conductivities thermal
+#ifdef _THERMIQUE_
+     CALL DefModel_SetCondThermique( &
+       NbCell, IdCell, &
+       NbFrac, &
+       CondThermalCell, CondThermalFrac)
+#endif
   end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
@@ -1137,6 +1148,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     deallocate(NumNodebyEdgebyWellProd)
     deallocate(PermCell)
     deallocate(PermFrac)
+
+#ifdef _THERMIQUE_
+    deallocate(CondThermalCell)
+    deallocate(CondThermalFrac)
+#endif
 
   end subroutine GlobalMesh_free
 

@@ -104,12 +104,6 @@ module NN
    !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
    !  double precision, dimension(:), allocatable :: PermFracLocal
 
-   ! Conductivities thermal
-#ifdef _THERMIQUE_
-   double precision, dimension(:, :, :), allocatable :: CondThermalCellLocal
-   double precision, dimension(:), allocatable :: CondThermalFracLocal
-#endif
-
 #ifdef _VISU_
    ! vectors used for visu
    double precision, dimension(:), allocatable :: &
@@ -427,12 +421,6 @@ subroutine NN_init_phase2(OutputDir)
 
       ! *** VAG Transmissivity *** !
 
-      ! set conductivities thermal
-#ifdef _THERMIQUE_
-      call DefModel_SetCondThermique(NbCellLocal_Ncpus(commRank + 1), IdCellLocal, &
-                                     NbFracLocal_Ncpus(commRank + 1), &
-                                     CondThermalCellLocal, CondThermalFracLocal)
-#endif
 
       call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
 
