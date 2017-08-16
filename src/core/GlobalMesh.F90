@@ -296,19 +296,23 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     CALL GlobalMesh_SetCellFlags
     CALL GlobalMesh_SetFaceFlags
 
+    ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
+    ALLOCATE(FracRocktype(IndThermique+1,NbFrac))
+    ALLOCATE(CellRocktype(IndThermique+1,NbCell))
+
     CALL GlobalMesh_SetCellRocktype
     CALL GlobalMesh_SetFracRocktype
 
     ! set porosity from file DefModel
     CALL DefModel_SetPorosite( &
-      NbCell, CellRocktype, NbFrac, FracRocktype, &
+      NbCell, CellRocktype, &
+      NbFrac, FracRocktype, &
       PorositeCell, PorositeFrac)
 
     ! set permeabilites from file DefModel
-    CALL DefModel_SetPerm(NbCell, CellFlags, NbFrac, &
-      PermCell, PermFrac)
     CALL DefModel_SetPerm( &
-      NbCell, CellRocktype, NbFace, &
+      NbCell, CellRocktype, &
+      NbFrac, FracRocktype, &
       PermCell, PermFrac)
 
     CALL GlobalMesh_SetNodeRocktype
@@ -316,8 +320,8 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! set conductivities thermal
 #ifdef _THERMIQUE_
      CALL DefModel_SetCondThermique( &
-       NbCell, IdCell, &
-       NbFrac, &
+       NbCell, CellRocktype, &
+       NbFrac, FracRocktype, &
        CondThermalCell, CondThermalFrac)
 #endif
   end subroutine GlobalMesh_Make_post_read_set_poroperm
@@ -373,7 +377,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     DOUBLE PRECISION :: vk, v
 
     DO i=1, NbNode
-      IF(IdNodeLocal(i)%Frac == "y")THEN
+      IF(IdNode(i)%Frac == "y")THEN
         kpt = FracbyNode%Pt(i)+1
         k = FracbyNode%Num(kpt)
 

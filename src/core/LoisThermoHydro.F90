@@ -213,12 +213,12 @@ contains
   ! subroutine Loisthermohydro_divPrim_cv compute all prim div for one control volume
   subroutine LoisThermoHydro_compute
 
-    integer :: k, kface
+    integer :: k
 
     ! cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
-       call LoisThermoHydro_divPrim_cv(CellFlagsLocal(k), IncCell(k), &
+       call LoisThermoHydro_divPrim_cv(CellRocktypeLocal(:,k), IncCell(k), &
                                 !
             dXssurdXpCell(:,:,k), &
             SmdXsCell(:,k), &
@@ -262,9 +262,7 @@ contains
     ! frac
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
-      kface = FracToFaceLocal(k) ! num face
-
-       call LoisThermoHydro_divPrim_cv(FaceFlagsLocal(kface), IncFrac(k), &
+       call LoisThermoHydro_divPrim_cv(FracRocktypeLocal(:,k), IncFrac(k), &
                                 !
             dXssurdXpFrac(:,:,k), &
             SmdXsFrac(:,k), &
@@ -310,7 +308,7 @@ contains
 
       
 
-       call LoisThermoHydro_divPrim_cv(NodeFlagsLocal(k), IncNode(k), &
+       call LoisThermoHydro_divPrim_cv(NodeRocktypeLocal(:,k), IncNode(k), &
                                 !
             dXssurdXpNode(:,:,k), &
             SmdXsNode(:,k), &
@@ -382,7 +380,7 @@ contains
 
 
   ! all operations for one cv
-  subroutine LoisThermoHydro_divPrim_cv(flag, inc, &
+  subroutine LoisThermoHydro_divPrim_cv(rt, inc, &
        dXssurdXp, SmdXs, SmF, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV, & 
        Densitemassique, divDensitemassique, SmDensitemassique, &
@@ -398,7 +396,7 @@ contains
     ! input
     type(Type_IncCV), intent(in) :: inc 
 
-    integer, intent(in) :: flag
+    integer, intent(in) :: rt(IndThermique+1)
 
     ! output
 
@@ -475,7 +473,7 @@ contains
 
     ! compute dF/dX
     ! dFsurdX: (col, row) index order
-    call LoisThermoHydro_dFsurdX_cv(inc, flag, dFsurdX, SmF)
+    call LoisThermoHydro_dFsurdX_cv(inc, rt, dFsurdX, SmF)
 
     ! choose inconnues prim and secd
     call LoisThermoHydro_ps_cv(inc, dFsurdX, pschoice, &
@@ -501,7 +499,7 @@ contains
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire)
 
     ! PermRel
-    call LoisThermoHydro_PermRel_cv(inc, flag, PermRel, divPermRel)
+    call LoisThermoHydro_PermRel_cv(inc, rt, PermRel, divPermRel)
 
     ! Pression
     call LoisThermoHydro_Pression_cv(inc, &
@@ -510,7 +508,7 @@ contains
          divPression, SmPression)
 
     ! Pression Capillaire
-    call LoisThermoHydro_PressionCapillaire_cv(flag, inc, PressionCap, divPressionCap)
+    call LoisThermoHydro_PressionCapillaire_cv(rt, inc, PressionCap, divPressionCap)
 
     ! Saturation div
     call LoisThermoHydro_Saturation_cv(inc, &
@@ -646,7 +644,7 @@ contains
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
 
-       call LoisThermoHydro_divPrim_cv(NodeFlagsLocal(k), IncNode(k), &
+       call LoisThermoHydro_divPrim_cv(NodeRocktypeLocal(:,k), IncNode(k), &
                                 !
             dXssurdXpNode(:,:,k), &
             SmdXsNode(:,k), &
@@ -722,10 +720,10 @@ contains
 
 
   ! compute dFsurdX for each control volume
-  subroutine LoisThermoHydro_dFsurdX_cv(inc, flag, dFsurdX, SmF)
+  subroutine LoisThermoHydro_dFsurdX_cv(inc, rt, dFsurdX, SmF)
 
     type(Type_IncCV), intent(in) :: inc
-    integer, intent(in) :: flag
+    integer, intent(in) :: rt(IndThermique+1)
     double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
 
@@ -777,10 +775,10 @@ contains
        numc2 = NumIncComp2NumIncPTC(icp,iph2) ! num of C_i^beta in IncPTC
 
        ! fugacity and div
-       call f_Fugacity(flag, iph1, icp, inc%Pression, inc%Temperature, &
+       call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
             inc%Comp(:,iph1), inc%Saturation, &
             f1, dPf1, dTf1, dCf1, dSf1)
-       call f_Fugacity(flag, iph2, icp, inc%Pression, inc%Temperature, &
+       call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
             inc%Comp(:,iph2), inc%Saturation, &
             f2, dPf2, dTf2, dCf2, dSf2)
 
@@ -1274,11 +1272,11 @@ contains
 
 
 
-  subroutine LoisThermoHydro_PermRel_cv(inc, id, val, dval)
+  subroutine LoisThermoHydro_PermRel_cv(inc, rt, val, dval)
 
     ! input
     type(Type_IncCV), intent(in)  :: inc
-    INTEGER, INTENT(IN) :: id
+    INTEGER, INTENT(IN) :: rt(IndThermique+1)
 
     ! output
     double precision, intent(out) :: val(NbPhase)
@@ -1296,7 +1294,7 @@ contains
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
-       call f_PermRel(id, iph, inc%Saturation, f, dSf)
+       call f_PermRel(rt, iph, inc%Saturation, f, dSf)
 
        val(i) = f
        dfS_secd = dSf( NumPhasePresente(NbPhasePresente)) ! the last is secd
@@ -1419,10 +1417,10 @@ contains
 
 
 
-  subroutine LoisThermoHydro_PressionCapillaire_cv(flag, inc, val, dval)
+  subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, val, dval)
 
     ! input
-    integer, intent(in) :: flag
+    integer, intent(in) :: rt(IndThermique+1)
     type(Type_IncCV), intent(in)  :: inc
 
     ! output
@@ -1438,7 +1436,7 @@ contains
 
     do iph=1, NbPhase        
 
-       call f_PressionCapillaire(flag, iph, inc%Saturation, f, dSf)
+       call f_PressionCapillaire(rt, iph, inc%Saturation, f, dSf)
 
        val(iph) = f
 
@@ -2632,7 +2630,7 @@ contains
          Enthalpie, dP_Enthalpie
 
     double precision :: dSf(NbPhase), dTf, dCf(NbComp), PermRel
-    integer :: id
+    integer :: rt(IndThermique+1)
     integer :: s, i
 
     Sw(:) = 0
@@ -2646,10 +2644,10 @@ contains
        Tw = DataWellInjLocal(k)%Temperature     ! T_w
        Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w 
 
-       id = NodeFlagsLocal(s)
+       rt = NodeRocktypeLocal(:,s)
 
        ! Permrel
-       call f_PermRel(id,PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(rt,PHASE_WATER, Sw, PermRel, dSf)
 
        ! Molar density
        call f_DensiteMolaire(PHASE_WATER, Pws, Tw, Cw, Sw, &

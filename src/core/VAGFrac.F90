@@ -450,7 +450,6 @@ contains
 
     integer :: k, i, ifrac, numi, ptnumi
     integer :: Ierr, errcode
-    integer :: IdCell, IdNode, IdFace
     integer :: NbVolume, NbInternalVolume
 
     double precision :: s1, s2
@@ -487,8 +486,6 @@ contains
     ! loop of cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
-      IdCell = CellFlagsLocal(k)
-
       NbVolume = 0
       NbInternalVolume = 0
 
@@ -496,13 +493,12 @@ contains
       DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
 
         numi = NodebyCellLocal%Num(ptnumi)
-        IdNode = NodeFlagsLocal(numi)
-
+        
         IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
           .AND. IdNodeLocal(numi)%Frac == "n" ) THEN ! nodes not in frac
 
           NbVolume = NbVolume + 1
-          IF(IdNode == IdCell) THEN ! same rocktype
+          IF(NodeRocktypeLocal(1,numi) == CellRocktypeLocal(1,k)) THEN ! same rocktype
             NbInternalVolume = NbInternalVolume + 1
           ENDIF
         ENDIF
@@ -515,11 +511,10 @@ contains
       do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
 
         numi = NodebyCellLocal%Num(ptnumi)
-        IdNode = NodeFlagsLocal(numi)
 
         IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
           .AND. IdNodeLocal(numi)%Frac == "n" & ! nodes not in frac
-          .AND. IdNode == IdCell ) THEN ! same rocktype
+          .AND. NodeRocktypeLocal(1,numi) == CellRocktypeLocal(1,k) ) THEN ! same rocktype
 
           VolDarcyCell(k) = VolDarcyCell(k) - s1
           VolDarcyNode(numi) = VolDarcyNode(numi) + s1
@@ -534,8 +529,6 @@ contains
 
       i = FracToFaceLocal(ifrac) ! num face
 
-      IdFace = FaceFlagsLocal(i)
-
       NbVolume = 0
       NbInternalVolume = 0
 
@@ -543,12 +536,11 @@ contains
       DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
         numi = NodebyFaceLocal%Num(ptnumi)
-        IdNode = NodeFlagsLocal(numi)
 
         IF( IdNodeLocal(numi)%P /= "d" ) THEN ! not dir Pression
 
           NbVolume = NbVolume + 1
-          IF(IdNode == IdFace) THEN ! same rocktype
+          IF(NodeRocktypeLocal(1,numi) == FracRocktypeLocal(1,ifrac)) THEN ! same rocktype
             NbInternalVolume = NbInternalVolume + 1
           ENDIF
         ENDIF
@@ -563,10 +555,9 @@ contains
       DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
         numi = NodebyFaceLocal%Num(ptnumi)
-        IdNode = NodeFlagsLocal(numi)
 
         IF( IdNodeLocal(numi)%P /= "d" &
-          .AND. IdNode == IdFace ) THEN ! not dir Pression
+          .AND. NodeRocktypeLocal(1,numi) == FracRocktypeLocal(1,ifrac)) THEN ! not dir Pression
 
           VolDarcyFrac(ifrac) = VolDarcyFrac(ifrac) - s1
           VolDarcyNode(numi) = VolDarcyNode(numi) + s1

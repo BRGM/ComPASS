@@ -157,6 +157,12 @@ module LocalMesh
        CellFlags_Ncpus, &
        FaceFlags_Ncpus
 
+  ! Rocktype
+  type(ARRAY2Int), dimension(:), allocatable, target, public :: &
+       NodeRocktype_Ncpus, &
+       CellRocktype_Ncpus, &
+       FracRocktype_Ncpus
+
   ! Porosite
   type(ARRAY1dble), dimension(:), allocatable, public :: &
        PorositeCell_Ncpus, &
@@ -327,6 +333,10 @@ contains
     allocate(CellFlags_Ncpus(Ncpus))
     allocate(FaceFlags_Ncpus(Ncpus))
 
+    allocate(NodeRocktype_Ncpus(Ncpus))
+    allocate(CellRocktype_Ncpus(Ncpus))
+    allocate(FracRocktype_Ncpus(Ncpus))
+
     ! local element by proc
     allocate(CellbyProc(Ncpus))
     allocate(FacebyProc(Ncpus))
@@ -420,6 +430,9 @@ contains
 
        ! Flags
        call LocalMesh_Flags(i)
+
+       ! Rocktype
+       call LocalMesh_Rocktype(i)
        
        ! porosity
        call LocalMesh_Porosite(i)         ! porosity
@@ -1404,6 +1417,33 @@ contains
     end do
 
   end subroutine LocalMesh_Flags
+
+
+  subroutine LocalMesh_Rocktype(ip)
+    integer, intent(in) :: ip
+    integer :: k, n, ip1
+    
+    ip1 = ip + 1
+
+    n = size(NodebyProc(ip1)%Num)
+    allocate(NodeRocktype_Ncpus(ip1)%Array2d(IndThermique+1,n))
+    do k= 1, n
+        NodeRocktype_Ncpus(ip1)%Array2d(:,k) = NodeRocktype(:,NodebyProc(ip1)%Num(k))
+    end do
+
+    n = size(CellbyProc(ip1)%Num)
+    allocate(CellRocktype_Ncpus(ip1)%Array2d(IndThermique+1,n))
+    do k= 1, n
+        CellRocktype_Ncpus(ip1)%Array2d(:,k) = CellRocktype(:,CellbyProc(ip1)%Num(k))
+    end do
+
+    n = size(FracbyProc(ip1)%Num)
+    allocate(FracRocktype_Ncpus(ip1)%Array2d(IndThermique+1,n))
+    do k= 1, n
+        FracRocktype_Ncpus(ip1)%Array2d(:,k) = FracRocktype(:,FracbyProc(ip1)%Num(k))
+    end do
+
+  end subroutine LocalMesh_Rocktype
   
   
   ! Output:

@@ -234,7 +234,7 @@ contains
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
   subroutine DefFlash_Flash_cv(rt, inc, porovol)
 
-    INTEGER, INTENT(IN) :: rt
+    INTEGER, INTENT(IN) :: rt(IndThermique+1)
     type(Type_IncCV), intent(inout) :: inc
     double precision, intent(in) :: porovol ! porovol
 
@@ -257,9 +257,9 @@ contains
     T = inc%Temperature
     S = inc%Saturation
 
-    IF(rt == 1)THEN
+    IF(rt(1) == 1)THEN
       Slrk = 0.4d0 
-    ELSEIF( rt == 2 )THEN
+    ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
     ELSE
       PRINT*, 'error'
@@ -267,7 +267,7 @@ contains
     ENDIF
 
     iph = 2
-    CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+    CALL f_PressionCapillaire(rt(1),iph,S,Pc,DSPc)
 
  !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
     
@@ -279,7 +279,7 @@ contains
       CALL DefModel_Psat(T, Psat, dTSat)
 
       iph = 2
-      CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+      CALL f_PressionCapillaire(rt(1),iph,S,Pc,DSPc)
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
@@ -395,7 +395,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums
-    integer :: rt
+    integer :: rt(IndThermique+1)
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -410,7 +410,7 @@ contains
        Sw(PHASE_WATER) = 1.d0                                           ! Monophasic liquid
 !       Sw(PHASE_GAS) = 0.d0
        Cw = DataWellInjLocal(nWell)%CompTotal
-       rt = NodeRocktype(1,s)
+       rt = NodeRocktype(:,s)
 
        ! PHASE_WATER (monophasic in injection well)
        ! Molar density
@@ -537,7 +537,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums, m, mph, comptn
-    integer :: rt
+    integer :: rt(IndThermique+1)
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -550,7 +550,7 @@ contains
        nums = NodebyWellProdLocal%Num(s)
        Ts = IncNode(nums)%Temperature      ! Ts: Temperature in matrix
        Sat(:) = IncNode(nums)%Saturation(:)  ! Sat in matrix
-       rt = NodeRocktype(1,s)
+       rt = NodeRocktype(:,s)
 
        ! loop over alpha in Q_s
        do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s

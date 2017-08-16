@@ -52,10 +52,10 @@ END SUBROUTINE GlobalMesh_SetFaceFlags
 
 SUBROUTINE GlobalMesh_SetFracRocktype
 
-  FracRocktype = 1
+  FracRocktype(1,:) = 1
 
 #ifdef _THERMIQUE_
-  FracTRocktype = 1
+  FracRocktype(2,:) = 1
 #endif
 END SUBROUTINE GlobalMesh_SetFracRocktype
 
@@ -83,10 +83,10 @@ END SUBROUTINE GlobalMesh_SetCellFlags
 
 SUBROUTINE GlobalMesh_SetCellRocktype
 
-  CellRocktype = CellFlags
+  CellRocktype(1,:) = CellFlags
 
 #ifdef _THERMIQUE_
-  CellTRocktype = 1
+  CellRocktype(2,:) = 1
 #endif
 !  CellTRocktype = CellFlags
 END SUBROUTINE GlobalMesh_SetCellRocktype

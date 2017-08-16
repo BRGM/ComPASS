@@ -226,10 +226,11 @@ contains
   ! P = Pg pression de reference
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_Fugacity(id, iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
+  subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
-    integer, intent(in) :: id, iph, icp
+    integer, intent(in) :: rt(IndThermique+1)
+    integer, intent(in) :: iph, icp
     double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
 
     ! output
@@ -255,7 +256,7 @@ contains
         dCf = 0.d0 
         dSf = 0.d0
       ELSE
-        CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
+        CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
         CALL DefModel_Psat(T, Psat, dTSat)
 
         f = Psat * DEXP(Pc/(T*RZetal))
@@ -425,10 +426,10 @@ contains
   ! Permeabilites = S**2
   ! iph is an identificator for each phase: 
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_PermRel(id,iph,S,f,DSf)
+  subroutine f_PermRel(rt,iph,S,f,DSf)
 
     ! input
-    integer, intent(in) :: id
+    integer, intent(in) :: rt(IndThermique+1)
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -441,18 +442,18 @@ contains
 
     dSf = 0.d0
 
-    IF(id == 1)THEN
+    IF(rt(1) == 1)THEN
       Slrk = 0.4d0 
       Sgrk = 0.d0 
       rNvgk = 1.49d0
       rMvgk = 1.d0-1.d0/rNvgk
-    ELSEIF( id == 2 )THEN
+    ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
       Sgrk = 0.d0 
       rNvgk = 1.54d0
       rMvgk = 1.d0-1.d0/rNvgk
     ELSE
-      PRINT*, 'error'
+      PRINT*, 'error in f_PermRel, unknown rocktype'
       STOP
     ENDIF
 
@@ -499,10 +500,10 @@ contains
 
 
   ! Pressions Capillaires des Phases et leurs derivees
-  subroutine f_PressionCapillaire(id,iph,S,f,DSf)
+  subroutine f_PressionCapillaire(rt,iph,S,f,DSf)
 
     ! input
-    integer, intent(in) :: id
+    integer, intent(in) :: rt(IndThermique+1)
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -512,20 +513,20 @@ contains
     double precision :: Slrk,Prvgk,rNvgk,rMvgk
     double precision :: Sbl, dSbl, Sbl1, Pc1, Sgrk
 
-    IF(id == 1)THEN
+    IF(rt(1) == 1)THEN
       Slrk = 0.4d0 
       Sgrk = 0.d0 
       rNvgk = 1.49d0
       Prvgk = 15.d+6
       rMvgk = 1.d0-1.d0/rNvgk
-    ELSEIF( id == 2 )THEN
+    ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
       Sgrk = 0.d0 
       rNvgk = 1.54d0
       Prvgk = 2.d+6
       rMvgk = 1.d0-1.d0/rNvgk
     ELSE
-      PRINT*, 'error'
+      PRINT*, 'error in f_PressionCapillaire, unknown rocktype'
       STOP
     ENDIF
 
@@ -560,22 +561,22 @@ contains
   END SUBROUTINE f_PressionCapillaire
 
 
-  SUBROUTINE f_Sl(id,Pc,Sl)
+  SUBROUTINE f_Sl(rt,Pc,Sl)
 
-    INTEGER, INTENT(IN) :: id
+    INTEGER, INTENT(IN) :: rt(IndThermique+1)
     DOUBLE PRECISION, INTENT(IN) :: Pc
     
     DOUBLE PRECISION, INTENT(OUT) :: Sl
 
     DOUBLE PRECISION :: Slrk, Sgrk, Prvgk, rNvgk, rMvgk
 
-    IF(id == 1)THEN
+    IF(rt(1) == 1)THEN
       Slrk = 0.4d0 
       Sgrk = 0.d0 
       rNvgk = 1.49d0
       Prvgk = 15.d+6
       rMvgk = 1.d0-1.d0/rNvgk
-    ELSEIF( id == 2 )THEN
+    ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
       Sgrk = 0.d0 
       rNvgk = 1.54d0
@@ -691,11 +692,13 @@ contains
   !! \param[in,out] PermCellG Permeability tensor for each cell
   !! \param[in,out] PermFracG Permeability constant for each fracture face
   subroutine DefModel_SetPerm( &
-      NbCellG, CellRocktype, NbFaceG, &
+      NbCellG, CellRocktype, NbFracG, FracRocktype, &
       PermCellG, PermFracG)
 
-    integer, intent(in) :: NbCellG, NbFaceG
-    integer, dimension(:), intent(in) :: CellRocktype
+    integer, intent(in) :: NbCellG
+    integer, dimension(:,:), intent(in) :: CellRocktype
+    integer, intent(in) :: NbFracG
+    integer, dimension(:,:), intent(in) :: FracRocktype
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
       PermCellG
@@ -709,22 +712,22 @@ contains
     do i=1, NbCellG
       PermCellG(:,:,i) = 0.d0
 
-      IF(CellRocktype(i) == 1) THEN
+      IF(CellRocktype(1,i) == 1) THEN
         PermCellG(1,1,i) = 5.d-20
         PermCellG(2,2,i) = 5.d-20
         PermCellG(3,3,i) = 5.d-20
-      ELSEIF(CellRocktype(i) == 2)THEN
+      ELSEIF(CellRocktype(1,i) == 2)THEN
         PermCellG(1,1,i) = 5.d-18
         PermCellG(2,2,i) = 5.d-18
         PermCellG(3,3,i) = 5.d-18
       ELSE
         PRINT*, 'error DefModel_SetPerm, unknow rocktype'
-        PRINT*, i, CellRocktype(i) 
+        PRINT*, i, CellRocktype(1,i) 
         STOP
       ENDIF
     end do
 
-    allocate(PermFracG(NbFaceG))
+    allocate(PermFracG(NbFracG))
     PermFracG(:) = 1.d-11
   end subroutine DefModel_SetPerm
 
@@ -734,9 +737,9 @@ contains
       PorositeCell, PorositeFrac)
 
     integer, intent(in) :: NbCellG
-    integer, dimension(:), intent(in) :: CellRocktype
+    integer, dimension(:,:), intent(in) :: CellRocktype
     integer, intent(in) :: NbFracG
-    integer, dimension(:), intent(in) :: FracRocktype
+    integer, dimension(:,:), intent(in) :: FracRocktype
     ! ouptuts:
     double precision, dimension(:), allocatable, intent(inout) :: &
       PorositeCell
@@ -747,26 +750,26 @@ contains
 
     allocate(PorositeCell(NbCellG))
     do i=1, NbCellG
-      IF(CellRocktype(i) == 1) THEN
+      IF(CellRocktype(1,i) == 1) THEN
         PorositeCell(i) = 0.15d0
-      ELSEIF(CellRocktype(i) == 2)THEN
+      ELSEIF(CellRocktype(1,i) == 2)THEN
         PorositeCell(i) = 0.3d0
       ELSE
         PRINT*, 'error in DefModel_SetPorosite, unknow CellRocktype'
-        PRINT*, i, CellRocktype(i) 
+        PRINT*, i, CellRocktype(1,i) 
         STOP
       ENDIF
     end do
 
     allocate(PorositeFrac(NbFracG))
     do i=1, NbFracG
-      IF(FracRocktype(i) == 1) THEN
+      IF(FracRocktype(1,i) == 1) THEN
         PorositeFrac(i) = 0.15d0
-      ELSEIF(FracRocktype(i) == 2)THEN
+      ELSEIF(FracRocktype(1,i) == 2)THEN
         PorositeFrac(i) = 0.3d0
       ELSE
         PRINT*, 'error in DefModel_SetPorosite, unknow FracRocktype'
-        PRINT*, i, FracRocktype(i) 
+        PRINT*, i, FracRocktype(1,i) 
         STOP
       ENDIF
     ENDDO
@@ -776,13 +779,13 @@ contains
 #ifdef _THERMIQUE_
 
   subroutine DefModel_SetCondThermique( &
-      NbCellG, CellTRocktypeG, NbFracG, FracTRocktypeG, &
+      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
       CondThermalCellG, CondThermalFracG)
 
     integer, intent(in) :: NbCellG
-    integer, dimension(:), intent(in) :: CellTRocktypeG
+    integer, dimension(:,:), intent(in) :: CellRocktypeG
     integer, intent(in) :: NbFracG
-    integer, dimension(:), intent(in) :: FracTRocktypeG
+    integer, dimension(:,:), intent(in) :: FracRocktypeG
 
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &

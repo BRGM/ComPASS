@@ -12,10 +12,11 @@
 ! Set dir bc values: IncNodeDirBC
 subroutine IncCV_SetDirBCValue
 
-  integer :: i, rocktype
+  integer :: i, rt(IndThermique+1)
   double precision :: sizeZ, sol
 
   integer :: icPor
+  integer :: rtPor(IndThermique+1)
   double precision :: PlPor
   double precision :: SPor(NbPhase)
   double precision :: PcPor, PgPor, PPor
@@ -26,7 +27,7 @@ subroutine IncCV_SetDirBCValue
   double precision :: CelPor, CalPor
   double precision :: SlPor, SgPor
   integer :: icGal
-  integer :: idGal
+  integer :: rtGal(IndThermique+1)
   double precision :: PcGal, PgGal, PGal
   double precision :: TGal
   double precision :: HurGal
@@ -40,7 +41,11 @@ subroutine IncCV_SetDirBCValue
   double precision :: Ha
   double precision :: Pc
 
-  rocktype = 1
+  rtPor(1) = 1
+
+#ifdef _THERMIQUE_
+  rtPor(2) = 1
+#endif
 
   icPor = 2
 
@@ -50,7 +55,7 @@ subroutine IncCV_SetDirBCValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
+  CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)
 
   PPor = PlPor - PcPor
   PgPor = PPor
@@ -96,7 +101,7 @@ subroutine IncCV_SetDirBCValue
 !  SgGal = 1 - SlGal  
 !  PGal = PgGal
 !  SGal = (/ SgGal, SlGal /)
-!  CALL f_PressionCapillaire(rocktype,2,SGal,PcGal,DSf)   
+!  CALL f_PressionCapillaire(rt,2,SGal,PcGal,DSf)   
 !  CALL DefModel_Psat(TGal, PsatGal, dT_PSatGal)
 !  RZetal = 8.314d0 * 1000.d0 / 0.018d0
 !  Psatt =  PsatGal*dexp(PcGal/RZetal / TGal)  
@@ -106,7 +111,12 @@ subroutine IncCV_SetDirBCValue
 !  CagGal = Ha*CalGal/PgGal
 !  CegGal = 1.d0 - CagGal
 
-  idGal = 2
+  rtGal(1) = 2
+
+#ifdef _THERMIQUE_
+  rtGal(2) = 1
+#endif
+
   PgGal = 1.d5
   TGal = 303.d0
   HurGal = 0.5d0
@@ -124,7 +134,7 @@ subroutine IncCV_SetDirBCValue
   RZetal = 8.314d0 * 1000.d0 / 0.018d0
   PcGal = DLOG(CelGal/HurGal) * RZetal * TGal
 
-  CALL f_Sl(idGal,PcGal,SlGal)
+  CALL f_Sl(rtGal,PcGal,SlGal)
   SgGal = 1 - SlGal
 
 
@@ -175,7 +185,7 @@ end subroutine IncCV_SetDirBCValue
 
 subroutine IncCV_SetInitialValue
 
-  integer :: i, rocktype
+  integer :: i, rt(IndThermique+1)
   double precision :: sizeZ, sol
 
   integer :: icPor
@@ -190,7 +200,11 @@ subroutine IncCV_SetInitialValue
   double precision :: Ha
   double precision :: DSf(NbPhase)
 
-  rocktype = 1
+  rt(1) = 1
+
+#ifdef _THERMIQUE_
+  rt(2) = 1
+#endif
 
   PlPor = 40.0d+5
   icPor = 2
@@ -199,7 +213,7 @@ subroutine IncCV_SetInitialValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
+  CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
   PPor = PlPor - PcPor
 
   CalPor = 0.d0
@@ -215,7 +229,7 @@ subroutine IncCV_SetInitialValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rocktype,2,SPor,PcPor,DSf)
+  CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
 
   PPor = PlPor - PcPor
   PgPor = PPor
