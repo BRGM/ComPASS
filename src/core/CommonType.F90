@@ -14,6 +14,11 @@ module CommonType
   type ARRAY1dble
     double precision, allocatable, dimension(:) :: Val
   end type ARRAY1dble
+
+  !> Array 2d integer
+  type ARRAY2Int
+    integer(c_int), allocatable, dimension(:,:) :: Array2d
+  end type ARRAY2Int
   
   !> Array 2d double precision
   type ARRAY2dble

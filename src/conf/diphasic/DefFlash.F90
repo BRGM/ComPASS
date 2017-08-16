@@ -79,20 +79,18 @@ contains
   !! the mode of the well (flowrate or pressure).
   subroutine DefFlash_Flash
 
-    integer :: k, kface
-    double precision :: Psat, dTsat, Tsat
+    integer :: k
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(NodeFlagsLocal(k), IncNode(k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(NodeRocktype(:,k), IncNode(k), PoroVolDarcyNode(k))
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       kface = FracToFaceLocal(k)
-       call DefFlash_Flash_cv(FaceFlagsLocal(kface), IncFrac(k), PoroVolDarcyFrac(k))
+       call DefFlash_Flash_cv(FracRocktype(:,k), IncFrac(k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(CellFlagsLocal(k), IncCell(k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(CellRocktype(:,k), IncCell(k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
@@ -234,9 +232,9 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(id, inc, porovol)
+  subroutine DefFlash_Flash_cv(rt, inc, porovol)
 
-    INTEGER, INTENT(IN) :: id
+    INTEGER, INTENT(IN) :: rt
     type(Type_IncCV), intent(inout) :: inc
     double precision, intent(in) :: porovol ! porovol
 
@@ -259,9 +257,9 @@ contains
     T = inc%Temperature
     S = inc%Saturation
 
-    IF(id == 1)THEN
+    IF(rt == 1)THEN
       Slrk = 0.4d0 
-    ELSEIF( id == 2 )THEN
+    ELSEIF( rt == 2 )THEN
       Slrk = 0.01d0
     ELSE
       PRINT*, 'error'
@@ -269,7 +267,7 @@ contains
     ENDIF
 
     iph = 2
-    CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
+    CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
 
  !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
     
@@ -281,7 +279,7 @@ contains
       CALL DefModel_Psat(T, Psat, dTSat)
 
       iph = 2
-      CALL f_PressionCapillaire(id,iph,S,Pc,DSPc)
+      CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 
@@ -397,7 +395,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums
-    integer :: id
+    integer :: rt
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -412,7 +410,7 @@ contains
        Sw(PHASE_WATER) = 1.d0                                           ! Monophasic liquid
 !       Sw(PHASE_GAS) = 0.d0
        Cw = DataWellInjLocal(nWell)%CompTotal
-       id = NodeFlagsLocal(s)
+       rt = NodeRocktype(1,s)
 
        ! PHASE_WATER (monophasic in injection well)
        ! Molar density
@@ -422,7 +420,7 @@ contains
        call f_Viscosite(PHASE_WATER, Pws, Tws, Cw, Sw, &
             Viscosity, dPf, dTf, dCf, dSf)
        ! Permrel
-       call f_PermRel(id,PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(rt,PHASE_WATER, Sw, PermRel, dSf)
 
        Mob(PHASE_WATER, s) = PermRel * DensiteMolaire / Viscosity * WIDws
        ! initialization of RSorted before calling QuickSortCSR
@@ -539,7 +537,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums, m, mph, comptn
-    integer :: id
+    integer :: rt
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -552,7 +550,7 @@ contains
        nums = NodebyWellProdLocal%Num(s)
        Ts = IncNode(nums)%Temperature      ! Ts: Temperature in matrix
        Sat(:) = IncNode(nums)%Saturation(:)  ! Sat in matrix
-       id = NodeFlagsLocal(s)
+       rt = NodeRocktype(1,s)
 
        ! loop over alpha in Q_s
        do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -570,7 +568,7 @@ contains
           call f_Viscosite(mph, Ps(mph), Ts, C(:,mph), Sat, &
                Viscosity, dPf, dTf, dCf, dSf)
           ! Permrel
-          call f_PermRel(id, mph, Sat, PermRel, dSf)
+          call f_PermRel(rt, mph, Sat, PermRel, dSf)
 
           Mob(mph,s) = PermRel * DensiteMolaire / Viscosity * WIDws
 

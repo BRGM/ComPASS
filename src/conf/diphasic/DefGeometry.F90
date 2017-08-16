@@ -50,6 +50,16 @@ SUBROUTINE GlobalMesh_SetFaceFlags
 END SUBROUTINE GlobalMesh_SetFaceFlags
 
 
+SUBROUTINE GlobalMesh_SetFracRocktype
+
+  FracRocktype = 1
+
+#ifdef _THERMIQUE_
+  FracTRocktype = 1
+#endif
+END SUBROUTINE GlobalMesh_SetFracRocktype
+
+
 SUBROUTINE GlobalMesh_SetCellFlags
   INTEGER :: k, m
   DOUBLE PRECISION :: xk(3)
@@ -61,6 +71,7 @@ SUBROUTINE GlobalMesh_SetCellFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
 
+    !IF(MOD(INT(xk(3)),2) == 0)THEN
     IF(xk(3) <= 1.d0)THEN
       CellFlags(k) = 2
     ELSE
@@ -68,6 +79,17 @@ SUBROUTINE GlobalMesh_SetCellFlags
     ENDIF
   ENDDO
 END SUBROUTINE GlobalMesh_SetCellFlags
+
+
+SUBROUTINE GlobalMesh_SetCellRocktype
+
+  CellRocktype = CellFlags
+
+#ifdef _THERMIQUE_
+  CellTRocktype = 1
+#endif
+!  CellTRocktype = CellFlags
+END SUBROUTINE GlobalMesh_SetCellRocktype
 
 
 

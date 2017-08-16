@@ -691,11 +691,11 @@ contains
   !! \param[in,out] PermCellG Permeability tensor for each cell
   !! \param[in,out] PermFracG Permeability constant for each fracture face
   subroutine DefModel_SetPerm( &
-      NbCellG, CellFlags, NbFaceG, &
+      NbCellG, CellRocktype, NbFaceG, &
       PermCellG, PermFracG)
 
     integer, intent(in) :: NbCellG, NbFaceG
-    integer, dimension(:), intent(in) :: CellFlags
+    integer, dimension(:), intent(in) :: CellRocktype
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
       PermCellG
@@ -709,17 +709,17 @@ contains
     do i=1, NbCellG
       PermCellG(:,:,i) = 0.d0
 
-      IF(CellFlags(i) == 1) THEN
+      IF(CellRocktype(i) == 1) THEN
         PermCellG(1,1,i) = 5.d-20
         PermCellG(2,2,i) = 5.d-20
         PermCellG(3,3,i) = 5.d-20
-      ELSEIF(CellFlags(i) == 2)THEN
+      ELSEIF(CellRocktype(i) == 2)THEN
         PermCellG(1,1,i) = 5.d-18
         PermCellG(2,2,i) = 5.d-18
         PermCellG(3,3,i) = 5.d-18
       ELSE
         PRINT*, 'error DefModel_SetPerm, unknow rocktype'
-        PRINT*, i, CellFlags(i) 
+        PRINT*, i, CellRocktype(i) 
         STOP
       ENDIF
     end do
@@ -730,11 +730,13 @@ contains
 
 
   subroutine DefModel_SetPorosite( &
-      NbCellG, CellFlags, NbFracG, &
+      NbCellG, CellRocktype, NbFracG, FracRocktype, &
       PorositeCell, PorositeFrac)
 
-    integer, intent(in) :: NbCellG, NbFracG
-    integer, dimension(:), intent(in) :: CellFlags
+    integer, intent(in) :: NbCellG
+    integer, dimension(:), intent(in) :: CellRocktype
+    integer, intent(in) :: NbFracG
+    integer, dimension(:), intent(in) :: FracRocktype
     ! ouptuts:
     double precision, dimension(:), allocatable, intent(inout) :: &
       PorositeCell
@@ -745,31 +747,42 @@ contains
 
     allocate(PorositeCell(NbCellG))
     do i=1, NbCellG
-
-      IF(CellFlags(i) == 1) THEN
+      IF(CellRocktype(i) == 1) THEN
         PorositeCell(i) = 0.15d0
-      ELSEIF(CellFlags(i) == 2)THEN
+      ELSEIF(CellRocktype(i) == 2)THEN
         PorositeCell(i) = 0.3d0
       ELSE
-        PRINT*, 'error DefModel_SetPorosite, unknow rocktype'
-        PRINT*, i, CellFlags(i) 
+        PRINT*, 'error in DefModel_SetPorosite, unknow CellRocktype'
+        PRINT*, i, CellRocktype(i) 
         STOP
       ENDIF
     end do
 
     allocate(PorositeFrac(NbFracG))
-    PorositeFrac(:) = 0.15d0
+    do i=1, NbFracG
+      IF(FracRocktype(i) == 1) THEN
+        PorositeFrac(i) = 0.15d0
+      ELSEIF(FracRocktype(i) == 2)THEN
+        PorositeFrac(i) = 0.3d0
+      ELSE
+        PRINT*, 'error in DefModel_SetPorosite, unknow FracRocktype'
+        PRINT*, i, FracRocktype(i) 
+        STOP
+      ENDIF
+    ENDDO
   end subroutine DefModel_SetPorosite
 
 
 #ifdef _THERMIQUE_
 
   subroutine DefModel_SetCondThermique( &
-      NbCellG, IdCellG, NbFracG, &
+      NbCellG, CellTRocktypeG, NbFracG, FracTRocktypeG, &
       CondThermalCellG, CondThermalFracG)
 
-    integer, intent(in) :: NbCellG, NbFracG
-    integer, dimension(:), intent(in) :: IdCellG
+    integer, intent(in) :: NbCellG
+    integer, dimension(:), intent(in) :: CellTRocktypeG
+    integer, intent(in) :: NbFracG
+    integer, dimension(:), intent(in) :: FracTRocktypeG
 
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
