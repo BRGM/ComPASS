@@ -41,12 +41,6 @@ subroutine IncCV_SetDirBCValue
   double precision :: Ha
   double precision :: Pc
 
-  rtPor(1) = 1
-
-#ifdef _THERMIQUE_
-  rtPor(2) = 1
-#endif
-
   icPor = 2
 
   PlPor = 4.0d+6
@@ -55,10 +49,6 @@ subroutine IncCV_SetDirBCValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)
-
-  PPor = PlPor - PcPor
-  PgPor = PPor
 
   CagPor = 0.d0
   CegPor = 1.d0 - CagPor
@@ -111,12 +101,6 @@ subroutine IncCV_SetDirBCValue
 !  CagGal = Ha*CalGal/PgGal
 !  CegGal = 1.d0 - CagGal
 
-  rtGal(1) = 2
-
-#ifdef _THERMIQUE_
-  rtGal(2) = 1
-#endif
-
   PgGal = 1.d5
   TGal = 303.d0
   HurGal = 0.5d0
@@ -134,23 +118,15 @@ subroutine IncCV_SetDirBCValue
   RZetal = 8.314d0 * 1000.d0 / 0.018d0
   PcGal = DLOG(CelGal/HurGal) * RZetal * TGal
 
-  CALL f_Sl(rtGal,PcGal,SlGal)
-  SgGal = 1 - SlGal
-
-
-  write(*,*)' PgGal ',PgGal
-  write(*,*)' PcGal ',PcGal  
-  write(*,*)' TGal ',TGal
-  write(*,*)' Cg ',CagGal,CegGal
-  write(*,*)' Cl ',CalGal,CelGal
-  write(*,*)' Sg Sl ',SgGal,SlGal 
- 
-  
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
     IF( IdNodeLocal(i)%P == "d") THEN
 
         if( abs(XNodeLocal(3,i)-Mesh_zmin)<eps ) then
+
+          rtGal = NodeRocktypeLocal(:,i)
+          CALL f_Sl(rtGal,PcGal,SlGal)
+          SgGal = 1 - SlGal
 
         IncNodeDirBC(i)%ic = icGal
         IncNodeDirBC(i)%Pression = PGal
@@ -164,6 +140,12 @@ subroutine IncCV_SetDirBCValue
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
         else if( abs(XNodeLocal(3,i)-Mesh_zmax)<eps ) then
+
+          rtPor = NodeRocktypeLocal(:,i)
+          CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)
+
+          PPor = PlPor - PcPor
+          PgPor = PPor
 
         IncNodeDirBC(i)%ic = icPor
         IncNodeDirBC(i)%Pression = PPor
