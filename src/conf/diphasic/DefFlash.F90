@@ -288,7 +288,9 @@ contains
         write(*,*)' apparition gas ', Pg, T
         
         inc%ic = 3
-        inc%Pression = PgCeg
+        IF(Pg < PgCeg)THEN
+          inc%Pression = PgCeg
+        ENDIF
         inc%Saturation(PHASE_GAS) = 0
         inc%Saturation(PHASE_WATER) = 1
         inc%Comp(1,PHASE_GAS) = 0.d0 
