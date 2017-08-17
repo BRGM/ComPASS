@@ -122,7 +122,7 @@ subroutine IncCV_SetDirBCValue
 
     IF( IdNodeLocal(i)%P == "d") THEN
 
-        if( abs(XNodeLocal(3,i)-Mesh_zmin)<eps ) then
+        if( NodeFlagsLocal(i) == 1 ) then
 
           rtGal = NodeRocktypeLocal(:,i)
           CALL f_Sl(rtGal,PcGal,SlGal)
@@ -139,7 +139,7 @@ subroutine IncCV_SetDirBCValue
         IncNodeDirBC(i)%Comp(2,PHASE_WATER) = CelGal
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
-        else if( abs(XNodeLocal(3,i)-Mesh_zmax)<eps ) then
+        else if( NodeFlagsLocal(i) == 2 )then
 
           rtPor = NodeRocktypeLocal(:,i)
           CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)
@@ -158,6 +158,9 @@ subroutine IncCV_SetDirBCValue
         IncNodeDirBC(i)%Comp(2,PHASE_WATER) = CelPor
           IncNodeDirBC(i)%AccVol(:) = 0.d0
 
+        ELSE
+          PRINT*, 'ERROR STOP'
+          STOP
         end if
     ENDIF
   end do

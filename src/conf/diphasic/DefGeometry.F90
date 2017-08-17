@@ -10,6 +10,7 @@ subroutine GlobalMesh_SetFrac
   double precision :: xi(3)
 
   NbFrac = 0
+  IdFace = 0
 
   do i=1, NbFace
 
@@ -20,8 +21,6 @@ subroutine GlobalMesh_SetFrac
      end if
   end do
 
-  ! IdFace(:) = 0
-  
 end subroutine GlobalMesh_SetFrac
 
 
@@ -29,9 +28,6 @@ end subroutine GlobalMesh_SetFrac
 SUBROUTINE GlobalMesh_SetFaceFlags
   INTEGER :: k, m
   DOUBLE PRECISION :: xk(3)
-
-  NbFrac = 0
-  IdFace = 0
 
   DO k=1,NbFace
     ! center of face
@@ -71,7 +67,7 @@ SUBROUTINE GlobalMesh_SetCellFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
 
-    !IF(MOD(INT(xk(3)),2) == 0)THEN
+!    IF(MOD(INT(xk(1)),2) == MOD(INT(xk(3)),2))THEN
     IF(xk(3) <= 1.d0)THEN
       CellFlags(k) = 2
     ELSE
@@ -86,11 +82,28 @@ SUBROUTINE GlobalMesh_SetCellRocktype
   CellRocktype(1,:) = CellFlags
 
 #ifdef _THERMIQUE_
-  CellRocktype(2,:) = 1
+  CellRocktype(2,:) = CellFlags
 #endif
 !  CellTRocktype = CellFlags
 END SUBROUTINE GlobalMesh_SetCellRocktype
 
+
+SUBROUTINE GlobalMesh_SetNodeFlags
+  INTEGER :: k
+  DOUBLE PRECISION :: xk(3)
+
+  DO k=1,NbNode
+    xk = XNode(:,k)
+
+    IF( ABS(xk(3)-Mesh_zmin) < eps )THEN 
+      NodeFlags(k) = 1
+    ELSEIF( ABS(xk(3)-Mesh_zmax) < eps )THEN
+      NodeFlags(k) = 2
+    ELSE
+      NodeFlags(k) = 0
+    ENDIF
+  ENDDO
+END SUBROUTINE GlobalMesh_SetNodeFlags
 
 
 ! Set dirichlet boundary
@@ -120,9 +133,7 @@ subroutine GlobalMesh_SetDirBC
      yi = XNode(2,i)
      zi = XNode(3,i)
 
-     if( abs(zi-Mesh_zmin)<eps &
-       .or. abs(zi-Mesh_zmax)<eps ) then 
-
+     IF( NodeFlags(i) /= 0 )THEN
         NbDirNodeP = NbDirNodeP + 1
         IdNode(i)%P = "d"
 

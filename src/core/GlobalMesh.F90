@@ -275,6 +275,10 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
 
     call GlobalMesh_MeshBoundingBox
 
+    CALL GlobalMesh_SetNodeFlags
+    CALL GlobalMesh_SetCellFlags
+    CALL GlobalMesh_SetFaceFlags
+
     call GlobalMesh_Compute_all_connectivies
 
     ! Frac
@@ -292,9 +296,6 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
 end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 
 subroutine GlobalMesh_Make_post_read_set_poroperm()
-
-    CALL GlobalMesh_SetCellFlags
-    CALL GlobalMesh_SetFaceFlags
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
     ALLOCATE(FracRocktype(IndThermique+1,NbFrac))
