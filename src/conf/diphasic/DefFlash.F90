@@ -82,15 +82,15 @@ contains
     integer :: k
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(NodeRocktype(:,k), IncNode(k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(IncNode(k), NodeRocktype(:,k), PoroVolDarcyNode(k))
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(FracRocktype(:,k), IncFrac(k), PoroVolDarcyFrac(k))
+       call DefFlash_Flash_cv(IncFrac(k), FracRocktype(:,k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(CellRocktype(:,k), IncCell(k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(IncCell(k), CellRocktype(:,k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
@@ -232,10 +232,10 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(rt, inc, porovol)
+  subroutine DefFlash_Flash_cv(inc, rt, porovol)
 
-    INTEGER, INTENT(IN) :: rt(IndThermique+1)
     type(Type_IncCV), intent(inout) :: inc
+    INTEGER, INTENT(IN) :: rt(IndThermique+1)
     double precision, intent(in) :: porovol ! porovol
 
     integer :: i, iph, j, icp, m, mph, ic
@@ -279,7 +279,7 @@ contains
       CALL DefModel_Psat(T, Psat, dTSat)
 
       iph = 2
-      CALL f_PressionCapillaire(rt(1),iph,S,Pc,DSPc)
+      CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
 
       PgCeg = inc%Comp(2,PHASE_WATER) * Psat * DEXP(Pc/(T*RZetal))
 

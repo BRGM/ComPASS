@@ -218,7 +218,7 @@ contains
     ! cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
-       call LoisThermoHydro_divPrim_cv(CellRocktypeLocal(:,k), IncCell(k), &
+       call LoisThermoHydro_divPrim_cv(IncCell(k), CellRocktypeLocal(:,k), &
                                 !
             dXssurdXpCell(:,:,k), &
             SmdXsCell(:,k), &
@@ -262,7 +262,7 @@ contains
     ! frac
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
-       call LoisThermoHydro_divPrim_cv(FracRocktypeLocal(:,k), IncFrac(k), &
+       call LoisThermoHydro_divPrim_cv(IncFrac(k), FracRocktypeLocal(:,k), &
                                 !
             dXssurdXpFrac(:,:,k), &
             SmdXsFrac(:,k), &
@@ -308,7 +308,7 @@ contains
 
       
 
-       call LoisThermoHydro_divPrim_cv(NodeRocktypeLocal(:,k), IncNode(k), &
+       call LoisThermoHydro_divPrim_cv(IncNode(k), NodeRocktypeLocal(:,k), &
                                 !
             dXssurdXpNode(:,:,k), &
             SmdXsNode(:,k), &
@@ -380,7 +380,7 @@ contains
 
 
   ! all operations for one cv
-  subroutine LoisThermoHydro_divPrim_cv(rt, inc, &
+  subroutine LoisThermoHydro_divPrim_cv(inc, rt, &
        dXssurdXp, SmdXs, SmF, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV, & 
        Densitemassique, divDensitemassique, SmDensitemassique, &
@@ -644,7 +644,7 @@ contains
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
 
-       call LoisThermoHydro_divPrim_cv(NodeRocktypeLocal(:,k), IncNode(k), &
+       call LoisThermoHydro_divPrim_cv(IncNode(k), NodeRocktypeLocal(:,k), &
                                 !
             dXssurdXpNode(:,:,k), &
             SmdXsNode(:,k), &
