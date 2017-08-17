@@ -67,8 +67,8 @@ SUBROUTINE GlobalMesh_SetCellFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
 
-!    IF(MOD(INT(xk(1)),2) == MOD(INT(xk(3)),2))THEN
-    IF(xk(3) <= 1.d0)THEN
+    IF(MOD(INT(xk(1)),2) == MOD(INT(xk(3)),2))THEN
+!    IF(xk(3) <= 1.d0)THEN
       CellFlags(k) = 2
     ELSE
       CellFlags(k) = 1
