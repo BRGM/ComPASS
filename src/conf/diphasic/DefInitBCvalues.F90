@@ -185,12 +185,6 @@ subroutine IncCV_SetInitialValue
   double precision :: Ha
   double precision :: DSf(NbPhase)
 
-  rt(1) = 1
-
-#ifdef _THERMIQUE_
-  rt(2) = 1
-#endif
-
   PlPor = 40.0d+5
   icPor = 2
   SgPor = 0.d0
@@ -198,8 +192,6 @@ subroutine IncCV_SetInitialValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
-  PPor = PlPor - PcPor
 
   CalPor = 0.d0
   CelPor = 1.d0 - CalPor
@@ -214,10 +206,6 @@ subroutine IncCV_SetInitialValue
   TPor = 303.d0
 
   SPor = (/ SgPor, SlPor /)
-  CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
-
-  PPor = PlPor - PcPor
-  PgPor = PPor
 
   CagPor = 0.d0
   CegPor = 1.d0 - CagPor
@@ -254,6 +242,13 @@ subroutine IncCV_SetInitialValue
   ! Node
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
+    rt = NodeRocktypeLocal(:,i)
+
+    CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
+
+    PPor = PlPor - PcPor
+    PgPor = PPor
+
     IncNode(i)%ic = icPor
     IncNode(i)%Pression = PPor
     IncNode(i)%Saturation(PHASE_GAS) = SgPor
@@ -269,6 +264,13 @@ subroutine IncCV_SetInitialValue
 
   ! Cell
   do i=1, NbCellLocal_Ncpus(commRank+1)
+
+    rt = CellRocktypeLocal(:,i)
+
+    CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
+
+    PPor = PlPor - PcPor
+    PgPor = PPor
 
     IncCell(i)%ic = icPor
     IncCell(i)%Pression = PPor
