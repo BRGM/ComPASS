@@ -315,8 +315,6 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
       NbFrac, FracRocktype, &
       PermCell, PermFrac)
 
-    CALL GlobalMesh_SetNodeRocktype
-
     ! set conductivities thermal
 #ifdef _THERMIQUE_
      CALL DefModel_SetCondThermique( &
@@ -324,97 +322,79 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        NbFrac, FracRocktype, &
        CondThermalCell, CondThermalFrac)
 #endif
+
+    CALL GlobalMesh_SetNodeRocktype
+
   end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
   SUBROUTINE GlobalMesh_SetNodeRocktype
-    INTEGER :: i, kpt, k, rt
-    DOUBLE PRECISION :: vk, v
+    INTEGER :: i
+    INTEGER :: kpt, k
+    INTEGER :: rt(IndThermique+1)
+    DOUBLE PRECISION :: v(IndThermique+1), vk(IndThermique+1)
 
     DO i=1, NbNode
       IF(IdNode(i)%Frac == "y")THEN
         kpt = FracbyNode%Pt(i)+1
         k = FracbyNode%Num(kpt)
 
-        rt = FracRocktype(1,k)
-        v = PermFrac(k)/PorositeFrac(k) 
+        rt = FracRocktype(:,k)
+        v(1) = PermFrac(k)/PorositeFrac(k) 
+#ifdef _THERMIQUE_
+        v(2) = CondThermalFrac(k)
+#endif
 
         do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
           k = FracbyNode%Num(kpt)
 
-          vk = PermFrac(k)/PorositeFrac(k) 
-          IF( rt /= FracRocktype(1,k) .AND. vk > v )THEN
-
-            rt = FracRocktype(1,k)
-            v = vk
+          vk(1) = PermFrac(k)/PorositeFrac(k) 
+#ifdef _THERMIQUE_
+          vk(2) = CondThermalFrac(k)
+#endif
+          IF( rt(1) /= FracRocktype(1,k) .AND. vk(1) > v(1) )THEN
+            rt(1) = FracRocktype(1,k)
+            v(1) = vk(1)
           ENDIF
-        ENDDO
-      ELSE
-        kpt = CellbyNode%Pt(i)+1
-        k = CellbyNode%Num(kpt)
-
-        rt = CellRocktype(1,k)
-        v = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
-
-        do kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
-          k = CellbyNode%Num(kpt)
-
-          vk = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
-          IF( rt /= CellRocktype(1,k) .AND. vk > v )THEN
-            rt = CellRocktype(1,k)
-            v = vk
-          ENDIF
-        ENDDO
-      ENDIF
-      NodeRocktype(1,i) = rt
-    ENDDO
-  END SUBROUTINE GlobalMesh_SetNodeRocktype
-
 
 #ifdef _THERMIQUE_
-  SUBROUTINE GlobalMesh_SetNodeTRocktype
-    INTEGER :: i, kpt, k, rt
-    DOUBLE PRECISION :: vk, v
-
-    DO i=1, NbNode
-      IF(IdNode(i)%Frac == "y")THEN
-        kpt = FracbyNode%Pt(i)+1
-        k = FracbyNode%Num(kpt)
-
-        rt = FracRocktype(2,k)
-        v = CondThermalFrac(k)
-
-        do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
-          k = FracbyNode%Num(kpt)
-
-          vk = CondThermalFrac(k)
-          IF( rt /= FracRocktype(2,k) .AND. vk > v )THEN
-
-            rt = FracRocktype(2,k)
-            v = vk
+          IF( rt(2) /= FracRocktype(2,k) .AND. vk(2) > v(2) )THEN
+            rt(2) = FracRocktype(2,k)
+            v(2) = vk(2)
           ENDIF
+#endif
         ENDDO
       ELSE
         kpt = CellbyNode%Pt(i)+1
         k = CellbyNode%Num(kpt)
 
-        rt = CellRocktype(2,k)
-        v = MAXVAL(CondThermalCell(:,:,k))
-
-        do kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
+        rt = CellRocktype(:,k)
+        v(1) = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+#ifdef _THERMIQUE_
+        v(2) = MAXVAL(CondThermalCell(:,:,k))
+#endif
+        DO kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
           k = CellbyNode%Num(kpt)
 
-          vk = MAXVAL(CondThermalCell(:,:,k))
-          IF( rt /= CellRocktype(2,k) .AND. vk > v )THEN
-            rt = CellRocktype(2,k)
-            v = vk
+          vk(1) = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+#ifdef _THERMIQUE_
+          vk(2) = MAXVAL(CondThermalCell(:,:,k))
+#endif
+          IF( rt(1) /= CellRocktype(1,k) .AND. vk(1) > v(1) )THEN
+            rt(1) = CellRocktype(1,k)
+            v(1) = vk(1)
           ENDIF
+#ifdef _THERMIQUE_
+          IF( rt(2) /= CellRocktype(2,k) .AND. vk(2) > v(2) )THEN
+            rt(2) = CellRocktype(2,k)
+            v(2) = vk(2)
+          ENDIF
+#endif
         ENDDO
       ENDIF
-      NodeRocktype(2,i) = rt
+      NodeRocktype(:,i) = rt
     ENDDO
-  END SUBROUTINE GlobalMesh_SetNodeTRocktype
-#endif
+  END SUBROUTINE GlobalMesh_SetNodeRocktype
 
 
   subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
