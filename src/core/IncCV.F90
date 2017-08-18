@@ -747,112 +747,75 @@ contains
   !> \brief Transform IncCV format to a vector, 
   !! necessary for visualization.
   !!
-  !! Transform IncCell into output vector datacell 
-  !! and IncFrac into output vector datafrac.                                       <br>
+  !! Transform Inc into output vector datavisu
   !! The structure of the vector is                                                 <br>
-  !!   (Pressure of all cells, Temperature of all cells,                            <br>
-  !!        Comp(1) of all cells, ... , Comp(n) of all cells,                       <br>
-  !!            Saturation(1) of all cells, ..., Saturation(n) of all cells)
-  subroutine IncCV_ToVec( &
+  !!   (Pressure, Temperature,                                                      <br>
+  !!        Comp(1), ... , Comp(n),                                                 <br>
+  !!            Saturation(1), ..., Saturation(n))
+  SUBROUTINE IncCV_ToVec_cv(NbIncOwn, Inc, datavisu)
+
+    INTEGER, INTENT(IN) :: NbIncOwn
+    TYPE(Type_IncCV), DIMENSION(:), INTENT(IN) :: Inc 
+    DOUBLE PRECISION, DIMENSION(:), INTENT(OUT) :: datavisu
+
+    integer :: i_data, j_data
+    integer :: i, j
+
+    ! Pressure
+    i_data = 1
+    j_data = NbIncOwn
+
+    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Pression
+
+    ! Temperature
+#ifdef _THERMIQUE_
+    i_data = j_data + 1
+    j_data = j_data + NbIncOwn
+    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Temperature
+#endif
+
+    ! Comp
+    DO j = 1, NbPhase
+       DO i = 1, NbComp
+
+          IF(MCP(i,j) == 1)THEN
+            i_data = j_data + 1
+            j_data = j_data + NbIncOwn
+            datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Comp(i,j)
+          ENDIF
+       ENDDO
+    ENDDO
+
+    ! Saturation
+    DO i = 1, NbPhase
+      i_data = j_data + 1
+      j_data = j_data + NbIncOwn
+      datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Saturation(i)
+    ENDDO
+  ENDSUBROUTINE IncCV_ToVec_cv
+
+
+  SUBROUTINE IncCV_ToVec( &
        datavisucell, datavisufrac, &
        datavisuwellinj, datavisuwellprod)
 
-    double precision, dimension(:), intent(inout) :: &
-         datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisucell
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisufrac
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellinj
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellprod
 
-    integer :: k, i, j, start
-    integer :: NbCellOwn, NbFracOwn
+    INTEGER :: NbCellOwn, NbFracOwn
 
     NbCellOwn = NbCellOwn_Ncpus(commRank+1)
     NbFracOwn = NbFracOwn_Ncpus(commRank+1)
 
-    ! cell Pressure
-    do k=1, NbCellOwn
-       datavisucell(k) = IncCell(k)%Pression
-    end do
+    CALL IncCV_ToVec_cv(NbCellOwn, IncCell, datavisucell)
+    CALL IncCV_ToVec_cv(NbFracOwn, IncFrac, datavisufrac)
 
-    ! cell Temperature
-#ifdef _THERMIQUE_
+    datavisuwellinj = 1.d0 ! not implemented
+    datavisuwellprod = 1.d0 ! not implemented
+  ENDSUBROUTINE IncCV_ToVec
 
-    start = NbCellOwn
-    do k=1, NbCellOwn
-       datavisucell(k+start) = IncCell(k)%Temperature
-    end do
-#endif
-
-    ! cell Comp
-    start = (1 + IndThermique) * NbCellOwn
-    do j=1, NbPhase
-       do i=1, NbComp
-
-          if(MCP(i,j)==1) then
-             do k=1, NbCellOwn
-                datavisucell(k+start) = IncCell(k)%Comp(i,j)
-             end do
-             start = start + NbCellOwn
-          end if
-
-       end do
-    end do
-
-    ! cell Saturation
-    do i=1, NbPhase
-       do k=1, NbCellOwn
-          datavisucell(k+start) = IncCell(k)%Saturation(i)
-       end do
-       start = start + NbCellOwn
-    end do
-
-    ! frac Pressure
-    do k=1, NbFracOwn
-       datavisufrac(k) = IncFrac(k)%Pression
-    end do
-
-    ! frac Temperature
-#ifdef _THERMIQUE_
-
-    start = NbFracOwn
-    do k=1, NbFracOwn
-       datavisufrac(k+start) = IncFrac(k)%Temperature
-    end do
-#endif
-
-    ! frac Comp
-    start = (1 + IndThermique) * NbFracOwn
-    do j=1, NbPhase
-       do i=1, NbComp
-
-          if(MCP(i,j)==1) then
-             do k=1, NbFracOwn
-                datavisufrac(k+start) = IncFrac(k)%Comp(i,j)
-             end do
-             start = start + NbFracOwn
-          end if
-
-       end do
-    end do
-
-    ! frac Saturation
-    do i=1, NbPhase
-       do k=1, NbFracOwn
-          datavisufrac(k+start) = IncFrac(k)%Saturation(i)
-       end do
-       start = start + NbFracOwn
-    end do
-
-    ! pressure at well edges, inj
-    ! it is equal to the average of its two nodes
-    do i=1, sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank+1)))
-       datavisuwellinj(i) = 1.d0 ! not implemented
-    end do
-
-    ! pressure at well edges, prod
-    ! it is equal to the average of its two nodes
-    do i=1, sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank+1)))
-       datavisuwellprod(i) = 1.d0 ! not implemented
-    end do
-    
-  end subroutine IncCV_ToVec
 
   ! sort the nodes of wells by z-cordinate from the smallest to the largest
   ! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
