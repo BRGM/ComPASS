@@ -114,6 +114,21 @@ public:
 
   void free();
 
+private:
+
+  void writedata_cv(
+			char*,
+			int,
+			double*,
+			vtkSmartPointer<vtkDoubleArray>*,
+			vtkSmartPointer<vtkXMLUnstructuredGridWriter>&);
+
+  void writedata_well(
+			char*,
+			int,
+			double*,
+			vtkSmartPointer<vtkDoubleArray>*,
+			vtkSmartPointer<vtkXMLUnstructuredGridWriter>&);
 };
 
 // write ptvu file
@@ -654,108 +669,124 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   delete[] pointWellProdIds;
 }
 
-// write 1. data cell
-//          set values to data_cell
-//          add data_cell to ugrid_cell
+// write for a control volume
+//          set values to data
+//          add data to ugrid
 //          write
-//       2. data frac (if there is frac)
-//          ...
-void VisuVTK_Time::writedata( int NbVisuTimes,
-                              double* datacellinput,
-			      double* datafracinput,
-			      double* datawellinjinput,
-			      double* datawellprodinput )
-{
+void VisuVTK_Time::writedata_cv(
+		char* data_vtuname,
+		int NbIncOwn, 
+		double* datainput,
+		vtkSmartPointer<vtkDoubleArray>* data,
+		vtkSmartPointer<vtkXMLUnstructuredGridWriter>& writer){
+
+	// insert datainput to data structure
+	for(int k = 0; k < NbVecVisu; k++){
+		int start = k * NbIncOwn;
+
+		for(int i = 0; i < NbIncOwn; i++){
+			data[k]->SetComponent(i, 0, datainput[i + start]);
+		}
+	}
+
+	writer->SetFileName(data_vtuname);
+	writer->Update();
+}
+
+
+// write for a well
+//          set values to data
+//          add data to ugrid
+//          write
+void VisuVTK_Time::writedata_well(
+		char* data_vtuname,
+		int NbIncOwn, 
+		double* datainput,
+		vtkSmartPointer<vtkDoubleArray>* data,
+		vtkSmartPointer<vtkXMLUnstructuredGridWriter>& writer){
+
+  // insert datainput to data structure
+	for(int i = 0; i < NbIncOwn; i++){
+		data[0]->SetComponent(i, 0, datainput[i]);
+	}
+
+	writer->SetFileName(data_vtuname);
+	writer->Update();
+}
+
+
+void VisuVTK_Time::writedata(
+		int NbVisuTimes,
+		double* datacellinput,
+		double* datafracinput,
+		double* datawellinjinput,
+		double* datawellprodinput){
+
+  char dirname[300];
+	char data_vtuname[300];
+
+	// dirname
+  sprintf(dirname, "%s/time_%d", OutputDir, NbVisuTimes - 1);
 
   // 1. cell
-  char dirname[300];
-  sprintf( dirname, "%s/time_%d", OutputDir, NbVisuTimes - 1 ); // dir name
+	sprintf(data_vtuname, "%s/celldata_%d.vtu", dirname, commRank);
 
-  // insert datacellinput to data_cell structure
-  for ( int k = 0; k < NbVecVisu; k++ )
-    {
+	this->writedata_cv(
+			data_vtuname,
+			NbCellOwn, 
+			datacellinput,
+			data_cell,
+			writer_cell);
 
-      int start = k * NbCellOwn;
-      for ( int i = 0; i < NbCellOwn; i++ )
-	data_cell[k]->SetComponent( i, 0, datacellinput[i + start] );
-    }
-  // cell writer
-  char celldata_vtuname[300];
-  sprintf( celldata_vtuname, "%s/celldata_%d.vtu", dirname, commRank ); // file name
-
-  writer_cell->SetFileName( celldata_vtuname );
-  writer_cell->Update();
-
-  // write .pvtu for cell
-  if ( commRank == 0 )
-    {
-      pvtuwritercell( dirname, commSize,
-		      NbComp, NbPhase, MCP, IndThermique );
-    }
-
+	// write .pvtu for cell
+	if( commRank == 0){
+		pvtuwritercell(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
+	}
 
   // 2. frac
+  sprintf(data_vtuname, "%s/fracdata_%d.vtu", dirname, commRank);
 
-  // insert datafracinput to data_frac structure
-  for ( int k = 0; k < NbVecVisu; k++ )
-    {
+	this->writedata_cv(
+			data_vtuname,
+			NbFracOwn, 
+			datafracinput,
+			data_frac,
+			writer_frac);
 
-      int start = k * NbFracOwn;
-      for ( int i = 0; i < NbFracOwn; i++ )
-	data_frac[k]->SetComponent( i, 0, datafracinput[i + start] );
-    };
+	// write .pvtu for frac
+	if( commRank == 0){
+		pvtuwriterfrac(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
+	}
 
-  // frac writer
-  char fracdata_vtuname[300];
-  sprintf( fracdata_vtuname, "%s/fracdata_%d.vtu", dirname, commRank ); // file name
+  // 3. well inj
+	sprintf(data_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank);
 
-  writer_frac->SetFileName( fracdata_vtuname );
-  writer_frac->Update();
+	this->writedata_well(
+			data_vtuname,
+			NbEdgeWellInjOwn,
+			datawellinjinput,
+			data_wellinj,
+			writer_wellinj);
 
-  // write .pvtu for frac
-  if ( commRank == 0 )
-    {
-      pvtuwriterfrac( dirname, commSize,
-		      NbComp, NbPhase, MCP, IndThermique );
-    };
+	// write .pvtu for wellinj
+	if( commRank == 0){
+		pvtuwriterwellinj(dirname, commSize);
+	}
 
+  // 4. well prod
+  sprintf(data_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank);
 
-  // 3. well
+	this->writedata_well(
+			data_vtuname,
+			NbEdgeWellProdOwn,
+			datawellprodinput,
+			data_wellprod,
+			writer_wellprod);
 
-  // well inj data
-  for ( int k = 0; k < NbEdgeWellInjOwn; k++)
-    {
-      data_wellinj[0]->SetComponent( k, 0, datawellinjinput[k]);
-    };
-  
-  // well inj writer
-  char wellinjdata_vtuname[300];
-  sprintf( wellinjdata_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank ); // file name
-
-  writer_wellinj->SetFileName( wellinjdata_vtuname );
-  writer_wellinj->Update();
-
-  // write .pvtu for wellinj
-  if ( commRank == 0 )
-    pvtuwriterwellinj( dirname, commSize );
-
-
-  // well prod data
-  for ( int k = 0; k < NbEdgeWellProdOwn; k++)
-    {
-      data_wellprod[0]->SetComponent( k, 0, datawellprodinput[k]);
-    };
-  
-  // well prod writer
-  char wellproddata_vtuname[300];
-  sprintf( wellproddata_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank ); // file name
-
-  writer_wellprod->SetFileName( wellproddata_vtuname );
-  writer_wellprod->Update();
-
-  // write .pvtu for wellprod
-  if ( commRank == 0 )
-    pvtuwriterwellprod( dirname, commSize );
+	// write .pvtu for wellprod
+	if( commRank == 0){
+		pvtuwriterwellprod(dirname, commSize);
+	}
 }
 
 void VisuVTK_Time::free()
