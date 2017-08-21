@@ -142,10 +142,9 @@ private:
 };
 
 // write ptvu file
-void pvtuwritercell( char*, int, int, int, int*, int );
-void pvtuwriterfrac( char*, int, int, int, int*, int );
-void pvtuwriterwellinj( char*, int );
-void pvtuwriterwellprod( char*, int );
+void pvtuwriter_cv(char*, char*, int, int, int*, int, int, char*);
+void pvtuwriter_well(char*, char*, int, char*);
+
 
 extern "C" {
 
@@ -711,7 +710,19 @@ void VisuVTK_Time::writedata(
 
 	// write .pvtu for cell
 	if( commRank == 0){
-		pvtuwritercell(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/celldata.pvtu", dirname);
+
+		pvtuwriter_cv(
+				pvtuname,
+				"cell",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"celldata");
+//		pvtuwritercell(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
 	}
 
   // 2. frac
@@ -726,7 +737,18 @@ void VisuVTK_Time::writedata(
 
 	// write .pvtu for frac
 	if( commRank == 0){
-		pvtuwriterfrac(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/fracdata.pvtu", dirname);
+
+		pvtuwriter_cv(
+				pvtuname,
+				"frac",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"fracdata");
 	}
 
   // 3. well inj
@@ -741,7 +763,10 @@ void VisuVTK_Time::writedata(
 
 	// write .pvtu for wellinj
 	if( commRank == 0){
-		pvtuwriterwellinj(dirname, commSize);
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/wellinjdata.pvtu", dirname);
+
+		pvtuwriter_well(pvtuname, "injection well", commSize, "wellinjdata");
 	}
 
   // 4. well prod
@@ -756,7 +781,10 @@ void VisuVTK_Time::writedata(
 
 	// write .pvtu for wellprod
 	if( commRank == 0){
-		pvtuwriterwellprod(dirname, commSize);
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/wellproddata.pvtu", dirname);
+
+		pvtuwriter_well(pvtuname, "production well", commSize, "wellproddata");
 	}
 }
 
@@ -780,223 +808,141 @@ void VisuVTK_Time::free()
 }
 
 
+void pvtu_begin(ofstream& pvtu){
+	pvtu << "<?xml version=\"1.0\"?>\n";
+	pvtu << "<VTKFile" 
+		<< " type=\"PUnstructuredGrid\" version=\"0.1\""
+		<< " byte_order=\"LittleEndian\""
+		<< " compressor=\"vtkZLibDataCompressor\">\n";
+	pvtu << "  <PUnstructuredGrid GhostLevel=\"0\">\n";
+}
+
+
+void pvtu_pcelldata_begin(ofstream& pvtu){
+	pvtu << "    <PCellData>\n";
+}
+
+
+void pvtu_pcelldata_add_float(ofstream& pvtu, char* name){
+	pvtu << "        <PDataArray type=\"Float64\" Name=\"" << name << "\"/>\n";
+}
+
+
+void pvtu_pcelldata_end(ofstream& pvtu){
+  pvtu << "    </PCellData>\n";
+}
+
+
+void pvtu_ppoints(ofstream& pvtu){
+  pvtu << "    <PPoints>\n";
+  pvtu << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n";
+  pvtu << "    </PPoints>\n";
+}
+
+
+void pvtu_source(ofstream& pvtu, char* vtuname){
+	pvtu << "    <Piece Source=\"" << vtuname << "\"/>\n";
+}
+
+
+void pvtu_end(ofstream& pvtu){
+  pvtu << "  </PUnstructuredGrid>\n";
+  pvtu << "</VTKFile>";
+}
+
 // write .pvtu file master proc
 // dirname: directory
 // commSize = commSize
-void pvtuwritercell( char* dirname, int Np,
-                     int NbComp, int NbPhase, int* MCP, int IndThermique )
-{
+void pvtuwriter_cv(
+		char* pvtuname,
+		char* inc_name,
+		int NbComp,
+		int NbPhase,
+		int* MCP,
+		int IndThermique,
+		int NbVtu,
+		char* vtuname){
 
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/celldata.pvtu", dirname );
+	char data_name[256];
 
-  ofstream pvtu;
-  pvtu.open( pvtuname );
+  ofstream pvtu(pvtuname);
 
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
+	pvtu_begin(pvtu);
+	pvtu_pcelldata_begin(pvtu);
 
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pression cell\"/>\n";
-
-  // Temperature
-  if ( IndThermique == 1 )
-    pvtu << "        <PDataArray type=\"Float64\" Name=\"Temperature cell\"/>\n";
-
-  // Comp
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      char ss[300];
-	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d cell\"/>\n", iph + 1, icp + 1 );
-	      pvtu << ss;
-	    }
-	}
-    }
-
-  // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-      char ss[300];
-      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d cell\"/>\n", i + 1 );
-      pvtu << ss;
-    }
-
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
-
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "celldata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
-
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
-
-  pvtu.close();
-}
-
-void pvtuwriterfrac( char* dirname, int Np,
-                     int NbComp, int NbPhase, int* MCP, int IndThermique )
-{
-
-  // frac
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/fracdata.pvtu", dirname );
-
-  ofstream pvtu;
-  pvtu.open( pvtuname );
-
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
-
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pression frac\"/>\n";
+	// pressure
+	sprintf(data_name, "Pression %s", inc_name);
+	pvtu_pcelldata_add_float(pvtu, data_name);
 
   // Temperature
-  if ( IndThermique == 1 )
-    pvtu << "        <PDataArray type=\"Float64\" Name=\"Temperature frac\"/>\n";
-
-  // Comp
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      char ss[300];
-	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d frac\"/>\n", iph + 1, icp + 1 );
-	      pvtu << ss;
-	    }
+	if(IndThermique == 1){
+		sprintf(data_name, "Temperature %s", inc_name);
+		pvtu_pcelldata_add_float(pvtu, data_name);
 	}
-    }
 
-  // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-      char ss[300];
-      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d frac\"/>\n", i + 1 );
-      pvtu << ss;
-    }
+	// Comp
+	for(int iph = 0; iph < NbPhase; iph++){
+		for(int icp = 0; icp < NbComp; icp++){
+			if(MCP[iph * NbComp + icp] == 1){
+				sprintf(data_name, "Phase %d Comp %d %s", iph+1, icp+1, inc_name);
+				pvtu_pcelldata_add_float(pvtu, data_name);
+			}
+		}
+	}
 
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
+	// Saturation
+	for(int i = 0; i < NbPhase; i++){
+		sprintf(data_name, "Saturation %d %s", i+1, inc_name);
+		pvtu_pcelldata_add_float(pvtu, data_name);
+	}
 
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "fracdata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
+	pvtu_pcelldata_end(pvtu);
 
-  pvtu.close();
+	pvtu_ppoints(pvtu);
+
+  for(int i = 0; i < NbVtu; i++){
+		char vtuname_i[256];
+
+		sprintf(vtuname_i, "%s_%d.vtu", vtuname, i);
+		pvtu_source(pvtu, vtuname_i);
+	}
+
+	pvtu_end(pvtu);
+	pvtu.close();
 }
 
 
-// write .pvtu file master proc, injection well
+// write .pvtu file master proc, injection and production wells
 // dirname: directory
 // commSize = commSize
-void pvtuwriterwellinj( char* dirname, int Np )
-{
+void pvtuwriter_well(char* pvtuname, char* inc_name, int NbVtu, char* vtuname){
+	char data_name[256];
 
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/wellinjdata.pvtu", dirname );
+  ofstream pvtu(pvtuname);
 
-  ofstream pvtu;
-  pvtu.open( pvtuname );
+	pvtu_begin(pvtu);
+	pvtu_pcelldata_begin(pvtu);
 
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
+	// pression
+	sprintf(data_name, "Pressure %s", inc_name);
+	pvtu_pcelldata_add_float(pvtu, data_name);
 
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pressure injection well\"/>\n";
+	pvtu_pcelldata_end(pvtu);
 
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
+	pvtu_ppoints(pvtu);
 
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "wellinjdata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
+  for(int i = 0; i < NbVtu; i++){
+		char vtuname_i[256];
 
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
+		sprintf(vtuname_i, "%s_%d.vtu", vtuname, i);
+		pvtu_source(pvtu, vtuname_i);
+	}
 
-  pvtu.close();
+	pvtu_end(pvtu);
+	pvtu.close();
 }
 
 
-// write .pvtu file master proc, production well
-// dirname: directory
-// commSize = commSize
-void pvtuwriterwellprod( char* dirname, int Np )
-{
-
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/wellproddata.pvtu", dirname );
-
-  ofstream pvtu;
-  pvtu.open( pvtuname );
-
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
-
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pressure production well\"/>\n";
-
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
-
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "wellproddata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
-
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
-
-  pvtu.close();
-}
 
 
 // write .pvd file master proc
