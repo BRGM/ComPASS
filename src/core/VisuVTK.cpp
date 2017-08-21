@@ -57,6 +57,9 @@ private:
   // grid frac
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_frac;
 
+  // grid node
+  vtkSmartPointer<vtkUnstructuredGrid> ugrid_node;
+
   // grid well inj and prod
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_wellinj;
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_wellprod;
@@ -66,6 +69,9 @@ private:
 
   // frac data
   vtkSmartPointer<vtkDoubleArray>* data_frac;
+
+  // node data
+  vtkSmartPointer<vtkDoubleArray>* data_node;
 
   // well data
   vtkSmartPointer<vtkDoubleArray>* data_wellinj;
@@ -78,12 +84,15 @@ private:
   // writer frac
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_frac;
 
+  // writer node
+  vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_node;
+
   // writer well inj/prod
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_wellinj;
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_wellprod;
 
   // size info
-  int NbCellOwn, NbFaceOwn, NbFracOwn, NbNodeLocal;
+  int NbCellOwn, NbFaceOwn, NbFracOwn, NbNodeOwn, NbNodeLocal;
   int NbWellInjOwn, NbWellProdOwn;
   int NbEdgeWellInjOwn, NbEdgeWellProdOwn; // total number of edges of all wells inj/prod
   
@@ -97,7 +106,7 @@ private:
 public:
 
   void writedata( int,
-                  double*, double*, double*, double*);
+                  double*, double*, double*, double*, double*);
 
   void init( int, char*,
              int, int,
@@ -105,6 +114,7 @@ public:
              int, int, int,
 	     int, int, 
              int, int*,
+             int,
              int, int*, int*,
              int, int*, int*,
              int, int*, int*,
@@ -156,6 +166,8 @@ extern "C" {
                                        int NbWellInjOwn, int NbWellProdOwn,
 				       int NbFracOwn, int* FracToFaceLocal, 
 				       //
+				       int NbNodeOwn, 
+				       //
                                        int NodebyCellLocal_Nb, int* NodebyCellLocal_Pt, int* NodebyCellLocal_Num,
                                        int FacebyCellLocal_Nb, int* FacebyCellLocal_Pt, int* FacebyCellLocal_Num,
                                        int NodebyFaceLocal_Nb, int* NodebyFaceLocal_Pt, int* NodebyFaceLocal_Num,
@@ -177,6 +189,8 @@ extern "C" {
               NbWellInjOwn, NbWellProdOwn,
 	      NbFracOwn, FracToFaceLocal,
               //
+				NbNodeOwn,
+              //
               NodebyCellLocal_Nb, NodebyCellLocal_Pt, NodebyCellLocal_Num,
               FacebyCellLocal_Nb, FacebyCellLocal_Pt, FacebyCellLocal_Num,
               NodebyFaceLocal_Nb, NodebyFaceLocal_Pt, NodebyFaceLocal_Num,
@@ -191,18 +205,22 @@ extern "C" {
 
 
   // write data
-  void visuvtk_time_writedatacxx_( VisuVTK_Time *This,
-                                   int NbVisuTimes,
-                                   double* datacellinput,
-				   double* datafracinput,
-				   double* datawellinjinput,
-				   double* datawellprodinput )
-  {
-    This->writedata( NbVisuTimes,
-                     datacellinput,
-		     datafracinput,
-		     datawellinjinput,
-		     datawellprodinput);
+  void visuvtk_time_writedatacxx_(
+			VisuVTK_Time *This,
+			int NbVisuTimes,
+			double* datacellinput,
+			double* datafracinput,
+			double* datanodeinput,
+			double* datawellinjinput,
+			double* datawellprodinput){
+
+    This->writedata(
+				NbVisuTimes,
+				datacellinput,
+				datafracinput,
+				datanodeinput,
+				datawellinjinput,
+				datawellprodinput);
   }
 
 
@@ -259,6 +277,8 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
                          int NbWellInjOwn_, int NbWellProdOwn_,
 			 int NbFracOwn_, int* FracToFaceLocal,
                          //
+			 int NbNodeOwn_,
+                         //
                          int NodebyCellLocal_Nb, int* NodebyCellLocal_Pt, int* NodebyCellLocal_Num,
                          int FacebyCellLocal_Nb, int* FacebyCellLocal_Pt, int* FacebyCellLocal_Num,
                          int NodebyFaceLocal_Nb, int* NodebyFaceLocal_Pt, int* NodebyFaceLocal_Num,
@@ -276,6 +296,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   NbCellOwn = NbCellOwn_;
   NbFaceOwn = NbFaceOwn_;
   NbFracOwn = NbFracOwn_;
+  NbNodeOwn = NbNodeOwn_;
   NbNodeLocal = NbNodeLocal_;
   NbWellInjOwn = NbWellInjOwn_;
   NbWellProdOwn = NbWellProdOwn_;
@@ -473,6 +494,41 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
     delete[] pointFracIds[k];
   delete[] pointFracIds;
 
+  // node
+
+  // step 3.2 node data, allocate memory
+  data_node = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbNodeOwn, "node", data_node);
+
+  // step 3.3 Grid node
+  ugrid_node = vtkSmartPointer<vtkUnstructuredGrid>::New();
+  ugrid_node->Allocate( NbNodeOwn ); // number of node own
+
+	for(int k = 0; k < NbNodeOwn; k++){
+		ugrid_node->InsertNextCell(VTK_VERTEX, 1, (vtkIdType*) &k);
+	}
+
+  ugrid_node->SetPoints( points ); // add points
+
+	for ( int i = 0; i < NbVecVisu; i++ ){
+		ugrid_node->GetCellData()->AddArray( data_node[i] ); // add node data to grid
+	}
+
+  // step 3.4 writer node
+  writer_node = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+
+  writer_node->SetInputData( ugrid_node ); // add node grid to writer
+#ifdef ASCII_VTK_WRITERS
+  writer_node->SetDataModeToAscii();
+#else
+  writer_node->SetDataModeToBinary();
+#endif // ASCII_VTK_WRITERS  
+  writer_node->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
+
+	//
+	//
+	//
+	//
 
   // step 4.1 well connectivity: pointWellInjIds, pointWellProdIds
 
@@ -689,6 +745,7 @@ void VisuVTK_Time::writedata(
 		int NbVisuTimes,
 		double* datacellinput,
 		double* datafracinput,
+		double* datanodeinput,
 		double* datawellinjinput,
 		double* datawellprodinput){
 
@@ -751,6 +808,32 @@ void VisuVTK_Time::writedata(
 				"fracdata");
 	}
 
+  // 2. node
+  sprintf(data_vtuname, "%s/nodedata_%d.vtu", dirname, commRank);
+
+	this->writedata_cv(
+			data_vtuname,
+			NbNodeOwn, 
+			datanodeinput,
+			data_node,
+			writer_node);
+
+	// write .pvtu for node
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/nodedata.pvtu", dirname);
+
+		pvtuwriter_cv(
+				pvtuname,
+				"node",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"nodedata");
+	}
+
   // 3. well inj
 	sprintf(data_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank);
 
@@ -800,6 +883,11 @@ void VisuVTK_Time::free()
     data_frac[i]->Initialize();
   ugrid_frac->Initialize();
   delete[] data_frac;
+
+  for ( int i = 0; i < NbVecVisu; i++ )
+    data_node[i]->Initialize();
+  ugrid_node->Initialize();
+  delete[] data_node;
 
   // free points
   points->Initialize();
@@ -1001,6 +1089,10 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
   // frac data .pvd
   sprintf(pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname);
 	visuvtk_pvdwritercxx_cv(pvdname, "fracdata", NbVisuTimes, VisuTimes);
+
+  // node data .pvd
+  sprintf(pvdname, "%s%s/nodedata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "nodedata", NbVisuTimes, VisuTimes);
 
   // injection well data .pvd
   sprintf(pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname);

@@ -796,21 +796,27 @@ contains
 
 
   SUBROUTINE IncCV_ToVec( &
-       datavisucell, datavisufrac, &
-       datavisuwellinj, datavisuwellprod)
+       datavisucell, &
+       datavisufrac, &
+       datavisunode, &
+       datavisuwellinj, &
+       datavisuwellprod)
 
     DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisucell
     DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisufrac
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisunode
     DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellinj
     DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellprod
 
-    INTEGER :: NbCellOwn, NbFracOwn
+    INTEGER :: NbCellOwn, NbFracOwn, NbNodeOwn
 
     NbCellOwn = NbCellOwn_Ncpus(commRank+1)
     NbFracOwn = NbFracOwn_Ncpus(commRank+1)
+    NbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
 
     CALL IncCV_ToVec_cv(NbCellOwn, IncCell, datavisucell)
     CALL IncCV_ToVec_cv(NbFracOwn, IncFrac, datavisufrac)
+    CALL IncCV_ToVec_cv(NbNodeOwn, IncNode, datavisunode)
 
     datavisuwellinj = 1.d0 ! not implemented
     datavisuwellprod = 1.d0 ! not implemented

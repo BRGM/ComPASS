@@ -47,6 +47,8 @@ module VisuVTK
         !
         NbFracOwncpp, FracToFaceLocalcpp, &
         !
+        NbNodeOwncpp, &
+        !
         NodebyCellLocal_Nbcpp, NodebyCellLocal_Ptcpp, NodebyCellLocal_Numcpp, &
         FacebycellLocal_Nbcpp, FacebycellLocal_Ptcpp, FacebycellLocal_Numcpp, &
         NodebyfaceLocal_Nbcpp, NodebyfaceLocal_Ptcpp, NodebyfaceLocal_Numcpp, &
@@ -117,30 +119,38 @@ module VisuVTK
       ! Nb of frac
       integer (c_int), value :: NbFracOwncpp
 
+      ! Nb of node
+      integer (c_int), value :: NbNodeOwncpp
+
       ! FractoFaceLocal
       integer (c_int) :: FracToFaceLocalcpp(*)
 
     end function visuvtk_time_initcxx
 
 
-    subroutine visuvtk_time_writedatacxx(this, &
+    SUBROUTINE visuvtk_time_writedatacxx( &
+        this, &
         NbVisuTimescpp, &
-        datacellcpp, datafraccpp, &
-        datawellinjcpp, datawellprodcpp)   &
-        bind(C, name="visuvtk_time_writedatacxx_")
+        datacellcpp, &
+        datafraccpp, &
+        datanodecpp, &
+        datawellinjcpp, &
+        datawellprodcpp) &
+        BIND(C, name="visuvtk_time_writedatacxx_")
 
-      use iso_c_binding, only: c_ptr, c_int, c_double
+      USE ISO_C_BINDING, ONLY: c_ptr, c_int, c_double
 
-      type(c_ptr), value :: this
+      TYPE(c_ptr), VALUE :: this
 
-      integer (c_int), value :: NbVisuTimescpp
+      INTEGER(c_int), VALUE :: NbVisuTimescpp
 
-      real (c_double) :: datacellcpp(*)
-      real (c_double) :: datafraccpp(*)
-      real (c_double) :: datawellinjcpp(*)
-      real (c_double) :: datawellprodcpp(*)
+      REAL(c_double) :: datacellcpp(*)
+      REAL(c_double) :: datafraccpp(*)
+      REAL(c_double) :: datanodecpp(*)
+      REAL(c_double) :: datawellinjcpp(*)
+      REAL(c_double) :: datawellprodcpp(*)
 
-    end subroutine visuvtk_time_writedatacxx
+    ENDSUBROUTINE visuvtk_time_writedatacxx
 
 
     subroutine visuvtk_time_freecxx(this) &
@@ -260,6 +270,7 @@ contains
         NbCellOwn_Ncpus(commRank+1), NbFaceOwn_Ncpus(commRank+1), NbNodeLocal_Ncpus(commRank+1), &
         NbWellInjOwn_Ncpus(commRank+1), NbWellProdOwn_Ncpus(commRank+1), &
         NbFracOwn_Ncpus(commRank+1), FracToFaceLocal, &
+        NbNodeOwn_Ncpus(commRank+1), &
         !
         NodebyCellLocal%Nb, NodebyCellLocal%Pt, NodebyCellLocal%Num, &
         FacebyCellLocal%Nb, FacebycellLocal%Pt, FacebycellLocal%Num, &
@@ -278,14 +289,20 @@ contains
 
 
   ! write data for time step
-  subroutine VisuVTK_VisuTime_writedata(t, &
-       datacell, datafrac, &
-       datawellinj, datawellprod)
+  SUBROUTINE VisuVTK_VisuTime_writedata( &
+      t, &
+      datacell, &
+      datafrac, &
+      datanode, &
+      datawellinj, &
+      datawellprod)
 
-    double precision, intent(in) :: t
-
-    double precision, dimension(:), intent(in) :: &
-        datacell, datafrac, datawellinj, datawellprod
+    DOUBLE PRECISION, INTENT(IN) :: t
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datacell
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datafrac
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datanode
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datawellinj
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datawellprod
 
     character(len=200) :: output_path
     double precision, dimension(size(VisuTimes)) :: TmpVisuTimes  
@@ -305,10 +322,14 @@ contains
     call make_directory(output_path)
 
     ! write data 
-    call visuvtk_time_writedatacxx(visuptr, &
-        NbVisuTimes, &
-        datacell, datafrac, &
-        datawellinj, datawellprod)
+    call visuvtk_time_writedatacxx( &
+      visuptr, &
+      NbVisuTimes, &
+      datacell, &
+      datafrac, &
+      datanode, &
+      datawellinj, &
+      datawellprod)
 
   end subroutine VisuVTK_VisuTime_writedata
 
