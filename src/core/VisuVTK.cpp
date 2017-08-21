@@ -116,6 +116,16 @@ public:
 
 private:
 
+	void init_data_cv(
+			int,
+			char*,
+			vtkSmartPointer<vtkDoubleArray>*);
+
+	void init_data_well(
+			int,
+			char*,
+			vtkSmartPointer<vtkDoubleArray>*);
+
   void writedata_cv(
 			char*,
 			int,
@@ -326,61 +336,10 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 	}
     }
 
+
   data_cell = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbCellOwn, "cell", data_cell);
 
-  // // pressure
-  data_cell[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_cell[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_cell[0]->SetNumberOfTuples( NbCellOwn ); // size of data
-  data_cell[0]->SetName( "Pressure cell" );
-
-  // // temperature
-  if ( IndThermique == 1 )
-    {
-      data_cell[1] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_cell[1]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_cell[1]->SetNumberOfTuples( NbCellOwn ); // size of data
-      data_cell[1]->SetName( "Temperature cell" );
-    }
-
-  // // Comp
-  int j = 1 + IndThermique;
-
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      data_cell[j] = vtkSmartPointer<vtkDoubleArray>::New();
-	      data_cell[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-	      data_cell[j]->SetNumberOfTuples( NbCellOwn ); // size of data
-
-	      char name[30];
-	      sprintf( name, "Phase %d Comp %d cell ", iph + 1, icp + 1 );
-	      data_cell[j]->SetName( name );
-
-	      j = j + 1;
-	    }
-
-	}
-    }
-
-  // // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-
-      data_cell[j] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_cell[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_cell[j]->SetNumberOfTuples( NbCellOwn ); // size of data
-
-      char name[25];
-      sprintf( name, "Saturation %d cell", i + 1 );
-      data_cell[j]->SetName( name );
-
-      j = j + 1;
-    }
 
   // step 2.3 Grid cell
   ugrid_cell = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -455,60 +414,8 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 
   // step 3.2 frac data, allocate memory
   data_frac = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbFracOwn, "frac", data_frac);
 
-  // // Pression
-  data_frac[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_frac[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_frac[0]->SetNumberOfTuples( NbFracOwn ); // size of data
-  data_frac[0]->SetName( "Pression frac" );
-
-  // // Temperature
-  if ( IndThermique == 1 )
-    {
-      data_frac[1] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_frac[1]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_frac[1]->SetNumberOfTuples( NbFracOwn ); // size of data
-      data_frac[1]->SetName( "Temperature frac" );
-    }
-
-  // // Comp
-  j = 1 + IndThermique;
-
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      data_frac[j] = vtkSmartPointer<vtkDoubleArray>::New();
-	      data_frac[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-	      data_frac[j]->SetNumberOfTuples( NbFracOwn ); // size of data
-
-	      char name[30];
-	      sprintf( name, "Phase %d Comp %d frac ", iph + 1, icp + 1 );
-	      data_frac[j]->SetName( name );
-
-	      j = j + 1;
-	    }
-
-	}
-    }
-
-  // // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-
-      data_frac[j] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_frac[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_frac[j]->SetNumberOfTuples( NbFracOwn ); // size of data
-
-      char name[25];
-      sprintf( name, "Saturation %d frac", i + 1 );
-      data_frac[j]->SetName( name );
-
-      j = j + 1;
-    }
 
   // step 3.3 Grid frac
   ugrid_frac = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -598,20 +505,11 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 
   // Pression injection well
   data_wellinj = new vtkSmartPointer<vtkDoubleArray>[1];
-
-  data_wellinj[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_wellinj[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_wellinj[0]->SetNumberOfTuples( NbEdgeWellInjOwn ); // size of data
-  data_wellinj[0]->SetName( "Injection well" );
-
+	init_data_well(NbEdgeWellInjOwn, "Injection well", data_wellinj);
 
   // Pression production well
   data_wellprod = new vtkSmartPointer<vtkDoubleArray>[1];
-
-  data_wellprod[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_wellprod[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_wellprod[0]->SetNumberOfTuples( NbEdgeWellProdOwn ); // size of data
-  data_wellprod[0]->SetName( "Production well" );
+	init_data_well(NbEdgeWellProdOwn, "Production well", data_wellprod);
 
 
   // step 4.3 Grid well
@@ -668,6 +566,79 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
     delete[] pointWellProdIds[k];
   delete[] pointWellProdIds;
 }
+
+
+void VisuVTK_Time::init_data_cv(
+		int NbIncOwn,
+		char* inc_name,
+		vtkSmartPointer<vtkDoubleArray>* data){
+
+	char data_name[256];
+
+	// pressure
+	sprintf(data_name, "Pressure %s", inc_name);
+
+	data[0] = vtkSmartPointer<vtkDoubleArray>::New();
+	data[0]->SetNumberOfComponents(1);
+	data[0]->SetNumberOfTuples(NbIncOwn);
+	data[0]->SetName(data_name);
+
+	// temperature
+	sprintf(data_name, "Temperature %s", inc_name);
+
+	if(IndThermique == 1){
+		data[1] = vtkSmartPointer<vtkDoubleArray>::New();
+		data[1]->SetNumberOfComponents(1);
+		data[1]->SetNumberOfTuples(NbIncOwn);
+		data[1]->SetName(data_name);
+	}
+
+	// Comp
+	int j = 1 + IndThermique;
+
+	for(int iph = 0; iph < NbPhase; iph++){
+		for(int icp = 0; icp < NbComp; icp++){
+
+			if(MCP[iph * NbComp + icp] == 1){
+				sprintf(data_name, "Phase %d Comp %d %s", iph+1, icp+1, inc_name);
+
+				data[j] = vtkSmartPointer<vtkDoubleArray>::New();
+				data[j]->SetNumberOfComponents(1);
+				data[j]->SetNumberOfTuples(NbIncOwn);
+				data[j]->SetName(data_name);
+
+				j = j + 1;
+			}
+		}
+	}
+
+	// Saturation
+	for(int i = 0; i < NbPhase; i++){
+		sprintf(data_name, "Saturation %d %s", i+1, inc_name);
+
+		data[j] = vtkSmartPointer<vtkDoubleArray>::New();
+		data[j]->SetNumberOfComponents(1);
+		data[j]->SetNumberOfTuples(NbIncOwn);
+		data[j]->SetName(data_name);
+
+		j = j + 1;
+	}
+}
+
+
+void VisuVTK_Time::init_data_well(
+		int NbIncOwn,
+		char* well_name,
+		vtkSmartPointer<vtkDoubleArray>* data){
+
+	data[0] = vtkSmartPointer<vtkDoubleArray>::New();
+	data[0]->SetNumberOfComponents(1);
+	data[0]->SetNumberOfTuples(NbIncOwn);
+	data[0]->SetName(well_name);
+}
+
+
+
 
 // write for a control volume
 //          set values to data
