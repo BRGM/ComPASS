@@ -943,6 +943,35 @@ void pvtuwriter_well(char* pvtuname, char* inc_name, int NbVtu, char* vtuname){
 }
 
 
+// FIXME: Stille a hard coded length
+void visuvtk_pvdwritercxx_cv(
+		char* pvdname,
+		char* pvtuname,
+		int NbVisuTimes,
+		double* VisuTimes){
+
+  ofstream pvd(pvdname);
+
+  pvd << "<?xml version=\"1.0\"?>\n";
+  pvd << "<VTKFile type=\"Collection\" version=\"0.1\">\n";
+  pvd << "<Collection>\n";
+
+  for(int i = 0; i < NbVisuTimes; i++){
+		char timestep[20];
+		char pvtuname_i[256];
+
+		sprintf(timestep, "%.5f", VisuTimes[i]);
+		pvd << "  <DataSet timestep=\"" << timestep << "\"" << " group=\"\"  part=\"1\"" << "\n";
+
+		sprintf(pvtuname_i, "./time_%d/%s.pvtu", i, pvtuname);
+		pvd << "           file=\"" << pvtuname_i << "\"/>\n";
+	}
+
+	pvd << "</Collection>\n";
+	pvd << "</VTKFile>\n";
+
+	pvd.close();
+}
 
 
 // write .pvd file master proc
@@ -963,104 +992,23 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
   // Check if path is absolute
   if(dirname[0]=='/') pathroot.clear();
 
-  // cell data .pvdcell
-  // FIXME: Stille a hard coded length
   char pvdname[300];
-  sprintf( pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname );
 
-  ofstream pvd;
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  char tscr[20];
-  char pvtuname[300];
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/celldata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"0\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
+  // cell data .pvdcell
+  sprintf(pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "celldata", NbVisuTimes, VisuTimes);
 
   // frac data .pvd
-
-  sprintf( pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/fracdata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  sprintf(pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "fracdata", NbVisuTimes, VisuTimes);
 
   // injection well data .pvd
-
-  sprintf( pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/wellinjdata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  sprintf(pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "wellinjdata", NbVisuTimes, VisuTimes);
 
   // production well data .pvd
-
-  sprintf( pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/wellproddata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  sprintf(pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "wellproddata", NbVisuTimes, VisuTimes);
 }
 
 
