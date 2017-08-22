@@ -267,7 +267,7 @@ contains
     ENDIF
 
     iph = 2
-    CALL f_PressionCapillaire(rt(1),iph,S,Pc,DSPc)
+    CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
 
  !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
     
