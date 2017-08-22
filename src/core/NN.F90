@@ -106,8 +106,13 @@ module NN
 
 #ifdef _VISU_
    ! vectors used for visu
-   double precision, dimension(:), allocatable :: &
-      datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
+   double precision, dimension(:), allocatable :: datavisucell
+   double precision, dimension(:), allocatable :: datavisufrac
+   double precision, dimension(:), allocatable :: datavisunode
+   double precision, dimension(:), allocatable :: datavisuwellinj
+   double precision, dimension(:), allocatable :: datavisuwellprod
+   
+   
 #endif
 
    double precision :: visutime
@@ -299,6 +304,7 @@ subroutine init_visualization(OutputDir)
       ! vectors that regroup datas (P, T, C, S) from IncCV(:)
       allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
       allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
+      allocate (datavisunode(NbIncPTCSMax*NbNodeOwn_Ncpus(commRank + 1)))
 
       ! pressure at well edges, inj/prod
       n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
@@ -530,7 +536,7 @@ subroutine NN_init_phase2(OutputDir)
       !   datavisuwellinj, datavisuwellprod)
       !
       !call VisuVTK_VisuTime_writedata(0.d0, &
-      !                                datavisucell, datavisufrac, &
+      !      datavisucell, datavisufrac, datavisunode, &
       !                                datavisuwellinj, datavisuwellprod)
       !
       !! if this proc constains at least one well, then write data to file
@@ -640,12 +646,19 @@ subroutine NN_init_phase2(OutputDir)
 #ifdef _VISU_
 
       call IncCV_ToVec( &
-         datavisucell, datavisufrac, &
-         datavisuwellinj, datavisuwellprod)
+        datavisucell, &
+        datavisufrac, &
+        datavisunode, &
+        datavisuwellinj, &
+        datavisuwellprod)
 
-      call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-                                      datavisucell, datavisufrac, &
-                                      datavisuwellinj, datavisuwellprod)
+      call VisuVTK_VisuTime_writedata( &
+        TimeCurrent/OneDay, &
+        datavisucell, &
+        datavisufrac, &
+        datavisunode, &
+        datavisuwellinj, &
+        datavisuwellprod)
 
       ! max and min temperature
       Tempmaxloc = -1.d4
@@ -1001,11 +1014,11 @@ subroutine NN_init_phase2(OutputDir)
                call IncCV_UpdateDirBCValue
 
                ! call IncCV_ToVec( &
-               !      dataviscuell, datavisufrac, &
+               !      dataviscuell, datavisufrac, datavisunode &
                !      datavisuwellinj, datavisuwellprod)
 
                ! call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-               !      datavisucell, datavisufrac,         &
+               !      datavisucell, datavisufrac, datavisunode, &
                !      datavisuwellinj, datavisuwellprod)
 
                ! Flash
@@ -1289,6 +1302,7 @@ subroutine NN_init_phase2(OutputDir)
       call VisuVTK_VisuTime_free
       deallocate (datavisucell)
       deallocate (datavisufrac)
+      deallocate (datavisunode)
       deallocate (datavisuwellinj)
       deallocate (datavisuwellprod)
 #endif

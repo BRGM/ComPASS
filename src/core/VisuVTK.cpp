@@ -57,6 +57,9 @@ private:
   // grid frac
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_frac;
 
+  // grid node
+  vtkSmartPointer<vtkUnstructuredGrid> ugrid_node;
+
   // grid well inj and prod
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_wellinj;
   vtkSmartPointer<vtkUnstructuredGrid> ugrid_wellprod;
@@ -66,6 +69,9 @@ private:
 
   // frac data
   vtkSmartPointer<vtkDoubleArray>* data_frac;
+
+  // node data
+  vtkSmartPointer<vtkDoubleArray>* data_node;
 
   // well data
   vtkSmartPointer<vtkDoubleArray>* data_wellinj;
@@ -78,12 +84,15 @@ private:
   // writer frac
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_frac;
 
+  // writer node
+  vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_node;
+
   // writer well inj/prod
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_wellinj;
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer_wellprod;
 
   // size info
-  int NbCellOwn, NbFaceOwn, NbFracOwn, NbNodeLocal;
+  int NbCellOwn, NbFaceOwn, NbFracOwn, NbNodeOwn, NbNodeLocal;
   int NbWellInjOwn, NbWellProdOwn;
   int NbEdgeWellInjOwn, NbEdgeWellProdOwn; // total number of edges of all wells inj/prod
   
@@ -97,7 +106,7 @@ private:
 public:
 
   void writedata( int,
-                  double*, double*, double*, double*);
+                  double*, double*, double*, double*, double*);
 
   void init( int, char*,
              int, int,
@@ -105,6 +114,7 @@ public:
              int, int, int,
 	     int, int, 
              int, int*,
+             int,
              int, int*, int*,
              int, int*, int*,
              int, int*, int*,
@@ -114,13 +124,37 @@ public:
 
   void free();
 
+private:
+
+	void init_data_cv(
+			int,
+			char*,
+			vtkSmartPointer<vtkDoubleArray>*);
+
+	void init_data_well(
+			int,
+			char*,
+			vtkSmartPointer<vtkDoubleArray>*);
+
+  void writedata_cv(
+			char*,
+			int,
+			double*,
+			vtkSmartPointer<vtkDoubleArray>*,
+			vtkSmartPointer<vtkXMLUnstructuredGridWriter>&);
+
+  void writedata_well(
+			char*,
+			int,
+			double*,
+			vtkSmartPointer<vtkDoubleArray>*,
+			vtkSmartPointer<vtkXMLUnstructuredGridWriter>&);
 };
 
 // write ptvu file
-void pvtuwritercell( char*, int, int, int, int*, int );
-void pvtuwriterfrac( char*, int, int, int, int*, int );
-void pvtuwriterwellinj( char*, int );
-void pvtuwriterwellprod( char*, int );
+void pvtuwriter_cv(char*, char*, int, int, int*, int, int, char*);
+void pvtuwriter_well(char*, char*, int, char*);
+
 
 extern "C" {
 
@@ -131,6 +165,8 @@ extern "C" {
                                        int NbCellOwn, int NbFaceOwn, int NbNodeLocal,
                                        int NbWellInjOwn, int NbWellProdOwn,
 				       int NbFracOwn, int* FracToFaceLocal, 
+				       //
+				       int NbNodeOwn, 
 				       //
                                        int NodebyCellLocal_Nb, int* NodebyCellLocal_Pt, int* NodebyCellLocal_Num,
                                        int FacebyCellLocal_Nb, int* FacebyCellLocal_Pt, int* FacebyCellLocal_Num,
@@ -153,6 +189,8 @@ extern "C" {
               NbWellInjOwn, NbWellProdOwn,
 	      NbFracOwn, FracToFaceLocal,
               //
+				NbNodeOwn,
+              //
               NodebyCellLocal_Nb, NodebyCellLocal_Pt, NodebyCellLocal_Num,
               FacebyCellLocal_Nb, FacebyCellLocal_Pt, FacebyCellLocal_Num,
               NodebyFaceLocal_Nb, NodebyFaceLocal_Pt, NodebyFaceLocal_Num,
@@ -167,18 +205,22 @@ extern "C" {
 
 
   // write data
-  void visuvtk_time_writedatacxx_( VisuVTK_Time *This,
-                                   int NbVisuTimes,
-                                   double* datacellinput,
-				   double* datafracinput,
-				   double* datawellinjinput,
-				   double* datawellprodinput )
-  {
-    This->writedata( NbVisuTimes,
-                     datacellinput,
-		     datafracinput,
-		     datawellinjinput,
-		     datawellprodinput);
+  void visuvtk_time_writedatacxx_(
+			VisuVTK_Time *This,
+			int NbVisuTimes,
+			double* datacellinput,
+			double* datafracinput,
+			double* datanodeinput,
+			double* datawellinjinput,
+			double* datawellprodinput){
+
+    This->writedata(
+				NbVisuTimes,
+				datacellinput,
+				datafracinput,
+				datanodeinput,
+				datawellinjinput,
+				datawellprodinput);
   }
 
 
@@ -235,6 +277,8 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
                          int NbWellInjOwn_, int NbWellProdOwn_,
 			 int NbFracOwn_, int* FracToFaceLocal,
                          //
+			 int NbNodeOwn_,
+                         //
                          int NodebyCellLocal_Nb, int* NodebyCellLocal_Pt, int* NodebyCellLocal_Num,
                          int FacebyCellLocal_Nb, int* FacebyCellLocal_Pt, int* FacebyCellLocal_Num,
                          int NodebyFaceLocal_Nb, int* NodebyFaceLocal_Pt, int* NodebyFaceLocal_Num,
@@ -252,6 +296,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   NbCellOwn = NbCellOwn_;
   NbFaceOwn = NbFaceOwn_;
   NbFracOwn = NbFracOwn_;
+  NbNodeOwn = NbNodeOwn_;
   NbNodeLocal = NbNodeLocal_;
   NbWellInjOwn = NbWellInjOwn_;
   NbWellProdOwn = NbWellProdOwn_;
@@ -311,61 +356,10 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 	}
     }
 
+
   data_cell = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbCellOwn, "cell", data_cell);
 
-  // // pressure
-  data_cell[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_cell[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_cell[0]->SetNumberOfTuples( NbCellOwn ); // size of data
-  data_cell[0]->SetName( "Pressure cell" );
-
-  // // temperature
-  if ( IndThermique == 1 )
-    {
-      data_cell[1] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_cell[1]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_cell[1]->SetNumberOfTuples( NbCellOwn ); // size of data
-      data_cell[1]->SetName( "Temperature cell" );
-    }
-
-  // // Comp
-  int j = 1 + IndThermique;
-
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      data_cell[j] = vtkSmartPointer<vtkDoubleArray>::New();
-	      data_cell[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-	      data_cell[j]->SetNumberOfTuples( NbCellOwn ); // size of data
-
-	      char name[30];
-	      sprintf( name, "Phase %d Comp %d cell ", iph + 1, icp + 1 );
-	      data_cell[j]->SetName( name );
-
-	      j = j + 1;
-	    }
-
-	}
-    }
-
-  // // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-
-      data_cell[j] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_cell[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_cell[j]->SetNumberOfTuples( NbCellOwn ); // size of data
-
-      char name[25];
-      sprintf( name, "Saturation %d cell", i + 1 );
-      data_cell[j]->SetName( name );
-
-      j = j + 1;
-    }
 
   // step 2.3 Grid cell
   ugrid_cell = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -440,60 +434,8 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 
   // step 3.2 frac data, allocate memory
   data_frac = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbFracOwn, "frac", data_frac);
 
-  // // Pression
-  data_frac[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_frac[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_frac[0]->SetNumberOfTuples( NbFracOwn ); // size of data
-  data_frac[0]->SetName( "Pression frac" );
-
-  // // Temperature
-  if ( IndThermique == 1 )
-    {
-      data_frac[1] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_frac[1]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_frac[1]->SetNumberOfTuples( NbFracOwn ); // size of data
-      data_frac[1]->SetName( "Temperature frac" );
-    }
-
-  // // Comp
-  j = 1 + IndThermique;
-
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      data_frac[j] = vtkSmartPointer<vtkDoubleArray>::New();
-	      data_frac[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-	      data_frac[j]->SetNumberOfTuples( NbFracOwn ); // size of data
-
-	      char name[30];
-	      sprintf( name, "Phase %d Comp %d frac ", iph + 1, icp + 1 );
-	      data_frac[j]->SetName( name );
-
-	      j = j + 1;
-	    }
-
-	}
-    }
-
-  // // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-
-      data_frac[j] = vtkSmartPointer<vtkDoubleArray>::New();
-      data_frac[j]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-      data_frac[j]->SetNumberOfTuples( NbFracOwn ); // size of data
-
-      char name[25];
-      sprintf( name, "Saturation %d frac", i + 1 );
-      data_frac[j]->SetName( name );
-
-      j = j + 1;
-    }
 
   // step 3.3 Grid frac
   ugrid_frac = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -552,6 +494,41 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
     delete[] pointFracIds[k];
   delete[] pointFracIds;
 
+  // node
+
+  // step 3.2 node data, allocate memory
+  data_node = new vtkSmartPointer<vtkDoubleArray>[NbVecVisu];
+	init_data_cv(NbNodeOwn, "node", data_node);
+
+  // step 3.3 Grid node
+  ugrid_node = vtkSmartPointer<vtkUnstructuredGrid>::New();
+  ugrid_node->Allocate( NbNodeOwn ); // number of node own
+
+	for(int k = 0; k < NbNodeOwn; k++){
+		ugrid_node->InsertNextCell(VTK_VERTEX, 1, (vtkIdType*) &k);
+	}
+
+  ugrid_node->SetPoints( points ); // add points
+
+	for ( int i = 0; i < NbVecVisu; i++ ){
+		ugrid_node->GetCellData()->AddArray( data_node[i] ); // add node data to grid
+	}
+
+  // step 3.4 writer node
+  writer_node = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+
+  writer_node->SetInputData( ugrid_node ); // add node grid to writer
+#ifdef ASCII_VTK_WRITERS
+  writer_node->SetDataModeToAscii();
+#else
+  writer_node->SetDataModeToBinary();
+#endif // ASCII_VTK_WRITERS  
+  writer_node->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
+
+	//
+	//
+	//
+	//
 
   // step 4.1 well connectivity: pointWellInjIds, pointWellProdIds
 
@@ -583,20 +560,11 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
 
   // Pression injection well
   data_wellinj = new vtkSmartPointer<vtkDoubleArray>[1];
-
-  data_wellinj[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_wellinj[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_wellinj[0]->SetNumberOfTuples( NbEdgeWellInjOwn ); // size of data
-  data_wellinj[0]->SetName( "Injection well" );
-
+	init_data_well(NbEdgeWellInjOwn, "Injection well", data_wellinj);
 
   // Pression production well
   data_wellprod = new vtkSmartPointer<vtkDoubleArray>[1];
-
-  data_wellprod[0] = vtkSmartPointer<vtkDoubleArray>::New();
-  data_wellprod[0]->SetNumberOfComponents( 1 );   // size of component in tuple is 1
-  data_wellprod[0]->SetNumberOfTuples( NbEdgeWellProdOwn ); // size of data
-  data_wellprod[0]->SetName( "Production well" );
+	init_data_well(NbEdgeWellProdOwn, "Production well", data_wellprod);
 
 
   // step 4.3 Grid well
@@ -654,108 +622,253 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   delete[] pointWellProdIds;
 }
 
-// write 1. data cell
-//          set values to data_cell
-//          add data_cell to ugrid_cell
+
+void VisuVTK_Time::init_data_cv(
+		int NbIncOwn,
+		char* inc_name,
+		vtkSmartPointer<vtkDoubleArray>* data){
+
+	char data_name[256];
+
+	// pressure
+	sprintf(data_name, "Pressure %s", inc_name);
+
+	data[0] = vtkSmartPointer<vtkDoubleArray>::New();
+	data[0]->SetNumberOfComponents(1);
+	data[0]->SetNumberOfTuples(NbIncOwn);
+	data[0]->SetName(data_name);
+
+	// temperature
+	sprintf(data_name, "Temperature %s", inc_name);
+
+	if(IndThermique == 1){
+		data[1] = vtkSmartPointer<vtkDoubleArray>::New();
+		data[1]->SetNumberOfComponents(1);
+		data[1]->SetNumberOfTuples(NbIncOwn);
+		data[1]->SetName(data_name);
+	}
+
+	// Comp
+	int j = 1 + IndThermique;
+
+	for(int iph = 0; iph < NbPhase; iph++){
+		for(int icp = 0; icp < NbComp; icp++){
+
+			if(MCP[iph * NbComp + icp] == 1){
+				sprintf(data_name, "Phase %d Comp %d %s", iph+1, icp+1, inc_name);
+
+				data[j] = vtkSmartPointer<vtkDoubleArray>::New();
+				data[j]->SetNumberOfComponents(1);
+				data[j]->SetNumberOfTuples(NbIncOwn);
+				data[j]->SetName(data_name);
+
+				j = j + 1;
+			}
+		}
+	}
+
+	// Saturation
+	for(int i = 0; i < NbPhase; i++){
+		sprintf(data_name, "Saturation %d %s", i+1, inc_name);
+
+		data[j] = vtkSmartPointer<vtkDoubleArray>::New();
+		data[j]->SetNumberOfComponents(1);
+		data[j]->SetNumberOfTuples(NbIncOwn);
+		data[j]->SetName(data_name);
+
+		j = j + 1;
+	}
+}
+
+
+void VisuVTK_Time::init_data_well(
+		int NbIncOwn,
+		char* well_name,
+		vtkSmartPointer<vtkDoubleArray>* data){
+
+	data[0] = vtkSmartPointer<vtkDoubleArray>::New();
+	data[0]->SetNumberOfComponents(1);
+	data[0]->SetNumberOfTuples(NbIncOwn);
+	data[0]->SetName(well_name);
+}
+
+
+
+
+// write for a control volume
+//          set values to data
+//          add data to ugrid
 //          write
-//       2. data frac (if there is frac)
-//          ...
-void VisuVTK_Time::writedata( int NbVisuTimes,
-                              double* datacellinput,
-			      double* datafracinput,
-			      double* datawellinjinput,
-			      double* datawellprodinput )
-{
+void VisuVTK_Time::writedata_cv(
+		char* data_vtuname,
+		int NbIncOwn, 
+		double* datainput,
+		vtkSmartPointer<vtkDoubleArray>* data,
+		vtkSmartPointer<vtkXMLUnstructuredGridWriter>& writer){
+
+	// insert datainput to data structure
+	for(int k = 0; k < NbVecVisu; k++){
+		int start = k * NbIncOwn;
+
+		for(int i = 0; i < NbIncOwn; i++){
+			data[k]->SetComponent(i, 0, datainput[i + start]);
+		}
+	}
+
+	writer->SetFileName(data_vtuname);
+	writer->Update();
+}
+
+
+// write for a well
+//          set values to data
+//          add data to ugrid
+//          write
+void VisuVTK_Time::writedata_well(
+		char* data_vtuname,
+		int NbIncOwn, 
+		double* datainput,
+		vtkSmartPointer<vtkDoubleArray>* data,
+		vtkSmartPointer<vtkXMLUnstructuredGridWriter>& writer){
+
+  // insert datainput to data structure
+	for(int i = 0; i < NbIncOwn; i++){
+		data[0]->SetComponent(i, 0, datainput[i]);
+	}
+
+	writer->SetFileName(data_vtuname);
+	writer->Update();
+}
+
+
+void VisuVTK_Time::writedata(
+		int NbVisuTimes,
+		double* datacellinput,
+		double* datafracinput,
+		double* datanodeinput,
+		double* datawellinjinput,
+		double* datawellprodinput){
+
+  char dirname[300];
+	char data_vtuname[300];
+
+	// dirname
+  sprintf(dirname, "%s/time_%d", OutputDir, NbVisuTimes - 1);
 
   // 1. cell
-  char dirname[300];
-  sprintf( dirname, "%s/time_%d", OutputDir, NbVisuTimes - 1 ); // dir name
+	sprintf(data_vtuname, "%s/celldata_%d.vtu", dirname, commRank);
 
-  // insert datacellinput to data_cell structure
-  for ( int k = 0; k < NbVecVisu; k++ )
-    {
+	this->writedata_cv(
+			data_vtuname,
+			NbCellOwn, 
+			datacellinput,
+			data_cell,
+			writer_cell);
 
-      int start = k * NbCellOwn;
-      for ( int i = 0; i < NbCellOwn; i++ )
-	data_cell[k]->SetComponent( i, 0, datacellinput[i + start] );
-    }
-  // cell writer
-  char celldata_vtuname[300];
-  sprintf( celldata_vtuname, "%s/celldata_%d.vtu", dirname, commRank ); // file name
+	// write .pvtu for cell
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/celldata.pvtu", dirname);
 
-  writer_cell->SetFileName( celldata_vtuname );
-  writer_cell->Update();
-
-  // write .pvtu for cell
-  if ( commRank == 0 )
-    {
-      pvtuwritercell( dirname, commSize,
-		      NbComp, NbPhase, MCP, IndThermique );
-    }
-
+		pvtuwriter_cv(
+				pvtuname,
+				"cell",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"celldata");
+//		pvtuwritercell(dirname, commSize, NbComp, NbPhase, MCP, IndThermique);
+	}
 
   // 2. frac
+  sprintf(data_vtuname, "%s/fracdata_%d.vtu", dirname, commRank);
 
-  // insert datafracinput to data_frac structure
-  for ( int k = 0; k < NbVecVisu; k++ )
-    {
+	this->writedata_cv(
+			data_vtuname,
+			NbFracOwn, 
+			datafracinput,
+			data_frac,
+			writer_frac);
 
-      int start = k * NbFracOwn;
-      for ( int i = 0; i < NbFracOwn; i++ )
-	data_frac[k]->SetComponent( i, 0, datafracinput[i + start] );
-    };
+	// write .pvtu for frac
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/fracdata.pvtu", dirname);
 
-  // frac writer
-  char fracdata_vtuname[300];
-  sprintf( fracdata_vtuname, "%s/fracdata_%d.vtu", dirname, commRank ); // file name
+		pvtuwriter_cv(
+				pvtuname,
+				"frac",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"fracdata");
+	}
 
-  writer_frac->SetFileName( fracdata_vtuname );
-  writer_frac->Update();
+  // 2. node
+  sprintf(data_vtuname, "%s/nodedata_%d.vtu", dirname, commRank);
 
-  // write .pvtu for frac
-  if ( commRank == 0 )
-    {
-      pvtuwriterfrac( dirname, commSize,
-		      NbComp, NbPhase, MCP, IndThermique );
-    };
+	this->writedata_cv(
+			data_vtuname,
+			NbNodeOwn, 
+			datanodeinput,
+			data_node,
+			writer_node);
 
+	// write .pvtu for node
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/nodedata.pvtu", dirname);
 
-  // 3. well
+		pvtuwriter_cv(
+				pvtuname,
+				"node",
+				NbComp,
+				NbPhase,
+				MCP,
+				IndThermique,
+				commSize,
+				"nodedata");
+	}
 
-  // well inj data
-  for ( int k = 0; k < NbEdgeWellInjOwn; k++)
-    {
-      data_wellinj[0]->SetComponent( k, 0, datawellinjinput[k]);
-    };
-  
-  // well inj writer
-  char wellinjdata_vtuname[300];
-  sprintf( wellinjdata_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank ); // file name
+  // 3. well inj
+	sprintf(data_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank);
 
-  writer_wellinj->SetFileName( wellinjdata_vtuname );
-  writer_wellinj->Update();
+	this->writedata_well(
+			data_vtuname,
+			NbEdgeWellInjOwn,
+			datawellinjinput,
+			data_wellinj,
+			writer_wellinj);
 
-  // write .pvtu for wellinj
-  if ( commRank == 0 )
-    pvtuwriterwellinj( dirname, commSize );
+	// write .pvtu for wellinj
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/wellinjdata.pvtu", dirname);
 
+		pvtuwriter_well(pvtuname, "injection well", commSize, "wellinjdata");
+	}
 
-  // well prod data
-  for ( int k = 0; k < NbEdgeWellProdOwn; k++)
-    {
-      data_wellprod[0]->SetComponent( k, 0, datawellprodinput[k]);
-    };
-  
-  // well prod writer
-  char wellproddata_vtuname[300];
-  sprintf( wellproddata_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank ); // file name
+  // 4. well prod
+  sprintf(data_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank);
 
-  writer_wellprod->SetFileName( wellproddata_vtuname );
-  writer_wellprod->Update();
+	this->writedata_well(
+			data_vtuname,
+			NbEdgeWellProdOwn,
+			datawellprodinput,
+			data_wellprod,
+			writer_wellprod);
 
-  // write .pvtu for wellprod
-  if ( commRank == 0 )
-    pvtuwriterwellprod( dirname, commSize );
+	// write .pvtu for wellprod
+	if( commRank == 0){
+		char pvtuname[300];
+		sprintf(pvtuname, "%s/wellproddata.pvtu", dirname);
+
+		pvtuwriter_well(pvtuname, "production well", commSize, "wellproddata");
+	}
 }
 
 void VisuVTK_Time::free()
@@ -771,6 +884,11 @@ void VisuVTK_Time::free()
   ugrid_frac->Initialize();
   delete[] data_frac;
 
+  for ( int i = 0; i < NbVecVisu; i++ )
+    data_node[i]->Initialize();
+  ugrid_node->Initialize();
+  delete[] data_node;
+
   // free points
   points->Initialize();
 
@@ -778,222 +896,169 @@ void VisuVTK_Time::free()
 }
 
 
+void pvtu_begin(ofstream& pvtu){
+	pvtu << "<?xml version=\"1.0\"?>\n";
+	pvtu << "<VTKFile" 
+		<< " type=\"PUnstructuredGrid\" version=\"0.1\""
+		<< " byte_order=\"LittleEndian\""
+		<< " compressor=\"vtkZLibDataCompressor\">\n";
+	pvtu << "  <PUnstructuredGrid GhostLevel=\"0\">\n";
+}
+
+
+void pvtu_pcelldata_begin(ofstream& pvtu){
+	pvtu << "    <PCellData>\n";
+}
+
+
+void pvtu_pcelldata_add_float(ofstream& pvtu, char* name){
+	pvtu << "        <PDataArray type=\"Float64\" Name=\"" << name << "\"/>\n";
+}
+
+
+void pvtu_pcelldata_end(ofstream& pvtu){
+  pvtu << "    </PCellData>\n";
+}
+
+
+void pvtu_ppoints(ofstream& pvtu){
+  pvtu << "    <PPoints>\n";
+  pvtu << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n";
+  pvtu << "    </PPoints>\n";
+}
+
+
+void pvtu_source(ofstream& pvtu, char* vtuname){
+	pvtu << "    <Piece Source=\"" << vtuname << "\"/>\n";
+}
+
+
+void pvtu_end(ofstream& pvtu){
+  pvtu << "  </PUnstructuredGrid>\n";
+  pvtu << "</VTKFile>";
+}
+
 // write .pvtu file master proc
 // dirname: directory
 // commSize = commSize
-void pvtuwritercell( char* dirname, int Np,
-                     int NbComp, int NbPhase, int* MCP, int IndThermique )
-{
+void pvtuwriter_cv(
+		char* pvtuname,
+		char* inc_name,
+		int NbComp,
+		int NbPhase,
+		int* MCP,
+		int IndThermique,
+		int NbVtu,
+		char* vtuname){
 
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/celldata.pvtu", dirname );
+	char data_name[256];
 
-  ofstream pvtu;
-  pvtu.open( pvtuname );
+  ofstream pvtu(pvtuname);
 
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
+	pvtu_begin(pvtu);
+	pvtu_pcelldata_begin(pvtu);
 
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pression cell\"/>\n";
-
-  // Temperature
-  if ( IndThermique == 1 )
-    pvtu << "        <PDataArray type=\"Float64\" Name=\"Temperature cell\"/>\n";
-
-  // Comp
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      char ss[300];
-	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d cell\"/>\n", iph + 1, icp + 1 );
-	      pvtu << ss;
-	    }
-	}
-    }
-
-  // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-      char ss[300];
-      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d cell\"/>\n", i + 1 );
-      pvtu << ss;
-    }
-
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
-
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "celldata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
-
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
-
-  pvtu.close();
-}
-
-void pvtuwriterfrac( char* dirname, int Np,
-                     int NbComp, int NbPhase, int* MCP, int IndThermique )
-{
-
-  // frac
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/fracdata.pvtu", dirname );
-
-  ofstream pvtu;
-  pvtu.open( pvtuname );
-
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
-
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pression frac\"/>\n";
+	// pressure
+	sprintf(data_name, "Pression %s", inc_name);
+	pvtu_pcelldata_add_float(pvtu, data_name);
 
   // Temperature
-  if ( IndThermique == 1 )
-    pvtu << "        <PDataArray type=\"Float64\" Name=\"Temperature frac\"/>\n";
-
-  // Comp
-  for ( int iph = 0; iph < NbPhase; iph++ )
-    {
-      for ( int icp = 0; icp < NbComp; icp++ )
-	{
-
-	  if ( MCP[iph * NbComp + icp] == 1 )
-	    {
-	      char ss[300];
-	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d frac\"/>\n", iph + 1, icp + 1 );
-	      pvtu << ss;
-	    }
+	if(IndThermique == 1){
+		sprintf(data_name, "Temperature %s", inc_name);
+		pvtu_pcelldata_add_float(pvtu, data_name);
 	}
-    }
 
-  // Saturation
-  for ( int i = 0; i < NbPhase; i++ )
-    {
-      char ss[300];
-      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d frac\"/>\n", i + 1 );
-      pvtu << ss;
-    }
+	// Comp
+	for(int iph = 0; iph < NbPhase; iph++){
+		for(int icp = 0; icp < NbComp; icp++){
+			if(MCP[iph * NbComp + icp] == 1){
+				sprintf(data_name, "Phase %d Comp %d %s", iph+1, icp+1, inc_name);
+				pvtu_pcelldata_add_float(pvtu, data_name);
+			}
+		}
+	}
 
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
+	// Saturation
+	for(int i = 0; i < NbPhase; i++){
+		sprintf(data_name, "Saturation %d %s", i+1, inc_name);
+		pvtu_pcelldata_add_float(pvtu, data_name);
+	}
 
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "fracdata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
+	pvtu_pcelldata_end(pvtu);
 
-  pvtu.close();
+	pvtu_ppoints(pvtu);
+
+  for(int i = 0; i < NbVtu; i++){
+		char vtuname_i[256];
+
+		sprintf(vtuname_i, "%s_%d.vtu", vtuname, i);
+		pvtu_source(pvtu, vtuname_i);
+	}
+
+	pvtu_end(pvtu);
+	pvtu.close();
 }
 
 
-// write .pvtu file master proc, injection well
+// write .pvtu file master proc, injection and production wells
 // dirname: directory
 // commSize = commSize
-void pvtuwriterwellinj( char* dirname, int Np )
-{
+void pvtuwriter_well(char* pvtuname, char* inc_name, int NbVtu, char* vtuname){
+	char data_name[256];
 
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/wellinjdata.pvtu", dirname );
+  ofstream pvtu(pvtuname);
 
-  ofstream pvtu;
-  pvtu.open( pvtuname );
+	pvtu_begin(pvtu);
+	pvtu_pcelldata_begin(pvtu);
 
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
+	// pression
+	sprintf(data_name, "Pressure %s", inc_name);
+	pvtu_pcelldata_add_float(pvtu, data_name);
 
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pressure injection well\"/>\n";
+	pvtu_pcelldata_end(pvtu);
 
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
+	pvtu_ppoints(pvtu);
 
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "wellinjdata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
+  for(int i = 0; i < NbVtu; i++){
+		char vtuname_i[256];
 
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
+		sprintf(vtuname_i, "%s_%d.vtu", vtuname, i);
+		pvtu_source(pvtu, vtuname_i);
+	}
 
-  pvtu.close();
+	pvtu_end(pvtu);
+	pvtu.close();
 }
 
 
-// write .pvtu file master proc, production well
-// dirname: directory
-// commSize = commSize
-void pvtuwriterwellprod( char* dirname, int Np )
-{
+// FIXME: Stille a hard coded length
+void visuvtk_pvdwritercxx_cv(
+		char* pvdname,
+		char* pvtuname,
+		int NbVisuTimes,
+		double* VisuTimes){
 
-  // cell
-  char pvtuname[300];
-  sprintf( pvtuname, "%s/wellproddata.pvtu", dirname );
+  ofstream pvd(pvdname);
 
-  ofstream pvtu;
-  pvtu.open( pvtuname );
+  pvd << "<?xml version=\"1.0\"?>\n";
+  pvd << "<VTKFile type=\"Collection\" version=\"0.1\">\n";
+  pvd << "<Collection>\n";
 
-  pvtu << "<?xml version=\"1.0\"?>\n"
-       << "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n"
-       << "  <PUnstructuredGrid GhostLevel=\"0\">\n"
-       << "    <PCellData>\n";
+  for(int i = 0; i < NbVisuTimes; i++){
+		char timestep[20];
+		char pvtuname_i[256];
 
-  // Pression
-  pvtu << "        <PDataArray type=\"Float64\" Name=\"Pressure production well\"/>\n";
+		sprintf(timestep, "%.5f", VisuTimes[i]);
+		pvd << "  <DataSet timestep=\"" << timestep << "\"" << " group=\"\"  part=\"1\"" << "\n";
 
-  pvtu << "    </PCellData>\n"
-       << "    <PPoints>\n"
-       << "      <PDataArray type=\"Float64\" Name=\"Points\" NumberOfComponents=\"3\"/>\n"
-       << "    </PPoints>\n";
+		sprintf(pvtuname_i, "./time_%d/%s.pvtu", i, pvtuname);
+		pvd << "           file=\"" << pvtuname_i << "\"/>\n";
+	}
 
-  char vtuname[20];
-  for ( int i = 0; i < Np; i++ )
-    {
-      sprintf( vtuname, "wellproddata_%d.vtu", i );
-      pvtu << "    <Piece Source=\""
-	   << vtuname
-	   << "\"/>\n";
-    }
+	pvd << "</Collection>\n";
+	pvd << "</VTKFile>\n";
 
-  pvtu << "  </PUnstructuredGrid>\n"
-       << "</VTKFile>";
-
-  pvtu.close();
+	pvd.close();
 }
 
 
@@ -1015,104 +1080,27 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
   // Check if path is absolute
   if(dirname[0]=='/') pathroot.clear();
 
-  // cell data .pvdcell
-  // FIXME: Stille a hard coded length
   char pvdname[300];
-  sprintf( pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname );
 
-  ofstream pvd;
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  char tscr[20];
-  char pvtuname[300];
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/celldata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"0\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
+  // cell data .pvdcell
+  sprintf(pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "celldata", NbVisuTimes, VisuTimes);
 
   // frac data .pvd
+  sprintf(pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "fracdata", NbVisuTimes, VisuTimes);
 
-  sprintf( pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/fracdata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  // node data .pvd
+  sprintf(pvdname, "%s%s/nodedata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "nodedata", NbVisuTimes, VisuTimes);
 
   // injection well data .pvd
-
-  sprintf( pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/wellinjdata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  sprintf(pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "wellinjdata", NbVisuTimes, VisuTimes);
 
   // production well data .pvd
-
-  sprintf( pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname );
-  pvd.open( pvdname );
-
-  pvd << "<?xml version=\"1.0\"?>\n"
-      << "<VTKFile type=\"Collection\" version=\"0.1\">\n"
-      << "<Collection>\n";
-
-  for ( int i = 0; i < NbVisuTimes; i++ )
-    {
-
-      sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
-      sprintf( pvtuname, "./time_%d/wellproddata.pvtu", i ); // .pvtu file
-
-      pvd << "  <DataSet timestep=\"" << tscr << "\""
-	  << " group=\"\"  part=\"1\"" << "\n"
-	  << "           file=\"" << pvtuname << "\"/>\n";
-    }
-  pvd << "</Collection>\n"
-      << "</VTKFile>\n";
-  pvd.close();
-
+  sprintf(pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname);
+	visuvtk_pvdwritercxx_cv(pvdname, "wellproddata", NbVisuTimes, VisuTimes);
 }
 
 
