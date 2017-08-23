@@ -444,6 +444,67 @@ contains
   end subroutine VAGFrac_TransFrac
 
 
+  ! shift the fraction omega of the cell volume to the nodes according to the
+  ! label
+  SUBROUTINE VAGFrac_SplitCellVolume( &
+      NbCellLocal, &
+      CellLabel, &
+      NbNodeLocal, &
+      NodeLabel, &
+      IsVolumeNode, &
+      omega, &
+      NodebyCellLocal, &
+      CellVolume, &
+      NodeVolume)
+
+    INTEGER, INTENT(IN) :: NbCellLocal
+    INTEGER, INTENT(IN) :: CellLabel(NbCellLocal)
+    INTEGER, INTENT(IN) :: NbNodeLocal
+    INTEGER, INTENT(IN) :: NodeLabel(NbNodeLocal)
+    LOGICAL, INTENT(IN) :: IsVolumeNode(NbNodeLocal)
+    DOUBLE PRECISION, INTENT(IN) :: omega
+    TYPE(CSR), INTENT(IN) :: NodebyCellLocal
+
+    DOUBLE PRECISION, INTENT(INOUT) :: CellVolume(nbCellLocal)
+    DOUBLE PRECISION, INTENT(INOUT) :: NodeVolume(nbNodeLocal)
+
+    INTEGER :: k, ptnumi, numi
+    INTEGER :: NbVolume, NbInternalVolume
+
+    DOUBLE PRECISION :: SplitVolume
+
+    DO k=1, nbCellLocal
+      NbVolume = 0
+      NbInternalVolume = 0
+
+      ! loop of nodes in cell
+      DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+        numi = NodebyCellLocal%Num(ptnumi)
+        
+        IF(IsVolumeNode(numi))THEN
+          NbVolume = NbVolume + 1
+
+          IF(CellLabel(k) == NodeLabel(numi))THEN
+            NbInternalVolume = NbInternalVolume + 1
+          ENDIF
+        ENDIF
+      ENDDO
+
+      SplitVolume = omega * CellVolume(k) * NbVolume / NbInternalVolume
+
+      ! loop of nodes in cell
+      do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+        numi = NodebyCellLocal%Num(ptnumi)
+
+        IF(IsVolumeNode(numi) .AND. CellLabel(k) == NodeLabel(numi))THEN
+          CellVolume(k) = CellVolume(k) - SplitVolume
+          NodeVolume(numi) = NodeVolume(numi) + SplitVolume
+        end if
+      end do
+    ENDDO
+  END SUBROUTINE VAGFrac_SplitCellVolume
+
+
   ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
@@ -464,65 +525,41 @@ contains
     allocate(PoroVolDarcyFrac(NbFracLocal_Ncpus(commRank+1)) )
     allocate(PoroVolDarcyNode(NbNodeLocal_Ncpus(commRank+1)) )
 
-    ! init
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      VolDarcyCell(k) = VolCellLocal(k)
-    end do
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      VolDarcyFrac(k) = Thickness * SurfFracLocal(k)
-    end do
+    ! Darcy volume
+    VolDarcyCell = VolCellLocal
+    VolDarcyFrac = Thickness * SurfFracLocal
+    VolDarcyNode = 0.d0
 
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      PoroVolDarcyCell(k) = VolCellLocal(k)*PorositeCellLocal(k)
-    end do
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      PoroVolDarcyFrac(k) = Thickness * SurfFracLocal(k) &
-          * PorositeFracLocal(k)
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaDarcyCell, &
+      NodebyCellLocal, &
+      VolDarcyCell, &
+      VolDarcyNode)
 
-    VolDarcyNode(:) = 0.d0
-    PoroVolDarcyNode(:) = 0.d0
+    ! Porosity
+    PoroVolDarcyCell = PorositeCellLocal * VolCellLocal
+    PoroVolDarcyFrac = PorositeFracLocal * Thickness * SurfFracLocal
+    PoroVolDarcyNode = 0.d0
 
-    ! loop of cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaDarcyCell, &
+      NodebyCellLocal, &
+      PoroVolDarcyCell, &
+      PoroVolDarcyNode)
 
-      NbVolume = 0
-      NbInternalVolume = 0
 
-      ! loop of nodes in cell
-      DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
-
-        numi = NodebyCellLocal%Num(ptnumi)
-        
-        IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
-          .AND. IdNodeLocal(numi)%Frac == "n" ) THEN ! nodes not in frac
-
-          NbVolume = NbVolume + 1
-          IF(NodeRocktypeLocal(1,numi) == CellRocktypeLocal(1,k)) THEN ! same rocktype
-            NbInternalVolume = NbInternalVolume + 1
-          ENDIF
-        ENDIF
-      ENDDO
-
-      s1 = omegaDarcyCell * VolCellLocal(k) * NbVolume / NbInternalVolume
-      s2 = s1 * PorositeCellLocal(k) 
-
-      ! loop of nodes in cell
-      do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
-
-        numi = NodebyCellLocal%Num(ptnumi)
-
-        IF( IdNodeLocal(numi)%P /= "d" & ! not dir Pression
-          .AND. IdNodeLocal(numi)%Frac == "n" & ! nodes not in frac
-          .AND. NodeRocktypeLocal(1,numi) == CellRocktypeLocal(1,k) ) THEN ! same rocktype
-
-          VolDarcyCell(k) = VolDarcyCell(k) - s1
-          VolDarcyNode(numi) = VolDarcyNode(numi) + s1
-          PoroVolDarcyCell(k) = PoroVolDarcyCell(k) - s2
-          PoroVolDarcyNode(numi) = PoroVolDarcyNode(numi) + s2
-        end if
-      end do
-    end do
+    ! TODO
+    ! Create NodebyFrac to use VAGFrac_SplitCellVolume with VolDarcyFrac
 
     ! loop of frac
     do ifrac=1, NbFracLocal_Ncpus(commRank+1)
@@ -546,7 +583,7 @@ contains
         ENDIF
       ENDDO
 
-      s1 = Thickness * omegaDarcyFrac * SurfFracLocal(ifrac) &
+      s1 = omegaDarcyFrac * VolDarcyFrac(ifrac) &
         * NbVolume / NbInternalVolume
 
       s2 = s1 * PorositeFracLocal(ifrac)
@@ -566,6 +603,7 @@ contains
         end if
       end do
     end do
+
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
@@ -612,50 +650,36 @@ contains
     allocate(Poro_1volFourierFrac(NbFracLocal_Ncpus(commRank+1)) )
     allocate(Poro_1volFourierNode(NbNodeLocal_Ncpus(commRank+1)) )
 
-    ! init
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      PoroVolFourierCell(k) = VolCellLocal(k) * PorositeCellLocal(k)
-      Poro_1VolFourierCell(k) = VolCellLocal(k) * (1.d0-PorositeCellLocal(k))
-    end do
+    PoroVolFourierCell = VolCellLocal * PorositeCellLocal
+    PoroVolFourierFrac = Thickness * SurfFracLocal * PorositeFracLocal
+    PoroVolFourierNode = 0.d0
 
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      PoroVolFourierFrac(k) = Thickness * SurfFracLocal(k) &
-          * PorositeFracLocal(k)
-      Poro_1VolFourierFrac(k) = Thickness * SurfFracLocal(k) &
-          * (1.d0-PorositeFracLocal(k))
-    end do
+    Poro_1VolFourierCell = VolCellLocal * (1 - PorositeCellLocal)
+    Poro_1VolFourierFrac = Thickness * SurfFracLocal * (1 - PorositeFracLocal)
+    Poro_1VolFourierNode = 0.d0
 
-    PoroVolFourierNode(:) = 0.d0
-    Poro_1VolFourierNode(:) = 0.d0
+    ! Fourier volume
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      PoroVolFourierCell, &
+      PoroVolFourierNode)
 
-    ! loop of cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-
-      NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
-
-      ! loop of nodes in cell
-      do i=1, NbNodeCell
-
-        numi = NodebyCellLocal%Num( NodebyCellLocal%Pt(k)+i)
-
-        if(IdNodeLocal(numi)%T /= "d" .and. &    ! not dir Temperature
-            IdNodeLocal(numi)%Frac == "n") then ! nodes not in frac
-
-          s = omegaFourierCell * VolCellLocal(k) * &
-              PorositeCellLocal(k) 
-
-          PoroVolFourierCell(k) = PoroVolFourierCell(k) - s
-          PoroVolFourierNode(numi) = PoroVolFourierNode(numi) + s
-
-          s = omegaFourierCell * VolCellLocal(k) * &
-              (1.d0 - PorositeCellLocal(k) )
-
-          Poro_1volFourierCell(k) = Poro_1volFourierCell(k) - s
-          Poro_1volFourierNode(numi) = Poro_1volFourierNode(numi) + s
-
-        end if
-      end do
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      Poro_1volFourierCell, &
+      Poro_1VolFourierNode)
 
     ! loop of frac
     do ifrac=1, NbFracLocal_Ncpus(commRank+1)
