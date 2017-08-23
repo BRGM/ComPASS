@@ -82,15 +82,15 @@ contains
     integer :: k
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncNode(k), NodeRocktype(:,k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(IncNode(k), NodeRocktypeLocal(:,k), PoroVolDarcyNode(k))
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncFrac(k), FracRocktype(:,k), PoroVolDarcyFrac(k))
+       call DefFlash_Flash_cv(IncFrac(k), FracRocktypeLocal(:,k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncCell(k), CellRocktype(:,k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(IncCell(k), CellRocktypeLocal(:,k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
