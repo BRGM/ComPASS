@@ -541,6 +541,17 @@ contains
       VolDarcyCell, &
       VolDarcyNode)
 
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d", &
+      omegaDarcyFrac, &
+      NodebyFracOwn, &
+      VolDarcyFrac, &
+      VolDarcyNode)
+
     ! Porosity
     PoroVolDarcyCell = PorositeCellLocal * VolCellLocal
     PoroVolDarcyFrac = PorositeFracLocal * Thickness * SurfFracLocal
@@ -557,52 +568,16 @@ contains
       PoroVolDarcyCell, &
       PoroVolDarcyNode)
 
-
-    ! TODO
-    ! Create NodebyFrac to use VAGFrac_SplitCellVolume with VolDarcyFrac
-
-    ! loop of frac
-    do ifrac=1, NbFracLocal_Ncpus(commRank+1)
-
-      i = FracToFaceLocal(ifrac) ! num face
-
-      NbVolume = 0
-      NbInternalVolume = 0
-
-      ! loop of nodes in frac
-      DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
-
-        numi = NodebyFaceLocal%Num(ptnumi)
-
-        IF( IdNodeLocal(numi)%P /= "d" ) THEN ! not dir Pression
-
-          NbVolume = NbVolume + 1
-          IF(NodeRocktypeLocal(1,numi) == FracRocktypeLocal(1,ifrac)) THEN ! same rocktype
-            NbInternalVolume = NbInternalVolume + 1
-          ENDIF
-        ENDIF
-      ENDDO
-
-      s1 = omegaDarcyFrac * VolDarcyFrac(ifrac) &
-        * NbVolume / NbInternalVolume
-
-      s2 = s1 * PorositeFracLocal(ifrac)
-
-      ! loop of nodes in frac
-      DO ptnumi = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
-
-        numi = NodebyFaceLocal%Num(ptnumi)
-
-        IF( IdNodeLocal(numi)%P /= "d" &
-          .AND. NodeRocktypeLocal(1,numi) == FracRocktypeLocal(1,ifrac)) THEN ! not dir Pression
-
-          VolDarcyFrac(ifrac) = VolDarcyFrac(ifrac) - s1
-          VolDarcyNode(numi) = VolDarcyNode(numi) + s1
-          PoroVolDarcyFrac(ifrac) = PoroVolDarcyFrac(ifrac) - s2
-          PoroVolDarcyNode(numi) = PoroVolDarcyNode(numi) + s2
-        end if
-      end do
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d", &
+      omegaDarcyFrac, &
+      NodebyFracOwn, &
+      PoroVolDarcyFrac, &
+      PoroVolDarcyNode)
 
 
     ! check if vol is positive
@@ -671,6 +646,17 @@ contains
       PoroVolFourierNode)
 
     CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      PoroVolFourierFrac, &
+      PoroVolFourierNode)
+
+    CALL VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
       CellRocktypeLocal(2,:), &
       NbNodeLocal_Ncpus(commRank+1), &
@@ -678,36 +664,19 @@ contains
       IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
       omegaFourierCell, &
       NodebyCellLocal, &
-      Poro_1volFourierCell, &
+      Poro_1VolFourierCell, &
       Poro_1VolFourierNode)
 
-    ! loop of frac
-    do ifrac=1, NbFracLocal_Ncpus(commRank+1)
-
-      i = FracToFaceLocal(ifrac) ! num face
-
-      ! loop of nodes in frac
-      do j=1, NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-
-        numj = NodebyFaceLocal%Num( NodebyFaceLocal%Pt(i)+j)
-
-        if(IdNodeLocal(numj)%T /= "d" ) then ! not dir Temperature
-
-          s = Thickness * omegaFourierFrac * SurfFracLocal(ifrac) &
-              * PorositeFracLocal(ifrac)
-
-          PoroVolFourierFrac(ifrac) = PoroVolFourierFrac(ifrac) - s
-          PoroVolFourierNode(numj) = PoroVolFourierNode(numj) + s
-
-          s = Thickness * omegaFourierFrac * SurfFracLocal(ifrac) &
-              * (1.d0 - PorositeFracLocal(ifrac) ) 
-
-          Poro_1volFourierFrac(ifrac) = Poro_1volFourierFrac(ifrac) - s
-          Poro_1volFourierNode(numj) = Poro_1volFourierNode(numj) + s
-
-        end if
-      end do
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      Poro_1VolFourierFrac, &
+      Poro_1VolFourierNode)
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
