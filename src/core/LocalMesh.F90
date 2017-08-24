@@ -180,6 +180,11 @@ module LocalMesh
        CondThermalCellLocal_Ncpus
   type(ARRAY1dble), dimension(:), allocatable, public :: &
        CondThermalFracLocal_Ncpus
+
+  ! Thermal source
+  TYPE(ARRAY1dble), DIMENSION(:), ALLOCATABLE, PUBLIC :: &
+    CellThermalSource_Ncpus, &
+    FracThermalSource_Ncpus
 #endif
 
   ! Data of Node by Well (Parent, PtParent, WID, WIF)
@@ -366,6 +371,10 @@ contains
     ! Thermal conductivity
     allocate(CondThermalCellLocal_Ncpus(Ncpus))
     allocate(CondThermalFracLocal_Ncpus(Ncpus))
+
+    ! Thermal source
+    allocate(CellThermalSource_Ncpus(Ncpus))
+    allocate(FracThermalSource_Ncpus(Ncpus))
 #endif
 
     ! Data of Node by Well
@@ -443,6 +452,8 @@ contains
 #ifdef _THERMIQUE_
        ! permeability
        call LocalMesh_CondThermal(i)
+
+       CALL LocalMesh_ThermalSource(i)
 #endif
 
        ! Data Node of well
@@ -1897,6 +1908,32 @@ contains
     end do
 
   end subroutine LocalMesh_CondThermal
+
+
+  ! Output:
+  !  CellThermalSource_Ncpus(ip), FracThermalSource_Ncpus(ip)
+  ! Use:
+  !  CellbyProc(ip), CellThermalSource,
+  !  FracbyProc(ip), FracThermalSource,
+  SUBROUTINE LocalMesh_ThermalSource(ip)
+
+    integer, intent(in) :: ip
+    integer :: ip1, Nb, i
+
+    ip1 = ip + 1
+    
+    Nb = CellbyProc(ip1)%Pt(CellbyProc(ip1)%Nb+1)
+    ALLOCATE(CellThermalSource_Ncpus(ip1)%Val(Nb))
+    DO i=1,Nb
+      CellThermalSource_Ncpus(ip1)%Val(i) = CellThermalSource(CellbyProc(ip1)%Num(i))
+    END DO
+    
+    Nb = FracbyProc(ip1)%Pt(FracbyProc(ip1)%Nb+1)
+    ALLOCATE(FracThermalSource_Ncpus(ip1)%Val(Nb))
+    DO i=1,Nb
+      FracThermalSource_Ncpus(ip1)%Val(i) = FracThermalSource(FracbyProc(ip1)%Num(i))
+    END DO
+  END SUBROUTINE LocalMesh_ThermalSource
 
 
   ! Output:

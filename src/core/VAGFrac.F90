@@ -48,11 +48,17 @@ module VAGFrac
   double precision, allocatable, dimension(:), protected :: &
       PoroVolFourierCell, & 
       PoroVolFourierFrac, &
-      PoroVolFourierNode, & 
-                                !
+      PoroVolFourierNode
+
+  double precision, allocatable, dimension(:), protected :: &
       Poro_1volFourierCell, & 
       Poro_1volFourierFrac, &
       Poro_1volFourierNode  
+
+  double precision, allocatable, dimension(:), protected :: &
+      CellThermalSourceVol, & 
+      FracThermalSourceVol, & 
+      NodeThermalSourceVol
 #endif
 
 
@@ -617,21 +623,29 @@ contains
 
     double precision :: s
 
-    allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolFourierNode(NbNodeLocal_Ncpus(commRank+1)) )
+    allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)))
+    allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)))
+    allocate(PoroVolFourierNode(NbNodeLocal_Ncpus(commRank+1)))
 
-    allocate(Poro_1volFourierCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(Poro_1volFourierFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(Poro_1volFourierNode(NbNodeLocal_Ncpus(commRank+1)) )
+    allocate(Poro_1volFourierCell(NbCellLocal_Ncpus(commRank+1)))
+    allocate(Poro_1volFourierFrac(NbFracLocal_Ncpus(commRank+1)))
+    allocate(Poro_1volFourierNode(NbNodeLocal_Ncpus(commRank+1)))
 
-    PoroVolFourierCell = VolCellLocal * PorositeCellLocal
-    PoroVolFourierFrac = Thickness * SurfFracLocal * PorositeFracLocal
+    allocate(CellThermalSourceVol(NbCellLocal_Ncpus(commRank+1)))
+    allocate(FracThermalSourceVol(NbFracLocal_Ncpus(commRank+1)))
+    allocate(NodeThermalSourceVol(NbNodeLocal_Ncpus(commRank+1)))
+
+    PoroVolFourierCell = PorositeCellLocal * VolCellLocal
+    PoroVolFourierFrac = PorositeFracLocal * Thickness * SurfFracLocal
     PoroVolFourierNode = 0.d0
 
-    Poro_1VolFourierCell = VolCellLocal * (1 - PorositeCellLocal)
-    Poro_1VolFourierFrac = Thickness * SurfFracLocal * (1 - PorositeFracLocal)
+    Poro_1VolFourierCell = (1 - PorositeCellLocal) * VolCellLocal
+    Poro_1VolFourierFrac = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
     Poro_1VolFourierNode = 0.d0
+
+    CellThermalSourceVol = CellThermalSourceLocal * VolCellLocal
+    FracThermalSourceVol = FracThermalSourceLocal * Thickness * SurfFracLocal
+    NodeThermalSourceVol = 0.d0
 
     ! Fourier volume
     CALL VAGFrac_SplitCellVolume( &
@@ -677,6 +691,28 @@ contains
       NodebyFracOwn, &
       Poro_1VolFourierFrac, &
       Poro_1VolFourierNode)
+
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      CellThermalSourceVol, &
+      NodeThermalSourceVol)
+
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      FracThermalSourceVol, &
+      NodeThermalSourceVol)
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
@@ -777,6 +813,9 @@ contains
     deallocate(Poro_1volFourierCell)
     deallocate(Poro_1volFourierFrac)
     deallocate(Poro_1volFourierNode)
+    deallocate(CellThermalSourceVol)
+    deallocate(FracThermalSourceVol)
+    deallocate(NodeThermalSourceVol)
 #endif
 
   end subroutine VAGFrac_Free

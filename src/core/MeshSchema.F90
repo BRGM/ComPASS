@@ -142,6 +142,10 @@ module MeshSchema
        CondThermalCellLocal
   double precision, dimension(:), allocatable, public :: &
        CondThermalFracLocal
+
+  ! Thermal source
+  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, PUBLIC :: CellThermalSourceLocal
+  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, PUBLIC :: FracThermalSourceLocal
 #endif
 
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
@@ -1052,6 +1056,60 @@ contains
        end do
        deallocate(CondThermalFracLocal_Ncpus)
     end if
+
+    ! send CellThermalSourceLocal
+    if (commRank==0) then
+
+       ! proc >=1, send
+       do i=1, Ncpus-1
+          Nb = NbCellLocal_Ncpus(i+1)
+          call MPI_Send(CellThermalSource_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 15, ComPASS_COMM_WORLD, Ierr)
+       end do
+
+       ! proc=0, copy
+       Nb = NbCellLocal_Ncpus(1)
+       allocate(CellThermalSourceLocal(Nb))
+       CellThermalSourceLocal = CellThermalSource_Ncpus(1)%Val
+
+    else   
+       Nb = NbCellLocal_Ncpus(commRank+1)
+       allocate(CellThermalSourceLocal(Nb))
+       call MPI_Recv(CellThermalSourceLocal, Nb, MPI_DOUBLE, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(CellThermalSource_Ncpus(i)%Val)
+       end do
+       deallocate(CellThermalSource_Ncpus)
+    end if
+
+    ! send FracThermalSourceLocal
+    if (commRank==0) then
+
+       ! proc >=1, send
+       do i=1, Ncpus-1
+          Nb = NbFracLocal_Ncpus(i+1)
+          call MPI_Send(FracThermalSource_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 16, ComPASS_COMM_WORLD, Ierr)
+       end do
+
+       ! proc=0, copy
+       Nb = NbFracLocal_Ncpus(1)
+       allocate(FracThermalSourceLocal(Nb))
+       FracThermalSourceLocal = FracThermalSource_Ncpus(1)%Val
+
+    else   
+       Nb = NbFracLocal_Ncpus(commRank+1)
+       allocate(FracThermalSourceLocal(Nb))
+       call MPI_Recv(FracThermalSourceLocal, Nb, MPI_DOUBLE, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(FracThermalSource_Ncpus(i)%Val)
+       end do
+       deallocate(FracThermalSource_Ncpus)
+    end if
 #endif
 
 
@@ -1610,6 +1668,12 @@ contains
     ! the follwoing free could be put after VAGFrac?
     deallocate(PorositeCellLocal)
     deallocate(PorositeFracLocal)
+
+
+#ifdef _THERMIQUE_
+    deallocate(CellThermalSourceLocal)
+    deallocate(FracThermalSourceLocal)
+#endif
 
     ! the folllowing free could be put after Assembly
     call CommonType_deallocCSR(NodebyNodeOwn)

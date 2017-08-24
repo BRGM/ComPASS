@@ -144,6 +144,13 @@ module GlobalMesh
     CondThermalCell !< Permeability tensor for each cell, set by user in file DefModel.F90
   real(c_double), allocatable, dimension(:), target :: &
     CondThermalFrac !< Permeability tensor for each cell, set by user in file DefModel.F90
+
+  ! Thermal source
+  integer(c_int), allocatable, dimension(:), target :: CellThermalSourceType
+  integer(c_int), allocatable, dimension(:), target :: FracThermalSourceType
+
+  real(c_double), allocatable, dimension(:), target :: CellThermalSource
+  real(c_double), allocatable, dimension(:), target :: FracThermalSource
 #endif
 
   ! Used to ouput well information
@@ -326,6 +333,21 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     CALL GlobalMesh_SetNodeRocktype
 
+#ifdef _THERMIQUE_
+    ALLOCATE(CellThermalSourceType(NbCell))
+    ALLOCATE(FracThermalSourceType(NbFrac))
+
+    CALL GlobalMesh_SetCellThermalSourceType
+    CALL GlobalMesh_SetFracThermalSourceType
+
+    CALL DefModel_SetThermalSource( &
+      NbCell, &
+      CellThermalSourceType, &
+      NbFrac, &
+      FracThermalSourceType, &
+      CellThermalSource, &
+      FracThermalSource)
+#endif
   end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
@@ -1195,6 +1217,12 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 #ifdef _THERMIQUE_
     deallocate(CondThermalCell)
     deallocate(CondThermalFrac)
+
+    deallocate(CellThermalSourceType)
+    deallocate(FracThermalSourceType)
+
+    deallocate(CellThermalSource)
+    deallocate(FracThermalSource)
 #endif
 
   end subroutine GlobalMesh_free

@@ -88,6 +88,20 @@ SUBROUTINE GlobalMesh_SetCellRocktype
 END SUBROUTINE GlobalMesh_SetCellRocktype
 
 
+#ifdef _THERMIQUE_
+SUBROUTINE GlobalMesh_SetCellThermalSourceType
+
+  CellThermalSourceType = MERGE(1, 0, CellFlags > 2)
+END SUBROUTINE GlobalMesh_SetCellThermalSourceType
+
+
+SUBROUTINE GlobalMesh_SetFracThermalSourceType
+
+  FracThermalSourceType = 0
+END SUBROUTINE GlobalMesh_SetFracThermalSourceType
+#endif
+
+
 SUBROUTINE GlobalMesh_SetNodeFlags
   INTEGER :: k
   DOUBLE PRECISION :: xk(3)
