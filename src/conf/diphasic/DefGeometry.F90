@@ -57,8 +57,24 @@ END SUBROUTINE GlobalMesh_SetFracRocktype
 
 
 SUBROUTINE GlobalMesh_SetCellFlags
-  INTEGER :: k, m
+  INTEGER :: k, m, i
   DOUBLE PRECISION :: xk(3)
+  INTEGER :: NbThermalSource
+  DOUBLE PRECISION :: ThermalSourceRadius(3)
+  DOUBLE PRECISION :: ThermalSourceOffset(3)
+  DOUBLE PRECISION :: ThermalSourceOffset0(3)
+  DOUBLE PRECISION, ALLOCATABLE, DIMENSION(:,:) :: ThermalSource
+
+  NbThermalSource = 10
+  ThermalSourceRadius = (/ .5d0, 1.d0, 10.d0 /)
+  ThermalSourceOffset = (/ 40.d0, 0.d0, 0.d0 /)
+  ThermalSourceOffset0 = (/ 20.d0, 0.5d0, 15.d0 /)
+
+  ALLOCATE(ThermalSource(3,NbThermalSource))
+
+  DO i = 1, NbThermalSource
+    ThermalSource(:,i) =  ThermalSourceOffset0 + (i - 1) * ThermalSourceOffset
+  ENDDO
 
   DO k=1,NbCell
     xk(:) = 0.d0
@@ -67,22 +83,30 @@ SUBROUTINE GlobalMesh_SetCellFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyCell%Pt(k+1) - NodebyCell%Pt(k))
 
-    IF(MOD(INT(xk(1)),2) == MOD(INT(xk(3)),2))THEN
-!    IF(xk(3) <= 1.d0)THEN
+!    IF(MOD(INT(xk(1)),2) == MOD(INT(xk(3)),2))THEN
+    IF(xk(3) <= 1.5d0)THEN
       CellFlags(k) = 2
     ELSE
       CellFlags(k) = 1
     ENDIF
+
+    DO i = 1, NbThermalSource
+      IF(ALL(ABS(xk-ThermalSource(:,i)) < ThermalSourceRadius))THEN
+        CellFlags(k) = CellFlags(k) + 2
+      ENDIF
+    ENDDO
   ENDDO
+
+  DEALLOCATE(ThermalSource)
 END SUBROUTINE GlobalMesh_SetCellFlags
 
 
 SUBROUTINE GlobalMesh_SetCellRocktype
 
-  CellRocktype(1,:) = CellFlags
+  CellRocktype(1,:) = MOD(CellFlags - 1, 2) + 1
 
 #ifdef _THERMIQUE_
-  CellRocktype(2,:) = CellFlags
+  CellRocktype(2,:) = MOD(CellFlags - 1, 2) + 1
 #endif
 !  CellTRocktype = CellFlags
 END SUBROUTINE GlobalMesh_SetCellRocktype

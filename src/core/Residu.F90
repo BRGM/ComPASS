@@ -99,6 +99,13 @@ contains
        end do
     end do
 
+#ifdef _THERMIQUE_
+    ! Thermal source
+    ResiduCell(NbComp+1,:) = ResiduCell(NbComp+1,:) - CellThermalSourceVol
+    ResiduFrac(NbComp+1,:) = ResiduFrac(NbComp+1,:) - FracThermalSourceVol
+    ResiduNode(NbComp+1,:) = ResiduNode(NbComp+1,:) - NodeThermalSourceVol
+#endif
+
     ! Residu for dir node will be reset as 0 in the end of this subroutine
     ! We do not consider much about dir nodes during computing the residu such that
     ! the code is more clear
