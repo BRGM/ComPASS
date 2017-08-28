@@ -68,7 +68,7 @@ SUBROUTINE GlobalMesh_SetCellFlags
   NbThermalSource = 10
   ThermalSourceRadius = (/ .5d0, 1.d0, 10.d0 /)
   ThermalSourceOffset = (/ 40.d0, 0.d0, 0.d0 /)
-  ThermalSourceOffset0 = (/ 20.d0, 0.5d0, 15.d0 /)
+  ThermalSourceOffset0 = (/ 20.5d0, 0.5d0, 15.d0 /)
 
   ALLOCATE(ThermalSource(3,NbThermalSource))
 
