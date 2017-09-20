@@ -363,7 +363,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
         k = FracbyNode%Num(kpt)
 
         rt = FracRocktype(:,k)
-        v(1) = PermFrac(k)/PorositeFrac(k) 
+        v(1) = PermFrac(k)
 #ifdef _THERMIQUE_
         v(2) = CondThermalFrac(k)
 #endif
@@ -371,7 +371,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
         do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
           k = FracbyNode%Num(kpt)
 
-          vk(1) = PermFrac(k)/PorositeFrac(k) 
+          vk(1) = PermFrac(k)
 #ifdef _THERMIQUE_
           vk(2) = CondThermalFrac(k)
 #endif
@@ -392,14 +392,14 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
         k = CellbyNode%Num(kpt)
 
         rt = CellRocktype(:,k)
-        v(1) = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+        v(1) = MAXVAL(PermCell(:,:,k))
 #ifdef _THERMIQUE_
         v(2) = MAXVAL(CondThermalCell(:,:,k))
 #endif
         DO kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
           k = CellbyNode%Num(kpt)
 
-          vk(1) = MAXVAL(PermCell(:,:,k))/PorositeCell(k) 
+          vk(1) = MAXVAL(PermCell(:,:,k))
 #ifdef _THERMIQUE_
           vk(2) = MAXVAL(CondThermalCell(:,:,k))
 #endif
