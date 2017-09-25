@@ -285,7 +285,7 @@ contains
 
       IF(PgCag + PgCeg > Pg)THEN
 
-        write(*,*)' apparition gas ', Pg, T
+!        write(*,*)' apparition gas ', Pg, T
         
         inc%ic = 3
         IF(Pg < PgCeg)THEN
@@ -303,7 +303,7 @@ contains
       
       IF(S(PHASE_GAS) < 0.d0)THEN
 
-        write(*,*)' disp du gaz ', Pg, T
+!        write(*,*)' disp du gaz ', Pg, T
 
         inc%ic = 2
         inc%Saturation(PHASE_GAS) = 0
