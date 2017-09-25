@@ -151,7 +151,7 @@ module DefModel
 
   ! time step init and max 
   ! FIXME: parameter is removed to assign variable from python
-  double precision :: TimeFinal =  200*OneYear
+  double precision :: TimeFinal = 200*OneYear
 
   double precision :: TimeStepInit = 1000*OneSecond
   double precision :: TimeStepMax = 200*OneYear
@@ -408,7 +408,7 @@ contains
          f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
     double precision :: a, ss, ds, Cs, T1
-    
+
     IF(iph==PHASE_GAS)THEN
       f = 18.51d-6
     ELSE
@@ -712,19 +712,19 @@ contains
     do i=1, NbCellG
       PermCellG(:,:,i) = 0.d0
 
-      IF(CellRocktypeG(1,i) == 1) THEN
+     IF(CellRocktypeG(1,i) == 1) THEN
         PermCellG(1,1,i) = 5.d-20
         PermCellG(2,2,i) = 5.d-20
         PermCellG(3,3,i) = 5.d-20
-      ELSEIF(CellRocktypeG(1,i) == 2)THEN
-        PermCellG(1,1,i) = 5.d-18
-        PermCellG(2,2,i) = 5.d-18
-        PermCellG(3,3,i) = 5.d-18
-      ELSE
-        PRINT*, 'error DefModel_SetPerm, unknow rocktype'
-        PRINT*, i, CellRocktypeG(1,i) 
-        STOP
-      ENDIF
+     ELSEIF(CellRocktypeG(1,i) == 2)THEN
+       PermCellG(1,1,i) = 1.d-18
+       PermCellG(2,2,i) = 1.d-18
+       PermCellG(3,3,i) = 1.d-18
+     ELSE
+       PRINT*, 'error DefModel_SetPerm, unknow rocktype'
+       PRINT*, i, CellRocktypeG(1,i) 
+       STOP
+     ENDIF
     end do
 
     allocate(PermFracG(NbFracG))
@@ -803,9 +803,9 @@ contains
         CondThermalCellG(2,2,i) = 2.d0
         CondThermalCellG(3,3,i) = 2.d0
       ELSEIF(CellRocktypeG(2,i) == 2)THEN
-        CondThermalCellG(1,1,i) = 4.d0
-        CondThermalCellG(2,2,i) = 4.d0
-        CondThermalCellG(3,3,i) = 4.d0
+        CondThermalCellG(1,1,i) = 2.d0
+        CondThermalCellG(2,2,i) = 2.d0
+        CondThermalCellG(3,3,i) = 2.d0
       ELSE
         PRINT*, 'error in DefModel_SetCondThermique, unknow FracRocktype'
         PRINT*, i, FracRocktypeG(2,i) 
