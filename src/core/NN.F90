@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 program NN
 
   use GlobalMesh
@@ -36,7 +44,7 @@ program NN
        TimeIterstr
 
   character(len=100) :: cmd
-  
+
   integer :: argc
   integer :: Ierr, errcode
   logical :: file_exists
@@ -55,7 +63,7 @@ program NN
   double precision :: sol
 
   double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
-  
+
   ! Time variables
   logical :: EnterMainLoop = .True.
   double precision :: Delta_t, TimeCurrent, TimeOutput
@@ -108,7 +116,7 @@ program NN
   !  double precision, dimension(:), allocatable :: PermFracLocal
 
   ! Conductivities thermal
-#ifdef _THERMIQUE_  
+#ifdef _THERMIQUE_
   double precision, dimension(:,:,:), allocatable :: CondThermalCellLocal
   double precision, dimension(:), allocatable :: CondThermalFracLocal
 #endif
@@ -180,7 +188,7 @@ program NN
   else
      if(commRank==0) then
         print*, "Mesh read from file: ", MeshFile
-     end if    
+     end if
   end if
 
   ! Report file
@@ -190,7 +198,7 @@ program NN
 
   allocate(fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
   ! allocate(fd(1)); fd = (/11/)
-  
+
   comptime_readmesh = MPI_WTIME()
 
   if(commRank==0) then
@@ -213,7 +221,7 @@ program NN
         write(j,*) "  Ncpus :      ", commSize
         write(j,*) ""
         write(j,*) "Final time: ", TimeFinal/OneDay
-        write(j,*) ""  
+        write(j,*) ""
      end do
 
   end if
@@ -236,7 +244,7 @@ program NN
           PermCell, PermFrac)
   end if
 
-  
+
   if(commRank==0) then
      ! ****
      ! Partition Global Mesh
@@ -296,7 +304,7 @@ program NN
   !    ! print*, NbWellProdOwn_Ncpus
   !    ! print*, NbWellProdLocal_Ncpus
   ! end if
-  
+
   ! if(commRank==1) then
   !    print*, DataWellInjLocal(:)%Radius
   !    print*, DataWellInjLocal(:)%Temperature
@@ -392,7 +400,7 @@ program NN
   allocate(KspHistory(KspNiterMax+1))
 
   ! sync mat create and set value
-  call SolvePetsc_SyncMat 
+  call SolvePetsc_SyncMat
 
   ! allocate increment
   allocate( NewtonIncreNode &
@@ -439,7 +447,7 @@ program NN
   allocate( datavisuwellinj(n))
   n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank+1)))
   allocate( datavisuwellprod(n))
-  
+
 #endif
 
   comptime_part = MPI_WTIME() - comptime_start
@@ -480,7 +488,7 @@ program NN
   call IncCV_ToVec( &
        datavisucell, datavisufrac, &
        datavisuwellinj, datavisuwellprod)
-  
+
   call VisuVTK_VisuTime_writedata(0.d0,    &
        datavisucell, datavisufrac,         &
        datavisuwellinj, datavisuwellprod)
@@ -489,11 +497,11 @@ program NN
   if(NbWellInjOwn_Ncpus(commRank+1)>0 .or. &
        NbWellProdOwn_Ncpus(commRank+1)>0) then
 
-     write(cmd, '(A,A)')  "mkdir -p ", trim(OutputDir) // "/wellinfo" 
+     write(cmd, '(A,A)')  "mkdir -p ", trim(OutputDir) // "/wellinfo"
      call system(cmd)
 
      write(Wellinfoname, '(A,I0,A)') &
-          trim(OutputDir) // "/wellinfo/proc_", commRank, ".txt" 
+          trim(OutputDir) // "/wellinfo/proc_", commRank, ".txt"
 
      open(12,file=Wellinfoname,status="unknown")
 
@@ -556,7 +564,7 @@ program NN
      VisuTimeIter = 1
 
   end if
-     
+
   ! visutime = MPI_WTIME() - visutime
   ! if(commRank==0) then
   !    print*, "visutime is", visutime
@@ -583,7 +591,7 @@ program NN
 #endif
 
   do while (EnterMainLoop .and. TimeCurrent<(TimeFinal+eps))
-   
+
      ! init start time
      comptime_start = MPI_WTIME()
 
@@ -608,11 +616,11 @@ program NN
 
            write(j,*)
            write(j,'(A)',advance="no") "   -- Initial time step: "
-           write(j,*) Delta_t/OneDay        
+           write(j,*) Delta_t/OneDay
         end do
      end if
 
-     ! *** Newton iterations *** !  
+     ! *** Newton iterations *** !
 
      ! if Jacobian Ksp solver doesn't converge
      !   restart a new Newton with a smaller time step
@@ -673,10 +681,10 @@ program NN
            !    ! print*, ResiduCell
            !    ! print*, ResiduWellInj
            ! end if
-           
+
            ! write(*,*) ""
            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-           
+
            ! test Newton converge
            call Residu_RelativeNorm(NewtonIter, Delta_t, &
                 NewtonResNormRel(NewtonIter), NewtonResConvInit, NewtonResClosInit)
@@ -707,7 +715,7 @@ program NN
 
               NewtonConv = .true.
               KspConv = .true.
-              exit 
+              exit
            end if
 
            ! Jacobian and second member
@@ -744,11 +752,11 @@ program NN
               ! restart a new Newton with a smaller time step
               Delta_t = Delta_t * 0.5d0
 
-              ! load status 
+              ! load status
               call IncCV_LoadIncPreviousTimeStep
               call IncCV_PressureDropWellInj  ! compute PerfoWellInj%Pression
               call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
-              
+
               ! print residu if Ksp failure
               if(commRank==0) then
                  do i=1,size(fd)
@@ -781,11 +789,11 @@ program NN
                    NewtonIncreWellInj, NewtonIncreWellProd)
 
               ! print*, NewtonIncreWellInj
-              
+
               ! Compute increment prim of cell
               ! Inverse Schur
               call Jacobian_GetSolCell( NewtonIncreNode, &
-                   NewtonIncreFrac, NewtonIncreCell)              
+                   NewtonIncreFrac, NewtonIncreCell)
 
               ! Compute incremment increment of secd using increment prim
               !   Input : increment prim is NewtonIncre(1:NbComp+IndThermique)
@@ -796,10 +804,10 @@ program NN
               ! compute Newton relaxation
               call IncCV_NewtonRelax( &
                    NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, NewtonRelax)
-              
+
               ! ???
               ! NewtonRelax = 1.d0
-              
+
               if(commRank==0) then
                  do i=1,size(fd)
                     write(fd(i),'(A,F12.7)') "    Relaxation:", NewtonRelax
@@ -816,11 +824,11 @@ program NN
               ! call IncCV_ToVec( &
               !      dataviscuell, datavisufrac, &
               !      datavisuwellinj, datavisuwellprod)
-              
+
               ! call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
               !      datavisucell, datavisufrac,         &
               !      datavisuwellinj, datavisuwellprod)
-                            
+
               ! Flash
               call DefFlash_Flash
 
@@ -829,7 +837,7 @@ program NN
               !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
               !    ! write(*,'(A,E15.3)') "pressure prod", IncPressionWellProd
               ! end if
-              
+
            end if ! end if converge/not converge
 
            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
@@ -862,18 +870,18 @@ program NN
               write(11,*) Delta_t/OneDay
            end if
 
-           ! load status 
+           ! load status
            call IncCV_LoadIncPreviousTimeStep
            call IncCV_PressureDropWellInj  ! compute PerfoWellInj%Pression
            call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
 
            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
         end if
-        
+
      end do ! end of do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
-     
+
      call DefFlash_TimeFlash
-        
+
      TimeCurrent = TimeCurrent + Delta_t
 
      ! FiXME: What is the policy for time step management
@@ -881,7 +889,7 @@ program NN
      call IncCV_ComputeTimeStep(Delta_t, TimeCurrent)
      ! ???
      ! Delta_t = TimeStepInit
-     
+
      ! total computation time and computation time of this time step
      comptime_timestep = MPI_WTIME() - comptime_start
      comptime_total = comptime_total + comptime_timestep
@@ -890,7 +898,7 @@ program NN
      if(TimeCurrent > TimeOutput) then
 
 #ifdef _VISU_
-        
+
         call IncCV_ToVec( &
              datavisucell, datavisufrac, &
              datavisuwellinj, datavisuwellprod)
@@ -903,7 +911,7 @@ program NN
         ! max and min temperature
         Tempmaxloc = -1.d4
         Tempminloc = 1.d4
-        
+
         do k=1, NbCellOwn_Ncpus(commRank+1)
            Tempmaxloc = max(IncCell(k)%Temperature, Tempmaxloc)
            Tempminloc = min(IncCell(k)%Temperature, Tempminloc)
@@ -916,7 +924,7 @@ program NN
            Tempmaxloc = max(IncFrac(k)%Temperature, Tempmaxloc)
            Tempminloc = min(IncFrac(k)%Temperature, Tempminloc)
         end do
-        
+
         call MPI_AllReduce(Tempmaxloc,Tempmax,1,MPI_DOUBLE,MPI_MAX,ComPASS_COMM_WORLD,Ierr)
         call MPI_AllReduce(Tempminloc,Tempmin,1,MPI_DOUBLE,MPI_MIN,ComPASS_COMM_WORLD,Ierr)
 
@@ -947,7 +955,7 @@ program NN
         !       end if
         !    end do
         ! end if
-        
+
         ! if this proc constains at least one well, then write well data to file
         if(NbWellInjOwn_Ncpus(commRank+1)>0 .or. &
              NbWellProdOwn_Ncpus(commRank+1)>0) then
@@ -958,7 +966,7 @@ program NN
            call system(cmd)
 
            write(Wellinfoname, '(A,I0,A,I0,A)') &
-                trim(OutputDir) // "/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt" 
+                trim(OutputDir) // "/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
 
            open(12,file=Wellinfoname, status="unknown")
 
@@ -985,7 +993,7 @@ program NN
               write(12,'(ES17.7)',advance='no') IncPressionWellInj(i) ! pressure
               write(12,'(ES17.7)',advance='no') PerfoWellInj(head)%Temperature ! temperature
 ! FIXME: headmolarFluxInj is not defined in all configuration files
-!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux 
+!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux
               write(12,*) ""
            end do
 
@@ -1004,11 +1012,11 @@ program NN
               head = NodebyWellProdLocal%Pt(i+1)
 
               do j=NodebyWellProdLocal%Pt(i)+1, NodebyWellProdLocal%Pt(i+1)
-              
+
                  ! write(12,'(ES17.7)',advance='no') IncPressionWellProd(i)     ! pressure
                  write(12,'(ES17.7)',advance='no') PerfoWellProd(j)%Pression    ! pressure
                  write(12,'(ES17.7)',advance='no') PerfoWellProd(j)%Temperature ! temperature
-                 write(12,'(ES17.7)',advance='no') summolarFluxProd(:,j)   ! head molar flux 
+                 write(12,'(ES17.7)',advance='no') summolarFluxProd(:,j)   ! head molar flux
                  write(12,'(ES17.7)',advance='no') sumnrjFluxProd(j)       ! head energy flux
                  write(12,*) ""
               end do
@@ -1019,7 +1027,7 @@ program NN
            write(12,'(ES17.7)',advance='no') Tempmax
            write(12,'(ES17.7)',advance='no') Tempmin
            write(12,*) ""
-           
+
            close(12)
 
            VisuTimeIter = VisuTimeIter + 1
@@ -1059,7 +1067,7 @@ program NN
 
   end do ! end of time steps
 
-  
+
   ! ! compute errors
   ! errlocal_cell_L1 = 0.d0
   ! errlocal_cell_L2 = 0.d0
@@ -1072,7 +1080,7 @@ program NN
   ! do k=1, NbCellOwn_Ncpus(commRank+1)
 
   !    call DefModel_AnalyticSol(XCellLocal(:,k),sol)
-     
+
   !    errlocal_cell_L2   = errlocal_cell_L2 + (IncCell(k)%Pression - sol)**2 * VolCellLocal(k)
   !    errlocal_cell_L1   = errlocal_cell_L1 + abs(IncCell(k)%Pression - sol) * VolCellLocal(k)
   !    errlocal_cell_Linf = max(abs(IncCell(k)%Pression - sol), errlocal_cell_Linf)
@@ -1081,12 +1089,12 @@ program NN
   ! do k=1, NbFracOwn_Ncpus(commRank+1)
 
   !    call DefModel_AnalyticSol(XFaceLocal(:,FracToFaceLocal(k)),sol)
-     
+
   !    errlocal_frac_L2   = errlocal_frac_L2 + (IncFrac(k)%Pression - sol)**2 * SurfFracLocal(k)
   !    errlocal_frac_L1   = errlocal_frac_L1 + abs(IncFrac(k)%Pression - sol) * SurfFracLocal(k)
   !    errlocal_frac_Linf = max(abs(IncFrac(k)%Pression - sol), errlocal_frac_Linf)
   ! end do
-  
+
   ! call MPI_Reduce(errlocal_cell_L2, err_cell_L2, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
   ! call MPI_Reduce(errlocal_cell_L1, err_cell_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
   ! call MPI_Reduce(errlocal_cell_Linf, err_cell_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
@@ -1095,19 +1103,19 @@ program NN
   ! call MPI_Reduce(errlocal_frac_L1, err_frac_L1, 1, MPI_DOUBLE, MPI_SUM, 0, ComPASS_COMM_WORLD, Ierr)
   ! call MPI_Reduce(errlocal_frac_Linf, err_frac_Linf, 1, MPI_DOUBLE, MPI_MAX, 0, ComPASS_COMM_WORLD, Ierr)
 
-  
+
   ! if(commRank==0) then
   !    print*, ""
   !    print*, "errl2cell[mm] =", sqrt(err_cell_L2) / (2000.d0)**3
   !    print*, "errl1cell[mm] =", err_cell_L1 / (2000.d0)**3
-  !    print*, "errlinfcell[mm] =", err_cell_Linf 
+  !    print*, "errlinfcell[mm] =", err_cell_Linf
 
   !    print*, ""
   !    print*, "errl2frac[mm] =", sqrt(err_frac_L2) / (2000.d0)**2
   !    print*, "errl1frac[mm] =", err_frac_L1 / (2000.d0)**2
-  !    print*, "errlinffrac[mm] =", err_frac_Linf 
+  !    print*, "errlinffrac[mm] =", err_frac_Linf
   ! end if
-     
+
     ! *** Report *** !
     if(commRank==0) then
       do i=1,size(fd)

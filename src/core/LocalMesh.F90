@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 !> \brief Main subroutine LocalMesh_Make.  <br>
 !! Contains the local connectivity (after partition) of all CPUs.
 !!
@@ -66,7 +74,7 @@ module LocalMesh
        meshSizeS_ymin, & !< Temporary vector to send global size of mesh ymin
        meshSizeS_zmax, & !< Temporary vector to send global size of mesh zmax
        meshSizeS_zmin    !< Temporary vector to send global size of mesh zmin
-  
+
   !! Local mesh and connectivity in num (global) for all procs
   type(CSR), dimension(:), allocatable, public :: &
        FacebyCellRes_Ncpus, & !< Connectivity FacebyCell (in num global) for local Cells for all procs
@@ -121,7 +129,7 @@ module LocalMesh
   !! IdCell
   type(ARRAY1Int), dimension(:), allocatable, public :: &
        IdCellRes_Ncpus
-  
+
   !! The following vectors are used to the strucutre of Jacobian
   type(CSR), dimension(:), allocatable, public :: &
        CellbyNodeOwn_Ncpus, &  ! from NodebyCellLocal_Ncpus
@@ -167,7 +175,7 @@ module LocalMesh
   type(TYPE_CSRDataNodeWell), dimension(:), allocatable, public :: &
        NodeDatabyWellInjLocal_Ncpus, &
        NodeDatabyWellProdLocal_Ncpus
-  
+
   ! tmp vectors used to transform from num (global) to num (local)
   integer, dimension(:), allocatable, private :: &
        localbyGlobalCell,    &
@@ -215,15 +223,15 @@ module LocalMesh
        !
        ! NodebyCellLocal-> CellbyNodeOwn
        !                 + NodebyCellLocal -> NodebyNodeOwn
-       ! NodebyFaceLocal-> FacebyNodeOwn -> FracbyNodeOwn                
+       ! NodebyFaceLocal-> FacebyNodeOwn -> FracbyNodeOwn
        LocalMesh_CellbyNodeOwn,    & ! make NodebyCellOwn_Ncpus(ip1)
        LocalMesh_NodebyNodeOwn,    & ! make NodebyNodeOwn_Ncpus(ip1)
        LocalMesh_FacebyNodeOwn,    & ! make FacebyNodeOwn_Ncpus(ip1), only used to make FracbyNodeOwn_Ncpus(ip1)
-       LocalMesh_FracbyNodeOwn,    & ! make FracbyNodeOwn_Ncpus(ip1)    
+       LocalMesh_FracbyNodeOwn,    & ! make FracbyNodeOwn_Ncpus(ip1)
        !
        LocalMesh_WellbyNodeOwn,    & ! make WellInjbyNodeOwn_Ncpus(ip1)     (and WellProd)
        !
-       ! CellbyFaceLocal-> CellbyFracOwn  
+       ! CellbyFaceLocal-> CellbyFracOwn
        !                 + NodebyCellLocal -> NodebyFracOwn
        !                 + FracbyCellLocal -> FracbyFracOwn
        LocalMesh_CellbyFracOwn,    & ! make CellbyFracOwn_Ncpus(ip1)
@@ -323,7 +331,7 @@ contains
     allocate(IdFaceRes_Ncpus(Ncpus))
     allocate(IdNodeRes_Ncpus(Ncpus))
     allocate(IdCellRes_Ncpus(Ncpus))
-    
+
     ! Frac to/from Face
     allocate(FracToFaceLocal_Ncpus(Ncpus))
     allocate(FaceToFracLocal_Ncpus(Ncpus))
@@ -345,7 +353,7 @@ contains
     allocate(localbyGlobalFace(NbFace))
     allocate(localbyGlobalNode(NbNode))
 
-    
+
     do i=0, Ncpus-1
 
        ! Mesh and connectivities in num (global)
@@ -377,7 +385,7 @@ contains
        call LocalMesh_IdFaceRes(i)        ! IdFaceRes_Ncpus(ip1)
        call LocalMesh_IdNodeRes(i)        ! IdNodeRes_Ncpus(ip1)
        call LocalMesh_IdCellRes(i)        ! IdCellRes_Ncpus(ip1)
-       
+
        call LocalMesh_FracbyCellLocal(i)  ! FracbyCellLocal_Ncpus(ip1)
        call LocalMesh_FracbyProc(i)       ! FracbyProc(ip1)
 
@@ -392,7 +400,7 @@ contains
        call LocalMesh_CellbyFracOwn(i)    ! CellbyFracOwn_Ncpus(ip1)
        call LocalMesh_NodebyFracOwn(i)    ! NodebyFracOwn_Ncpus(ip1)
        call LocalMesh_FracbyFracOwn(i)    ! FracbyFracOwn_Ncpus(ip1)
-       
+
        ! X node
        call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1)
 
@@ -484,7 +492,7 @@ contains
        call CommonType_deallocCSR(WellInjbyProc(i))
        call CommonType_deallocCSR(WellProdbyProc(i))
     end do
-    
+
     deallocate(CellbyProc)
     deallocate(FacebyProc)
     deallocate(NodebyProc)
@@ -495,9 +503,9 @@ contains
     deallocate(DataWellProdRes_Ncpus)
 
   end subroutine LocalMesh_Free
-  
-  
-  ! Output: 
+
+
+  ! Output:
   !   CellbyProc(ip)
   !   NbCellRes(ip), NbCellOwn(ip)
   ! Use:
@@ -510,7 +518,7 @@ contains
     integer, intent(in) :: ip
     integer :: ip1 ! ip1 = ip + 1 ip=0,1,..., ip1 used for array
 
-    ! tmp 
+    ! tmp
     integer :: cellv, i, j, k, procCV
     integer :: ind, ipf, kipf, kf, procf
     integer :: numCellRes, numFaceRes, numNodeRes
@@ -521,7 +529,7 @@ contains
          voisinTemp, colorProc, colorCell, cptCellProcVois
 
     ip1 = ip + 1
-    allocate(colorProc(Ncpus)) 
+    allocate(colorProc(Ncpus))
     allocate(voisinTemp(Ncpus))
     allocate(colorCell(NbCell))
 
@@ -538,7 +546,7 @@ contains
              if (colorProc(procCV+1)==-1) then
                 nbProcVoisinCell = nbProcVoisinCell + 1
                 colorProc(procCV+1) = 0
-                voisinTemp(nbProcVoisinCell) = procCV 
+                voisinTemp(nbProcVoisinCell) = procCV
              endif
           enddo
        endif
@@ -546,13 +554,13 @@ contains
     nbProcVoisinCell = nbProcVoisinCell + 1 ! + proc courant
     CellbyProc(ip1)%Nb = nbProcVoisinCell
 
-    allocate(CellbyProc(ip1)%Val(CellbyProc(ip1)%Nb)) 
+    allocate(CellbyProc(ip1)%Val(CellbyProc(ip1)%Nb))
 
     CellbyProc(ip1)%Val(1) = ip
     CellbyProc(ip1)%Val(2:CellbyProc(ip1)%Nb) = voisinTemp(1:nbProcVoisinCell-1)
 
     allocate(CellbyProc(ip1)%Pt(nbProcVoisinCell+1))
-    CellbyProc(ip1)%Pt(:)=0 
+    CellbyProc(ip1)%Pt(:)=0
     colorCell(:)=-1
 
     do k=1,NbCell
@@ -563,9 +571,9 @@ contains
 
           ! ghost cells
           do j=CellbyCell%Pt(k)+1,CellbyCell%Pt(k+1)
-             cellv = CellbyCell%Num(j) 
+             cellv = CellbyCell%Num(j)
              procCV = ProcbyCell(cellv)
-             if (procCV/=ip) then      	  	 	
+             if (procCV/=ip) then
                 if (colorCell(cellv)==-1) then
 
                    do iv =2,nbProcVoisinCell
@@ -597,13 +605,13 @@ contains
           do j=CellbyCell%Pt(k)+1,CellbyCell%Pt(k+1)
              cellv =  CellbyCell%Num(j)
              procCV = ProcbyCell(cellv)
-             if (procCV/=ip) then      	  	 	
+             if (procCV/=ip) then
                 if (colorCell(cellv)==-1) then
                    do iv = 2,nbProcVoisinCell
                       if (procCV==CellbyProc(ip1)%Val(iv)) then
                          colorCell(cellv) = 0
                          cptCellProcVois(iv) = cptCellProcVois(iv) + 1
-                         CellbyProc(ip1)%Num(CellbyProc(ip1)%Pt(iv)+cptCellProcVois(iv)) = cellv 
+                         CellbyProc(ip1)%Num(CellbyProc(ip1)%Pt(iv)+cptCellProcVois(iv)) = cellv
                       endif
                    enddo
                 endif
@@ -650,7 +658,7 @@ contains
           numCellRes = CellbyProc(ip1)%Num(k)
 
           FacebyCellRes_Ncpus(ip1)%Pt(k+1) = FacebyCellRes_Ncpus(ip1)%Pt(k) &
-               + FacebyCell%Pt(numCellRes+1)- FacebyCell%Pt(numCellRes) 
+               + FacebyCell%Pt(numCellRes+1)- FacebyCell%Pt(numCellRes)
        enddo
     enddo
 
@@ -697,7 +705,7 @@ contains
 
           numCellRes = CellbyProc(ip1)%Num(k)
           NodebyCellRes_Ncpus(ip1)%Pt(k+1) = NodebyCellRes_Ncpus(ip1)%Pt(k) &
-               + NodebyCell%Pt(numCellRes+1)- NodebyCell%Pt(numCellRes) 
+               + NodebyCell%Pt(numCellRes+1)- NodebyCell%Pt(numCellRes)
        enddo
 
     enddo
@@ -761,7 +769,7 @@ contains
              kf = CellbyFace%Num(j)
              ! proc that cell is own
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
           colorProc(procf+1) = 1
        endif
@@ -777,7 +785,7 @@ contains
 
     ! %Val contains the numero of proc that face is own
     nbProcVoisinFace = 1
-    FacebyProc(ip1)%Val(1) = ip 
+    FacebyProc(ip1)%Val(1) = ip
     do i=0,Ncpus-1
        if(colorProc(i+1)==1.and.ip/=i) then
           nbProcVoisinFace = nbProcVoisinFace + 1
@@ -796,17 +804,17 @@ contains
              kf = CellbyFace%Num(j)
              ! proc that cell is own
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
           ! looking for the proc among the neighbour proc of ip
-          ind = -1 
+          ind = -1
           do iv=1,nbProcVoisinFace
              if (FacebyProc(ip1)%Val(iv)==procf) then
                 ind = 1
                 ipf = iv
              endif
           enddo
-          if (ind==-1) then 
+          if (ind==-1) then
              print*,' the face has not been found among the neighbour procs of ip ',ip,kf,procf
           endif
           ! face i is own for proc ipf
@@ -826,7 +834,7 @@ contains
              kf = CellbyFace%Num(j)
              ! proc that cell is own
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
           ! looking for the proc among the neighbour proc of ip
           ind = -1
@@ -836,7 +844,7 @@ contains
                 ipf = iv
              endif
           enddo
-          if (ind==-1) then 
+          if (ind==-1) then
              print*,' the face has not been found among the neighbour procs of ip ',ip,kf,procf
           endif
           cptFaceProcVois(ipf) = cptFaceProcVois(ipf) + 1
@@ -860,7 +868,7 @@ contains
   subroutine LocalMesh_NodebyFaceRes(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1 
+    integer :: ip1
 
     ! tmp
     integer :: iv, k, Vsize, numFaceRes
@@ -905,7 +913,7 @@ contains
   subroutine LocalMesh_CellbyFaceRes(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1 
+    integer :: ip1
 
     ! tmp
     integer :: iv, k, Vsize, numFaceRes
@@ -964,7 +972,7 @@ contains
          colorProc, colorNode, colorNodeTmp, cptNodeProcVois
 
     ip1 = ip + 1
-    allocate(colorProc(Ncpus)) 
+    allocate(colorProc(Ncpus))
     allocate(colorNodeTmp(NbNode))
     allocate(colorNode(NbNode))
 
@@ -1045,7 +1053,7 @@ contains
 
              ! proc containing this cell
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
 
           colorProc(procf+1) = 1
@@ -1082,7 +1090,7 @@ contains
              kf = CellbyNode%Num(j)
              ! proc that cell is own
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
           ! looking for the proc among the neighbour proc of ip
           ind = -1
@@ -1092,7 +1100,7 @@ contains
                 ipf = iv
              endif
           enddo
-          if (ind==-1) then 
+          if (ind==-1) then
              print*,' the node has not been found among the neighbour procs of ip ',ip,kf,procf
           endif
           ! node i is own for proc ipf
@@ -1114,7 +1122,7 @@ contains
              kf = CellbyNode%Num(j)
              ! proc that cell is own
              procCV = ProcbyCell(kf)
-             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf        
+             if ((ipf==-1).or.(kf<kipf))  procf = procCV ; kipf = kf
           enddo
 
           ! looking for the proc among the neighbour proc of ip
@@ -1125,7 +1133,7 @@ contains
                 ipf = iv
              endif
           enddo
-          if (ind==-1) then 
+          if (ind==-1) then
              print*,' the node has not been found among the neighbour procs of ip ',ip,kf,procf
           endif
           ! node i is own for proc ipf
@@ -1175,7 +1183,7 @@ contains
          colorProc, cptWellInjProcVois, cptWellProdProcVois, ProcbyNode
     logical :: wellinproc
 
-    allocate(colorProc(Ncpus)) 
+    allocate(colorProc(Ncpus))
     allocate(ProcbyNode(NbNode))
 
     ip1 = ip + 1
@@ -1579,11 +1587,11 @@ contains
     ip1 = ip + 1
 
     Nb = NodebyCellRes_Ncpus(ip1)%Nb
-    Nnnz = NodebyCellRes_Ncpus(ip1)%Pt(Nb+1)          
+    Nnnz = NodebyCellRes_Ncpus(ip1)%Pt(Nb+1)
     allocate(NodebyCellLocal_Ncpus(ip1)%Pt(Nb+1) )
     allocate(NodebyCellLocal_Ncpus(ip1)%Num(Nnnz) )
 
-    NodebyCellLocal_Ncpus(ip1)%Nb = Nb   
+    NodebyCellLocal_Ncpus(ip1)%Nb = Nb
     do i=1,Nb+1
        NodebyCellLocal_Ncpus(ip1)%Pt(i) = NodebyCellRes_Ncpus(ip1)%Pt(i)
     end do
@@ -1605,12 +1613,12 @@ contains
     integer :: ip1, Nb, Nnnz, i
 
     ip1 = ip + 1
-    
+
     Nb = NodebyFaceRes_Ncpus(ip1)%Nb
     Nnnz = NodebyFaceRes_Ncpus(ip1)%Pt(Nb+1)
     allocate(NodebyFaceLocal_Ncpus(ip1)%Pt(Nb+1) )
     allocate(NodebyFaceLocal_Ncpus(ip1)%Num(Nnnz) )
-    
+
     NodebyFaceLocal_Ncpus(ip1)%Nb = Nb
     do i=1, Nb+1
        NodebyFaceLocal_Ncpus(ip1)%Pt(i) = NodebyFaceRes_Ncpus(ip1)%Pt(i)
@@ -1618,7 +1626,7 @@ contains
     do i = 1, Nnnz
        NodebyFaceLocal_Ncpus(ip1)%Num(i) = localbyGlobalNode(NodebyFaceRes_Ncpus(ip1)%Num(i))
     enddo
-    
+
   end subroutine LocalMesh_NodebyFaceLocal
 
 
@@ -1661,7 +1669,7 @@ contains
     integer :: ip1, Nb, i
 
     ip1 = ip + 1
-    
+
     Nb = CellbyProc(ip1)%Pt( CellbyProc(ip1)%Nb+1 )
     allocate(IdCellRes_Ncpus(ip1)%Val(Nb) )
     do i=1,Nb
@@ -1670,7 +1678,7 @@ contains
 
   end subroutine LocalMesh_IdCellRes
 
-  
+
   ! Output:
   !  IdFaceRes_Ncpus(ip)
   ! Use:
@@ -1682,7 +1690,7 @@ contains
     integer :: ip1, Nb, i
 
     ip1 = ip + 1
-    
+
     Nb = FacebyProc(ip1)%Pt( FacebyProc(ip1)%Nb+1 )
     allocate(IdFaceRes_Ncpus(ip1)%Val(Nb) )
     do i=1,Nb
@@ -1700,7 +1708,7 @@ contains
 
     integer, intent(in) :: ip
     integer :: ip1, Nb, i
-    
+
     ip1 = ip + 1
 
     Nb = NbNodeResS_Ncpus(ip1)
@@ -1719,7 +1727,7 @@ contains
        IdNodeRes_Ncpus(ip1)%Val(i)%P = IdNode(NodebyProc(ip1)%Num(i))%P
        IdNodeRes_Ncpus(ip1)%Val(i)%T = IdNode(NodebyProc(ip1)%Num(i))%T
     end do
-       
+
   end subroutine LocalMesh_IdNodeRes
 
   ! Output:
@@ -1733,7 +1741,7 @@ contains
     integer :: ip1, Nb, i
 
     ip1 = ip + 1
-    
+
     Nb = CellbyProc(ip1)%Pt( CellbyProc(ip1)%Nb+1 )
     allocate(PorositeCell_Ncpus(ip1)%Val(Nb))
     do i=1,Nb
@@ -1760,7 +1768,7 @@ contains
     integer :: ip1, Nb, i
 
     ip1 = ip + 1
-    
+
     Nb = CellbyProc(ip1)%Pt( CellbyProc(ip1)%Nb+1 )
     allocate(PermCellLocal_Ncpus(ip1)%Array3d(3,3,Nb))
     do i=1,Nb
@@ -1894,7 +1902,7 @@ contains
     integer :: ip1, k, n, npt
     integer, dimension(:), allocatable :: tabNbWellbyNode
 
-    ip1 = ip + 1 
+    ip1 = ip + 1
 
     ! INJ WELL
 
@@ -1978,7 +1986,7 @@ contains
   ! Output:
   !   CellbyNodeOwn_Ncpus
   ! Use:
-  !   NodebyCellLocal_Ncpus(ip) 
+  !   NodebyCellLocal_Ncpus(ip)
   !   NbNodeOwnS_Ncpus(ip), NbCellLocal_Ncpus(ip)
   ! Store the local number of cells surrounding own nodes of proc ip
   subroutine LocalMesh_CellbyNodeOwn(ip)
@@ -1988,22 +1996,22 @@ contains
 
     integer, dimension(:), allocatable :: tabNbCellbyNode
 
-    ip1 = ip + 1 
+    ip1 = ip + 1
 
     allocate(tabNbCellbyNode(NbNodeOwnS_Ncpus(ip1)))
 
     ! %Nb
-    CellbyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1) 
+    CellbyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1)
     allocate(CellbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1)+1))
     CellbyNodeOwn_Ncpus(ip1)%Pt(:) = 0
 
-    ! Counting 
+    ! Counting
     tabNbCellbyNode(:) = 0
     do k = 1,NbCellResS_Ncpus(ip1)
        do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
           n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
           if (n<=NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
-             tabNbCellbyNode(n) = tabNbCellbyNode(n) + 1        
+             tabNbCellbyNode(n) = tabNbCellbyNode(n) + 1
           endif
        enddo
     enddo
@@ -2015,13 +2023,13 @@ contains
 
     allocate(CellbyNodeOwn_Ncpus(ip1)%Num(CellbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1)+1)))
 
-    ! Filling 
+    ! Filling
     tabNbCellbyNode(:) = 0
     do k = 1,NbCellResS_Ncpus(ip1)
        do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
           n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-          if (n<=NbNodeOwnS_Ncpus(ip1)) then 
-             tabNbCellbyNode(n) = tabNbCellbyNode(n) + 1        
+          if (n<=NbNodeOwnS_Ncpus(ip1)) then
+             tabNbCellbyNode(n) = tabNbCellbyNode(n) + 1
              CellbyNodeOwn_Ncpus(ip1)%Num(CellbyNodeOwn_Ncpus(ip1)%Pt(n)+tabNbCellbyNode(n)) = k
           endif
        enddo
@@ -2035,7 +2043,7 @@ contains
   !  NodebyNodeOwn(ip)
   ! Use:
   !  NodebyCellLocal_Ncpus(ip), CellbyNodeOwn_Ncpus(ip)
-  ! Store the neighbour nodes (local) of own nodes 
+  ! Store the neighbour nodes (local) of own nodes
   !    (we know neighbour nodes are all own or ghost for this proc)
   !    CAREFUL: the nodes have no particulary order (own nodes are not at the beginning !)
   subroutine LocalMesh_NodebyNodeOwn(ip)
@@ -2056,7 +2064,7 @@ contains
 
     colorNodeLocal(:) = 0
     tabNbNodebyNode(:) = 0
-    
+
     ! own nodes of proc ip1
     do m = 1,NbNodeOwnS_Ncpus(ip1)
 
@@ -2075,7 +2083,7 @@ contains
           k = CellbyNodeOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorNodeLocal(n)==m) then 
+             if (colorNodeLocal(n)==m) then
                 tabNbNodebyNode(m) = tabNbNodebyNode(m) + 1
                 colorNodeLocal(n) = 0
              endif
@@ -2099,7 +2107,7 @@ contains
     colorNodeLocal(:) = 0
     tabNbNodebyNode(:) = 0
 
-    do m = 1,NbNodeOwnS_Ncpus(ip1) 
+    do m = 1,NbNodeOwnS_Ncpus(ip1)
 
        ! loop over cells surrounding cell m
        do kpt = CellbyNodeOwn_Ncpus(ip1)%Pt(m)+1,CellbyNodeOwn_Ncpus(ip1)%Pt(m+1)
@@ -2115,7 +2123,7 @@ contains
           k = CellbyNodeOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorNodeLocal(n)==m) then 
+             if (colorNodeLocal(n)==m) then
                 tabNbNodebyNode(m) = tabNbNodebyNode(m) + 1
                 colorNodeLocal(n) = 0
                 NodebyNodeOwn_Ncpus(ip1)%Num(NodebyNodeOwn_Ncpus(ip1)%Pt(m) + tabNbNodebyNode(m)) = n
@@ -2152,7 +2160,7 @@ contains
     ! allocate
     allocate(FracbyProc(ip1)%Pt(Nb+1)) ! allo %Pt of proc1
     FracbyProc(ip1)%Pt(1) = 0
-    
+
     ! loop csr FracbyProc%Pt
     ! nf: nb of frac, used to make FracbyProc(ip)%Num
     nf = 0
@@ -2192,14 +2200,14 @@ contains
     ! Not all elements of %val(:) are useful. Since in some rows, no frac
     allocate(FracbyProc(ip1)%Val(Nb))
     FracbyProc(ip1)%Val = FacebyProc(ip1)%Val
-    
+
     ! NbFracResS_Ncpus(ip1), NbFracOwnS_Ncpus(ip1), rq: =0 if no frac
     NbFracResS_Ncpus(ip1) = FracbyProc(ip1)%Pt(FracbyProc(ip1)%Nb+1) - FracbyProc(ip1)%Pt(1)
     NbFracOwnS_Ncpus(ip1) = FracbyProc(ip1)%Pt(2) - FracbyProc(ip1)%Pt(1)
 
   end subroutine LocalMesh_FracbyProc
 
-  
+
   ! Output:
   !  NodebyFracOwn_Npus(ip)
   ! Use:
@@ -2226,8 +2234,8 @@ contains
 
     colorNodeLocal(:) = 0
     tabNbNodebyFrac(:) = 0
-    
-    ! boucle sur les noeuds own 
+
+    ! boucle sur les noeuds own
     do m = 1,NbFracOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les noeuds n de k
@@ -2244,7 +2252,7 @@ contains
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorNodeLocal(n)==m) then 
+             if (colorNodeLocal(n)==m) then
                 tabNbNodebyFrac(m) = tabNbNodebyFrac(m) + 1
                 colorNodeLocal(n) = 0
              endif
@@ -2268,7 +2276,7 @@ contains
     colorNodeLocal(:) = 0
     tabNbNodebyFrac(:) = 0
 
-    do m = 1,NbFracOwnS_Ncpus(ip1) 
+    do m = 1,NbFracOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les noeuds n de k
        do kpt = CellbyFracOwn_Ncpus(ip1)%Pt(m)+1,CellbyFracOwn_Ncpus(ip1)%Pt(m+1)
@@ -2278,12 +2286,12 @@ contains
              colorNodeLocal(n) = m
           enddo
        enddo
-       ! remplissage du nombre de noeuds voisins pour le noeud own m 
+       ! remplissage du nombre de noeuds voisins pour le noeud own m
        do kpt = CellbyFracOwn_Ncpus(ip1)%Pt(m)+1,CellbyFracOwn_Ncpus(ip1)%Pt(m+1)
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorNodeLocal(n)==m) then 
+             if (colorNodeLocal(n)==m) then
                 tabNbNodebyFrac(m) = tabNbNodebyFrac(m) + 1
                 colorNodeLocal(n) = 0
                 NodebyFracOwn_Ncpus(ip1)%Num(NodebyFracOwn_Ncpus(ip1)%Pt(m) + tabNbNodebyFrac(m)) = n
@@ -2294,7 +2302,7 @@ contains
 
     deallocate(colorNodeLocal)
     deallocate(tabNbNodebyFrac )
-    
+
   end subroutine LocalMesh_NodebyFracOwn
 
 
@@ -2324,12 +2332,12 @@ contains
 
     do m=1, NbFaceOwnS_Ncpus(ip1) ! face own
 
-       if (IdFaceRes_Ncpus(ip1)%Val(m)==-2) then ! frac, 
+       if (IdFaceRes_Ncpus(ip1)%Val(m)==-2) then ! frac,
 
           CellbyFracOwn_Ncpus(ip1)%Pt(nf+1) =  CellbyFracOwn_Ncpus(ip1)%Pt(nf) &
                + CellbyFaceLocal_Ncpus(ip1)%Pt(m+1) &
                - CellbyFaceLocal_Ncpus(ip1)%Pt(m)
-          nf = nf + 1 
+          nf = nf + 1
        end if
     end do
 
@@ -2343,7 +2351,7 @@ contains
        if (IdFaceRes_Ncpus(ip1)%Val(m)==-2) then ! frac, copy %Num
 
           ! number of non zero this line
-          startfrac = CellbyFracOwn_Ncpus(ip1)%Pt(nf) + 1 
+          startfrac = CellbyFracOwn_Ncpus(ip1)%Pt(nf) + 1
           endfrac = CellbyFracOwn_Ncpus(ip1)%Pt(nf+1)
 
           startcell = CellbyFaceLocal_Ncpus(ip1)%Pt(m) + 1
@@ -2352,7 +2360,7 @@ contains
           CellbyFracOwn_Ncpus(ip1)%Num(startfrac:endfrac) = &
                CellbyFaceLocal_Ncpus(ip1)%Num(startcell:endcell)
 
-          nf = nf + 1 
+          nf = nf + 1
        end if
     end do
 
@@ -2365,7 +2373,7 @@ contains
   !   FacebyCellLocal_Ncpus(ip), IdFaceRes_Ncpus(ip)
   subroutine LocalMesh_FracbyCellLocal(ip)
 
-    integer, intent(in) :: ip    
+    integer, intent(in) :: ip
     integer :: ip1, nf, j, i, Nb
 
     ip1 = ip + 1
@@ -2373,17 +2381,17 @@ contains
     ! %Nb
     Nb = FacebyCellLocal_Ncpus(ip1)%Nb
     FracbyCellLocal_Ncpus(ip1)%Nb = Nb
-    
+
     allocate(FracbyCellLocal_Ncpus(ip1)%Pt(Nb+1)) ! allo %Pt of proc1
     FracbyCellLocal_Ncpus(ip1)%Pt(1) = 0
-    
+
     ! loop csr FracbyCellLocal(ip1)
     ! nf: nb of frac, used to make FracbyProc(ip)%Num
     nf = 0
     do i=1,FacebyCellLocal_Ncpus(ip1)%Nb
 
        do j=FacebyCellLocal_Ncpus(ip1)%Pt(i)+1, FacebyCellLocal_Ncpus(ip1)%Pt(i+1)
-          
+
           ! if FacebyCellLocal_Ncpus(ip1)%Num(j) is frac
           if (IdFaceRes_Ncpus(ip1)%Val( FacebyCellLocal_Ncpus(ip1)%Num(j))==-2) then
              nf = nf + 1
@@ -2438,8 +2446,8 @@ contains
 
     colorFaceLocal(:) = 0
     tabNbFacebyNode(:) = 0
-    
-    ! boucle sur les noeuds own 
+
+    ! boucle sur les noeuds own
     do m = 1,NbNodeOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les noeuds n de k
@@ -2456,7 +2464,7 @@ contains
           k = CellbyNodeOwn_Ncpus(ip1)%Num(kpt)
           do npt = FacebyCellLocal_Ncpus(ip1)%Pt(k)+1,FacebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = FacebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorFaceLocal(n)==m) then 
+             if (colorFaceLocal(n)==m) then
                 tabNbFacebyNode(m) = tabNbFacebyNode(m) + 1
                 colorFaceLocal(n) = 0
              endif
@@ -2480,7 +2488,7 @@ contains
     colorFaceLocal(:) = 0
     tabNbFacebyNode(:) = 0
 
-    do m = 1,NbNodeOwnS_Ncpus(ip1) 
+    do m = 1,NbNodeOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les noeuds n de k
        do kpt = CellbyNodeOwn_Ncpus(ip1)%Pt(m)+1,CellbyNodeOwn_Ncpus(ip1)%Pt(m+1)
@@ -2490,12 +2498,12 @@ contains
              colorFaceLocal(n) = m
           enddo
        enddo
-       ! remplissage du nombre de noeuds voisins pour le noeud own m 
+       ! remplissage du nombre de noeuds voisins pour le noeud own m
        do kpt = CellbyNodeOwn_Ncpus(ip1)%Pt(m)+1,CellbyNodeOwn_Ncpus(ip1)%Pt(m+1)
           k = CellbyNodeOwn_Ncpus(ip1)%Num(kpt)
           do npt = FacebyCellLocal_Ncpus(ip1)%Pt(k)+1,FacebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = FacebyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorFaceLocal(n)==m) then 
+             if (colorFaceLocal(n)==m) then
                 tabNbFacebyNode(m) = tabNbFacebyNode(m) + 1
                 colorFaceLocal(n) = 0
                 FacebyNodeOwn_Ncpus(ip1)%Num(FacebyNodeOwn_Ncpus(ip1)%Pt(m) + tabNbFacebyNode(m)) = n
@@ -2508,12 +2516,12 @@ contains
     deallocate(tabNbFacebyNode )
 
   end subroutine LocalMesh_FacebyNodeOwn
-  
+
 
   ! ! Rq important:
   ! !   The folllowing way to make FacebyNodeOwn is wrong
   ! !   ex: node 1 is in cell 2, the following way gives the faces which contains the node 1. Not all the faces in cell 2 could be contained.
-  
+
   ! ! Output:
   ! !   FacebyNodeOwn_Ncpus(ip)
   ! ! Use:
@@ -2529,21 +2537,21 @@ contains
   !   integer, dimension(:), allocatable :: &
   !        tabNbFacebyNode
 
-  !   ip1 = ip + 1 
+  !   ip1 = ip + 1
 
   !   allocate(tabNbFacebyNode(NbNodeOwnS_Ncpus(ip1)))
 
   !   ! %Nb
-  !   FacebyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1) 
+  !   FacebyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1)
   !   allocate(FacebyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1)+1))
 
-  !   ! Counting 
+  !   ! Counting
   !   tabNbFacebyNode(:) = 0
   !   do k = 1,NbFaceResS_Ncpus(ip1)
   !      do npt = NodebyFaceLocal_Ncpus(ip1)%Pt(k)+1,NodebyFaceLocal_Ncpus(ip1)%Pt(k+1)
   !         n = NodebyFaceLocal_Ncpus(ip1)%Num(npt)
   !         if (n<=NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
-  !            tabNbFacebyNode(n) = tabNbFacebyNode(n) + 1        
+  !            tabNbFacebyNode(n) = tabNbFacebyNode(n) + 1
   !         endif
   !      enddo
   !   enddo
@@ -2555,13 +2563,13 @@ contains
 
   !   allocate(FacebyNodeOwn_Ncpus(ip1)%Num(FacebyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1)+1)))
 
-  !   ! Filling 
+  !   ! Filling
   !   tabNbFacebyNode(:) = 0
   !   do k = 1,NbFaceResS_Ncpus(ip1)
   !      do npt = NodebyFaceLocal_Ncpus(ip1)%Pt(k)+1,NodebyFaceLocal_Ncpus(ip1)%Pt(k+1)
   !         n = NodebyFaceLocal_Ncpus(ip1)%Num(npt)
-  !         if (n<=NbNodeOwnS_Ncpus(ip1)) then 
-  !            tabNbFacebyNode(n) = tabNbFacebyNode(n) + 1        
+  !         if (n<=NbNodeOwnS_Ncpus(ip1)) then
+  !            tabNbFacebyNode(n) = tabNbFacebyNode(n) + 1
   !            FacebyNodeOwn_Ncpus(ip1)%Num(FacebyNodeOwn_Ncpus(ip1)%Pt(n)+tabNbFacebyNode(n)) = k
   !         endif
   !      enddo
@@ -2581,7 +2589,7 @@ contains
   !     If there is no frac in own node i, juste take %Pt(i+1)=%Pt(i).
   subroutine LocalMesh_FracbyNodeOwn(ip)
 
-    integer, intent(in) :: ip    
+    integer, intent(in) :: ip
     integer :: ip1, nf, j, i, Nb
 
     ip1 = ip + 1
@@ -2655,7 +2663,7 @@ contains
     colorFracLocal(:) = 0
     tabNbFracbyFrac(:) = 0
 
-    ! boucle sur les frac own 
+    ! boucle sur les frac own
     do m = 1,NbFracOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les frac n de k
@@ -2672,7 +2680,7 @@ contains
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = FracbyCellLocal_Ncpus(ip1)%Pt(k)+1,FracbyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = FracbyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorFracLocal(n)==m) then 
+             if (colorFracLocal(n)==m) then
                 tabNbFracbyFrac(m) = tabNbFracbyFrac(m) + 1
                 colorFracLocal(n) = 0
              endif
@@ -2695,7 +2703,7 @@ contains
     colorFracLocal(:) = 0
     tabNbFracbyFrac(:) = 0
 
-    do m = 1,NbFracOwnS_Ncpus(ip1) 
+    do m = 1,NbFracOwnS_Ncpus(ip1)
 
        ! boucle sur les mailles k voisines de m puis sur les frac n de k
        do kpt = CellbyFracOwn_Ncpus(ip1)%Pt(m)+1,CellbyFracOwn_Ncpus(ip1)%Pt(m+1)
@@ -2705,12 +2713,12 @@ contains
              colorFracLocal(n) = m
           enddo
        enddo
-       ! remplissage du nombre de noeuds voisins pour le frac own m 
+       ! remplissage du nombre de noeuds voisins pour le frac own m
        do kpt = CellbyFracOwn_Ncpus(ip1)%Pt(m)+1,CellbyFracOwn_Ncpus(ip1)%Pt(m+1)
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = FracbyCellLocal_Ncpus(ip1)%Pt(k)+1,FracbyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = FracbyCellLocal_Ncpus(ip1)%Num(npt)
-             if (colorFracLocal(n)==m) then 
+             if (colorFracLocal(n)==m) then
                 tabNbFracbyFrac(m) = tabNbFracbyFrac(m) + 1
                 colorFracLocal(n) = 0
                 FracbyFracOwn_Ncpus(ip1)%Num(FracbyFracOwn_Ncpus(ip1)%Pt(m) + tabNbFracbyFrac(m)) = n
@@ -2748,7 +2756,7 @@ contains
 
   end subroutine LocalMesh_FracToFace
 
-  
+
   ! FaceToFracLocal_Ncpus(ip1)
   ! Use IdFaceRes_Ncpus(ip1)
   subroutine LocalMesh_FaceToFrac(ip)
@@ -2771,7 +2779,7 @@ contains
     end do
 
   end subroutine LocalMesh_FaceToFrac
-  
+
 
   ! ************************************************************** !
 
@@ -2788,10 +2796,10 @@ contains
     integer :: Nb, Nnz, ip1, i, j
 
     ip1 = ip + 1
-    
+
     Nb = NodebyProc(ip1)%Nb
     Nnz = NodebyProc(ip1)%Pt(Nb+1)
-    
+
     allocate(NumNodebyProc_Ncpus(ip1)%Pt(Nb+1))
     allocate(NumNodebyProc_Ncpus(ip1)%Num(Nnz))
     allocate(NumNodebyProc_Ncpus(ip1)%Val(Nnz))
@@ -2800,7 +2808,7 @@ contains
     NumNodebyProc_Ncpus(ip1)%Pt(:) =  NodebyProc(ip1)%Pt(:)
     NumNodebyProc_Ncpus(ip1)%Num(:) = 0
     NumNodebyProc_Ncpus(ip1)%Val(:) = -1
-    
+
     do i=1,Nb
        do j=NodebyProc(ip1)%Pt(i)+1, NodebyProc(ip1)%Pt(i+1)
 
@@ -2815,7 +2823,7 @@ contains
     ! NumNodebyProc%Val(i) : each node is in which proc, whiere i=1,Nnz
     ! the definition of NumNodebyProc%Val here is not same with NodebyProc%Val
     !   in NodebyProc, its size is Nb (for each row)
-    !   in NumNodebyProc, its size is Nnz (for each element) 
+    !   in NumNodebyProc, its size is Nnz (for each element)
     do i=1,Nb
        do j=NodebyProc(ip1)%Pt(i)+1, NodebyProc(ip1)%Pt(i+1)
 
@@ -2824,7 +2832,7 @@ contains
        end do
     end do
 
-   
+
   end subroutine LocalMesh_NumNodebyProc
 
   ! Output:
@@ -2839,10 +2847,10 @@ contains
     integer :: Nb, Nnz, ip1, i, j
 
     ip1 = ip + 1
-    
+
     Nb = FracbyProc(ip1)%Nb
     Nnz = FracbyProc(ip1)%Pt(Nb+1)
-    
+
     allocate(NumFracbyProc_Ncpus(ip1)%Pt(Nb+1))
     allocate(NumFracbyProc_Ncpus(ip1)%Num(Nnz))
     allocate(NumFracbyProc_Ncpus(ip1)%Val(Nnz))
@@ -2851,10 +2859,10 @@ contains
     NumFracbyProc_Ncpus(ip1)%Pt(:) =  FracbyProc(ip1)%Pt(:)
     NumFracbyProc_Ncpus(ip1)%Num(:) = 0
     NumFracbyProc_Ncpus(ip1)%Val(:) = -1
-    
+
     do i=1,Nb
        do j=FracbyProc(ip1)%Pt(i)+1, FracbyProc(ip1)%Pt(i+1)
-          
+
           NumFracbyProc_Ncpus(ip1)%Num(j) = &
                NumFracGtoL( FracbyProc(ip1)%Num(j) )
        end do
@@ -2865,12 +2873,12 @@ contains
     ! NumFracbyProc%Val(i) : each frac is in which proc, whiere i=1,Nnz
     do i=1,Nb
        do j=FracbyProc(ip1)%Pt(i)+1, FracbyProc(ip1)%Pt(i+1)
-          
+
           NumFracbyProc_Ncpus(ip1)%Val(j) = &
                FracbyProc(ip1)%Val(i)
        end do
     end do
-    
+
   end subroutine LocalMesh_NumFracbyProc
 
   ! Output:
@@ -2890,7 +2898,7 @@ contains
     !! INJ WELL
     Nb = WellInjbyProc(ip1)%Nb
     Nnz = WellInjbyProc(ip1)%Pt(Nb+1)
-    
+
     allocate(NumWellInjbyProc_Ncpus(ip1)%Pt(Nb+1))
     allocate(NumWellInjbyProc_Ncpus(ip1)%Num(Nnz))
     allocate(NumWellInjbyProc_Ncpus(ip1)%Val(Nnz))
@@ -2899,7 +2907,7 @@ contains
     NumWellInjbyProc_Ncpus(ip1)%Pt(:) =  WellInjbyProc(ip1)%Pt(:)
     NumWellInjbyProc_Ncpus(ip1)%Num(:) = 0
     NumWellInjbyProc_Ncpus(ip1)%Val(:) = -1
-    
+
     do i=1,Nb
        do j=WellInjbyProc(ip1)%Pt(i)+1, WellInjbyProc(ip1)%Pt(i+1)
 
@@ -2912,7 +2920,7 @@ contains
     ! Rq:
     ! the definition of NumWellInjbyProc%Val here is not same with WellInjbyProc%Val
     !   in WellInjbyProc, its size is Nb (for each row)
-    !   in NumWellInjbyProc, its size is Nnz (for each element) 
+    !   in NumWellInjbyProc, its size is Nnz (for each element)
     !   WellInjbyProc%Val(i)    : row i is in which proc, where i=1:Nb
     !   NumWellInjbyProc%Val(i) : each WellInj is in which proc, whiere i=1,Nnz
     do i=1,Nb
@@ -2926,7 +2934,7 @@ contains
     !! PROD WELL
     Nb = WellProdbyProc(ip1)%Nb
     Nnz = WellProdbyProc(ip1)%Pt(Nb+1)
-    
+
     allocate(NumWellProdbyProc_Ncpus(ip1)%Pt(Nb+1))
     allocate(NumWellProdbyProc_Ncpus(ip1)%Num(Nnz))
     allocate(NumWellProdbyProc_Ncpus(ip1)%Val(Nnz))
@@ -2935,7 +2943,7 @@ contains
     NumWellProdbyProc_Ncpus(ip1)%Pt(:) =  WellProdbyProc(ip1)%Pt(:)
     NumWellProdbyProc_Ncpus(ip1)%Num(:) = 0
     NumWellProdbyProc_Ncpus(ip1)%Val(:) = -1
-    
+
     do i=1,Nb
        do j=WellProdbyProc(ip1)%Pt(i)+1, WellProdbyProc(ip1)%Pt(i+1)
 
@@ -2950,7 +2958,7 @@ contains
     ! NumWellProdbyProc%Val(i) : each WellProd is in which proc, whiere i=1,Nnz
     ! the definition of NumWellProdbyProc%Val here is not same with WellProdbyProc%Val
     !   in WellProdbyProc, its size is Nb (for each row)
-    !   in NumWellProdbyProc, its size is Nnz (for each element) 
+    !   in NumWellProdbyProc, its size is Nnz (for each element)
     do i=1,Nb
        do j=WellProdbyProc(ip1)%Pt(i)+1, WellProdbyProc(ip1)%Pt(i+1)
 
@@ -2972,16 +2980,16 @@ contains
   subroutine LocalMesh_NumNodeGtoL
 
     integer :: p, j
-    
+
     allocate(NumNodeGtoL(NbNode))
     NumNodeGtoL(:) = 0
-    
+
     do p=1,Ncpus
        do j=1, NbNodeOwnS_Ncpus(p)    ! j is local number of node own in proc p
           NumNodeGtoL( NodebyProc(p)%Num(j) ) = j
        end do
-    end do 
-        
+    end do
+
   end subroutine LocalMesh_NumNodeGtoL
 
   ! Output:
@@ -2994,16 +3002,16 @@ contains
   subroutine LocalMesh_NumFracGtoL
 
     integer :: p, j
-    
+
     allocate(NumFracGtoL(NbFace)) ! size is NbFace, not NbFrac
     NumFracGtoL(:) = 0
-    
+
     do p=1,Ncpus
        do j=1, NbFracOwnS_Ncpus(p)    ! j is local number of frac own in proc p
           NumFracGtoL( FracbyProc(p)%Num(j) ) = j
        end do
-    end do 
-    
+    end do
+
   end subroutine LocalMesh_NumFracGtoL
 
   ! Ouput:
@@ -3020,7 +3028,7 @@ contains
     !! INJ WELL
     allocate(NumWellInjGtoL(NbWellInj))
     NumWellInjGtoL(:) = 0
-    
+
     do p=1,Ncpus
        do j=1, NbWellInjOwnS_Ncpus(p)    ! j is local number of WellInj own in proc p
           NumWellInjGtoL( WellInjbyProc(p)%Num(j) ) = j
@@ -3030,13 +3038,13 @@ contains
     !! PROD WELL
     allocate(NumWellProdGtoL(NbWellProd))
     NumWellProdGtoL(:) = 0
-    
+
     do p=1,Ncpus
        do j=1, NbWellProdOwnS_Ncpus(p)    ! j is local number of WellProd own in proc p
           NumWellProdGtoL( WellProdbyProc(p)%Num(j) ) = j
        end do
     end do
-        
+
   end subroutine LocalMesh_NumWellGtoL
 
 end module LocalMesh

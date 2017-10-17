@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module CommonMPI
 
   use mpi
@@ -5,7 +13,7 @@ module CommonMPI
   implicit none
 
   integer, public :: ComPASS_COMM_WORLD !< Communicator (all CPUs)
-  
+
   integer, public :: &
        commRank, & !< Rank of the calling process
        commSize, & !< Total number of precessors (given by MPI)
@@ -15,7 +23,7 @@ module CommonMPI
       CommonMPI_init
 
 contains
-  !> \brief Initialize MPI constants: 
+  !> \brief Initialize MPI constants:
   !! ComPASS_COMM_WORLD, commSize = Ncpus, commRank
   subroutine CommonMPI_init(comm)
 

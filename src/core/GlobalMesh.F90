@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 !> Main subroutine GlobalMesh_make.   <br>
 !! Contains the connectivity of the global mesh.
 module GlobalMesh
@@ -8,9 +16,9 @@ module GlobalMesh
   !    and IdFace, Dir Part
 
   ! 2.1 calcul CellbyCell for metis
-  !    use NodebyFace, FacebyCell  
+  !    use NodebyFace, FacebyCell
   !    to -> NodebyCell -> CellbyNode -> CellbyCell
-  ! 2.2 calcul CellbyFace using FacebyCell 
+  ! 2.2 calcul CellbyFace using FacebyCell
 
   ! 3. IdFace, Mesh Part
 
@@ -68,7 +76,7 @@ module GlobalMesh
        FacebyCell, & !< CSR list of Faces surrounding each Cell
        NodebyFace    !< CSR list of Nodes surrounding each Face
 
-  ! Connectivities 
+  ! Connectivities
   type(CSR), protected :: &
        NodebyCell, & !< CSR list of Nodes surrounding each Cell
        CellbyNode, & !< CSR list of Cells surrounding each Node
@@ -143,9 +151,9 @@ module GlobalMesh
 contains
 
   subroutine GlobalMesh_MeshBoundingBox
-  
+
     integer :: i
-    
+
     Mesh_xmax = XNode(1,1)
     Mesh_xmin = XNode(1,1)
     Mesh_ymax = XNode(2,1)
@@ -154,7 +162,7 @@ contains
     Mesh_zmin = XNode(3,1)
 
     do i=2, NbNode
-        
+
        if(XNode(1,i)<Mesh_xmin) then
           Mesh_xmin = XNode(1,i)
        else if(XNode(1,i)>Mesh_xmax) then
@@ -181,7 +189,7 @@ contains
     print*, Mesh_zmin, "< Z <", Mesh_zmax
 
   end subroutine GlobalMesh_MeshBoundingBox
-    
+
   ! include two subroutines:
   !   GlobalMesh_SetDirBC: set dir boundary
   !   GlobalMesh_SetFrac:  set face fracture
@@ -215,7 +223,7 @@ contains
     !   <0 cartesian;
     !   >0 read from file
     open(15, File=fileMesh, status="old", IOSTAT=ios)
-    if (ios /= 0) then 
+    if (ios /= 0) then
        print *,"Error impossible to open file :", trim(fileMesh)
     endif
     do i=1,3
@@ -232,7 +240,7 @@ contains
     end if
 
     call GlobalMesh_MeshBoundingBox
-    
+
     !< \TODO: input porosite
     call GlobalMesh_SetPorosite
 
@@ -298,7 +306,7 @@ contains
        read (15,'(a1)') lignevide
     enddo
 
-    read (15,*) nx,ny,nz 
+    read (15,*) nx,ny,nz
     read (15,'(a1)') lignevide
     read (15,*) lx,ly,lz
     read (15,'(a1)') lignevide
@@ -307,7 +315,7 @@ contains
     write(*,*) 'Building cartesian grid: ', nx, 'x', ny, 'x', nz
     write(*,*) 'Domain size: ', lx, 'x', ly, 'x', lz
     write(*,*) 'Origin: (', Ox, ',', Oy, ',', Oz, ')'
-    
+
     ! mesh info
     Nbnode = (nx+1)*(ny+1)*(nz+1)
     NbCell = nx*ny*nz
@@ -330,14 +338,14 @@ contains
     XNode(1,:) = XNode(1,:) + Ox
     XNode(2,:) = XNode(2,:) + Oy
     XNode(3,:) = XNode(3,:) + Oz
-    
+
     FacebyCell%Nb = NbCell
     allocate (FacebyCell%Pt(NbCell+1))
     FacebyCell%Pt(1) = 0
     do i=1,NbCell
        FacebyCell%Pt(i+1) = 6*i
     enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1)))
     kk = 1
     do k=1,nz
        do j=1,ny
@@ -360,9 +368,9 @@ contains
     allocate (NodebyFace%Pt(NbFace+1))
     NodebyFace%Pt(1) = 0
     do i=1,NbFace
-       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + 4 
+       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + 4
     enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1)))
     ! horizontal faces
     kk =0
     do k=1,nz+1
@@ -419,7 +427,7 @@ contains
     end do
 
     allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1)))
-    kk = 1 ! 
+    kk = 1 !
     do k=1,nz
        do j=1,ny
           do i = 1,nx
@@ -505,7 +513,7 @@ contains
     close(15)
 
     call GlobalMesh_SetWellCar(nx,ny,nz)
-    
+
   end subroutine GlobalMesh_ReadMeshCar
 
   !> \brief Read mesh from Meshfile.
@@ -550,10 +558,10 @@ contains
     allocate (FacebyCell%Pt(NbCell+1))
     FacebyCell%Pt(1) = 0
     do i=1,NbCell
-       read (16,*) kk,(lect(j),j=1,kk) 
+       read (16,*) kk,(lect(j),j=1,kk)
        FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
     enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1)))
 
     ! Cells / Nodes - counting, 1st step
     read(16,'(a1)') lignevide
@@ -562,9 +570,9 @@ contains
     NodebyCell%Pt(1) = 0
     do i=1,NbCell
        read (16,*) kk,(lect(j),j=1,kk)
-       NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
+       NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk
     enddo
-    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
+    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1)))
 
     ! Faces / Nodes - counting, 1st step
     read(16,'(a1)') lignevide
@@ -573,9 +581,9 @@ contains
     NodebyFace%Pt(1) = 0
     do i=1,NbFace
        read (16,*) kk,(lect(j),j=1,kk)
-       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
+       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk
     enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1)))
 
     ! IdCell
     ! rmq : homogene by default...
@@ -653,13 +661,13 @@ contains
     ! Cells / Faces - filling, step 2
     read (16,'(a1)') lignevide
     do i=1,NbCell
-       read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
+       read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1))
     enddo
 
     ! Cells / Nodes - filling, step 2
     read (16,'(a1)') lignevide
     do i=1,NbCell
-       read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
+       read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1))
     enddo
 
     ! Faces / Nodes - filling, step 2
@@ -798,7 +806,7 @@ contains
   subroutine GlobalMesh_NodeByCellGlobal
 
     integer :: i, j, k
-    integer :: counterNumNodebyCell=0 
+    integer :: counterNumNodebyCell=0
     integer, allocatable, dimension(:) :: colorNodes
     integer :: beginFace, endFace, nbFacetempCell
     integer :: beginNode, endNode, nbNodetempFace, faceLoad
@@ -808,18 +816,18 @@ contains
 
     ! 1st step - counting
     ! Loop over every Cell
-    do i = 1, NbCell       
+    do i = 1, NbCell
        nbFacetempCell=FacebyCell%Pt(i+1)-FacebyCell%Pt(i)
        beginFace=FacebyCell%Pt(i)+1
 
        ! Loop over the Faces of Cell i
-       do j  =  1,nbFacetempCell         
+       do j  =  1,nbFacetempCell
           faceLoad=FacebyCell%Num(beginFace+j-1)
           nbNodetempFace= NodebyFace%Pt(faceLoad+1)-NodebyFace%Pt(faceLoad)
           beginNode=NodebyFace%Pt(faceLoad)+1
 
           ! Loop over the Nodes of Face j
-          do k  =  1,nbNodetempFace             
+          do k  =  1,nbNodetempFace
              if ( colorNodes( NodebyFace%Num( beginNode+k-1) ) == i )then
                 ! Node k has already been counted, nothing is done
              else
@@ -909,7 +917,7 @@ contains
     allocate(CellbyNode%Num(counterNumCellbyNode))
 
     ! 2nd step - filling
-    nbCellbyNode(:)=0    
+    nbCellbyNode(:)=0
     do i=1,NbCell
        nbtempCell=NodebyCell%Pt(i+1)-NodebyCell%Pt(i)
        beginNode= NodebyCell%Pt(i)+1
@@ -936,7 +944,7 @@ contains
   subroutine GlobalMesh_CellByFaceGlobal
 
     integer :: i,k,nuf
-    integer, allocatable,  dimension(:) ::  cptMaille  
+    integer, allocatable,  dimension(:) ::  cptMaille
 
     allocate(cptMaille(NbFace))
     cptMaille(:) = 0
@@ -1085,7 +1093,7 @@ contains
   !! the parent must be stored after the son(s).
   subroutine BuildWellConnectivity(NbWell,NbEdgebyWell,NumNodebyEdgebyWell, &
        NodebyWell,NodeDatabyWell)
-    
+
     integer, intent(in) :: NbWell
     integer, dimension(:), intent(in) :: NbEdgebyWell
     integer, dimension(:,:,:), intent(in) :: NumNodebyEdgebyWell
@@ -1109,7 +1117,7 @@ contains
     allocate(NodeDatabyWell%Pt(NbWell+1))
     allocate(NodeDatabyWell%Num(sum(NbEdgebyWell) + NbWell)) ! <=> NbEdgebyWell + 1 for each Well
     allocate(NodeDatabyWell%Val(sum(NbEdgebyWell) + NbWell))
-    
+
     NodebyWell%Nb = NbWell
     NodeDatabyWell%Nb = NbWell
     NodebyWell%Num = -1
@@ -1144,15 +1152,15 @@ contains
        ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
        ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
     end do
-    
+
     deallocate(OrderedNodes)
     deallocate(Parents)
-    
+
   end subroutine BuildWellConnectivity
 
   !> \brief Sort the Nodes of each Well to store parent after each son(s)
   subroutine SortWellNodes(Edges,OrderedNodes,Parents)
-    
+
     integer, dimension(:,:), intent(in) :: Edges
     integer, dimension(:), intent(out) :: OrderedNodes
     integer, dimension(:), intent(out) :: Parents
@@ -1290,19 +1298,19 @@ contains
 
     deallocate(LocalIdx)
     deallocate(NbEdgesbyNode)
-    
+
   end subroutine SortWellNodes
 
-  
+
   !> \brief Build global connectivity of injection and production wells.
   subroutine GlobalMesh_WellConnectivity
-    
+
     integer :: i, j
 
     write(fdGm,*) 'building injectors connectivity ...'
     call BuildWellConnectivity(NbWellInj,NbEdgebyWellInj,NumNodebyEdgebyWellInj, &
          NodebyWellInj,NodeDatabyWellInj)
-    
+
     write(fdGm,*) 'building producers connectivity ...'
     call BuildWellConnectivity(NbWellProd,NbEdgebyWellProd,NumNodebyEdgebyWellProd,&
          NodebyWellProd,NodeDatabyWellProd)
@@ -1317,7 +1325,7 @@ contains
     write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
     write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
     write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
-    
+
   end subroutine GlobalMesh_WellConnectivity
 
 end module GlobalMesh

@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! *** Part of module GlobalMesh.F90 *** !
 
 
@@ -21,7 +29,7 @@ subroutine GlobalMesh_SetFrac
   end do
 
   ! IdFace(:) = 0
-  
+
 end subroutine GlobalMesh_SetFrac
 
 
@@ -52,10 +60,10 @@ subroutine GlobalMesh_SetDirBC
      yi = XNode(2,i)
      zi = XNode(3,i)
 
-     if(  abs( abs(xi)-Mesh_xmin)<eps .or. &          
+     if(  abs( abs(xi)-Mesh_xmin)<eps .or. &
           abs( abs(yi)-Mesh_ymin)<eps .or. &
           abs( abs(xi)-Mesh_xmax)<eps .or. &
-          abs( abs(yi)-Mesh_ymax)<eps) then 
+          abs( abs(yi)-Mesh_ymax)<eps) then
 
         NbDirNodeP = NbDirNodeP + 1
         IdNode(i)%P = "d"
@@ -72,7 +80,7 @@ subroutine GlobalMesh_SetDirBC
      end if
 
   end do
-  
+
 end subroutine GlobalMesh_SetDirBC
 
 
@@ -86,9 +94,9 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   NbWellInj = 1
   allocate(NbEdgebyWellInj(NbWellInj))
   allocate(NumNodebyEdgebyWellInj(2,nz,NbWellInj))
-  
+
    NbEdgebyWellInj(1) = nz
-   NumNodebyEdgebyWellInj(:,:,:) = -1    
+   NumNodebyEdgebyWellInj(:,:,:) = -1
 
   iwell = 2*nx/3
   jwell = ny/2
@@ -106,25 +114,25 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   allocate(NumNodebyEdgebyWellProd(2,nz,NbWellProd))
 
   NbEdgebyWellProd(1) = nz
-  NumNodebyEdgebyWellProd(:,:,:) = -1    
+  NumNodebyEdgebyWellProd(:,:,:) = -1
 
   iwell = nx/3
   jwell = ny/2
-  
+
   do i=1,NbWellProd
      do j=1,NbEdgebyWellProd(i)
         NumNodebyEdgebyWellProd(1,j,i) = j*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
         NumNodebyEdgebyWellProd(2,j,i) = (j-1)*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
      end do
   end do
-  
+
 end subroutine GlobalMesh_SetWellCar
 
 !> \brief User set porosity
 !!
 !! PorositeCell contains the porosity of each cell;
 !! PorositeFace is restricted to PorositeFrac
-!! then distributed to PorositeFracLocal 
+!! then distributed to PorositeFracLocal
 subroutine GlobalMesh_SetPorosite
 
   allocate(PorositeCell(NbCell))

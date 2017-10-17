@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Model: 2 phase 1 comp thermal, MCP=(1,1)
 !        fractures z=0
 
@@ -18,7 +26,7 @@ subroutine IncCV_SetDirBCValue
 
      IncNodeDirBC(i)%Pression = 2.d7
 
-     IncNodeDirBC(i)%Temperature = 140.d0 + 273.d0   
+     IncNodeDirBC(i)%Temperature = 140.d0 + 273.d0
      IncNodeDirBC(i)%Saturation(PHASE_WATER) = 1.d0
      IncNodeDirBC(i)%Saturation(PHASE_GAS) = 0.d0
 
@@ -73,7 +81,7 @@ subroutine IncCV_SetInitialValue
      IncCell(i)%Comp(1,1) = 1.d0
      IncCell(i)%Comp(1,2) = 1.d0
 
-     IncCell(i)%AccVol(:) = 0.d0     
+     IncCell(i)%AccVol(:) = 0.d0
   end do
 
   ! Frac
@@ -96,7 +104,7 @@ subroutine IncCV_SetInitialValue
 
 
   ! Init production well
-  do i=1, NbWellInjLocal_Ncpus(commRank+1) 
+  do i=1, NbWellInjLocal_Ncpus(commRank+1)
 
      ! Pressure
      IncPressionWellInj(i) = 2.d7
@@ -104,7 +112,7 @@ subroutine IncCV_SetInitialValue
      ! Temperature
      ! for the injector, the temperature is fixed all along the well (Tw)
      do s=NodebyWellInjLocal%Pt(i)+1, NodebyWellInjLocal%Pt(i+1)
-        PerfoWellInj(s)%Temperature = DataWellInjLocal(i)%Temperature 
+        PerfoWellInj(s)%Temperature = DataWellInjLocal(i)%Temperature
      end do
   end do
 

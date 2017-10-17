@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module PartitionMesh
 
   use CommonType
@@ -13,10 +21,10 @@ module PartitionMesh
   interface
 
     subroutine Metis_C ( nMaille, ptMaillebyMaille, numMaillebyMaille, npart, objval, procbyMaille ) bind ( C, name = "Metis_C" )
-      use iso_c_binding, only : C_INT       
+      use iso_c_binding, only : C_INT
       integer ( c_int ) :: ptMaillebyMaille(*), numMaillebyMaille(*)
       integer ( c_int ) :: procbyMaille(*)
-      integer ( c_int ), value :: nMaille, npart, objval      
+      integer ( c_int ), value :: nMaille, npart, objval
     end subroutine Metis_C
 
   end interface

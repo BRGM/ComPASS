@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module Residu
 
   use DefModel
@@ -92,7 +100,7 @@ contains
        end do
     end do
 
-    do k=1, NbNodeLocal_Ncpus(commRank+1) ! node 
+    do k=1, NbNodeLocal_Ncpus(commRank+1) ! node
        do i=1, NbCompThermique
           ResiduNode(i,k) = &
                ( IncNode(k)%AccVol(i)-AccVolNode_1(i,k) ) / Delta_t
@@ -120,7 +128,7 @@ contains
        end if
     end do
 #else
-    do k=1, NbNodeLocal_Ncpus(commRank+1) 
+    do k=1, NbNodeLocal_Ncpus(commRank+1)
        if(IdNodeLocal(k)%P=="d") then
           ResiduNode(1:NbCompThermique,k) = 0.d0
        end if
@@ -168,7 +176,7 @@ contains
     integer :: k, m, mph, i, ic, icp
     integer :: tmpAccVol(NbComp)
 
-    ! Cell    
+    ! Cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
        ic = IncCell(k)%ic
@@ -204,7 +212,7 @@ contains
 
           IncCell(k)%AccVol(NbComp+1) = IncCell(k)%AccVol(NbComp+1) &
                + PoroVolFourierCell(k) * DensitemolaireEnergieInterneSatCell(m,k)
-#endif          
+#endif
        end do ! end of phase m
 
 #ifdef _THERMIQUE_
@@ -213,9 +221,9 @@ contains
             + Poro_1volFourierCell(k) * CpRoche * IncCell(k)%Temperature
 #endif
 
-    end do ! end of cell k    
+    end do ! end of cell k
 
-    ! Frac    
+    ! Frac
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
        ic = IncFrac(k)%ic
@@ -258,7 +266,7 @@ contains
     end do ! end of frac k
 
 
-    ! Node    
+    ! Node
     do k=1, NbNodeLocal_Ncpus(commRank+1)
 
        ic = IncNode(k)%ic
@@ -329,7 +337,7 @@ contains
           !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
           ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
           do m=1, NbPhasePresente_ctx( IncCell(k)%ic) ! Q_k
-             mph = NumPhasePresente_ctx(m, IncCell(k)%ic) 
+             mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
              if( FluxDarcyKI(mph,s,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -362,7 +370,7 @@ contains
           do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
              mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-             if(FluxDarcyKI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+             if(FluxDarcyKI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s
 
                 do icp=1, NbComp
                    if(MCP(icp,mph)==1) then ! \cap P_i
@@ -397,8 +405,8 @@ contains
           ! end if
 
           ResiduCell(1:NbComp,k) = ResiduCell(1:NbComp,k) + Flux_ks(:)
-          ResiduNode(1:NbComp,nums) = ResiduNode(1:NbComp,nums) - Flux_ks(:) 
-          
+          ResiduNode(1:NbComp,nums) = ResiduNode(1:NbComp,nums) - Flux_ks(:)
+
 #ifdef _THERMIQUE_
 
           ResiduCell(NbComp+1,k) = ResiduCell(NbComp+1,k) &
@@ -415,7 +423,7 @@ contains
        ! s is frac in cell k
        do s=1, NbFracCell
 
-          fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+s) 
+          fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+s)
           nums = FaceToFracLocal(fs) ! fs is face number, nums is frac number
 
           Flux_ks(:) = 0.d0
@@ -425,7 +433,7 @@ contains
           !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
           ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
           do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-             mph = NumPhasePresente_ctx(m, IncCell(k)%ic) 
+             mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
              if(FluxDarcyKI(mph,s+NbNodeCell,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -454,7 +462,7 @@ contains
           do m=1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
              mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-             if(FluxDarcyKI(mph,s+NbNodeCell,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+             if(FluxDarcyKI(mph,s+NbNodeCell,k)<0.d0) then ! K_{k,s}^{alpha}=s
 
                 do icp=1, NbComp
                    if(MCP(icp,mph)==1) then ! \cap P_i
@@ -479,7 +487,7 @@ contains
           end do
 
           ResiduCell(1:NbComp,k) = ResiduCell(1:NbComp,k) + Flux_ks(:)
-          ResiduFrac(1:NbComp,nums) = ResiduFrac(1:NbComp,nums) - Flux_ks(:) 
+          ResiduFrac(1:NbComp,nums) = ResiduFrac(1:NbComp,nums) - Flux_ks(:)
 
 #ifdef _THERMIQUE_
 
@@ -513,7 +521,7 @@ contains
           !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
           ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
           do m=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
-             mph = NumPhasePresente_ctx(m, IncFrac(k)%ic) 
+             mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
 
              if(FluxDarcyFI(mph,s,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -534,14 +542,14 @@ contains
 
                 FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieFrac(m,k) &
                      * FluxDarcyFI(mph,s,k)
-#endif                
+#endif
              end if
           end do
 
           do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
              mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-             if(FluxDarcyFI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+             if(FluxDarcyFI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s
 
                 do icp=1, NbComp
                    if(MCP(icp,mph)==1) then ! \cap P_i
@@ -565,7 +573,7 @@ contains
           end do
 
           ResiduFrac(1:NbComp,k) = ResiduFrac(1:NbComp,k) + Flux_ks(:)
-          ResiduNode(1:NbComp,nums) = ResiduNode(1:NbComp,nums) - Flux_ks(:) 
+          ResiduNode(1:NbComp,nums) = ResiduNode(1:NbComp,nums) - Flux_ks(:)
 
 #ifdef _THERMIQUE_
 
@@ -618,7 +626,7 @@ contains
 #endif
           end if
 
-          ! node equation 
+          ! node equation
           ResiduNode(1:NbComp,nums) = ResiduNode(1:NbComp,nums) + Flux_ks(:)
 
 #ifdef _THERMIQUE_
@@ -631,23 +639,23 @@ contains
        end do
 
        ! inj well equation
-       if( DataWellInjLocal(k)%IndWell == 'p') then                 
+       if( DataWellInjLocal(k)%IndWell == 'p') then
           ResiduWellInj(k) = DataWellInjLocal(k)%PressionMax - IncPressionWellInj(k)
        else if( DataWellInjLocal(k)%IndWell == 'f') then
           ResiduWellInj(k) = qw - DataWellInjLocal(k)%FlowrateImposed
        else
           print*, "indwell inj should be p or f"
        end if
-          
+
     end do ! end of node s in injection well k
 
     ! if(commRank==0) then
     !    print*, "qw inj", qw
     ! end if
-    
+
     ! Production well
     do k=1, NbWellProdLocal_Ncpus(commRank+1)
-       
+
        qw = 0.d0
 
        ! nodes of well k
@@ -660,7 +668,7 @@ contains
           WIDws = NodeDatabyWellProdLocal%Val(s)%WID
 
           ! print*, "ps_pw: ", Ps_Pws
-          
+
           Flux_ks(:) = 0.d0
           FluxT_ks = 0.d0
 
@@ -676,7 +684,7 @@ contains
                 end do
 
 #ifdef _THERMIQUE_
-                FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m,nums) * WIDws * Ps_Pws 
+                FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m,nums) * WIDws * Ps_Pws
 #endif
              end if
           end do
@@ -704,7 +712,7 @@ contains
        ! if(commRank==25) then
        !    print*, "qw prod", qw
        ! end if
-       
+
     end do
 
     ! if(commRank==0) then
@@ -762,14 +770,14 @@ contains
     do k=1, NbWellProdOwn_Ncpus(commRank+1) ! well prod
        ResConvLocal(1) = ResConvLocal(1) + abs(ResiduWellProd(k))
     enddo
-    
+
     ! residu closing equations: ResClos
     ResClosLocal = 0.d0
 
     do k=1, NbNodeOwn_Ncpus(commRank+1) ! node
-       ic = IncNode(k)%ic 
+       ic = IncNode(k)%ic
 
-       start = NbPhasePresente_ctx(ic)       
+       start = NbPhasePresente_ctx(ic)
        do i=1, NbEqEquilibre_ctx(ic)
           ResClosLocal = ResClosLocal + abs(SmFNode(start+i,k))
        enddo
@@ -778,7 +786,7 @@ contains
     do k=1, NbFracOwn_Ncpus(commRank+1) ! frac
        ic = IncFrac(k)%ic
 
-       start = NbPhasePresente_ctx(ic)       
+       start = NbPhasePresente_ctx(ic)
        do i=1, NbEqEquilibre_ctx(ic)
           ResClosLocal = ResClosLocal + abs(SmFFrac(start+i,k))
        enddo
@@ -824,7 +832,7 @@ contains
           ! print*, ResConvLocal(:)
           ! print*, ResConvInitLocal(:)
        ! end if
-       
+
        ! max for all mpi
        call MPI_Allreduce(ResConvInitLocal, ResConvInit, NbCompThermique, &
             MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
@@ -836,7 +844,7 @@ contains
     ! Relative residu
     ResNormRelLocal = ResClosLocal/ResClosInit
     do i=1, NbCompThermique
-       ResNormRelLocal = max(ResConvLocal(i)/ResConvInit(i), ResNormRelLocal) 
+       ResNormRelLocal = max(ResConvLocal(i)/ResConvInit(i), ResNormRelLocal)
     enddo
 
     ! max for all mpi
@@ -891,7 +899,7 @@ end module Residu
 !    !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
 !    ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
 !    do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-!       mph = NumPhasePresente_ctx(m, IncCell(k)%ic) 
+!       mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
 !       if(FluxDarcyKI(mph,s,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -903,7 +911,7 @@ end module Residu
 !    do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
 !       mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-!       if(FluxDarcyKI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+!       if(FluxDarcyKI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s
 
 !          Flux_ks = Flux_ks + DensitemolaireKrViscoEnthalpieNode(m,nums) &
 !               * FluxDarcyKI(mph,s,k)
@@ -924,7 +932,7 @@ end module Residu
 !    ! s is frac in cell k
 !    do s=1, NbFracCell
 
-!       fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+s) 
+!       fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+s)
 !       nums = FaceToFracLocal(fs) ! fs is face number, nums is frac number
 
 !       Flux_ks = 0.d0
@@ -933,7 +941,7 @@ end module Residu
 !       !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
 !       ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
 !       do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-!          mph = NumPhasePresente_ctx(m, IncCell(k)%ic) 
+!          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
 !          if(FluxDarcyKI(mph,s+NbNodeCell,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -945,7 +953,7 @@ end module Residu
 !       do m=1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
 !          mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-!          if(FluxDarcyKI(mph,s+NbNodeCell,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+!          if(FluxDarcyKI(mph,s+NbNodeCell,k)<0.d0) then ! K_{k,s}^{alpha}=s
 !             Flux_ks = Flux_ks + DensitemolaireKrViscoEnthalpieFrac(m,nums) &
 !                  * FluxDarcyKI(mph,s+NbNodeCell,k)
 !          end if
@@ -980,7 +988,7 @@ end module Residu
 !         !      ( {alpha | alpha in Q_k} \cap {alpha | K_{k,s}^{alpha}=k})
 !         ! \cup ( {alpha | alpha in Q_s} \cap {alpha | K_{k,s}^{alpha}=s})
 !         do m=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
-!            mph = NumPhasePresente_ctx(m, IncFrac(k)%ic) 
+!            mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
 
 !            if(FluxDarcyFI(mph,s,k)>=0.d0) then ! K_{k,s}^{alpha}=k
 
@@ -992,7 +1000,7 @@ end module Residu
 !         do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
 !            mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-!            if(FluxDarcyFI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s             
+!            if(FluxDarcyFI(mph,s,k)<0.d0) then ! K_{k,s}^{alpha}=s
 
 !               Flux_ks = Flux_ks + DensitemolaireKrViscoEnthalpieNode(m,nums) &
 !                    * FluxDarcyFI(mph,s,k)
