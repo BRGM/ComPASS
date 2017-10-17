@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import numpy as np
 # WARNING: Set your python path adequately
 # e.g.: export PYTHONPATH=/home/simon/ComPASS/python
@@ -35,8 +43,8 @@ cells = np.zeros((ncells, 8), dtype=MT.idtype())
 
 tmp = np.arange(ncr)
 cells[:ncr, 0] = tmp
-cells[:ncr, 1] = tmp + 1  
-cells[:ncr, 2] = tmp + 1 + nr  
+cells[:ncr, 1] = tmp + 1
+cells[:ncr, 2] = tmp + 1 + nr
 cells[:ncr, 3] = tmp + nr
 for j in range(1, ncth - 1):
     cells[j*ncr:(j+1)*ncr, :4] = cells[(j-1)*ncr:j*ncr, :4] + nr

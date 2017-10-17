@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import os
 from mpi4py import MPI
 
@@ -19,7 +27,7 @@ def output_directory(case_name=None, rootname=None):
           os.makedirs(output)
     comm.Barrier() # wait for every process to synchronize
     assert os.path.exists(output)
-    return output 
+    return output
 
 def output_directory_and_logfile(case_name=None):
     output = output_directory(case_name)

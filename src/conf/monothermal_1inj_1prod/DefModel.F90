@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Model: 2 phase 1 comp thermal, MCP=(1,1)
 
 ! 1: Gas
@@ -18,7 +26,7 @@ module DefModel
   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
-  ! MCP 
+  ! MCP
   integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
       (/ 1, 1 /), (/NbPhase, NbComp/)))
@@ -29,13 +37,13 @@ module DefModel
 
   ! Gravite
   double precision, parameter :: Gravite = 10.d0 !< Gravity constant
-  
+
   ! CpRoche
   double precision, parameter :: CpRoche = 800.d0 * 2000.d0 !< ???
 
   ! thickness of frac
   double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
-  
+
   ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1
@@ -48,8 +56,8 @@ module DefModel
 
   ! Nombre Max d'eq d'equilibre
   !	       d'eq de fermeture thermodynamique
-  !	       d'inc P (T) C 
-  !	       d'inc P (T) C primaires 
+  !	       d'inc P (T) C
+  !	       d'inc P (T) C primaires
   integer, parameter :: &
        NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
        NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
@@ -133,7 +141,7 @@ module DefModel
   double precision, parameter :: OneMonth = 3.d1 * OneDay
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
-  ! time step init and max 
+  ! time step init and max
   ! FIXME: parameter is removed to assign variable from python
   double precision :: TimeFinal = 30 * OneYear
 
@@ -144,7 +152,7 @@ module DefModel
   double precision, parameter :: output_frequency = OneYear
 
 
-  ! ! ****** Newton iters max and stop condition ****** ! !   
+  ! ! ****** Newton iters max and stop condition ****** ! !
   integer, parameter :: NewtonNiterMax = 40
   double precision, parameter :: NewtonTol = 1.d-5
 
@@ -178,8 +186,8 @@ module DefModel
       omegaDarcyCell = 0.075,    & ! darcy cell/frac
       omegaDarcyFrac = 0.15
 
-  double precision, parameter :: & 
-      omegaFourierCell = 0.075,  & ! fourier cell/frac 
+  double precision, parameter :: &
+      omegaFourierCell = 0.075,  & ! fourier cell/frac
       omegaFourierFrac = 0.15
 
 
@@ -208,7 +216,7 @@ contains
   ! *** Physics *** !
 
   ! Fugacity
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_Fugacity(iph,icp,P,T,C,S,f,DPf,DTf,DCf)
 
@@ -220,10 +228,10 @@ contains
     double precision, intent(out) :: f, DPf, DTf, DCf(NbComp)
 
     double precision :: PSat, dTSat
-    
+
     if(iph==1) then
 
-       f = P 
+       f = P
        dPf = 1.d0
        dTf = 0.d0
 
@@ -235,13 +243,13 @@ contains
        dTf = dTSat
     end if
 
-    dCf(:) = 0.d0 
-    
+    dCf(:) = 0.d0
+
    end subroutine f_Fugacity
 
 
-  ! Densite molaire 
-  ! iph is an identificator for each phase: 
+  ! Densite molaire
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -255,9 +263,9 @@ contains
     double precision :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
     double precision :: u, R, T0, d, Z, ds, ss, rs, dZ
     double precision :: Psat, dT_Psat
-    
+
     if(iph==1) then
-       
+
        u = 0.018016d0
        R = 8.3145d0
        T0 = 273.d0
@@ -271,15 +279,15 @@ contains
        f = P*u/(R*T*Z)
        dPf = u/(R*T*Z)
        dTf = - P*u/(R*T*Z)**2 * (R*T*dZ+R*Z)
-       
+
     else if(iph==2) then
 
        rs = 0.d0
 
        call DefModel_Psat(T, Psat, dT_Psat)
 
-       Cs = 35.d0 
-       rho0 = 780.83795d0       
+       Cs = 35.d0
+       rho0 = 780.83795d0
        a = 1.6269192d0
        b = -3.0635410d-3
 
@@ -298,7 +306,7 @@ contains
 
        dcwp = (1.d0+5.d-2*rs) *( a2 + T*b2 + T**2*c2 )
        dcwt = (1.d0+5.d-2*rs) * ( (b1+b2*P) + T*2.d0*(c1+c2*P) )
-       
+
        f = ss*( 1.d0 + cw*(P-Psat) )
        dPf = ss*dcwp*(P-Psat) + ss*cw
        dTf = ds*( 1.d0 + cw*(P-Psat) ) + ss*dcwt*(P-Psat) - ss*cw*dT_Psat
@@ -312,8 +320,8 @@ contains
   end subroutine f_DensiteMolaire
 
 
-  ! Densite Massique 
-  ! iph is an identificator for each phase: 
+  ! Densite Massique
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_DensiteMassique(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -330,7 +338,7 @@ contains
 
 
   ! Viscosities
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -343,14 +351,14 @@ contains
          f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
     double precision :: a, ss, ds, Cs, T1
-    
+
     ! outputs
     if(iph==1) then
-       
+
        f = (0.361d0*T - 10.2d0)*1.d-7
        dPf = 0.d0
        dTf = 0.361*1.d-7
-       
+
     else if(iph==2) then
 
        T1 = 300.d0
@@ -376,7 +384,7 @@ contains
 
 
   ! Permeabilites = S**2
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_PermRel(iph,S,f,DSf)
 
@@ -422,7 +430,7 @@ contains
 #ifdef _THERMIQUE_
 
   ! EnergieInterne
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -439,7 +447,7 @@ contains
 
 
   ! Enthalpie
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   ! If Enthalpide depends on the compositon C, change DefFlash.F90
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
@@ -479,7 +487,7 @@ contains
   end subroutine f_Enthalpie
 
 #endif
-  
+
   !> \brief User set permeability
   !!
   !! \param[in] NbCellG,NbFracG Global number of cell and fracture face
@@ -511,7 +519,7 @@ contains
 
     allocate(PermFracG(NbFaceG))
     PermFracG(:) = 1.d-11
-    
+
   end subroutine DefModel_SetPerm
 
 

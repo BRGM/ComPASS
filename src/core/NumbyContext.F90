@@ -1,10 +1,18 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module NumbyContext
 
   use DefModel
 
   implicit none
 
-  ! P_Q: ensemble des phases presentes fct du contexte 
+  ! P_Q: ensemble des phases presentes fct du contexte
   integer, dimension(:), allocatable, protected :: &
       NbPhasePresente_ctx
   integer, dimension(:,:), allocatable, protected :: &
@@ -31,7 +39,7 @@ module NumbyContext
       NumCompEqEquilibre_ctx     ! Numero comp
 
   integer, dimension(:,:,:), allocatable, protected :: &
-      Num2PhasesEqEquilibre_ctx  ! Numero du couple de phases 
+      Num2PhasesEqEquilibre_ctx  ! Numero du couple de phases
 
 
   ! ***** Inc ***** !
@@ -41,7 +49,7 @@ module NumbyContext
 
   ! nb of IncPTC
   integer, dimension(:), allocatable, protected :: &
-      NbIncPTC_ctx 
+      NbIncPTC_ctx
 
   ! nb of IncPTCSPrim
   integer, dimension(:), allocatable, protected :: &
@@ -119,8 +127,8 @@ contains
 
   subroutine NumbyContext_PhaseComp
 
-    ! 1. Nb/Num de phases presentes fct du contexte 
-    ! 2. Ensembles Ctilde fct du contexte 
+    ! 1. Nb/Num de phases presentes fct du contexte
+    ! 2. Ensembles Ctilde fct du contexte
 
     integer :: ic, iph, icp, n
     logical :: IsCtidle
@@ -137,7 +145,7 @@ contains
       n = 0
       do iph=1, NbPhase
 
-        if ( IndPhase_ctx(iph,ic) .eqv. .true.) then 
+        if ( IndPhase_ctx(iph,ic) .eqv. .true.) then
           n = n + 1
           NumPhasePresente_ctx(n,ic) = iph
         endif
@@ -152,16 +160,16 @@ contains
     allocate( NumCompCtilde_ctx(NbComp, NbContexte))
     NumCompCtilde_ctx(:,:) = 0
 
-    do ic = 1, NbContexte 
+    do ic = 1, NbContexte
 
       n=0
       do icp=1, NbComp ! loop of components
 
-        ! check if icp in C_tidle 
+        ! check if icp in C_tidle
         IsCtidle = .true.
         do iph=1, NbPhase
 
-          if ((MCP(icp,iph)==1) .and. (IndPhase_ctx(iph,ic) .eqv. .true.)) then 
+          if ((MCP(icp,iph)==1) .and. (IndPhase_ctx(iph,ic) .eqv. .true.)) then
             IsCtidle = .false.
             exit
           end if
@@ -186,7 +194,7 @@ contains
     ! 1. Nb d'inconnues P (T) et C fct du contexte
     allocate( NbIncPTC_ctx(NbContexte))
 
-    do ic = 1, NbContexte 
+    do ic = 1, NbContexte
 
       n = 1 ! P
 
@@ -240,10 +248,10 @@ contains
             n = n + 1
 
             NumIncComp2NumIncPTC_ctx(icp, iph, ic) = n
-#ifdef DEBUG_LOISTHEMOHYDRO              
+#ifdef DEBUG_LOISTHEMOHYDRO
             ! FIXME: Remove comment
             write(*,*) ic, 'NumIncPTC2NumIncComp_comp_ctx cp=', icp, 'ph=', iph, 'n=', n
-#endif        
+#endif
             NumIncPTC2NumIncComp_comp_ctx(n, ic) = icp
             NumIncPTC2NumIncComp_phase_ctx(n, ic) = iph
           end if
@@ -266,7 +274,7 @@ contains
     allocate( NbEqEquilibre_ctx(NbContexte))
     allocate( NbEqFermeture_ctx(NbContexte))
 
-    do ic = 1,NbContexte 
+    do ic = 1,NbContexte
 
       n = 0 ! used for NbEquilibre
 
@@ -275,7 +283,7 @@ contains
         nphi = 0
         PhPrComp(:) = 0
 
-        ! PhPrComp: phase present and contains icp 
+        ! PhPrComp: phase present and contains icp
         do iph=1, NbPhase
 
           if((MCP(icp,iph)==1) .and. (IndPhase_ctx(iph,ic) .eqv. .true.)) then
@@ -316,9 +324,9 @@ contains
 
     do ic = 1, NbContexte
 
-      mic = ic ! 
+      mic = ic !
 
-      ! from decimal to binary 
+      ! from decimal to binary
       do i=NbPhase, 1, -1
 
         if(mic >= 2**(i-1)) then
@@ -334,8 +342,8 @@ contains
 
 end module NumbyContext
 
-  
-    
+
+
     ! print*, "MCP ", MCP
 
     ! do i=1, NbContexte
@@ -389,5 +397,5 @@ end module NumbyContext
     !    print*, NumIncPTC2NumIncComp_phase_ctx(:,i)
     ! end do
 
-    
+
     ! print*, " "

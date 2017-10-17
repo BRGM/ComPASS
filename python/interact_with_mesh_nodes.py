@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import os
 from mpi4py import MPI
 import numpy as np
@@ -50,7 +58,7 @@ if comm.rank==0:
     for fi in boundary_faces
   ])
   print(boundary_faces_centers)
-  
+
 # FIXME: The following line is mandatory as it allocates structures
 # that will be deallocated afterwards
 ComPASS.init_phase2(outputdir)

@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module Flux
 
   use MeshSchema
@@ -131,8 +139,8 @@ contains
           !    rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
           !         0.5d0 * (DensiteMassiqueCell(numph_k, k) + DensiteMassiqueNode(numph_k, numi))
           ! else
-          !    rho_ki_alpha(numph_k) = & 
-          !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) & 
+          !    rho_ki_alpha(numph_k) = &
+          !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) &
           !         + IncNode(numi)%Saturation(numph_k) * DensiteMassiqueNode(numph_k, numi))/Satki
           ! end if
         end do
@@ -151,8 +159,8 @@ contains
             !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
             !         0.5d0 * (DensiteMassiqueCell(numph_i, k) + DensiteMassiqueNode(numph_i, numi))
             ! else
-            !    rho_ki_alpha(numph_i) = & 
-            !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) & 
+            !    rho_ki_alpha(numph_i) = &
+            !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) &
             !         + IncNode(numi)%Saturation(numph_i) * DensiteMassiqueNode(numph_i, numi))/Satki
             ! end if
           end if
@@ -187,7 +195,7 @@ contains
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
               FluxDarcyKI(numph_i,i,k) = FluxDarcyKI(numph_i,i,k) &
-                  + (Pkj + PressionCapCell(numph_i,k) - PressionCapNode(numph_i,numj) & 
+                  + (Pkj + PressionCapCell(numph_i,k) - PressionCapNode(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if
           end do
@@ -197,7 +205,7 @@ contains
         ! i is node, j is frac
         do j=1, NbFracCell
 
-          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j) 
+          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j)
           numj = FaceToFracLocal(fj) ! fj is face number, numj is frac number
 
           Tkij = TkLocal_Darcy(k)%Pt(i,j+NbNodeCell) ! a_{k,s}^s'
@@ -259,8 +267,8 @@ contains
           !   rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
           !         0.5d0 * (DensiteMassiqueCell(numph_k, k) + DensiteMassiqueFrac(numph_k, numi))
           ! else
-          !    rho_ki_alpha(numph_k) = & 
-          !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) & 
+          !    rho_ki_alpha(numph_k) = &
+          !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) &
           !         + IncFrac(numi)%Saturation(numph_k) * DensiteMassiqueFrac(numph_k, numi))/Satki
           ! end if
         end do
@@ -279,8 +287,8 @@ contains
             !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
             !         0.5d0 * (DensiteMassiqueCell(numph_i, k) + DensiteMassiqueFrac(numph_i, numi))
             ! else
-            !    rho_ki_alpha(numph_i) = & 
-            !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) & 
+            !    rho_ki_alpha(numph_i) = &
+            !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) &
             !         + IncFrac(numi)%Saturation(numph_i) * DensiteMassiqueFrac(numph_i, numi))/Satki
             ! end if
 
@@ -331,7 +339,7 @@ contains
         ! i is frac, j is frac
         do j=1, NbFracCell
 
-          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j) 
+          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j)
           numj = FaceToFracLocal(fj) ! fj is face number, numj is frac number
 
           Tkij = TkLocal_Darcy(k)%Pt(i+NbNodeCell,j+NbNodeCell) ! a_{k,s}^s'
@@ -430,8 +438,8 @@ contains
           !    rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
           !         0.5d0 * (DensiteMassiqueFrac(numph_k, k) + DensiteMassiqueNode(numph_k, numi) )
           ! else
-          !    rho_ki_alpha(numph_k) = & 
-          !         (IncFrac(k)%Saturation(numph_k) * DensiteMassiqueFrac(numph_k, k) & 
+          !    rho_ki_alpha(numph_k) = &
+          !         (IncFrac(k)%Saturation(numph_k) * DensiteMassiqueFrac(numph_k, k) &
           !         + IncNode(numi)%Saturation(numph_k) * DensiteMassiqueNode(numph_k, numi))/Satki
           ! end if
         end do
@@ -450,8 +458,8 @@ contains
             !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
             !         0.5d0 * (DensiteMassiqueFrac(numph_i, k) + DensiteMassiqueNode(numph_i, numi))
             ! else
-            !    rho_ki_alpha(numph_i) = & 
-            !         (IncFrac(k)%Saturation(numph_i) * DensiteMassiqueFrac(numph_i, k) & 
+            !    rho_ki_alpha(numph_i) = &
+            !         (IncFrac(k)%Saturation(numph_i) * DensiteMassiqueFrac(numph_i, k) &
             !         + IncNode(numi)%Saturation(numph_i) * DensiteMassiqueNode(numph_i, numi))/Satki
             ! end if
 
@@ -540,7 +548,7 @@ contains
         ! i is node, j is frac
         do j=1, NbFracCell
 
-          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j) 
+          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j)
           numj = FaceToFracLocal(fj) ! fj is face number
 
           FluxFourierKI(i,k) = FluxFourierKI(i,k) &
@@ -565,7 +573,7 @@ contains
         ! i is frac, j is frac
         do j=1, NbFracCell
 
-          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j) 
+          fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+j)
           numj = FaceToFracLocal(fj) ! fj is face number
 
           FluxFourierKI(i+NbNodeCell,k) = FluxFourierKI(i+NbNodeCell,k) &

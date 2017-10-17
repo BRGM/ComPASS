@@ -1,3 +1,11 @@
+//
+// This file is part of ComPASS.
+//
+// ComPASS is free software: you can redistribute it and/or modify it under both the terms
+// of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+// and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+//
+
 #include <iostream>
 #include <fstream>
 
@@ -86,14 +94,14 @@ private:
   int NbCellOwn, NbFaceOwn, NbFracOwn, NbNodeLocal;
   int NbWellInjOwn, NbWellProdOwn;
   int NbEdgeWellInjOwn, NbEdgeWellProdOwn; // total number of edges of all wells inj/prod
-  
+
   // model info
   int NbComp, NbPhase, IndThermique;
   int* MCP;
 
   // parallel info
   int commRank, commSize;
-  
+
 public:
 
   void writedata( int,
@@ -103,7 +111,7 @@ public:
              int, int,
              int, int, int*, int,
              int, int, int,
-	     int, int, 
+	     int, int,
              int, int*,
              int, int*, int*,
              int, int*, int*,
@@ -130,7 +138,7 @@ extern "C" {
                                        int NbComp, int NbPhase, int* MCP, int IndThermique,
                                        int NbCellOwn, int NbFaceOwn, int NbNodeLocal,
                                        int NbWellInjOwn, int NbWellProdOwn,
-				       int NbFracOwn, int* FracToFaceLocal, 
+				       int NbFracOwn, int* FracToFaceLocal,
 				       //
                                        int NodebyCellLocal_Nb, int* NodebyCellLocal_Pt, int* NodebyCellLocal_Num,
                                        int FacebyCellLocal_Nb, int* FacebyCellLocal_Pt, int* FacebyCellLocal_Num,
@@ -267,7 +275,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   // parallel info
   commRank = commRank_;
   commSize = commSize_;
-  
+
   // Step 1 points coordinate
   points = vtkSmartPointer<vtkPoints>::New();
 
@@ -407,7 +415,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   writer_cell->SetDataModeToAscii();
 #else
   writer_cell->SetDataModeToBinary();
-#endif // ASCII_VTK_WRITERS  
+#endif // ASCII_VTK_WRITERS
   writer_cell->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
 
   // free pointCellIds
@@ -544,7 +552,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   writer_frac->SetDataModeToAscii();
 #else
   writer_frac->SetDataModeToBinary();
-#endif // ASCII_VTK_WRITERS  
+#endif // ASCII_VTK_WRITERS
   writer_frac->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
 
   // free pointFracIds
@@ -569,9 +577,9 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
     {
       pointWellInjIds[k] = new vtkIdType[2];
       pointWellInjIds[k][0] = NumNodebyEdgebyWellInj[2*k] - 1; // 0-based in C
-      pointWellInjIds[k][1] = NumNodebyEdgebyWellInj[2*k+1] - 1;      
+      pointWellInjIds[k][1] = NumNodebyEdgebyWellInj[2*k+1] - 1;
     }
-  
+
   for ( int k = 0; k < NbEdgeWellProdOwn; k++ )
     {
       pointWellProdIds[k] = new vtkIdType[2];
@@ -604,7 +612,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   ugrid_wellinj->Allocate( NbEdgeWellInjOwn ); // number of edges of inj well
 
   for ( int k = 0; k < NbEdgeWellInjOwn; k++ ) // add edge
-    { 
+    {
       ugrid_wellinj->InsertNextCell( VTK_LINE, 2, ( vtkIdType* )pointWellInjIds[k] );
     };
 
@@ -615,10 +623,10 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   ugrid_wellprod->Allocate( NbEdgeWellProdOwn ); // number of edges of inj prod
 
   for ( int k = 0; k < NbEdgeWellProdOwn; k++ ) // add edge
-    { 
+    {
       ugrid_wellprod->InsertNextCell( VTK_LINE, 2, ( vtkIdType* )pointWellProdIds[k] );
     };
-  
+
   ugrid_wellprod->SetPoints( points ); // add points
   ugrid_wellprod->GetCellData()->AddArray( data_wellprod[0] ); // add prod well data to grid
 
@@ -630,7 +638,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   writer_wellinj->SetDataModeToAscii();
 #else
   writer_wellinj->SetDataModeToBinary();
-#endif // ASCII_VTK_WRITERS  
+#endif // ASCII_VTK_WRITERS
   writer_wellinj->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
 
   // free pointFracIds
@@ -645,7 +653,7 @@ void VisuVTK_Time::init( int meshtype, char* OutputDirin,
   writer_wellprod->SetDataModeToAscii();
 #else
   writer_wellprod->SetDataModeToBinary();
-#endif // ASCII_VTK_WRITERS  
+#endif // ASCII_VTK_WRITERS
   writer_wellprod->SetByteOrderToLittleEndian(); // fix binary type as LittleEndian
 
   // free pointFracIds
@@ -727,7 +735,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
     {
       data_wellinj[0]->SetComponent( k, 0, datawellinjinput[k]);
     };
-  
+
   // well inj writer
   char wellinjdata_vtuname[300];
   sprintf( wellinjdata_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank ); // file name
@@ -745,7 +753,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
     {
       data_wellprod[0]->SetComponent( k, 0, datawellprodinput[k]);
     };
-  
+
   // well prod writer
   char wellproddata_vtuname[300];
   sprintf( wellproddata_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank ); // file name

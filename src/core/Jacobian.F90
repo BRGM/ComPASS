@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module Jacobian
 
   ! workflow:
@@ -75,36 +83,36 @@ module Jacobian
        Jacobian_divDensitemolaireKrViscoComp_DarcyFlux_cellnode, &  ! k is cell, s is node
        Jacobian_divDensitemolaireKrViscoComp_DarcyFlux_cellfrac, &  ! k is cell, s is frac
        Jacobian_divDensitemolaireKrViscoComp_DarcyFlux_fracnode, &  ! k is frac, s is node
-       
+
        ! Densitemolaire*Kr*Visco*Comp*div(V_{k,s})
        Jacobian_DensitemolaireKrViscoComp_divDarcyFlux_cellnode,     &  ! k is cell, s is node
        Jacobian_DensitemolaireKrViscoComp_divDarcyFlux_cellfrac,     &  ! k is cell, s is frac
        Jacobian_DensitemolaireKrViscoComp_divDarcyFlux_fracnode,     &  ! k is frac, s is node
-       
+
        ! div(V_{k,s})
        Jacobian_divDarcyFlux_cellnode,   & ! k is cell, s is node
        Jacobian_divDarcyFlux_cellfrac,   & ! k is cell, s is frac
        Jacobian_divDarcyFlux_fracnode,   & ! k is frac, s is node
-       
+
        ! div(rho)
        Jacobian_divrho_cellnode, &
        Jacobian_divrho_cellfrac, &
        Jacobian_divrho_fracnode, &
-       
+
        ! For thermique, we compute div(FluxFourier)
        ! then div( Densitemolaire*Kr*Visco*Enthalpie*FluxFourier )
        Jacobian_divDensitemolaireKrViscoEnthalpieDarcyFlux_cellnode, &
        Jacobian_divDensitemolaireKrViscoEnthalpieDarcyFlux_cellfrac, &
        Jacobian_divDensitemolaireKrViscoEnthalpieDarcyFlux_fracnode, &
-       
+
        ! div(FourierFlux)
        Jacobian_divFourierFlux_cellnode, &
        Jacobian_divFourierFlux_cellfrac, &
        Jacobian_divFourierFlux_fracnode, &
-       
+
        Jacobian_RowCol_KSR, &
        Jacobian_RowCol_FR,  &
-       
+
        ! regularization/alignment
        Jacobian_Regularization,     &
        Jacobian_Regularization_row, &
@@ -1438,7 +1446,7 @@ contains
        !   Step 2. loop of nodes of well k
        !           - well equation if indwell=="f"
        !           - reservoir equation
-       
+
        ! Step 1. well equation: Pwmax - Pw = 0
        if( DataWellInjLocal(k)%IndWell == 'p') then
 
@@ -1497,13 +1505,13 @@ contains
              if(k<=NbWellInjOwn_Ncpus(commRank+1)) then ! own injection well
 
                 if( DataWellInjLocal(k)%IndWell == 'f') then
-                
+
                    ! A_kk, k is own injection well
                    nz = JacBigA%Pt(rowk) + csrK(colk)
                    do icp=1, NbComp
                       JacBigA%Val(1,1,nz) = JacBigA%Val(1,1,nz) + dP_w(icp)
                    end do
-                   
+
                    ! A_ks, k is own injection well, s is node
                    nz = JacBigA%Pt(rowk) + csrK(cols)
                    do icp=1, NbComp
@@ -1516,10 +1524,10 @@ contains
 
                 ! Ask, s is node, k is injection well
                 nz = JacBigA%Pt(rows) + csrSR(colk)
-                JacBigA%Val(1,1:NbComp,nz) = JacBigA%Val(1,1:NbComp,nz) + dP_w(:) ! term q_{w,s,i}, derivative of P_w 
+                JacBigA%Val(1,1:NbComp,nz) = JacBigA%Val(1,1:NbComp,nz) + dP_w(:) ! term q_{w,s,i}, derivative of P_w
 
 #ifdef _THERMIQUE_
-                JacBigA%Val(1,NbComp+1,nz) = JacBigA%Val(1,NbComp+1,nz) + dP_ER_w 
+                JacBigA%Val(1,NbComp+1,nz) = JacBigA%Val(1,NbComp+1,nz) + dP_ER_w
 #endif
 
                 ! Ass, s is node
@@ -1589,15 +1597,15 @@ contains
 
        ! Step 1. well equation: Pw - Pwmin = 0
        if( DataWellProdLocal(k)%IndWell == 'p') then
-       
+
           if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = 1.d0
           end if
        end if
-       
+
        ! Step 2.
-       
+
        ! nodes of well k
        do s=NodebyWellProdLocal%Pt(k)+1, NodebyWellProdLocal%Pt(k+1)
           nums = NodebyWellProdLocal%Num(s) ! nums is node num
@@ -1647,7 +1655,7 @@ contains
              if(k<=NbWellProdOwn_Ncpus(commRank+1)) then ! own production well
 
                 if( DataWellProdLocal(k)%IndWell == 'f') then
-                
+
                    ! A_kk, k is own production well
                    nz = JacBigA%Pt(rowk) + csrK(colk)
                    do icp=1, NbComp
@@ -4266,7 +4274,7 @@ contains
        ! WARNING: l'alignement avec alignemat ne s'applique qu'aux eqs de conservation
        ! donc pas aux noeuds DIR DIR
        ! TODO: le cas DIR Neu ou Neu Dir reste a faire
-       
+
        if ( (IdNodeLocal(k)%P.ne."d").and.(IdNodeLocal(k)%T.ne."d") ) then
        rowk = k ! row of k
        call Jacobian_Alignment_man_row(k, rowk, IncNode(k)%ic)
@@ -4276,8 +4284,8 @@ contains
           stop
        else if ( (IdNodeLocal(k)%T.eq."d").and.(IdNodeLocal(k)%P.ne."d") ) then
           write(*,*)' reste a faire neu dir ds alignment_man '
-          stop          
-       endif 
+          stop
+       endif
     end do
 
     ! rows of frac own
@@ -4306,7 +4314,7 @@ contains
     ! the index order of aligmethod(:,:,ic) is also (col, row)
 
     BB(:,:) = aligmat(:,:,ic)
-    
+
     ! JacA%Val(:,:,i) = JacA%Val(:,:,i) * aligmethod(:,:,ic)
     ! since all the matrix are transpose
     do i=JacA%Pt(rowk)+1, JacA%Pt(rowk+1)
@@ -4316,7 +4324,7 @@ contains
             1.d0, AA, NbCompThermique, BB, NbCompThermique, 0.d0, &
             JacA%Val(:,:,i), NbCompThermique)
     end do
-    
+
     ! Sm(:,rowk) = BB * Sm(:,rowk), rowk
     ! transpose of aligmethod(:,:,ic) is necessary
     ! since the index order of BB is (col, row)
@@ -4400,8 +4408,8 @@ contains
             cycle
         end if
     end if
-#endif       
-       
+#endif
+
        do mi=JacBigA%Pt(i)+1, JacBigA%Pt(i+1) ! loop of non zeros in row i
           colmi = JacBigA%Num(mi) ! %Num(mi)
 
@@ -4455,7 +4463,7 @@ contains
           end if
        end do
     end do
-    
+
     ! JacA is (A1, Anw; Awn, Aww)
     do i=1, NbNodeOwn_Ncpus(commRank+1) ! node own
 
@@ -4469,7 +4477,7 @@ contains
              JacA%Val(:,:,JacA%Pt(i)+j) = JacBigA%Val(:,:,JacBigA%Pt(i)+j)
 
           ! Anw, row node, col well
-          else 
+          else
              JacA%val(:,:,JacA%Pt(i)+j) = JacBigA%Val(:,:,JacBigA%Pt(i)+ni+j) ! +ni to jump column cell
           end if
        end do
@@ -4670,7 +4678,7 @@ contains
 #else
        if((IdNodeLocal(i)%P=="d")) then
 #endif
-             
+
           JacBigA%Num(start+1) = i ! node=(node own, node ghost)
           start = start + 1
 
@@ -4755,7 +4763,7 @@ contains
 
        ! a34 = a35 = 0
     end do
-    
+
     do i=1, NbWellInjOwn_Ncpus(commRank+1)
 
        ! a41(i,:)
@@ -4800,14 +4808,14 @@ contains
 
     ! allocate JacBigA%Val
     allocate( JacBigA%Val (NbCompThermique, NbCompThermique, Nz)) ! number of non zero
-    
+
     ! allocate bigSm
     Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
          + NbCellLocal_Ncpus(commRank+1) &
          + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-    
+
     allocate( BigSm( NbCompThermique, Nz))
-    
+
   end subroutine Jacobian_StrucJacBigA
 
 
@@ -5035,7 +5043,7 @@ contains
     ! allocate JacA%Val
     allocate( JacA%Val( NbCompThermique, NbCompThermique, Nz)) ! number of non zero
 !    JacA%Val(:,:,:) = 0.d0
-    
+
     ! allocate csrK csrSR
     allocate( csrK ( NbNodeLocal_Ncpus(commRank+1) &
          + NbFracLocal_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
@@ -5051,9 +5059,9 @@ contains
     ! allocate Sm
     Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
          + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-    
+
     allocate( Sm(NbCompThermique, Nz))
-         
+
   end subroutine Jacobian_StrucJacA
 
 

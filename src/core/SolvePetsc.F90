@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Note: well is only consided in cpramg with pressure
 !       i.e. SolvePetsc_cpramgPCApply_P_multiplicative
 !       well is not added in SolvePetsc_At
@@ -16,7 +24,7 @@ module SolvePetsc
   implicit none
 
   ! Solver: A_mpi x_mpi = Sm_mpi
-  Mat, private :: A_mpi  
+  Mat, private :: A_mpi
   Vec, private :: Sm_mpi
   Vec, private :: x_mpi
 
@@ -25,7 +33,7 @@ module SolvePetsc
 
   ! sync mat and vec
   Mat, private :: M_s ! xs = M_s * x_mpi, (_s means sync)
-  Vec, private :: x_s 
+  Vec, private :: x_s
 
   ! Preconditioner CPR-AMG
   Mat, private :: Ap       ! Pression part of A_mpi
@@ -38,7 +46,7 @@ module SolvePetsc
   PC,  private :: pcamg_t  ! pc amg for temperature
   Vec, private :: AP1v_t, P2AP1v, AP2AP1v, P2AP1v_t
 
-  logical, allocatable, dimension(:) :: & 
+  logical, allocatable, dimension(:) :: &
        IsTprimNodeFracOwn, & ! T is prim/secd, element in (node own, frac own)
        IsTprimNodeFracLocal  ! T is prim/secd, element in (node local, frac local)
 #endif
@@ -48,7 +56,7 @@ module SolvePetsc
 
   ! vector contains history of convergence
   double precision, allocatable, dimension(:), private :: &
-       kspHistory             
+       kspHistory
 
   ! size of A_mpi
   integer, private :: &
@@ -73,14 +81,14 @@ module SolvePetsc
   ! Blockrowstart(i): sum of block rows (node own + frac own + well own) before proc i
   ! Blockcolstart(i): sum of block cols (node own + frac own + well own) before proc i = Blockrowstart
   integer, allocatable, dimension(:), private :: &
-       Blockrowstart, & 
-       Blockcolstart    
+       Blockrowstart, &
+       Blockcolstart
 
   ! rowstart(i): sum of rows before proc i: (node own+frac own) * NbCompThermique + well own
   ! colstart(i): sum of cols before proc i: (node own+frac own) * NbCompThermique + well own = rowstart
   integer, allocatable, dimension(:), private :: &
-       rowstart, & 
-       colstart 
+       rowstart, &
+       colstart
 
   integer, allocatable, dimension(:), private :: &
        RowLToRowGBlock, &
@@ -103,14 +111,14 @@ module SolvePetsc
   public :: &
        SolvePetsc_Init,           &
        SolvePetsc_cpramgInit,    &
-       
+
        SolvePetsc_SetUp,          &
        SolvePetsc_KspSolve,       &
-       
+
        SolvePetsc_SyncMat,        &
        SolvePetsc_Sync,           &
        SolvePetsc_GetSolNodeFracWell, &
-       
+
        SolvePetsc_Free,           &
        SolvePetsc_cpramgFree
 
@@ -126,7 +134,7 @@ module SolvePetsc
        SolvePetsc_cpramgPCSetUp,     &
                                 !
        SolvePetsc_cpramgPCApply_P_multiplicative,  &
-       SolvePetsc_cpramgPCApply_P_additive,  &       
+       SolvePetsc_cpramgPCApply_P_additive,  &
                                 !
        SolvePetsc_SetAp,       &
        SolvePetsc_LtoG,        &
@@ -162,9 +170,9 @@ contains
     NbFracLocal = NbFracLocal_Ncpus(commRank+1)
     NbCellLocal = NbCellLocal_Ncpus(commRank+1)
 
-    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1) 
+    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
     NbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
-    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1) 
+    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
     NbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
     ! local row/col size:  node own and frac own and well own
@@ -220,9 +228,9 @@ contains
     NbFracLocal = NbFracLocal_Ncpus(commRank+1)
     NbCellLocal = NbCellLocal_Ncpus(commRank+1)
 
-    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1) 
+    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
     NbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
-    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1) 
+    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
     NbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
     ! local row/col size:  node own and frac own and well own
@@ -368,7 +376,7 @@ contains
     allocate(Blockcolstart(Ncpus))
 
     Blockrowstart(1) = 0
-    do i=1, Ncpus-1 ! 
+    do i=1, Ncpus-1 !
        Blockrowstart(i+1) = Blockrowstart(i) &
             + NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)  &
             + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
@@ -384,7 +392,7 @@ contains
     allocate(colstart(Ncpus))
 
     rowstart(1) = 0
-    do i=1, Ncpus-1 ! 
+    do i=1, Ncpus-1 !
        rowstart(i+1) = rowstart(i) &
             + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique  &
             + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
@@ -442,7 +450,7 @@ contains
   ! Create Mat A_mpi in AIJ format (the default parallel PETSc format)
   !
   ! A_mpi for 3 mpi procs example:
-  !     node own/frac own(mpi=0), (mpi=1),  (mpi=2)              
+  !     node own/frac own(mpi=0), (mpi=1),  (mpi=2)
   !         |   a11,                a12,     a13    | mpi 0, node own/frac own
   ! A_mpi = |   a21,                a22,     a22    | mpi 1
   !         |   a31,                a32,     a33    | mpi 2
@@ -457,18 +465,18 @@ contains
 
     integer, allocatable, dimension(:) :: &
          d_nnz, & ! number of nonzeros per row in diagonal portion
-         o_nnz    ! number of nonzeros per row in the off-diagonal portion 
+         o_nnz    ! number of nonzeros per row in the off-diagonal portion
 
     ! some tmp values, explained when setting values
     integer :: Nl_Fo, Nl_Fl, Nl_Fl_WIo, Nl_Fl_WIl, Nl_Fl_WIl_WPo, Nl_Fl_WIl_WPl
 
 
     ! tmp values
-    integer :: i, li, j, s, lj, start, Ierr, colend 
+    integer :: i, li, j, s, lj, start, Ierr, colend
 
     ! local row/col size:  node own and frac own
     NrowL = (NbNodeOwn + NbFracOwn) * NbCompThermique &
-         + NbWellInjOwn + NbWellProdOwn 
+         + NbWellInjOwn + NbWellProdOwn
     NcolL = NrowL
 
     ! global row/col size: sum of all procs
@@ -491,7 +499,7 @@ contains
 
     ! N: Node, F: Frac, WI: well inj, WP: well prod
     ! l: local, o: own
-    Nl_Fo = NbNodeLocal + NbFracOwn 
+    Nl_Fo = NbNodeLocal + NbFracOwn
     Nl_Fl = NbNodeLocal + NbFracLocal
     Nl_Fl_WIo = NbNodeLocal + NbFracLocal + NbWellInjOwn
     Nl_Fl_WIl = NbNodeLocal + NbFracLocal + NbWellInjLocal
@@ -621,7 +629,7 @@ contains
 
     ! rows associated with node own and frac own
     do i=1, NbNodeOwn + NbFracOwn
-       
+
        do j=JacA%Pt(i)+1, JacA%Pt(i+1)
 
           row = RowLToRowG(i) - 1             ! 0-based in petsc
@@ -633,7 +641,7 @@ contains
 
           ! col is node or frac, insert JacA%Val(:,:,j)
           if(JacA%Num(j) <= (NbNodeLocal+NbFracLocal)) then
-             
+
              do s=1, NbCompThermique
                 idxm(s) = row + s - 1
                 idxn(s) = col + s - 1
@@ -712,7 +720,7 @@ contains
        do j= JacA%Pt(i)+1, JacA%Pt(i+1)
 
           col = ColLToColGBlock( JacA%Num(j) ) - 1 ! 0-based in petsc
-          
+
           call MatSetValue(Ap, row, col, JacA%Val(1,1,j), INSERT_VALUES, Ierr)
           CHKERRQ(Ierr)
        end do
@@ -733,8 +741,8 @@ contains
   ! Set values At, temperature part of A_mpi
   subroutine SolvePetsc_SetAt
 
-    ! TODO: add well 
-    
+    ! TODO: add well
+
     integer :: i, j
     integer :: row, col
     PetscErrorCode :: Ierr
@@ -828,9 +836,9 @@ contains
     call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
     CHKERRQ(Ierr)
     call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
-    CHKERRQ(Ierr) 
+    CHKERRQ(Ierr)
     call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
-    CHKERRQ(Ierr) 
+    CHKERRQ(Ierr)
     call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
     CHKERRQ(Ierr)
     call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
@@ -851,11 +859,11 @@ contains
     ! CHKERRQ(Ierr)
 
     ! set preconditioner
-    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)                                   
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
     CHKERRQ(Ierr)
 
     ! ! non preconditioner
-    ! call PCSetType(pc_mpi,PCNONE,Ierr)   
+    ! call PCSetType(pc_mpi,PCNONE,Ierr)
     ! CHKERRQ(Ierr)
 
     ! hypre pc
@@ -865,7 +873,7 @@ contains
     ! ! Euclid in hypre: ILU(k), k is level
     ! call PCHYPRESetType(pc_mpi, "euclid", Ierr)
     ! CHKERRQ(Ierr)
-    ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr) 
+    ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr)
     ! CHKERRQ(Ierr)
     ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
     ! CHKERRQ(Ierr)
@@ -895,9 +903,9 @@ contains
     call KSPCreate(ComPASS_COMM_WORLD,ksp_mpi,Ierr)
     CHKERRQ(Ierr)
     call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
-    CHKERRQ(Ierr) 
+    CHKERRQ(Ierr)
     call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
-    CHKERRQ(Ierr) 
+    CHKERRQ(Ierr)
     call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
     CHKERRQ(Ierr)
     call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
@@ -917,9 +925,9 @@ contains
     ! CHKERRQ(Ierr)
 
     ! set preconditioner CPR-AMG
-    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)                                   
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
     CHKERRQ(Ierr)
-    call PCSetType(pc_mpi, PCSHELL, Ierr)   
+    call PCSetType(pc_mpi, PCSHELL, Ierr)
     CHKERRQ(Ierr)
 
     ! apply shell pc
@@ -972,11 +980,11 @@ contains
     CHKERRQ(Ierr)
     call PCHYPRESetType(pcilu0, "euclid", Ierr)
     CHKERRQ(Ierr)
-    call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr) 
+    call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr)
     CHKERRQ(Ierr)
     call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
     CHKERRQ(Ierr)
-    call PCSetFromOptions(pcilu0, Ierr) 
+    call PCSetFromOptions(pcilu0, Ierr)
     CHKERRQ(Ierr)
 
 ! #ifdef _THERMIQUE_
@@ -1027,7 +1035,7 @@ contains
 
     NbNodeFrac = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)
     NbWell = NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-    
+
     ! Pression part of v:
     ! v_pt = R1*v, R1: restriction matrix to pression
     call VecGetArrayReadF90(v, ptr1, Ierr)
@@ -1070,7 +1078,7 @@ contains
        iv = NbNodeFrac*NbCompThermique + i
        ptr2(iv) = ptr1(i+NbNodeFrac)
     end do
-    
+
     call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
     CHKERRQ(Ierr)
     call VecRestoreArrayF90(P1v, ptr2, Ierr)
@@ -1099,7 +1107,7 @@ contains
 
     ! ! Pv = P_2^{-1} v, ILU(0)
     ! call PCApply(pcilu0, v, Pv, Ierr)
-    ! CHKERRQ(Ierr)    
+    ! CHKERRQ(Ierr)
 
     ! call MatMult(A_mpi, Pv, AP1v, Ierr)
     ! CHKERRQ(Ierr)
@@ -1147,7 +1155,7 @@ contains
 
   ! *** AMG for pression and ILU0 second (additive) *** !
   !   P1^{-1}: amg for pression
-  !   P2^{-1}: ilu0 for all  
+  !   P2^{-1}: ilu0 for all
   ! Preconditioner: v -> P^{-1}v, thermal
   ! Ps: v must not be modified
   subroutine SolvePetsc_cpramgPCApply_P_additive(pcin, v, pv, Ierr)
@@ -1164,7 +1172,7 @@ contains
 
     ! Pv = P_2^{-1} v, ILU(0)
     call PCApply(pcilu0, v, Pv, Ierr)
-    CHKERRQ(Ierr)    
+    CHKERRQ(Ierr)
 
     ! Pression part of v:
     ! v_pt = R1*v, R1: restriction matrix to pression
@@ -1194,7 +1202,7 @@ contains
     call VecGetArrayF90(Pv, ptr2, Ierr)
     CHKERRQ(Ierr)
 
-    do i=1, Nb 
+    do i=1, Nb
        iv = (i-1)*NbCompThermique + 1
        ptr2(iv) = ptr2(iv) + ptr1(i)
     end do
@@ -1213,7 +1221,7 @@ contains
   ! *** AMG for pression first, AMG for temperature second, ILU0 third *** !
   !   P1^{-1}: amg for pression
   !   P2^{-1}: amg for temperature
-  !   P3^{-1}: ilu0 for all  
+  !   P3^{-1}: ilu0 for all
   ! Preconditioner: v -> P^{-1}v, thermal
   ! Ps: v must not be modified
   subroutine SolvePetsc_cpramgPCApply_PT_multiplicative(pcin, v, pv, Ierr)
@@ -1332,7 +1340,7 @@ contains
 
     ! Pv = P_3^{-1} AP2AP1v, ILU(0)
     call PCApply(pcilu0, AP2AP1v, Pv, Ierr)
-    CHKERRQ(Ierr)    
+    CHKERRQ(Ierr)
 
     ! Pv = Pv + P2AP1v
     call VecAXPY(Pv, 1.d0, P2AP1v, Ierr)
@@ -1348,7 +1356,7 @@ contains
   ! *** AMG for pression and AMG for temperature first (additive), ILU0 second (multiplicative) *** !
   !   P1^{-1}: amg for pression
   !   P2^{-1}: amg for temperature
-  !   P3^{-1}: ilu0 for all  
+  !   P3^{-1}: ilu0 for all
   ! Preconditioner: v -> P^{-1}v, thermal
   ! Ps: v must not be modified
   subroutine SolvePetsc_cpramgPCApply_PT_additive(pcin, v, pv, Ierr)
@@ -1391,7 +1399,7 @@ contains
     call VecGetArrayF90(P1v, ptr2, Ierr)
     CHKERRQ(Ierr)
 
-    do i=1, Nb 
+    do i=1, Nb
        iv = (i-1)*NbCompThermique + 1
        ptr2(iv) = ptr1(i)
     end do
@@ -1433,7 +1441,7 @@ contains
     call VecGetArrayF90(P1v, ptr2, Ierr)
     CHKERRQ(Ierr)
 
-    do i=1, Nb 
+    do i=1, Nb
        iv = (i-1)*NbCompThermique + 2
 
        if(IsTprimNodeFracOwn(i) .eqv. .true.) then
@@ -1458,7 +1466,7 @@ contains
 
     ! Pv = P_3^{-1} AP1v, ILU(0)
     call PCApply(pcilu0, AP1v, Pv, Ierr)
-    CHKERRQ(Ierr)    
+    CHKERRQ(Ierr)
 
     ! Pv = Pv + P1v
     call VecAXPY(Pv, 1.d0, P1v, Ierr)
@@ -1469,7 +1477,7 @@ contains
 
   ! *** AMG for temperature, ILU0 second (multiplicative) *** !
   !   P2^{-1}: amg for temperature
-  !   P3^{-1}: ilu0 for all  
+  !   P3^{-1}: ilu0 for all
   ! Preconditioner: v -> P^{-1}v, thermal
   ! Ps: v must not be modified
   subroutine SolvePetsc_cpramgPCApply_T_multiplicative(pcin, v, pv, Ierr)
@@ -1515,7 +1523,7 @@ contains
     call VecGetArrayF90(P1v, ptr2, Ierr)
     CHKERRQ(Ierr)
 
-    do i=1, Nb 
+    do i=1, Nb
        iv = (i-1)*NbCompThermique + 2
 
        if(IsTprimNodeFracOwn(i) .eqv. .true.) then
@@ -1540,7 +1548,7 @@ contains
 
     ! Pv = P_3^{-1} AP1v, ILU(0)
     call PCApply(pcilu0, AP1v, Pv, Ierr)
-    CHKERRQ(Ierr)    
+    CHKERRQ(Ierr)
 
     ! Pv = Pv + P1v
     call VecAXPY(Pv, 1.d0, P1v, Ierr)
@@ -1630,7 +1638,7 @@ contains
 
     integer, allocatable, dimension(:) :: &
          d_nnz, & ! number of nonzeros per row in diagonal portion
-         o_nnz    ! number of nonzeros per row in the off-diagonal portion 
+         o_nnz    ! number of nonzeros per row in the off-diagonal portion
 
     ! some tmp values, explained when setting values
     integer :: Nl_Fo, Nl_Fl, Nl_Fl_WIo, Nl_Fl_WIl, Nl_Fl_WIl_WPo, Nl_Fl_WIl_WPl
@@ -1647,7 +1655,7 @@ contains
 
     ! N: Node, F: Frac, WI: well inj, WP: well prod
     ! l: local, o: own
-    Nl_Fo = NbNodeLocal + NbFracOwn 
+    Nl_Fo = NbNodeLocal + NbFracOwn
     Nl_Fl = NbNodeLocal + NbFracLocal
     Nl_Fl_WIo = NbNodeLocal + NbFracLocal + NbWellInjOwn
     Nl_Fl_WIl = NbNodeLocal + NbFracLocal + NbWellInjLocal
@@ -1733,10 +1741,10 @@ contains
        end do
     else
 
-       call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations 
+       call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations
        CHKERRQ(Ierr)
 
-       NkspIter = NkspIter + 1 
+       NkspIter = NkspIter + 1
     end if
 
     ! call VecView(Sm_mpi, PETSC_VIEWER_STDOUT_WORLD, Ierr)
@@ -1754,7 +1762,7 @@ contains
          d_nnz, o_nnz    ! number of non zeros each row, diag/non-diag
 
     integer, allocatable, dimension(:) :: &
-         RowNum, ColNum  ! the index of element i is (RowNum(i), ColNum(i)) 
+         RowNum, ColNum  ! the index of element i is (RowNum(i), ColNum(i))
 
     double precision, parameter :: c1 = 1.d0
 
@@ -1887,7 +1895,7 @@ contains
   end subroutine SolvePetsc_SyncMat
 
 
-  ! x_s = M_s * x_mpi 
+  ! x_s = M_s * x_mpi
   subroutine SolvePetsc_Sync
 
     integer :: Ierr
@@ -2064,7 +2072,7 @@ contains
     ! well
     start = NbNodeOwn + NbFracOwn
     ndisp = rowstart(commRank+1) + (NbNodeOwn+NbFracOwn)*NbCompThermique
-    
+
     do i=1, NbWellInjOwn + NbWellProdOwn
        RowLToRowG(i+start) = ndisp + i
     end do
@@ -2080,7 +2088,7 @@ contains
 
           ! j is in proc ipc
           ipc = NumNodebyProc%Val(j)
-          
+
           ColLToColG(j) = (NumNodebyProc%Num(j)-1) * NbCompThermique + 1  &
                + colstart(ipc+1)
        end do
@@ -2100,7 +2108,7 @@ contains
           ! if(commRank==0 .and. i==2) then
           !    print*, NumFracbyProc%Num(j), j+NbNodeLocal, ColLToColG(j+NbNodeLocal)
           ! end if
-          
+
        end do
     end do
 
@@ -2148,7 +2156,7 @@ contains
 
     ! RowLtoRowGBlock
     ! idea: add sum of numbers of own nodes/frac/well in the procs before commRank (rowstart)
-    allocate( RowLToRowGBlock(NBlockrowL) ) 
+    allocate( RowLToRowGBlock(NBlockrowL) )
     do i=1, NBlockrowL
        RowLToRowGBlock(i) = Blockrowstart(commRank+1) + i
     end do
@@ -2219,7 +2227,7 @@ contains
 
   end subroutine SolvePetsc_LtoGBlock
 
-  
+
 
   ! Row/Col num:  RowNum, ColNum
   subroutine SolvePetsc_rowcolnum(RowNum, ColNum)
@@ -2277,7 +2285,7 @@ contains
     ! ColNum, node
     do i=1, NbNodeLocal
 
-       ipc = NumNodebyProc%Val(i) ! this node is in proc ipc 
+       ipc = NumNodebyProc%Val(i) ! this node is in proc ipc
 
        ! NumNodebyProc%Num(i) is the num of this node in the proc that it's own
        do s=1, NbCompThermique
@@ -2285,7 +2293,7 @@ contains
 
           ! if(commRank==0) then
           !    print*, (i-1)*NbCompThermique+s, ColNum((i-1)*NbCompThermique+s), NumNodebyProc%Num(i), ipc, NbSumCol(ipc+1)
-          ! end if          
+          ! end if
        end do
     end do
 
@@ -2293,7 +2301,7 @@ contains
     start = NbNodeLocal * NbCompThermique
     do i=1, NbFracLocal
 
-       ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc 
+       ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc
 
        ! NumFracbyProc%Num(i) is the num of this frac in the proc that it's own
        do s=1, NbCompThermique

@@ -1,3 +1,11 @@
+//
+// This file is part of ComPASS.
+//
+// ComPASS is free software: you can redistribute it and/or modify it under both the terms
+// of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+// and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+//
+
 // Fortran functions
 extern "C"
 {
@@ -91,7 +99,7 @@ void add_GlobalMesh_wrappers(py::module& module)
 	// cf. https://stackoverflow.com/questions/45077622/using-a-template-function-pointer-inside-another-template-function?noredirect=1#comment77158283_45077622
 	module.def("create_mesh", (decltype(&create_mesh<MT::TetMesh>))(&create_mesh<MT::TetMesh>), "Creates a tet mesh.");
 	module.def("create_mesh", (decltype(&create_mesh<MT::HexMesh>))(&create_mesh<MT::HexMesh>), "Creates a hex mesh.");
-	
+
 	//void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
 	//subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
 	//	nodes, &

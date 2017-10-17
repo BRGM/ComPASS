@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import numpy as np
 # WARNING: Set your python path adequately
 # e.g.: export PYTHONPATH=/home/simon/ComPASS/python
@@ -90,13 +98,13 @@ def set_boundary_conditions():
     # we test where z of topo nodes is < 0
     topoelevation = vertices[toponodes, -1]
     dirichlet = ComPASS.dirichlet_node_states()
-    dirichlet.p[:] = patm 
+    dirichlet.p[:] = patm
     # considering a sea water density of 1030 kg/m3
     p = patm - topoelevation * 1.03E3 * ComPASS.gravity()
     p[p<patm] = patm
     dirichlet.p[toponodes] = p
     botdepth = compute_depth(vertices[bottnodes])
-    dirichlet.p[bottnodes] = patm + botdepth * 1.E3 * ComPASS.gravity() 
+    dirichlet.p[bottnodes] = patm + botdepth * 1.E3 * ComPASS.gravity()
     # considering 5 Celsius degrees on the sea floor with gradual transition
     dirichlet.T[:] = degC2K(Tatm)
     Ttop = Tatm + (Tatm-Tsea) * topoelevation/Lsea
@@ -119,7 +127,7 @@ def set_initial_values():
         states.context[:] = 2
         assert np.all(depth>=0)
         states.p[:] = patm + depth * 1.E3 * ComPASS.gravity()
-        states.T[:] = degC2K(Tatm + Tgrad * depth) 
+        states.T[:] = degC2K(Tatm + Tgrad * depth)
         states.S[:] = [0, 1]
         states.C[:] = 1.
     xyz = ComPASS.vertices().view(np.double).reshape((-1, 3))

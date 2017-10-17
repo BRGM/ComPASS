@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 !> Main subroutine GlobalMesh_make.   <br>
 !! Contains the connectivity of the global mesh.
 module GlobalMesh
@@ -8,9 +16,9 @@ module GlobalMesh
   !    and IdFace, Dir Part
 
   ! 2.1 calcul CellbyCell for metis
-  !    use NodebyFace, FacebyCell  
+  !    use NodebyFace, FacebyCell
   !    to -> NodebyCell -> CellbyNode -> CellbyCell
-  ! 2.2 calcul CellbyFace using FacebyCell 
+  ! 2.2 calcul CellbyFace using FacebyCell
 
   ! 3. IdFace, Mesh Part
 
@@ -83,7 +91,7 @@ module GlobalMesh
        FacebyCell, & !< CSR list of Faces surrounding each Cell
        NodebyFace    !< CSR list of Nodes surrounding each Face
 
-  ! Connectivities 
+  ! Connectivities
   type(CSR), protected :: &
        NodebyCell, &  !< CSR list of Nodes surrounding each Cell
        CellbyNode, & !< CSR list of Cells surrounding each Node
@@ -167,9 +175,9 @@ module GlobalMesh
 contains
 
   subroutine GlobalMesh_MeshBoundingBox
-  
+
     integer :: i
-    
+
     Mesh_xmax = XNode(1,1)
     Mesh_xmin = XNode(1,1)
     Mesh_ymax = XNode(2,1)
@@ -178,7 +186,7 @@ contains
     Mesh_zmin = XNode(3,1)
 
     do i=2, NbNode
-        
+
        if(XNode(1,i)<Mesh_xmin) then
           Mesh_xmin = XNode(1,i)
        else if(XNode(1,i)>Mesh_xmax) then
@@ -205,7 +213,7 @@ contains
     print*, Mesh_zmin, "< Z <", Mesh_zmax
 
   end subroutine GlobalMesh_MeshBoundingBox
-    
+
   ! include two subroutines:
   !   GlobalMesh_SetDirBC: set dir boundary
   !   GlobalMesh_SetFrac:  set face fracture
@@ -221,7 +229,7 @@ contains
     !   <0 cartesian;
     !   >0 read from file
     open(15, File=fileMesh, status="old", IOSTAT=ios)
-    if (ios /= 0) then 
+    if (ios /= 0) then
        print *,"Error impossible to open file :", trim(fileMesh)
     endif
     do i=1,3
@@ -240,7 +248,7 @@ contains
   end subroutine GlobalMesh_Make_read_file
 
   subroutine GlobalMesh_Compute_all_connectivies()
-      
+
     ! CellbyNode
     call GlobalMesh_CellByNodeGlobal
 
@@ -253,7 +261,7 @@ contains
   end subroutine GlobalMesh_Compute_all_connectivies
 
 subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
-  
+
     ! #define _DEBUG_LVL1_
 #if defined _DEBUG_ && defined _DEBUG_LVL1_
     fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
@@ -267,7 +275,7 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
     call GlobalMesh_MeshBoundingBox
 
     call GlobalMesh_Compute_all_connectivies
-    
+
     ! Frac
     call GlobalMesh_SetFrac
 
@@ -281,7 +289,7 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
     call GlobalMesh_FracbyNode
 
 end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
-	
+
 subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     !< \TODO: input porosite
@@ -292,7 +300,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
          PermCell, PermFrac)
 
 	end subroutine GlobalMesh_Make_post_read_set_poroperm
-	
+
 	subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
 
 	    ! Building well connectivity
@@ -302,9 +310,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        deallocate(IdNodeFromFile)
     end if
 
-	
+
 	end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip
-	
+
 	!> \brief Read mesh; build connectivity; set porosity and permeability;
   !! compute well indexes (Peaceman formula)
   !!
@@ -316,29 +324,29 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   subroutine GlobalMesh_Make_post_read
 
 	call GlobalMesh_Make_post_read_fracture_and_dirBC
-  
+
 	call GlobalMesh_Make_post_read_set_poroperm
-	
+
 	call GlobalMesh_Make_post_read_well_connectivity_and_ip
-	
+
   end subroutine GlobalMesh_Make_post_read
 
   subroutine GlobalMesh_allocate_flags()
 
     call GlobalMesh_deallocate_flags
-  
+
     allocate(NodeFlags(NbNode))
     allocate(CellFlags(NbCell))
     allocate(FaceFlags(NbFace))
-  
+
   end subroutine GlobalMesh_allocate_flags
 
   subroutine GlobalMesh_deallocate_flags()
-  
+
     if(allocated(NodeFlags)) deallocate(NodeFlags)
     if(allocated(CellFlags)) deallocate(CellFlags)
     if(allocated(FaceFlags)) deallocate(FaceFlags)
-  
+
   end subroutine GlobalMesh_deallocate_flags
 
   subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
@@ -351,7 +359,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     write(*,*) 'Building cartesian grid: ', nx, 'x', ny, 'x', nz
     write(*,*) 'Domain size: ', lx, 'x', ly, 'x', lz
     write(*,*) 'Origin: (', Ox, ',', Oy, ',', Oz, ')'
-    
+
     ! mesh info
     Nbnode = (nx+1)*(ny+1)*(nz+1)
     NbCell = nx*ny*nz
@@ -374,14 +382,14 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     XNode(1,:) = XNode(1,:) + Ox
     XNode(2,:) = XNode(2,:) + Oy
     XNode(3,:) = XNode(3,:) + Oz
-    
+
     FacebyCell%Nb = NbCell
     allocate (FacebyCell%Pt(NbCell+1))
     FacebyCell%Pt(1) = 0
     do i=1,NbCell
        FacebyCell%Pt(i+1) = 6*i
     enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1)))
     kk = 1
     do k=1,nz
        do j=1,ny
@@ -404,9 +412,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     allocate (NodebyFace%Pt(NbFace+1))
     NodebyFace%Pt(1) = 0
     do i=1,NbFace
-       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + 4 
+       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + 4
     enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1)))
     ! horizontal faces
     kk =0
     do k=1,nz+1
@@ -463,7 +471,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     end do
 
     allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1)))
-    kk = 1 ! 
+    kk = 1 !
     do k=1,nz
        do j=1,ny
           do i = 1,nx
@@ -547,7 +555,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     enddo
 
     call GlobalMesh_allocate_flags
-    
+
   end subroutine GlobalMesh_Build_cartesian_grid
 
   !> \brief Make cartesian mesh given a Meshfile with domain informations.
@@ -576,20 +584,20 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        read (15,'(a1)') lignevide
     enddo
 
-    read (15,*) nx,ny,nz 
+    read (15,*) nx,ny,nz
     read (15,'(a1)') lignevide
     read (15,*) lx,ly,lz
     read (15,'(a1)') lignevide
     read (15,*) Ox,Oy,Oz
 
     call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-    
+
         close(15)
-	
+
 	    call GlobalMesh_SetWellCar(nx,ny,nz)
-        
+
   end subroutine GlobalMesh_ReadMeshCar
-  
+
   !> \brief Read mesh from Meshfile.
   !!
   !! Meshfile contains the number of elements (Nodes, Faces, Cells, Wells),
@@ -632,10 +640,10 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     allocate (FacebyCell%Pt(NbCell+1))
     FacebyCell%Pt(1) = 0
     do i=1,NbCell
-       read (16,*) kk,(lect(j),j=1,kk) 
+       read (16,*) kk,(lect(j),j=1,kk)
        FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
     enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1)))
 
     ! Cells / Nodes - counting, 1st step
     read(16,'(a1)') lignevide
@@ -644,9 +652,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     NodebyCell%Pt(1) = 0
     do i=1,NbCell
        read (16,*) kk,(lect(j),j=1,kk)
-       NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
+       NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk
     enddo
-    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
+    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1)))
 
     ! Faces / Nodes - counting, 1st step
     read(16,'(a1)') lignevide
@@ -655,9 +663,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     NodebyFace%Pt(1) = 0
     do i=1,NbFace
        read (16,*) kk,(lect(j),j=1,kk)
-       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
+       NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk
     enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1)))
 
     ! IdCell
     ! rmq : homogene by default...
@@ -735,13 +743,13 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! Cells / Faces - filling, step 2
     read (16,'(a1)') lignevide
     do i=1,NbCell
-       read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
+       read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1))
     enddo
 
     ! Cells / Nodes - filling, step 2
     read (16,'(a1)') lignevide
     do i=1,NbCell
-       read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
+       read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1))
     enddo
 
     ! Faces / Nodes - filling, step 2
@@ -787,7 +795,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     enddo
 
     close(16)
-    
+
     ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
     call GlobalMesh_allocate_flags
 
@@ -883,7 +891,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   subroutine GlobalMesh_NodeByCellGlobal
 
     integer :: i, j, k
-    integer :: counterNumNodebyCell=0 
+    integer :: counterNumNodebyCell=0
     integer, allocatable, dimension(:) :: colorNodes
     integer :: beginFace, nbFacetempCell
     integer :: beginNode, nbNodetempFace, faceLoad
@@ -893,18 +901,18 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     ! 1st step - counting
     ! Loop over every Cell
-    do i = 1, NbCell       
+    do i = 1, NbCell
        nbFacetempCell=FacebyCell%Pt(i+1)-FacebyCell%Pt(i)
        beginFace=FacebyCell%Pt(i)+1
 
        ! Loop over the Faces of Cell i
-       do j  =  1,nbFacetempCell         
+       do j  =  1,nbFacetempCell
           faceLoad=FacebyCell%Num(beginFace+j-1)
           nbNodetempFace= NodebyFace%Pt(faceLoad+1)-NodebyFace%Pt(faceLoad)
           beginNode=NodebyFace%Pt(faceLoad)+1
 
           ! Loop over the Nodes of Face j
-          do k  =  1,nbNodetempFace             
+          do k  =  1,nbNodetempFace
              if ( colorNodes( NodebyFace%Num( beginNode+k-1) ) == i )then
                 ! Node k has already been counted, nothing is done
              else
@@ -994,7 +1002,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     allocate(CellbyNode%Num(counterNumCellbyNode))
 
     ! 2nd step - filling
-    nbCellbyNode(:)=0    
+    nbCellbyNode(:)=0
     do i=1,NbCell
        nbtempCell=NodebyCell%Pt(i+1)-NodebyCell%Pt(i)
        beginNode= NodebyCell%Pt(i)+1
@@ -1021,7 +1029,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   subroutine GlobalMesh_CellByFaceGlobal
 
     integer :: i,k,nuf
-    integer, allocatable,  dimension(:) ::  cptMaille  
+    integer, allocatable,  dimension(:) ::  cptMaille
 
     allocate(cptMaille(NbFace))
     cptMaille(:) = 0
@@ -1064,7 +1072,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     deallocate(XNode)
 
     call GlobalMesh_deallocate_flags
-    
+
     call CommonType_deallocCSR(FacebyCell)
     call CommonType_deallocCSR(NodebyFace)
     call CommonType_deallocCSR(NodebyCell)
@@ -1172,7 +1180,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   !! the parent must be stored after the son(s).
   subroutine BuildWellConnectivity(NbWell,NbEdgebyWell,NumNodebyEdgebyWell, &
        NodebyWell,NodeDatabyWell)
-    
+
     integer, intent(in) :: NbWell
     integer, dimension(:), intent(in) :: NbEdgebyWell
     integer, dimension(:,:,:), intent(in) :: NumNodebyEdgebyWell
@@ -1183,9 +1191,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     integer :: i, j, ival
     integer, allocatable, dimension(:) :: OrderedNodes
     integer, allocatable, dimension(:) :: Parents
-    
+
     ! write(fdGm,*) 'Edges', NbWell, NbEdgebyWell
-    ! write(fdGm,*) NumNodebyEdgebyWell 
+    ! write(fdGm,*) NumNodebyEdgebyWell
     ! ! The following output seems to fail
     ! write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
     ! write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
@@ -1198,7 +1206,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     allocate(NodeDatabyWell%Pt(NbWell+1))
     allocate(NodeDatabyWell%Num(sum(NbEdgebyWell) + NbWell)) ! <=> NbEdgebyWell + 1 for each Well
     allocate(NodeDatabyWell%Val(sum(NbEdgebyWell) + NbWell))
-    
+
     NodebyWell%Nb = NbWell
     NodeDatabyWell%Nb = NbWell
     NodebyWell%Num = -1
@@ -1233,15 +1241,15 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     !    ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
     !    ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
     ! end do
-    
+
     deallocate(OrderedNodes)
     deallocate(Parents)
-    
+
   end subroutine BuildWellConnectivity
 
   !> \brief Sort the Nodes of each Well to store parent after each son(s)
   subroutine SortWellNodes(Edges,OrderedNodes,Parents)
-    
+
     integer, dimension(:,:), intent(in) :: Edges
     integer, dimension(:), intent(out) :: OrderedNodes
     integer, dimension(:), intent(out) :: Parents
@@ -1379,17 +1387,17 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     deallocate(LocalIdx)
     deallocate(NbEdgesbyNode)
-    
+
   end subroutine SortWellNodes
 
-  
+
   !> \brief Build global connectivity of injection and production wells.
   subroutine GlobalMesh_WellConnectivity
-    
+
     write(fdGm,*) 'building injectors connectivity ...'
     call BuildWellConnectivity(NbWellInj,NbEdgebyWellInj,NumNodebyEdgebyWellInj, &
          NodebyWellInj,NodeDatabyWellInj)
-    
+
     write(fdGm,*) 'building producers connectivity ...'
     call BuildWellConnectivity(NbWellProd,NbEdgebyWellProd,NumNodebyEdgebyWellProd,&
          NodebyWellProd,NodeDatabyWellProd)
@@ -1404,7 +1412,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
     ! write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
     ! write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
-    
+
   end subroutine GlobalMesh_WellConnectivity
 
        subroutine fill_CSR(ptr, indices, csrdata, c_indexing)
@@ -1437,7 +1445,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
                                      cell_faces_ptr, cell_faces_val, &
                                      cell_nodes_ptr, cell_nodes_val, &
                                      face_nodes_ptr, face_nodes_val, &
-                                     cell_id, face_id, & 
+                                     cell_id, face_id, &
 		                             c_indexing)
 
           real(c_double), dimension(:, :), intent(in) :: nodes
@@ -1452,7 +1460,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           logical, optional, intent(in) :: c_indexing
 		  logical :: check, use_c_indexing
           integer :: Ierr, errcode ! used for MPI_Abort
-		  
+
           NbNode = size(nodes, 2)
           NbCell = size(cell_id)
           NbFace = size(face_id)
@@ -1467,9 +1475,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 		  if(size(face_nodes_val)/=face_nodes_ptr(NbFace+1)) check = .False.
 		  if(.not.check) then
 			  write(*,*) 'Unconsistent mesh data!'
-			  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)			  
+			  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
 		  end if
-		  
+
 		  if(allocated(XNode)) deallocate(XNode)
           allocate (XNode(3, NbNode))
           XNode = nodes
@@ -1482,11 +1490,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 		  if(allocated(IdCell)) deallocate(IdCell)
           allocate (IdCell(NbCell))
 		  IdCell = cell_id
-		  
+
 		  if(allocated(IdFace)) deallocate(IdFace)
           allocate (IdFace(NbFace))
 		  IdFace = face_id
-		  
+
           !! Number of injection wells
           !read (16, '(a1)') lignevide
           !read (16, *) NbWellInj
@@ -1548,7 +1556,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
           !enddo
 
           call GlobalMesh_allocate_flags
-          
+
 		  end subroutine GlobalMesh_create_mesh
 
 end module GlobalMesh

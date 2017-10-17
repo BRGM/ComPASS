@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 
     module GlobalMeshWrapper
 
@@ -9,18 +17,18 @@
        use GlobalMesh
        use DefWell
        use MeshSchema
-    
+
        implicit none
 
        integer :: Ierr, errcode
 
        type, bind(C) :: cpp_MeshConnectivity
           type(cpp_COC) :: NodebyCell
-          type(cpp_COC) :: NodebyFace; 
-          type(cpp_COC) :: FacebyCell; 
-          type(cpp_COC) :: CellbyNode; 
-          type(cpp_COC) :: CellbyFace; 
-          type(cpp_COC) :: CellbyCell; 
+          type(cpp_COC) :: NodebyFace;
+          type(cpp_COC) :: FacebyCell;
+          type(cpp_COC) :: CellbyNode;
+          type(cpp_COC) :: CellbyFace;
+          type(cpp_COC) :: CellbyCell;
        end type cpp_MeshConnectivity
 
        public :: &
@@ -61,12 +69,12 @@
 
     subroutine GlobalMesh_allocate_id_nodes() &
         bind(C, name="GlobalMesh_allocate_id_nodes")
-    
+
     if(allocated(Idnode)) then
         deallocate(IdNode)
     end if
     allocate(IdNode(NbNode))
- 
+
         end subroutine GlobalMesh_allocate_id_nodes
 
     subroutine GlobalMesh_count_dirichlet_nodes() &
@@ -503,7 +511,7 @@
                                       .true.)
 
           end subroutine GlobalMesh_create_mesh_from_C
-          
+
           subroutine GlobalMesh_set_cartesian_mesh() &
               bind(C, name="GlobalMesh_set_cartesian_mesh")
           MESH_TYPE = "cartesian-quad"

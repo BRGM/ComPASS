@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import numpy as np
 import ComPASS
 import doublet_utils
@@ -19,7 +27,7 @@ def cell_permeability_factory(grid):
         cellperm[:] = 1E-16 * np.eye(3)
         # anisotropic reservoir permeability
         zc-= Oz
-        reservoir = (zc > Lz/3.) & (zc < 2*Lz/3.) 
+        reservoir = (zc > Lz/3.) & (zc < 2*Lz/3.)
         kres = 1E-12 * np.array([
             [np.sqrt(2), np.sqrt(2), 0],
             [-np.sqrt(2), np.sqrt(2), 0],

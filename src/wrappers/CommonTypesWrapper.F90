@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 
     module CommonTypesWrapper
 
@@ -85,7 +93,7 @@
               cpp_array%n = n
               if (n==0) then
                   ! FIXME: Remove comment
-#ifdef TRACK_ZERO_SIZE_ARRAY              
+#ifdef TRACK_ZERO_SIZE_ARRAY
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
                   cpp_array%p = C_NULL_PTR
@@ -105,14 +113,14 @@
 
           n = fortran_csr%Nb
           retrieved_coc%nb_containers = n
-          
+
           if(n==0) then
-#ifdef TRACK_ZERO_SIZE_ARRAY              
+#ifdef TRACK_ZERO_SIZE_ARRAY
               write(*,*) 'WARNING - Retrieving zero size COC.'
-#endif    
+#endif
               retrieved_coc%container_offset = C_NULL_PTR
               retrieved_coc%container_content = C_NULL_PTR
-          else        
+          else
               if ((.not. allocated(fortran_csr%Pt)) .or. &
                   (.not. allocated(fortran_csr%Num))) then
                  print *, "Trying to retrieve as COC a CSR which is not allocated."
@@ -127,7 +135,7 @@
               call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
               call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
           end if
-          
+
        end subroutine retrieve_coc
 
     end module CommonTypesWrapper

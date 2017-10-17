@@ -1,3 +1,11 @@
+//
+// This file is part of ComPASS.
+//
+// ComPASS is free software: you can redistribute it and/or modify it under both the terms
+// of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+// and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+//
+
 #include "StringWrapper.h"
 
 // Fortran functions
@@ -47,13 +55,13 @@ void add_NN_wrappers(py::module& module)
 
 	module.def("init_build_grid", &NN_init_build_grid,
 			   "Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
-	
+
 	module.def("init_phase2",
 		[](const std::string& OutputDir) {
 		NN_init_phase2(OutputDir);
 	},
 		"Initialisation of ComPASS phase 2 : partition and distribute.");
-	
+
 	module.def("main_loop", [](int TimeIter, const std::string& OutputDir) { NN_main(TimeIter, OutputDir); },
 		"Main loop of ComPASS.");
 

@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import sys
 import atexit
 
@@ -49,7 +57,7 @@ def init(
     set_dirichlet_nodes = lambda: None,
     set_global_flags = None
 ):
-    # FUTURE: This could be managed through a context manager ? 
+    # FUTURE: This could be managed through a context manager ?
     global initialized
     assert not initialized
     # FIXME: grid is kept for backward compatibility, should be deprecated
@@ -62,7 +70,7 @@ def init(
             print('Mesh file (%s) not found!' % mesh)
         print('Loading mesh from file is not implemented here')
         # FIXME: This should be something like MPI.Abort()
-        sys.exit(-1) 
+        sys.exit(-1)
     elif type(mesh) is Grid:
         ComPASS.init_warmup(runtime.logfile)
         ComPASS.global_mesh_set_cartesian_mesh()
@@ -126,7 +134,7 @@ def init(
                 ComPASS.get_face_permeability()[:] = np.ascontiguousarray( faceperm )
             elif fracperm is not None:
                 assert faceperm is None
-                #the following assert is annoying when we just want to broadcast a values (typically a scalar value) 
+                #the following assert is annoying when we just want to broadcast a values (typically a scalar value)
                 # anyway assignement through the numpy.ndarray interface will fail
                 #assert fracperm.shape==tuple(np.count(fractures))
                 ComPASS.get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
@@ -135,7 +143,7 @@ def init(
         ComPASS.compute_well_indices()
     ComPASS.init_phase2(runtime.output_directory)
     mpi.synchronize() # wait for every process to synchronize
-    # FUTURE: This could be managed through a context manager ? 
+    # FUTURE: This could be managed through a context manager ?
     initialized = True
     atexit.register(finalize)
 
@@ -215,7 +223,7 @@ def get_boundary_vertices():
     vertices_id = np.unique(
             np.hstack([
                 np.array(face_nodes, copy=False)
-                for boundary, face_nodes in zip(boundary_faces, connectivity.NodebyFace) if boundary       
+                for boundary, face_nodes in zip(boundary_faces, connectivity.NodebyFace) if boundary
             ])
         )
     vertices_id -= 1 # Fortran index...

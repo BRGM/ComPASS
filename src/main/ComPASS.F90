@@ -1,10 +1,18 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
     program ComPASS
 
     use CommonMPI
     use NN
 
     implicit none
-    
+
     logical :: EnterMainLoop = .True.
     integer :: TimeIter = 0
     integer :: argc
@@ -12,20 +20,20 @@
     character (250), target :: &
         meshfile, logfile, outputdir, &
         TimeIterStr
-    
+
     ! Input mesh name
     argc = IARGC()
 
     call GetArg(1, meshfile)
     meshfile = trim(meshfile)
-    
+
     call GetArg(2, logfile)
     logfile = trim(logfile)
-    
+
     call GetArg(3, outputdir)
     outputdir = trim(outputdir)
-    
-    ! This initialize MPI first consequently PetscInitialize will not call it 
+
+    ! This initialize MPI first consequently PetscInitialize will not call it
     ! and will adapt a symmetric behavior letting us call MPI_finaliaze at the end
     ! of our program
     call MPI_Init(Ierr)

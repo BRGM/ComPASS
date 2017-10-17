@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import numpy as np
 
 def grid2tets(shape, extent=(1., 1., 1.)):
@@ -11,9 +19,9 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     ncubes = (nx-1)*(ny-1)*(nz-1)
     nnodes = nx * ny * nz
     ncenters = (nx-1) * (ny-1) * (nz-1)
-    nfacesx = nx * (ny-1) * (nz-1) 
-    nfacesy = ny * (nx-1) * (nz-1) 
-    nfacesz = nz * (nx-1) * (ny-1) 
+    nfacesx = nx * (ny-1) * (nz-1)
+    nfacesy = ny * (nx-1) * (nz-1)
+    nfacesz = nz * (nx-1) * (ny-1)
     nfaces = nfacesx + nfacesy + nfacesz
 
     vertices = np.zeros((nnodes + ncenters + nfaces, 3), dtype=np.double)
@@ -109,7 +117,7 @@ def grid2tets(shape, extent=(1., 1., 1.)):
                 tet+=1
                 tets[tet] = (corner(i,j+1,k+1), corner(i,j+1,k), fcy(i,j+1,k), center(i,j,k))
                 tet+=1
-    
+
     return vertices, tets
 
 def grid2hexs(shape, extent=(1., 1., 1.)):
@@ -127,9 +135,9 @@ def grid2hexs(shape, extent=(1., 1., 1.)):
     hexs = np.zeros((nhexs, 8), dtype=np.int)
     tmp = np.arange(ncx)
     hexs[:ncx, 0] = tmp
-    hexs[:ncx, 1] = tmp + 1  
-    hexs[:ncx, 2] = tmp + 1 + nx  
-    hexs[:ncx, 3] = tmp + nx  
+    hexs[:ncx, 1] = tmp + 1
+    hexs[:ncx, 2] = tmp + 1 + nx
+    hexs[:ncx, 3] = tmp + nx
     for j in range(1, ncy):
         hexs[j*ncx:(j+1)*ncx, :4] = hexs[(j-1)*ncx:j*ncx, :4] + nx
     hexs[:(ncx*ncy), 4:] = hexs[:(ncx*ncy), :4] + nx*ny

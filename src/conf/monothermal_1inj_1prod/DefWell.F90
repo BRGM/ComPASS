@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module DefWell
 
   use CommonMPI
@@ -81,26 +89,26 @@ module DefWell
 contains
 
   subroutine DefWell_print_DataWellInj(datawell)
-  
+
   type(TYPE_DataWellInj), intent(in) :: datawell
-  
+
   write(*,*) "%%", "iwd", datawell%Radius, &
 	datawell%Temperature, datawell%compTotal(:), &
 	datawell%PressionMax, datawell%FlowrateImposed, &
-	datawell%IndWell 
-  
+	datawell%IndWell
+
   end subroutine DefWell_print_DataWellInj
-    
+
   subroutine DefWell_print_DataWellProd(datawell)
-  
+
   type(TYPE_DataWellProd), intent(in) :: datawell
-  
+
   write(*,*) "%%", "pwd", datawell%Radius, &
   datawell%PressionMin, datawell%FlowrateImposed, &
-  datawell%IndWell 
-  
+  datawell%IndWell
+
   end subroutine DefWell_print_DataWellProd
-    
+
   ! allocate DataWellInj and set Radius
   subroutine DefWell_SetDataWellInj(NbWell)
 
@@ -148,12 +156,12 @@ contains
 
   subroutine DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
     integer, intent(in) :: NbWellInj, NbWellProd
-  
+
     call DefWell_SetDataWellInj(NbWellInj)   ! allocate DataWellInj and set Radius
     call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
 
   end subroutine DefWell_Make_SetDataWell
-  
+
   subroutine DefWell_Make_ComputeWellIndex( &
        NbNode, XNode, CellbyNode, NodebyCell, &
 	   FracbyNode, NodebyFace, PermCell, PermFrac)
@@ -182,7 +190,7 @@ contains
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 	NbWellInj = size(DataWellInj)
-	
+
     allocate(WellRadius(max(NbWellInj,NbWellProd)))
 
     WellRadius(:) = 0
@@ -199,8 +207,8 @@ contains
 
     deallocate(WellRadius)
 
-	end subroutine DefWell_Make_ComputeWellIndex 
-	
+	end subroutine DefWell_Make_ComputeWellIndex
+
 	subroutine DefWell_Make(NbWellInj, NbWellProd, &
        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
        PermCell, PermFrac)
@@ -215,7 +223,7 @@ contains
     double precision, allocatable, dimension(:) :: WellRadius
 
 	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-	
+
 	call DefWell_Make_ComputeWellIndex( &
        NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
        PermCell, PermFrac)

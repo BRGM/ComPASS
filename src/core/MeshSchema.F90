@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module MeshSchema
 
   use CommonType
@@ -27,7 +35,7 @@ module MeshSchema
   ! 2. Mesh and connectivity
   !    Used to (1) calcul Transmissivities: TkLocal and TkFracLocal
   !            (2) Assembly
-  type(CSR), public :: & 
+  type(CSR), public :: &
        NodebyNodeOwn, &   ! (1)
        FracbyNodeOwn, &   ! (1)
        CellbyNodeOwn, &   ! (1)
@@ -35,7 +43,7 @@ module MeshSchema
        NodebyFracOwn, &   ! (1)
        CellbyFracOwn, &   ! (1)
        FracbyFracOwn, &   ! (1)
-                                ! 
+                                !
        FacebyCellLocal, & ! (1,2)
        FracbyCellLocal, & ! (1,2)
        NodebyCellLocal, & ! (1,2)
@@ -59,7 +67,7 @@ module MeshSchema
        NodeFlagsLocal, &
        CellFlagsLocal, &
        FaceFlagsLocal
-  
+
   ! 4. IdCell/IdFace/IdNode
   integer, allocatable, dimension(:), protected :: &
        IdCellLocal, &
@@ -68,12 +76,12 @@ module MeshSchema
   type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNodeLocal
 
-  ! Well 
+  ! Well
   integer, dimension(:), allocatable, protected :: &
        NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
        NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus
 
-  ! Well connectivity in local 
+  ! Well connectivity in local
   type(CSR), protected :: &
        NodebyWellInjLocal, &
        NodebyWellProdLocal
@@ -93,7 +101,7 @@ module MeshSchema
        WellInjbyNodeOwn, &  ! numero (local) of well inj connected to this node own
        WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
 
-  ! 5. Frac to Face, Face to Frac 
+  ! 5. Frac to Face, Face to Frac
   integer(c_int), allocatable, dimension(:), target :: &
        FracToFaceLocal, &
        FaceToFracLocal
@@ -115,8 +123,8 @@ module MeshSchema
        VolCellLocal, &  ! vol of cell
        SurfFracLocal    ! surf of frac face
 
-  ! 9. max number of nodes/frac in a cell 
-  integer, protected :: & 
+  ! 9. max number of nodes/frac in a cell
+  integer, protected :: &
        NbNodeCellMax, &
        NbFracCellMax, &
        NbNodeFaceMax
@@ -178,7 +186,7 @@ contains
     call MeshSchema_VolCellLocal
     call MeshSchema_SurfFracLocal
 
-    call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell 
+    call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell
     call MeshSchema_NbFracCellMax ! max nb of frac in a cell
     call MeshSchema_NbNodeFaceMax ! max nb of nodes in a frac
 
@@ -186,7 +194,7 @@ contains
 
 
   ! send/receive (commRank>=1)
-  ! or copy (commRank=0) 
+  ! or copy (commRank=0)
   subroutine MeshSchema_sendrecv
 
     integer :: dest, Ierr, i, j, Nb
@@ -204,7 +212,7 @@ contains
     integer :: blocklen_datawellprod(4), arraytype_datawellprod(4)
     integer(kind=MPI_ADDRESS_KIND) ::disp_datawellprod(4)
 
-    
+
     ! ************************************* !
 
     ! Send Nb*
@@ -252,7 +260,7 @@ contains
        NbFracLocal_Ncpus(:) = NbFracResS_Ncpus(:)
        NbWellInjLocal_Ncpus(:) = NbWellInjResS_Ncpus(:)
        NbWellProdLocal_Ncpus(:) = NbWellProdResS_Ncpus(:)
-       
+
        NbCellOwn_Ncpus(:) = NbCellOwnS_Ncpus(:)
        NbFaceOwn_Ncpus(:) = NbFaceOwnS_Ncpus(:)
        NbNodeOwn_Ncpus(:) = NbNodeOwnS_Ncpus(:)
@@ -366,14 +374,14 @@ contains
        deallocate(XNodeRes_Ncpus)
     end if
 
-    ! Send flags    
+    ! Send flags
 
     if (commRank==0) then
        do i=1,Ncpus-1
           call MPI_Send(NodeFlags_Ncpus(i+1)%Val, NbNodeLocal_Ncpus(i+1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
        end do
        allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
-       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val    
+       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val
     else
        allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(commRank+1)))
        call MPI_Recv(NodeFlagsLocal, NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
@@ -384,7 +392,7 @@ contains
           call MPI_Send(CellFlags_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
        end do
        allocate(CellFlagsLocal(NbCellLocal_Ncpus(1)))
-       CellFlagsLocal = CellFlags_Ncpus(1)%Val    
+       CellFlagsLocal = CellFlags_Ncpus(1)%Val
     else
        allocate(CellFlagsLocal(NbCellLocal_Ncpus(commRank+1)))
        call MPI_Recv(CellFlagsLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
@@ -395,7 +403,7 @@ contains
           call MPI_Send(FaceFlags_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER, i, 24, ComPASS_COMM_WORLD, Ierr)
        end do
        allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(1)))
-       FaceFlagsLocal = FaceFlags_Ncpus(1)%Val    
+       FaceFlagsLocal = FaceFlags_Ncpus(1)%Val
     else
        allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(commRank+1)))
        call MPI_Recv(FaceFlagsLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 24, ComPASS_COMM_WORLD, stat, Ierr)
@@ -442,7 +450,7 @@ contains
           ! FacebyCellLocal
           call MeshSchema_csrsend(FacebyCellLocal_Ncpus(i+1), i, 700, VALSIZE_ZERO)
           ! FracbyCellLocal
-          call MeshSchema_csrsend(FracbyCellLocal_Ncpus(i+1), i, 800, VALSIZE_ZERO)      
+          call MeshSchema_csrsend(FracbyCellLocal_Ncpus(i+1), i, 800, VALSIZE_ZERO)
           ! NodebyCellLocal
           call MeshSchema_csrsend(NodebyCellLocal_Ncpus(i+1), i, 900, VALSIZE_ZERO)
 
@@ -571,7 +579,7 @@ contains
     disp_datawellinj(2) = 8 !   + double
     disp_datawellinj(3) = 16 !  + double
     disp_datawellinj(4) = 8*(NbComp+2) ! + double * NbComp
-    disp_datawellinj(5) = 8*(NbComp+2) + 8 ! + double 
+    disp_datawellinj(5) = 8*(NbComp+2) + 8 ! + double
     disp_datawellinj(6) = 8*(NbComp+2) +16 ! + double
 
     ! Create and commit
@@ -613,7 +621,7 @@ contains
     disp_datawellprod(1) = 0 !   = 0
     disp_datawellprod(2) = 8 !   + double
     disp_datawellprod(3) = 16 !  + double
-    disp_datawellprod(4) = 24 !  + double 
+    disp_datawellprod(4) = 24 !  + double
 
     ! Create and commit
     call MPI_Type_Create_Struct(4, blocklen_datawellprod, disp_datawellprod, arraytype_datawellprod, MPI_DATAWELLPROD, Ierr)
@@ -642,7 +650,7 @@ contains
     ! Free TYPE MPI_DATAWELLPROD
     call MPI_Type_free(MPI_DATAWELLPROD, Ierr)
 
-    
+
     ! ************************************* !
 
     ! Send IdCellLocal
@@ -659,7 +667,7 @@ contains
        allocate(IdCellLocal(Nb))
        IdCellLocal(:) = IdCellRes_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbCellLocal_Ncpus(commRank+1)
        allocate(IdCellLocal(Nb))
        call MPI_Recv(IdCellLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
@@ -686,7 +694,7 @@ contains
        allocate(IdFaceLocal(Nb))
        IdFaceLocal(:) = IdFaceRes_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbFaceLocal_Ncpus(commRank+1)
        allocate(IdFaceLocal(Nb))
        call MPI_Recv(IdFaceLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
@@ -701,7 +709,7 @@ contains
 
     ! ************************************* !
 
-    ! new MPI type: MPI_IDNODE 
+    ! new MPI type: MPI_IDNODE
     blen(1) = 4
     offsets(1) = 0
     oldtypes(1) = MPI_CHARACTER
@@ -723,7 +731,7 @@ contains
        allocate(IdNodeLocal(Nb))
        IdNodeLocal(:) = IdNodeRes_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbNodeLocal_Ncpus(commRank+1)
        allocate(IdNodeLocal(Nb))
        call MPI_Recv(IdNodeLocal, Nb, MPI_IDNODE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
@@ -835,7 +843,7 @@ contains
        allocate(PorositeCellLocal(Nb))
        PorositeCellLocal(:) = PorositeCell_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbCellLocal_Ncpus(commRank+1)
        allocate(PorositeCellLocal(Nb))
        call MPI_Recv(PorositeCellLocal, Nb, MPI_DOUBLE, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
@@ -862,7 +870,7 @@ contains
        allocate(PorositeFracLocal(Nb))
        PorositeFracLocal(:) = PorositeFrac_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbFracLocal_Ncpus(commRank+1)
        allocate(PorositeFracLocal(Nb))
        call MPI_Recv(PorositeFracLocal, Nb, MPI_DOUBLE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
@@ -889,7 +897,7 @@ contains
        allocate(PermCellLocal(3,3,Nb))
        PermCellLocal(:,:,:) = PermCellLocal_Ncpus(1)%Array3d(:,:,:)
 
-    else   
+    else
        Nb = NbCellLocal_Ncpus(commRank+1)
        allocate(PermCellLocal(3,3,Nb))
        call MPI_Recv(PermCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
@@ -916,7 +924,7 @@ contains
        allocate(PermFracLocal(Nb))
        PermFracLocal(:) = PermFracLocal_Ncpus(1)%Val(:)
 
-    else   
+    else
        Nb = NbFracLocal_Ncpus(commRank+1)
        allocate(PermFracLocal(Nb))
        call MPI_Recv(PermFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
@@ -985,7 +993,7 @@ contains
 	!	write(*,*) "%%", "local production data on proc", commRank
 	!	call DefWell_print_DataWellProd(DataWellProdLocal(i))
 	!end do
-    
+
   end subroutine MeshSchema_sendrecv
 
 
@@ -999,7 +1007,7 @@ contains
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
     call MPI_Send(csr1%Pt, Nb+1, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
-    Nnz = csr1%Pt(Nb+1) 
+    Nnz = csr1%Pt(Nb+1)
     call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
     if(valsize==VALSIZE_NB) then
        call MPI_Send(csr1%Val, Nb, MPI_INTEGER, dest, tag+4, ComPASS_COMM_WORLD, Ierr)
@@ -1051,7 +1059,7 @@ contains
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
     call MPI_Send(csr1%Pt, Nb+1, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
-    Nnz = csr1%Pt(Nb+1) 
+    Nnz = csr1%Pt(Nb+1)
     call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
 
     call MPI_Send(csr1%Val, Nnz, MPI_DATANODEWELL, dest, tag+4, ComPASS_COMM_WORLD, Ierr)
@@ -1119,7 +1127,7 @@ contains
        ! enddo
 
        comptNode = 0
-       
+
        ! loop over every nodes of local well, minus the head node of well
        do j=1,NodeDatabyWellInjLocal%Pt(i+1)-NodeDatabyWellInjLocal%Pt(i)-1
           NumNodebyEdgebyWellInjLocal(1,comptNode+j,i) = NodeDatabyWellInjLocal%Val(j+NodeDatabyWellInjLocal%Pt(i))%Parent
@@ -1174,7 +1182,7 @@ contains
        enddo
        xk(:) = xk(:)/dble(NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k))
 
-       XCellLocal(:,k) = xk(:)       
+       XCellLocal(:,k) = xk(:)
     enddo
 
   end subroutine MeshSchema_XCellLocal
@@ -1184,8 +1192,8 @@ contains
   subroutine MeshSchema_VolCellLocal
 
     ! calcul du volume et du centre de gravite
-    ! maille polyèdrique quelconque non necessairement convexe 
-    ! faces non planes (decoupée en triangles avec un point au centre)  
+    ! maille polyèdrique quelconque non necessairement convexe
+    ! faces non planes (decoupée en triangles avec un point au centre)
 
     integer :: i,j,k,m,n1,n2
     double precision :: volk,volT
@@ -1213,26 +1221,26 @@ contains
        ! center of cell
        yk(:) = XCellLocal(:,k)
 
-       ! boucle sur les faces i de la maille k 
+       ! boucle sur les faces i de la maille k
        do j = FacebyCellLocal%Pt(k)+1, FacebyCellLocal%Pt(k+1)
           i = FacebyCellLocal%Num(j)
 
-          ! isobarycentre de la face 
+          ! isobarycentre de la face
           xs(:) = XFaceLocal(:,i)
 
-          ! boucle sur les nodes n1 de la face i 
+          ! boucle sur les nodes n1 de la face i
           do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
              n1 = NodebyFaceLocal%Num(m)
              x1(:) = XNodeLocal(:,n1)
 
-             if (m == NodebyFaceLocal%Pt(i+1)) then 
+             if (m == NodebyFaceLocal%Pt(i+1)) then
                 n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
-             else 
+             else
                 n2 = NodebyFaceLocal%Num(m+1)
              endif
 
              x2(:) = XNodeLocal(:,n2)
-             xT(:) = (x1(:)+x2(:)+xs(:)+yk(:))/4.d0 
+             xT(:) = (x1(:)+x2(:)+xs(:)+yk(:))/4.d0
 
              e0(:) = xT(:)-yk(:)
              e1(:) = x1(:)-yk(:)
@@ -1240,10 +1248,10 @@ contains
              e3(:) = xs(:)-yk(:)
 
              volT = e1(1)*e2(2)*e3(3) + e2(1)*e3(2)*e1(3) + e3(1)*e1(2)*e2(3) &
-                  -e1(1)*e2(3)*e3(2) - e2(1)*e3(3)*e1(2) - e3(1)*e1(3)*e2(2) 
+                  -e1(1)*e2(3)*e3(2) - e2(1)*e3(3)*e1(2) - e3(1)*e1(3)*e2(2)
 
-             volT =  abs(volT)/6.d0 
-             volk = volk + volT 
+             volT =  abs(volT)/6.d0
+             volk = volk + volT
           enddo
        enddo
 
@@ -1264,10 +1272,10 @@ contains
 
     allocate(XFaceLocal(3,nbFaceLocal))    ! center of face
 
-    ! boucle sur les face frac     
+    ! boucle sur les face frac
     do i = 1, nbFaceLocal
 
-       ! isobarycentre de la face 
+       ! isobarycentre de la face
        xf(:) = 0.d0
        do m = NodebyFaceLocal%Pt(i)+1,NodebyFaceLocal%Pt(i+1)
           xf(:) = xf(:) + XNodeLocal(:,NodebyFaceLocal%Num(m))
@@ -1284,7 +1292,7 @@ contains
 
     double precision, dimension(3) :: &
          xf, x1, x2, xt ! cordinate
-         
+
 
     double precision :: &
          SurfFace, & ! surface of a face
@@ -1314,14 +1322,14 @@ contains
     allocate(SurfFracLocal(NbFracLocal_Ncpus(commRank+1))) ! surf of face
     SurfFracLocal(:) = 0.d0
 
-    ! boucle sur les face frac     
+    ! boucle sur les face frac
     do ifrac = 1, NbFracLocal_Ncpus(commRank+1)
        i = FracToFaceLocal(ifrac)
 
        ! num of nodes in face i
        nbNodeFace = NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
 
-       ! isobarycentre de la face 
+       ! isobarycentre de la face
        xf(:) = XFaceLocal(:,i)
 
        ! init SurfFace as zero, surface of face i
@@ -1330,14 +1338,14 @@ contains
        do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
           ! edge of nodes n1, n2
-          ! num (face) of n1 and n2 are in1 and in2            
+          ! num (face) of n1 and n2 are in1 and in2
           in1 = m - NodebyFaceLocal%Pt(i)
           n1 = NodebyFaceLocal%Num(m)
 
-          if (m==NodebyFaceLocal%Pt(i+1)) then 
+          if (m==NodebyFaceLocal%Pt(i+1)) then
              n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
              in2 = 1
-          else 
+          else
              n2 = NodebyFaceLocal%Num(m+1)
              in2 = in1 + 1
           endif
@@ -1351,9 +1359,9 @@ contains
           call MeshSchema_Surf12f(x1,x2,xf,xt,Surf12f)
 
           ! Surface of Face i is sum of surf12f
-          SurfFace = SurfFace + Surf12f 
+          SurfFace = SurfFace + Surf12f
 
-       end do ! end of loop edge in face       
+       end do ! end of loop edge in face
 
        SurfFracLocal(ifrac) = SurfFace ! area of frac
 
@@ -1364,10 +1372,10 @@ contains
 
   subroutine MeshSchema_Surf12f(x1,x2,x3,x,surf)
 
-    ! calcul du vecteur normal unitaire d'un triangle defini par les 
-    ! coordonnees de ses trois points sortant par rapport 
-    ! au point x,y,z > vx,vy,vz 
-    ! + surface du triangle = surf 
+    ! calcul du vecteur normal unitaire d'un triangle defini par les
+    ! coordonnees de ses trois points sortant par rapport
+    ! au point x,y,z > vx,vy,vz
+    ! + surface du triangle = surf
 
     double precision, dimension(3), intent(in) :: x1 ,x2, x3, x
     double precision, intent(out) :: surf

@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 
     module IncCVWrapper
 
@@ -54,10 +62,10 @@
               n = size(states)
               cpp_array%n = n
               if (n==0) then
-#ifdef TRACK_ZERO_SIZE_ARRAY              
+#ifdef TRACK_ZERO_SIZE_ARRAY
                   ! FIXME: Remove comment
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
-#endif             
+#endif
                   cpp_array%p = C_NULL_PTR
               else
                   cpp_array%p = c_loc(states(1))

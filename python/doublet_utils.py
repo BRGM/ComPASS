@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
@@ -15,7 +23,7 @@ def select_boundary_factory(grid):
     on_ymax = lambda pts: pts[:,1] == grid.origin[1] + grid.extent[1]
     def select():
         vertices = ComPASS.global_vertices().view(np.double).reshape((-1, 3))
-        return on_xmin(vertices) | on_xmax(vertices) | on_ymin(vertices) | on_ymax(vertices) 
+        return on_xmin(vertices) | on_xmax(vertices) | on_ymin(vertices) | on_ymax(vertices)
     return select
 
 def init_states(p, T):
@@ -25,7 +33,7 @@ def init_states(p, T):
         states.T[:] = degC2K(T)
         states.S[:] = [0, 1]
         states.C[:] = 1.
-    for states in [ComPASS.dirichlet_node_states(), 
+    for states in [ComPASS.dirichlet_node_states(),
                   ComPASS.node_states(),
                   ComPASS.fracture_states(),
                   ComPASS.cell_states()]:

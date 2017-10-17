@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module CommonType
 
   ! This for arrays that are interfaced with python/C++
@@ -14,7 +22,7 @@ module CommonType
   type ARRAY1dble
     double precision, allocatable, dimension(:) :: Val
   end type ARRAY1dble
-  
+
   !> Array 2d double precision
   type ARRAY2dble
     real(c_double), allocatable, dimension(:,:) :: Array2d
@@ -55,7 +63,7 @@ module CommonType
     integer, allocatable, dimension(:) :: Num
     double precision, allocatable, dimension(:,:,:) :: val
   end type CSRArray2dble
-  
+
   !> Store data of Node about own/ghost; fractures and boundary conditions
   ! FIXME: P stands for "mass balance equationS"
   ! FIXME: T stands for "energy balance equation"
@@ -88,9 +96,9 @@ module CommonType
   interface assignment(=)
      module procedure assign_IdNode_equal
   end interface assignment(=)
-  
+
 contains
-  
+
   !> \brief Copy CSR1 to CSR2
   subroutine CommonType_csrcopy(CSR1, CSR2, valsize)
 
@@ -123,7 +131,7 @@ contains
     end if
 
   end subroutine CommonType_csrcopy
-  
+
   !> \brief Deallocate CSR (\%Pt, \%Num and \%Val)
   subroutine CommonType_deallocCSR(CSR1)
 
@@ -246,7 +254,7 @@ contains
 
   end subroutine CommonType_printCSRArray2dble
 
-  
+
   !> \brief Define operator = between two TYPE_IdNode:  x2 = x1
   subroutine assign_IdNode_equal(x2, x1)
 

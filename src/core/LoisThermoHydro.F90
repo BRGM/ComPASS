@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module LoisThermoHydro
 
   use DefModel
@@ -152,7 +160,7 @@ module LoisThermoHydro
        SmDensitemolaireEnergieInterneSatNode
 
 
-  ! tmp values to simpfy notations of numerotation 
+  ! tmp values to simpfy notations of numerotation
   ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
   integer, private :: &
        NbPhasePresente, NbCompCtilde, &
@@ -391,7 +399,7 @@ contains
   ! all operations for one cv
   subroutine LoisThermoHydro_divPrim_cv(rocktypeinc, inc, &
        dXssurdXp, SmdXs, SmF, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV, & 
+       NumIncPTCSPrimCV, NumIncPTCSecondCV, &
        Densitemassique, divDensitemassique, SmDensitemassique, &
        divPression, SmPression, &
        divTemperature, SmTemperature, &
@@ -403,7 +411,7 @@ contains
        DensitemolaireKrViscoEnthalpie,  divDensitemolaireKrViscoEnthalpie,  SmDensitemolaireKrViscoEnthalpie)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc 
+    type(Type_IncCV), intent(in) :: inc
 
     integer, intent(in) :: rocktypeinc
 
@@ -458,7 +466,7 @@ contains
          DensiteMolaire(NbPhase), &
          divDensiteMolaire(NbIncPTCSPrimMax, NbPhase), &
          SmDensiteMolaire(NbPhase), &
-                                ! 
+                                !
          UnsurViscosite(NbPhase), &
          divUnsurViscosite(NbIncPTCSPrimMax, NbPhase), &
          SmUnsurViscosite(NbPhase), &
@@ -574,7 +582,7 @@ contains
          DensitemolaireKrViscoEnthalpie, divDensitemolaireKrViscoEnthalpie, SmDensitemolaireKrViscoEnthalpie)
 #endif
 
-    ! if(commRank==1) then    
+    ! if(commRank==1) then
     !    do i=1, NbPhase
 
     ! print*, Densitemolaire(i)
@@ -638,7 +646,7 @@ contains
     ! print*, SmTemperature
     ! print*, ""
 
-    !    end do   
+    !    end do
     ! end if
 
   end subroutine LoisThermoHydro_divPrim_cv
@@ -707,7 +715,7 @@ contains
     NbPhasePresente = NbPhasePresente_ctx(inc%ic)
     NbCompCtilde = NbCompCtilde_ctx(inc%ic)
 
-    NbEqFermeture = NbEqFermeture_ctx(inc%ic)     
+    NbEqFermeture = NbEqFermeture_ctx(inc%ic)
     NbEqEquilibre = NbEqEquilibre_ctx(inc%ic)
 
     NbIncPTC = NbIncPTC_ctx(inc%ic)
@@ -758,7 +766,7 @@ contains
     do i=1, NbPhasePresente  ! row is i, col is j
        iph = NumPhasePresente(i)
 
-       do icp=1, NbComp ! loop for cols 
+       do icp=1, NbComp ! loop for cols
           if(MCP(icp,iph)==1) then
              j = j + 1
              dFsurdX(j,i) = 1.d0
@@ -775,11 +783,11 @@ contains
     mi = NbPhasePresente ! row is mi+i
 
     ! 2. f_i^alpha * C_i^alpha = f_i^beta * C_i^beta
-    do i=1, NbEqEquilibre ! 
+    do i=1, NbEqEquilibre !
 
        icp = NumCompEqEquilibre(i) ! component
 
-       iph1 = Num2PhasesEqEquilibre(1,i) ! phase alpha 
+       iph1 = Num2PhasesEqEquilibre(1,i) ! phase alpha
        iph2 = Num2PhasesEqEquilibre(2,i) ! phase beta
 
        numc1 = NumIncComp2NumIncPTC(icp,iph1) ! num of C_i^alpha in IncPTC
@@ -794,7 +802,7 @@ contains
             f2, dPf2, dTf2, dCf2)
 
        ! div Pression
-       dFsurdX(1,i+mi) = dPf1*inc%Comp(icp,iph1) - dPf2*inc%Comp(icp,iph2) 
+       dFsurdX(1,i+mi) = dPf1*inc%Comp(icp,iph1) - dPf2*inc%Comp(icp,iph2)
 
 #ifdef _THERMIQUE_
 
@@ -882,7 +890,7 @@ contains
     ! inputs
     type(Type_IncCV), intent(in) :: inc
     double precision, intent(in) ::  & ! (col, row) index order
-         dFsurdX(NbIncPTCSMax, NbEqFermetureMax), & 
+         dFsurdX(NbIncPTCSMax, NbEqFermetureMax), &
          SmF(NbEqFermetureMax)
 
     integer, intent(in) :: &
@@ -896,7 +904,7 @@ contains
 
     ! tmp
     double precision :: & ! (row,col) index order, lapack
-         dFsurdX_prim(NbEqFermetureMax, NbIncPTCSPrimMax), & 
+         dFsurdX_prim(NbEqFermetureMax, NbIncPTCSPrimMax), &
          dFsurdX_secd(NbEqFermetureMax, NbEqFermetureMax)
 
     ! parameters for lapack
@@ -975,7 +983,7 @@ contains
 
     ! tmp
     double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
     integer :: iph, i, j, jc
@@ -993,7 +1001,7 @@ do iph = 1, NbPhase
           write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
     end do
 #endif
-    
+
     dfdX_secd(:,:) = 0.d0
 
     do i=1, NbPhasePresente
@@ -1018,11 +1026,11 @@ do iph = 1, NbPhase
        do j=1, NbComp
           if(MCP(j,iph)==1) then
              jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j) 
+             dfdX(jc) = dCf(j)
           end if
        enddo
 
-       do j=1, NbPhase ! S 
+       do j=1, NbPhase ! S
           jc = j + NbIncPTC
           dfdX(jc) = dSf(j)
        enddo
@@ -1040,7 +1048,7 @@ do iph = 1, NbPhase
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
     ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-    ! all the mats is in (col, row) index order, only need to consider as transpose    
+    ! all the mats is in (col, row) index order, only need to consider as transpose
     call dgemm('N','N', NbIncPTCSPrim, NbPhase, NbEqFermeture, &
          -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
@@ -1075,7 +1083,7 @@ do iph = 1, NbPhase
 
     ! tmp
     double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     double precision :: f2 ! =f**2
@@ -1114,11 +1122,11 @@ do iph = 1, NbPhase
        do j=1, NbComp
           if(MCP(j,iph)==1) then
              jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = -dCf(j)/f2 
+             dfdX(jc) = -dCf(j)/f2
           end if
        enddo
 
-       do j=1, NbPhase ! S 
+       do j=1, NbPhase ! S
           jc = j + NbIncPTC
           dfdX(jc) = -dSf(j)/f2
        enddo
@@ -1138,7 +1146,7 @@ do iph = 1, NbPhase
     ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
     ! dval = dfdX_prim - dXssurdXp*dfdX_secd
     ! all the mats is in (col, row) index order,
-    ! consider all the mats as transpose    
+    ! consider all the mats as transpose
     call dgemm('N','N', NbIncPTCSPrim, NbPhasePresente, NbEqFermeture, &
          -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
@@ -1172,7 +1180,7 @@ do iph = 1, NbPhase
 
     ! tmp
     double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     integer :: i, iph, j, jc
@@ -1209,11 +1217,11 @@ do iph = 1, NbPhase
        do j=1, NbComp
           if(MCP(j,iph)==1) then
              jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j) 
+             dfdX(jc) = dCf(j)
           end if
        enddo
 
-       do j=1, NbPhase ! S 
+       do j=1, NbPhase ! S
           jc = j + NbIncPTC
           dfdX(jc) = dSf(j)
        enddo
@@ -1231,7 +1239,7 @@ do iph = 1, NbPhase
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=densitemolaire
     ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-    ! all the mats is in (col, row) index order, only need to consider as transpose    
+    ! all the mats is in (col, row) index order, only need to consider as transpose
     call dgemm('N','N', NbIncPTCSPrim, NbPhasePresente, NbEqFermeture, &
          -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
@@ -1371,7 +1379,7 @@ do iph = 1, NbPhase
     val(:) = 0.d0
     dval(:,:) = 0.d0
 
-    do iph=1, NbPhase        
+    do iph=1, NbPhase
 
        call f_PressionCapillaire(rocktypeinc, iph, inc%Saturation, f, dSf)
 
@@ -1384,7 +1392,7 @@ do iph = 1, NbPhase
 
           dval(j+NbIncPTCPrim,iph) = dSf(jph) - dfS_secd
        end do
-       
+
     end do
 
   end subroutine LoisThermoHydro_PressionCapillaire_cv
@@ -1412,7 +1420,7 @@ do iph = 1, NbPhase
 
     ! tmp
     double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     integer :: i, iph, j, jc
@@ -1449,11 +1457,11 @@ do iph = 1, NbPhase
        do j=1, NbComp
           if(MCP(j,iph)==1) then
              jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j) 
+             dfdX(jc) = dCf(j)
           end if
        enddo
 
-       do j=1, NbPhase ! S 
+       do j=1, NbPhase ! S
           jc = j + NbIncPTC
           dfdX(jc) = dSf(j)
        enddo
@@ -1470,7 +1478,7 @@ do iph = 1, NbPhase
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=energieinterne
     ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-    ! all the mats is in (col, row) index order, only need to consider as transpose    
+    ! all the mats is in (col, row) index order, only need to consider as transpose
     call dgemm('N','N', NbIncPTCSPrim, NbPhasePresente , NbEqFermeture, &
          -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
@@ -1508,14 +1516,14 @@ do iph = 1, NbPhase
 
     ! tmp
     double precision :: f, dPf
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax)
 
     integer :: j,jT
 
     dval(:) = 0.d0
     Smval = 0.d0
-    
+
     ! P is prim, T is prim: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)=2
     ! P is prim, T is secd: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)>2
     ! TODO
@@ -1537,13 +1545,13 @@ do iph = 1, NbPhase
        ! Fill dfdX = (df/dP, df/dT, df/dC, df/dS)
      !  dfdX(:) = 0.d0
 
-     !  dfdX(1) = dPf  
+     !  dfdX(1) = dPf
      !  dfdX(2) = 0.d0
 
        jT = 0
        do j=1,NbEqFermeture
           if (NumIncPTCSecondCV(j).eq.2) then
-             jT = j 
+             jT = j
              dval(:) =  - dXssurdXp(:,j)
              Smval = - SmdXs(j)
           endif
@@ -1553,9 +1561,9 @@ do iph = 1, NbPhase
           stop
        endif
 
-  ! autre calcul equivalent (mais plus couteux)        
+  ! autre calcul equivalent (mais plus couteux)
    !    dfdX(:) = 0.d0
-   !    dfdX(2) = 1.d0             
+   !    dfdX(2) = 1.d0
        ! prim and secd part of dfdX
     !   do j=1, NbIncPTCSPrim
     !      dval(j) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
@@ -1568,24 +1576,24 @@ do iph = 1, NbPhase
 
        ! dT/dXp - dT/dXs*dXs/dXp
        ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-       ! all the mats is in (col, row) index order, only need to consider as transpose    
+       ! all the mats is in (col, row) index order, only need to consider as transpose
    !    call dgemm('N','N', NbIncPTCSPrim, 1, NbEqFermeture, &
    !         -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
        !     dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
-       
+
     ! -dT/dXs*SmdXs
   !  call dgemv('T', NbEqFermeture, 1,  &
   !       -1.d0, dfdX_secd, NbIncPTCSecondMax, &
   !       SmdXs, 1, 0.d0, Smval, 1)
 
-   ! debug: on compare les deux methodes : OK     
+   ! debug: on compare les deux methodes : OK
    ! write(*,*)' - dXssurdXp 1 ',- dXssurdXp(:,jT)
    ! write(*,*)' - SmdXs 1 ',- SmdXs(jT)
    ! write(*,*)' dT ',dval
    ! write(*,*)' SmT ',Smval
    ! stop
-       
-    else if( NumIncPTCSPrimCV(1)==2) then 
+
+    else if( NumIncPTCSPrimCV(1)==2) then
 
        ! TODO: P is secd, T is prim
        print*, "TODO error in div Temperature"
@@ -1619,7 +1627,7 @@ do iph = 1, NbPhase
 
     ! tmp
     double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-    double precision :: dfdX(NbIncPTCSMax)    
+    double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     integer :: i, iph, j, jc
@@ -1656,11 +1664,11 @@ do iph = 1, NbPhase
        do j=1, NbComp
           if(MCP(j,iph)==1) then
              jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j) 
+             dfdX(jc) = dCf(j)
           end if
        enddo
 
-       do j=1, NbPhase ! S 
+       do j=1, NbPhase ! S
           jc = j + NbIncPTC
           dfdX(jc) = dSf(j)
        enddo
@@ -1677,7 +1685,7 @@ do iph = 1, NbPhase
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
     ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-    ! all the mats is in (col, row) index order, only need to consider as transpose    
+    ! all the mats is in (col, row) index order, only need to consider as transpose
     call dgemm('N','N', NbIncPTCSPrim, NbPhasePresente, NbEqFermeture, &
          -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
@@ -1702,7 +1710,7 @@ do iph = 1, NbPhase
     type(Type_IncCV), intent(in) :: inc ! contains Saturation
 
     double precision, intent(in) :: &
-         divSaturation(NbIncPTCSPrimMax, NbPhase), &   
+         divSaturation(NbIncPTCSPrimMax, NbPhase), &
          DensiteMolaire(NbPhase), &
          divDensiteMolaire(NbIncPTCSPrimMax, NbPhase), &
          SmDensiteMolaire(NbPhase)
@@ -1759,7 +1767,7 @@ do iph = 1, NbPhase
     type(Type_IncCV), intent(in) :: inc ! contains Saturation
 
     double precision, intent(in) :: &
-         divSaturation(NbIncPTCSPrimMax, NbPhase), &   
+         divSaturation(NbIncPTCSPrimMax, NbPhase), &
          DensiteMolaire(NbPhase), &
          divDensiteMolaire(NbIncPTCSPrimMax, NbPhase), &
          SmDensiteMolaire(NbPhase)
@@ -1817,7 +1825,7 @@ do iph = 1, NbPhase
 
        ! 2.1.2
        do icp=1, NbComp ! P_i
-          if(MCP(icp,iph)==1) then  
+          if(MCP(icp,iph)==1) then
 
              do k=1, NbIncPTCSPrim
                 dval(k,icp,i) = dvi(k) * inc%Comp(icp,iph)
@@ -1835,7 +1843,7 @@ do iph = 1, NbPhase
        dv = SmDensitemolaire(i)*inc%Saturation(iph)
 
        do icp=1, NbComp ! P_i
-          if(MCP(icp,iph)==1) then 
+          if(MCP(icp,iph)==1) then
 
              Smval(icp,i) = dv * inc%Comp(icp,iph)
           end if
@@ -2037,7 +2045,7 @@ do iph = 1, NbPhase
 
        ! 2.1.2
        do icp=1, NbComp ! P_i
-          if(MCP(icp,iph)==1) then  
+          if(MCP(icp,iph)==1) then
 
              do k=1, NbIncPTCSPrim
                 dval(k,icp,i) = dvi(k) * inc%Comp(icp,iph)
@@ -2057,7 +2065,7 @@ do iph = 1, NbPhase
             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
 
        do icp=1, NbComp ! P_i
-          if(MCP(icp,iph)==1) then 
+          if(MCP(icp,iph)==1) then
 
              Smval(icp,i) = dv * inc%Comp(icp,iph)
           end if
@@ -2250,9 +2258,9 @@ do iph = 1, NbPhase
   end subroutine LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv
 
 
-  ! Choix des inconnues primaires et secondaires 
-  !  a partir de la matrice dFsurdX par algorithme glouton 
-  !  minimisant les angles successifs  
+  ! Choix des inconnues primaires et secondaires
+  !  a partir de la matrice dFsurdX par algorithme glouton
+  !  minimisant les angles successifs
   subroutine LoisThermoHydro_IncSecondGlouton(inc, dFsurdX, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
 
@@ -2297,7 +2305,7 @@ do iph = 1, NbPhase
        if(is==1) then
 
           ctrit(:) = dFsurdXnrm2(:)
-       else ! 
+       else !
 
           do j=1, NbIncPTCS ! i: loop index of P T C S
 
@@ -2309,7 +2317,7 @@ do iph = 1, NbPhase
              rnormProjVinc = rnormProjVinc + ss**2
           end do
 
-          rnormProjVinc = sqrt(rnormProjVinc)          
+          rnormProjVinc = sqrt(rnormProjVinc)
 
           ! maximise distance = rnormeVinc - rnormeProjVinc
           !   where rnormVinc = dFsurdXnrm2(j)
@@ -2341,7 +2349,7 @@ do iph = 1, NbPhase
           BaseOrthonormale(j,is) = dFsurdX(is,j)
        end do
 
-       do i=1, is-1 
+       do i=1, is-1
 
           ss = 0.d0
           do j=1, NbEqFermeture
@@ -2370,7 +2378,7 @@ do iph = 1, NbPhase
   end subroutine LoisThermoHydro_IncSecondGlouton
 
 
-  ! 
+  !
   subroutine LoisThermoHydro_IncSecondGauss(inc, dFsurdX, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
 
@@ -2403,11 +2411,11 @@ do iph = 1, NbPhase
     integer :: i1, j1, icp, iph, icp1, iph1, k
 
     ! 1. NumIncPTCSecondcv
-    !    1.1 choose secd in (P,T,C), Gauss 
+    !    1.1 choose secd in (P,T,C), Gauss
     !    1.2 choose secd in S, the first is secd
     ! 2. NumIncPTCSPrimcv
 
-    ! 1.1 choose secd in (P,T,C), Gauss 
+    ! 1.1 choose secd in (P,T,C), Gauss
 
     ! if(commRank==0) then
     !    do i=1, NbEqFermeture
@@ -2432,7 +2440,7 @@ do iph = 1, NbPhase
 
     BB(:,:) = dFsurdX(:,:) ! (col, row) index order
 
-    do is=1, NbEqFermeture ! = nb of secd inconnues 
+    do is=1, NbEqFermeture ! = nb of secd inconnues
 
        ! max element of abs(BB(:,:))
        pivotmax = -1.d0
@@ -2491,7 +2499,7 @@ do iph = 1, NbPhase
        ! (i1,j1) is num of BB, not subset of BB
 
        ! sinon on prend T si elle est dans l'ensemble des pivots max
-       if(pivot_T .eqv. .true.) then 
+       if(pivot_T .eqv. .true.) then
 
           do k=1, npivot
              if(pivot(2,k)==2) then
@@ -2500,13 +2508,13 @@ do iph = 1, NbPhase
              end if
           end do
 
-          NumIncPTCSecondCV(is) = 2 ! j1=2 
+          NumIncPTCSecondCV(is) = 2 ! j1=2
        else
-          ! sinon on prend la plus grande composition dans la phase 
-          ! avec la plus petite saturation 
+          ! sinon on prend la plus grande composition dans la phase
+          ! avec la plus petite saturation
 
           i1 = pivot(1,1) ! num of Eq
-          j1 = pivot(2,1) ! num of Inc          
+          j1 = pivot(2,1) ! num of Inc
           icp1 = NumIncPTC2NumIncComp_comp(j1)
           iph1 = NumIncPTC2NumIncComp_phase(j1)
 
@@ -2546,7 +2554,7 @@ do iph = 1, NbPhase
 
           end do
 
-          NumIncPTCSecondCV(is) = j1         
+          NumIncPTCSecondCV(is) = j1
        end if ! end for choosing (i1, j1), NumIncPTCSecondcv(is)=j1
 
        ! update sets: NumSetInc and NumSetEq, remove (i1, j1)
@@ -2597,7 +2605,7 @@ do iph = 1, NbPhase
 
     n = 0
     do j=1, NbIncPTC
-       if(NumIncPTCSPrim_idx(j) .eqv. .true.) then ! prim 
+       if(NumIncPTCSPrim_idx(j) .eqv. .true.) then ! prim
           n = n + 1
           NumIncPTCSPrimCV(n) = j
        end if
@@ -2605,7 +2613,7 @@ do iph = 1, NbPhase
 
     ! last S is secd
     ! if there is only one phase, phase is secd
-    do j=NbIncPTC+1, NbIncPTCS-1 
+    do j=NbIncPTC+1, NbIncPTCS-1
        n = n + 1
        NumIncPTCSPrimCV(n) = j
     end do
@@ -2617,7 +2625,7 @@ do iph = 1, NbPhase
 
     integer, intent(in) :: k
 
-    double precision :: Pws, Tw, Sw(NbPhase), Cw(NbComp) 
+    double precision :: Pws, Tw, Sw(NbPhase), Cw(NbComp)
     double precision :: &
          DensiteMolaire, dP_DensiteMolaire, &
          Viscosite, dP_Viscosite, &
@@ -2635,7 +2643,7 @@ do iph = 1, NbPhase
        Pws = PerfoWellInj(s)%Pression ! P_{w,s}
 
        Tw = DataWellInjLocal(k)%Temperature     ! T_w
-       Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w 
+       Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w
 
        ! Permrel
        call f_PermRel(PHASE_WATER, Sw, PermRel, dSf)
@@ -2653,7 +2661,7 @@ do iph = 1, NbPhase
        call f_Enthalpie(PHASE_WATER, Pws, Tw, Cw, Sw, &
             Enthalpie, dP_Enthalpie, dTf, dCf, dSf)
 #endif
-       
+
        do i=1, NbComp
 
           ! value
@@ -2713,15 +2721,15 @@ do iph = 1, NbPhase
     ! deniste massique
     allocate( DensiteMassiqueCell(NbPhase, nbCell))
     allocate( DensiteMassiqueFrac(NbPhase, nbFrac))
-    allocate( DensiteMassiqueNode(NbPhase, nbNode))    
+    allocate( DensiteMassiqueNode(NbPhase, nbNode))
 
     allocate( divDensiteMassiqueCell(NbIncPTCSPrimMax, NbPhase, nbCell))
     allocate( divDensiteMassiqueFrac(NbIncPTCSPrimMax, NbPhase, nbFrac))
-    allocate( divDensiteMassiqueNode(NbIncPTCSPrimMax, NbPhase, nbNode))    
+    allocate( divDensiteMassiqueNode(NbIncPTCSPrimMax, NbPhase, nbNode))
 
     allocate( SmDensiteMassiqueCell(NbPhase, nbCell))
     allocate( SmDensiteMassiqueFrac(NbPhase, nbFrac))
-    allocate( SmDensiteMassiqueNode(NbPhase, nbNode))    
+    allocate( SmDensiteMassiqueNode(NbPhase, nbNode))
 
     ! pression
     allocate( divPressionCell(NbIncPTCSPrimMax, nbCell) )
@@ -2871,10 +2879,10 @@ do iph = 1, NbPhase
     ! pression capillaire
     deallocate( PressionCapCell)
     deallocate( PressionCapFrac)
-    deallocate( PressionCapNode) 
+    deallocate( PressionCapNode)
     deallocate( divPressionCapCell)
     deallocate( divPressionCapFrac)
-    deallocate( divPressionCapNode) 
+    deallocate( divPressionCapNode)
 
     ! saturation
     deallocate( divSaturationCell)
@@ -2998,7 +3006,7 @@ do iph = 1, NbPhase
           vnode( NumIncPTCSPrimNode(i,k),k) = xp(i)
        end do
 
-       ! copy secd P,T,C       
+       ! copy secd P,T,C
        do i=1, NbEqFermeture
           vnode( NumIncPTCSecondNode(i,k),k) = xs(i)
        end do
@@ -3134,7 +3142,7 @@ do iph = 1, NbPhase
        end if
 
        ! term n_k(X_j^n)
-       do i=1, NbCompCtilde_ctx(ic) 
+       do i=1, NbCompCtilde_ctx(ic)
           vcell(NbIncPTCS+i,k) = xp(NbIncPTCSPrim+i)
        end do
     end do

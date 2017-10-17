@@ -1,7 +1,15 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Model: 2 phase 1 comp, thermal well
 
 !> \brief Define the flash to determine the phases
-!! which are actualy present in each cell, and 
+!! which are actualy present in each cell, and
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
@@ -40,12 +48,12 @@ module DefFlash
   ! molar fluxes for injection well(s), head node
   double precision, allocatable, dimension(:) :: headmolarFluxInj !< Molar flux for injection well: headmolarFluxProd(node_well)
 
-  
-  public :: &  
+
+  public :: &
        DefFlash_allocate,  &  ! Allocation, initialization and deallocation (in NN.F90)
        DefFlash_Flash,     &  ! Flash after each Newton iteration
        DefFlash_TimeFlash, &  ! Flash after each time step
-       DefFlash_free                          
+       DefFlash_free
 
   private :: &
        DefFlash_Flash_cv
@@ -66,7 +74,7 @@ module DefFlash
        DefFlash_FlowrateWellProd, &
        DefFlash_PressureToFlowrateWellProd, &
        DefFlash_PressureToFlowrateWellInj,  &
-       QuickSortCSR, &                              
+       QuickSortCSR, &
        DefFlash_SortHeights_and_Init
   ! DefFlash_PressureDropInj ! Pressure drop calculation allong the injection well
 
@@ -105,10 +113,10 @@ contains
   subroutine DefFlash_TimeFlash
 
     integer :: num_Well
-    
+
     call DefFlash_TimeFlashSinglePhaseWellProd
 
-    ! compute 
+    ! compute
     do num_Well=1, NbWellInjLocal_Ncpus(commRank+1)
        call DefFlash_PressureToFlowrateWellInj(num_Well, headmolarFluxInj(num_Well))
        ! print*, "head ", headmolarFluxInj(num_Well)
@@ -141,11 +149,11 @@ contains
 
     ! allocate flowrate
     allocate(headmolarFluxInj(NbWellInjLocal_Ncpus(commRank+1)))
-    
+
     Nnz = NodebyWellProdLocal%Pt(NodebyWellProdLocal%Nb+1)
     allocate(summolarFluxProd(NbComp, Nnz))
     allocate(sumnrjFluxProd(Nnz))
-    
+
     ZSortedInj%Nb = NodebyWellInjLocal%Nb
     allocate(ZSortedInj%Pt(ZSortedInj%Nb+1))
     ZSortedInj%Pt = NodebyWellInjLocal%Pt
@@ -219,7 +227,7 @@ contains
     write(fdFl, *) ZSortedInj%Val
     write(fdFl, *) '}{'
     do s=1, ZSortedInj%Pt(ZSortedInj%Nb+1)
-       write(fdFl, *)  'ptL', ZSortedInj%Num(s), 'numL', NodebyWellInjLocal%Num(ZSortedInj%Num(s)), & 
+       write(fdFl, *)  'ptL', ZSortedInj%Num(s), 'numL', NodebyWellInjLocal%Num(ZSortedInj%Num(s)), &
             ZSortedInj%Val(s)
     end do
     write(fdFl, *) '}'
@@ -265,10 +273,10 @@ contains
   !! (flowrate or pressure). The injection
   !! well is monophasic liquid
   !!
-  !! As long as the pressure is less or egal to 
-  !! the pressure max, the flowrate of the well 
-  !! is imposed. If the pressure is too high, 
-  !! the flowrate is no more fixed and the pressure 
+  !! As long as the pressure is less or egal to
+  !! the pressure max, the flowrate of the well
+  !! is imposed. If the pressure is too high,
+  !! the flowrate is no more fixed and the pressure
   !! is set as Pressure max.
   subroutine DefFlash_NewtonFlashNonLinWellInj
 
@@ -409,10 +417,10 @@ contains
   !! determine the mode of the projection well
   !! (flowrate or pressure).
   !!
-  !! As long as the pressure is less or egal to 
-  !! the pressure max, the flowrate of the well 
-  !! is imposed. If the pressure is too high, 
-  !! the flowrate is no more fixed and the pressure 
+  !! As long as the pressure is less or egal to
+  !! the pressure max, the flowrate of the well
+  !! is imposed. If the pressure is too high,
+  !! the flowrate is no more fixed and the pressure
   !! is set as Pressure max.
   subroutine DefFlash_NewtonFlashNonLinWellProd
 
@@ -560,10 +568,10 @@ contains
   !> \brief Determine the mode of the injection well
   !! (flowrate or pressure).
   !!
-  !! As long as the pressure is less or egal to 
-  !! the pressure max, the flowrate of the well 
-  !! is imposed. If the pressure is too high, 
-  !! the flowrate is no more fixed and the pressure 
+  !! As long as the pressure is less or egal to
+  !! the pressure max, the flowrate of the well
+  !! is imposed. If the pressure is too high,
+  !! the flowrate is no more fixed and the pressure
   !! is set as Pressure max.
   subroutine DefFlash_NewtonFlashLinWellInj
 
@@ -577,7 +585,7 @@ contains
        if(DataWellInjLocal(num_Well)%IndWell == 'f') then ! flowrate mode
 
           if(IncPressionWellInj(num_Well) > DataWellInjLocal(num_Well)%PressionMax) then
-             
+
              DataWellInjLocal(num_Well)%IndWell = 'p'  ! change to pressure mode
              IncPressionWellInj(num_Well) = DataWellInjLocal(num_Well)%PressionMax  ! Pw = PwMax
           endif
@@ -610,7 +618,7 @@ contains
   !! As long as the pressure is greater or egal to
   !! the pressure min, the flowrate of the well
   !! is imposed. If the pressure is too low,
-  !! the flowrate is no more fixed and the pressure 
+  !! the flowrate is no more fixed and the pressure
   !! is set as Pressure min.
   subroutine DefFlash_NewtonFlashLinWellProd
 
@@ -620,7 +628,7 @@ contains
     do num_Well=1, NbWellProdLocal_Ncpus(commRank+1)
 
        if (DataWellProdLocal(num_Well)%IndWell == 'f') then ! flowrate mode
-          
+
           if (IncPressionWellProd(num_Well) < DataWellProdLocal(num_Well)%PressionMin) then
 
              DataWellProdLocal(num_Well)%IndWell = 'p'  ! change to pressure mode
@@ -628,7 +636,7 @@ contains
           endif
 
        else if(DataWellProdLocal(num_Well)%IndWell == 'p') then ! pressure mode
-          
+
           if(IncPressionWellProd(num_Well) < DataWellProdLocal(num_Well)%PressionMin) then
              IncPressionWellProd(num_Well) = DataWellProdLocal(num_Well)%PressionMin  ! With Newton inc, Pw<Pmin, then change it
           endif
@@ -696,7 +704,7 @@ contains
 #ifdef _THERMIQUE_
        sumnrjFluxProd(s) = sumnrjFluxProd(s) + FluxT_ks
 #endif
-       
+
        if(sparent /= -1) then ! head node if sparent = -1
           summolarFluxProd(:,sparent) = summolarFluxProd(:,sparent) + summolarFluxProd(:,s)
           sumnrjFluxProd(sparent) = sumnrjFluxProd(sparent) + sumnrjFluxProd(s)
@@ -737,7 +745,7 @@ contains
     do s=NodebyWellProdLocal%Pt(num_Well)+1, NodebyWellProdLocal%Pt(num_Well+1)
        nums = NodebyWellProdLocal%Num(s)
 
-       Pws = IncPressionWellProd(num_Well) + PerfoWellProd(s)%PressureDrop ! P_{w,s}       
+       Pws = IncPressionWellProd(num_Well) + PerfoWellProd(s)%PressureDrop ! P_{w,s}
        Ps = IncNode(nums)%Pression     ! P_s
        WIDws = NodeDatabyWellProdLocal%Val(s)%WID
 
@@ -784,7 +792,7 @@ contains
     do s=NodebyWellInjLocal%Pt(num_Well)+1, NodebyWellInjLocal%Pt(num_Well+1)
        nums = NodebyWellInjLocal%Num(s)
 
-       Pws = IncPressionWellInj(num_Well) + PerfoWellInj(s)%PressureDrop ! P_{w,s}       
+       Pws = IncPressionWellInj(num_Well) + PerfoWellInj(s)%PressureDrop ! P_{w,s}
        Ps = IncNode(nums)%Pression     ! P_s
 
        WIDws = NodeDatabyWellInjLocal%Val(s)%WID
@@ -814,8 +822,8 @@ contains
   !!
   !! Loop over the nodes s from head to tail to
   !! to determine wich phases are present, the temperature and the mean density.
-  !! The pressure of the following node depends on the mean density, this is why 
-  !! the loop is done from head to tail (mean density is updated before being used).  
+  !! The pressure of the following node depends on the mean density, this is why
+  !! the loop is done from head to tail (mean density is updated before being used).
   subroutine DefFlash_TimeFlashSinglePhaseWellProd
 
     double precision :: T, RT, Pws, Ci(NbComp), sumci, E, zp, zs
@@ -847,13 +855,13 @@ contains
 
           else ! Pws = P_{w,parent} + \Delta P_{w,parent}
 
-             zs = XNodeLocal(3,NodebyWellProdLocal%Num(s)) ! z-cordinate of node s          
+             zs = XNodeLocal(3,NodebyWellProdLocal%Num(s)) ! z-cordinate of node s
              zp = XNodeLocal(3,NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
 
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
              ! as the loop is done from head to queue, %Density is updated before being used
-             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)             
+             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)
              Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
              PerfoWellProd(s)%Pression = Pws
@@ -866,12 +874,12 @@ contains
           do icp=1, NbComp
              sumci = summolarFluxProd(icp,s) ! sum_i {n_i}
           end do
-          
+
           ! initialize newton with Tsat
           call DefModel_Tsat(PerfoWellProd(s)%Pression, T, dP_Tsat)
 
           converged = .false.
-          
+
           do i=1, Maxiter
 
              call f_Enthalpie(PHASE_WATER, Pws, T, Ci(:), Sat(:), &
@@ -880,7 +888,7 @@ contains
              RT = E - H * sumci ! residu
 
              if (abs(RT) < Tol) then
-                converged = .true.                
+                converged = .true.
                 exit
              else
                 T = T + RT / (dTf * sumci)
@@ -908,9 +916,9 @@ contains
   !! to update PerfoWellProd(s)%Temperature and PerfoWellProd(s)%Density.
   !! This Flash is performed for a diphasique monocomponent fluid.
   !!
-  !! Loop over the nodes s from head to tail to compute the thermodynamical flash 
+  !! Loop over the nodes s from head to tail to compute the thermodynamical flash
   !! to determine wich phases are present, the temperature and the mean density.
-  !! The pressure of the following node depends on the mean density, this is why 
+  !! The pressure of the following node depends on the mean density, this is why
   !! the loop is done from head to tail (mean density is updated before being used).
   subroutine DefFlash_TimeFlashTwoPhasesProd
 
@@ -942,13 +950,13 @@ contains
 
           else ! Pws = P_{w,parent} + \Delta P_{w,parent}
 
-             zs = XNodeLocal(3,NodebyWellProdLocal%Num(s)) ! z-cordinate of node s          
+             zs = XNodeLocal(3,NodebyWellProdLocal%Num(s)) ! z-cordinate of node s
              zp = XNodeLocal(3,NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
 
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
              ! as the loop is done from head to queue, %Density is updated before being used
-             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)             
+             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)
              Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
              PerfoWellProd(s)%Pression = Pws
@@ -1032,13 +1040,13 @@ contains
 
   end subroutine DefFlash_TimeFlashTwoPhasesProd
 
-  !> \brief Sorting the heights contained in mycsr%Value, and update 
+  !> \brief Sorting the heights contained in mycsr%Value, and update
   !! the corresponding node values (indexes) stored in mycsr%Num
   !! mycsr%Pt is constructed on NodebyWellInjLocal
   recursive subroutine QuickSortCSR(myCSR, left, right, mode)
     use commontype
     implicit none
-    type(CSRdble), intent(inout) :: myCSR 
+    type(CSRdble), intent(inout) :: myCSR
     integer, intent(in) :: left, right
     character(len=1), intent(in) :: mode
     double precision :: x, tmp_val
@@ -1058,7 +1066,7 @@ contains
           do while (x > myCSR%Val(j))
              j = j - 1
           end do
-       elseif (mode == 'i') then 
+       elseif (mode == 'i') then
           do while (x > myCSR%Val(i))
              i = i + 1
           end do
@@ -1069,7 +1077,7 @@ contains
           write(*,*) 'WARNING: sorting mode unknown !'
           return
        end if
-       if (i >= j) then 
+       if (i >= j) then
           exit
        end if
 
@@ -1079,7 +1087,7 @@ contains
        myCSR%Val(j) = tmp_val; myCSR%Num(j) = tmp_num
        i = i + 1; j = j - 1
     end do
-    if (left < i-1) then 
+    if (left < i-1) then
        call QuickSortCSR(myCSR, left, i-1, mode)
     end if
     if (j+1 < right) then
@@ -1112,7 +1120,7 @@ contains
 
   !   do k=1, NbWellInjLocal_Ncpus(commRank+1)
 
-  !      ! initialize the head pressure drop to zero, and the head pressure 
+  !      ! initialize the head pressure drop to zero, and the head pressure
   !     ! with the Unknown value for the Well
   !     PerfoWellInj(ZSortedInj%Num(ZSortedInj%Pt(k)+1))%PressureDrop = 0.d0
   !     PerfoWellInj(ZSortedInj%Num(ZSortedInj%Pt(k)+1))%Pression = IncPressionWellInj(k)
@@ -1152,7 +1160,7 @@ contains
   !       write(fdFl, '(a,f6.2,a,f6.2,f6.2,a,e14.6,a,e14.6)'), &
   !           'integrate z1: ', XNodeLocal(3, nums1), ' -> z2: ', XNodeLocal(3, nums2), &
   !           ztmp, ' P1: ', PerfoWellInj(pts1)%Pression, ' P2: ', Ptmp
-  !       write(fdFl, '(a,e14.6)') 'pressure drop', PerfoWellInj(pts2)%PressureDrop 
+  !       write(fdFl, '(a,e14.6)') 'pressure drop', PerfoWellInj(pts2)%PressureDrop
   !     end do
   !   end do
   ! end subroutine DefFlash_PressureDropInj

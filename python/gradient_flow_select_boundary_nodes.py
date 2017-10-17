@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
@@ -29,8 +37,8 @@ def set_boundary_conditions():
     #print('>'*10, 'on proc', ComPASS.proc_rank, ':\n', vertices.x.min(), '< X <', vertices.x.max(), '\n', vertices.y.min(), '< Y <', vertices.y.max())
     dirichlet = ComPASS.dirichlet_node_states()
     left = on_the_left(vertices)
-    dirichlet.p[left] = pleft 
-    dirichlet.T[left] = Tleft 
+    dirichlet.p[left] = pleft
+    dirichlet.T[left] = Tleft
     right = on_the_right(vertices)
     dirichlet.p[right] = pright
     dirichlet.T[right] = Tright
@@ -46,7 +54,7 @@ def set_initial_values():
         state.S[:] = [0, 1]
         state.C[:] = 1.
 
-# %%% Simulation %%% 
+# %%% Simulation %%%
 
 ComPASS.set_output_directory_and_logfile(__file__)
 ComPASS.init(

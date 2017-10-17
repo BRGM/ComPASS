@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module NN
 
    use PathUtilities
@@ -269,9 +277,9 @@ contains
       call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
    end subroutine NN_init_warmup_and_read_mesh
-   
+
 subroutine init_visualization(OutputDir)
-    
+
       character(len=*), intent(in) :: OutputDir
 
 #ifdef _VISU_
@@ -504,7 +512,7 @@ subroutine NN_init_phase2(OutputDir)
                 (NbWellInjLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreWellProd &
                 (NbWellProdLocal_Ncpus(commRank + 1)))
-      
+
       call init_visualization(OutputDir)
 
       comptime_part = MPI_WTIME() - comptime_start
@@ -710,7 +718,7 @@ subroutine NN_init_phase2(OutputDir)
          ! write well data to file
          write (output_path, '(A,I0)') trim(OutputDir)//"/wellinfo/time_", VisuTimeIter
          call make_directory(output_path)
-         
+
          write (Wellinfoname, '(A,I0,A,I0,A)') &
             trim(OutputDir)//"/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
 
@@ -799,9 +807,9 @@ subroutine NN_init_phase2(OutputDir)
    subroutine NN_main_make_timestep(initial_time_step)
 
       real(c_double), optional, intent(in) :: initial_time_step
-   
+
       if(present(initial_time_step)) Delta_t = max(0.d0, initial_time_step)
-      
+
       ! init start time
       comptime_start = MPI_WTIME()
 
