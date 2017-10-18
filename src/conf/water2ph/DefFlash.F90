@@ -91,15 +91,15 @@ contains
     double precision :: Psat, dTsat, Tsat
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncNode(k), PoroVolDarcyNode(k))
+       call DefFlash_Flash_cv(IncNode(k), NodeRocktypeLocal(:,k), PoroVolDarcyNode(k))
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncFrac(k), PoroVolDarcyFrac(k))
+       call DefFlash_Flash_cv(IncFrac(k), FracRocktypeLocal(:,k), PoroVolDarcyFrac(k))
     end do
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-       call DefFlash_Flash_cv(IncCell(k), PoroVolDarcyCell(k))
+       call DefFlash_Flash_cv(IncCell(k), CellRocktypeLocal(:,k), PoroVolDarcyCell(k))
     end do
 
     ! choose between linear or non-linear update of the Newton unknown Pw
@@ -241,9 +241,10 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(inc, porovol)
+  subroutine DefFlash_Flash_cv(inc, rt, porovol)
 
     type(Type_IncCV), intent(inout) :: inc
+    INTEGER, INTENT(IN) :: rt(IndThermique+1)
     double precision, intent(in) :: porovol ! porovol
 
     integer :: i, iph, j, icp, m, mph, ic
@@ -330,6 +331,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums
+    integer :: rt(IndThermique+1)
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -344,6 +346,7 @@ contains
        Sw(PHASE_WATER) = 1.d0                                           ! Monophasic liquid
        Sw(PHASE_GAS) = 0.d0
        Cw = DataWellInjLocal(nWell)%CompTotal
+       rt = NodeRocktype(:,s)
 
        ! PHASE_WATER (monophasic in injection well)
        ! Molar density
@@ -353,7 +356,7 @@ contains
        call f_Viscosite(PHASE_WATER, Pws, Tws, Cw, Sw, &
             Viscosity, dPf, dTf, dCf, dSf)
        ! Permrel
-       call f_PermRel(PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(rt,PHASE_WATER, Sw, PermRel, dSf)
 
        Mob(PHASE_WATER, s) = PermRel * DensiteMolaire / Viscosity * WIDws
        ! initialization of RSorted before calling QuickSortCSR
@@ -470,6 +473,7 @@ contains
     double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
     double precision :: WIDws, SumMob, SumMobR
     integer :: s, j, nums, m, mph, comptn
+    integer :: rt(IndThermique+1)
 
     Mob(:,:) = 0.d0
     R(:,:) = 0.d0
@@ -482,6 +486,7 @@ contains
        nums = NodebyWellProdLocal%Num(s)
        Ts = IncNode(nums)%Temperature      ! Ts: Temperature in matrix
        Sat(:) = IncNode(nums)%Saturation(:)  ! Sat in matrix
+       rt = NodeRocktype(:,s)
 
        ! loop over alpha in Q_s
        do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -499,7 +504,7 @@ contains
           call f_Viscosite(mph, Ps(mph), Ts, C(:,mph), Sat, &
                Viscosity, dPf, dTf, dCf, dSf)
           ! Permrel
-          call f_PermRel(mph, Sat, PermRel, dSf)
+          call f_PermRel(rt, mph, Sat, PermRel, dSf)
 
           Mob(mph,s) = PermRel * DensiteMolaire / Viscosity * WIDws
 
@@ -731,8 +736,7 @@ contains
     integer, intent(in) :: num_Well
     double precision, intent(out) :: Qw
 
-    integer :: s, k, nums, icp, m, mph, &
-         rocktypeinc
+    integer :: s, k, nums, icp, m, mph
     double precision :: Pws, Ps, WIDws
     double precision:: Flux_ks(NbComp)
 
