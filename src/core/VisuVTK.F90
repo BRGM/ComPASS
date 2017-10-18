@@ -8,6 +8,8 @@
 
 module VisuVTK
 
+  use PathUtilities
+
   use CommonType
   use CommonMPI
   use MeshSchema
@@ -20,7 +22,7 @@ module VisuVTK
   type(c_ptr), private :: visuptr
 
   ! output dir
-  character(len=100), private :: OutputDir
+  character(len=200), private :: OutputDir
 
   ! Two types of Mesh
   !  1. Cartesien/Tetra/Hexahedron: in vtk, not need to define faces
@@ -246,7 +248,7 @@ contains
 
     integer, intent(in) :: meshtype
 
-    character(100), intent(in) :: dirname
+    character(*), intent(in) :: dirname
 
     double precision, intent(in) :: &
         Tf, &      ! final time
@@ -257,7 +259,6 @@ contains
         IndThermique
 
     OutputDir = dirname
-
 
     ! init visu structure
     visuptr = visuvtk_time_initcxx(meshtype, trim(OutputDir)//C_NULL_CHAR, &
@@ -278,7 +279,8 @@ contains
         XNodeLocal, XCellLocal)
 
     ! allocate VisuTimes
-    allocate(VisuTimes( int(Tf/output_frequency)+3 ))
+    ! FIXME: The array is copied and expanded each time a visualaisation ouput is made
+    allocate(VisuTimes(NbVisuTimes))
 
   end subroutine VisuVTK_VisuTime_Init
 
@@ -293,17 +295,22 @@ contains
     double precision, dimension(:), intent(in) :: &
         datacell, datafrac, datawellinj, datawellprod
 
-    character(len=100) :: cmd
-    integer :: Ierr, i, start
+    character(len=200) :: output_path
+    double precision, dimension(size(VisuTimes)) :: TmpVisuTimes
+
+    ! FIXME: The allocation/deallocation is done at each output
+    TmpVisuTimes = VisuTimes
+    deallocate(VisuTimes)
 
     NbVisuTimes = NbVisuTimes + 1
 
+    allocate(VisuTimes(NbVisuTimes))
+    VisuTimes(1:NbVisuTimes-1) = TmpVisuTimes
+
     VisuTimes(NbVisuTimes) = t ! all timesteps for .pvd are stored here
 
-    write(cmd, '(A,A,A,I0)')  "mkdir -p ", trim(OutputDir), "/time_", NbVisuTimes-1
-    call system(cmd)
-
-    call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+    write(output_path, '(A,I0)')  trim(OutputDir) // "/time_", NbVisuTimes-1
+    call make_directory(output_path)
 
     ! write data
     call visuvtk_time_writedatacxx(visuptr, &

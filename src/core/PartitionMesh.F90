@@ -38,7 +38,7 @@ contains
   subroutine PartitionMesh_Metis(Ncpus)
 
     integer, intent(in) :: Ncpus
-    integer :: objval, i, pt
+    integer :: objval
 
     objval = 0
 

@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.2)
 
 project(ComPASS Fortran C CXX)
 
-# don't set CMAKE_BUILD_TYPE here, it is already in the cache
-# This statically specifies what build type (configuration) will be built in this build tree. Possible values are empty, Debug, Release, RelWithDebInfo and MinSizeRel. This variable is only meaningful to single-configuration generators (such as make and Ninja)
-# set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_BUILD_TYPE Release)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 # make sure our own modules are found
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
@@ -27,6 +28,24 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 # set(CMAKE_Fortran_COMPILER mpifort)
 # set(CMAKE_C_COMPILER mpicc)
 # set(CMAKE_CXX_COMPILER mpicxx)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
+
+if(DEF_Python_BINDINGS)
+  set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
+  find_package(pybind11 REQUIRED)
+  # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+  if(NOT ${PYTHONINTERP_FOUND})
+    message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
+  endif(NOT ${PYTHONINTERP_FOUND})
+  # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+  if(NOT ${PYTHONLIBS_FOUND})
+    message(FATAL_ERROR "python libraries are mandatory, CMake will stop.")
+  endif(NOT ${PYTHONLIBS_FOUND})
+endif(DEF_Python_BINDINGS)
 
 ########### Configuration options
 
@@ -76,9 +95,10 @@ find_package(LAPACK REQUIRED)
 
 # vtk
 # set(VTK_DIR ${LIB_PREFIX}/include/vtk-7.1)
+# WARNING: Does not include python libraries from VTK so that they do not interfere with pybind11
 if(DEF_VISU)
   add_definitions(-D_VISU_)
-  find_package(VTK REQUIRED)
+  find_package(VTK REQUIRED COMPONENTS vtkIOXML NO_MODULE)
   include(${VTK_USE_FILE})
 endif(DEF_VISU)
 

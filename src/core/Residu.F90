@@ -174,7 +174,7 @@ contains
   subroutine Residu_AccVol
 
     integer :: k, m, mph, i, ic, icp
-    integer :: tmpAccVol(NbComp)
+    real(c_double) :: tmpAccVol(NbComp)
 
     ! Cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
@@ -315,7 +315,7 @@ contains
   subroutine Residu_Conservations
 
     integer :: k, s, fs, fk, nums, m, mph, icp
-    integer :: NbNodeCell, NbFracCell, NbNodeFrac, nbNodeWell
+    integer :: NbNodeCell, NbFracCell, NbNodeFrac
 
     double precision :: Flux_ks(NbComp), FluxT_ks
     double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
@@ -742,7 +742,7 @@ contains
          ResConvInitLocal(NbCompThermique), ResClosInitLocal
 
     double precision :: &
-         ResConvRefLocal(NbCompThermique), ResClosRef
+         ResConvRefLocal(NbCompThermique)
 
     double precision:: &
          ResConvLocal(NbCompThermique), ResClosLocal,  &

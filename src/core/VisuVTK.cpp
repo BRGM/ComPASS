@@ -38,14 +38,14 @@ using namespace std;
 
 #define ASCII_VTK_WRITERS 1
 
-// FIXME: This file is full of hard coded string buffers... ex [100]
+// FIXME: This file is full of hard coded string buffers... ex [300]
 
 class VisuVTK_Time
 {
 
 private:
 
-  char OutputDir[100];
+  char OutputDir[300];
 
   // nb of (P, T, C, S) in model, definded by MCP
   int NbVecVisu;
@@ -676,7 +676,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
 {
 
   // 1. cell
-  char dirname[100];
+  char dirname[300];
   sprintf( dirname, "%s/time_%d", OutputDir, NbVisuTimes - 1 ); // dir name
 
   // insert datacellinput to data_cell structure
@@ -688,7 +688,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
 	data_cell[k]->SetComponent( i, 0, datacellinput[i + start] );
     }
   // cell writer
-  char celldata_vtuname[100];
+  char celldata_vtuname[300];
   sprintf( celldata_vtuname, "%s/celldata_%d.vtu", dirname, commRank ); // file name
 
   writer_cell->SetFileName( celldata_vtuname );
@@ -714,7 +714,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
     };
 
   // frac writer
-  char fracdata_vtuname[100];
+  char fracdata_vtuname[300];
   sprintf( fracdata_vtuname, "%s/fracdata_%d.vtu", dirname, commRank ); // file name
 
   writer_frac->SetFileName( fracdata_vtuname );
@@ -737,7 +737,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
     };
 
   // well inj writer
-  char wellinjdata_vtuname[100];
+  char wellinjdata_vtuname[300];
   sprintf( wellinjdata_vtuname, "%s/wellinjdata_%d.vtu", dirname, commRank ); // file name
 
   writer_wellinj->SetFileName( wellinjdata_vtuname );
@@ -755,7 +755,7 @@ void VisuVTK_Time::writedata( int NbVisuTimes,
     };
 
   // well prod writer
-  char wellproddata_vtuname[100];
+  char wellproddata_vtuname[300];
   sprintf( wellproddata_vtuname, "%s/wellproddata_%d.vtu", dirname, commRank ); // file name
 
   writer_wellprod->SetFileName( wellproddata_vtuname );
@@ -794,7 +794,7 @@ void pvtuwritercell( char* dirname, int Np,
 {
 
   // cell
-  char pvtuname[100];
+  char pvtuname[300];
   sprintf( pvtuname, "%s/celldata.pvtu", dirname );
 
   ofstream pvtu;
@@ -820,7 +820,7 @@ void pvtuwritercell( char* dirname, int Np,
 
 	  if ( MCP[iph * NbComp + icp] == 1 )
 	    {
-	      char ss[100];
+	      char ss[300];
 	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d cell\"/>\n", iph + 1, icp + 1 );
 	      pvtu << ss;
 	    }
@@ -830,7 +830,7 @@ void pvtuwritercell( char* dirname, int Np,
   // Saturation
   for ( int i = 0; i < NbPhase; i++ )
     {
-      char ss[100];
+      char ss[300];
       sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d cell\"/>\n", i + 1 );
       pvtu << ss;
     }
@@ -860,7 +860,7 @@ void pvtuwriterfrac( char* dirname, int Np,
 {
 
   // frac
-  char pvtuname[100];
+  char pvtuname[300];
   sprintf( pvtuname, "%s/fracdata.pvtu", dirname );
 
   ofstream pvtu;
@@ -886,7 +886,7 @@ void pvtuwriterfrac( char* dirname, int Np,
 
 	  if ( MCP[iph * NbComp + icp] == 1 )
 	    {
-	      char ss[100];
+	      char ss[300];
 	      sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Phase %d Comp %d frac\"/>\n", iph + 1, icp + 1 );
 	      pvtu << ss;
 	    }
@@ -896,7 +896,7 @@ void pvtuwriterfrac( char* dirname, int Np,
   // Saturation
   for ( int i = 0; i < NbPhase; i++ )
     {
-      char ss[100];
+      char ss[300];
       sprintf( ss, "        <PDataArray type=\"Float64\" Name=\"Saturation %d frac\"/>\n", i + 1 );
       pvtu << ss;
     }
@@ -928,7 +928,7 @@ void pvtuwriterwellinj( char* dirname, int Np )
 {
 
   // cell
-  char pvtuname[100];
+  char pvtuname[300];
   sprintf( pvtuname, "%s/wellinjdata.pvtu", dirname );
 
   ofstream pvtu;
@@ -970,7 +970,7 @@ void pvtuwriterwellprod( char* dirname, int Np )
 {
 
   // cell
-  char pvtuname[100];
+  char pvtuname[300];
   sprintf( pvtuname, "%s/wellproddata.pvtu", dirname );
 
   ofstream pvtu;
@@ -1005,7 +1005,6 @@ void pvtuwriterwellprod( char* dirname, int Np )
 }
 
 
-
 // write .pvd file master proc
 // pvdname: file name;
 // t: current time;
@@ -1019,9 +1018,15 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   using namespace std;
 
+  // FIXME: This is to be removed !!!!
+  std::string pathroot("./");
+  // Check if path is absolute
+  if(dirname[0]=='/') pathroot.clear();
+
   // cell data .pvdcell
-  char pvdname[30];
-  sprintf( pvdname, "./%s/celldata.pvd", dirname );
+  // FIXME: Stille a hard coded length
+  char pvdname[300];
+  sprintf( pvdname, "%s%s/celldata.pvd", pathroot.c_str(), dirname );
 
   ofstream pvd;
   pvd.open( pvdname );
@@ -1031,7 +1036,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
       << "<Collection>\n";
 
   char tscr[20];
-  char pvtuname[100];
+  char pvtuname[300];
   for ( int i = 0; i < NbVisuTimes; i++ )
     {
       sprintf( tscr, "%.5f", VisuTimes[i] ); // str of time
@@ -1047,7 +1052,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // frac data .pvd
 
-  sprintf( pvdname, "./%s/fracdata.pvd", dirname );
+  sprintf( pvdname, "%s%s/fracdata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
@@ -1071,7 +1076,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // injection well data .pvd
 
-  sprintf( pvdname, "./%s/wellinjdata.pvd", dirname );
+  sprintf( pvdname, "%s%s/wellinjdata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
@@ -1095,7 +1100,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 
   // production well data .pvd
 
-  sprintf( pvdname, "./%s/wellproddata.pvd", dirname );
+  sprintf( pvdname, "%s%s/wellproddata.pvd", pathroot.c_str(), dirname );
   pvd.open( pvdname );
 
   pvd << "<?xml version=\"1.0\"?>\n"
@@ -1228,7 +1233,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 //     vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 //   writer_cell->SetInputData(ugrid_cell);
 
-//   char celldata_vtuname[100];
+//   char celldata_vtuname[300];
 //   sprintf(celldata_vtuname, "%s/celldata_%d.vtu",dirname, commRank); // file name
 //   writer_cell->SetFileName(celldata_vtuname);
 
@@ -1313,7 +1318,7 @@ void visuvtk_pvdwritercxx_( char* dirname, int NbVisuTimes, double* VisuTimes )
 //     vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 //   writer_frac->SetInputData(ugrid_frac);
 
-//   char fracdata_vtuname[100];
+//   char fracdata_vtuname[300];
 //   sprintf(fracdata_vtuname, "%s/fracdata_%d.vtu",dirname, commRank); // file name
 //   writer_frac->SetFileName(fracdata_vtuname);
 

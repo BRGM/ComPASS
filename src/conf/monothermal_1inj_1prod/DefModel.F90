@@ -36,7 +36,7 @@ module DefModel
   integer, parameter :: PHASE_WATER = 2
 
   ! Gravite
-  double precision, parameter :: Gravite = 0.d0 !< Gravity constant
+  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
 
   ! CpRoche
   double precision, parameter :: CpRoche = 800.d0 * 2000.d0 !< ???
@@ -130,7 +130,7 @@ module DefModel
   ! ! * hexahedron-quad
   ! ! * tetrahedron-triangle
   ! ! * wedge
-  character(len=40), parameter :: &
+  character(len=40) :: &
       MESH_TYPE = "cartesian-quad"
 
 
@@ -142,10 +142,11 @@ module DefModel
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
   ! time step init and max
-  double precision, parameter :: TimeFinal = 30 * OneYear
+  ! FIXME: parameter is removed to assign variable from python
+  double precision :: TimeFinal = 30 * OneYear
 
-  double precision, parameter :: TimeStepInit = OneDay
-  double precision, parameter :: TimeStepMax1 = OneYear
+  double precision :: TimeStepInit = OneDay
+  double precision :: TimeStepMax = OneYear
 
   ! output_frequency for visu
   double precision, parameter :: output_frequency = OneYear

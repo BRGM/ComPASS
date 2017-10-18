@@ -8,11 +8,14 @@
 
 module CommonType
 
+  ! This for arrays that are interfaced with python/C++
+  use iso_c_binding, only: c_int, c_char, c_double
+
   implicit none
 
   !> Array 1d integer
   type ARRAY1Int
-    integer, allocatable, dimension(:) :: Val
+    integer(c_int), allocatable, dimension(:) :: Val
   end type ARRAY1Int
 
   !> Array 1d double precision
@@ -22,7 +25,7 @@ module CommonType
 
   !> Array 2d double precision
   type ARRAY2dble
-    double precision, allocatable, dimension(:,:) :: Array2d
+    real(c_double), allocatable, dimension(:,:) :: Array2d
   end type ARRAY2dble
 
   !> Array 3d double precision
@@ -30,13 +33,20 @@ module CommonType
     double precision, allocatable, dimension(:,:,:) :: Array3d
   end type ARRAY3dble
 
-  !> Standar type CSR with Pt, Num, and Val (1d integer)
+  !> Standard type CSR with Pt, Num, and Val (1d integer)
+    ! kind=c_int is because csr are to be interfaced with python/C++
   type CSR
-    integer :: Nb
-    integer, allocatable, dimension(:) :: Pt
-    integer, allocatable, dimension(:) :: Num
-    integer, allocatable, dimension(:) :: Val
+    integer(kind=c_int) :: Nb
+    integer(kind=c_int), allocatable, dimension(:) :: Pt
+    integer(kind=c_int), allocatable, dimension(:) :: Num
+    integer(kind=c_int), allocatable, dimension(:) :: Val
   end type CSR
+
+  type COC
+    integer(kind=c_int)                            :: Nb
+    integer(kind=c_int), allocatable, dimension(:) :: Pt
+    integer(kind=c_int), allocatable, dimension(:) :: Num
+  end type COC
 
   !> Standar type CSR with Pt, Num, and Val (1d double precision)
   type CSRdble
@@ -55,12 +65,14 @@ module CommonType
   end type CSRArray2dble
 
   !> Store data of Node about own/ghost; fractures and boundary conditions
+  ! FIXME: P stands for "mass balance equationS"
+  ! FIXME: T stands for "energy balance equation"
   type Type_IdNode
      sequence
-     character :: Proc  !< "o"/"g": own/ghost
-     character :: Frac  !< "y"/"n": node in fracture/not in fracture
-     character :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
-     character :: T     !< "d"/"n"/"i": dirichlet/newmann/interior for the Temperature
+     character(c_char) :: Proc  !< "o"/"g": own/ghost
+     character(c_char) :: Frac  !< "y"/"n": node in fracture/not in fracture
+     character(c_char) :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
+     character(c_char) :: T     !< "d"/"n"/"i": dirichlet/newmann/interior for the Temperature
   end type Type_IdNode
 
   !> Array 1d type_IdNode
@@ -69,7 +81,7 @@ module CommonType
   end type Array1IdNode
 
   ! tmp constant values
-  integer, parameter, private :: &
+  integer, parameter, public :: &
        VALSIZE_ZERO = 0, & !< Identifier used in communication, val is not used in CSR
        VALSIZE_NB   = 1, & !< Identifier used in communication, val is used in CSR and size(%Val)=%Nb
        VALSIZE_NNZ  = 2    !< Identifier used in communication, val is used in CSR and size(%Val)=Nnz=size(%Num)
@@ -137,6 +149,18 @@ contains
 
   end subroutine CommonType_deallocCSR
 
+  subroutine CommonType_deallocCOC(COC1)
+
+    type(COC), intent(inout) :: COC1
+
+    deallocate(COC1%Pt)
+
+    if(allocated(COC1%Num)) then
+      deallocate(COC1%Num)
+    end if
+
+  end subroutine CommonType_deallocCOC
+
   !> \brief Deallocate CSRdble (\%Pt, \%Num and \%Val)
   subroutine CommonType_deallocCSRdble(CSR1)
 
@@ -198,6 +222,37 @@ contains
     end do
 
   end subroutine CommonType_printCSRdble
+
+  !> Print CSRdble
+  subroutine CommonType_printCSRArray2dble(CSR1)
+
+    type(CSRArray2dble), intent(inout) :: CSR1
+    integer :: i, j
+
+    write(*,'(A4,I3)') "Nb:  ", CSR1%Nb
+    do i=1,CSR1%Nb
+      write(*,"(A4,I3,A8,I2)") "Row  ", i, " : size=", CSR1%Pt(i+1)-CSR1%Pt(i)
+
+      do j=CSR1%Pt(i)+1,CSR1%Pt(i+1)
+        write(*,"(I3)",advance="no") CSR1%Num(j)
+      end do
+      print*,""
+    end do
+
+    print*, ""
+    print*, ""
+
+    do i=1,CSR1%Nb
+      write(*,"(A4,I3,A8,I2)") "Row  ", i, " : size=", CSR1%Pt(i+1)-CSR1%Pt(i)
+
+      do j=CSR1%Pt(i)+1,CSR1%Pt(i+1)
+        ! write(*,"(D2.6)",advance="no"), CSR1%Val(j)
+        print*, CSR1%Val(j, :, :)
+      end do
+      print*,""
+    end do
+
+  end subroutine CommonType_printCSRArray2dble
 
 
   !> \brief Define operator = between two TYPE_IdNode:  x2 = x1

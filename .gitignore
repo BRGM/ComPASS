@@ -1,0 +1,11 @@
+*.so
+*.pyc
+
+DefFiles-Feng/
+foo/
+python/output-*
+src/conf/dummy/
+tests/
+python/Lamentin/
+*.log
+*.vtu

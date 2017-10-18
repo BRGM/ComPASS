@@ -34,7 +34,7 @@ end subroutine GlobalMesh_SetFrac
 
 
 ! Set dirichlet boundary
-!    car mesh:   manually
+!    cartesian mesh:   manually
 !    other mesh: manually or
 !                according to IdNodeFromfile could be served
 ! The node index read from mesh file is: IdNodeFromfile (integer)
@@ -56,28 +56,28 @@ subroutine GlobalMesh_SetDirBC
 
   do i=1, NbNode
 
-     xi = XNode(1,i)
-     yi = XNode(2,i)
-     zi = XNode(3,i)
-
-     if(  abs( abs(xi)-Mesh_xmin)<eps .or. &
-          abs( abs(yi)-Mesh_ymin)<eps .or. &
-          abs( abs(xi)-Mesh_xmax)<eps .or. &
-          abs( abs(yi)-Mesh_ymax)<eps) then
-
-        NbDirNodeP = NbDirNodeP + 1
-        IdNode(i)%P = "d"
-
-#ifdef _THERMIQUE_
-        NbDirNodeT = NbDirNodeT + 1
-        IdNode(i)%T = "d"
-#endif
-     else
+!     xi = XNode(1,i)
+!     yi = XNode(2,i)
+!     zi = XNode(3,i)
+!
+!     if(  abs( abs(xi)-Mesh_xmin)<eps .or. &
+!          abs( abs(yi)-Mesh_ymin)<eps .or. &
+!          abs( abs(xi)-Mesh_xmax)<eps .or. &
+!          abs( abs(yi)-Mesh_ymax)<eps) then
+!
+!        NbDirNodeP = NbDirNodeP + 1
+!        IdNode(i)%P = "d"
+!
+!#ifdef _THERMIQUE_
+!        NbDirNodeT = NbDirNodeT + 1
+!        IdNode(i)%T = "d"
+!#endif
+!     else
         IdNode(i)%P = "i"
 #ifdef _THERMIQUE_
         IdNode(i)%T = "i"
 #endif
-     end if
+     !end if
 
   end do
 

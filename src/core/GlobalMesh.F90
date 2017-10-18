@@ -22,6 +22,9 @@ module GlobalMesh
 
   ! 3. IdFace, Mesh Part
 
+  ! This for array that are interfaced with python/C++
+  use iso_c_binding, only: c_double
+
   use CommonType
   use CommonMPI
   use DefModel
@@ -34,7 +37,7 @@ module GlobalMesh
 #endif
 
   ! Mesh
-  integer, protected :: &
+  integer :: &
        NbCell, &  !< Total number of cells
        NbNode, &  !< Total number of nodes
        NbFace, &  !< Total number of faces
@@ -42,22 +45,28 @@ module GlobalMesh
        NbDirNodeP !< Total number of Dirichlet nodes Darcy
 
   ! Well
-  integer, protected :: &
+  ! FIXME: protected has been removed here to acces variable from C API
+  !        bad practice : use getter/setter subroutines instead
+  integer :: &
        NbWellInj, & !< Total number of injection wells
        NbWellProd   !< Total number of production wells
 
   ! Number of Edges by Well
-  integer, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed here to acces array from C
+  !        bad practice : use getter/setter subroutines instead
+  integer, allocatable, dimension(:) :: &
        NbEdgebyWellInj, & !< Total number of edges for each injection well
        NbEdgebyWellProd   !< Total number of edges for each production well
 
   ! list of Edge by Well oriented (1:parent or 2:son,num_edge,num_well)
-  integer, allocatable, dimension(:,:,:), protected :: &
+  ! FIXME: protected has been removed here to acces array from C
+  !        bad practice : use getter/setter subroutines instead
+  integer, allocatable, dimension(:,:,:) :: &
        NumNodebyEdgebyWellInj, & !< Oriented list of edge by injection well (Id_parent Id_son)
        NumNodebyEdgebyWellProd   !< Oriented list of edge by production well (Id_parent Id_son)
 
 #ifdef _THERMIQUE_
-  integer, protected :: &
+  integer :: &
        NbDirNodeT    !< Total number of Dirichlet nodes Fourier
 #endif
 
@@ -69,8 +78,14 @@ module GlobalMesh
        Mesh_zmax, & !< Global size of the mesh zmax, known by proc master only
        Mesh_zmin    !< Global size of the mesh zmin, known by proc master only
 
-  double precision, allocatable, dimension(:,:), protected :: &
+  ! kind=c_double is because array is interfaced with python/C++ (cf. target attirbute)
+  real(kind=c_double), allocatable, dimension(:,:), protected, target :: &
        XNode      !< Global coordinates of nodes
+
+  integer(c_int), allocatable, dimension(:), target :: &
+       NodeFlags, &
+       CellFlags, &
+       FaceFlags
 
   type(CSR), protected :: &
        FacebyCell, & !< CSR list of Faces surrounding each Cell
@@ -78,7 +93,7 @@ module GlobalMesh
 
   ! Connectivities
   type(CSR), protected :: &
-       NodebyCell, & !< CSR list of Nodes surrounding each Cell
+       NodebyCell, &  !< CSR list of Nodes surrounding each Cell
        CellbyNode, & !< CSR list of Cells surrounding each Node
        CellbyCell, & !< CSR list of Cells surrounding each Cell
        CellbyFace    !< CSR list of Cells surrounding each Face
@@ -94,7 +109,8 @@ module GlobalMesh
 
   ! IdFace is filled in GlobalMesh_ReadMesh for Dir
   !                     GlobalMesh_Frac for Frac: IdFace(fracface)=-2
-  integer, allocatable, dimension(:), protected :: &
+  ! FIXME: protected attribute has been removed
+  integer(c_int), allocatable, dimension(:), target :: &
        IdFace !< Identifier of each Face (1 to 6 to identify boundary faces and -2 for fracture faces)
 
   ! IdCell
@@ -102,7 +118,8 @@ module GlobalMesh
        IdCell !< Integer Identifier of each Cell, useful if heterogeneous domain (different rocktype)
 
   ! IdNode
-  type(Type_IdNode), allocatable, dimension(:), protected :: &
+  ! FIXME: protected attribute has been removed
+  type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNode !< Characters Identifiers of each node (related to node own or ghost; boundaries and fractures)
 
   ! IdNode read from mesh file
@@ -111,16 +128,20 @@ module GlobalMesh
        IdNodeFromFile  !< Temporary vector to read identifier from meshfile
 
   ! Porosite
-  double precision, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed to access arrays from C
+  real(c_double), allocatable, dimension(:), target :: &
        PorositeCell, & !< Porosity of each Cell, set by user in file DefGeometry.F90
        PorositeFace    !< Porosity of each fracture face, set by user in file DefGeometry.F90
 
   ! Permeability
-  double precision, allocatable, dimension(:,:,:), protected :: &
+  ! FIXME: protected has been removed to access array from C
+  real(c_double), allocatable, dimension(:,:,:), target :: &
        PermCell !< Permeability tensor for each cell, set by user in file DefModel.F90
-  double precision, allocatable, dimension(:), protected :: &
+  ! FIXME: protected has been removed to access array from C
+  real(c_double), allocatable, dimension(:), target :: &
        PermFrac !< Permeability constant for each fracture face, set by user in file DefModel.F90
 
+  ! Used to ouput well information
   integer, protected :: fdGm
   ! integer, protected :: fdGm_unit
 
@@ -132,10 +153,13 @@ module GlobalMesh
 
   ! main subroutine in this module
   public :: &
-       GlobalMesh_Make, &
+       GlobalMesh_Make_read_file, &
+       GlobalMesh_Make_post_read, &
        GlobalMesh_free
 
-  private :: &
+  !FIXME: All routines are made public here
+  !private :: &
+  public :: &
        GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
        GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
        GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
@@ -145,8 +169,8 @@ module GlobalMesh
        GlobalMesh_CellbyFaceGlobal,     & ! make CellbyFace
        GlobalMesh_NodeOfFrac,           & ! IdNode()%Frac
        GlobalMesh_FracbyNode,           & ! Make FracbyNode for Well Index
-       GlobalMesh_WellConnectivity        ! NodebyWell and NodeDatabyWell
-
+       GlobalMesh_WellConnectivity,     & ! NodebyWell and NodeDatabyWell
+	   GlobalMesh_create_mesh
 
 contains
 
@@ -195,29 +219,11 @@ contains
   !   GlobalMesh_SetFrac:  set face fracture
 #include "DefGeometry.F90"
 
-  !> \brief Read mesh; build connectivity; set porosity and permeability;
-  !! compute well indexes (Peaceman formula)
-  !!
-  !! Read mesh from meshfile or build a cartesian mesh;
-  !! then build connectivity of the global mesh;
-  !! set identificators for the fractures and the boundaries;
-  !! set the porosity and the permeability;
-  !! and compute the well indexes (using Peaceman formula).
-  subroutine GlobalMesh_Make(fileMesh)
+  subroutine GlobalMesh_Make_read_file(fileMesh)
 
     character(len=*), intent(in) :: fileMesh
     integer :: i, ios
     character :: lignevide
-
-    ! #define _DEBUG_LVL1_
-#if defined _DEBUG_ && defined _DEBUG_LVL1_
-    fdGm = 6 ! stdout: 6, scratch (temprary discarded file): 12
-    ! fdGm_unit = -3
-#else
-    open(unit=12, status='SCRATCH')
-    fdGm = 12
-    ! fdGm_unit = -1
-#endif
 
     ! Read NbNode:
     !   <0 cartesian;
@@ -239,10 +245,9 @@ contains
        call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
     end if
 
-    call GlobalMesh_MeshBoundingBox
+  end subroutine GlobalMesh_Make_read_file
 
-    !< \TODO: input porosite
-    call GlobalMesh_SetPorosite
+  subroutine GlobalMesh_Compute_all_connectivies()
 
     ! CellbyNode
     call GlobalMesh_CellByNodeGlobal
@@ -252,6 +257,24 @@ contains
 
     ! CellbyFace
     call GlobalMesh_CellbyFaceGlobal
+
+  end subroutine GlobalMesh_Compute_all_connectivies
+
+subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
+
+    ! #define _DEBUG_LVL1_
+#if defined _DEBUG_ && defined _DEBUG_LVL1_
+    fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
+    ! fdGm_unit = -3
+#else
+    open(unit=12, status='SCRATCH')
+    fdGm = 12
+    ! fdGm_unit = -1
+#endif
+
+    call GlobalMesh_MeshBoundingBox
+
+    call GlobalMesh_Compute_all_connectivies
 
     ! Frac
     call GlobalMesh_SetFrac
@@ -265,52 +288,73 @@ contains
     ! Fill FracbyNode
     call GlobalMesh_FracbyNode
 
+end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
+
+subroutine GlobalMesh_Make_post_read_set_poroperm()
+
+    !< \TODO: input porosite
+    call GlobalMesh_SetPorosite
+
     ! set permeabilites from file DefModel
     call DefModel_SetPerm(NbCell, IdCell, NbFace, &
          PermCell, PermFrac)
 
-    ! Building well connectivity
+	end subroutine GlobalMesh_Make_post_read_set_poroperm
+
+	subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
+
+	    ! Building well connectivity
     call GlobalMesh_WellConnectivity
 
     if(allocated(IdNodeFromFile)) then
        deallocate(IdNodeFromFile)
     end if
 
-  end subroutine GlobalMesh_Make
 
-  !> \brief Make cartesian mesh given a Meshfile with domain informations.
+	end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip
+
+	!> \brief Read mesh; build connectivity; set porosity and permeability;
+  !! compute well indexes (Peaceman formula)
   !!
-  !! Meshfile contains the size of the domain and the number of nodes in each direction.  <br>
-  !! Then the coordinates of Nodes and the connectivity FacebyCell, NodebyFace, NodebyCell
-  !! and IdFace are build.
-  !  Nodes in cell ordre of vtk_voxel
-  !  Nodes in face order cicle (not same as vtk_pixel!)
-  subroutine GlobalMesh_ReadMeshCar(fileMesh)
+  !! Read mesh from meshfile or build a cartesian mesh;
+  !! then build connectivity of the global mesh;
+  !! set identificators for the fractures and the boundaries;
+  !! set the porosity and the permeability;
+  !! and compute the well indexes (using Peaceman formula).
+  subroutine GlobalMesh_Make_post_read
 
-    ! Mesh file
-    character(len=*), intent(in) :: fileMesh
+	call GlobalMesh_Make_post_read_fracture_and_dirBC
 
-    ! temporary vectors
-    character (1)  ::lignevide
-    double precision :: aux
-    integer :: i,kk,j,k,numFb,id,lect(50),is,ios
+	call GlobalMesh_Make_post_read_set_poroperm
 
-    ! domain informations read from meshfile
-    double precision :: lx,ly,lz
-    double precision :: Ox,Oy,Oz
-    integer :: nx,ny,nz
+	call GlobalMesh_Make_post_read_well_connectivity_and_ip
 
-    ! Read nx, ny, nz and lx, ly, lz
-    open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
-    do i=1, 5
-       read (15,'(a1)') lignevide
-    enddo
+  end subroutine GlobalMesh_Make_post_read
 
-    read (15,*) nx,ny,nz
-    read (15,'(a1)') lignevide
-    read (15,*) lx,ly,lz
-    read (15,'(a1)') lignevide
-    read (15,*) Ox,Oy,Oz
+  subroutine GlobalMesh_allocate_flags()
+
+    call GlobalMesh_deallocate_flags
+
+    allocate(NodeFlags(NbNode))
+    allocate(CellFlags(NbCell))
+    allocate(FaceFlags(NbFace))
+
+  end subroutine GlobalMesh_allocate_flags
+
+  subroutine GlobalMesh_deallocate_flags()
+
+    if(allocated(NodeFlags)) deallocate(NodeFlags)
+    if(allocated(CellFlags)) deallocate(CellFlags)
+    if(allocated(FaceFlags)) deallocate(FaceFlags)
+
+  end subroutine GlobalMesh_deallocate_flags
+
+  subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+
+    real(kind=c_double), intent(in)  :: Ox, Oy, Oz
+    real(kind=c_double), intent(in)  :: lx, ly, lz
+    integer(kind=c_int), intent(in)  :: nx, ny, nz
+    integer :: i,kk,j,k
 
     write(*,*) 'Building cartesian grid: ', nx, 'x', ny, 'x', nz
     write(*,*) 'Domain size: ', lx, 'x', ly, 'x', lz
@@ -510,9 +554,47 @@ contains
        enddo
     enddo
 
-    close(15)
+    call GlobalMesh_allocate_flags
 
-    call GlobalMesh_SetWellCar(nx,ny,nz)
+  end subroutine GlobalMesh_Build_cartesian_grid
+
+  !> \brief Make cartesian mesh given a Meshfile with domain informations.
+  !!
+  !! Meshfile contains the size of the domain and the number of nodes in each direction.  <br>
+  !! Then the coordinates of Nodes and the connectivity FacebyCell, NodebyFace, NodebyCell
+  !! and IdFace are build.
+  !  Nodes in cell ordre of vtk_voxel
+  !  Nodes in face order cicle (not same as vtk_pixel!)
+  subroutine GlobalMesh_ReadMeshCar(fileMesh)
+
+    ! Mesh file
+    character(len=*), intent(in) :: fileMesh
+
+    ! temporary vectors
+    character (1)  ::lignevide
+
+    ! domain informations read from meshfile
+    double precision :: lx,ly,lz
+    double precision :: Ox,Oy,Oz
+    integer :: i, ios, nx, ny, nz
+
+    ! Read nx, ny, nz and lx, ly, lz
+    open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
+    do i=1, 5
+       read (15,'(a1)') lignevide
+    enddo
+
+    read (15,*) nx,ny,nz
+    read (15,'(a1)') lignevide
+    read (15,*) lx,ly,lz
+    read (15,'(a1)') lignevide
+    read (15,*) Ox,Oy,Oz
+
+    call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+
+        close(15)
+
+	    call GlobalMesh_SetWellCar(nx,ny,nz)
 
   end subroutine GlobalMesh_ReadMeshCar
 
@@ -530,7 +612,7 @@ contains
 
     character (1)  ::lignevide
     double precision :: aux
-    integer :: i, kk , j, k, numFb, id, lect(50), is, ios
+    integer :: i, kk , j, lect(50), is, ios
     integer :: NbEdgesMaxInj, NbEdgesMaxProd
 
     open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
@@ -714,6 +796,9 @@ contains
 
     close(16)
 
+    ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
+    call GlobalMesh_allocate_flags
+
   end subroutine GlobalMesh_ReadMeshFromFile
 
   ! Output:
@@ -808,8 +893,8 @@ contains
     integer :: i, j, k
     integer :: counterNumNodebyCell=0
     integer, allocatable, dimension(:) :: colorNodes
-    integer :: beginFace, endFace, nbFacetempCell
-    integer :: beginNode, endNode, nbNodetempFace, faceLoad
+    integer :: beginFace, nbFacetempCell
+    integer :: beginNode, nbNodetempFace, faceLoad
 
     allocate(colorNodes(NbNode))
     colorNodes(:) = 0
@@ -984,7 +1069,9 @@ contains
   !> \brief Deallocate vectors of GlobalMesh.
   subroutine GlobalMesh_free
 
-    deallocate( XNode)
+    deallocate(XNode)
+
+    call GlobalMesh_deallocate_flags
 
     call CommonType_deallocCSR(FacebyCell)
     call CommonType_deallocCSR(NodebyFace)
@@ -1046,7 +1133,7 @@ contains
   !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt
   subroutine GlobalMesh_FracbyNode
 
-    integer :: i,j,n, num_face, num_node, npt
+    integer :: i,n, num_face, num_node, npt
     integer, allocatable, dimension(:) :: comptNode
 
     allocate(comptNode(NbNode))
@@ -1105,11 +1192,13 @@ contains
     integer, allocatable, dimension(:) :: OrderedNodes
     integer, allocatable, dimension(:) :: Parents
 
-    write(fdGm,*) 'Edges'
-    write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
-    write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
+    ! write(fdGm,*) 'Edges', NbWell, NbEdgebyWell
+    ! write(fdGm,*) NumNodebyEdgebyWell
+    ! ! The following output seems to fail
+    ! write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
+    ! write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
 
-    ! allocation and initiaization
+    ! allocation and initialization
     allocate(OrderedNodes(size(NumNodebyEdgebyWell, 2) + 1))
     allocate(Parents(size(NumNodebyEdgebyWell, 2) + 1))
     allocate(NodebyWell%Pt(NbWell+1))
@@ -1141,17 +1230,17 @@ contains
     end do
     NodeDatabyWell%Num(:) = NodebyWell%Num(:)
 
-    write(fdGm,*) '+ + + + + + + + + + + + + + + + + + + + +'
-    do i=1,NbWell
-       write(fdGm,*) 'Well #', i
-       do j=1,NbEdgebyWell(i)+1
-          ival = NodebyWell%Pt(i) + j
-          write(fdGm,*) NodebyWell%Num(ival)
-          write(fdGm,*) NodeDatabyWell%Val(ival)%Parent
-       end do
-       ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
-       ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
-    end do
+    ! write(fdGm,*) '+ + + + + + + + + + + + + + + + + + + + +'
+    ! do i=1,NbWell
+    !    write(fdGm,*) 'Well #', i
+    !    do j=1,NbEdgebyWell(i)+1
+    !       ival = NodebyWell%Pt(i) + j
+    !       write(fdGm,*) NodebyWell%Num(ival)
+    !       write(fdGm,*) NodeDatabyWell%Val(ival)%Parent
+    !    end do
+    !    ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
+    !    ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
+    ! end do
 
     deallocate(OrderedNodes)
     deallocate(Parents)
@@ -1211,36 +1300,36 @@ contains
        if(pl > 0) then
           NbEdgesbyNode(pl) = NbEdgesbyNode(pl) + 1
        end if
-       write(fdGm,'(4(a3,i3))') 'ig', ig, 'il', il, 'pg', pg, 'pl', pl
-       write(fdGm,'(a22,i3,a8,i3,a1,i3,i3)') 'NbEdgesbyNode(current=', ig, ',parent=',pg ,')' , NbEdgesbyNode(il)
-       write(fdGm,*)
+       !write(fdGm,'(4(a3,i3))') 'ig', ig, 'il', il, 'pg', pg, 'pl', pl
+       !write(fdGm,'(a22,i3,a8,i3,a1,i3,i3)') 'NbEdgesbyNode(current=', ig, ',parent=',pg ,')' , NbEdgesbyNode(il)
+       !write(fdGm,*)
     end do
     ! call disp('NbEdgesbyNode ', NbEdgesbyNode, unit=fdGm_unit) ! sons connected to how many nodes ?
 
     io = 1
     do i=1,ne
        ig = Edges(2, i); il = LocalIdx(ig)
-       write(fdGm,*) '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
-       write(fdGm,*) '> ig', ig, 'NbEdgesbyNode', NbEdgesbyNode(il)
+       !write(fdGm,*) '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
+       !write(fdGm,*) '> ig', ig, 'NbEdgesbyNode', NbEdgesbyNode(il)
        ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
        ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
        if (Edges(1, i) == Edges(2, i)) then
-          write(*,*) 'single/orphan node', Edges(1, i), 'not permitted, check your mesh !'
+          !write(*,*) 'single/orphan node', Edges(1, i), 'not permitted, check your mesh !'
           call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
        end if
        if(NbEdgesbyNode(il) == 1) then
           ! is a queue or head
-          write(fdGm,*) '--> current queue', ig, 'io', io
+          !write(fdGm,*) '--> current queue', ig, 'io', io
           do ! infinite loop, we should detect pathologic cases like loops
              pg = Edges(1, il); pl = LocalIdx(pg)
-             if(pl > 0) then
-                write(fdGm,*) ' parent of', ig, ' is ', pg, 'connected to ', NbEdgesbyNode(pl), ' edges'
-             else
-                write(fdGm,*) ' parent of', ig, ' is ', pg
-             end if
+             ! if(pl > 0) then
+             !    write(fdGm,*) ' parent of', ig, ' is ', pg, 'connected to ', NbEdgesbyNode(pl), ' edges'
+             ! else
+             !    write(fdGm,*) ' parent of', ig, ' is ', pg
+             ! end if
              if(pl == 0) then
                 ! head
-                write(fdGm,*) '(h) ig ', ig, ' pg ', pg
+                ! write(fdGm,*) '(h) ig ', ig, ' pg ', pg
                 ! store this point
                 OrderedNodes(io) = Edges(2, il)
                 Parents(io) = Edges(1, il)
@@ -1257,7 +1346,7 @@ contains
                 ! node between 2 edges, OK, continue to go up
                 OrderedNodes(io) = Edges(2, il)
                 Parents(io) = Edges(1, il)
-                write(fdGm,*) '(++,continue) new current node', ig
+                ! write(fdGm,*) '(++,continue) new current node', ig
                 ! write(*,*) '++ (p,s)', OrderedNodes(io), Parents(io)
                 ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
                 ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
@@ -1273,10 +1362,10 @@ contains
                 ! write(*,*) '++ (p,s)', OrderedNodes(io), Parents(io)
                 ! call disp('OrderedNodes ', OrderedNodes, 'i3', unit=fdGm_unit)
                 ! call disp('Parents      ', Parents, 'i3', unit=fdGm_unit)
-                write(fdGm,*) '(--,break) decrement NbEdgesbyNode for parent', pg, ' and quit loop for node', ig
+                ! write(fdGm,*) '(--,break) decrement NbEdgesbyNode for parent', pg, ' and quit loop for node', ig
                 exit
              else if(NbEdgesbyNode(pl) == 0) then
-                write(fdGm,*) '(break) orphan node ', ig, ' is not connected to a well'
+                !write(fdGm,*) '(break) orphan node ', ig, ' is not connected to a well'
                 exit
              end if
           end do
@@ -1305,8 +1394,6 @@ contains
   !> \brief Build global connectivity of injection and production wells.
   subroutine GlobalMesh_WellConnectivity
 
-    integer :: i, j
-
     write(fdGm,*) 'building injectors connectivity ...'
     call BuildWellConnectivity(NbWellInj,NbEdgebyWellInj,NumNodebyEdgebyWellInj, &
          NodebyWellInj,NodeDatabyWellInj)
@@ -1315,17 +1402,161 @@ contains
     call BuildWellConnectivity(NbWellProd,NbEdgebyWellProd,NumNodebyEdgebyWellProd,&
          NodebyWellProd,NodeDatabyWellProd)
 
-    write(fdGm,*) 'NodebyWellInj%Nb              ', NodebyWellInj%Nb
-    write(fdGm,*) 'NodebyWellInj%Pt              ', NodebyWellInj%Pt
-    write(fdGm,*) 'NodebyWellInj%Num             ', NodebyWellInj%Num
-    write(fdGm,*) 'NodeDatabyWellInj%Val%Parent', NodeDatabyWellInj%Val%Parent
+    ! write(fdGm,*) 'NodebyWellInj%Nb              ', NodebyWellInj%Nb
+    ! write(fdGm,*) 'NodebyWellInj%Pt              ', NodebyWellInj%Pt
+    ! write(fdGm,*) 'NodebyWellInj%Num             ', NodebyWellInj%Num
+    ! write(fdGm,*) 'NodeDatabyWellInj%Val%Parent', NodeDatabyWellInj%Val%Parent
 
-    write(fdGm,*) '------------------------------------'
-    write(fdGm,*) 'NodebyWellProd%Nb              ', NodebyWellProd%Nb
-    write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
-    write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
-    write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
+    ! write(fdGm,*) '------------------------------------'
+    ! write(fdGm,*) 'NodebyWellProd%Nb              ', NodebyWellProd%Nb
+    ! write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
+    ! write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
+    ! write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
 
   end subroutine GlobalMesh_WellConnectivity
+
+       subroutine fill_CSR(ptr, indices, csrdata, c_indexing)
+
+          integer(c_int), dimension(:), intent(in) :: ptr
+          integer(c_int), dimension(:), intent(in) :: indices
+		  type(CSR), intent(inout) :: csrdata
+          logical, optional, intent(in) :: c_indexing
+          integer :: n
+
+          n = size(ptr) - 1
+          csrdata%Nb = n
+          if (allocated(csrdata%Pt)) deallocate (csrdata%Pt)
+          allocate (csrdata%Pt(n + 1))
+          csrdata%Pt = ptr
+          if (allocated(csrdata%Num)) deallocate (csrdata%Num)
+          allocate (csrdata%Num(ptr(n + 1)))
+		  if(present(c_indexing).and.c_indexing) then
+			  csrdata%Num = indices + 1
+		  else
+			  csrdata%Num = indices
+		  end if
+		  if (allocated(csrdata%Val)) deallocate (csrdata%Val)
+		  ! CHECKME: val is NOT reallocated... should use COC strtucture here
+
+	   end subroutine fill_CSR
+
+	   ! CHECKME/IMPROVE: data is copied... should work with C structures ?!
+       subroutine GlobalMesh_create_mesh(nodes, &
+                                     cell_faces_ptr, cell_faces_val, &
+                                     cell_nodes_ptr, cell_nodes_val, &
+                                     face_nodes_ptr, face_nodes_val, &
+                                     cell_id, face_id, &
+		                             c_indexing)
+
+          real(c_double), dimension(:, :), intent(in) :: nodes
+          integer(c_int), dimension(:), intent(in) :: cell_faces_ptr
+          integer(c_int), dimension(:), intent(in) :: cell_faces_val
+          integer(c_int), dimension(:), intent(in) :: cell_nodes_ptr
+          integer(c_int), dimension(:), intent(in) :: cell_nodes_val
+          integer(c_int), dimension(:), intent(in) :: face_nodes_ptr
+          integer(c_int), dimension(:), intent(in) :: face_nodes_val
+          integer(c_int), dimension(:), intent(in) :: cell_id
+          integer(c_int), dimension(:), intent(in) :: face_id
+          logical, optional, intent(in) :: c_indexing
+		  logical :: check, use_c_indexing
+          integer :: Ierr, errcode ! used for MPI_Abort
+
+          NbNode = size(nodes, 2)
+          NbCell = size(cell_id)
+          NbFace = size(face_id)
+
+		  check = .True.
+		  if(size(nodes, 1)/=3) check = .False.
+		  if(size(cell_faces_ptr)/=NbCell+1) check = .False.
+		  if(size(cell_faces_val)/=cell_faces_ptr(NbCell+1)) check = .False.
+		  if(size(cell_nodes_ptr)/=NbCell+1) check = .False.
+		  if(size(cell_nodes_val)/=cell_nodes_ptr(NbCell+1)) check = .False.
+		  if(size(face_nodes_ptr)/=NbFace+1) check = .False.
+		  if(size(face_nodes_val)/=face_nodes_ptr(NbFace+1)) check = .False.
+		  if(.not.check) then
+			  write(*,*) 'Unconsistent mesh data!'
+			  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+		  end if
+
+		  if(allocated(XNode)) deallocate(XNode)
+          allocate (XNode(3, NbNode))
+          XNode = nodes
+
+		  use_c_indexing = present(c_indexing).and.c_indexing
+          call fill_csr(cell_faces_ptr, cell_faces_val, FacebyCell, use_c_indexing)
+          call fill_csr(cell_nodes_ptr, cell_nodes_val, NodebyCell, use_c_indexing)
+          call fill_csr(face_nodes_ptr, face_nodes_val, NodebyFace, use_c_indexing)
+
+		  if(allocated(IdCell)) deallocate(IdCell)
+          allocate (IdCell(NbCell))
+		  IdCell = cell_id
+
+		  if(allocated(IdFace)) deallocate(IdFace)
+          allocate (IdFace(NbFace))
+		  IdFace = face_id
+
+          !! Number of injection wells
+          !read (16, '(a1)') lignevide
+          !read (16, *) NbWellInj
+		  NbWellInj = 0 ! FIXME !
+          if(allocated(NbEdgebyWellInj)) deallocate(NbEdgebyWellInj)
+		  !allocate (NbEdgebyWellInj(NbWellInj))
+          !
+          !! Edges / Wells - counting, 1st step
+          !do i = 1, NbWellInj
+          !   read (16, '(a1)') lignevide
+          !   read (16, *) NbEdgebyWellInj(i)
+          !   do j = 1, NbEdgebyWellInj(i)
+          !      read (16, '(a1)') lignevide
+          !   end do
+          !end do
+          !NbEdgesMaxInj = maxval(NbEdgebyWellInj)
+          !
+          !! Number of production wells
+          !read (16, '(a1)') lignevide
+          !read (16, *) NbWellProd
+		  NbWellProd = 0 ! FIXME !
+          if(allocated(NbEdgebyWellProd)) deallocate(NbEdgebyWellProd)
+          !allocate (NbEdgebyWellProd(NbWellProd))
+          !
+          !! Edges / Wells - counting, 1st step
+          !do i = 1, NbWellProd
+          !   read (16, '(a1)') lignevide
+          !   read (16, *) NbEdgebyWellProd(i)
+          !   do j = 1, NbEdgebyWellProd(i)
+          !      read (16, '(a1)') lignevide
+          !   end do
+          !end do
+          !NbEdgesMaxProd = maxval(NbEdgebyWellProd)
+          !
+          !allocate (NumNodebyEdgebyWellInj(2, NbEdgesMaxInj, NbWellInj))
+          !allocate (NumNodebyEdgebyWellProd(2, NbEdgesMaxProd, NbWellProd))
+          !NumNodebyEdgebyWellInj = -1
+          !NumNodebyEdgebyWellProd = -1
+
+		  !! Edges / Wells - filling, step 2
+          !do i=1,NbWellInj
+          !   read(16,'(a1)') lignevide
+          !   read(16,'(a1)') lignevide
+          !   do j=1,NbEdgebyWellInj(i)
+          !      read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
+          !   enddo
+          !enddo
+          !
+          !read(16,'(a1)') lignevide
+          !read(16,'(a1)') lignevide
+          !
+          !! Edges / Wells - filling, step 2
+          !do i=1,NbWellProd
+          !   read(16,'(a1)') lignevide
+          !   read(16,'(a1)') lignevide
+          !   do j=1,NbEdgebyWellProd(i)
+          !      read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
+          !   enddo
+          !enddo
+
+          call GlobalMesh_allocate_flags
+
+		  end subroutine GlobalMesh_create_mesh
 
 end module GlobalMesh

@@ -16,8 +16,8 @@ module CommonMPI
 
   integer, public :: &
        commRank, & !< Rank of the calling process
-       commSize, & !< Total number of precessors (given by MPI)
-       Ncpus       !< Total number of precessors
+       commSize, & !< Total number of processors (given by MPI)
+       Ncpus       !< Total number of processors
 
   public :: &
       CommonMPI_init

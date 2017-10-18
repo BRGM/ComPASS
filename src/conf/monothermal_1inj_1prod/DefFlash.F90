@@ -128,7 +128,7 @@ contains
   !> Allocate global vectors used only in this file
   subroutine DefFlash_allocate
     integer :: k, Nnz
-    character(len=100) :: fn, pid
+    character(len=300) :: fn, pid
 
     ! put debugging magic here, open a file descriptor per processor
     ! for more readability

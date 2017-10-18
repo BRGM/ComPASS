@@ -157,8 +157,13 @@ module LocalMesh
        FaceToFracLocal_Ncpus
 
   !! XNode Local
-  type(ARRAY2dble), dimension(:), allocatable, public :: &
+  type(ARRAY2dble), dimension(:), allocatable, target, public :: &
        XNodeRes_Ncpus
+
+  type(ARRAY1Int), dimension(:), allocatable, target, public :: &
+       NodeFlags_Ncpus, &
+       CellFlags_Ncpus, &
+       FaceFlags_Ncpus
 
   ! Porosite
   type(ARRAY1dble), dimension(:), allocatable, public :: &
@@ -262,7 +267,7 @@ contains
   subroutine LocalMesh_Make
 
     ! tmp value
-    integer :: i, j
+    integer :: i
 
     ! local mesh info res(own+ghost)
     allocate(NbCellResS_Ncpus(Ncpus))
@@ -318,6 +323,9 @@ contains
     allocate(WellProdbyNodeOwn_Ncpus(Ncpus))
 
     allocate(XNodeRes_Ncpus(Ncpus))
+    allocate(NodeFlags_Ncpus(Ncpus))
+    allocate(CellFlags_Ncpus(Ncpus))
+    allocate(FaceFlags_Ncpus(Ncpus))
 
     ! local element by proc
     allocate(CellbyProc(Ncpus))
@@ -403,6 +411,9 @@ contains
 
        ! X node
        call LocalMesh_XNodeRes(i)         ! XNodeRes_Ncpus(ip1)
+
+       ! Flags
+       call LocalMesh_Flags(i)
 
        ! porosity
        call LocalMesh_Porosite(i)         ! porosity
@@ -519,10 +530,8 @@ contains
     integer :: ip1 ! ip1 = ip + 1 ip=0,1,..., ip1 used for array
 
     ! tmp
-    integer :: cellv, i, j, k, procCV
-    integer :: ind, ipf, kipf, kf, procf
-    integer :: numCellRes, numFaceRes, numNodeRes
-    integer :: cpt, iv, Vsize
+    integer :: cellv, j, k, procCV
+    integer :: iv
     integer :: nbProcVoisinCell
 
     integer, allocatable, dimension(:) :: &
@@ -1359,11 +1368,39 @@ contains
   end subroutine LocalMesh_WellbyProc
 
 
+  subroutine LocalMesh_Flags(ip)
+    integer, intent(in) :: ip
+    integer :: k, n, ip1
+
+    ip1 = ip + 1
+
+    n = size(NodebyProc(ip1)%Num)
+    allocate(NodeFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        NodeFlags_Ncpus(ip1)%Val(k) = NodeFlags(NodebyProc(ip1)%Num(k))
+    end do
+
+    n = size(CellbyProc(ip1)%Num)
+    allocate(CellFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        CellFlags_Ncpus(ip1)%Val(k) = CellFlags(CellbyProc(ip1)%Num(k))
+    end do
+
+    n = size(FacebyProc(ip1)%Num)
+    allocate(FaceFlags_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        FaceFlags_Ncpus(ip1)%Val(k) = FaceFlags(FacebyProc(ip1)%Num(k))
+    end do
+
+  end subroutine LocalMesh_Flags
+
+
   ! Output:
   !  XNodeRes
   ! Use:
   !  XNode, NodebyProc
   subroutine LocalMesh_XNodeRes(ip)
+
 
     integer, intent(in) :: ip
     integer :: ip1
@@ -1372,7 +1409,7 @@ contains
     integer :: cpt, iv, k, numNodeRes
 
     ip1 = ip + 1
-    allocate(XNodeRes_Ncpus(ip1)%Array2d(3,NbNodeResS_Ncpus(ip1)) )
+    allocate(XNodeRes_Ncpus(ip1)%Array2d(3,NbNodeResS_Ncpus(ip1)))
 
     cpt = 0
     do iv = 1,NodebyProc(ip1)%Nb
@@ -1400,7 +1437,7 @@ contains
   subroutine LocalMesh_NodebyWellRes(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1, i, k, numWellRes, Vsize, cpt
+    integer :: ip1, k, numWellRes, Vsize, cpt
 
     ip1 = ip + 1
 
@@ -1794,7 +1831,7 @@ contains
   subroutine LocalMesh_NodeDatabyWellLocal(ip)
 
     integer, intent(in) :: ip
-    integer :: ip1, Nb, nnz, k, cpt, Data_cpt, numWellRes, num_parent, i
+    integer :: ip1, Nb, nnz, k, cpt, Data_cpt, numWellRes, num_parent
 
     ip1 = ip + 1
 
@@ -2180,9 +2217,7 @@ contains
     ! rq: if no frac, nf=0, %Pt=0
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyProc(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyProc(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyProc(ip1)%Nb
@@ -2402,9 +2437,7 @@ contains
     end do
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyCellLocal_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyCellLocal_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyCellLocal_Ncpus(ip1)%Nb
@@ -2618,9 +2651,7 @@ contains
     end do
 
     ! loop csr for FracbyProc(ip1)%Num
-    if(nf/=0) then ! there is frac
-       allocate(FracbyNodeOwn_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
-    end if
+    allocate(FracbyNodeOwn_Ncpus(ip1)%Num(nf)) ! here nf is equal to the size of %Num
 
     nf = 0
     do i=1,FacebyNodeOwn_Ncpus(ip1)%Nb

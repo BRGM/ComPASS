@@ -485,8 +485,6 @@ contains
          SmEnthalpie(NbPhase)
 
 
-    integer :: i, j
-
     ! init tmp values for each cv
     call LoisThermoHydro_init_cv(inc)
 
@@ -988,7 +986,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: icp, iph, j, jc
+    integer :: iph, i, j, jc
 
     ! 1. val
     ! 2. dval
@@ -998,9 +996,16 @@ contains
     dval(:,:) = 0.d0
     Smval(:) = 0.d0
 
+#ifdef DEBUG_LOISTHEMOHYDRO
+do iph = 1, NbPhase
+          write(*,*) 'Phase', iph, 'MCP row=', MCP(:,iph)
+    end do
+#endif
+
     dfdX_secd(:,:) = 0.d0
 
-    do iph=1, NbPhase
+    do i=1, NbPhasePresente
+       iph = NumPhasePresente(i)
 
        call f_DensiteMassique(iph,inc%Pression,inc%Temperature, &
             inc%Comp(:,iph), inc%Saturation, &
@@ -1082,7 +1087,7 @@ contains
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
     double precision :: f2 ! =f**2
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1178,7 +1183,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1339,7 +1344,7 @@ contains
     double precision, intent(out) :: dval(NbIncPTCSPrimMax, NbPhase)
 
     ! tmp
-    integer :: i, iph, j, jph
+    integer :: i
 
     dval(:,:) = 0.d0
 
@@ -1374,20 +1379,20 @@ contains
     val(:) = 0.d0
     dval(:,:) = 0.d0
 
-    do i=1, NbPhasePresente
-       iph = NumPhasePresente(i)
+    do iph=1, NbPhase
 
        call f_PressionCapillaire(rocktypeinc, iph, inc%Saturation, f, dSf)
 
-       val(i) = f
+       val(iph) = f
 
        dfS_secd = dSf( NumPhasePresente( NbPhasePresente))
 
        do j=1, NbPhasePresente - 1
           jph = NumPhasePresente(j)
 
-          dval(j+NbIncPTCPrim,i) = dSf(jph) - dfS_secd
+          dval(j+NbIncPTCPrim,iph) = dSf(jph) - dfS_secd
        end do
+
     end do
 
   end subroutine LoisThermoHydro_PressionCapillaire_cv
@@ -1418,7 +1423,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1514,14 +1519,17 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax)
 
-    integer :: j
+    integer :: j,jT
 
     dval(:) = 0.d0
+    Smval = 0.d0
 
     ! P is prim, T is prim: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)=2
     ! P is prim, T is secd: NumIncPTCSPrimCV(1)=1, NumIncPTCSPrimCV(2)>2
     ! TODO
 
+    ! TODO
+    ! Rewrite using ANY(NumIncPTCSPrimCV==1) and get index
     if((NumIncPTCSPrimCV(1)==1) .and. &
          (NumIncPTCSPrimCV(2)==2)) then ! P is prim, T is prim
 
@@ -1532,32 +1540,58 @@ contains
          (NumIncPTCSPrimCV(2)>2)) then ! P is prim, T is secd
 
        ! T = Tsat(P)
-       call DefModel_Tsat(inc%Pression, f, dPf)
+    !   call DefModel_Tsat(inc%Pression, f, dPf)
 
        ! Fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(:) = 0.d0
+     !  dfdX(:) = 0.d0
 
-       dfdX(1) = dPf
-       dfdX(2) = 0.d0
+     !  dfdX(1) = dPf
+     !  dfdX(2) = 0.d0
 
+       jT = 0
+       do j=1,NbEqFermeture
+          if (NumIncPTCSecondCV(j).eq.2) then
+             jT = j
+             dval(:) =  - dXssurdXp(:,j)
+             Smval = - SmdXs(j)
+          endif
+       enddo
+       if (jT.eq.0) then
+          write(*,*)' pb dans derprim temp T second non trouvee ',jT
+          stop
+       endif
+
+  ! autre calcul equivalent (mais plus couteux)
+   !    dfdX(:) = 0.d0
+   !    dfdX(2) = 1.d0
        ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
+    !   do j=1, NbIncPTCSPrim
+    !      dval(j) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
+    !   end do
 
-       dfdX_secd(:) = 0.d0
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j) = dfdX( NumIncPTCSecondCV(j))
-       end do
+    !   dfdX_secd(:) = 0.d0
+    !   do j=1, NbIncPTCSecond ! = NbEqFermeture
+    !      dfdX_secd(j) = dfdX( NumIncPTCSecondCV(j))
+    !   end do
 
-       ! dv/dXp - dv/dXs*dXs/dXp, T=Tsat(P)
+       ! dT/dXp - dT/dXs*dXs/dXp
        ! dval = dfdX_prim - dXssurdXp*dfdX_secd
        ! all the mats is in (col, row) index order, only need to consider as transpose
-       call dgemm('N','N', NbIncPTCSPrim, 1, NbEqFermeture, &
-            -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
-            dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
+   !    call dgemm('N','N', NbIncPTCSPrim, 1, NbEqFermeture, &
+   !         -1.d0, dXssurdXp, NbIncPTCSPrimMax, &
+       !     dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncPTCSPrimMax)
 
-       Smval = 0.d0 ! Sm is supposed to be 0
+    ! -dT/dXs*SmdXs
+  !  call dgemv('T', NbEqFermeture, 1,  &
+  !       -1.d0, dfdX_secd, NbIncPTCSecondMax, &
+  !       SmdXs, 1, 0.d0, Smval, 1)
+
+   ! debug: on compare les deux methodes : OK
+   ! write(*,*)' - dXssurdXp 1 ',- dXssurdXp(:,jT)
+   ! write(*,*)' - SmdXs 1 ',- SmdXs(jT)
+   ! write(*,*)' dT ',dval
+   ! write(*,*)' SmT ',Smval
+   ! stop
 
     else if( NumIncPTCSPrimCV(1)==2) then
 
@@ -1596,7 +1630,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, icp, iph, j, jc
+    integer :: i, iph, j, jc
 
     ! 1. val
     ! 2. dval
@@ -1900,7 +1934,7 @@ contains
          val(NbPhase), dval(NbIncPTCSPrimMax, NbPhase), Smval(NbPhase)
 
     ! tmp
-    integer :: i, k, j
+    integer :: i, k
 
     val(:) = 0.d0
     dval(:,:) = 0.d0

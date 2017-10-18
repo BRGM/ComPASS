@@ -35,7 +35,7 @@ module MeshSchema
   ! 2. Mesh and connectivity
   !    Used to (1) calcul Transmissivities: TkLocal and TkFracLocal
   !            (2) Assembly
-  type(CSR), protected :: &
+  type(CSR), public :: &
        NodebyNodeOwn, &   ! (1)
        FracbyNodeOwn, &   ! (1)
        CellbyNodeOwn, &   ! (1)
@@ -61,15 +61,19 @@ module MeshSchema
        NumNodebyEdgebyWellProdLocal
 
   ! 3. X node
-  double precision, allocatable, dimension(:,:), protected :: &
+  double precision, allocatable, dimension(:,:), target :: &
        XNodeLocal
+  integer(c_int), allocatable, dimension(:), target :: &
+       NodeFlagsLocal, &
+       CellFlagsLocal, &
+       FaceFlagsLocal
 
   ! 4. IdCell/IdFace/IdNode
   integer, allocatable, dimension(:), protected :: &
        IdCellLocal, &
        IdFaceLocal
 
-  type(Type_IdNode), allocatable, dimension(:), protected :: &
+  type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNodeLocal
 
   ! Well
@@ -98,7 +102,7 @@ module MeshSchema
        WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
 
   ! 5. Frac to Face, Face to Frac
-  integer, allocatable, dimension(:), protected :: &
+  integer(c_int), allocatable, dimension(:), target :: &
        FracToFaceLocal, &
        FaceToFracLocal
 
@@ -138,11 +142,12 @@ module MeshSchema
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
   integer, private :: MPI_DATANODEWELL
 
+  ! FIXME: Removed because this is already defined in CommonType
   ! tmp constant values
-  integer, parameter, private :: &
-       VALSIZE_ZERO = 0, &
-       VALSIZE_NB   = 1, &
-       VALSIZE_NNZ  = 2
+  !integer, parameter, private :: &
+  !     VALSIZE_ZERO = 0, &
+  !     VALSIZE_NB   = 1, &
+  !     VALSIZE_NNZ  = 2
 
   private :: &
        MeshSchema_csrsend, &   ! send csr
@@ -192,7 +197,7 @@ contains
   ! or copy (commRank=0)
   subroutine MeshSchema_sendrecv
 
-    integer :: dest, Ierr, i, j, Nb, Nnnz
+    integer :: dest, Ierr, i, j, Nb
     integer stat(MPI_STATUS_SIZE)
 
     integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
@@ -367,6 +372,52 @@ contains
           deallocate(XNodeRes_Ncpus(i)%Array2d)
        end do
        deallocate(XNodeRes_Ncpus)
+    end if
+
+    ! Send flags
+
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(NodeFlags_Ncpus(i+1)%Val, NbNodeLocal_Ncpus(i+1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
+       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val
+    else
+       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(commRank+1)))
+       call MPI_Recv(NodeFlagsLocal, NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(CellFlags_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(CellFlagsLocal(NbCellLocal_Ncpus(1)))
+       CellFlagsLocal = CellFlags_Ncpus(1)%Val
+    else
+       allocate(CellFlagsLocal(NbCellLocal_Ncpus(commRank+1)))
+       call MPI_Recv(CellFlagsLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(FaceFlags_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER, i, 24, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(1)))
+       FaceFlagsLocal = FaceFlags_Ncpus(1)%Val
+    else
+       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(commRank+1)))
+       call MPI_Recv(FaceFlagsLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 24, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
+
+    if(commRank==0) then
+       do i=1, Ncpus
+          deallocate(NodeFlags_Ncpus(i)%Val)
+          deallocate(CellFlags_Ncpus(i)%Val)
+          deallocate(FaceFlags_Ncpus(i)%Val)
+       end do
+       deallocate(NodeFlags_Ncpus)
+       deallocate(CellFlags_Ncpus)
+       deallocate(FaceFlags_Ncpus)
     end if
 
 
@@ -934,6 +985,14 @@ contains
     ! Free TYPE MPI_DATANODEWELL
     call MPI_Type_free(MPI_DATANODEWELL, Ierr)
 
+	!do i=1, size(DataWellInjLocal)
+	!	write(*,*) "%%", "local injection data on proc", commRank
+	!	call DefWell_print_DataWellInj(DataWellInjLocal(i))
+	!end do
+	!do i=1, size(DataWellProdLocal)
+	!	write(*,*) "%%", "local production data on proc", commRank
+	!	call DefWell_print_DataWellProd(DataWellProdLocal(i))
+	!end do
 
   end subroutine MeshSchema_sendrecv
 
@@ -944,7 +1003,6 @@ contains
     type(CSR) :: csr1
     integer, intent(in) :: tag, dest, valsize
     integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
 
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
@@ -997,7 +1055,6 @@ contains
     type(TYPE_CSRDataNodeWell) :: csr1
     integer, intent(in) :: tag, dest
     integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
 
     call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
     Nb = csr1%Nb
@@ -1043,7 +1100,7 @@ contains
   ! List is oriented (Id_parent, Id_son)
   subroutine MeshSchema_NumNodebyEdgebyWellLocal
 
-    integer :: NbWellLocal, nnz, i, j, NbEdgemax, comptNode
+    integer :: NbWellLocal, i, j, NbEdgemax, comptNode
 
     !! INJ WELL
     NbWellLocal = NodeDatabyWellInjLocal%Nb ! Number of well inj
@@ -1140,7 +1197,7 @@ contains
 
     integer :: i,j,k,m,n1,n2
     double precision :: volk,volT
-    double precision, dimension(3) :: yk,xk,xT,x1,x2,xs,e0,e1,e2,e3
+    double precision, dimension(3) :: yk,xT,x1,x2,xs,e0,e1,e2,e3
 
     integer :: Ierr, errcode ! used for MPI_Abort
 
@@ -1207,7 +1264,7 @@ contains
   ! center of frac
   subroutine MeshSchema_XFaceLocal
 
-    integer :: ifrac, i, m
+    integer :: i, m
     integer :: nbFaceLocal
     double precision :: xf(3)
 
@@ -1234,8 +1291,8 @@ contains
   subroutine MeshSchema_SurfFracLocal
 
     double precision, dimension(3) :: &
-         xk, xf, x1, x2, xt, & ! cordinate
-         v                     ! normal directive
+         xf, x1, x2, xt ! cordinate
+
 
     double precision :: &
          SurfFace, & ! surface of a face
@@ -1247,7 +1304,7 @@ contains
 
     integer :: &
          i, ifrac,    & ! i: loop of face frac, ifrac: num (local) of i
-         k, j, m
+         m
 
     integer :: errcode, Ierr
 
@@ -1405,6 +1462,9 @@ contains
     call CommonType_deallocCSR(NodebyFaceLocal)
 
     deallocate(XNodeLocal)
+    deallocate(NodeFlagsLocal)
+    deallocate(CellFlagsLocal)
+    deallocate(FaceFlagsLocal)
 
     deallocate(IdCellLocal)
     deallocate(IdFaceLocal)
