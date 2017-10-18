@@ -73,12 +73,8 @@ set(MAIN_SRCS ${_tmp})
 
 # Configuration to be built
 set( CONFIGURATIONS
-    # default
-    # Injector_Qimposed_frac
-    # Injector_Pimposed_frac
-    # Productor_Pimposed_frac
-    # Productor_Qimposed_frac
-        diphasic
+    water2ph
+    diphasic
 )
 
 set( CONF_SRCS
