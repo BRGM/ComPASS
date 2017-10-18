@@ -1,0 +1,44 @@
+# this file has to be sourced (export)
+# and is relying to the LOCAL environment variable pointing to a directory 
+# where you have read/write access and where all third parties will be downloaded 
+
+mkdir -p ${LOCAL}/src
+
+pushd ${LOCAL}/src
+
+wget --no-check-certificate https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz
+tar Jxvf gmp-6.1.2.tar.xz
+wget http://www.mpfr.org/mpfr-current/mpfr-3.1.5.tar.xz
+tar Jxvf mpfr-3.1.5.tar.xz
+wget ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz
+tar zxvf mpc-1.0.3.tar.gz
+wget ftp://ftp.uvsq.fr/pub/gcc/releases/gcc-6.3.0/gcc-6.3.0.tar.gz
+tar zxvf gcc-6.3.0.tar.gz
+
+wget --no-check-certificate https://cmake.org/files/v3.8/cmake-3.8.1.tar.gz
+tar zxvf cmake-3.8.1.tar.gz
+
+wget http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz
+tar zxvf mpich-3.2.tar.gz
+
+wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz
+tar zxvf metis-5.1.0.tar.gz
+wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-3.5.4.tar.gz
+tar zxvf petsc-3.5.4.tar.gz
+wget --no-check-certificate https://github.com/pybind/pybind11/archive/v2.1.1.tar.gz
+mv v2.1.1 pybind11-2.1.1.tar.gz
+tar zxvf pybind11-2.1.1.tar.gz
+
+wget http://www.vtk.org/files/release/7.1/VTK-7.1.1.tar.gz
+tar zxvf VTK-7.1.1.tar.gz
+mv -v VTK-7.1.1 vtk-7.1.1
+
+wget --no-check-certificate https://downloads.sourceforge.net/project/boost/boost/1.64.0/boost_1_64_0.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fboost%2Ffiles%2Fboost%2F1.64.0%2F&ts=1494168569&use_mirror=netix
+tar zxvf boost_1_64_0.tar.gz
+mv -v boost_1_64_0 boost-1.64.0
+
+wget --no-check-certificate https://bitbucket.org/mpi4py/mpi4py/downloads/mpi4py-2.0.0.tar.gz
+mv mpi4py-2.0.0.tar.gz* mpi4py-2.0.0.tar.gz
+tar zxvf mpi4py-2.0.0.tar.gz
+
+popd

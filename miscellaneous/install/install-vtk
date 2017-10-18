@@ -1,0 +1,13 @@
+# this file has to be sourced (export)
+# and is relying to the LOCAL environment variable pointing to a directory 
+# where you have read/write access and where all third parties libraries 
+# have already been downloaded (cf. get-sources script) and will be installed 
+
+export target=vtk-7.1.1
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+CC=gcc CXX=g++ cmake -DCMAKE_BUILD_TYPE="Release" -DVTK_USE_X=0 -DVTK_USE_CXX11_FEATURES=1 -DCMAKE_INSTALL_PREFIX=$LOCAL -DVTK_RENDERING_BACKEND="None" -DVTK_Group_Rendering=0 -DVTK_Group_StandAlone=0 -DModule_vtkIOXML=1  ../../src/${target}
+make -j24 install
+popd

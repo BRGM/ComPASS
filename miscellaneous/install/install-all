@@ -1,0 +1,139 @@
+
+# this file has to be sourced (export)
+# and is relying to the LOCAL environment variable pointing to a directory 
+# where you have read/write access and where all third parties libraries 
+# have already been downloaded (cf. get-sources script) and will be installed 
+
+unset PATH LIBRARY_PATH LD_LIBRARY_PATH LD_RUN_PATH CPATH C_INCLUDE_PATH PKG_CONFIG_PATH CPLUS_INCLUDE_PATH INCLUDE
+export LOCAL=/home/lopez/local
+export LD_LIBRARY_PATH=$LOCAL/lib64:$LOCAL/lib
+export PATH=$LOCAL/bin:/usr/lib/oar/oardodo:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin
+export PKG_CONFIG_PATH=${LOCAL}/lib/pkgconfig
+
+export target=gmp-6.1.2
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL}
+make -j24 install
+popd
+
+export target=mpfr-3.1.5
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL} --with-gmp=${LOCAL}
+make -j24 install
+popd
+
+export target=mpc-1.0.3
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL} --with-gmp=${LOCAL} --with-mpfr=${LOCAL}
+make -j24 install
+popd
+
+export target=gcc-6.3.0
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL} --with-gmp=${LOCAL} --with-mpfr=${LOCAL} --with-mpfc=${LOCAL} --enable-languages=c,c++,fortran --disable-multilib
+make -j24 install
+popd
+
+export target=cmake-3.8.1
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL} --parallel=24
+make -j24 install
+popd
+
+export target=metis-5.1.0
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+CC=gcc CXX=g++ cmake -DCMAKE_INSTALL_PREFIX=${LOCAL} -DCMAKE_BUILD_TYPE="Release" -DGKLIB_PATH="../../src/${target}/GKlib" ../../src/${target}
+make -j24 install
+popd
+
+export target=mpich-3.2
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+../../src/${target}/configure --prefix=${LOCAL} --enable-cxx --enable-fortran 
+make -j24 install
+popd
+
+
+../../src/mpich-3.2/configure --prefix=${LOCAL} 
+
+# install Anaconda
+# /bin/bash Anaconda3-4.3.1-Linux-x86_64.sh
+# and answer the questions
+
+# don't put Anaconda first on the path so that gcc and related libraries are found first
+export ANACONDA3_ROOT=/home/lopez/anaconda3
+export LD_LIBRARY_PATH=$LOCAL/lib64:$LOCAL/lib:${ANACONDA3_ROOT}/lib
+export PATH=$LOCAL/bin:${ANACONDA3_ROOT}/bin:/usr/lib/oar/oardodo:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin
+
+conda update anaconda
+
+# here you should have mpicc, mpicxx and mpif90 from mpich3.2 on your path that points to gcc-6.3.0
+
+export target=mpi4py-2.0.0
+
+# We cannot use mpi from anaconda (conda install mpi4py brings in mpich2 package) because it has no fortran bindings and we need them
+# that is why we build mpi4py from source
+# python interpreter should be the installed anaconda version (python3)
+
+pushd ${LOCAL}/src/${target}
+python setup.py build
+python setup.py install
+# installation can be tested with nose unit testing framework in test directory :mpiexec -n 5 nosetests
+popd
+
+
+export target=pybind11-2.1.1
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+CC=gcc CXX=g++ cmake -DCMAKE_INSTALL_PREFIX=${LOCAL} -DCMAKE_BUILD_TYPE="Release" ../../src/${target}
+make -j24 install
+popd
+
+export target=petsc-3.5.4
+
+unset PETSC_DIR
+export PETSC_INSTALL=${LOCAL}/install/${target}
+mkdir -p ${PETSC_INSTALL}
+pushd ${LOCAL}/src/${target}
+python2 ./configure --prefix=${PETSC_INSTALL} --with-cc=mpicc --with-cxx=mpicxx -with-fc=mpif90 --download-fblaslapack --with-fortran=1 --with-clanguage=C --download-hypre --with-debugging=0
+make PETSC_DIR=${LOCAL}/src/${target} PETSC_ARCH=arch-linux2-c-opt all
+make PETSC_DIR=${LOCAL}/src/${target} PETSC_ARCH=arch-linux2-c-opt install
+popd
+export PETSC_DIR=${PETSC_INSTALL}
+
+export target=vtk-7.1.1
+
+export builddir=${LOCAL}/build/${target}
+mkdir -p ${builddir}
+pushd ${builddir}
+CC=gcc CXX=g++ cmake -DCMAKE_BUILD_TYPE="Release" -DVTK_USE_X=0 -DVTK_USE_CXX11_FEATURES=1 -DCMAKE_INSTALL_PREFIX=$LOCAL -DVTK_RENDERING_BACKEND="None" -DVTK_Group_Rendering=0 -DVTK_Group_StandAlone=0 -DModule_vtkIOXML=1  ../../src/${target}
+make -j24 install
+popd
+
+export BOOST_ROOT=${LOCAL}/src/boost-1.64.0
+
+# Compilation ComPASS
+CC=mpicc CXX=mpicxx FC=mpif90 ccmake ../ComPASS -DCMAKE_BUILD_TYPE="Release"
+

@@ -1,3 +1,18 @@
+# Log of previous installations
+
+## From "scratch"
+
+Scripts to download third party libraries and compile them are to be found in miscellaneous/install.
+
+
+## Install on Centos 7:
+
+https://gitlab.inria.fr/charms/ComPASS/wikis/Compass-install-on-centos-7
+
+##Install on Mac OS X:
+
+https://gitlab.inria.fr/charms/ComPASS/wikis/compass-install-on-macos-x
+
 # General considerations
 
 Cmake modules to find external packages :
