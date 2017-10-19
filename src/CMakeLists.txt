@@ -222,7 +222,6 @@ foreach(_conf ${CONFIGURATIONS})
 
     ## FIXME: Only the first configuration is used to generate the python module.
     if(DEF_Python_BINDINGS)
-        # pybind11_add_module(ComPASS wrappers/ComPASS_module.cpp)
         set(eos_target ${_conf})
         pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
         target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})

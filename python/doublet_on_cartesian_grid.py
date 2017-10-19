@@ -3,6 +3,8 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+ComPASS.load_eos('water2ph')
+
 pres = 10. * MPa
 Tres = 70. # degC
 
