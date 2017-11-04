@@ -73,7 +73,7 @@ namespace MeshTools
 		constexpr static std::size_t nbfacets() { return std::tuple_size<Facet_types>::value; }
 	};
 
-	struct Triangle:
+	struct Triangle :
 		Element_by_nodes<3>
 	{
 		using Element_by_nodes<nbnodes()>::Element_by_nodes;
@@ -81,7 +81,7 @@ namespace MeshTools
 		static constexpr auto VTK_ID = VTK_ID_type{ 5 };
 	};
 
-	struct Quad:
+	struct Quad :
 		Element_by_nodes<4>
 	{
 		using Element_by_nodes<nbnodes()>::Element_by_nodes;
@@ -145,6 +145,85 @@ namespace MeshTools
 			};
 		};
 	};
+
+	struct ArrayBaseAccessor
+	{
+		template <typename T, std::size_t n>
+		static constexpr std::size_t size(const std::array<T, n>&) noexcept
+		{
+			return n;
+		}
+		template <typename T, std::size_t n>
+		static constexpr const T * begin(const std::array<T, n>& a) noexcept
+		{
+			return a.data();
+		}
+	};
+
+	struct NodesBaseAccessor
+	{
+		template <typename Element>
+		static constexpr std::size_t size(const Element&) noexcept
+		{
+			return Element::nbnodes();
+		}
+		template <typename Element>
+		static constexpr const NodeId * begin(const Element& element) noexcept
+		{
+			return element.nodes.data();
+		}
+	};
+
+	template <typename BaseAccessor>
+	struct VariantAccessor : BaseAccessor
+	{
+		using BaseAccessor::size;
+		template <typename ... Alternatives>
+		static constexpr auto size(const mapbox::util::variant<Alternatives...>& variant) noexcept
+		{
+			return mapbox::util::apply_visitor([](auto alternative) { return BaseAccessor::size(alternative); }, variant);
+		}
+		using BaseAccessor::begin;
+		template <typename ... Alternatives>
+		static constexpr auto begin(const mapbox::util::variant<Alternatives...>& variant) noexcept
+		{
+			// we need reference here because we return a pointer and we don't want to make a copy of element
+			return mapbox::util::apply_visitor([](const auto& alternative) { return BaseAccessor::begin(alternative); }, variant);
+		}
+	};
+
+	template <typename Accessor, typename IDType, typename PointerType = std::size_t, typename Collection>
+	inline auto collection_as_COC_data(const Collection& collection) ->
+		std::tuple<std::vector<PointerType>, std::vector<IDType>>
+	{
+		const auto n = collection.size();
+		auto pointers = std::vector<PointerType>{};
+		pointers.reserve(n + 1);
+		std::size_t pos = 0;
+		pointers.emplace_back(pos);
+		for (auto&& element : collection) {
+			pos += Accessor::size(element);
+			pointers.emplace_back(pos);
+		}
+		assert(pointers.size() == n + 1);
+		auto nodes = std::vector<IDType>{};
+		nodes.reserve(pos);
+		for (auto&& element : collection) {
+			auto p = Accessor::begin(element);
+			for (std::size_t k = 0; k < Accessor::size(element); ++k) {
+				nodes.emplace_back(*p);
+				++p;
+			}
+		}
+		return std::make_tuple(pointers, nodes);
+	}
+
+	//template <typename Collection, typename IDType = NodeId, typename PointerType = std::size_t>
+	template <typename IDType = NodeId, typename PointerType = std::size_t, typename Collection>
+	inline auto node_collection_as_COC_data(const Collection& collection)
+	{
+		return collection_as_COC_data<VariantAccessor<NodesBaseAccessor>, IDType, PointerType>(collection);
+	}
 
 	template <typename RawFacetType>
 	struct RawFaceIndex 
@@ -221,6 +300,12 @@ namespace MeshTools
 
 	template <typename CellType>
 	using CellFacesId = std::array<FaceId, CellType::nbfacets()>;
+
+	template <typename IDType = FaceId, typename PointerType = std::size_t, typename Collection>
+	inline auto face_collection_as_COC_data(const Collection& collection)
+	{
+		return collection_as_COC_data<VariantAccessor<ArrayBaseAccessor>, IDType, PointerType>(collection);
+	}
 
 	template <typename ... CellTypes>
 	struct AllCellFacesId;
@@ -581,7 +666,6 @@ namespace MeshTools
 
 	typedef Mesh<Point<double, 3>, Tetrahedron> TetMesh;
 	typedef Mesh<Point<double, 3>, Hexahedron> HexMesh;
-
 
 } // namespace MeshTools
 

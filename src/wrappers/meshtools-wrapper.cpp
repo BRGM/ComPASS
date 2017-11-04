@@ -130,6 +130,15 @@ auto add_mesh(py::module module)
 	})
 		.def_property_readonly("nb_faces", [](const Mesh& mesh) {
 		return mesh.connectivity.faces.nb();
+	})
+		.def("cells_nodes_as_COC", [](const Mesh& mesh) {
+		return MT::node_collection_as_COC_data(mesh.connectivity.cells.nodes);
+	})
+		.def("faces_nodes_as_COC", [](const Mesh& mesh) {
+		return MT::node_collection_as_COC_data(mesh.connectivity.faces.nodes);
+	})
+		.def("cells_faces_as_COC", [](const Mesh& mesh) {
+		return MT::face_collection_as_COC_data(mesh.connectivity.cells.faces);
 	});
 }
 
@@ -226,6 +235,7 @@ void add_mesh_tools(py::module& module)
 		return buffer.str();
 	});
 
+	py::bind_vector<std::vector<std::size_t>>(module, "COCPointersVector");
 	py::bind_vector<std::vector<MT::ElementId>>(module, "IDVector");
 	py::bind_vector<std::vector<Point>>(module, "Vertices");
 	py::bind_vector<std::vector<MT::FaceNeighbors>>(module, "FacesCells");

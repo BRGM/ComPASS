@@ -35,13 +35,13 @@ auto create_mesh(const Mesh& mesh)
 	const auto& vertices = mesh.vertices;
 	const auto& cells = mesh.connectivity.cells;
 	const auto& faces = mesh.connectivity.faces;
-	const auto cellnodes = MT::FSCoC_as_COC(cells.nodes);
+	const auto cellnodes = MT::node_collection_as_COC_data<int,int>(cells.nodes);
 	auto cellnodes_pointers = std::get<0>(cellnodes);
 	auto cellnodes_values = std::get<1>(cellnodes);
-	const auto cellfaces = MT::FSCoC_as_COC(cells.faces);
+	const auto cellfaces = MT::face_collection_as_COC_data<int, int>(cells.faces);
 	auto cellfaces_pointers = std::get<0>(cellfaces);
 	auto cellfaces_values = std::get<1>(cellfaces);
-	const auto facenodes = MT::FSCoC_as_COC(faces.nodes);
+	const auto facenodes = MT::node_collection_as_COC_data<int, int>(faces.nodes);
 	auto facenodes_pointers = std::get<0>(facenodes);
 	auto facenodes_values = std::get<1>(facenodes);
 	std::vector<int> cellids;
@@ -57,9 +57,9 @@ auto create_mesh(const Mesh& mesh)
 	GlobalMesh_create_mesh(
 		vertices.size(), cells.nb(), faces.nb(),
 		vertices.data()->data(),
-		cellfaces_pointers.data(), cellfaces_values,
-		cellnodes_pointers.data(), cellnodes_values,
-		facenodes_pointers.data(), facenodes_values,
+		cellfaces_pointers.data(), cellfaces_values.data(),
+		cellnodes_pointers.data(), cellnodes_values.data(),
+		facenodes_pointers.data(), facenodes_values.data(),
 		cellids.data(), faceids.data()
 	);
 }
