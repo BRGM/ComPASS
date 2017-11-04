@@ -16,6 +16,7 @@ kernel = None
 
 def load_eos(eosname):
     global kernel
+    assert kernel is None
     kernel = importlib.import_module('ComPASS.eos.%s' % eosname)
     # CHECKME: we replace the behavior: from import ComPASS.eos.eosname import *
     #          there might be a more elegant way to do this
@@ -89,11 +90,6 @@ def init(
         else:
             assert type(mesh) is MeshTools.HexMesh
             kernel.global_mesh_set_hexahedron_mesh()
-        if mpi.is_on_master_proc:
-            kernel.create_mesh(mesh)
-    elif type(mesh) is MeshTools.HexMesh:
-        kernel.init_warmup(runtime.logfile)
-        kernel.global_mesh_set_tetrahedron_mesh()
         if mpi.is_on_master_proc:
             kernel.create_mesh(mesh)
     else:
