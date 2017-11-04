@@ -6,9 +6,18 @@
 #include <map>
 #include <algorithm>
 #include <numeric>
-#include <iostream>
 #include <utility>
 #include <iterator>
+#include <set>
+
+#include "Variant_utils.h"
+
+/* TODO ?
+List facets as vector instead of map (iteration over faces).
+Might recopy in algorithm ?
+We could sort faces according to Face_index (same order as in map) but
+this would make addition / mesh merging more difficult (order might change)
+*/
 
 namespace MeshTools
 {
@@ -20,208 +29,177 @@ namespace MeshTools
 	typedef ElementId NodeId;
 	typedef ElementId CellId;
 	typedef ElementId FaceId;
+	// FIXME: Use enum instead of VTK id???
 	typedef int VTK_ID_type;
-	template <typename FacetElementType, ::std::size_t N>
-	using FacetList = ::std::array< const ::std::array<const NodeId, FacetElementType::nb_nodes>, N>;
 
-	struct Vertex_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 1 };
-		static constexpr auto facets = ::std::array< ::std::array<NodeId, 0>, 0>{};
-		//static constexpr FacetList<DummyElement, 0>
-		//	facets{};
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 0 };
-		static constexpr auto VTK_ID = VTK_ID_type{ 1 };
+	template <std::size_t nn>
+	struct Element_by_nodes
+	{
+		std::array<NodeId, nn> nodes;
+		// CHECKME: We fix the first constructor parameter not to shadow other constructor (copy constructor...)
+		//          Otherwise variant compilation fails with gcc
+		template <typename ... NodeIds>
+		Element_by_nodes(NodeId n0, NodeIds... nis) :
+			nodes{ { n0, nis... } }
+		{
+			static_assert(sizeof...(NodeIds) == nn - 1, "Wrong nomber of nodes!");
+			static_assert(is_single_type<std::tuple<NodeIds...>>(), "Wrong type for nodes ids!");
+			static_assert(std::is_same<NodeId, typename IsSingleTypeTuple<std::tuple<NodeIds...>>::First_element_type>::value, "Wrong type for nodes ids!");
+		}
+		Element_by_nodes() :
+			nodes{}
+		{}
+		Element_by_nodes(const std::array<NodeId, nn>& nodes_array) :
+			nodes{ nodes_array }
+		{}
+		Element_by_nodes(std::array<NodeId, nn>&& nodes_array) :
+			nodes{ std::forward<std::array<NodeId, nn>>(nodes_array) }
+		{}
+		constexpr static std::size_t nbnodes() { return nn; }
+		constexpr bool operator==(const Element_by_nodes& other) const noexcept {
+			return nodes == other.nodes;
+		}
 	};
 
-	struct Segment_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 2 };
-		static constexpr auto facets = FacetList<Vertex_info, 2>{ { { 0 }, { 1 } } };
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 1 };
-		static constexpr auto VTK_ID = VTK_ID_type{ 3 };
+	template <typename FacetTypes>
+	using FacetsType = VariantFromTupleIfNeeded<FacetTypes>;
+
+	template <typename ... Facets>
+	struct With_facets
+	{
+		typedef std::tuple<Facets...> Facet_types;
+		typedef FacetsType<Facet_types> Facets_type;
+		typedef std::array<Facets_type, std::tuple_size<Facet_types>::value> Facets_array;
+		constexpr static std::size_t nbfacets() { return std::tuple_size<Facet_types>::value; }
 	};
 
-	struct Triangle_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 3 };
-		// Facets are CGAL compliant : Face n correspond to nth vertex missing
-		static constexpr auto facets = FacetList<Segment_info, 3>{ { { 1, 2 },{ 0, 2 },{ 0, 1 } } };
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 2 };
+	struct Triangle:
+		Element_by_nodes<3>
+	{
+		using Element_by_nodes<nbnodes()>::Element_by_nodes;
+		static constexpr auto name = "Triangle";
 		static constexpr auto VTK_ID = VTK_ID_type{ 5 };
 	};
 
-	struct Quad_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 4 };
-		static constexpr auto facets = FacetList<Segment_info, 4>{ { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 0, 3 } } };
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 2 };
+	struct Quad:
+		Element_by_nodes<4>
+	{
+		using Element_by_nodes<nbnodes()>::Element_by_nodes;
+		static constexpr auto name = "Quad";
 		static constexpr auto VTK_ID = VTK_ID_type{ 9 };
 	};
 
-	struct Tetrahedron_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 4 };
-		// CHECKME: outward oriented
-		// Facets are CGAL compliant : Face n correspond to nth vertex missing
-		static constexpr auto facets = FacetList<Triangle_info, 4>{ { { 1, 2, 3 },{ 0, 3, 2 },{ 0, 1, 3 },{ 0, 2, 1 } } };
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 3 };
-		static constexpr auto VTK_ID = VTK_ID_type{ 10 };
-	};
-
-	struct Hexahedron_info {
-		// CHECKME: to be removed cf. compiler error below
-		static constexpr auto nb_nodes = ::std::size_t{ 8 };
-		// CHECKME: outward oriented
-		static constexpr auto facets = FacetList<Quad_info, 6>{ { { 0, 1, 2, 3 },
-		                                                          { 4, 5, 6, 7 },
-																  { 1, 2, 6, 5 },
-																  { 2, 6, 7, 3 },
-																  { 3, 7, 4, 0 },
-																  { 0, 1, 5, 4 } } };
-		static constexpr auto nb_facet_nodes = ::std::size_t{ 4 };
-		static constexpr auto VTK_ID = VTK_ID_type{ 12 };
-	};
-
-	template <typename ElementType>
-	constexpr auto max_node_id()
+	struct Tetrahedron :
+		Element_by_nodes<4>,
+		With_facets<Triangle, Triangle, Triangle, Triangle>
 	{
-		typedef typename decltype(ElementType::facets)::value_type facet_type;
-		return ::std::accumulate(
-			ElementType::facets.begin(), ElementType::facets.end(), 0,
-			[](NodeId result, const facet_type& facet) {
-			return ::std::max(result, facet.empty() ? 0 : *::std::max_element(facet.begin(), facet.end()));
-		}
-		);
-	}
+		using Element_by_nodes<nbnodes()>::Element_by_nodes;
+		static constexpr auto name = "Tetrahedron";
+		static constexpr auto VTK_ID = VTK_ID_type{ 10 };
+		// Outside oriented facets
+		auto facets() const -> Facets_array {
+			return Facets_array{
+				Triangle{ nodes[1], nodes[2], nodes[3] },
+				Triangle{ nodes[0], nodes[3], nodes[2] },
+				Triangle{ nodes[0], nodes[1], nodes[3] },
+				Triangle{ nodes[0], nodes[2], nodes[1] }
+			};
+		};
+	};
 
-	//struct Node {};
-	//struct Edge {};
-	//struct Face {};
-	//struct Cell {};
+	struct Hexahedron :
+		Element_by_nodes<8>,
+		With_facets<Quad, Quad, Quad, Quad, Quad, Quad>
+	{
+		using Element_by_nodes<nbnodes()>::Element_by_nodes;
+		static constexpr auto name = "Hexahedron";
+		static constexpr auto VTK_ID = VTK_ID_type{ 12 };
+		// Outside oriented facets
+		auto facets() const -> Facets_array {
+			return Facets_array{
+				Quad{ nodes[0], nodes[1], nodes[2], nodes[3] },
+				Quad{ nodes[4], nodes[5], nodes[6], nodes[7] },
+				Quad{ nodes[1], nodes[2], nodes[6], nodes[5] },
+				Quad{ nodes[2], nodes[6], nodes[7], nodes[3] },
+				Quad{ nodes[3], nodes[7], nodes[4], nodes[0] },
+				Quad{ nodes[0], nodes[1], nodes[5], nodes[4] }
+			};
+		};
+	};
 
-	template <typename ElementInfo>
-	class Element {
-		//public:
+	struct Wedge :
+		Element_by_nodes<6>,
+		With_facets<Triangle, Triangle, Quad, Quad, Quad>
+	{
+		using Element_by_nodes<nbnodes()>::Element_by_nodes;
+		static constexpr auto name = "Wedge";
+		static constexpr auto VTK_ID = VTK_ID_type{ 13 };
+		// Outside oriented facets
+		auto facets() const -> Facets_array {
+			return Facets_array{
+				Triangle{ nodes[0], nodes[1], nodes[2] },
+				Triangle{ nodes[3], nodes[5], nodes[4] },
+				Quad{ nodes[0], nodes[2], nodes[5], nodes[3] },
+				Quad{ nodes[1], nodes[4], nodes[5], nodes[2] },
+				Quad{ nodes[0], nodes[3], nodes[4], nodes[1] }
+			};
+		};
+	};
+
+	template <typename RawFacetType>
+	struct RawFaceIndex 
+	{
+		typedef RawFacetType Facet_type;
+		typedef decltype(Facet_type::nodes) Index;
 	protected:
-		// CHECKME: Compiler error???? The following does not work
-		// static constexpr auto nn = max_node_id<ElementInfo>() + 1;
-		static constexpr auto nn = ElementInfo::nb_nodes;
-		static constexpr auto nf = ElementInfo::facets.size();
-		static constexpr auto nfn = ElementInfo::nb_facet_nodes; // FIXME: this supposes identical facets
-	public:
-		typedef ElementInfo info;
-		static constexpr auto nb_nodes() { return nn; }
-		static constexpr auto nb_facets() { return nf; }
-		static constexpr auto nb_facet_nodes() { return nfn; }
-		static constexpr auto vtk_id() { return ElementInfo::VTK_ID; }
-		//template <typename Nodes>
-		//static auto project(const Nodes& nodes) {
-		//	::std::array<Nodes::value_type, nf>
-		//}
-		template<typename CellNodes, typename FacetNodes>
-		static void facet_nodes(const CellNodes& cellnodes, int facet, FacetNodes& facet_nodes) {
-			assert(facet >= 0 && facet < nf);
-			const auto& local_nodes = info::facets[facet];
-			for (::std::size_t i = 0; i < nfn; ++i) {
-				facet_nodes[i] = cellnodes[local_nodes[i]];
-			}
-		}
-		template<typename CellNodes>
-		static auto facet_nodes(const CellNodes& cellnodes, int facet) {
-			assert(facet >= 0 && facet < nf);
-			auto facet_nodes = info::facets[facet];
-			facet_nodes(cellnodes, facet, facet_nodes);
-			return facet_nodes;
-		}
-		template<typename CellNodes, typename OutputIterator>
-		static auto collect_facet_nodes(const CellNodes& cellnodes, OutputIterator out) {
-			for (int facet = 0; facet < nf; ++facet) {
-				facet_nodes(cellnodes, facet, *(++out));
-			}
-			return out;
-		}
-		//template <typename LocusType>
-		//struct Nb {};
-		//template<>
-		//struct Element<ElementInfo>::Nb<Node> {
-		//	static constexpr auto value = Element<ElementInfo>::nb_nodes();
-		//};
-		//template<>
-		//struct Element<ElementInfo>::Nb<Face> {
-		//	static constexpr auto value = Element<ElementInfo>::nb_facets();
-		//};
-
-	};
-
-
-	typedef Element<Vertex_info> Vertex;
-	typedef Element<Segment_info> Segment;
-	typedef Element<Triangle_info> Triangle;
-	typedef Element<Quad_info> Quad;
-	typedef Element<Tetrahedron_info> Tetrahedron;
-	typedef Element<Hexahedron_info> Hexahedron;
-
-	using Tet = Tetrahedron;
-	using Hex = Hexahedron;
-
-	template <typename T, ::std::size_t N>
-	using FSCoC = ::std::vector< ::std::array<T, N> >;
-
-	template <typename RowType, typename ColumnType, ::std::size_t N>
-	struct HomogeneousConnectivityTable :
-		FSCoC<NodeId, N> {
-		typedef RowType row_type;
-		typedef ColumnType col_type;
-	};
-
-	//template <typename ElementType>
-	//struct LightweightHomogeneousMesh {
-	//	typedef ElementType element_type;
-	//	struct Cells {
-	//		HomogeneousConnectivityTable<Cell, Node, ElementType::nb_nodes()> nodes;
-	//	};
-	//	Cells cells;
-	//	auto nb_cells() const {
-	//		return cells.nodes.size();
-	//	}
-	//};
-
-	/** nn stands for number of nodes
-	A rotation is performed on the nodes number so that the smallest is the first.
-	*/
-	template <::std::size_t nn>
-	class FaceIndex {
-	public:
-		typedef ::std::array<NodeId, nn> NodesList;
-	private:
-		NodesList nodes;
-	public:
-		FaceIndex() = delete;
-		FaceIndex(const NodesList& face_nodes) :
-			nodes{ face_nodes } {
-			static_assert(nn > 2, "Faces must have 2 nodes at least.");
-			auto smallest = ::std::min_element(nodes.begin(), nodes.end());
-			::std::rotate(nodes.begin(), smallest, nodes.end());
+		Index index;
+		/** A rotation is performed on the nodes number so that the smallest is the first. */
+		void sort_nodes_for_index()
+		{
+			static_assert(std::tuple_size<Index>::value, "Faces must have 2 nodes at least.");
+			auto smallest = ::std::min_element(index.begin(), index.end());
+			::std::rotate(index.begin(), smallest, index.end());
 			// Once the smallest node id comes first there is two way round the face
 			// we choose the one that starts with the minimum second id
-			if (*::std::next(nodes.begin()) > nodes.back()) {
-				::std::reverse(::std::next(nodes.begin()), nodes.end());
+			if (*::std::next(index.begin()) > index.back()) {
+				::std::reverse(::std::next(index.begin()), index.end());
 			}
 		}
-		bool operator<(const FaceIndex& other) const {
-			return nodes < other.nodes;
+	public:
+		RawFaceIndex() = delete;
+		RawFaceIndex(const RawFacetType& facet) :
+			index{ facet.nodes } 
+		{
+			sort_nodes_for_index();
 		}
-		bool operator==(const FaceIndex& other) const {
-			return nodes == other.nodes;
+		auto as_facet() const {
+			return Facet_type{ index };
 		}
-		const auto& get_nodes() const {
-			return nodes;
+		bool operator<(const RawFaceIndex& other) const {
+			return index < other.index;
+		}
+		bool operator==(const RawFaceIndex& other) const {
+			return index == other.index;
 		}
 	};
 
+	template <typename ... CellTypes>
+	using AllRawFacetTypes = typename ConcatenatedTupleSet<typename CellTypes::Facet_types...>::type;
+
+	template <typename RawFacetTuple>
+	struct RawFaceIndexTuple;
+
+	template <typename ... RawFacetTypes>
+	struct RawFaceIndexTuple < std::tuple<RawFacetTypes...>>
+	{	
+		typedef std::tuple< RawFaceIndex<RawFacetTypes>... > type;
+	};
+
+	template <typename ... CellTypes>
+	using FaceIndex = VariantFromTupleIfNeeded<typename RawFaceIndexTuple<AllRawFacetTypes<CellTypes...>>::type>;
+
 	class FaceNeighbors {
-	private:
+	protected:
 		::std::pair<CellId, CellId> neighbors;
 	public:
 		FaceNeighbors() = delete;
@@ -241,39 +219,165 @@ namespace MeshTools
 		const auto& value() const { return neighbors; }
 	};
 
-	template <typename ElementType>
-	struct MeshConnectivity {
-		typedef ElementType element_type;
-		struct Cells {
-			FSCoC<NodeId, element_type::nb_nodes()> nodes;
-			FSCoC<FaceId, element_type::nb_facets()> faces;
+	template <typename CellType>
+	using CellFacesId = std::array<FaceId, CellType::nbfacets()>;
+
+	template <typename ... CellTypes>
+	struct AllCellFacesId;
+
+	template <typename CellType, typename ... CellTypes>
+	struct AllCellFacesId<CellType,CellTypes...>
+	{
+		typedef typename AllCellFacesId<CellTypes...>::type Cell_faces_id_subtuple;
+		typedef CellFacesId<CellType> First_element_type;
+		typedef typename ExtendTupleSet<Cell_faces_id_subtuple, First_element_type, !IsInTuple<First_element_type, Cell_faces_id_subtuple>::value>::Extended_tuple_type type;
+	};
+
+	template <typename CellType>
+	struct AllCellFacesId<CellType>
+	{
+		typedef std::tuple<CellFacesId<CellType>> type;
+	};
+
+	template <typename ... CellTypes>
+	inline constexpr auto all_facets_number() { 
+		return ::std::make_tuple(CellTypes::nbfacets()...); 
+	}
+
+	template <typename NewFacetType, typename ... CellTypes>
+	struct AllNewFacetArray;
+
+	template <typename NewFacetType, typename CellType, typename ... CellTypes>
+	struct AllNewFacetArray<NewFacetType, CellType, CellTypes...>
+	{
+		typedef typename AllNewFacetArray<NewFacetType, CellTypes...>::type New_facet_array_subtuple;
+		typedef ::std::array<NewFacetType, CellType::nbfacets()> First_element_type;
+		typedef typename ExtendTupleSet<New_facet_array_subtuple, First_element_type, !IsInTuple<First_element_type, New_facet_array_subtuple>::value>::Extended_tuple_type type;
+	};
+
+	template <typename NewFacetType, typename CellType>
+	struct AllNewFacetArray<NewFacetType, CellType>
+	{
+		typedef ::std::tuple<::std::array<NewFacetType, CellType::nbfacets()>> type;
+	};
+
+	//template <typename NewFacetType, typename ... CellTypes>
+	//using MeshFacetArray = VariantFromTupleIfNeeded<typename AllNewFacetArray<NewFacetType, CellTypes...>::type>;
+
+	template <typename ... CellTypes>
+	struct MeshTraits
+	{
+		typedef std::tuple<CellTypes...> Cell_types;
+		typedef VariantIfNeeded<CellTypes...> Cell_type;
+		//FIXME: Why the following does not work???
+		//typedef VariantIfNeeded<CellFacesId<CellTypes>...> Cell_faces_id;
+		typedef VariantFromTupleIfNeeded<typename AllCellFacesId<CellTypes...>::type> Cell_faces_id;
+		typedef VariantFromTupleIfNeeded<AllRawFacetTypes<CellTypes...>> Facet_type;
+		typedef VariantFromTupleIfNeeded<typename AllNewFacetArray<Facet_type, CellTypes...>::type> Facets_array;
+		typedef FaceIndex<CellTypes...> Face_index;
+	};
+	
+	template <typename ... CellTypes>
+	struct MeshConnectivity 
+	{
+		typedef MeshTraits<CellTypes...> Mesh_traits;
+		template <typename FacetType>
+		static auto recast_facet(const FacetType& facet)
+		{
+			typedef typename Mesh_traits::Facet_type Facet_type;
+			return Facet_type{ facet };
+		}
+		template <typename ... FacetTypes>
+		static auto recast_facet(const mapbox::util::variant<FacetTypes...>& vfacet)
+		{
+			typedef typename Mesh_traits::Facet_type Facet_type;
+			return mapbox::util::apply_visitor([](const auto& facet) { return Facet_type{ facet }; }, vfacet);
+		}
+		template <typename FacetType>
+		static auto make_face_index(const FacetType& facet)
+		{
+			typedef typename Mesh_traits::Face_index Face_index;
+			return Face_index{ facet };
+		}
+		template <typename ... FacetTypes>
+		static auto make_face_index(const mapbox::util::variant<FacetTypes...>& vfacet)
+		{
+			typedef typename Mesh_traits::Face_index Face_index;
+			return mapbox::util::apply_visitor([](const auto& facet) { return Face_index{ facet }; }, vfacet);
+		}
+		// OPTIMIZE: Would it be possible to return a fixed size array
+		//           using specialization and a function to register facets
+		template <typename CellType>
+		static auto extract_cell_facets(const CellType& cell)
+		{
+			typedef typename Mesh_traits::Facet_type Facet_type;
+			auto facets = cell.facets();
+			constexpr ::std::size_t n = CellType::nbfacets();
+			auto result = ::std::vector<Facet_type>{};
+			result.reserve(n);
+			// Loop shall be unrolled as n is small and known at compile time (constexpr)
+			for (::std::size_t i = 0; i < n; ++i) {
+				result.emplace_back(recast_facet(facets[i]));
+			}
+			return result;
+		}
+		template <typename ... CellTs>
+		static auto extract_cell_facets(const mapbox::util::variant<CellTs...>& vcell)
+		{
+			return mapbox::util::apply_visitor([](const auto& cell) {
+				return extract_cell_facets(cell);
+			}, vcell);
+		}
+		struct Cells 
+		{
+			typedef typename Mesh_traits::Cell_type Cell_type;
+			typedef typename Mesh_traits::Cell_faces_id Cell_faces_id;
+			typedef ::std::vector<Cell_type> Nodes;
+			typedef ::std::vector<Cell_faces_id> Faces;
+			Nodes nodes;
+			Faces faces;
 			auto nb() const {
 				return nodes.size();
 			}
 		};
-		struct Faces {
-			typedef decltype(ElementType::info::facets) Facets;
-			typedef typename Facets::value_type Facet;
-			static constexpr auto nfn = element_type::nb_facet_nodes();
-			typedef FaceIndex<nfn> Index;
-			typedef ::std::map<Index, FaceId> Id_factory;
+		struct Faces
+		{
+			// We use a map to provide binary search on Face_index
+			typedef typename Mesh_traits::Facet_type Facet_type;
+			typedef typename Mesh_traits::Face_index Face_index;
+			typedef ::std::map<Face_index, FaceId> Id_factory;
 			typedef typename Id_factory::value_type Factory_key;
+			typedef ::std::vector<FaceNeighbors> Cells;
+			typedef ::std::vector<Facet_type> Nodes;
 			Id_factory ids;
-			::std::vector<FaceNeighbors> cells;
-			FSCoC<NodeId, nfn> nodes;
-			template <typename CellNodes>
-			void update_from_cellnodes(const CellNodes& cellnodes) {
+			Cells cells;
+			Nodes nodes;
+			template <typename FaceIndexType>
+			static auto extract_facet_from_index(const FaceIndexType& index) {
+				return Facet_type{ index.as_facet() };
+			}
+			template <typename ... FaceIndexTypes>
+			static auto extract_facet_from_index(const mapbox::util::variant<FaceIndexTypes...>& vindex) {
+				return mapbox::util::apply_visitor([](const auto& index) { return extract_facet_from_index(index); }, vindex);
+			}
+			//template <std::size_t n>
+			//void register_facets(const CellId& cellid, const std::array<Facet_type, n>& facets) {
+			//}
+			//template <typename ... FacetsArray>
+			//void register_facets(const CellId& cellid, const mapbox::util::variant<FacetsArray...>& vfacets) {
+			//	mapbox::util::apply_visitor([this, &cellid](const auto& facets) { register_facets(cellid, facets); }, vfacets);
+			//}
+			template <typename Cells>
+			void update_from_cellnodes(const Cells& new_cellnodes) {
 				ids.clear();
 				cells.clear();
-				::std::array < NodeId, nfn > facet_nodes;
-				const auto ncells = cellnodes.size(); // FIXME: I'd rather use ::std::size(cellnodes) but compilation fails with gcc
-				for (CellId cellid = 0; cellid < ncells; ++cellid) {
-					for (int facet = 0; facet < element_type::nb_facets(); ++facet) {
-						element_type::facet_nodes(cellnodes[cellid], facet, facet_nodes);
+				auto cellid = CellId{ 0 };
+				for (auto&& cell : new_cellnodes) {
+					for (auto&& facet : extract_cell_facets(cell)) {
 						assert(ids.size() == cells.size());
-						assert(cells.size()<=std::numeric_limits<FaceId>::max());
+						assert(cells.size() <= std::numeric_limits<FaceId>::max());
 						auto face_id = static_cast<FaceId>(cells.size());
-						auto key = Factory_key{ Index{ facet_nodes }, face_id };
+						auto key = Factory_key{ make_face_index(facet), face_id };
 						auto insertion_result = ids.insert(key);
 						auto success = insertion_result.second;
 						if (success) {
@@ -285,225 +389,199 @@ namespace MeshTools
 						}
 						assert(ids.size() == cells.size());
 					}
+					++cellid;
 				}
-				nodes.resize(nb());
-				for (auto&& face : ids) {
-					nodes[face.second] = face.first.get_nodes();
+				// We need to sort face indexes according to face id
+				::std::map<FaceId, Face_index> indexes;
+				for (auto&& face: ids) {
+					indexes.emplace(::std::make_pair(face.second, face.first));
+				}
+				nodes.clear();
+				nodes.reserve(nb());
+				assert(indexes.size() == nb());
+				for (auto&& face: indexes) {
+					assert(face.first == nodes.size());
+					nodes.emplace_back(extract_facet_from_index(face.second));
 				}
 			}
 			auto nb() const {
+				assert(ids.size() == cells.size());
 				return cells.size();
 			}
 		};
 		Cells cells;
 		Faces faces;
-		void collect_cell_faces() {
-			typedef typename Faces::Index FIndex;
-			const auto ncells = cells.nb();
-			cells.faces.resize(ncells);
-			::std::array< NodeId, Faces::nfn > facet_nodes;
-			for (CellId cellid = 0; cellid < ncells; ++cellid) {
-				for (int facet = 0; facet < element_type::nb_facets(); ++facet) {
-					element_type::facet_nodes(cells.nodes[cellid], facet, facet_nodes);
-					cells.faces[cellid][facet] = faces.ids.at(FIndex{ facet_nodes });
-				}
+		template <typename CellType>
+		auto collect_cell_faces_id(const CellType& cell) const {
+			typedef typename Mesh_traits::Cell_faces_id Cell_faces_id;
+			std::array<FaceId, CellType::nbfacets()> result;
+			std::size_t k = 0;
+			for (auto&& facet : cell.facets()) {
+				result[k] = faces.ids.at(make_face_index(facet));
+				++k;
 			}
+			assert(k == CellType::nbfacets());
+			return Cell_faces_id{ result };
+		}
+		template <typename ... CellTs>
+		auto collect_cell_faces_id(mapbox::util::variant<CellTs...>& vcell) const {
+			return mapbox::util::apply_visitor([this](const auto& cell) { return this->collect_cell_faces_id(cell); }, vcell);
+		}
+		void collect_cell_faces() {
+			cells.faces.clear();
+			cells.faces.reserve(cells.nb());
+			for (auto&& cell: cells.nodes) {
+				cells.faces.emplace_back(collect_cell_faces_id(cell));
+			}
+		}
+		auto boundary_faces() const {
+			::std::vector<FaceId> result;
+			auto fk = FaceId{ 0 };
+			for (auto&& face : faces.cells) {
+				if (face.is_on_boundary()) {
+					result.emplace_back(fk);
+				}
+				++fk;
+			}
+			assert(fk == faces.nb());
+			return result;
 		}
 		void update_from_cellnodes() {
 			faces.update_from_cellnodes(cells.nodes);
 			collect_cell_faces();
 		}
-		auto boundary_faces() const {
-			::std::vector<FaceId> result;
-			const auto nbfaces = faces.nb();
-			for (FaceId face = 0; face < nbfaces; ++face) {
-				if (faces.cells[face].is_on_boundary()) {
-					result.emplace_back(face);
-				}
+	};
+
+
+	template <typename Coordinate, std::size_t dim>
+	struct Point: ::std::array<Coordinate, dim>
+	{
+		typedef std::array<Coordinate, dim> Base_array;
+		typedef Coordinate Coordinate_type;
+		constexpr static auto dimension = dim;
+		template <typename ... Coordinates>
+		// CHECKME: We fix the first constructor parameter not to shadow other constructor (copy constructor...)
+		//          Otherwise variant compilation fails with gcc
+		Point(Coordinate_type x0, Coordinates... xis) :
+			::std::array<Coordinate, dim>{ { x0, xis... } }
+		{
+			static_assert(sizeof...(Coordinates) == dim -1, "Wrong nomber of coordinates!");
+			static_assert(is_single_type<std::tuple<Coordinates...>>(), "Wrong type for nodes ids!");
+			static_assert(std::is_same<Coordinate_type, typename IsSingleTypeTuple<std::tuple<Coordinates...>>::First_element_type>::value, "Wrong type for nodes ids!");
+		}
+		Point() :
+			Base_array{}
+		{}
+		Point(const Base_array& a) :
+			Base_array{ a }
+		{}
+		Point(Base_array&& a) :
+			Base_array{ std::forward<Base_array>(a) }
+		{}
+		Point& operator=(const Point& other) {
+			Base_array::operator=(other);
+			return *this;
+		}
+		Point& operator+=(const Point& other) {
+			for (std::size_t i = 0; i < dim; ++i) {
+				(*this)[i] += other[i];
+			}
+			return *this;
+		}
+		static Point origin() {
+			Point result;
+			for (std::size_t i = 0; i < dim; ++i) {
+				result[i] = 0;
+			}
+			return result;
+		};
+	};
+
+	template <typename Coordinate, std::size_t dim>
+	struct PointAccumulator
+	{
+		typedef Point<Coordinate, dim> Point_type;
+		Point_type accumulation;
+		std::size_t n;
+		PointAccumulator() :
+			accumulation{ Point_type::origin() },
+			n{ 0 }
+		{}
+		PointAccumulator(const Point_type& P) :
+			accumulation{ P },
+			n{ 1 }
+		{}
+		PointAccumulator(Point_type&& P) :
+			accumulation{ std::forward<Point_type>(P) },
+			n{ 1 }
+		{}
+		void operator()(const Point_type& P) {
+			accumulation += P;
+			++n;
+		}
+		auto average() const {
+			assert(n > 0);
+			auto div = 1. / static_cast<double>(n);
+			auto result = accumulation;
+			for (std::size_t i = 0; i < dim; ++i) {
+				result[i]*= div;
 			}
 			return result;
 		}
-		//auto faces_nodes() const {
-		//	const auto nbfaces = faces.nb();
-		//	::std::vector<::std::array<NodeId, Faces::nfn>> result{ nbfaces };
-		//	assert(result.size() == nbfaces);
-		//	for (auto&& face : faces.ids) {
-		//		result[face.second] = face.first.get_nodes();
-		//	}
-		//	return result;
-		//}
 	};
 
-	template <typename VertexType, typename ElementType>
+	template <typename VertexType, typename ... CellTypes>
 	struct Mesh {
-		typedef VertexType Vertex;
-		typedef typename Vertex::value_type Coordinate;
-		typedef ElementType Element;
-		typedef MeshConnectivity<Element> Connectivity;
-		::std::vector<Vertex> vertices;
+		typedef VertexType Vertex_type;
+		typedef typename Vertex_type::value_type Coordinate_type;
+		typedef ::std::vector<Vertex_type> Vertices;
+		constexpr static auto dimension = Vertex_type::dimension;
+		typedef MeshConnectivity<CellTypes...> Connectivity;
+		typedef typename Connectivity::Mesh_traits Mesh_traits;
+		Vertices vertices;
 		Connectivity connectivity;
-	};
-
-	//typedef LightweightHomogeneousMesh<Tet> TetLMesh;
-	//template <sdt::size_t dim>
-	//struct Point {
-	//	static constexpr auto dimension = dim;
-	//	typedef ::std::array<double, dim> Coordinates;
-	//	typedef Coordinates::size_type Pos;
-	//	Coordinates X;
-	//	Point() {
-	//		for (Pos i = 0; i < dim; ++i)
-	//			X[i] = 0;
-	//	}
-	//	//Point& operator=(const Point& other) {
-	//
-	//	//}
-	//	static constexpr auto origin() { return Point{}; }
-	//
-	//
-	//};
-	typedef ::std::array<double, 3> Point;
-	typedef Mesh<Point, Tet> TetMesh;
-	typedef Mesh<Point, Hex> HexMesh;
-
-	/** FIXME/IMPROVE Temporary because referenced elements are not copied in memory.
-	This might be safer using shared pointers.
-	To be compliant with STL algorithm, should define :
-	typename _Iter::iterator_category,
-	typename _Iter::value_type,
-	typename _Iter::difference_type,
-	typename _Iter::pointer,
-	typename _Iter::reference
-	*/
-	template <typename Container, typename Indices>
-	class TemporarySelection {
-	protected:
-		Container& container;
-		const Indices& indices;
-		struct iterator {
-			static constexpr auto iterator_category = ::std::forward_iterator_tag{};
-			decltype(indices.begin()) pos;
-			Container& container;
-			iterator() = delete;
-			template <typename Position>
-			iterator(Container& C, Position&& p) :
-				container{ C },
-				pos{ ::std::forward<Position>(p) }
-			{}
-			iterator& operator++() {
-				++pos;
-				return *this;
+		template <typename Functor, typename NodeElementType>
+		void apply_on_vertices(Functor& F, const NodeElementType& element) const {
+			for (auto&& node: element.nodes) {
+				F(vertices[node]);
 			}
-			bool operator<(const iterator& other) const {
-				assert(&container == &other.container);
-				return pos < other.pos;
-			}
-			bool operator==(const iterator& other) const {
-				assert(&container == &other.container);
-				return pos == other.pos;
-			}
-			bool operator!=(const iterator& other) const {
-				assert(&container == &other.container);
-				return pos != other.pos;
-			}
-			auto operator*() {
-				return container[*pos];
-			}
-		};
-	public:
-		TemporarySelection(Container& C, const Indices& I) :
-			container{ C },
-			indices{ I }
-		{}
-		auto begin() {
-			return iterator{ container, indices.begin() };
 		}
-		auto end() {
-			return iterator{ container, indices.end() };
+		template <typename Functor, typename ... NodeElementTypes>
+		void apply_on_vertices(Functor& F, const mapbox::util::variant<NodeElementTypes...>& velement) const {
+			mapbox::util::apply_visitor([this, &F](const auto& element) { this->apply_on_vertices(F, element); }, velement);
 		}
-		auto size() const {
-			return indices.size();
+		template <typename ElementContainer>
+		auto compute_centers(const ElementContainer& elements) const {
+			auto result = Vertices{};
+			result.reserve(elements.size());
+			for (auto&& element : elements) {
+				PointAccumulator<Coordinate_type, dimension> S;
+				apply_on_vertices(S, element);
+				result.emplace_back(S.average());
+			}
+			return result;
+		}
+		auto cell_centers() const {
+			return compute_centers(connectivity.cells.nodes);
+		}
+		auto face_centers() const {
+			return compute_centers(connectivity.faces.nodes);
+		}
+		template <typename MeshElement>
+		auto element_vertices(const MeshElement& element) const {
+			static_assert(IsInTuple<MeshElement, typename Mesh_traits::Cell_types>::value, "Mesh does not hold elements of this kind!");
+			auto result = std::vector<Vertex_type>{};
+			result.reserve(element.nbnodes());
+			for (auto&& ei : element.nodes) {
+				result.emplace_back(vertices[ei]);
+			}
+			return result;
 		}
 	};
 
-	template <typename Container, typename Indices>
-	auto make_selection(Container& container, const Indices& indices) {
-		return TemporarySelection<Container, Indices>{container, indices};
-	}
+	typedef Mesh<Point<double, 3>, Tetrahedron> TetMesh;
+	typedef Mesh<Point<double, 3>, Hexahedron> HexMesh;
 
-	template <typename Container, ::std::size_t N, typename IndexType = typename Container::size_type>
-	auto extract(Container& container, const ::std::array<IndexType, N>& indices) {
-		typedef ::std::array<typename Container::value_type, N> Result;
-		Result result;
-		for (typename Result::size_type i = 0; i < N; ++i) result[i] = container[indices[i]];
-		return result;
-	}
-
-	template <typename T, ::std::size_t dim>
-	struct Origin {};
-
-	template <typename T>
-	struct Origin<T, 2> {
-		static constexpr auto build() -> ::std::array<T, 2> {
-			return ::std::array<T, 2>{ {0, 0} };
-		}
-	};
-
-	template <typename T>
-	struct Origin<T, 3> {
-		static constexpr auto build() -> ::std::array<T, 3> {
-			return ::std::array<T, 3>{ {0, 0, 0} };
-		}
-	};
-
-	template <typename T, ::std::size_t dim>
-	constexpr auto origin() -> ::std::array<T, dim>
-	{
-		return Origin<T, dim>::build();
-	}
-
-	template <typename PointIterator>
-	auto compute_center(PointIterator first, PointIterator last) {
-		constexpr auto dim = ::std::tuple_size<Point>::value;
-		static_assert(dim > 0, "Zero dimension for points!");
-		double nbpts = 0;
-		auto result = Point{
-				::std::accumulate(
-					first, last, origin<Point::value_type, dim>(),
-					[dim, &nbpts](Point& R, const Point& P) {
-				for (Point::size_type i = 0; i < dim; ++i) R[i] += P[i];
-				++nbpts;
-				return R;
-		}
-				)
-		};
-		assert(nbpts > 0);
-		auto tmp = 1 / nbpts;
-		for (Point::size_type i = 0; i < dim; ++i) result[i] *= tmp;
-		return result;
-	}
-
-	template <typename PointContainer>
-	auto compute_center(const PointContainer& points)
-	{
-		return compute_center(::std::begin(points), ::std::end(points));
-	}
-
-	/** Converter from homogeneous table to COC. */
-	template <typename T, ::std::size_t N>
-	auto FSCoC_as_COC(const FSCoC<T, N>& fscoc)
-	{
-		std::vector<ElementId> pointers;
-		auto n = fscoc.size();
-		pointers.reserve(n + 1);
-		ElementId pos = 0;
-		pointers.emplace_back(pos);
-		for (; n != 0; --n) {
-			pos += N;
-			pointers.emplace_back(pos);
-		}
-		return std::make_tuple(pointers, fscoc.data()->data());
-	}
 
 } // namespace MeshTools
 

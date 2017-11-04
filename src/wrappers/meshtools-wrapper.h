@@ -4,5 +4,5 @@
 
 namespace py = pybind11;
 
-py::module& add_mesh_tools(py::module&);
+void add_mesh_tools(py::module&);
 
