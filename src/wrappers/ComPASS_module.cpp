@@ -10,21 +10,18 @@
 #include "MeshUtilities_wrappers.h"
 #include "Well_wrappers.h"
 
-PYBIND11_PLUGIN(ComPASS_CONFIGURATION_NAME)
+PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
 {
 
-    py::module module(TOSTRING(ComPASS_CONFIGURATION_NAME),
-                      "pybind11 ComPASS library interface for " TOSTRING(ComPASS_CONFIGURATION_NAME) " configuration");
-    
-    add_pybuffer_wrappers(module);
-    add_NN_wrappers(module);
-    add_coc_wrappers(module);
-    add_GlobalMesh_wrappers(module);
-    add_mesh_utilities_wrappers(module);
-    add_well_wrappers(module);
-    add_global_variables_wrappers(module);
-    add_IncCV_wrappers(module);
+	module.doc() = "pybind11 ComPASS library interface for " TOSTRING(ComPASS_CONFIGURATION_NAME) " configuration";
 
-    return module.ptr();
+	add_pybuffer_wrappers(module);
+	add_NN_wrappers(module);
+	add_coc_wrappers(module);
+	add_GlobalMesh_wrappers(module);
+	add_mesh_utilities_wrappers(module);
+	add_well_wrappers(module);
+	add_global_variables_wrappers(module);
+	add_IncCV_wrappers(module);
 
 }
