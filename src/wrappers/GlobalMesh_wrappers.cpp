@@ -23,40 +23,58 @@ extern "C"
 }
 
 #include "GlobalMesh_wrappers.h"
+#include <pybind11/numpy.h>
 
-//template <typename Mesh>
-//auto create_mesh(const Mesh& mesh)
+// FIXME: Retrive id and coordinate types from meshtools (avoid double and int here)
+void create_mesh(
+	py::array_t<double, py::array::c_style> vertices,
+	py::array_t<int, py::array::c_style> cells_nodes_pointers,
+	py::array_t<int, py::array::c_style> cells_nodes_values,
+	py::array_t<int, py::array::c_style> cells_faces_pointers,
+	py::array_t<int, py::array::c_style> cells_faces_values,
+	py::array_t<int, py::array::c_style> faces_nodes_pointers,
+	py::array_t<int, py::array::c_style> faces_nodes_values
+)
+{
+	std::vector<int> cellids;
+	const std::size_t nb_cells = cells_nodes_pointers.shape(0) - 1;
+	assert(nb_cells > 1);
+	for (std::size_t i=0; i != nb_cells; ++i) {
+		cellids.emplace_back(0);
+	}
+	std::vector<int> faceids;
+	const std::size_t nb_faces = faces_nodes_pointers.shape(0) - 1;
+	assert(nb_faces > 0);
+	for (std::size_t i = 0; i != nb_faces; ++i) {
+		faceids.emplace_back(0);
+	}
+	GlobalMesh_create_mesh(
+		vertices.shape(0), nb_cells, nb_faces,
+		vertices.data(0, 0),
+		cells_faces_pointers.data(0), cells_faces_values.data(0),
+		cells_nodes_pointers.data(0), cells_nodes_values.data(0),
+		faces_nodes_pointers.data(0), faces_nodes_values.data(0),
+		cellids.data(), faceids.data()
+	);
+}
+
+//void create_mesh(
+//	py::array_t<double, py::array::c_style> vertices,
+//	py::tuple cells_nodes,
+//	py::tuple cells_faces,
+//	py::tuple faces_nodes
+//)
 //{
-//	const auto& vertices = mesh.vertices;
-//	const auto& cells = mesh.connectivity.cells;
-//	const auto& faces = mesh.connectivity.faces;
-//	const auto cellnodes = MT::node_collection_as_COC_data<int,int>(cells.nodes);
-//	auto cellnodes_pointers = std::get<0>(cellnodes);
-//	auto cellnodes_values = std::get<1>(cellnodes);
-//	const auto cellfaces = MT::face_collection_as_COC_data<int, int>(cells.faces);
-//	auto cellfaces_pointers = std::get<0>(cellfaces);
-//	auto cellfaces_values = std::get<1>(cellfaces);
-//	const auto facenodes = MT::node_collection_as_COC_data<int, int>(faces.nodes);
-//	auto facenodes_pointers = std::get<0>(facenodes);
-//	auto facenodes_values = std::get<1>(facenodes);
-//	std::vector<int> cellids;
-//	std::size_t n = cells.nb();
-//	for (; n != 0; --n) {
-//		cellids.emplace_back(0);
-//	}
-//	std::vector<int> faceids;
-//	n = faces.nb();
-//	for (; n != 0; --n) {
-//		faceids.emplace_back(0);
-//	}
-//	GlobalMesh_create_mesh(
-//		vertices.size(), cells.nb(), faces.nb(),
-//		vertices.data()->data(),
-//		cellfaces_pointers.data(), cellfaces_values.data(),
-//		cellnodes_pointers.data(), cellnodes_values.data(),
-//		facenodes_pointers.data(), facenodes_values.data(),
-//		cellids.data(), faceids.data()
-//	);
+//	auto cells_nodes_pointers = cells_nodes[0];
+//	auto cells_nodes_values = cells_nodes[1];
+//	auto cells_faces_pointers = cells_faces[0];
+//	auto cells_faces_values = cells_faces[1];
+//	auto faces_nodes_pointers = faces_nodes[0];
+//	auto faces_nodes_values = faces_nodes[1];
+//	create_mesh(vertices,
+//		cells_nodes_pointers, cells_nodes_values,
+//		cells_faces_pointers, cells_faces_values,
+//		faces_nodes_pointers, faces_nodes_values);
 //}
 
 void add_GlobalMesh_wrappers(py::module& module)
@@ -78,35 +96,13 @@ void add_GlobalMesh_wrappers(py::module& module)
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
 	
-	//void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
-	//subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &
-	//	nodes, &
-	//	cell_faces_ptr, cell_faces_val, &
-	//	cell_nodes_ptr, cell_nodes_val, &
-	//	face_nodes_ptr, face_nodes_val, &
-	//	cell_id, face_id) &
-	//	bind(C, name = "GlobalMesh_create_mesh")
-
-	//	integer(c_int), value, intent(in) ::nbnodes
-	//	integer(c_int), value, intent(in) ::nbcells
-	//	integer(c_int), value, intent(in) ::nbfaces
-	//	real(c_double), dimension(3, nbnodes), intent(in) ::nodes
-	//	integer(c_int), dimension(nbcells + 1), intent(in) ::cell_faces_ptr
-	//	integer(c_int), dimension(cell_faces_ptr(nbcells + 1)), intent(in) ::cell_faces_val
-	//	integer(c_int), dimension(nbcells + 1), intent(in) ::cell_nodes_ptr
-	//	integer(c_int), dimension(cell_nodes_ptr(nbcells + 1)), intent(in) ::cell_nodes_val
-	//	integer(c_int), dimension(nbfaces + 1), intent(in) ::face_nodes_ptr
-	//	integer(c_int), dimension(face_nodes_ptr(nbfaces + 1)), intent(in) ::face_nodes_val
-	//	integer(c_int), dimension(nbcells), intent(in) ::cell_id
-	//	integer(c_int), dimension(nbfaces), intent(in) ::face_id
-
-	//	call GlobalMesh_create_mesh(nodes, &
-	//		cell_faces_ptr, cell_faces_val, &
-	//		cell_nodes_ptr, cell_nodes_val, &
-	//		face_nodes_ptr, face_nodes_val, &
-	//		cell_id, face_id, &
-	//		.true.)
-
+	//module.def("create_mesh", [](
+	//	py::array_t<double, py::array::c_style> vertices,
+	//	py::tuple connectivity
+	//	) {
+	//	create_mesh(vertices, connectivity[0], connectivity[1], connectivity[2]);
+	//});
+	module.def("create_mesh", &create_mesh);
 
 	// This is only transitory
 	module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");

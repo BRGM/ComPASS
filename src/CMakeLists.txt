@@ -174,6 +174,8 @@ set(WRAPPERS_SRCS ${_tmp})
 set(pyComPASS_DIRECTORY "${PROJECT_SOURCE_DIR}/python/ComPASS")
 set(pyComPASS_EOS_DIRECTORY "${pyComPASS_DIRECTORY}/eos")
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 foreach(_conf ${CONFIGURATIONS})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASSlib-${_conf})
@@ -181,7 +183,7 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
-    add_library(${CONF_TARGETNAME} SHARED ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
+    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
     CXX_STANDARD 14
@@ -216,7 +218,6 @@ foreach(_conf ${CONFIGURATIONS})
         target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
     endif(DEF_VISU)
 
-    ## FIXME: Only the first configuration is used to generate the python module.
     if(DEF_Python_BINDINGS)
         set(eos_target ${_conf})
         pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)

@@ -9,6 +9,12 @@ import ComPASS.utils.filenames
 
 import numpy as np
 
+# FIXME: This is to import thirdparties
+import os
+sys.path.append(os.path.abspath('..'))
+import thirdparties
+import MeshTools as MT
+
 initialized = False
 
 # CHECKME: There might be a more elegant way to do this
@@ -83,19 +89,33 @@ def init(
         kernel.global_mesh_set_cartesian_mesh()
         if mpi.is_on_master_proc:
             kernel.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
-    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
-        kernel.init_warmup(runtime.logfile)
-        if type(mesh) is MeshTools.TetMesh:
-            kernel.global_mesh_set_tetrahedron_mesh()
-        else:
-            assert type(mesh) is MeshTools.HexMesh
-            kernel.global_mesh_set_hexahedron_mesh()
-        if mpi.is_on_master_proc:
-            kernel.create_mesh(mesh)
     else:
-        print('Mesh type not understood!')
-        # FIXME: This should be something like MPI.Abort()
-        sys.exit(-1)
+#    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
+        kernel.init_warmup(runtime.logfile)
+        print("!!!")
+        print("!!!")
+        print("!!!")
+        print("!!! VTK output will not work with this mesh type!")
+        print("!!!")
+        print("!!!")
+        print("!!!")
+#        if type(mesh) is MeshTools.TetMesh:
+#            kernel.global_mesh_set_tetrahedron_mesh()
+#        else:
+#            assert type(mesh) is MeshTools.HexMesh
+#            kernel.global_mesh_set_hexahedron_mesh()
+        if mpi.is_on_master_proc:
+            vertices = MT.as_coordinate_array(mesh.vertices)
+            cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
+            kernel.create_mesh(vertices,
+                               *cells_nodes,
+                               *cells_faces,
+                               *faces_nodes
+                               )
+#    else:
+#        print('Mesh type not understood!')
+#        # FIXME: This should be something like MPI.Abort()
+#        sys.exit(-1)
     if mpi.is_on_master_proc and set_global_flags is not None:
         assert callable(set_global_flags)
         set_global_flags()
