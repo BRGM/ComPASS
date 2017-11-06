@@ -1,0 +1,3 @@
+[submodule "thirdparty/meshtools"]
+	path = thirdparty/meshtools
+	url = https://seh_lopez@bitbucket.org/seh_lopez/meshtools.git
