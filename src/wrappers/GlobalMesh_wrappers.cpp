@@ -24,52 +24,43 @@ extern "C"
 
 #include "GlobalMesh_wrappers.h"
 
-#include "meshtools.h"
-#include "meshtools-wrapper.h"
-
-namespace MT = MeshTools;
-
-template <typename Mesh>
-auto create_mesh(const Mesh& mesh)
-{
-	const auto& vertices = mesh.vertices;
-	const auto& cells = mesh.connectivity.cells;
-	const auto& faces = mesh.connectivity.faces;
-	const auto cellnodes = MT::node_collection_as_COC_data<int,int>(cells.nodes);
-	auto cellnodes_pointers = std::get<0>(cellnodes);
-	auto cellnodes_values = std::get<1>(cellnodes);
-	const auto cellfaces = MT::face_collection_as_COC_data<int, int>(cells.faces);
-	auto cellfaces_pointers = std::get<0>(cellfaces);
-	auto cellfaces_values = std::get<1>(cellfaces);
-	const auto facenodes = MT::node_collection_as_COC_data<int, int>(faces.nodes);
-	auto facenodes_pointers = std::get<0>(facenodes);
-	auto facenodes_values = std::get<1>(facenodes);
-	std::vector<int> cellids;
-	std::size_t n = cells.nb();
-	for (; n != 0; --n) {
-		cellids.emplace_back(0);
-	}
-	std::vector<int> faceids;
-	n = faces.nb();
-	for (; n != 0; --n) {
-		faceids.emplace_back(0);
-	}
-	GlobalMesh_create_mesh(
-		vertices.size(), cells.nb(), faces.nb(),
-		vertices.data()->data(),
-		cellfaces_pointers.data(), cellfaces_values.data(),
-		cellnodes_pointers.data(), cellnodes_values.data(),
-		facenodes_pointers.data(), facenodes_values.data(),
-		cellids.data(), faceids.data()
-	);
-}
+//template <typename Mesh>
+//auto create_mesh(const Mesh& mesh)
+//{
+//	const auto& vertices = mesh.vertices;
+//	const auto& cells = mesh.connectivity.cells;
+//	const auto& faces = mesh.connectivity.faces;
+//	const auto cellnodes = MT::node_collection_as_COC_data<int,int>(cells.nodes);
+//	auto cellnodes_pointers = std::get<0>(cellnodes);
+//	auto cellnodes_values = std::get<1>(cellnodes);
+//	const auto cellfaces = MT::face_collection_as_COC_data<int, int>(cells.faces);
+//	auto cellfaces_pointers = std::get<0>(cellfaces);
+//	auto cellfaces_values = std::get<1>(cellfaces);
+//	const auto facenodes = MT::node_collection_as_COC_data<int, int>(faces.nodes);
+//	auto facenodes_pointers = std::get<0>(facenodes);
+//	auto facenodes_values = std::get<1>(facenodes);
+//	std::vector<int> cellids;
+//	std::size_t n = cells.nb();
+//	for (; n != 0; --n) {
+//		cellids.emplace_back(0);
+//	}
+//	std::vector<int> faceids;
+//	n = faces.nb();
+//	for (; n != 0; --n) {
+//		faceids.emplace_back(0);
+//	}
+//	GlobalMesh_create_mesh(
+//		vertices.size(), cells.nb(), faces.nb(),
+//		vertices.data()->data(),
+//		cellfaces_pointers.data(), cellfaces_values.data(),
+//		cellnodes_pointers.data(), cellnodes_values.data(),
+//		facenodes_pointers.data(), facenodes_values.data(),
+//		cellids.data(), faceids.data()
+//	);
+//}
 
 void add_GlobalMesh_wrappers(py::module& module)
 {
-
-	// add meshtools submodule
-	auto mesh_tools_module = module.def_submodule("MeshTools", "MeshTools submodules.");
-	add_mesh_tools(mesh_tools_module);
 
 	module.def("build_grid",
 		[](py::object shape, py::object extent, py::object origin) {
@@ -86,11 +77,6 @@ void add_GlobalMesh_wrappers(py::module& module)
 	},
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
-
-	// CHECKME: The weird conversion is due to a gcc bug
-	// cf. https://stackoverflow.com/questions/45077622/using-a-template-function-pointer-inside-another-template-function?noredirect=1#comment77158283_45077622
-	module.def("create_mesh", (decltype(&create_mesh<MT::TetMesh>))(&create_mesh<MT::TetMesh>), "Creates a tet mesh.");
-	module.def("create_mesh", (decltype(&create_mesh<MT::HexMesh>))(&create_mesh<MT::HexMesh>), "Creates a hex mesh.");
 	
 	//void GlobalMesh_create_mesh(int, int, int, double[], int[], int[], int[], int[], int[], int[], int[], int[]);
 	//subroutine GlobalMesh_create_mesh_from_C(nbnodes, nbcells, nbfaces, &

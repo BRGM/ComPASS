@@ -126,4 +126,5 @@ set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 include_directories(${THIRD_PARTY_DIR}/mapbox/include)
 
+add_subdirectory(${THIRD_PARTY_DIR})
 add_subdirectory(src)

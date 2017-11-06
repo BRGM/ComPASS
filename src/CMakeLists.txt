@@ -149,9 +149,6 @@ set( WRAPPERS_SRCS
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   MeshSchema_wrappers.F90
-  meshtools.h
-  meshtools-wrapper.h
-  meshtools-wrapper.cpp
   NN_wrappers.h
   NN_wrappers.cpp
   NN_wrappers.F90
