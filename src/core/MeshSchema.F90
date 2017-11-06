@@ -10,7 +10,7 @@ module MeshSchema
   implicit none
 
   ! 1. Mesh Info
-  integer, allocatable, dimension(:), protected :: &
+  integer(c_int), allocatable, dimension(:), target, public :: &
        NbCellLocal_Ncpus, NbCellOwn_Ncpus, &
        NbFaceLocal_Ncpus, NbFaceOwn_Ncpus, &
        NbNodeLocal_Ncpus, NbNodeOwn_Ncpus, &

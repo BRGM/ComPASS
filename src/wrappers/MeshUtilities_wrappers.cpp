@@ -47,6 +47,10 @@ extern "C"
 	void retrieve_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_frac_face_id(XArrayWrapper<int>&);
 	void retrieve_face_frac_id(XArrayWrapper<int>&);
+	void retrieve_nb_cells_own(XArrayWrapper<int>&);
+	void retrieve_nb_faces_own(XArrayWrapper<int>&);
+	void retrieve_nb_nodes_own(XArrayWrapper<int>&);
+	void retrieve_nb_fractures_own(XArrayWrapper<int>&);
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -65,6 +69,10 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "faceflags", retrieve_faceflags);
 	add_array_wrapper(module, "face_frac_id", retrieve_face_frac_id);
 	add_array_wrapper(module, "frac_face_id", retrieve_frac_face_id);
+	add_array_wrapper(module, "nb_cells_own", retrieve_nb_cells_own);
+	add_array_wrapper(module, "nb_faces_own", retrieve_nb_faces_own);
+	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
+	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
 
 	module.def("get_id_faces_buffer",
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },
