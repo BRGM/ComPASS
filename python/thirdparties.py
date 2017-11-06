@@ -2,6 +2,8 @@
 
 # The onlyt thing that this does is that it adds third parties path into system path
 # FIXME: Find a more elegant way to manage third parties packages...
+#        so that the syntax could be something like
+#        from thirdparties import MeshTools as MT
 
 import sys
 import os
