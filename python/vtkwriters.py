@@ -173,12 +173,7 @@ def vti_doc(
     add_piece_data(piece, 'CellData', celldata, ofmt=ofmt)
     return doc
 
-
-def vtu_doc(
-    vertices, connectivity, celltypes=None,
-    pointdata=None, celldata=None,
-    ofmt='binary'
-):
+def vtu_vertices(vertices):
     vertices = np.array(vertices, copy=False)
     assert len(vertices.shape) == 2
     dim = vertices.shape[1]
@@ -187,6 +182,41 @@ def vtu_doc(
         tmp = np.zeros((vertices.shape[0], 3), dtype=vertices.dtype)
         tmp[:, :dim] = vertices
         vertices = tmp
+    return vertices
+
+def vtu_doc_from_COC(
+    vertices, offsets, connectivity, celltypes,
+    pointdata=None, celldata=None,
+    ofmt='binary'
+):
+    celltypes = celltypes.astype(np.int8)
+    doc = vtk_doc('UnstructuredGrid')
+    grid = create_childnode(doc.documentElement, 'UnstructuredGrid')
+    piece = create_childnode(
+        grid, 'Piece', {
+            'NumberOfPoints': '%d' % vertices.shape[0],
+            'NumberOfCells': '%d' % celltypes.shape[0],
+        },
+    )
+    points = create_childnode(piece, 'Points')
+    add_dataarray(points, _ravel_information_block(vertices),
+                  'Points', nbcomp=3, ofmt=ofmt)
+    cells = create_childnode(piece, 'Cells')
+    add_dataarray(cells,
+                  _ravel_information_block(connectivity),
+                  'connectivity', ofmt=ofmt)
+    add_dataarray(cells, offsets, 'offsets', ofmt=ofmt)
+    add_dataarray(cells, celltypes, 'types', ofmt=ofmt)
+    add_piece_data(piece, 'PointData', pointdata, ofmt=ofmt)
+    add_piece_data(piece, 'CellData', celldata, ofmt=ofmt)
+    return doc
+
+def vtu_doc(
+    vertices, connectivity, celltypes=None,
+    pointdata=None, celldata=None,
+    ofmt='binary'
+):
+    vertices = vtu_vertices(vertices)
     try:
         connectivity = np.array(connectivity, dtype=np.int64, copy=False)
     except ValueError:
@@ -208,28 +238,11 @@ def vtu_doc(
         offsets = np.cumsum(offsets)
         nbcells = offsets.shape[0]
     assert offsets.shape == celltypes.shape
-    celltypes = celltypes.astype(np.int8)
-    doc = vtk_doc('UnstructuredGrid')
-    grid = create_childnode(doc.documentElement, 'UnstructuredGrid')
-    piece = create_childnode(
-        grid, 'Piece', {
-            'NumberOfPoints': '%d' % vertices.shape[0],
-            'NumberOfCells': '%d' % nbcells,
-        },
-    )
-    points = create_childnode(piece, 'Points')
-    add_dataarray(points, _ravel_information_block(vertices),
-                  'Points', nbcomp=3, ofmt=ofmt)
-    cells = create_childnode(piece, 'Cells')
-    add_dataarray(cells,
-                  _ravel_information_block(connectivity),
-                  'connectivity', ofmt=ofmt)
-    add_dataarray(cells, offsets, 'offsets', ofmt=ofmt)
-    add_dataarray(cells, celltypes, 'types', ofmt=ofmt)
-    add_piece_data(piece, 'PointData', pointdata, ofmt=ofmt)
-    add_piece_data(piece, 'CellData', celldata, ofmt=ofmt)
-    return doc
-
+    return vtu_doc_from_COC(
+        vertices, offsets, connectivity, celltypes,
+        pointdata, celldata,
+        ofmt
+        )
 
 def points_as_vtu_doc(vertices, pointdata=None, ofmt='binary'):
     connectivity = np.arange(len(vertices))
