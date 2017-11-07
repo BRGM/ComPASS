@@ -417,13 +417,13 @@ contains
 
     if (commRank==0) then
        do i=1,Ncpus-1
-          call MPI_Send(CellTypes_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
+          call MPI_Send(CellTypes_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER1, i, 25, ComPASS_COMM_WORLD, Ierr)
        end do
        allocate(CellTypesLocal(NbCellLocal_Ncpus(1)))
        CellTypesLocal = CellTypes_Ncpus(1)%Val    
     else
        allocate(CellTypesLocal(NbCellLocal_Ncpus(commRank+1)))
-       call MPI_Recv(CellTypesLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
+       call MPI_Recv(CellTypesLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER1, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
     if(commRank==0) then
