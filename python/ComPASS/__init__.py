@@ -94,11 +94,7 @@ def init(
         kernel.init_warmup(runtime.logfile)
         if mpi.is_on_master_proc:
             print("!!!")
-            print("!!!")
-            print("!!!")
             print("!!! VTK output will not work with this mesh type!")
-            print("!!!")
-            print("!!!")
             print("!!!")
             vertices = MT.as_coordinate_array(mesh.vertices)
             cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
@@ -263,5 +259,9 @@ def timestep_summary():
 
 def output_visualization_files(iteration):
     kernel.output_visu(iteration, runtime.output_directory)
+
+def to_output_directory(filename):
+    assert os.path.isdir(runtime.output_directory)
+    return os.path.abspath(os.path.join(runtime.output_directory, filename))
 
 

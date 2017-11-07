@@ -46,3 +46,22 @@ ComPASS.init(
 #set_boundary_conditions()
 #
 #standard_loop(final_time = 30 * year, output_frequency = year)
+
+# dump mesh info
+connectivity = ComPASS.get_connectivity()
+np.savez(ComPASS.to_output_directory('mesh_proc_%04d' % ComPASS.mpi.proc_rank),
+    vertices =  ComPASS.vertices().view(dtype=np.double).reshape((-1, 3)),
+    cellnodes_offsets = connectivity.NodebyCell.offsets()[1:], # VTK does not use the first 0 offset
+    cellnodes_values = connectivity.NodebyCell.contiguous_content() - 1, # switch first node indexing from 1 to 0 
+    celltypes = ComPASS.celltypes(),
+)
+
+# dump states
+node_states = ComPASS.node_states()
+cell_states = ComPASS.cell_states()
+np.savez(ComPASS.to_output_directory('state_proc_%04d' % ComPASS.mpi.proc_rank),
+    node_pressure = node_states.p,
+    node_temperature = node_states.T,
+    cell_pressure = cell_states.p,
+    cell_temperature = cell_states.T,
+)

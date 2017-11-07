@@ -1,6 +1,7 @@
 #include "COC.h"
 
 #include "COC_wrappers.h"
+#include <pybind11/numpy.h>
 
 void add_coc_wrappers(py::module& module)
 {
@@ -28,6 +29,18 @@ void add_coc_wrappers(py::module& module)
 		)
 		.def("__getitem__", [](COC& coc, int i) -> COC_container { return coc[i]; })
 		.def("__len__", [](const COC& coc) { return coc.number_of_containers(); })
-	;
+		.def("offsets", [](py::object object) {
+		auto coc = object.cast<COC&>();
+		return py::array_t<typename COC::offset_type, py::array::c_style>{
+			{ coc.number_of_containers() + 1 }, coc.offset_data(), object
+		};
+	}, py::keep_alive<0,1>())		
+		.def("contiguous_content", [](py::object object) {
+		auto coc = object.cast<COC&>();
+		return py::array_t<typename COC::value_type, py::array::c_style>{
+			{ coc.size() }, coc.content_data(), object
+		};
+	}, py::keep_alive<0, 1>())
+		;
 
 }
