@@ -92,19 +92,14 @@ def init(
     else:
 #    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
         kernel.init_warmup(runtime.logfile)
-        print("!!!")
-        print("!!!")
-        print("!!!")
-        print("!!! VTK output will not work with this mesh type!")
-        print("!!!")
-        print("!!!")
-        print("!!!")
-#        if type(mesh) is MeshTools.TetMesh:
-#            kernel.global_mesh_set_tetrahedron_mesh()
-#        else:
-#            assert type(mesh) is MeshTools.HexMesh
-#            kernel.global_mesh_set_hexahedron_mesh()
         if mpi.is_on_master_proc:
+            print("!!!")
+            print("!!!")
+            print("!!!")
+            print("!!! VTK output will not work with this mesh type!")
+            print("!!!")
+            print("!!!")
+            print("!!!")
             vertices = MT.as_coordinate_array(mesh.vertices)
             cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
             kernel.create_mesh(vertices,
@@ -112,6 +107,9 @@ def init(
                                *cells_faces,
                                *faces_nodes
                                )
+            # distribute cell types to be able to reconstruct local meshes
+            celltypes = ComPASS.global_celltypes()
+            celltypes[:] = mesh.vtk_ids().astype(np.int8, copy=False)
 #    else:
 #        print('Mesh type not understood!')
 #        # FIXME: This should be something like MPI.Abort()
