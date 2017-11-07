@@ -31,6 +31,7 @@
           retrieve_global_nodeflags, &
           retrieve_global_cellflags, &
           retrieve_global_faceflags, &
+          retrieve_global_celltypes, &
           retrieve_id_faces, &
           retrieve_global_mesh_connectivity, &
           retrieve_mesh_connectivity, &
@@ -186,6 +187,31 @@
           cpp_array%n = size(FaceFlags)
 
        end subroutine retrieve_global_faceflags
+
+    subroutine retrieve_global_celltypes(cpp_array) &
+          bind(C, name="retrieve_global_celltypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(CellTypes)) then
+             print *, "Face flags are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(CellTypes(1))
+          cpp_array%n = size(CellTypes)
+
+       end subroutine retrieve_global_celltypes
 
        subroutine retrieve_id_faces(cpp_array) &
           bind(C, name="retrieve_id_faces")

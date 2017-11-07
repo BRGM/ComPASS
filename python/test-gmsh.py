@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Nov  6 14:43:26 2017
-
-@author: lopez
-"""
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
 
 import numpy as np
 import thirdparties

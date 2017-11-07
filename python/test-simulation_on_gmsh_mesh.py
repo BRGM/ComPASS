@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # This file is part of ComPASS.
 #
@@ -31,15 +32,17 @@ elements = [elt for elt, tags in elements]
 
 mesh = MT.HybridMesh.create(nodes, elements)
 
-def set_physical_flags():
+def set_flags_and_cell_types():
     flags = ComPASS.global_cellflags()
     flags[:] = physical
+    celltypes = ComPASS.global_celltypes()
+    celltypes[:] = mesh.vtk_ids().astype(np.int8, copy=False)
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     mesh = mesh,
-    set_global_flags = set_physical_flags
+    set_global_flags = set_flags_and_cell_types
 )
 #set_initial_values()
 #set_boundary_conditions()

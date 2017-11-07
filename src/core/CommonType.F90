@@ -1,7 +1,7 @@
 module CommonType
 
   ! This for arrays that are interfaced with python/C++
-  use iso_c_binding, only: c_int, c_char, c_double
+  use iso_c_binding, only: c_int, c_int8_t, c_char, c_double
 
   implicit none
 
@@ -9,6 +9,11 @@ module CommonType
   type ARRAY1Int
     integer(c_int), allocatable, dimension(:) :: Val
   end type ARRAY1Int
+
+  !> Array 1d integer
+  type ARRAY1Int8
+    integer(c_int8_t), allocatable, dimension(:) :: Val
+  end type ARRAY1Int8
 
   !> Array 1d double precision
   type ARRAY1dble
