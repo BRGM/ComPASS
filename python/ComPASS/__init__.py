@@ -105,7 +105,9 @@ def init(
                                )
             # distribute cell types to be able to reconstruct local meshes
             celltypes = ComPASS.global_celltypes()
-            celltypes[:] = mesh.vtk_ids().astype(np.int8, copy=False)
+            celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
+            facetypes = ComPASS.global_facetypes()
+            facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
 #    else:
 #        print('Mesh type not understood!')
 #        # FIXME: This should be something like MPI.Abort()

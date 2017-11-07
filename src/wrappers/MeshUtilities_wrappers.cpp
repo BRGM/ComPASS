@@ -35,6 +35,8 @@ extern "C"
 	void retrieve_global_cellflags(XArrayWrapper<int>&);
 	void retrieve_celltypes(XArrayWrapper<int8_t>&);
 	void retrieve_global_celltypes(XArrayWrapper<int8_t>&);
+	void retrieve_facetypes(XArrayWrapper<int8_t>&);
+	void retrieve_global_facetypes(XArrayWrapper<int8_t>&);
 	void retrieve_faceflags(XArrayWrapper<int>&);
 	void retrieve_global_faceflags(XArrayWrapper<int>&);
 	void retrieve_global_vertices(XArrayWrapper<Point>&);
@@ -66,11 +68,13 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "global_cellflags", retrieve_global_cellflags);
 	add_array_wrapper(module, "global_faceflags", retrieve_global_faceflags);
 	add_array_wrapper(module, "global_celltypes", retrieve_global_celltypes);
+	add_array_wrapper(module, "global_facetypes", retrieve_global_facetypes);
 	add_array_wrapper(module, "vertices", retrieve_vertices);
 	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
 	add_array_wrapper(module, "cellflags", retrieve_cellflags);
 	add_array_wrapper(module, "faceflags", retrieve_faceflags);
 	add_array_wrapper(module, "celltypes", retrieve_celltypes);
+	add_array_wrapper(module, "facetypes", retrieve_facetypes);
 	add_array_wrapper(module, "face_frac_id", retrieve_face_frac_id);
 	add_array_wrapper(module, "frac_face_id", retrieve_frac_face_id);
 	add_array_wrapper(module, "nb_cells_own", retrieve_nb_cells_own);

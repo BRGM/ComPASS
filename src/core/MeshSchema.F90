@@ -62,7 +62,8 @@ module MeshSchema
        FaceFlagsLocal
   
   integer(c_int8_t), allocatable, dimension(:), target :: &
-       CellTypesLocal
+       CellTypesLocal, &
+       FaceTypesLocal
   
   integer(c_int), allocatable, dimension(:,:), target :: &
        NodeRocktypeLocal, &
@@ -425,6 +426,17 @@ contains
        allocate(CellTypesLocal(NbCellLocal_Ncpus(commRank+1)))
        call MPI_Recv(CellTypesLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER1, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
     end if
+        
+    if (commRank==0) then
+       do i=1,Ncpus-1
+          call MPI_Send(FaceTypes_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER1, i, 26, ComPASS_COMM_WORLD, Ierr)
+       end do
+       allocate(FaceTypesLocal(NbFaceLocal_Ncpus(1)))
+       FaceTypesLocal = FaceTypes_Ncpus(1)%Val    
+    else
+       allocate(FaceTypesLocal(NbFaceLocal_Ncpus(commRank+1)))
+       call MPI_Recv(FaceTypesLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER1, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
+    end if
 
     if(commRank==0) then
        do i=1, Ncpus
@@ -432,11 +444,12 @@ contains
           deallocate(CellFlags_Ncpus(i)%Val)
           deallocate(FaceFlags_Ncpus(i)%Val)
           deallocate(CellTypes_Ncpus(i)%Val)
+          deallocate(FaceTypes_Ncpus(i)%Val)
        end do
        deallocate(NodeFlags_Ncpus)
        deallocate(CellFlags_Ncpus)
        deallocate(FaceFlags_Ncpus)
-       deallocate(CellTypes_Ncpus)
+       deallocate(FaceTypes_Ncpus)
     end if
 
     ! Send Rocktype
@@ -1657,6 +1670,7 @@ contains
     deallocate(CellFlagsLocal)
     deallocate(FaceFlagsLocal)
     deallocate(CellTypesLocal)
+    deallocate(FaceTypesLocal)
 
     deallocate(NodeRocktypeLocal)
     deallocate(CellRocktypeLocal)

@@ -80,7 +80,8 @@ module GlobalMesh
     FaceFlags
 
   integer(c_int8_t), allocatable, dimension(:), target :: &
-      CellTypes
+      CellTypes, &
+      FaceTypes
   
   INTEGER, ALLOCATABLE, DIMENSION(:,:), TARGET :: &
     NodeRocktype, &
@@ -461,6 +462,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     allocate(CellFlags(NbCell))
     allocate(FaceFlags(NbFace))
     allocate(CellTypes(NbCell))
+    allocate(FaceTypes(NbFace))
 
   end subroutine GlobalMesh_allocate_flags
 
@@ -470,6 +472,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     if(allocated(CellFlags)) deallocate(CellFlags)
     if(allocated(FaceFlags)) deallocate(FaceFlags)
     if(allocated(CellTypes)) deallocate(CellTypes)
+    if(allocated(FaceTypes)) deallocate(FaceTypes)
 
   end subroutine GlobalMesh_deallocate_flags
 

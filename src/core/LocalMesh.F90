@@ -158,8 +158,9 @@ module LocalMesh
        FaceFlags_Ncpus
 
   type(ARRAY1Int8), dimension(:), allocatable, target, public :: &
-       CellTypes_Ncpus
-
+       CellTypes_Ncpus, &
+       FaceTypes_Ncpus
+  
   ! Rocktype
   type(ARRAY2Int), dimension(:), allocatable, target, public :: &
        NodeRocktype_Ncpus, &
@@ -341,6 +342,7 @@ contains
     allocate(CellFlags_Ncpus(Ncpus))
     allocate(FaceFlags_Ncpus(Ncpus))
     allocate(CellTypes_Ncpus(Ncpus))
+    allocate(FaceTypes_Ncpus(Ncpus))
 
     allocate(NodeRocktype_Ncpus(Ncpus))
     allocate(CellRocktype_Ncpus(Ncpus))
@@ -1435,6 +1437,12 @@ contains
     allocate(CellTypes_Ncpus(ip1)%Val(n))
     do k= 1, n
         CellTypes_Ncpus(ip1)%Val(k) = CellTypes(CellbyProc(ip1)%Num(k))
+    end do
+
+    n = size(FacebyProc(ip1)%Num)
+    allocate(FaceTypes_Ncpus(ip1)%Val(n))
+    do k= 1, n
+        FaceTypes_Ncpus(ip1)%Val(k) = FaceTypes(FacebyProc(ip1)%Num(k))
     end do
 
   end subroutine LocalMesh_Flags

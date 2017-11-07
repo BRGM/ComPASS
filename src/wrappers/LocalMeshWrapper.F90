@@ -16,7 +16,8 @@
           retrieve_nodeflags, &
           retrieve_cellflags, &
           retrieve_faceflags, &
-         retrieve_celltypes
+         retrieve_celltypes, &
+         retrieve_facetypes
 
     contains
 
@@ -90,7 +91,7 @@
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
           if (.not. allocated(CellTypesLocal)) then
-             print *, "Local face flags are not allocated."
+             print *, "Local cell types are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
@@ -99,6 +100,22 @@
           cpp_array%n = size(CellTypesLocal)
 
        end subroutine retrieve_celltypes
+
+       subroutine retrieve_facetypes(cpp_array) &
+          bind(C, name="retrieve_facetypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(FaceTypesLocal)) then
+             print *, "Local face types are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(FaceTypesLocal(1))
+          cpp_array%n = size(FaceTypesLocal)
+
+       end subroutine retrieve_facetypes
 
     end module LocalMeshWrapper
 
