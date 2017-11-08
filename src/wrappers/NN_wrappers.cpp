@@ -17,6 +17,7 @@ extern "C"
 }
 
 #include "NN_wrappers.h"
+#include <pybind11/iostream.h>
 
 void add_NN_wrappers(py::module& module)
 {
@@ -57,13 +58,15 @@ void add_NN_wrappers(py::module& module)
 	module.def("main_loop", [](int TimeIter, const std::string& OutputDir) { NN_main(TimeIter, OutputDir); },
 		"Main loop of ComPASS.");
 
-	module.def("make_timestep", &NN_main_make_timestep);
+	module.def("make_timestep", &NN_main_make_timestep,
+		py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>());
 
 	// This is transitory to output visualisation files
 	module.def("output_visu", [](int TimeIter, const std::string& OutputDir) { NN_main_output_visu(TimeIter, OutputDir); },
 		"This function is transitory and is bound to disappear. It is here to output visualisation files through original fortran code.");
 
-	module.def("summarize_timestep", &NN_main_summarize_timestep);
+	module.def("summarize_timestep", &NN_main_summarize_timestep,
+		py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>());
 
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
 
