@@ -1,17 +1,9 @@
-!
-! This file is part of ComPASS.
-!
-! ComPASS is free software: you can redistribute it and/or modify it under both the terms
-! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
-! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
-!
-
 module IncCV
 
   use MeshSchema
   use DefModel
 
-  use NumbyContext
+  use NumbyContext  
   use CommonMPI
 
 #ifdef _HDF5_
@@ -36,7 +28,7 @@ module IncCV
           AccVol(NbCompThermique)  !< ??? of the element
 
   end TYPE TYPE_IncCV
-
+  
   ! Data of well prod/inj, Ref=max for inj and min for prod
   ! TYPE TYPE_DataWell
   !    character :: IndWell ! indwell: p for pressure mode, f for flowrate mode
@@ -44,7 +36,7 @@ module IncCV
   !         PressionRef, &
   !         Flowrate ! < 0, reference flowrate
   ! end type TYPE_DataWell
-
+  
   !> Type for the perforations, stores informations which are not constant in the well
   TYPE TYPE_PhysPerfoWell
      double precision :: &
@@ -56,7 +48,7 @@ module IncCV
           ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}
   end TYPE TYPE_PhysPerfoWell
 
-
+  
   !> to allow = between two TYPE_IncCV
   interface assignment(=)
      module procedure assign_type_inccv
@@ -74,9 +66,9 @@ module IncCV
        IncPressionWellProd   !< Production Well unknown: head pressure for current time step
 
   ! like CSR format without stocking %Nb and %Pt (idem that NodebyWellLocal)
-  TYPE(TYPE_PhysPerfoWell), allocatable, dimension(:), target, public :: &
+  TYPE(TYPE_PhysPerfoWell), allocatable, dimension(:), target, public :: &  
        PerfoWellInj, & !< Injection Well informations at each perforation for current time step
-       PerfoWellProd   !< Production Well informations at each perforation for current time step
+       PerfoWellProd   !< Production Well informations at each perforation for current time step 
 
   ! Dir BC
   TYPE(TYPE_IncCV), allocatable, dimension(:), target, public :: &
@@ -117,7 +109,7 @@ module IncCV
 contains
 
   ! IncCV_SetInitialvalue and
-  ! IncCV_SetDirBCvalue are defined in:
+  ! IncCV_SetDirBCvalue are defined in: 
 #include "DefInitBCvalues.F90"
 
   !> \brief Define operator = between two TYPE_IncCV:  inc2=inc1
@@ -172,7 +164,7 @@ contains
 
     ! Sort injection well
     ! and save the results in vector ZsortedInj_Znum and ZsortedInj_Zval
-    call IncCV_SortHeightWellInj
+    call IncCV_SortHeightWellInj 
 
   end subroutine IncCV_allocate
 
@@ -236,6 +228,7 @@ contains
     ! cells
     do k=1, NbCellLocal_Ncpus(commRank+1)
        call IncCV_NewtonIncrement_reservoir(IncCell(k),NewtonIncreCell(:,k), relax)
+  !     write(*,*) ' increment cell ',k,NewtonIncreCell(:,k)
     end do
 
     ! injection wells (head Pressure)
@@ -255,7 +248,7 @@ contains
   !!
   !! relax = min(1, IncreObj/NewtonIncreObjMax)                   <br>
   !! where IncreObj is set by the user in DefModel.F90            <br>
-  !! and NewtonIncreObjMax is the maximum of the Nemton increment
+  !! and NewtonIncreObjMax is the maximum of the Nemton increment 
   !! in current iteration
   subroutine IncCV_NewtonRelax( &
        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax)
@@ -313,7 +306,7 @@ contains
        if(IdNodeLocal(k)%T /= "d") then
           incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreNode(2,k)))
        end if
-#endif
+#endif       
 
     end do
 
@@ -327,7 +320,7 @@ contains
 
 #ifdef _THERMIQUE_
        incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreFrac(2,k)))
-#endif
+#endif       
 
        do i=2+IndThermique, NbIncPTC
           icp = NumIncPTC2NumIncComp_comp_ctx(i,ic)
@@ -353,7 +346,7 @@ contains
 
 #ifdef _THERMIQUE_
        incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreCell(2,k)))
-#endif
+#endif       
 
        do i=2+IndThermique, NbIncPTC
           icp = NumIncPTC2NumIncComp_comp_ctx(i,ic)
@@ -429,6 +422,9 @@ contains
     ! increment Pressure
     inc%Pression = inc%Pression + relax * incre(1)
 
+
+!    write(*,*)' increment P ',relax,incre(1)
+    
 #ifdef _THERMIQUE_
 
     ! increment Temperature
@@ -451,7 +447,7 @@ contains
     end do
 
     ! AccVol
-    do i=1, NbCompCtilde_ctx(ic)
+    do i=1, NbCompCtilde_ctx(ic) 
        icp = NumCompCtilde_ctx(i,ic)
        inc%AccVol(icp) = incre(NbIncPTCS+i)
     end do
@@ -516,7 +512,7 @@ contains
     !              incremaxlocal_T = max(incremaxlocal_T, &
     !                   abs(IncNode(k)%Temperature-IncNodePreviousTimeStep(k)%Temperature))
     !           end if
-    ! #endif
+    ! #endif                 
     !        end if
     !     end do
 
@@ -547,7 +543,7 @@ contains
     ! #ifdef _THERMIQUE_
     !        incremaxlocal_T = max(incremaxlocal_T, &
     !             abs(IncFrac(k)%Temperature-IncFracPreviousTimeStep(k)%Temperature))
-    ! #endif
+    ! #endif       
     !     end do
 
     !     ! loop of cell
@@ -577,7 +573,7 @@ contains
     ! #ifdef _THERMIQUE_
     !        incremaxlocal_T = max(incremaxlocal_T, &
     !             abs(IncCell(k)%Temperature-IncCellPreviousTimeStep(k)%Temperature))
-    ! #endif
+    ! #endif       
     !     end do
 
     ! ! print*, "increment"
@@ -691,11 +687,11 @@ contains
 
     ! mesh Simon 5M, one well inj and one well prod
     Delta_t = min(Delta_t, TimeStepMax)
-
+    
     ! if(commRank==0) then
     !    print*, ""
     !    print*, incremaxlocal_P, incremaxlocal_T, incremaxlocal_S, alpha
-    ! end if
+    ! end if    
 
   end subroutine IncCV_ComputeTimeStep
 
@@ -752,115 +748,84 @@ contains
 
   end subroutine IncCV_LoadIncPreviousTimeStep
 
-  !> \brief Transform IncCV format to a vector,
+  !> \brief Transform IncCV format to a vector, 
   !! necessary for visualization.
   !!
-  !! Transform IncCell into output vector datacell
-  !! and IncFrac into output vector datafrac.                                       <br>
+  !! Transform Inc into output vector datavisu
   !! The structure of the vector is                                                 <br>
-  !!   (Pressure of all cells, Temperature of all cells,                            <br>
-  !!        Comp(1) of all cells, ... , Comp(n) of all cells,                       <br>
-  !!            Saturation(1) of all cells, ..., Saturation(n) of all cells)
-  subroutine IncCV_ToVec( &
-       datavisucell, datavisufrac, &
-       datavisuwellinj, datavisuwellprod)
+  !!   (Pressure, Temperature,                                                      <br>
+  !!        Comp(1), ... , Comp(n),                                                 <br>
+  !!            Saturation(1), ..., Saturation(n))
+  SUBROUTINE IncCV_ToVec_cv(NbIncOwn, Inc, datavisu)
 
-    double precision, dimension(:), intent(inout) :: &
-         datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
+    INTEGER, INTENT(IN) :: NbIncOwn
+    TYPE(Type_IncCV), DIMENSION(:), INTENT(IN) :: Inc 
+    DOUBLE PRECISION, DIMENSION(:), INTENT(OUT) :: datavisu
 
-    integer :: k, i, j, start
-    integer :: NbCellOwn, NbFracOwn
+    integer :: i_data, j_data
+    integer :: i, j
+
+    ! Pressure
+    i_data = 1
+    j_data = NbIncOwn
+
+    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Pression
+
+    ! Temperature
+#ifdef _THERMIQUE_
+    i_data = j_data + 1
+    j_data = j_data + NbIncOwn
+    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Temperature
+#endif
+
+    ! Comp
+    DO j = 1, NbPhase
+       DO i = 1, NbComp
+
+          IF(MCP(i,j) == 1)THEN
+            i_data = j_data + 1
+            j_data = j_data + NbIncOwn
+            datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Comp(i,j)
+          ENDIF
+       ENDDO
+    ENDDO
+
+    ! Saturation
+    DO i = 1, NbPhase
+      i_data = j_data + 1
+      j_data = j_data + NbIncOwn
+      datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Saturation(i)
+    ENDDO
+  ENDSUBROUTINE IncCV_ToVec_cv
+
+
+  SUBROUTINE IncCV_ToVec( &
+       datavisucell, &
+       datavisufrac, &
+       datavisunode, &
+       datavisuwellinj, &
+       datavisuwellprod)
+
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisucell
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisufrac
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisunode
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellinj
+    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellprod
+
+    INTEGER :: NbCellOwn, NbFracOwn, NbNodeOwn
 
     NbCellOwn = NbCellOwn_Ncpus(commRank+1)
     NbFracOwn = NbFracOwn_Ncpus(commRank+1)
+    NbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
 
-    ! cell Pressure
-    do k=1, NbCellOwn
-       datavisucell(k) = IncCell(k)%Pression
-    end do
+    CALL IncCV_ToVec_cv(NbCellOwn, IncCell, datavisucell)
+    CALL IncCV_ToVec_cv(NbFracOwn, IncFrac, datavisufrac)
+    CALL IncCV_ToVec_cv(NbNodeOwn, IncNode, datavisunode)
 
-    ! cell Temperature
-#ifdef _THERMIQUE_
+    datavisuwellinj = 1.d0 ! not implemented
+    datavisuwellprod = 1.d0 ! not implemented
+  ENDSUBROUTINE IncCV_ToVec
 
-    start = NbCellOwn
-    do k=1, NbCellOwn
-       datavisucell(k+start) = IncCell(k)%Temperature
-    end do
-#endif
-
-    ! cell Comp
-    start = (1 + IndThermique) * NbCellOwn
-    do j=1, NbPhase
-       do i=1, NbComp
-
-          if(MCP(i,j)==1) then
-             do k=1, NbCellOwn
-                datavisucell(k+start) = IncCell(k)%Comp(i,j)
-             end do
-             start = start + NbCellOwn
-          end if
-
-       end do
-    end do
-
-    ! cell Saturation
-    do i=1, NbPhase
-       do k=1, NbCellOwn
-          datavisucell(k+start) = IncCell(k)%Saturation(i)
-       end do
-       start = start + NbCellOwn
-    end do
-
-    ! frac Pressure
-    do k=1, NbFracOwn
-       datavisufrac(k) = IncFrac(k)%Pression
-    end do
-
-    ! frac Temperature
-#ifdef _THERMIQUE_
-
-    start = NbFracOwn
-    do k=1, NbFracOwn
-       datavisufrac(k+start) = IncFrac(k)%Temperature
-    end do
-#endif
-
-    ! frac Comp
-    start = (1 + IndThermique) * NbFracOwn
-    do j=1, NbPhase
-       do i=1, NbComp
-
-          if(MCP(i,j)==1) then
-             do k=1, NbFracOwn
-                datavisufrac(k+start) = IncFrac(k)%Comp(i,j)
-             end do
-             start = start + NbFracOwn
-          end if
-
-       end do
-    end do
-
-    ! frac Saturation
-    do i=1, NbPhase
-       do k=1, NbFracOwn
-          datavisufrac(k+start) = IncFrac(k)%Saturation(i)
-       end do
-       start = start + NbFracOwn
-    end do
-
-    ! pressure at well edges, inj
-    ! it is equal to the average of its two nodes
-    do i=1, sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank+1)))
-       datavisuwellinj(i) = 1.d0 ! not implemented
-    end do
-
-    ! pressure at well edges, prod
-    ! it is equal to the average of its two nodes
-    do i=1, sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank+1)))
-       datavisuwellprod(i) = 1.d0 ! not implemented
-    end do
-
-  end subroutine IncCV_ToVec
 
   ! sort the nodes of wells by z-cordinate from the smallest to the largest
   ! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
@@ -932,11 +897,11 @@ contains
              Pws = IncPressionWellProd(k) ! P_{w,s} = Pw
 
              PerfoWellProd(s)%Pression = Pws
-             PerfoWellProd(s)%PressureDrop = 0.d0
+             PerfoWellProd(s)%PressureDrop = 0.d0 
 
           else ! Pws = P_{w,parent} + \Delta P_{w,parent}
 
-             zs = XNodeLocal(3,nums) ! z-cordinate of node s
+             zs = XNodeLocal(3,nums) ! z-cordinate of node s          
              zp = XNodeLocal(3,NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
 
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
@@ -973,7 +938,7 @@ contains
 #endif
 
   Ptmp = Pfirst
-  ! Saturation is fixed to liquid
+  ! Saturation is fixed to liquid  
   Stmp(PHASE_GAS) = 0.d0
   Stmp(PHASE_WATER) = 1.d0
   PerfoWellInj(sfirst)%Pression  = Pfirst
@@ -1100,7 +1065,7 @@ contains
     offsettype = 0
     call H5Tinsert_f(inctype_id, "ic", offsettype, H5T_NATIVE_INTEGER, Ierr)
 
-    offsettype = offsettype + sizetypeint
+    offsettype = offsettype + sizetypeint 
     call H5Tinsert_f(inctype_id, "Pression", offsettype, H5T_NATIVE_DOUBLE, Ierr)
 
     offsettype = offsettype + sizetypedouble
@@ -1117,7 +1082,7 @@ contains
     call H5Tinsert_f(inctype_id, "Saturation", offsettype, arrayS_type_id, Ierr)
 
     offsettype = offsettype + sizetypedouble * NbPhase
-    sizetypearray = NbCompThermique
+    sizetypearray = NbCompThermique 
     call h5Tarray_create_f(H5T_NATIVE_DOUBLE, 1, sizetypearray, arrayAcc_type_id, Ierr)
     call H5Tinsert_f(inctype_id, "AccVol", offsettype, arrayAcc_type_id, Ierr)
 
@@ -1128,7 +1093,7 @@ contains
     offsettype = 0
     call H5Tinsert_f(perfotype_id, "Pression", offsettype, H5T_NATIVE_DOUBLE, Ierr)
 
-    offsettype = offsettype + sizetypedouble
+    offsettype = offsettype + sizetypedouble 
     call H5Tinsert_f(perfotype_id, "Temperature", offsettype, H5T_NATIVE_DOUBLE, Ierr)
 
     offsettype = offsettype + sizetypedouble
@@ -1149,7 +1114,7 @@ contains
     integer(HID_T) :: dset_id       ! Dataset identifier
     integer(HSIZE_T),  dimension(1)  :: sizeinc    ! Dataset dimensions global.
     integer(HSIZE_T),  dimension(1)  :: sizeincloc ! Dataset dimensions local.
-    integer(HSSIZE_T), dimension(1)  :: offset
+    integer(HSSIZE_T), dimension(1)  :: offset 
 
     integer :: i, Ierr
 
@@ -1174,7 +1139,7 @@ contains
        offset = offset + local_Ncpus(i)
     end do
 
-    ! Create the data space for the dataset: filespace
+    ! Create the data space for the dataset: filespace 
     call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! Create the dataset with default properties.
@@ -1186,10 +1151,10 @@ contains
     call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr) ! here, we only specify start and count, not stride nor block (which then defaults to 1)
 
     ! memspace, Creates a new simple dataspace and opens it for access
-    call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! Create property list for collective dataset read: plist_id
-    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! Write the dataset collectively.
@@ -1260,9 +1225,9 @@ contains
     call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! memspace
-    call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
-    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     call h5dread_f(dset_id, type_id, targetptr, Ierr, &
@@ -1354,7 +1319,7 @@ contains
     !    offset = offset + NbCellLocal_Ncpus(i)
     ! end do
 
-    ! ! Create the data space for the dataset: filespace
+    ! ! Create the data space for the dataset: filespace 
     ! call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! ! Create the dataset with default properties.
@@ -1367,10 +1332,10 @@ contains
     ! call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr) ! here, we only specify start and count, not stride nor block (which then defaults to 1)
 
     ! ! memspace, Creates a new simple dataspace and opens it for access
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! ! Create property list for collective dataset read: plist_id
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! ! Write the dataset collectively.
@@ -1429,7 +1394,7 @@ contains
     !    offset = offset + NbNodeLocal_Ncpus(i)
     ! end do
 
-    ! ! Create the data space for the dataset: filespace
+    ! ! Create the data space for the dataset: filespace 
     ! call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! ! Create the dataset with default properties.
@@ -1442,10 +1407,10 @@ contains
     ! call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! ! Create property list for collective dataset read: plist_id
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! ! Write the dataset collectively.
@@ -1484,7 +1449,7 @@ contains
     !    offset = offset + NbFracLocal_Ncpus(i)
     ! end do
 
-    ! ! Create the data space for the dataset: filespace
+    ! ! Create the data space for the dataset: filespace 
     ! call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! ! Create the dataset with default properties.
@@ -1497,10 +1462,10 @@ contains
     ! call h5sselect_hyperslab_f (filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! ! Create property list for collective dataset read: plist_id
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! ! Write the dataset collectively.
@@ -1538,7 +1503,7 @@ contains
     !    offset = offset + NbWellInjLocal_Ncpus(i)
     ! end do
 
-    ! ! Create the data space for the dataset: filespace
+    ! ! Create the data space for the dataset: filespace 
     ! call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! ! Create the dataset with default properties.
@@ -1550,10 +1515,10 @@ contains
     ! call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! ! Create property list for collective dataset read: plist_id
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! ! Write the dataset collectively.
@@ -1590,7 +1555,7 @@ contains
     !    offset = offset + NbWellProdLocal_Ncpus(i)
     ! end do
 
-    ! ! Create the data space for the dataset: filespace
+    ! ! Create the data space for the dataset: filespace 
     ! call h5screate_simple_f(1, sizeinc, filespace, Ierr)
 
     ! ! Create the dataset with default properties.
@@ -1602,10 +1567,10 @@ contains
     ! call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
     ! ! Create property list for collective dataset read: plist_id
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! ! Write the dataset collectively.
@@ -1616,7 +1581,7 @@ contains
     call h5fclose_f(file_id, Ierr)
 
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! close
+    ! close 
     call H5Tclose_f(inctype_id, Ierr)
     call H5Tclose_f(perfotype_id, Ierr)
     call h5close_f(Ierr)
@@ -1722,9 +1687,9 @@ contains
     ! call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! targetptr = C_LOC(IncCell(1))
@@ -1802,9 +1767,9 @@ contains
     ! call h5sselect_hyperslab_f (filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! targetptr = C_LOC(IncNode(1))
@@ -1860,9 +1825,9 @@ contains
     ! call h5sselect_hyperslab_f (filespace, H5S_SELECT_SET_F, offset, sizeincloc, Ierr)
 
     ! ! memspace
-    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr)
+    ! call h5screate_simple_f(1, sizeincloc, memspace, Ierr) 
 
-    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr)
+    ! call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, Ierr) 
     ! call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, Ierr)
 
     ! targetptr = C_LOC(IncFrac(1))
@@ -1875,7 +1840,7 @@ contains
     ! 2.4 well inj
     targetptr = C_loc(PerfoWellInj(1))
     write(filename, '(A,A,I0,A)') trim(dirname), "/TimeStep_", TimeIter, "_inj.h5"
-    call h5_open_and_read_dset(filename, "PerfoWellInj", NbWellInjLocal_Ncpus, &
+    call h5_open_and_read_dset(filename, "PerfoWellInj", NbWellInjLocal_Ncpus, & 
          perfotype_id, targetptr, TimeIter, file_id)
 
     ! 2.5 well prod
@@ -1885,7 +1850,7 @@ contains
          perfotype_id, targetptr, TimeIter, file_id)
 
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! close
+    ! close 
     call H5Tclose_f(inctype_id, Ierr)
     call H5Tclose_f(perfotype_id, Ierr)
     call h5close_f(Ierr)

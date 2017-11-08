@@ -1,11 +1,3 @@
-!
-! This file is part of ComPASS.
-!
-! ComPASS is free software: you can redistribute it and/or modify it under both the terms
-! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
-! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
-!
-
 module VisuVTK
 
   use PathUtilities
@@ -21,7 +13,7 @@ module VisuVTK
   ! ptr to class VisuVTK_Time
   type(c_ptr), private :: visuptr
 
-  ! output dir
+  ! output dir 
   character(len=200), private :: OutputDir
 
   ! Two types of Mesh
@@ -38,7 +30,7 @@ module VisuVTK
 
 
   ! the times which are saved for visu
-  double precision, dimension(:), allocatable, private :: VisuTimes
+  double precision, dimension(:), allocatable, private :: VisuTimes  
 
   ! Nb of times which are saved for visu
   integer, private :: NbVisuTimes = 0
@@ -54,6 +46,8 @@ module VisuVTK
         NbWellInjOwncpp, NbWellProdOwncpp, &
         !
         NbFracOwncpp, FracToFaceLocalcpp, &
+        !
+        NbNodeOwncpp, &
         !
         NodebyCellLocal_Nbcpp, NodebyCellLocal_Ptcpp, NodebyCellLocal_Numcpp, &
         FacebycellLocal_Nbcpp, FacebycellLocal_Ptcpp, FacebycellLocal_Numcpp, &
@@ -91,7 +85,7 @@ module VisuVTK
       integer(c_int), value :: NbFaceOwncpp
       integer(c_int), value :: NbNodeLocalcpp
       integer(c_int), value :: NbWellInjOwncpp  ! nb of inj well own
-      integer(c_int), value :: NbWellProdOwncpp ! nb of prod well own
+      integer(c_int), value :: NbWellProdOwncpp ! nb of prod well own 
 
       ! Nb of edges of each well
       integer(c_int) :: NbEdgebyWellInjcpp(*)
@@ -103,17 +97,17 @@ module VisuVTK
 
       ! NodebyCell
       integer (c_int), value :: NodebyCellLocal_Nbcpp
-      integer (c_int) :: NodebyCellLocal_Ptcpp(*)
+      integer (c_int) :: NodebyCellLocal_Ptcpp(*)       
       integer (c_int) :: NodebyCellLocal_Numcpp(*)
 
       ! FacebyCell
       integer (c_int), value :: FacebyCellLocal_Nbcpp
-      integer (c_int) :: FacebyCellLocal_Ptcpp(*)
+      integer (c_int) :: FacebyCellLocal_Ptcpp(*)       
       integer (c_int) :: FacebyCellLocal_Numcpp(*)
 
       ! NodebyFace
       integer (c_int), value :: NodebyFaceLocal_Nbcpp
-      integer (c_int) :: NodebyFaceLocal_Ptcpp(*)
+      integer (c_int) :: NodebyFaceLocal_Ptcpp(*)       
       integer (c_int) :: NodebyFaceLocal_Numcpp(*)
 
       ! XNodeLocal
@@ -125,30 +119,38 @@ module VisuVTK
       ! Nb of frac
       integer (c_int), value :: NbFracOwncpp
 
+      ! Nb of node
+      integer (c_int), value :: NbNodeOwncpp
+
       ! FractoFaceLocal
       integer (c_int) :: FracToFaceLocalcpp(*)
 
     end function visuvtk_time_initcxx
 
 
-    subroutine visuvtk_time_writedatacxx(this, &
+    SUBROUTINE visuvtk_time_writedatacxx( &
+        this, &
         NbVisuTimescpp, &
-        datacellcpp, datafraccpp, &
-        datawellinjcpp, datawellprodcpp)   &
-        bind(C, name="visuvtk_time_writedatacxx_")
+        datacellcpp, &
+        datafraccpp, &
+        datanodecpp, &
+        datawellinjcpp, &
+        datawellprodcpp) &
+        BIND(C, name="visuvtk_time_writedatacxx_")
 
-      use iso_c_binding, only: c_ptr, c_int, c_double
+      USE ISO_C_BINDING, ONLY: c_ptr, c_int, c_double
 
-      type(c_ptr), value :: this
+      TYPE(c_ptr), VALUE :: this
 
-      integer (c_int), value :: NbVisuTimescpp
+      INTEGER(c_int), VALUE :: NbVisuTimescpp
 
-      real (c_double) :: datacellcpp(*)
-      real (c_double) :: datafraccpp(*)
-      real (c_double) :: datawellinjcpp(*)
-      real (c_double) :: datawellprodcpp(*)
+      REAL(c_double) :: datacellcpp(*)
+      REAL(c_double) :: datafraccpp(*)
+      REAL(c_double) :: datanodecpp(*)
+      REAL(c_double) :: datawellinjcpp(*)
+      REAL(c_double) :: datawellprodcpp(*)
 
-    end subroutine visuvtk_time_writedatacxx
+    ENDSUBROUTINE visuvtk_time_writedatacxx
 
 
     subroutine visuvtk_time_freecxx(this) &
@@ -164,7 +166,7 @@ module VisuVTK
     subroutine visuvtk_pvdwritercxx(dirname, Nbvisu, Timesvisu) &
         bind(C, name="visuvtk_pvdwritercxx_")
 
-      use iso_c_binding
+      use iso_c_binding       
 
       character(c_char) :: dirname(*)
       integer (c_int), value :: Nbvisu
@@ -178,7 +180,7 @@ module VisuVTK
     !      meshtype,  &                                                       ! meshtype
     !      commRank, commSize, &                                              ! mpi info
     !      NbCellOwn,   NbFaceOwn,   NbNodeOwn,   &                           ! nb of ...
-    !      NbCellLocal, NbFaceLocal, NbNodeLocal, &
+    !      NbCellLocal, NbFaceLocal, NbNodeLocal, &                           
     !      NodebyCellLocal_Nb, NodebyCellLocal_Pt, NodebyCellLocal_Num, &     !
     !      FacebyCellLocal_Nb, FacebyCellLocal_Pt, FacebyCellLocal_Num, &     ! connectivites
     !      NodebyFaceLocal_Nb, NodebyFaceLocal_Pt, NodebyFaceLocal_Num, &     !
@@ -207,17 +209,17 @@ module VisuVTK
 
     !   ! NodebyCell
     !   integer (c_int), VALUE :: NodebyCellLocal_Nb
-    !   integer (c_int) :: NodebyCellLocal_Pt(*)
+    !   integer (c_int) :: NodebyCellLocal_Pt(*)       
     !   integer (c_int) :: NodebyCellLocal_Num(*)
 
     !   ! FacebyCell
     !   integer (c_int), VALUE :: FacebyCellLocal_Nb
-    !   integer (c_int) :: FacebyCellLocal_Pt(*)
+    !   integer (c_int) :: FacebyCellLocal_Pt(*)       
     !   integer (c_int) :: FacebyCellLocal_Num(*)
 
     !   ! NodebyFace
     !   integer (c_int), VALUE :: NodebyFaceLocal_Nb
-    !   integer (c_int) :: NodebyFaceLocal_Pt(*)
+    !   integer (c_int) :: NodebyFaceLocal_Pt(*)       
     !   integer (c_int) :: NodebyFaceLocal_Num(*)
 
     !   ! XNodeLocal
@@ -268,6 +270,7 @@ contains
         NbCellOwn_Ncpus(commRank+1), NbFaceOwn_Ncpus(commRank+1), NbNodeLocal_Ncpus(commRank+1), &
         NbWellInjOwn_Ncpus(commRank+1), NbWellProdOwn_Ncpus(commRank+1), &
         NbFracOwn_Ncpus(commRank+1), FracToFaceLocal, &
+        NbNodeOwn_Ncpus(commRank+1), &
         !
         NodebyCellLocal%Nb, NodebyCellLocal%Pt, NodebyCellLocal%Num, &
         FacebyCellLocal%Nb, FacebycellLocal%Pt, FacebycellLocal%Num, &
@@ -278,7 +281,7 @@ contains
         !
         XNodeLocal, XCellLocal)
 
-    ! allocate VisuTimes
+    ! allocate VisuTimes 
     ! FIXME: The array is copied and expanded each time a visualaisation ouput is made
     allocate(VisuTimes(NbVisuTimes))
 
@@ -286,37 +289,47 @@ contains
 
 
   ! write data for time step
-  subroutine VisuVTK_VisuTime_writedata(t, &
-       datacell, datafrac, &
-       datawellinj, datawellprod)
+  SUBROUTINE VisuVTK_VisuTime_writedata( &
+      t, &
+      datacell, &
+      datafrac, &
+      datanode, &
+      datawellinj, &
+      datawellprod)
 
-    double precision, intent(in) :: t
-
-    double precision, dimension(:), intent(in) :: &
-        datacell, datafrac, datawellinj, datawellprod
+    DOUBLE PRECISION, INTENT(IN) :: t
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datacell
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datafrac
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datanode
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datawellinj
+    DOUBLE PRECISION, DIMENSION(:), INTENT(IN) :: datawellprod
 
     character(len=200) :: output_path
-    double precision, dimension(size(VisuTimes)) :: TmpVisuTimes
+    double precision, dimension(size(VisuTimes)) :: TmpVisuTimes  
 
     ! FIXME: The allocation/deallocation is done at each output
     TmpVisuTimes = VisuTimes
     deallocate(VisuTimes)
-
+    
     NbVisuTimes = NbVisuTimes + 1
-
+    
     allocate(VisuTimes(NbVisuTimes))
     VisuTimes(1:NbVisuTimes-1) = TmpVisuTimes
-
+ 
     VisuTimes(NbVisuTimes) = t ! all timesteps for .pvd are stored here
 
     write(output_path, '(A,I0)')  trim(OutputDir) // "/time_", NbVisuTimes-1
     call make_directory(output_path)
 
-    ! write data
-    call visuvtk_time_writedatacxx(visuptr, &
-        NbVisuTimes, &
-        datacell, datafrac, &
-        datawellinj, datawellprod)
+    ! write data 
+    call visuvtk_time_writedatacxx( &
+      visuptr, &
+      NbVisuTimes, &
+      datacell, &
+      datafrac, &
+      datanode, &
+      datawellinj, &
+      datawellprod)
 
   end subroutine VisuVTK_VisuTime_writedata
 
@@ -331,7 +344,7 @@ contains
   end subroutine VisuVTK_VisuTime_free
 
 
-  ! write pvd file
+  ! write pvd file 
   subroutine VisuVTK_VisuTime_pvdwriter
 
     if(commRank==0) then
@@ -344,7 +357,7 @@ contains
   ! ! visu without time steps
   ! subroutine VisuVTK_Visu(meshtype, datacell, datafrac)
 
-  !   integer, intent(in) :: meshtype ! type of mesh car/tet/gen
+  !   integer, intent(in) :: meshtype ! type of mesh car/tet/gen 
 
   !   double precision, dimension(:), allocatable, intent(in) :: &
   !        datacell, &  ! data of cell to visu

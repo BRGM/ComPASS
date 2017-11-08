@@ -70,13 +70,20 @@ public:
 };
 
 /** Container of containers. */
-class COC
+struct COC
 {
+	typedef int offset_type;
+	typedef int value_type;
 protected:
-	int nb_containers;
-	int * container_offset;
-	int * container_content;
+	std::size_t nb_containers;
+	offset_type * container_offset;
+	value_type * container_content;
 public:
+	COC() :
+		nb_containers{ 0 },
+		container_offset{ nullptr },
+		container_content{ nullptr }
+	{}
 	auto begin() const {
 		return COC_iterator{ container_offset, container_content };
 	}
@@ -111,4 +118,13 @@ public:
 		return coc;
 	}
 	auto number_of_containers() const { return nb_containers; }
+	const offset_type * offset_data() const { return container_offset; }
+	const value_type * content_data() const { return container_content; }
+	std::size_t size() const {
+		if (nb_containers == 0) return 0;
+		assert(container_offset);
+		assert(container_content);
+		assert(container_offset[nb_containers] >= 0);
+		return static_cast<std::size_t>(container_offset[nb_containers]);
+	}
 };

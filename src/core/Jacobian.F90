@@ -4109,7 +4109,11 @@ contains
           sumcol = sumcol + abs( JacBigA%Val(i,j,nz))
        end do
 
-       if(sumcol<eps) then ! col i is null
+       ! warning
+       ! eps*1e-3 for small permeability in the pressure equation
+       ! TODO
+       ! find an automatic scaling
+       if(sumcol<eps*1e-3) then ! col i is null
 
           ! look for component C_{i}^alpha corresponding to the col i
 
@@ -4139,8 +4143,9 @@ contains
              print*, "Regularization error: icp=0"
              write(*,'(A,4I8)') "    row/col/i/commRank=", rowk, colk, i, commRank
              errcode = 52
-             ! write(*,*) "j ", j, "cv ", cv, " ic ", IncFrac(k)%ic
-             ! write(*,*) "sumcol ", sumcol
+             write(*,*) "j ", j, "cv ", cv, " ic ", IncCell(k)%ic
+             write(*,*) "sumcol ", sumcol
+             write(*,*) "i", i
              ! write(*,*) "x ", XFaceLocal(:,FracToFaceLocal(k))
 
              ! write(*,*) "Pression ", IncFrac(k)%Pression
@@ -4304,6 +4309,7 @@ contains
 
     integer, intent(in) :: k, rowk, ic
     integer :: i
+!!$    integer :: j, nz 
 
     double precision, dimension(NbCompThermique, NbCompThermique) :: &
          AA, BB
@@ -4313,6 +4319,31 @@ contains
     ! the index order of JacA%Val(:,:,nz) is (col, row)
     ! the index order of aligmethod(:,:,ic) is also (col, row)
 
+
+!!$    do i=JacA%Pt(rowk)+1, JacA%Pt(rowk+1)
+!!$       if (JacA%Num(i)==rowk) then
+!!$          nz = i
+!!$       endif
+!!$    enddo
+!!$   
+!!$    write(*,*)
+!!$    BB(:,:) = aligmat(:,:,ic)        
+!!$    write(*,*)
+!!$    write(*,*)' ic',ic
+!!$    do i=1,NbCompThermique       
+!!$    write(*,*)' ligne i ',i
+!!$       write(*,*)' Aligne ',(BB(i,j),j=1,NbCompThermique)
+!!$    enddo      
+!!$    
+!!$    AA(:,:) = JacA%Val(:,:,nz)
+!!$    write(*,*)
+!!$    do i=1,NbCompThermique       
+!!$    write(*,*)' ligne i ',i
+!!$       write(*,*)' AA avant ',(AA(i,j),j=1,NbCompThermique)
+!!$    enddo
+
+
+    
     BB(:,:) = aligmat(:,:,ic)
 
     ! JacA%Val(:,:,i) = JacA%Val(:,:,i) * aligmethod(:,:,ic)
@@ -4333,6 +4364,19 @@ contains
          BB, NbCompThermique, Smk, 1, &
          0.d0, Sm(:,rowk), 1)
 
+
+!!$    AA(:,:) = JacA%Val(:,:,nz)
+!!$    write(*,*)
+!!$    do i=1,NbCompThermique       
+!!$    write(*,*)' ligne i ',i
+!!$       write(*,*)' AA apres ',(AA(i,j),j=1,NbCompThermique)
+!!$    enddo
+
+
+    
+
+
+    
   end subroutine Jacobian_Alignment_man_row
 
 

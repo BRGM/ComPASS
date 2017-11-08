@@ -10,6 +10,7 @@ module NN
 
    use PathUtilities
 
+   use Mesh
    use GlobalMesh
    use PartitionMesh
    use LocalMesh
@@ -111,16 +112,15 @@ module NN
    !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
    !  double precision, dimension(:), allocatable :: PermFracLocal
 
-   ! Conductivities thermal
-#ifdef _THERMIQUE_
-   double precision, dimension(:, :, :), allocatable :: CondThermalCellLocal
-   double precision, dimension(:), allocatable :: CondThermalFracLocal
-#endif
-
 #ifdef _VISU_
    ! vectors used for visu
-   double precision, dimension(:), allocatable :: &
-      datavisucell, datavisufrac, datavisuwellinj, datavisuwellprod
+   double precision, dimension(:), allocatable :: datavisucell
+   double precision, dimension(:), allocatable :: datavisufrac
+   double precision, dimension(:), allocatable :: datavisunode
+   double precision, dimension(:), allocatable :: datavisuwellinj
+   double precision, dimension(:), allocatable :: datavisuwellprod
+   
+   
 #endif
 
    double precision :: visutime
@@ -157,6 +157,8 @@ contains
 
       character(len=*), intent(in) :: MeshFile
 
+      INTEGER :: mesh_format
+
       !FIXME: This is more of an assertion for consistency, might be removed
       if (.NOT. commRank == 0) then
          print *, "Mesh is supposed to be read by master process."
@@ -175,7 +177,8 @@ contains
       print *, "Mesh read from file: ", MeshFile
 
       ! Read Global Mesh
-      call GlobalMesh_Make_read_file(MeshFile)
+      CALL Mesh_select_mesh_format(MeshFile, mesh_format)
+      CALL Mesh_read_mesh_file(MeshFile, mesh_format)
 
       call GlobalMesh_Make_post_read()
 
@@ -309,6 +312,7 @@ subroutine init_visualization(OutputDir)
       ! vectors that regroup datas (P, T, C, S) from IncCV(:)
       allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
       allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
+      allocate (datavisunode(NbIncPTCSMax*NbNodeOwn_Ncpus(commRank + 1)))
 
       ! pressure at well edges, inj/prod
       n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
@@ -349,7 +353,7 @@ subroutine NN_init_phase2(OutputDir)
 #endif
             write (j, *) "  Ncpus :      ", commSize
             write (j, *) ""
-            write (j, *) "Final time: ", TimeFinal/OneDay
+            write (j, *) "Final time: ", TimeFinal/OneSecond
             write (j, *) ""
          end do
 
@@ -431,12 +435,6 @@ subroutine NN_init_phase2(OutputDir)
 
       ! *** VAG Transmissivity *** !
 
-      ! set conductivities thermal
-#ifdef _THERMIQUE_
-      call DefModel_SetCondThermique(NbCellLocal_Ncpus(commRank + 1), IdCellLocal, &
-                                     NbFracLocal_Ncpus(commRank + 1), &
-                                     CondThermalCellLocal, CondThermalFracLocal)
-#endif
 
       call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
 
@@ -546,7 +544,7 @@ subroutine NN_init_phase2(OutputDir)
       !   datavisuwellinj, datavisuwellprod)
       !
       !call VisuVTK_VisuTime_writedata(0.d0, &
-      !                                datavisucell, datavisufrac, &
+      !      datavisucell, datavisufrac, datavisunode, &
       !                                datavisuwellinj, datavisuwellprod)
       !
       !! if this proc constains at least one well, then write data to file
@@ -656,12 +654,19 @@ subroutine NN_init_phase2(OutputDir)
 #ifdef _VISU_
 
       call IncCV_ToVec( &
-         datavisucell, datavisufrac, &
-         datavisuwellinj, datavisuwellprod)
+        datavisucell, &
+        datavisufrac, &
+        datavisunode, &
+        datavisuwellinj, &
+        datavisuwellprod)
 
-      call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-                                      datavisucell, datavisufrac, &
-                                      datavisuwellinj, datavisuwellprod)
+      call VisuVTK_VisuTime_writedata( &
+        TimeCurrent/OneDay, &
+        datavisucell, &
+        datavisufrac, &
+        datavisunode, &
+        datavisuwellinj, &
+        datavisuwellprod)
 
       ! max and min temperature
       Tempmaxloc = -1.d4
@@ -917,6 +922,7 @@ subroutine NN_init_phase2(OutputDir)
             !   outputs: JacA, Sm
             call Jacobian_ComputeJacSm(Delta_t)
 
+            
             ! set values of matrix, vector, Ksp solver
             !   inputs : JacA, Sm
             !   outputs : solver Petsc
@@ -1016,16 +1022,37 @@ subroutine NN_init_phase2(OutputDir)
                call IncCV_UpdateDirBCValue
 
                ! call IncCV_ToVec( &
-               !      dataviscuell, datavisufrac, &
+               !      dataviscuell, datavisufrac, datavisunode &
                !      datavisuwellinj, datavisuwellprod)
 
                ! call VisuVTK_VisuTime_writedata(TimeCurrent/OneDay, &
-               !      datavisucell, datavisufrac,         &
+               !      datavisucell, datavisufrac, datavisunode, &
                !      datavisuwellinj, datavisuwellprod)
 
                ! Flash
                call DefFlash_Flash
 
+
+!      do k=1, NbNodeLocal_Ncpus(commRank+1)
+!         write(*,*)' nodes '
+!         write(*,*)' ic ',k,IncNode(k)%ic         
+!         write(*,*)' P ',k,IncNode(k)%Pression
+!         write(*,*)' T ',k,IncNode(k)%Temperature
+!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
+!      ENDDO
+
+!      do k=1, NbCellLocal_Ncpus(commRank+1)
+!         write(*,*)' cells '
+!         write(*,*)' ic ',k,IncCell(k)%ic         
+!         write(*,*)' P ',k,IncCell(k)%Pression
+!         write(*,*)' T ',k,IncCell(k)%Temperature
+!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
+!      ENDDO      
+               
                ! if(commRank==0) then
                !    ! print*, ""
                !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
@@ -1055,12 +1082,14 @@ subroutine NN_init_phase2(OutputDir)
                write (*, *) ""
                write (*, '(A)', advance="no") &
                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-               write (*, *) Delta_t/OneDay
+               write (*, *) Delta_t/OneSecond
 
                write (11, *) ""
                write (11, '(A)', advance="no") &
                   "   -- Restart a Newton with a smaller time step (Newton does not converge): "
-               write (11, *) Delta_t/OneDay
+               write (11, *) Delta_t/OneSecond
+
+               
             end if
 
             ! load status
@@ -1076,6 +1105,36 @@ subroutine NN_init_phase2(OutputDir)
       call DefFlash_TimeFlash
 
       TimeCurrent = TimeCurrent + Delta_t
+
+      do k=1, NbNodeLocal_Ncpus(commRank+1)
+        IF(IncNode(k)%Temperature < 293)THEN
+          PRINT*, ''
+          PRINT*, ''
+          PRINT*, 'TEMP', IncNode(k)%Temperature
+        ENDIF
+      ENDDO
+
+
+!      do k=1, NbNodeLocal_Ncpus(commRank+1)
+!         write(*,*)' nodes '
+!         write(*,*)' ic ',k,IncNode(k)%ic         
+!         write(*,*)' P ',k,IncNode(k)%Pression
+!         write(*,*)' T ',k,IncNode(k)%Temperature
+!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
+!      ENDDO
+
+!      do k=1, NbCellLocal_Ncpus(commRank+1)
+!         write(*,*)' cells '
+!         write(*,*)' ic ',k,IncCell(k)%ic         
+!         write(*,*)' P ',k,IncCell(k)%Pression
+!         write(*,*)' T ',k,IncCell(k)%Temperature
+!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
+!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
+!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
+!      ENDDO      
+      
 
       ! FiXME: What is the policy for time step management
       ! compute Delta_t for the next time step
@@ -1103,7 +1162,7 @@ subroutine NN_init_phase2(OutputDir)
       end if
 #endif
 
-      do while (TimeCurrent < (TimeFinal + eps))
+      do while (TimeCurrent < (TimeFinal - eps))
 
          TimeIter = TimeIter + 1
 
@@ -1113,11 +1172,11 @@ subroutine NN_init_phase2(OutputDir)
                write (j, *) ""
                write (j, *) ""
                write (j, '(A,I0)') "Time Step: ", TimeIter
-               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneDay, "days", TimeCurrent/OneYear, "years"
+               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneSecond, "seconds"
 
                write (j, *)
                write (j, '(A)', advance="no") "   -- Initial time step: "
-               write (j, *) Delta_t/OneDay
+               write (j, *) Delta_t/OneSecond
             end do
          end if
 
@@ -1221,7 +1280,7 @@ subroutine NN_init_phase2(OutputDir)
             write (j, *) "Final Report"
 
             write (j, *) ""
-            write (j, *) "    *Final time:  ", TimeFinal/OneDay
+            write (j, *) "    *Final time:  ", TimeFinal/OneSecond
 
             write (j, *) ""
             write (j, *) "    *Mesh:"
@@ -1251,6 +1310,7 @@ subroutine NN_init_phase2(OutputDir)
       call VisuVTK_VisuTime_free
       deallocate (datavisucell)
       deallocate (datavisufrac)
+      deallocate (datavisunode)
       deallocate (datavisuwellinj)
       deallocate (datavisuwellprod)
 #endif

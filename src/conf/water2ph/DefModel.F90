@@ -137,6 +137,7 @@ module DefModel
   ! ! ****** Times ****** ! !
 
   ! One day
+  double precision, parameter :: OneSecond = 1.d0
   double precision, parameter :: OneDay = 24.d0 * 3600.d0
   double precision, parameter :: OneMonth = 3.d1 * OneDay
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
@@ -218,16 +219,17 @@ contains
   ! Fugacity
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_Fugacity(iph,icp,P,T,C,S,f,DPf,DTf,DCf)
+  subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
+    integer, intent(in) :: rt(IndThermique+1)
     integer, intent(in) :: iph, icp
     double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
 
     ! output
-    double precision, intent(out) :: f, DPf, DTf, DCf(NbComp)
+    double precision, intent(out) :: f, DPf, DTf, DCf(NbComp),DSf(NbPhase)
 
-    double precision :: PSat, dTSat
+    double precision :: PSat, dTSat, Pc, DSPc(NbPhase)
 
     if(iph==1) then
 
@@ -244,6 +246,7 @@ contains
     end if
 
     dCf(:) = 0.d0
+    dSf(:) = 0.d0
 
    end subroutine f_Fugacity
 
@@ -386,9 +389,10 @@ contains
   ! Permeabilites = S**2
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_PermRel(iph,S,f,DSf)
+  subroutine f_PermRel(rt,iph,S,f,DSf)
 
     ! input
+    integer, intent(in) :: rt(IndThermique+1)
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -411,10 +415,10 @@ contains
 
 
   ! Pressions Capillaires des Phases et leurs derivees
-  subroutine f_PressionCapillaire(rocktype,iph,S,f,DSf)
+  subroutine f_PressionCapillaire(rt,iph,S,f,DSf)
 
     ! input
-    integer, intent(in) :: rocktype
+    integer, intent(in) :: rt(IndThermique+1)
     integer, intent(in) :: iph
     double precision, intent(in) :: S(NbPhase)
 
@@ -495,11 +499,13 @@ contains
   !! \param[in,out] PermCellG Permeability tensor for each cell
   !! \param[in,out] PermFracG Permeability constant for each fracture face
   subroutine DefModel_SetPerm( &
-      NbCellG, IdCellG, NbFaceG, &
+      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
       PermCellG, PermFracG)
 
-    integer, intent(in) :: NbCellG, NbFaceG
-    integer, dimension(:), intent(in) :: IdCellG
+    integer, intent(in) :: NbCellG
+    integer, dimension(:,:), intent(in) :: CellRocktypeG
+    integer, intent(in) :: NbFracG
+    integer, dimension(:,:), intent(in) :: FracRocktypeG
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
         PermCellG
@@ -517,41 +523,90 @@ contains
       PermCellG(3,3,i) = 1.d-14
     end do
 
-    allocate(PermFracG(NbFaceG))
+    allocate(PermFracG(NbFracG))
     PermFracG(:) = 1.d-11
 
   end subroutine DefModel_SetPerm
 
 
+  subroutine DefModel_SetPorosite( &
+      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
+      PorositeCell, PorositeFrac)
+
+    integer, intent(in) :: NbCellG
+    integer, dimension(:,:), intent(in) :: CellRocktypeG
+    integer, intent(in) :: NbFracG
+    integer, dimension(:,:), intent(in) :: FracRocktypeG
+    ! ouptuts:
+    double precision, dimension(:), allocatable, intent(inout) :: &
+      PorositeCell
+    double precision, dimension(:), allocatable, intent(inout) :: &
+      PorositeFrac
+
+
+  allocate(PorositeCell(NbCellG))
+  allocate(PorositeFrac(NbFracG))
+
+  PorositeCell(:) = 1.d-1
+  PorositeFrac(:) = 4.d-1
+  end subroutine DefModel_SetPorosite
+
+
 #ifdef _THERMIQUE_
 
   subroutine DefModel_SetCondThermique( &
-      NbCellLocal, IdCellLocal, NbFracLocal, &
-      CondThermalCellLocal, CondThermalFracLocal)
+      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
+      CondThermalCellG, CondThermalFracG)
 
-    integer, intent(in) :: NbCellLocal, NbFracLocal
-    integer, dimension(:), intent(in) :: IdCellLocal
+    integer, intent(in) :: NbCellG
+    integer, dimension(:,:), intent(in) :: CellRocktypeG
+    integer, intent(in) :: NbFracG
+    integer, dimension(:,:), intent(in) :: FracRocktypeG
 
     ! ouptuts:
     double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-        CondThermalCellLocal
+        CondThermalCellG
     double precision, dimension(:), allocatable, intent(inout) :: &
-        CondThermalFracLocal
+        CondThermalFracG
 
     integer :: i
 
-    allocate(CondThermalCellLocal(3,3,NbCellLocal))
-    do i=1, NbCellLocal
-      CondThermalCellLocal(:,:,i) = 0.d0
-      CondThermalCellLocal(1,1,i) = 2.d0
-      CondThermalCellLocal(2,2,i) = 2.d0
-      CondThermalCellLocal(3,3,i) = 2.d0
+    allocate(CondThermalCellG(3,3,NbCellG))
+    do i=1, NbCellG
+      CondThermalCellG(:,:,i) = 0.d0
+      CondThermalCellG(1,1,i) = 2.d0
+      CondThermalCellG(2,2,i) = 2.d0
+      CondThermalCellG(3,3,i) = 2.d0
     end do
 
-    allocate(CondThermalFracLocal(NbFracLocal))
-    CondThermalFracLocal(:) = 2.d0
+    allocate(CondThermalFracG(NbFracG))
+    CondThermalFracG(:) = 2.d0
 
   end subroutine DefModel_SetCondThermique
+
+
+  SUBROUTINE DefModel_SetThermalSource( &
+      NbCell, &
+      CellThermalSourceType, &
+      NbFrac, &
+      FracThermalSourceType, &
+      CellThermalSource, &
+      FracThermalSource)
+
+    INTEGER, INTENT(IN) :: NbCell
+    INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
+    INTEGER, INTENT(IN) :: NbFrac
+    INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
+    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
+    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
+
+    ALLOCATE(CellThermalSource(NbCell))
+    CellThermalSource = 0.d0
+
+    ALLOCATE(FracThermalSource(NbFrac))
+    FracThermalSource = 0.d0
+  END SUBROUTINE DefModel_SetThermalSource
+
 
   ! Compute Psat(T)
   subroutine DefModel_Psat(T, Psat, dT_PSat)

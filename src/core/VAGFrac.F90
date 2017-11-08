@@ -1,11 +1,3 @@
-!
-! This file is part of ComPASS.
-!
-! ComPASS is free software: you can redistribute it and/or modify it under both the terms
-! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
-! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
-!
-
 ! Three levels node numerotation
 !    num (local) : num in this proc
 !    num (cell) : num in a cell
@@ -54,13 +46,19 @@ module VAGFrac
   ! = sum_{M_s} alpha_{k,s} phi * vol_K ...
   ! = sum_{M_s} alpha_{k,s} (1-phi) * vol_K ...
   double precision, allocatable, dimension(:), protected :: &
-      PoroVolFourierCell, &
+      PoroVolFourierCell, & 
       PoroVolFourierFrac, &
-      PoroVolFourierNode, &
-                                !
-      Poro_1volFourierCell, &
+      PoroVolFourierNode
+
+  double precision, allocatable, dimension(:), protected :: &
+      Poro_1volFourierCell, & 
       Poro_1volFourierFrac, &
-      Poro_1volFourierNode
+      Poro_1volFourierNode  
+
+  double precision, allocatable, dimension(:), protected :: &
+      CellThermalSourceVol, & 
+      FracThermalSourceVol, & 
+      NodeThermalSourceVol
 #endif
 
 
@@ -134,7 +132,7 @@ contains
         in1, in2, inf, & ! num (face) in Unknown in a face
         n1, n2 ! num (local) in Unknown in a cell
 
-    integer :: i,j,k,m,mm,nn,ipt,&
+    integer :: i,j,k,m,mm,nn,ipt,& 
         in,k1,k2,kn1,kn2
 
     double precision, dimension(3) :: &
@@ -162,18 +160,18 @@ contains
     ! GkT
     allocate( GkT(3,nbNodeFaceMax+1) ) ! +1 for frac
 
-    allocate( UnkFaceToUnkCell(nbNodeFaceMax+1) )
+    allocate( UnkFaceToUnkCell(nbNodeFaceMax+1) )     
 
     ! three levels loops
     !     mailles: k
     !     face   : i
-    !     node   :
+    !     node   : 
 
     ! nbNodeCell: number of nodes in cell k; scalar, defined within the loop
     ! nbFracCell: number of face frac in cell k; scalar, defined within the loop
     ! nbNodeFace: number of nodes in face i; scalar, defined within the loop
 
-    ! boucle sur les mailles k own du proc
+    ! boucle sur les mailles k own du proc 
     do k=1,nbCellLocal
 
       ! cordinate center of cell
@@ -226,14 +224,14 @@ contains
         do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
           ! edge with nodes n1, n2
-          ! num (face) of n1 and n2 are in1 and in2
+          ! num (face) of n1 and n2 are in1 and in2            
           in1 = m - NodebyFaceLocal%Pt(i)
           n1 = NodebyFaceLocal%Num(m)
 
-          if (m==NodebyFaceLocal%Pt(i+1)) then
+          if (m==NodebyFaceLocal%Pt(i+1)) then 
             n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
             in2 = 1
-          else
+          else 
             n2 = NodebyFaceLocal%Num(m+1)
             in2 = in1 + 1
           endif
@@ -244,25 +242,25 @@ contains
           ! vol of tetra
           call VAGFrac_VolTetra(x1,x2,xf,xk,volT)
 
-          ! centre du tetra
+          ! centre du tetra 
           xt(:) = (x1(:)+x2(:)+xk(:)+xf(:))/4.d0
 
-          ! vecteur normal a 12k pointant vers X et de norme la surface de 12k
+          ! vecteur normal a 12k pointant vers X et de norme la surface de 12k 
           call VAGFrac_VecNormalT(x1,x2,xk,xt,v,surf)
           v12k(:) = v(:)*surf
 
-          ! vecteur normal a 1fk pointant vers X et de norme la surface de 1fk
+          ! vecteur normal a 1fk pointant vers X et de norme la surface de 1fk 
           call VAGFrac_VecNormalT(x1,xf,xk,xt,v,surf)
           v1fk(:) = v(:)*surf
 
-          ! vecteur normal a f2k pointant vers X et de norme la surface de f2k
+          ! vecteur normal a f2k pointant vers X et de norme la surface de f2k 
           call VAGFrac_VecNormalT(xf,x2,xk,xt,v,surf)
           vf2k(:) = v(:)*surf
 
           ! Set GkT=0
           GkT(:,:) = 0.d0
 
-          ! Grad T_12fk = 1/(3*volT) ( v12k (uf-uk) + v1fk (u1-uk) + vf2k (u2-uk) )
+          ! Grad T_12fk = 1/(3*volT) ( v12k (uf-uk) + v1fk (u1-uk) + vf2k (u2-uk) ) 
           ! where uf = 1/NbNodebyFace \sum_(n=node of face) u_n
 
           if (IdFaceLocal(i) /= -2) then ! this face i (i is num (local) of face) is not a frac
@@ -314,7 +312,7 @@ contains
             end do ! end of k2
           end do ! end of k1
 
-        enddo ! fin boucle sur les noeuds de la face, index: m
+        enddo ! fin boucle sur les noeuds de la face, index: m          
       enddo ! fin boucle sur les faces de la maille, index: j
 
     enddo ! fin boucle sur les mailles, index: k
@@ -369,7 +367,7 @@ contains
     ! GfT = 0
     GfT(:,:) = 0.d0
 
-    ! boucle sur les face frac
+    ! boucle sur les face frac     
     do ifrac = 1, nbFracLocal
 
       i = FracToFaceLocal(ifrac)
@@ -381,7 +379,7 @@ contains
       allocate( TkFracLocal(ifrac)%pt(nbNodeFace, nbNodeFace))
       TkFracLocal(ifrac)%pt(:,:) = 0.d0
 
-      ! isobarycentre de la face
+      ! isobarycentre de la face 
       xf(:) = XFaceLocal(:,i)
 
       ! init GfT as zero
@@ -390,25 +388,25 @@ contains
       do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
 
         ! edge of nodes n1, n2
-        ! num (face) of n1 and n2 are in1 and in2
+        ! num (face) of n1 and n2 are in1 and in2            
         in1 = m - NodebyFaceLocal%Pt(i)
         n1 = NodebyFaceLocal%Num(m)
 
-        if (m==NodebyFaceLocal%Pt(i+1)) then
+        if (m==NodebyFaceLocal%Pt(i+1)) then 
           n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
           in2 = 1
-        else
+        else 
           n2 = NodebyFaceLocal%Num(m+1)
           in2 = in1 + 1
         endif
 
         x1(:) = XNodeLocal(:,n1)
-        x2(:) = XNodeLocal(:,n2)
+        x2(:) = XNodeLocal(:,n2)          
         xt(:) = (x1(:)+x2(:)+xf(:))/3.d0
 
         call VAGFrac_VecNormalT(x1,x2,xf,xt,v,Surf12f)
 
-        ! Gradient tangentiel
+        ! Gradient tangentiel 
         AA(1,:) = -x1(:) + xf(:)
         AA(2,:) = -x2(:) + xf(:)
         AA(3,:) = v(:)
@@ -416,7 +414,7 @@ contains
         ! BB = inv(AA)
         call VAGFrac_InvA(AA, BB)
 
-        GfT(:,in1) = BB(:,1)
+        GfT(:,in1) = BB(:,1) 
         GfT(:,in2) = BB(:,2)
 
         ! ! Test Gradient tangentiel dans mode de debug
@@ -445,20 +443,81 @@ contains
         GfT(:,in1) = 0.d0
         GfT(:,in2) = 0.d0
 
-      end do ! end of loop edge in face
+      end do ! end of loop edge in face       
 
     end do ! end of loop face
 
   end subroutine VAGFrac_TransFrac
 
 
+  ! shift the fraction omega of the cell volume to the nodes according to the
+  ! label
+  SUBROUTINE VAGFrac_SplitCellVolume( &
+      NbCellLocal, &
+      CellLabel, &
+      NbNodeLocal, &
+      NodeLabel, &
+      IsVolumeNode, &
+      omega, &
+      NodebyCellLocal, &
+      CellVolume, &
+      NodeVolume)
+
+    INTEGER, INTENT(IN) :: NbCellLocal
+    INTEGER, INTENT(IN) :: CellLabel(NbCellLocal)
+    INTEGER, INTENT(IN) :: NbNodeLocal
+    INTEGER, INTENT(IN) :: NodeLabel(NbNodeLocal)
+    LOGICAL, INTENT(IN) :: IsVolumeNode(NbNodeLocal)
+    DOUBLE PRECISION, INTENT(IN) :: omega
+    TYPE(CSR), INTENT(IN) :: NodebyCellLocal
+
+    DOUBLE PRECISION, INTENT(INOUT) :: CellVolume(nbCellLocal)
+    DOUBLE PRECISION, INTENT(INOUT) :: NodeVolume(nbNodeLocal)
+
+    INTEGER :: k, ptnumi, numi
+    INTEGER :: NbVolume, NbInternalVolume
+
+    DOUBLE PRECISION :: SplitVolume
+
+    DO k=1, nbCellLocal
+      NbVolume = 0
+      NbInternalVolume = 0
+
+      ! loop of nodes in cell
+      DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+        numi = NodebyCellLocal%Num(ptnumi)
+        
+        IF(IsVolumeNode(numi))THEN
+          NbVolume = NbVolume + 1
+
+          IF(CellLabel(k) == NodeLabel(numi))THEN
+            NbInternalVolume = NbInternalVolume + 1
+          ENDIF
+        ENDIF
+      ENDDO
+
+      SplitVolume = omega * CellVolume(k) * NbVolume / NbInternalVolume
+
+      ! loop of nodes in cell
+      do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+        numi = NodebyCellLocal%Num(ptnumi)
+
+        IF(IsVolumeNode(numi) .AND. CellLabel(k) == NodeLabel(numi))THEN
+          CellVolume(k) = CellVolume(k) - SplitVolume
+          NodeVolume(numi) = NodeVolume(numi) + SplitVolume
+        end if
+      end do
+    ENDDO
+  END SUBROUTINE VAGFrac_SplitCellVolume
+
+
   ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
-    integer :: k, i, j, ifrac, numj, numi
+    integer :: k, i, ifrac, numi, ptnumi
     integer :: Ierr, errcode
-    integer :: NbNodeCell
+    integer :: NbVolume, NbInternalVolume
 
     double precision :: s1, s2
 
@@ -472,73 +531,60 @@ contains
     allocate(PoroVolDarcyFrac(NbFracLocal_Ncpus(commRank+1)) )
     allocate(PoroVolDarcyNode(NbNodeLocal_Ncpus(commRank+1)) )
 
-    ! init
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      VolDarcyCell(k) = VolCellLocal(k)
-    end do
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      VolDarcyFrac(k) = Thickness * SurfFracLocal(k)
-    end do
+    ! Darcy volume
+    VolDarcyCell = VolCellLocal
+    VolDarcyFrac = Thickness * SurfFracLocal
+    VolDarcyNode = 0.d0
 
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      PoroVolDarcyCell(k) = VolCellLocal(k)*PorositeCellLocal(k)
-    end do
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      PoroVolDarcyFrac(k) = Thickness * SurfFracLocal(k) &
-          * PorositeFracLocal(k)
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaDarcyCell, &
+      NodebyCellLocal, &
+      VolDarcyCell, &
+      VolDarcyNode)
 
-    VolDarcyNode(:) = 0.d0
-    PoroVolDarcyNode(:) = 0.d0
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d", &
+      omegaDarcyFrac, &
+      NodebyFracOwn, &
+      VolDarcyFrac, &
+      VolDarcyNode)
 
-    ! loop of cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
+    ! Porosity
+    PoroVolDarcyCell = PorositeCellLocal * VolCellLocal
+    PoroVolDarcyFrac = PorositeFracLocal * Thickness * SurfFracLocal
+    PoroVolDarcyNode = 0.d0
 
-      NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaDarcyCell, &
+      NodebyCellLocal, &
+      PoroVolDarcyCell, &
+      PoroVolDarcyNode)
 
-      ! loop of nodes in cell
-      ! FIXME: do ptnumi = NodebyCellLocal%Pt(k), NodebyCellLocal%Pt(k+1)
-      ! FIXME: numi = NodebyCellLocal%Num(ptnumi)
-      do i=1, NbNodeCell
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(1,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(1,:), &
+      IdNodeLocal(:)%P /= "d", &
+      omegaDarcyFrac, &
+      NodebyFracOwn, &
+      PoroVolDarcyFrac, &
+      PoroVolDarcyNode)
 
-        numi = NodebyCellLocal%Num( NodebyCellLocal%Pt(k)+i)
-
-        if(IdNodeLocal(numi)%P /= "d" .and. & ! not dir Pression
-            IdNodeLocal(numi)%Frac == "n") then ! nodes not in frac
-
-          s1 = omegaDarcyCell * VolCellLocal(k)
-          s2 = s1 * PorositeCellLocal(k)
-
-          VolDarcyCell(k) = VolDarcyCell(k) - s1
-          VolDarcyNode(numi) = VolDarcyNode(numi) + s1
-          PoroVolDarcyCell(k) = PoroVolDarcyCell(k) - s2
-          PoroVolDarcyNode(numi) = PoroVolDarcyNode(numi) + s2
-        end if
-      end do
-    end do
-
-    ! loop of frac
-    do ifrac=1, NbFracLocal_Ncpus(commRank+1)
-
-      i = FracToFaceLocal(ifrac) ! num face
-
-      ! loop of nodes in frac
-      do j=1, NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-
-        numj = NodebyFaceLocal%Num( NodebyFaceLocal%Pt(i)+j)
-
-        if(IdNodeLocal(numj)%P /= "d" ) then ! not dir Pression
-
-          s1 = Thickness * omegaDarcyFrac * SurfFracLocal(ifrac)
-          s2 = s1 * PorositeFracLocal(ifrac)!
-
-          VolDarcyFrac(ifrac) = VolDarcyFrac(ifrac) - s1
-          VolDarcyNode(numj) = VolDarcyNode(numj) + s1
-          PoroVolDarcyFrac(ifrac) = PoroVolDarcyFrac(ifrac) - s2
-          PoroVolDarcyNode(numj) = PoroVolDarcyNode(numj) + s2
-        end if
-      end do
-    end do
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
@@ -577,86 +623,96 @@ contains
 
     double precision :: s
 
-    allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolFourierNode(NbNodeLocal_Ncpus(commRank+1)) )
+    allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)))
+    allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)))
+    allocate(PoroVolFourierNode(NbNodeLocal_Ncpus(commRank+1)))
 
-    allocate(Poro_1volFourierCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(Poro_1volFourierFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(Poro_1volFourierNode(NbNodeLocal_Ncpus(commRank+1)) )
+    allocate(Poro_1volFourierCell(NbCellLocal_Ncpus(commRank+1)))
+    allocate(Poro_1volFourierFrac(NbFracLocal_Ncpus(commRank+1)))
+    allocate(Poro_1volFourierNode(NbNodeLocal_Ncpus(commRank+1)))
 
-    ! init
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      PoroVolFourierCell(k) = VolCellLocal(k) * PorositeCellLocal(k)
-      Poro_1VolFourierCell(k) = VolCellLocal(k) * (1.d0-PorositeCellLocal(k))
-    end do
+    allocate(CellThermalSourceVol(NbCellLocal_Ncpus(commRank+1)))
+    allocate(FracThermalSourceVol(NbFracLocal_Ncpus(commRank+1)))
+    allocate(NodeThermalSourceVol(NbNodeLocal_Ncpus(commRank+1)))
 
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      PoroVolFourierFrac(k) = Thickness * SurfFracLocal(k) &
-          * PorositeFracLocal(k)
-      Poro_1VolFourierFrac(k) = Thickness * SurfFracLocal(k) &
-          * (1.d0-PorositeFracLocal(k))
-    end do
+    PoroVolFourierCell = PorositeCellLocal * VolCellLocal
+    PoroVolFourierFrac = PorositeFracLocal * Thickness * SurfFracLocal
+    PoroVolFourierNode = 0.d0
 
-    PoroVolFourierNode(:) = 0.d0
-    Poro_1VolFourierNode(:) = 0.d0
+    Poro_1VolFourierCell = (1 - PorositeCellLocal) * VolCellLocal
+    Poro_1VolFourierFrac = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
+    Poro_1VolFourierNode = 0.d0
 
-    ! loop of cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
+    CellThermalSourceVol = CellThermalSourceLocal * VolCellLocal
+    FracThermalSourceVol = FracThermalSourceLocal * Thickness * SurfFracLocal
+    NodeThermalSourceVol = 0.d0
 
-      NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
+    ! Fourier volume
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      PoroVolFourierCell, &
+      PoroVolFourierNode)
 
-      ! loop of nodes in cell
-      do i=1, NbNodeCell
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      PoroVolFourierFrac, &
+      PoroVolFourierNode)
 
-        numi = NodebyCellLocal%Num( NodebyCellLocal%Pt(k)+i)
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      Poro_1VolFourierCell, &
+      Poro_1VolFourierNode)
 
-        if(IdNodeLocal(numi)%T /= "d" .and. &    ! not dir Temperature
-            IdNodeLocal(numi)%Frac == "n") then ! nodes not in frac
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      Poro_1VolFourierFrac, &
+      Poro_1VolFourierNode)
 
-          s = omegaFourierCell * VolCellLocal(k) * &
-              PorositeCellLocal(k)
+    CALL VAGFrac_SplitCellVolume( &
+      NbCellLocal_Ncpus(commRank+1), &
+      CellRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+      omegaFourierCell, &
+      NodebyCellLocal, &
+      CellThermalSourceVol, &
+      NodeThermalSourceVol)
 
-          PoroVolFourierCell(k) = PoroVolFourierCell(k) - s
-          PoroVolFourierNode(numi) = PoroVolFourierNode(numi) + s
-
-          s = omegaFourierCell * VolCellLocal(k) * &
-              (1.d0 - PorositeCellLocal(k) )
-
-          Poro_1volFourierCell(k) = Poro_1volFourierCell(k) - s
-          Poro_1volFourierNode(numi) = Poro_1volFourierNode(numi) + s
-
-        end if
-      end do
-    end do
-
-    ! loop of frac
-    do ifrac=1, NbFracLocal_Ncpus(commRank+1)
-
-      i = FracToFaceLocal(ifrac) ! num face
-
-      ! loop of nodes in frac
-      do j=1, NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-
-        numj = NodebyFaceLocal%Num( NodebyFaceLocal%Pt(i)+j)
-
-        if(IdNodeLocal(numj)%T /= "d" ) then ! not dir Temperature
-
-          s = Thickness * omegaFourierFrac * SurfFracLocal(ifrac) &
-              * PorositeFracLocal(ifrac)
-
-          PoroVolFourierFrac(ifrac) = PoroVolFourierFrac(ifrac) - s
-          PoroVolFourierNode(numj) = PoroVolFourierNode(numj) + s
-
-          s = Thickness * omegaFourierFrac * SurfFracLocal(ifrac) &
-              * (1.d0 - PorositeFracLocal(ifrac) )
-
-          Poro_1volFourierFrac(ifrac) = Poro_1volFourierFrac(ifrac) - s
-          Poro_1volFourierNode(numj) = Poro_1volFourierNode(numj) + s
-
-        end if
-      end do
-    end do
+    CALL VAGFrac_SplitCellVolume( &
+      NbFracLocal_Ncpus(commRank+1), &
+      FracRocktypeLocal(2,:), &
+      NbNodeLocal_Ncpus(commRank+1), &
+      NodeRocktypeLocal(2,:), &
+      IdNodeLocal(:)%T /= "d", &
+      omegaFourierFrac, &
+      NodebyFracOwn, &
+      FracThermalSourceVol, &
+      NodeThermalSourceVol)
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
@@ -757,6 +813,9 @@ contains
     deallocate(Poro_1volFourierCell)
     deallocate(Poro_1volFourierFrac)
     deallocate(Poro_1volFourierNode)
+    deallocate(CellThermalSourceVol)
+    deallocate(FracThermalSourceVol)
+    deallocate(NodeThermalSourceVol)
 #endif
 
   end subroutine VAGFrac_Free
@@ -772,20 +831,20 @@ contains
     double precision :: det
 
     det = A(1,1)*( A(3,3)*A(2,2)-A(3,2)*A(2,3) )
-    det = det - A(1,2)*( A(3,3)*A(2,1)-A(3,1)*A(2,3) )
-    det = det + A(1,3)*( A(3,2)*A(2,1)-A(3,1)*A(2,2) )
+    det = det - A(1,2)*( A(3,3)*A(2,1)-A(3,1)*A(2,3) ) 
+    det = det + A(1,3)*( A(3,2)*A(2,1)-A(3,1)*A(2,2) ) 
 
-    coA(1,1) = + ( A(3,3)*A(2,2)-A(3,2)*A(2,3) )/det
-    coA(1,2) = - ( A(3,3)*A(2,1)-A(3,1)*A(2,3) )/det
-    coA(1,3) = + ( A(3,2)*A(2,1)-A(3,1)*A(2,2) )/det
+    coA(1,1) = + ( A(3,3)*A(2,2)-A(3,2)*A(2,3) )/det 
+    coA(1,2) = - ( A(3,3)*A(2,1)-A(3,1)*A(2,3) )/det 
+    coA(1,3) = + ( A(3,2)*A(2,1)-A(3,1)*A(2,2) )/det  
 
-    coA(2,1) = - ( A(3,3)*A(1,2)-A(3,2)*A(1,3) )/det
-    coA(2,2) = + ( A(3,3)*A(1,1)-A(3,1)*A(1,3) )/det
-    coA(2,3) = - ( A(3,2)*A(1,1)-A(3,1)*A(1,2) )/det
+    coA(2,1) = - ( A(3,3)*A(1,2)-A(3,2)*A(1,3) )/det 
+    coA(2,2) = + ( A(3,3)*A(1,1)-A(3,1)*A(1,3) )/det 
+    coA(2,3) = - ( A(3,2)*A(1,1)-A(3,1)*A(1,2) )/det  
 
-    coA(3,1) = + ( A(2,3)*A(1,2)-A(2,2)*A(1,3) )/det
-    coA(3,2) = - ( A(2,3)*A(1,1)-A(2,1)*A(1,3) )/det
-    coA(3,3) = + ( A(2,2)*A(1,1)-A(2,1)*A(1,2) )/det
+    coA(3,1) = + ( A(2,3)*A(1,2)-A(2,2)*A(1,3) )/det 
+    coA(3,2) = - ( A(2,3)*A(1,1)-A(2,1)*A(1,3) )/det 
+    coA(3,3) = + ( A(2,2)*A(1,1)-A(2,1)*A(1,2) )/det  
 
 
     Ainv(1,1) = coA(1,1)
@@ -819,7 +878,7 @@ contains
     ! normale a 123 orientee vers 4 et surface 123
     call VAGFrac_VecNormalT(x1,x2,x3,x4,v,surf)
 
-    ! hauteur
+    ! hauteur 
     s = v(1)*(x1(1)-x4(1))+v(2)*(x1(2)-x4(2))+v(3)*(x1(3)-x4(3))
     s = dabs(s)
 
@@ -828,13 +887,13 @@ contains
   end subroutine VAGFrac_VolTetra
 
 
-  ! Vec normal
+  ! Vec normal 
   subroutine VAGFrac_VecNormalT(x1,x2,x3,x,v,surf)
 
-    ! calcul du vecteur normal unitaire d'un triangle defini par les
-    ! coordonnees de ses trois points sortant par rapport
-    ! au point x,y,z > vx,vy,vz
-    ! + surface du triangle = surf
+    ! calcul du vecteur normal unitaire d'un triangle defini par les 
+    ! coordonnees de ses trois points sortant par rapport 
+    ! au point x,y,z > vx,vy,vz 
+    ! + surface du triangle = surf 
 
     double precision, dimension(3), intent(in) :: x1 ,x2, x3, x
     double precision, dimension(3), intent(out) :: v
@@ -850,7 +909,7 @@ contains
 
     s = dsqrt(v(1)**2+v(2)**2+v(3)**2)
 
-    surf = s/2.d0
+    surf = s/2.d0 
     v(:) = v(:)/s
 
     s = (xt(1)-x(1))*v(1) + (xt(2)-x(2))*v(2) + (xt(3)-x(3))*v(3)
@@ -866,7 +925,7 @@ contains
   subroutine VAGFrac_UnkFaceToUnkCell(k,i)
 
     ! k is cell
-    ! i is num (local) of face
+    ! i is num (local) of face    
     integer, intent(in) :: &
         k, i
 
@@ -939,7 +998,7 @@ contains
 
     integer :: j, nj, nb
 
-    ! test du gradient GkT
+    ! test du gradient GkT 
     uk = 3.d0*xk(1) + 2.d0*xk(2) + xk(3) + 1.d0
 
     sx = 0.d0
@@ -947,7 +1006,7 @@ contains
     sz = 0.d0
 
     ! node
-    do j=NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
+    do j=NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1) 
 
       nj = NodebyFaceLocal%Num(j)
 
@@ -1015,7 +1074,7 @@ contains
       gz = gz + GfT(3,is)*(uf-ui)
     enddo
 
-    ps = 3.d0*v(1)+2.d0*v(2)+v(3)
+    ps = 3.d0*v(1)+2.d0*v(2)+v(3) 
 
     erx = gx - (3.d0 - ps*v(1))
     ery = gy - (2.d0 - ps*v(2))

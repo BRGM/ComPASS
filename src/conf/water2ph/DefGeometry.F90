@@ -33,6 +33,53 @@ subroutine GlobalMesh_SetFrac
 end subroutine GlobalMesh_SetFrac
 
 
+subroutine GlobalMesh_SetFaceFlags
+
+  FaceFlags = 1
+end subroutine GlobalMesh_SetFaceFlags
+
+
+subroutine GlobalMesh_SetFracRocktype
+
+  FracRocktype = 1
+end subroutine GlobalMesh_SetFracRocktype
+
+
+subroutine GlobalMesh_SetCellFlags
+
+  CellFlags = 1
+end subroutine GlobalMesh_SetCellFlags
+
+
+subroutine GlobalMesh_SetCellRocktype
+
+  CellRocktype = 1
+end subroutine GlobalMesh_SetCellRocktype
+
+
+#ifdef _THERMIQUE_
+subroutine GlobalMesh_SetCellThermalSourceType
+
+  CellThermalSourceType = 0
+end subroutine GlobalMesh_SetCellThermalSourceType
+
+
+subroutine GlobalMesh_SetFracThermalSourceType
+
+  FracThermalSourceType = 0
+end subroutine GlobalMesh_SetFracThermalSourceType
+#endif
+
+
+subroutine GlobalMesh_SetNodeFlags
+
+  NodeFlags = 1
+end subroutine GlobalMesh_SetNodeFlags
+
+
+
+
+
 ! Set dirichlet boundary
 !    cartesian mesh:   manually
 !    other mesh: manually or
@@ -127,20 +174,3 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   end do
 
 end subroutine GlobalMesh_SetWellCar
-
-!> \brief User set porosity
-!!
-!! PorositeCell contains the porosity of each cell;
-!! PorositeFace is restricted to PorositeFrac
-!! then distributed to PorositeFracLocal
-subroutine GlobalMesh_SetPorosite
-
-  allocate(PorositeCell(NbCell))
-  allocate(PorositeFace(NbFace))
-
-  PorositeCell(:) = 1.d-1
-  PorositeFace(:) = 4.d-1
-
-  ! TODO: read from file if needed
-
-end subroutine GlobalMesh_SetPorosite

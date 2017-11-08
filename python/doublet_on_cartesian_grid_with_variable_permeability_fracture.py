@@ -1,11 +1,3 @@
-#
-# This file is part of ComPASS.
-#
-# ComPASS is free software: you can redistribute it and/or modify it under both the terms
-# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
-# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
-#
-
 import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
@@ -13,17 +5,21 @@ from ComPASS.timeloops import standard_loop
 
 import numpy as np
 
+ComPASS.load_eos('water2ph')
+
 def fractures_factory(grid):
     def fractures():
         nz, Lz, Oz = grid.shape[2], grid.extent[2], grid.origin[2]
-        face_centers = ComPASS.compute_face_centers()
+        face_centers = ComPASS.compute_global_face_centers()
         zfaces = face_centers[:, 2]
-        face_normals = ComPASS.compute_face_normals()
+        face_normals = ComPASS.compute_global_face_normals()
         ux, uy = face_normals[:, 0], face_normals[:, 1]
         dz = Lz / nz
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = Oz + 0.5 * Lz
-        return (np.abs(zfaces - zfrac) < dz) & (ux==0) & (uy==0)
+        where = (np.abs(zfaces - zfrac) < dz) & (ux==0) & (uy==0)
+        print('Selecting', np.sum(where), 'faces as fractures')
+        return where 
     return fractures
 
 def face_permeability_factory(grid, channel_width=None):
@@ -31,7 +27,7 @@ def face_permeability_factory(grid, channel_width=None):
     if channel_width is None:
         channel_width = 0.1 * Ly
     def face_permeability():
-        face_centers = ComPASS.compute_face_centers()
+        face_centers = ComPASS.compute_global_face_centers()
         nbfaces = face_centers.shape[0]
         xfc, yfc, zfc = [face_centers[:, col] for col in range(3)]
         interwell_distance = doublet_utils.interwell_distance(grid)
@@ -60,4 +56,4 @@ ComPASS.init(
     faces_permeability = face_permeability_factory(grid),
 )
 
-standard_loop(final_time = 30 * year, output_frequency = year)
+#standard_loop(final_time = 30 * year, output_frequency = year)

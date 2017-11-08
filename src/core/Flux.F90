@@ -183,6 +183,7 @@ contains
 
             Id_Qki(numph_k) = .true. ! this phase is in Q_k, not need to consider in the loop of Q_i
 
+! cela doit etre un bug car il faut calculer les Pcs de ttes les phases, pas slt les phases presentes             
             FluxDarcyKI(numph_k,i,k) = FluxDarcyKI(numph_k,i,k) &
                 + (Pkj + PressionCapCell(numph_k,k) - PressionCapNode(numph_k,numj) &
                 + rho_ki_alpha(numph_k)*zkj) * Tkij
@@ -194,6 +195,7 @@ contains
 
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
+! cela doit etre un bug car il faut calculer les Pcs de ttes les phases, pas slt les phases presentes                
               FluxDarcyKI(numph_i,i,k) = FluxDarcyKI(numph_i,i,k) &
                   + (Pkj + PressionCapCell(numph_i,k) - PressionCapNode(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij

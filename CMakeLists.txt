@@ -37,6 +37,9 @@ option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
 if(DEF_Python_BINDINGS)
   set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
   find_package(pybind11 REQUIRED)
+	if(${pybind11_VERSION} VERSION_LESS 2.2)
+		message(FATAL_ERROR "pybind11 version should 2.2.x at least")
+	endif()
   # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
   if(NOT ${PYTHONINTERP_FOUND})
     message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
@@ -124,4 +127,9 @@ enable_testing()
 # enable_language(C)
 # enable_language(CXX)
 
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+
+include_directories(${THIRD_PARTY_DIR}/mapbox/include)
+
+add_subdirectory(${THIRD_PARTY_DIR})
 add_subdirectory(src)
