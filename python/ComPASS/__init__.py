@@ -6,6 +6,7 @@ import importlib
 import ComPASS.mpi as mpi
 import ComPASS.runtime as runtime
 import ComPASS.utils.filenames
+import ComPASS.dumps
 
 import numpy as np
 
@@ -89,13 +90,14 @@ def init(
         kernel.global_mesh_set_cartesian_mesh()
         if mpi.is_on_master_proc:
             kernel.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
+            celltypes = ComPASS.global_celltypes()
+            celltypes[:] = 11 # VTK_VOXEL
+            facetypes = ComPASS.global_facetypes()
+            facetypes[:] = 8 # VTK_PIXEL
     else:
 #    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
         kernel.init_warmup(runtime.logfile)
         if mpi.is_on_master_proc:
-            print("!!!")
-            print("!!! VTK output will not work with this mesh type!")
-            print("!!!")
             vertices = MT.as_coordinate_array(mesh.vertices)
             cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
             kernel.create_mesh(vertices,
@@ -140,7 +142,7 @@ def init(
         kernel.global_mesh_make_post_read_set_poroperm()
         cellperm = cells_permeability()
         if cellperm is not None:
-            kernel.get_cell_permeability()[:] = np.ascontiguousarray( cellperm )
+            get_cell_permeability()[:] = np.ascontiguousarray( cellperm )
         faceperm = faces_permeability()
         fracperm = fractures_permeability()
         if fractures is not None:
@@ -149,13 +151,13 @@ def init(
                 # the following assert is annoying when we just want to broadcast a values (typically a scalar value)
                 # anyway assignement through the numpy.ndarray interface will fail
                 # assert kernel.get_face_permeability().shape==faceperm.shape
-                kernel.get_face_permeability()[:] = np.ascontiguousarray( faceperm )
+                get_face_permeability()[:] = np.ascontiguousarray( faceperm )[fractures]
             elif fracperm is not None:
                 assert faceperm is None
                 #the following assert is annoying when we just want to broadcast a values (typically a scalar value) 
                 # anyway assignement through the numpy.ndarray interface will fail
                 #assert fracperm.shape==tuple(np.count(fractures))
-                kernel.get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
+                get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -212,21 +214,22 @@ def compute_face_centers():
         get_connectivity().NodebyFace
     )
 
-#def compute_face_normals():
-#    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
-#    connectivity = get_connectivity()
-#    face_nodes = [np.array(nodes, copy=False) - 1 for nodes in connectivity.NodebyFace] # fortran indexes start at 1
-#    normals = np.array([
-#        np.cross(
-#            vertices[nodes[1]]-vertices[nodes[0]],
-#            vertices[nodes[2]]-vertices[nodes[0]])
-#        for nodes in face_nodes
-#    ])
-#    # normalize
-#    norms = np.linalg.norm(normals, axis=1)
-#    norms.shape = (-1, 1)
-#    normals /= norms
-#    return normals
+def compute_global_face_normals():
+    vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
+    connectivity = get_global_connectivity()
+    face_nodes = [np.array(nodes, copy=False)[:3] - 1 # fortran indexes start at 1
+                  for nodes in connectivity.NodebyFace] 
+    normals = np.array([
+        np.cross(
+            vertices[nodes[1]]-vertices[nodes[0]],
+            vertices[nodes[2]]-vertices[nodes[0]])
+        for nodes in face_nodes
+    ])
+    # normalize
+    norms = np.linalg.norm(normals, axis=1)
+    norms.shape = (-1, 1)
+    normals /= norms
+    return normals
 
 def get_boundary_faces():
     connectivity = get_connectivity()
@@ -266,4 +269,10 @@ def to_output_directory(filename):
     assert os.path.isdir(runtime.output_directory)
     return os.path.abspath(os.path.join(runtime.output_directory, filename))
 
-
+def add_output_subdirectory(path):
+    target = ComPASS.to_output_directory(path)
+    if mpi.is_on_master_proc:
+       if not os.path.exists(target):
+            os.makedirs(target)
+    mpi.synchronize()
+    assert os.path.isdir(target)

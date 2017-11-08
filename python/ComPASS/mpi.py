@@ -4,6 +4,9 @@ from mpi4py import MPI
 proc_rank = MPI.COMM_WORLD.rank
 is_on_master_proc = proc_rank==0
 
+def communicator():
+    return MPI.COMM_WORLD
+
 def on_master_proc(f):
     def call(*args, **kwargs):
         if is_on_master_proc:
