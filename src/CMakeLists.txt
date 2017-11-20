@@ -47,12 +47,12 @@ if(DEF_DISPMODULE)
     )
 endif(DEF_DISPMODULE)
 
-if(DEF_VISU)
-    list(APPEND ComPASSCore_SRCS
-        VisuVTK.F90
-        VisuVTK.cpp
-    )
-endif(DEF_VISU)
+# if(DEF_VISU)
+    # list(APPEND ComPASSCore_SRCS
+        # VisuVTK.F90
+        # VisuVTK.cpp
+    # )
+# endif(DEF_VISU)
 
 unset(_tmp)
 foreach(_src ${ComPASSCore_SRCS})
@@ -116,10 +116,10 @@ foreach(_conf ${CONFIGURATIONS})
         target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
         target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
     endif(DEF_HDF5)
-    if(DEF_VISU)
-        target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
-        target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
-    endif(DEF_VISU)
+    # if(DEF_VISU)
+        # target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
+        # target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
+    # endif(DEF_VISU)
 endforeach()
 
 #CHECKME: To be removed eventually (dependance on boost::variant -> C++17 variant)
@@ -183,7 +183,7 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
-    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
+    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
     CXX_STANDARD 14
@@ -213,14 +213,14 @@ foreach(_conf ${CONFIGURATIONS})
         target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
         target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
     endif(DEF_HDF5)
-    if(DEF_VISU)
-        target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
-        target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
-    endif(DEF_VISU)
+    # if(DEF_VISU)
+        # target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
+        # target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
+    # endif(DEF_VISU)
 
     if(DEF_Python_BINDINGS)
         set(eos_target ${_conf})
-        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
+        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp ${WRAPPERS_SRCS})
         target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})
         set_target_properties(${eos_target}
             PROPERTIES

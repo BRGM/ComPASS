@@ -32,14 +32,16 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+add_subdirectory(${THIRD_PARTY_DIR})
+
 option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
 
 if(DEF_Python_BINDINGS)
   set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
-  find_package(pybind11 REQUIRED)
-	if(${pybind11_VERSION} VERSION_LESS 2.2)
-		message(FATAL_ERROR "pybind11 version should 2.2.x at least")
-	endif()
+  # if(${pybind11_VERSION} VERSION_LESS 2.2)
+    # message(FATAL_ERROR "pybind11 version should 2.2.x at least")
+  # endif()
   # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
   if(NOT ${PYTHONINTERP_FOUND})
     message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
@@ -56,9 +58,6 @@ option(DEF_THERMIQUE "Thermique" ON)
 if(DEF_THERMIQUE)
   add_definitions(-D_THERMIQUE_)
 endif(DEF_THERMIQUE)
-
-option(DEF_VISU "Visualization with VTK" ON)
-option(DEF_HDF5 "Checkpointing with HDF5" OFF)
 
 option(DEF_DISPMODULE "Third Party debug using displaymodule" OFF)
 if(DEF_DISPMODULE)
@@ -96,30 +95,6 @@ if(${PETSC_VERSION} VERSION_GREATER 3.6)
 endif()
 find_package(LAPACK REQUIRED)
 
-# vtk
-# set(VTK_DIR ${LIB_PREFIX}/include/vtk-7.1)
-# WARNING: Does not include python libraries from VTK so that they do not interfere with pybind11
-if(DEF_VISU)
-  add_definitions(-D_VISU_)
-  find_package(VTK REQUIRED COMPONENTS vtkIOXML NO_MODULE)
-  include(${VTK_USE_FILE})
-endif(DEF_VISU)
-
-# hdf5
-if(DEF_HDF5)
-  add_definitions(-D_HDF5_)
-set(HDF5_USE_STATIC_LIBRARIES OFF)
-option(HDF5_PREFER_PARALLEL "HDF5 prefers parallel" ON)
-  # FIXME: If option is changed find_package will not reload the correct hdf5 version
-  # FIXME: inforce parallel ? h5pset_fapl_mpio_f_ is needed ?
-  find_package(HDF5 REQUIRED COMPONENTS Fortran Fortran_HL)
-  if(HDF5_FOUND)
-      message(STATUS "HDF5 version: " ${HDF5_VERSION})
-  else()
-      message(FATAL_ERROR "HDF5 was required but was not found on the system, CMake will exit." )
-  endif()
-endif(DEF_HDF5)
-
 enable_testing()
 
 # CHECKME: Should languages be enabled here or at the beginning as project properties
@@ -127,9 +102,6 @@ enable_testing()
 # enable_language(C)
 # enable_language(CXX)
 
-set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
-
 include_directories(${THIRD_PARTY_DIR}/mapbox/include)
 
-add_subdirectory(${THIRD_PARTY_DIR})
 add_subdirectory(src)
