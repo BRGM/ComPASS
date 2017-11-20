@@ -122,13 +122,6 @@ foreach(_conf ${CONFIGURATIONS})
     # endif(DEF_VISU)
 endforeach()
 
-#CHECKME: To be removed eventually (dependance on boost::variant -> C++17 variant)
-#Boost headers only
-find_package(Boost REQUIRED)
-if(NOT ${Boost_FOUND})
-  message(FATAL_ERROR "Boost libraries are mandatory when building python module, CMake will stop.")
-endif(NOT ${Boost_FOUND})
-
 set( WRAPPERS_SRCS
   ArrayWrapper.h
   COC.h
@@ -196,7 +189,6 @@ foreach(_conf ${CONFIGURATIONS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${Boost_INCLUDE_DIRS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
         COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"

@@ -86,16 +86,18 @@ struct Producer_data_info
 	Producer_data_info(const Well& well) {
 		assert(well.is_producing());
 		radius = well.geometry.radius;
-		if (well.operates_on_pressure()) {
+		if (well.operates_on_pressure()) {	
 			operating_code = 'p';
-			auto operating_conditions = boost::get<Pressure_operating_conditions>(well.control.operating_conditions);
+			assert(well.control.operating_conditions.is<Pressure_operating_conditions>());
+			auto operating_conditions = well.control.operating_conditions.get<Pressure_operating_conditions>();
 			minimum_pressure = operating_conditions.pressure;
 			imposed_flowrate = operating_conditions.flowrate_limit;
 		}
 		else {
 			assert(well.operates_on_flowrate());
 			operating_code = 'f';
-			auto operating_conditions = boost::get<Flowrate_operating_conditions>(well.control.operating_conditions);
+			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+			auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
 			minimum_pressure = operating_conditions.pressure_limit;
 			imposed_flowrate = operating_conditions.flowrate;
 		}
@@ -113,18 +115,21 @@ struct Injector_data_info
 	Injector_data_info(const Well& well) {
 		assert(well.is_injecting());
 		radius = well.geometry.radius;
-		auto status = boost::get<Injection_well_status>(well.control.status);
+		assert(well.control.status.is<Injection_well_status>());
+		auto status = well.control.status.get<Injection_well_status>();
 		temperature = status.temperature;
 		if (well.operates_on_pressure()) {
 			operating_code = 'p';
-			auto operating_conditions = boost::get<Pressure_operating_conditions>(well.control.operating_conditions);
+			assert(well.control.operating_conditions.is<Pressure_operating_conditions>());
+			auto operating_conditions = well.control.operating_conditions.get<Pressure_operating_conditions>();
 			maximum_pressure = operating_conditions.pressure;
 			imposed_flowrate = operating_conditions.flowrate_limit;
 		}
 		else {
 			assert(well.operates_on_flowrate());
 			operating_code = 'f';
-			auto operating_conditions = boost::get<Flowrate_operating_conditions>(well.control.operating_conditions);
+			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+			auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
 			maximum_pressure = operating_conditions.pressure_limit;
 			imposed_flowrate = operating_conditions.flowrate;
 		}
@@ -188,9 +193,9 @@ void add_well_wrappers(py::module& module)
 			[](Well& instance) -> py::object {
 		py::object result = py::none{};
 		if (instance.operates_on_pressure()) {
-			const Pressure_operating_conditions * p = boost::get<Pressure_operating_conditions>(&instance.control.operating_conditions);
-			assert(p);
-			return py::make_tuple(p->pressure, p->flowrate_limit);
+			assert(well.control.operating_conditions.is<Pressure_operating_conditions>());
+			auto operating_conditions = instance.control.operating_conditions.get<Pressure_operating_conditions>();
+			return py::make_tuple(operating_conditions.pressure, operating_conditions.flowrate_limit);
 		}
 		return result;
 	},
@@ -202,9 +207,9 @@ void add_well_wrappers(py::module& module)
 			[](Well& instance) -> py::object {
 		py::object result = py::none{};
 		if (instance.operates_on_flowrate()) {
-			const Flowrate_operating_conditions * p = boost::get<Flowrate_operating_conditions>(&instance.control.operating_conditions);
-			assert(p);
-			return py::make_tuple(p->flowrate, p->pressure_limit);
+			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+			auto operating_conditions = instance.control.operating_conditions.get<Flowrate_operating_conditions>();
+			return py::make_tuple(operating_conditions.flowrate, operating_conditions.pressure_limit);
 		}
 		return result;
 	},
