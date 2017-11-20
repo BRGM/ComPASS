@@ -176,7 +176,7 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
-    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS})
+    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS} ${WRAPPERS_SRCS})
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
     CXX_STANDARD 14
@@ -200,19 +200,10 @@ foreach(_conf ${CONFIGURATIONS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
     # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
     target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
-    if(DEF_HDF5)
-        target_include_directories(${CONF_TARGETNAME} PUBLIC ${HDF5_INCLUDE_DIRS})
-        target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
-        target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
-    endif(DEF_HDF5)
-    # if(DEF_VISU)
-        # target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
-        # target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
-    # endif(DEF_VISU)
 
     if(DEF_Python_BINDINGS)
         set(eos_target ${_conf})
-        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp ${WRAPPERS_SRCS})
+        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
         target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})
         set_target_properties(${eos_target}
             PROPERTIES
