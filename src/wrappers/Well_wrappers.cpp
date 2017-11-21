@@ -193,7 +193,7 @@ void add_well_wrappers(py::module& module)
 			[](Well& instance) -> py::object {
 		py::object result = py::none{};
 		if (instance.operates_on_pressure()) {
-			assert(well.control.operating_conditions.is<Pressure_operating_conditions>());
+			assert(instance.control.operating_conditions.is<Pressure_operating_conditions>());
 			auto operating_conditions = instance.control.operating_conditions.get<Pressure_operating_conditions>();
 			return py::make_tuple(operating_conditions.pressure, operating_conditions.flowrate_limit);
 		}
@@ -207,7 +207,7 @@ void add_well_wrappers(py::module& module)
 			[](Well& instance) -> py::object {
 		py::object result = py::none{};
 		if (instance.operates_on_flowrate()) {
-			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+			assert(instance.control.operating_conditions.is<Flowrate_operating_conditions>());
 			auto operating_conditions = instance.control.operating_conditions.get<Flowrate_operating_conditions>();
 			return py::make_tuple(operating_conditions.flowrate, operating_conditions.pressure_limit);
 		}
