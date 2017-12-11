@@ -1,7 +1,15 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import ComPASS
 from ComPASS.utils.units import day, year
 mpi = ComPASS.mpi
-dumps = ComPASS.dumps
+Dumper = ComPASS.dumps.Dumper
 
 def check_well_pressure():
     p_min, p_max = float('Inf'), -float('Inf')
@@ -13,38 +21,34 @@ def check_well_pressure():
     ComPASS.production_whp()[:] = p_min - 1.
     ComPASS.injection_whp()[:] = p_max + 1.
 
-def dump_initial_info():
-    if mpi.is_on_master_proc:
-        dumps.dump_own_element_numbers()
-    ComPASS.add_output_subdirectory('mesh')
-    dumps.dump_mesh(subdirectory='mesh')
-
-
 class Snapshooter:
-    
-    def __init__(self):
+
+    def __init__(self, dumper=None):
+        if dumper is None:
+            dumper = Dumper()
+        dumper.start_simulation()
+        self.dumper = dumper
         self.nb_snaphots = 0
-        self.filename = ComPASS.to_output_directory('snapshots')
+        self.filename = self.dumper.to_output_directory('snapshots')
         if mpi.is_on_master_proc:
             with open(self.filename, 'w') as f:
-                        pass
+                pass
 
-    def new_tag(self):    
+    def new_tag(self):
         tag = '%05d' % self.nb_snaphots
-        self.nb_snaphots+= 1 
+        self.nb_snaphots+= 1
         return tag
 
     def shoot(self, t):
         tag = self.new_tag()
         if mpi.is_on_master_proc:
             with open(self.filename, 'a') as f:
-                print(tag, '%.12g'%t, file=f) 
-        ComPASS.add_output_subdirectory('states/output-' + tag)
-        dumps.dump_states(tag=tag, subdirectory='states/output-' + tag)
+                print(tag, '%.12g'%t, file=f)
+        self.dumper.dump_states(tag)
 
 
 def standard_loop(final_time, initial_timestep=1., output_period = None,
-                  nb_output = 10, nitermax = None, tstart=0):
+                  nb_output = 10, nitermax = None, tstart=0, dumper=None):
     if output_period is None:
         nb_output = max(2, nb_output)
         output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
@@ -55,8 +59,7 @@ def standard_loop(final_time, initial_timestep=1., output_period = None,
     timestep = initial_timestep
     n = 0
     t_output = 0
-    shooter = Snapshooter()
-    dump_initial_info()
+    shooter = Snapshooter(dumper)
     @mpi.on_master_proc
     def print_iteration_info():
         print()
@@ -77,4 +80,5 @@ def standard_loop(final_time, initial_timestep=1., output_period = None,
         ComPASS.timestep_summary()
     # Output final time
     shooter.shoot(t)
+    #ComPASS.output_visualization_files(n)
     mpi.synchronize()

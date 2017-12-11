@@ -7,3 +7,5 @@
 #
 
 __all__ = ['units', 'filenames']
+
+from ComPASS.utils.filenames import create_directories

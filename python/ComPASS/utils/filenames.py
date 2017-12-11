@@ -7,9 +7,18 @@
 #
 
 import os
-from mpi4py import MPI
+from ComPASS import mpi
 
 default_case_name = 'compass'
+
+def create_directories(path):
+    if mpi.is_on_master_proc:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        assert os.path.isdir(path)
+    #IMPROVE: depending on the way I/O are handled synchronization is not
+    #         necessary here
+    mpi.synchronize() # wait for every process to synchronize
 
 def output_directory(case_name=None, rootname=None):
     if rootname is None:
@@ -21,12 +30,7 @@ def output_directory(case_name=None, rootname=None):
     output = os.path.join('output-' + os.path.splitext(os.path.basename(case_name))[0])
     output = os.path.abspath(output)
     # master proc manages directory creation
-    comm = MPI.COMM_WORLD
-    if comm.rank==0:
-        if not os.path.exists(output):
-          os.makedirs(output)
-    comm.Barrier() # wait for every process to synchronize
-    assert os.path.exists(output)
+    create_directories(output)
     return output
 
 def output_directory_and_logfile(case_name=None):
