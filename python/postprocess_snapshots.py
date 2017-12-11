@@ -125,19 +125,20 @@ class PostProcessor:
             ),
             piecefile
         )
-        fracdata_size = int(np.unique([len(a) for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
-        if fracdata and fracdata_size>0:
-            fracpiecefile = self.to_vtu_directory('fracture_%s_%s.vtu' % (basename, proc_label))
-            vtkw.write_vtu(
-                vtkw.vtu_doc_from_COC(
-                    mesh['vertices'], 
-                    mesh['fracturenodes_offsets'], 
-                    mesh['fracturenodes_values'], 
-                    mesh['fracture_types'], 
-                    celldata = fracdata,
-                ), fracpiecefile
-            )
-            return piecefile, fracpiecefile
+        if fracdata:
+            fracdata_size = int(np.unique([len(a) for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
+            if fracdata_size>0:
+                fracpiecefile = self.to_vtu_directory('fracture_%s_%s.vtu' % (basename, proc_label))
+                vtkw.write_vtu(
+                    vtkw.vtu_doc_from_COC(
+                        mesh['vertices'], 
+                        mesh['fracturenodes_offsets'], 
+                        mesh['fracturenodes_values'], 
+                        mesh['fracture_types'], 
+                        celldata = fracdata,
+                    ), fracpiecefile
+                )
+                return piecefile, fracpiecefile
         return piecefile
     
     def collect_proc_ids(self):
