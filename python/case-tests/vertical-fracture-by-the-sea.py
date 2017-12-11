@@ -181,4 +181,4 @@ del mesh
 del fault_faces_id
 
 ComPASS.set_maximum_timestep(1E2 * year)
-standard_loop(final_time = 1E4 * year, output_frequency = 1E3 * year, initial_timestep= 1 * year)
+standard_loop(final_time = 1E4 * year, output_period = 1E3 * year, initial_timestep= 1 * year)

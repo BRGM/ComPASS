@@ -33,4 +33,4 @@ ComPASS.init(
     wells = make_wells
 )
 
-standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 30 * year, output_period = year)

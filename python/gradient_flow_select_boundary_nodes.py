@@ -63,4 +63,4 @@ ComPASS.init(
 )
 set_boundary_conditions()
 set_initial_values()
-standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 30 * year, output_period = year)

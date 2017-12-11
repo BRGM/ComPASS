@@ -48,4 +48,4 @@ ComPASS.init(
     cells_permeability = cell_permeability_factory(grid),
 )
 
-standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 30 * year, output_period = year)

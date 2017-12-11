@@ -56,4 +56,4 @@ ComPASS.init(
     faces_permeability = face_permeability_factory(grid),
 )
 
-#standard_loop(final_time = 30 * year, output_frequency = year)
+#standard_loop(final_time = 30 * year, output_period = year)

@@ -45,7 +45,7 @@ ComPASS.init(
 #set_initial_values()
 #set_boundary_conditions()
 #
-#standard_loop(final_time = 30 * year, output_frequency = year)
+#standard_loop(final_time = 30 * year, output_period = year)
 
 ComPASS.dumps.dump_own_element_numbers()
 ComPASS.dumps.dump_mesh()

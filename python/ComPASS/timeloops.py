@@ -43,11 +43,12 @@ class Snapshooter:
         dumps.dump_states(tag=tag, subdirectory='states/output-' + tag)
 
 
-def standard_loop(final_time, initial_timestep=1., output_frequency = None, nb_output = 10, nitermax = None, tstart=0):
-    if output_frequency is None:
+def standard_loop(final_time, initial_timestep=1., output_period = None,
+                  nb_output = 10, nitermax = None, tstart=0):
+    if output_period is None:
         nb_output = max(2, nb_output)
-        output_frequency = (max(tstart, final_time) - tstart) / (nb_output - 1)
-    assert output_frequency is not None and output_frequency>0
+        output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
+    assert output_period is not None and output_period>0
     # this is necessary for well operating on pressures
     check_well_pressure()
     t = tstart
@@ -67,7 +68,7 @@ def standard_loop(final_time, initial_timestep=1., output_frequency = None, nb_o
             shooter.shoot(t)
             # WARNING / CHECKME we may loose some outputs
             while (t_output < t):
-                t_output = t_output + output_frequency
+                t_output = t_output + output_period
         n+= 1
         print_iteration_info()
         ComPASS.make_timestep(timestep)

@@ -36,4 +36,4 @@ ComPASS.init(
     fracture_faces = fractures_factory(grid)
 )
 
-standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 30 * year, output_period = year)

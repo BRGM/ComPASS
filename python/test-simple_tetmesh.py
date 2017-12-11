@@ -58,4 +58,4 @@ set_boundary_conditions()
 set_initial_values()
 
 
-standard_loop(final_time = 1E3 * year, output_frequency = 1E2 * year)
+standard_loop(final_time = 1E3 * year, output_period = 1E2 * year)

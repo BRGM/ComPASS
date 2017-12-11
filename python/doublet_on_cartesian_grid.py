@@ -31,4 +31,4 @@ ComPASS.init(
 )
 doublet_utils.init_states(pres, Tres)
 
-standard_loop(final_time = 30 * year, output_frequency = year)
+standard_loop(final_time = 30 * year, output_period = year)
