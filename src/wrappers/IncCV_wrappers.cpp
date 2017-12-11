@@ -30,8 +30,8 @@ struct IncCV {
 	static constexpr std::size_t nbdof = nc;
 #endif
 	typedef std::array<Real, nc> Component_vector;
-	typedef std::array<Real, np> Phase_vector;
 	typedef std::array<Component_vector, np> Phase_component_matrix;
+	typedef std::array<Real, np> Phase_vector;
 	typedef std::array<Real, nbdof> Accumulation_vector;
 	Context context;
 	Real p;
