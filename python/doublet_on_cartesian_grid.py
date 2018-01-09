@@ -13,7 +13,7 @@ from ComPASS.timeloops import standard_loop
 
 ComPASS.load_eos('water2ph')
 
-pres = 10. * MPa
+pres = 20. * MPa
 Tres = 70. # degC
 
 grid = ComPASS.Grid(
