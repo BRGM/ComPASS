@@ -14,7 +14,9 @@ from ComPASS.timeloops import standard_loop
 ComPASS.load_eos('water2ph')
 
 pres = 20. * MPa
-Tres = 70. # degC
+Tres = degC2K( 70. ) # convert Celsius to Kelvin degrees
+Tinjection = degC2K( 30. )
+Qm = 300. * ton / hour
 
 grid = ComPASS.Grid(
     shape = (31, 21, 3),
@@ -22,12 +24,23 @@ grid = ComPASS.Grid(
     origin = (-1500., -1000., -1600.),
 )
 
+def make_wells():
+    interwell_distance = 1 * km
+    Ox, Oy = doublet_utils.center(grid)[:2]
+    producer = doublet_utils.make_well((Ox - 0.5 * interwell_distance, Oy))
+    producer.operate_on_flowrate = Qm , 1. * bar
+    producer.produce()
+    injector = doublet_utils.make_well((Ox + 0.5 * interwell_distance, Oy))
+    injector.operate_on_flowrate = Qm, pres + 100. * MPa
+    injector.inject(Tinjection)
+    return (producer, injector)
+
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = doublet_utils.select_boundary_factory(grid),
-    wells = doublet_utils.make_wells_factory(grid),
+    wells = make_wells,
 )
 doublet_utils.init_states(pres, Tres)
 

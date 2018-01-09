@@ -6,12 +6,14 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-
+km = 1E3 # m
 
 minute = 60 # s
 hour = 60 * minute
 day = 24 * hour
 year = 365.25 * day
+ky = 1E3 * year
+My = 1E6 * year
 
 bar = 1E5 # Pa
 MPa = 1E6 # Pa

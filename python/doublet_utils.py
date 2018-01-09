@@ -30,7 +30,7 @@ def init_states(p, T):
     def set_states(states):
         states.context[:] = 2
         states.p[:] = p
-        states.T[:] = degC2K(T)
+        states.T[:] = T
         states.S[:] = [0, 1]
         states.C[:] = 1.
     for states in [ComPASS.dirichlet_node_states(),
@@ -39,7 +39,7 @@ def init_states(p, T):
                   ComPASS.cell_states()]:
         set_states(states)
 
-def make_well(xy):
+def make_well(xy, well_radius = None):
     vertices = np.rec.array(ComPASS.global_vertices())
     x, y, z = vertices.x, vertices.y, vertices.z
     x_well = x[np.argmin(np.abs(x - xy[0]))]
@@ -48,7 +48,9 @@ def make_well(xy):
     # CHECKME: What is the expected order for well nodes?
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
     well = ComPASS.Well()
-    well.geometry.radius = 0.1
+    if well_radius is None:
+        well_radius = 0.1
+    well.geometry.radius = well_radius
     segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
     well.geometry.add_segments(segments + 1) # Fortran indices start at 1
     return well
