@@ -77,6 +77,8 @@ def init(
     faces_permeability = lambda: None,
     fractures_permeability = lambda: None,
     set_dirichlet_nodes = lambda: None,
+    set_pressure_dirichlet_nodes = lambda: None,
+    set_temperature_dirichlet_nodes = lambda: None,
     set_global_flags = None
 ):
     # FUTURE: This could be managed through a context manager ?
@@ -144,6 +146,13 @@ def init(
         if dirichlet is not None:
             for a in [info.pressure, info.temperature]:
                 a[dirichlet] = ord('d')
+        else:
+            dirichlet = set_pressure_dirichlet_nodes()
+            if dirichlet is not None:
+                info.pressure[dirichlet] = ord('d')
+            dirichlet = set_temperature_dirichlet_nodes()
+            if dirichlet is not None:
+                info.temperature[dirichlet] = ord('d')
         kernel.global_mesh_count_dirichlet_nodes()
         kernel.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code
