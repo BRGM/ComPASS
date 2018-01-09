@@ -20,8 +20,8 @@ Tbot = degC2K( 350. )
 Hcaprock = 0.3 * km
 H = 3 * km
 ptop = 1 * bar
-pbot = ptop + 9.81 * 1000. * H
-kcap = 1E-17 # permeability caprok
+pbot = ptop + 9.81 * 950. * H
+kcap = 1E-18 # permeability caprok
 kres = 1E-12 # permeability reservoir
 
 ncells = 31
@@ -31,11 +31,16 @@ grid = ComPASS.Grid(
     origin = (0., 0., -H),
 )
 
-def dirichlet_boundaries():
+def dirichlet_temperature():
     vertices = np.rec.array(ComPASS.global_vertices())
     on_top = (vertices.z == grid.origin[2] + grid.extent[2])
     on_bottom = (vertices.z == grid.origin[2])
     return on_top | on_bottom
+
+def dirichlet_pressure():
+    vertices = np.rec.array(ComPASS.global_vertices())
+    on_top = (vertices.z == grid.origin[2] + grid.extent[2])
+    return on_top
 
 def cell_permeability():
     cell_centers = ComPASS.compute_global_cell_centers()
@@ -43,16 +48,18 @@ def cell_permeability():
     nbcells = cell_centers.shape[0]
     # tensor array
     permeability = np.empty((nbcells, 3, 3), dtype=np.double)
-    permeability[:] = np.eye(3)
-    permeability[zc >= -Hcaprock]*= kcap
-    permeability[zc <  -Hcaprock]*= kres
+    permeability[:] = kcap * np.eye(3)
+    reservoir = ( zc < -Hcaprock ) & ( zc > -H + Hcaprock )
+    permeability[reservoir] = kres * np.eye(3)
     return permeability
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     grid = grid,
-    set_dirichlet_nodes = dirichlet_boundaries,
+    set_dirichlet_nodes = dirichlet_temperature,
+    #set_pressure_dirichlet_nodes = dirichlet_pressure,
+    #set_temperature_dirichlet_nodes = dirichlet_temperature,
     cells_permeability = cell_permeability
 )
 
@@ -66,4 +73,4 @@ set_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices()).z)
 set_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).z)
 set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
 
-standard_loop(initial_timestep= 30 * day, final_time = 1 * ky, output_period = 10 * year)
+standard_loop(initial_timestep= 30 * day, final_time = 100 * year, output_period = 10 * year)
