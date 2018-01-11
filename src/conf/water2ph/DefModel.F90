@@ -20,8 +20,8 @@ module DefModel
   ! ! ****** Model ****** ! !
 
   integer, parameter :: &
-       NbComp = 1, & !< Number of Component
-       NbPhase = 2   !< Number of Phase
+       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
+       NbPhase = ComPASS_NUMBER_OF_PHASES
 
   integer, parameter :: &
       NbContexte = 2**NbPhase - 1

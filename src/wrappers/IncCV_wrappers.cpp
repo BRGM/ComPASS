@@ -42,10 +42,7 @@ struct IncCV {
 };
 
 // FIXME: This is to be removed later
-typedef Model<1, 2> Model_1c2p;
-typedef IncCV<Model_1c2p> X1c2p;
-typedef X1c2p X;
-
+typedef IncCV<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>> X;
 typedef XArrayWrapper<X> StateArray;
 
 // Fortran functions
@@ -95,17 +92,20 @@ void add_IncCV_wrappers(py::module& module)
 	auto PyStateArray = py::class_<StateArray>(module, "States")
 		.def("size", [](const StateArray& states) { return states.length; })
 		.def_property_readonly("shape", [](const StateArray& states) { return py::make_tuple(states.length); });
-	add_attribute_array<X::Context>(PyStateArray, "context", offsetof(X, context));
-	add_attribute_array<X::Real>(PyStateArray, "p", offsetof(X, p));
-	add_attribute_array<X::Real>(PyStateArray, "T", offsetof(X, T));
-	add_attribute_array<X::Real>(PyStateArray, "C", offsetof(X, C), { X::np, X::nc }, { X::nc * sizeof(X::Real), sizeof(X::Real) });
-	add_attribute_array<X::Real>(PyStateArray, "S", offsetof(X, S), { X::np }, { sizeof(X::Real) });
-	add_attribute_array<X::Real>(PyStateArray, "accumulation", offsetof(X, accumulation), { X::nbdof }, { sizeof(X::Real) });
+	add_attribute_array<typename X::Context>(PyStateArray, "context", offsetof(X, context));
+	add_attribute_array<typename X::Real>(PyStateArray, "p", offsetof(X, p));
+	add_attribute_array<typename X::Real>(PyStateArray, "T", offsetof(X, T));
+	add_attribute_array<typename X::Real>(PyStateArray, "C", offsetof(X, C), { X::np, X::nc }, { X::nc * sizeof(X::Real), sizeof(X::Real) });
+	add_attribute_array<typename X::Real>(PyStateArray, "S", offsetof(X, S), { X::np }, { sizeof(X::Real) });
+	add_attribute_array<typename X::Real>(PyStateArray, "accumulation", offsetof(X, accumulation), { X::nbdof }, { sizeof(X::Real) });
 
 	module.def("dirichlet_node_states", []() { return StateArray::retrieve(retrieve_dirichlet_node_states); });
 	module.def("node_states", []() { return StateArray::retrieve(retrieve_node_states); });
 	module.def("fracture_states", []() { return StateArray::retrieve(retrieve_fracture_states); });
 	module.def("cell_states", []() { return StateArray::retrieve(retrieve_cell_states); });
+
+	module.def("number_of_components", []() { return ComPASS_NUMBER_OF_COMPONENTS; });
+	module.def("number_of_phases", []() { return ComPASS_NUMBER_OF_PHASES; });
 
 	// FUTURE: PYBIND11_NUMPY_DTYPE shall support arrays in forthcoming release of pybind11
 	// PYBIND11_NUMPY_DTYPE(X, context, p, T, C, S, accumulation);

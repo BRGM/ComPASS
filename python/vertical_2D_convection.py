@@ -16,15 +16,15 @@ from ComPASS.timeloops import standard_loop
 ComPASS.load_eos('water2ph')
 
 Ttop = degC2K( 25. )
-Tbot = degC2K( 350. )
+Tbot = degC2K( 280. )
 Hcaprock = 0.3 * km
 H = 3 * km
 ptop = 1 * bar
 pbot = ptop + 9.81 * 950. * H
-kcap = 1E-18 # permeability caprok
+kcap = 1E-19 # permeability caprok
 kres = 1E-12 # permeability reservoir
 
-ncells = 31
+ncells = 101
 grid = ComPASS.Grid(
     shape = (ncells, 1, ncells),
     extent = (H, H/ncells, H),
@@ -73,4 +73,4 @@ set_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices()).z)
 set_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).z)
 set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
 
-standard_loop(initial_timestep= 30 * day, final_time = 100 * year, output_period = 10 * year)
+standard_loop(initial_timestep= 30 * day, final_time = 100 * year, output_period = 1 * year)

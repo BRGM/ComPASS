@@ -78,12 +78,22 @@ class Dumper:
         node_states = ComPASS.node_states()
         cell_states = ComPASS.cell_states()
         fracture_states = ComPASS.fracture_states()
-        np.savez(self.states_filename(mpi.proc_rank, tag),
-            node_pressure = node_states.p,
-            node_temperature = node_states.T,
-            cell_pressure = cell_states.p,
-            cell_temperature = cell_states.T,
-            fracture_pressure = fracture_states.p,
-            fracture_temperature = fracture_states.T,
-        )
+        dumped_states = {
+            'node_pressure': node_states.p,
+            'node_temperature': node_states.T,
+            'cell_pressure': cell_states.p,
+            'cell_temperature': cell_states.T,
+            'fracture_pressure': fracture_states.p,
+            'fracture_temperature': fracture_states.T,        
+        }
+        for phase in range(ComPASS.number_of_phases()):
+            dumped_states['cell_saturation_phase_%d'%(phase+1)] = cell_states.S[:, phase] 
+            dumped_states['node_saturation_phase_%d'%(phase+1)] = node_states.S[:, phase] 
+            dumped_states['fracture_saturation_phase_%d'%(phase+1)] = fracture_states.S[:, phase] 
+        for phase in range(ComPASS.number_of_phases()):
+            for comp in range(ComPASS.number_of_components()):
+                dumped_states['cell_comp%d_in_phase_%d'%(comp+1, phase+1)] = cell_states.C[:, phase, comp] 
+                dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp] 
+                dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp] 
+        np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
 

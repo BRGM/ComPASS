@@ -15,11 +15,7 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-        File.F90
-      GlobalMesh.F90
-        CompassMesh.F90
-        GmshMesh.F90
-        Mesh.F90
+	  GlobalMesh.F90
     IncCV.F90
     Flux.F90
     Jacobian.F90 
@@ -74,7 +70,7 @@ set(MAIN_SRCS ${_tmp})
 # Configuration to be built
 set( CONFIGURATIONS
     water2ph
-    diphasic
+    #diphasic
 )
 
 set( CONF_SRCS
@@ -120,6 +116,7 @@ foreach(_conf ${CONFIGURATIONS})
         # target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
         # target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
     # endif(DEF_VISU)
+    include(${CONF_DIR}/cmake.conf)
 endforeach()
 
 set( WRAPPERS_SRCS
@@ -200,6 +197,7 @@ foreach(_conf ${CONFIGURATIONS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
     # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
     target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
+    include(${CONF_DIR}/cmake.conf)
 
     if(DEF_Python_BINDINGS)
         set(eos_target ${_conf})
