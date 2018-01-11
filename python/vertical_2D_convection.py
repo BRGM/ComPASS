@@ -17,49 +17,43 @@ ComPASS.load_eos('water2ph')
 
 Ttop = degC2K( 25. )
 Tbot = degC2K( 280. )
-Hcaprock = 0.3 * km
 H = 3 * km
+Hcaprock = 0.1 * H
 ptop = 1 * bar
-pbot = ptop + 9.81 * 950. * H
-kcap = 1E-19 # permeability caprok
+pbot = ptop + 9.81 * 900. * H
+kcap = 1E-18 # permeability caprok
 kres = 1E-12 # permeability reservoir
 
-ncells = 101
+nz = 101
 grid = ComPASS.Grid(
-    shape = (ncells, 1, ncells),
-    extent = (H, H/ncells, H),
+    shape = (nz, 1, nz),
+    extent = (H, H/nz, H),
     origin = (0., 0., -H),
 )
 
-def dirichlet_temperature():
+def dirichlet_boundaries():
     vertices = np.rec.array(ComPASS.global_vertices())
     on_top = (vertices.z == grid.origin[2] + grid.extent[2])
     on_bottom = (vertices.z == grid.origin[2])
     return on_top | on_bottom
-
-def dirichlet_pressure():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    on_top = (vertices.z == grid.origin[2] + grid.extent[2])
-    return on_top
 
 def cell_permeability():
     cell_centers = ComPASS.compute_global_cell_centers()
     zc = cell_centers[:, 2]
     nbcells = cell_centers.shape[0]
     # tensor array
+    identity = np.eye(3)
     permeability = np.empty((nbcells, 3, 3), dtype=np.double)
-    permeability[:] = kcap * np.eye(3)
+    permeability[:] = kcap * identity
     reservoir = ( zc < -Hcaprock ) & ( zc > -H + Hcaprock )
-    permeability[reservoir] = kres * np.eye(3)
+    permeability[reservoir] = kres * identity
     return permeability
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     grid = grid,
-    set_dirichlet_nodes = dirichlet_temperature,
-    #set_pressure_dirichlet_nodes = dirichlet_pressure,
-    #set_temperature_dirichlet_nodes = dirichlet_temperature,
+    set_dirichlet_nodes = dirichlet_boundaries,
     cells_permeability = cell_permeability
 )
 
