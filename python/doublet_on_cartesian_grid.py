@@ -13,22 +13,41 @@ from ComPASS.timeloops import standard_loop
 
 ComPASS.load_eos('water2ph')
 
-pres = 10. * MPa
-Tres = 70. # degC
+pres = 20. * MPa
+Tres = degC2K( 70. ) # convert Celsius to Kelvin degrees
+Tinjection = degC2K( 30. )
+Qm = 300. * ton / hour
+
+nx, ny, nz = 31, 21, 3
+Lx, Ly, Lz = 3000., 2000., 100.
+Ox, Oy, Oz = -1500., -1000., -1600.
+
 
 grid = ComPASS.Grid(
-    shape = (31, 21, 3),
-    extent = (3000., 2000., 100.),
-    origin = (-1500., -1000., -1600.),
+    shape = (nx, ny, nz),
+    extent = (Lx, Ly, Lz),
+    origin = (Ox, Oy, Oz),
 )
+
+def make_wells():
+    interwell_distance = 1 * km
+    Cx, Cy, Cz = doublet_utils.center(grid)
+    producer = doublet_utils.make_well((Cx - 0.5 * interwell_distance, Cy))
+    producer.operate_on_flowrate = Qm , 1. * bar
+    producer.produce()
+    injector = doublet_utils.make_well((Cx + 0.5 * interwell_distance, Cy))
+    injector.operate_on_flowrate = Qm, pres + 100. * MPa
+    injector.inject(Tinjection)
+    return (producer, injector)
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = doublet_utils.select_boundary_factory(grid),
-    wells = doublet_utils.make_wells_factory(grid),
+    wells = make_wells,
 )
+
 doublet_utils.init_states(pres, Tres)
 
-standard_loop(final_time = 30 * year, output_period = year)
+standard_loop(initial_timestep = 1 * day, final_time = 30 * year, output_period = year)

@@ -10,7 +10,6 @@ module NN
 
    use PathUtilities
 
-   use Mesh
    use GlobalMesh
    use PartitionMesh
    use LocalMesh
@@ -157,8 +156,6 @@ contains
 
       character(len=*), intent(in) :: MeshFile
 
-      INTEGER :: mesh_format
-
       !FIXME: This is more of an assertion for consistency, might be removed
       if (.NOT. commRank == 0) then
          print *, "Mesh is supposed to be read by master process."
@@ -177,8 +174,7 @@ contains
       print *, "Mesh read from file: ", MeshFile
 
       ! Read Global Mesh
-      CALL Mesh_select_mesh_format(MeshFile, mesh_format)
-      CALL Mesh_read_mesh_file(MeshFile, mesh_format)
+      call GlobalMesh_Make_read_file(MeshFile)
 
       call GlobalMesh_Make_post_read()
 

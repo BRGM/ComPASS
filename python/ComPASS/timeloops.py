@@ -29,6 +29,7 @@ class Snapshooter:
         dumper.start_simulation()
         self.dumper = dumper
         self.nb_snaphots = 0
+        self.latest_snapshot_time = None
         self.filename = self.dumper.to_output_directory('snapshots')
         if mpi.is_on_master_proc:
             with open(self.filename, 'w') as f:
@@ -41,18 +42,24 @@ class Snapshooter:
 
     def shoot(self, t):
         tag = self.new_tag()
+        assert self.latest_snapshot_time is None or t > self.latest_snapshot_time
+        self.latest_snapshot_time = t
         if mpi.is_on_master_proc:
             with open(self.filename, 'a') as f:
                 print(tag, '%.12g'%t, file=f)
         self.dumper.dump_states(tag)
 
 
-def standard_loop(final_time, initial_timestep=1., output_period = None,
-                  nb_output = 10, nitermax = None, tstart=0, dumper=None):
+def standard_loop(final_time, initial_timestep=1.,
+                  output_period = None, output_every = None,
+                  nb_output = None, nitermax = None, tstart=0, dumper=None):
     if output_period is None:
-        nb_output = max(2, nb_output)
-        output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
-    assert output_period is not None and output_period>0
+        if nb_output is None:
+            output_period = final_time    
+        else:
+            nb_output = max(2, nb_output)
+            output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
+    assert not(output_period is None or output_period<=0)
     # this is necessary for well operating on pressures
     check_well_pressure()
     t = tstart
@@ -66,8 +73,8 @@ def standard_loop(final_time, initial_timestep=1., output_period = None,
         print('Time Step (iteration):', n)
         print('Current time: %.1f y' % (t / year), ' -> final time:', final_time / year, 'y')
         print('Timestep: %.3g s = %.3f d = %.3f y' % (timestep, timestep / day, timestep / year))
-    while t <= final_time and (nitermax is None or n < nitermax):
-        if t >= t_output:
+    while t < final_time and (nitermax is None or n < nitermax):
+        if t >= t_output or not(output_every is None or n%output_every>0):
             shooter.shoot(t)
             # WARNING / CHECKME we may loose some outputs
             while (t_output < t):
@@ -79,6 +86,6 @@ def standard_loop(final_time, initial_timestep=1., output_period = None,
         timestep = ComPASS.get_timestep()
         ComPASS.timestep_summary()
     # Output final time
-    shooter.shoot(t)
-    #ComPASS.output_visualization_files(n)
+    if shooter.latest_snapshot_time < t:
+        shooter.shoot(t)
     mpi.synchronize()
