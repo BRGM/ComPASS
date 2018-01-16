@@ -21,12 +21,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(mapbox/include) 
 
 set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
-if((NOT (DEFINED pybind11_FOUND)) OR (NOT ${pybind11_FOUND}))
+# Relying on PYBIND11_VERSION_MAJOR variable which is cached to detect pybind11 installation
+if(NOT (DEFINED PYBIND11_VERSION_MAJOR))
   find_package(pybind11 REQUIRED)
   if(${pybind11_VERSION} VERSION_LESS 2.2)
     message(FATAL_ERROR "pybind11 version should 2.2.x at least")
   endif(${pybind11_VERSION} VERSION_LESS 2.2)
-endif((NOT (DEFINED pybind11_FOUND)) OR (NOT ${pybind11_FOUND}))
+endif(NOT (DEFINED PYBIND11_VERSION_MAJOR))
 # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
 if(NOT ${PYTHONINTERP_FOUND})
   message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
