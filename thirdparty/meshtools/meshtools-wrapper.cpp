@@ -306,11 +306,16 @@ auto locate_all_cell_faces(const Mesh& mesh, py::array_t<MeshTools::CellId, py::
 //          for "decltype workaround" to work for MSVC
 //          cf. line with  (decltype(&locate_cell_faces<Mesh>))&locate_cell_faces<Mesh> there
 //          "decltype workaround" itself is due to a gcc bug...
+//FIXME: g++ complains with FaceIndex as a template because of
+//		 "auto face_position = position.unchecked<1>();"
+//       we impose FaceIndex = uint8_t (cf. below)
 template <typename Mesh, typename FaceIndex = uint8_t>
 auto identify_faces_from_positions(
 	const Mesh& mesh,
 	py::array_t<MeshTools::CellId, py::array::c_style> cell,
-	py::array_t<FaceIndex, py::array::c_style> position) -> py::array_t<MT::FaceId, py::array::c_style>
+//	py::array_t<FaceIndex, py::array::c_style> position) // FIXME: cf.above
+	py::array_t<uint8_t, py::array::c_style> position)
+	-> py::array_t<MT::FaceId, py::array::c_style>
 {
 	assert(cell.ndim() == 1);
 	assert(position.ndim() == 1);
