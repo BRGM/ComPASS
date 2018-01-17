@@ -1158,7 +1158,7 @@ subroutine NN_init_phase2(OutputDir)
       end if
 #endif
 
-      do while (TimeCurrent < (TimeFinal - eps))
+      do while (TimeCurrent < (TimeFinal + eps))
 
          TimeIter = TimeIter + 1
 
@@ -1185,10 +1185,7 @@ subroutine NN_init_phase2(OutputDir)
 
             call NN_main_checkpoint(OutputDir)
 
-            ! FIXME: we may loose some outputs
-            do while (TimeOutput < TimeCurrent)
-               TimeOutput = TimeOutput + output_frequency
-            end do
+            TimeOutput = NN_ceiling(TimeCurrent / output_frequency) * output_frequency
 
          end if
 
@@ -1199,6 +1196,19 @@ subroutine NN_init_phase2(OutputDir)
       end do ! end of time steps
 
    end subroutine NN_main
+
+
+   ! personal ceiling function
+   ! ceiling(x) returns an integer which unbound when x is huge
+   FUNCTION NN_ceiling(x)
+     DOUBLE PRECISION, INTENT(IN) :: x
+
+     DOUBLE PRECISION :: NN_ceiling
+
+     NN_ceiling = AINT(x)
+     NN_ceiling = NN_ceiling + MERGE(1, 0, x > 0 .AND. x /= NN_ceiling)
+   END FUNCTION NN_ceiling
+
 
    subroutine NN_main_summarize_timestep()
 

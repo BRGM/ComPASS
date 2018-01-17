@@ -15,8 +15,8 @@ module DefModel
   ! ! ****** Model ****** ! !
 
   integer, parameter :: &
-       NbComp = 2, & !< Number of Component
-       NbPhase = 2   !< Number of Phase
+       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
+       NbPhase = ComPASS_NUMBER_OF_PHASES
 
   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
@@ -172,7 +172,7 @@ module DefModel
 
   ! ! ****** Obj values used to compute Newton increment ****** ! !
 
-  double precision, parameter :: NewtonIncreObj_P = 1.d+5
+  double precision, parameter :: NewtonIncreObj_P = 1.d+6
   double precision, parameter :: NewtonIncreObj_T = 1.d0
   double precision, parameter :: NewtonIncreObj_C = 0.1d0
   double precision, parameter :: NewtonIncreObj_S = 0.1d0
@@ -208,7 +208,10 @@ module DefModel
       f_DensiteMassique,    &  ! \rho^alpha(P,T,C,S)
       f_Viscosite,          &  ! \mu^alpha(P,T,C,S)
       f_PermRel,            &  ! k_{r_alpha}(S)
-      f_PressionCapillaire     ! P_{c,alpha}(S)
+      f_PressionCapillaire, &  ! P_{c,alpha}(S)
+      air_henry,            &
+      air_henry_dT,         &
+      liquid_pressure
 
 #ifdef _THERMIQUE_
 
@@ -218,6 +221,17 @@ module DefModel
 #endif
 
 contains
+
+  FUNCTION liquid_pressure(z_ref, p_ref, rho, g, z)
+    DOUBLE PRECISION, INTENT(IN) :: z_ref
+    DOUBLE PRECISION, INTENT(IN) :: p_ref
+    DOUBLE PRECISION, INTENT(IN) :: rho
+    DOUBLE PRECISION, INTENT(IN) :: g
+    DOUBLE PRECISION, INTENT(IN) :: z
+    DOUBLE PRECISION :: liquid_pressure
+
+    liquid_pressure = p_ref - rho * g * (z - z_ref)
+  END FUNCTION liquid_pressure
 
   ! *** Physics *** !
 
@@ -835,7 +849,7 @@ contains
     DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
 
     ALLOCATE(CellThermalSource(NbCell))
-    CellThermalSource = MERGE(10.d0, 0.d0, CellThermalSourceType == 1)
+    CellThermalSource = MERGE(30.d0, 0.d0, CellThermalSourceType == 1)
 
     ALLOCATE(FracThermalSource(NbFrac))
     FracThermalSource = 0.d0

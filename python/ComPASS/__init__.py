@@ -79,7 +79,8 @@ def init(
     set_dirichlet_nodes = lambda: None,
     set_pressure_dirichlet_nodes = lambda: None,
     set_temperature_dirichlet_nodes = lambda: None,
-    set_global_flags = None
+    set_global_flags = None,
+    set_global_rocktype = None
 ):
     # FUTURE: This could be managed through a context manager ?
     global initialized
@@ -92,7 +93,7 @@ def init(
     if type(mesh) is str:
         if not os.path.exists(mesh):
             print('Mesh file (%s) not found!' % mesh)
-        print('Loading mesh from file is not implemented here')
+        print('Loading mesh from file is desactivated here.')
         # FIXME: This should be something like MPI.Abort()
         sys.exit(-1)
     elif type(mesh) is Grid:
@@ -156,6 +157,10 @@ def init(
         kernel.global_mesh_count_dirichlet_nodes()
         kernel.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code
+        kernel.global_mesh_allocate_rocktype()
+        if set_global_rocktype is not None:
+            assert callable(set_global_rocktype)
+            set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
         cellperm = cells_permeability()
         if cellperm is not None:
@@ -184,8 +189,8 @@ def init(
     initialized = True
     atexit.register(finalize)
 
-def get_id_faces():
-   return np.array(kernel.get_id_faces_buffer(), copy = False)
+def get_global_id_faces():
+   return np.array(kernel.get_global_id_faces_buffer(), copy = False)
 
 def get_cell_permeability():
    return np.array(kernel.get_cell_permeability_buffer(), copy = False)
@@ -271,7 +276,7 @@ def get_boundary_vertices():
     return res
 
 def set_fractures(faces):
-    idfaces = get_id_faces()
+    idfaces = get_global_id_faces()
     idfaces[faces] = -2
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 

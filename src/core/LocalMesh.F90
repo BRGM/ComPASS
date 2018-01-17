@@ -131,7 +131,9 @@ module LocalMesh
        NodebyCellLocal_Ncpus, &  ! from NodebyCellRes_Ncpus
        FracbyCellLocal_Ncpus, &  ! from FacebyCellLocal_Ncpus
        !
-       NodebyFracOwn_Ncpus, &  ! from NodebyFaceLocal_Ncpus
+       NodebyFracOwn_Ncpus, &  ! from NodebyFaceLocal_Ncpus 
+                               ! WARNING these are not the fracture nodes but the set of nodes 
+                               !         of the two cells on each side of the fracture
        CellbyFracOwn_Ncpus, &  ! from CellbyFaceLocal_Ncpus
        FracbyFracOwn_Ncpus     ! from FracbyCellLocal_Ncpus, CellbyFracOwn_Ncpus
 
@@ -1866,9 +1868,15 @@ contains
     end do
 
     Nb = FracbyProc(ip1)%Pt( FracbyProc(ip1)%Nb+1 )
+    !print *, "DEBUG - Copying", Nb, "fracture/face global porosities from:", PorositeFrac
     allocate(PorositeFrac_Ncpus(ip1)%Val(Nb))
     do i=1,Nb
-       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac( FracbyProc(ip1)%Num(i))
+        !print *, "DEBUG - Allocating fracture", i, &
+        !         "which is face", FracbyProc(ip1)%Num(i), &
+        !         !"with porosity value", PorositeFrac( FracbyProc(ip1)%Num(i))
+        !         "with porosity value", PorositeFrac(i)
+       !PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac(FracbyProc(ip1)%Num(i))
+       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac(i)
     end do
 
   end subroutine LocalMesh_Porosite
@@ -2347,6 +2355,7 @@ contains
        FracbyProc(ip1)%Pt(i+1) = nf
     end do
 
+    !print *, "DEBUG - Registered", nf, "fractures"
     ! rq: if no frac, nf=0, %Pt=0
 
     ! loop csr for FracbyProc(ip1)%Num
@@ -2411,11 +2420,12 @@ contains
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)
              n = NodebyCellLocal_Ncpus(ip1)%Num(npt)
-             colorNodeLocal(n) = m
+             colorNodeLocal(n) = m ! this can be set more than once
           enddo
        enddo
 
        ! number of neighbour nodes of the node own m
+       ! we have this loop because colorNodeLocal can be set more than once
        do kpt = CellbyFracOwn_Ncpus(ip1)%Pt(m)+1,CellbyFracOwn_Ncpus(ip1)%Pt(m+1)
           k = CellbyFracOwn_Ncpus(ip1)%Num(kpt)
           do npt = NodebyCellLocal_Ncpus(ip1)%Pt(k)+1,NodebyCellLocal_Ncpus(ip1)%Pt(k+1)

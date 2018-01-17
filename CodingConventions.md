@@ -1,6 +1,10 @@
 # Coding/Versioning conventions
 
+**Do not hesitate to start discussions on [GitLab](https://gitlab.inria.fr/charms/ComPASS) using issues or merge request. This should be the preferred way.** 
+
 ## Versioning conventions
+
+Use WIP (Work In Progress) in merge request if you want to prevent an effective merge.
 
 Commits should be carefully formatted (from [Chris Beams] (https://chris.beams.io/posts/git-commit/)):
   * Separate subject from body with a blank line
@@ -41,8 +45,13 @@ Flags which are pervasive throughout the code and can be located using a grep ut
 
 All flags can be combine with question mark whenever one is not sure about the status of his assertion.
 
+## Code specific conventions
 
-**Do not hesitate to start discussions on GitLab using issues or merge request. This should be the preferred way.** Use WIP (Work In Progress) in merge request if you want to prevent an effective merge.
+### Fortran
+
+* prefer lower case fortran
+
+* use [fprettify](https://github.com/pseewald/fprettify) for code formating with 3 spaces indentation 
 
 
 

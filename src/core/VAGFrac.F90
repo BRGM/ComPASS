@@ -554,7 +554,7 @@ contains
       NodeRocktypeLocal(1,:), &
       IdNodeLocal(:)%P /= "d", &
       omegaDarcyFrac, &
-      NodebyFracOwn, &
+      NodebyFractureLocal, &
       VolDarcyFrac, &
       VolDarcyNode)
 
@@ -581,7 +581,7 @@ contains
       NodeRocktypeLocal(1,:), &
       IdNodeLocal(:)%P /= "d", &
       omegaDarcyFrac, &
-      NodebyFracOwn, &
+      NodebyFractureLocal, &
       PoroVolDarcyFrac, &
       PoroVolDarcyNode)
 
@@ -666,7 +666,7 @@ contains
       NodeRocktypeLocal(2,:), &
       IdNodeLocal(:)%T /= "d", &
       omegaFourierFrac, &
-      NodebyFracOwn, &
+      NodebyFractureLocal, &
       PoroVolFourierFrac, &
       PoroVolFourierNode)
 
@@ -688,7 +688,7 @@ contains
       NodeRocktypeLocal(2,:), &
       IdNodeLocal(:)%T /= "d", &
       omegaFourierFrac, &
-      NodebyFracOwn, &
+      NodebyFractureLocal, &
       Poro_1VolFourierFrac, &
       Poro_1VolFourierNode)
 
@@ -710,7 +710,7 @@ contains
       NodeRocktypeLocal(2,:), &
       IdNodeLocal(:)%T /= "d", &
       omegaFourierFrac, &
-      NodebyFracOwn, &
+      NodebyFractureLocal, &
       FracThermalSourceVol, &
       NodeThermalSourceVol)
 

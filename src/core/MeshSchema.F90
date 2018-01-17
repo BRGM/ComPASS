@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 module MeshSchema
 
   use CommonType
@@ -33,6 +41,8 @@ module MeshSchema
        CellbyNodeOwn, &   ! (1)
                                 !
        NodebyFracOwn, &   ! (1)
+                          ! WARNING these are not the fracture nodes but the set of nodes 
+                          !         of the two cells on each side of the fracture
        CellbyFracOwn, &   ! (1)
        FracbyFracOwn, &   ! (1)
                                 ! 
@@ -40,8 +50,9 @@ module MeshSchema
        FracbyCellLocal, & ! (1,2)
        NodebyCellLocal, & ! (1,2)
                                 !
-       NodebyFaceLocal    ! (1,2)
-
+       NodebyFaceLocal, & ! (1,2)
+       NodebyFractureLocal
+  
   ! Number of Edges by Well
   integer, allocatable, dimension(:), protected :: &
        NbEdgebyWellInjLocal, &
@@ -181,6 +192,8 @@ contains
   subroutine MeshSchema_make
 
     call MeshSchema_sendrecv
+    call MeshSchema_collect_fracture_nodes
+
 
     ! List of Edge (local number of nodes) by local Well (own+ghost)
     call MeshSchema_NumNodebyEdgebyWellLocal
@@ -961,6 +974,7 @@ contains
        end do
 
        ! proc=0, copy
+        !print *, "DEBUG - Copying", Nb, "fracture porosity values:", PorositeFrac_Ncpus(1)%Val(:)
        Nb = NbFracLocal_Ncpus(1)
        allocate(PorositeFracLocal(Nb))
        PorositeFracLocal(:) = PorositeFrac_Ncpus(1)%Val(:)
@@ -1460,6 +1474,9 @@ contains
        enddo
 
        VolCellLocal(k) = volk
+       !if(volk<eps) then
+       !     print *, "DEBUG - Small cell volume for cell", k    
+       !endif
     enddo
 
   end subroutine MeshSchema_VolCellLocal
@@ -1568,12 +1585,62 @@ contains
        end do ! end of loop edge in face       
 
        SurfFracLocal(ifrac) = SurfFace ! area of frac
+       !if(SurfFace<eps) then
+       !     print *, "DEBUG - Small fracture surface for fracture", ifrac    
+       !endif
 
     end do ! end of loop face
 
   end subroutine MeshSchema_SurfFracLocal
 
+  subroutine MeshSchema_collect_fracture_nodes
+  
+    integer :: k, frac, face, node, pnode, nbfractures, nbnodes
+    integer :: Ierr, errcode ! FIXME: used for MPI_Abort but not assigned
 
+    nbfractures = NbFracLocal_Ncpus(commRank+1)
+
+    !print *, "DEBUG - Collecting nodes of", nbfractures, "fractures"
+
+    if(allocated(NodebyFractureLocal%Pt)) then
+       deallocate(NodebyFractureLocal%Pt)
+    end if
+    allocate(NodebyFractureLocal%Pt(nbfractures+1))
+
+    !print *, "DEBUG - Allocated CSR pointer"
+
+    NodebyFractureLocal%Pt(1) = 0
+    do frac = 1, nbfractures
+       face = FracToFaceLocal(frac)
+       nbnodes = NodebyFaceLocal%Pt(face+1) - NodebyFaceLocal%Pt(face)
+       !print *, "DEBUG - Fracture", frac, "has", nbnodes, "nodes"
+       NodebyFractureLocal%Pt(frac+1) = NodebyFractureLocal%Pt(frac) + nbnodes
+    enddo
+
+    if(allocated(NodebyFractureLocal%Num)) then
+       deallocate(NodebyFractureLocal%Num)
+    end if
+    allocate(NodebyFractureLocal%Num(NodebyFractureLocal%Pt(nbfractures+1)))
+    k = 0
+    do frac = 1, nbfractures
+       face = FracToFaceLocal(frac)
+       do pnode = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+            k = k + 1
+            NodebyFractureLocal%Num(k) = NodebyFaceLocal%Num(pnode)
+       end do
+    end do
+    
+    if(k/=NodebyFractureLocal%Pt(nbfractures+1)) then
+       if(commRank==0) then
+          print*, "MeshSchema_collect_fracture_nodes: something went wrong"
+       end if
+       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)        
+    end if
+    
+    !print *, "DEBUG - Collecting fracture nodes. DONE!"
+
+  end subroutine MeshSchema_collect_fracture_nodes
+  
   subroutine MeshSchema_Surf12f(x1,x2,x3,x,surf)
 
     ! calcul du vecteur normal unitaire d'un triangle defini par les 

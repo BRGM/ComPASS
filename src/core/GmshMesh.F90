@@ -1,9 +1,0 @@
-
-
-MODULE GmshMesh
-
-  IMPLICIT NONE
-
-CONTAINS
-
-END MODULE GmshMesh

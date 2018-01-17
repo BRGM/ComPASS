@@ -12,13 +12,15 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+ComPASS.load_eos('water2ph')
+
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def cell_permeability_factory(grid):
     Ox, Oy, Oz = grid.origin
     Lx, Ly, Lz = grid.extent
     def cell_permeability():
-        cell_centers = ComPASS.compute_cell_centers()
+        cell_centers = ComPASS.compute_global_cell_centers()
         zc = cell_centers[:, 2]
         nbcells = cell_centers.shape[0]
         # tensor array

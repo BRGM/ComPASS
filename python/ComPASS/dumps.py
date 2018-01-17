@@ -61,7 +61,7 @@ class Dumper:
         fracture_faces = ComPASS.frac_face_id()
         fracture_nodes = [np.array(connectivity.NodebyFace[fk]) - 1 for fk in fracture_faces]  # switch first node indexing from 1 to 0 
         fracturenodes_offsets = np.cumsum([len(a) for a in fracture_nodes])
-        fracturenodes_values = np.hstack(fracture_nodes) if fracturenodes_offsets else np.array([])
+        fracturenodes_values = np.hstack(fracture_nodes) if len(fracturenodes_offsets)==0 else np.array([])
         fracture_types = ComPASS.facetypes()[fracture_faces]
         np.savez(self.mesh_filename(mpi.proc_rank),
             vertices =  ComPASS.vertices().view(dtype=np.double).reshape((-1, 3)),
@@ -96,4 +96,10 @@ class Dumper:
                 dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp] 
                 dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp] 
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
+
+def dump_mesh():
+    Dumper().dump_mesh()
+
+def dump_states(tag=''):
+    Dumper().dump_states(tag)
 

@@ -16,6 +16,7 @@ struct MeshConnectivity
 {
 	COC NodebyCell;
 	COC NodebyFace;
+	COC FacebyNode;
 	COC FacebyCell;
 	COC CellbyNode;
 	COC CellbyFace;

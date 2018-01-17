@@ -198,9 +198,9 @@ class PostProcessor:
             for proc in range(self.distribution.nb_procs):
                 data_arrays = self.extract_data(proc, tag)
                 piece = self.write_mesh_vtu(proc, 'states_' + tag,
-                                             nodedata=data_arrays['node'],
-                                             celldata=data_arrays['cell'],
-                                             fracdata=data_arrays['fracture'])
+                                            nodedata=data_arrays['node'],
+                                            celldata=data_arrays['cell'],
+                                            fracdata=data_arrays['fracture'])
                 if not type(piece) is tuple:
                     piece = (piece,)
                 pieces.append(piece)

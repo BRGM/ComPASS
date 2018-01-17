@@ -47,10 +47,12 @@ extern "C"
 	void retrieve_global_facetypes(XArrayWrapper<int8_t>&);
 	void retrieve_faceflags(XArrayWrapper<int>&);
 	void retrieve_global_faceflags(XArrayWrapper<int>&);
+	void retrieve_global_cellrocktype(XArrayWrapper<int>&);
+	void retrieve_global_fracrocktype(XArrayWrapper<int>&);
 	void retrieve_global_vertices(XArrayWrapper<Point>&);
 	void retrieve_global_mesh_connectivity(MeshConnectivity&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
-	void retrieve_id_faces(ArrayWrapper&);
+	void retrieve_global_id_faces(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
 	void retrieve_face_porosity(ArrayWrapper&);
 	void retrieve_cell_permeability(ArrayWrapper&);
@@ -75,6 +77,8 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "global_nodeflags", retrieve_global_nodeflags);
 	add_array_wrapper(module, "global_cellflags", retrieve_global_cellflags);
 	add_array_wrapper(module, "global_faceflags", retrieve_global_faceflags);
+	add_array_wrapper(module, "global_cellrocktype", retrieve_global_cellrocktype);
+	add_array_wrapper(module, "global_fracrocktype", retrieve_global_fracrocktype);
 	add_array_wrapper(module, "global_celltypes", retrieve_global_celltypes);
 	add_array_wrapper(module, "global_facetypes", retrieve_global_facetypes);
 	add_array_wrapper(module, "vertices", retrieve_vertices);
@@ -90,8 +94,8 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
 	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
 
-	module.def("get_id_faces_buffer",
-		[]() { return retrieve_buffer<IntBuffer>(retrieve_id_faces); },
+	module.def("get_global_id_faces_buffer",
+		[]() { return retrieve_buffer<IntBuffer>(retrieve_global_id_faces); },
 		"Get faces integer flag. Can be used to specify fracture faces setting the flag to -2.");
 
 	module.def("get_cell_porosity_buffer",
@@ -113,6 +117,7 @@ void add_mesh_utilities_wrappers(py::module& module)
 	py::class_<MeshConnectivity>(module, "MeshConnectivity")
 		.def_readwrite("NodebyCell", &MeshConnectivity::NodebyCell)
 		.def_readwrite("NodebyFace", &MeshConnectivity::NodebyFace)
+		.def_readwrite("FacebyNode", &MeshConnectivity::FacebyNode)
 		.def_readwrite("FacebyCell", &MeshConnectivity::FacebyCell)
 		.def_readwrite("CellbyNode", &MeshConnectivity::CellbyNode)
 		.def_readwrite("CellbyFace", &MeshConnectivity::CellbyFace)

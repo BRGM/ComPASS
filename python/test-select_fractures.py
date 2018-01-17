@@ -8,7 +8,6 @@
 
 import numpy as np
 import ComPASS
-import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
@@ -27,15 +26,14 @@ def fractures_factory(grid):
 grid = ComPASS.Grid(
     origin = (-1500., -1000., -1600.),
     extent = (3000., 2000., 100.),
-    shape = (31, 21, 11)
+    shape = (2, 2, 2)
 )
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
     grid = grid,
-    wells = doublet_utils.make_wells_factory(grid),
     fracture_faces = fractures_factory(grid)
 )
 
-standard_loop(final_time = 30 * year, output_period = year)
+ComPASS.dumps.dump_mesh()

@@ -15,7 +15,7 @@
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
-	  GlobalMesh.F90
+    GlobalMesh.F90
     IncCV.F90
     Flux.F90
     Jacobian.F90 
@@ -43,13 +43,6 @@ if(DEF_DISPMODULE)
     )
 endif(DEF_DISPMODULE)
 
-# if(DEF_VISU)
-    # list(APPEND ComPASSCore_SRCS
-        # VisuVTK.F90
-        # VisuVTK.cpp
-    # )
-# endif(DEF_VISU)
-
 unset(_tmp)
 foreach(_src ${ComPASSCore_SRCS})
     list(APPEND _tmp core/${_src})
@@ -70,7 +63,7 @@ set(MAIN_SRCS ${_tmp})
 # Configuration to be built
 set( CONFIGURATIONS
     water2ph
-    #diphasic
+    diphasic
 )
 
 set( CONF_SRCS
@@ -112,10 +105,6 @@ foreach(_conf ${CONFIGURATIONS})
         target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
         target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
     endif(DEF_HDF5)
-    # if(DEF_VISU)
-        # target_include_directories(${CONF_TARGETNAME} PUBLIC ${VTK_INCLUDE_DIRS})
-        # target_link_libraries(${CONF_TARGETNAME} ${VTK_LIBRARIES})
-    # endif(DEF_VISU)
     include(${CONF_DIR}/cmake.conf)
 endforeach()
 

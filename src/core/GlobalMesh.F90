@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 !> Main subroutine GlobalMesh_make.   <br>
 !! Contains the connectivity of the global mesh.
 module GlobalMesh
@@ -95,6 +103,7 @@ module GlobalMesh
   ! Connectivities 
   type(CSR), protected :: &
     NodebyCell, &  !< CSR list of Nodes surrounding each Cell
+    FacebyNode, & !< CSR list of Faces surrounding each Node
     CellbyNode, & !< CSR list of Cells surrounding each Node
     CellbyCell, & !< CSR list of Cells surrounding each Cell
     CellbyFace    !< CSR list of Cells surrounding each Face
@@ -174,6 +183,7 @@ module GlobalMesh
     GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
     GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
     GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
+    GlobalMesh_FaceByNodeGlobal,     & ! make FacebyNode
     GlobalMesh_CellByNodeGlobal,     & ! make CellbyNode
     GlobalMesh_CellByCellGlobal,     & ! make CellbyCell
     GlobalMesh_CellbyFaceGlobal,     & ! make CellbyFace
@@ -261,6 +271,9 @@ contains
 
   subroutine GlobalMesh_Compute_all_connectivies()
 
+    ! FacebyNode
+    call GlobalMesh_FaceByNodeGlobal
+
     ! CellbyNode
     call GlobalMesh_CellByNodeGlobal
 
@@ -286,11 +299,11 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
 
     call GlobalMesh_MeshBoundingBox
 
-    CALL GlobalMesh_SetNodeFlags
+    call GlobalMesh_Compute_all_connectivies
+
     CALL GlobalMesh_SetCellFlags
     CALL GlobalMesh_SetFaceFlags
-
-    call GlobalMesh_Compute_all_connectivies
+    CALL GlobalMesh_SetNodeFlags
 
     ! Frac
     call GlobalMesh_SetFrac
@@ -306,7 +319,8 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
 
 end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 
-subroutine GlobalMesh_Make_post_read_set_poroperm()
+
+subroutine GlobalMesh_allocate_rocktype()
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
     ALLOCATE(FracRocktype(IndThermique+1,NbFrac))
@@ -314,6 +328,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     CALL GlobalMesh_SetCellRocktype
     CALL GlobalMesh_SetFracRocktype
+
+end subroutine GlobalMesh_allocate_rocktype
+
+
+subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     ! set porosity from file DefModel
     CALL DefModel_SetPorosite( &
@@ -327,17 +346,49 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
       NbFrac, FracRocktype, &
       PermCell, PermFrac)
 
+    CALL GlobalMesh_SetRocktype( &
+      NbNode, &
+      NbCell, &
+      IdNode%Frac /= "y", &
+      CellRocktype(1,:), &
+      MAXVAL(RESHAPE(PermCell, (/ 9, NbCell /)), 1), &
+      CellbyNode, &
+      NodeRocktype(1,:))
+
+    CALL GlobalMesh_SetRocktype( &
+      NbNode, &
+      NbFrac, &
+      IdNode%Frac == "y", &
+      FracRocktype(1,:), &
+      PermFrac, &
+      FracbyNode, &
+      NodeRocktype(1,:))
+
     ! set conductivities thermal
 #ifdef _THERMIQUE_
      CALL DefModel_SetCondThermique( &
        NbCell, CellRocktype, &
        NbFrac, FracRocktype, &
        CondThermalCell, CondThermalFrac)
-#endif
 
-    CALL GlobalMesh_SetNodeRocktype
+     CALL GlobalMesh_SetRocktype( &
+       NbNode, &
+       NbCell, &
+       IdNode%Frac /= "y", &
+       CellRocktype(2,:), &
+       MAXVAL(RESHAPE(CondThermalCell, (/ 9, NbCell /)), 1), &
+       CellbyNode, &
+       NodeRocktype(2,:))
 
-#ifdef _THERMIQUE_
+     CALL GlobalMesh_SetRocktype( &
+       NbNode, &
+       NbFrac, &
+       IdNode%Frac == "y", &
+       FracRocktype(2,:), &
+       CondThermalFrac, &
+       FracbyNode, &
+       NodeRocktype(2,:))
+
     ALLOCATE(CellThermalSourceType(NbCell))
     ALLOCATE(FracThermalSourceType(NbFrac))
 
@@ -355,73 +406,51 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
-  SUBROUTINE GlobalMesh_SetNodeRocktype
+  SUBROUTINE GlobalMesh_SetRocktype( &
+      NbNode, &
+      NbElem, &
+      IsRocktypeNode, &
+      ElemRocktype, &
+      ElemPermeability, &
+      ElembyNode, &
+      Rocktype)
+
+
+    INTEGER, INTENT(IN) :: NbNode
+    INTEGER, INTENT(IN) :: NbElem
+    LOGICAL, INTENT(IN) :: IsRocktypeNode(NbNode)
+    INTEGER, INTENT(IN) :: ElemRocktype(NbElem)
+    DOUBLE PRECISION, INTENT(IN) :: ElemPermeability(NbElem)
+    TYPE(CSR), INTENT(IN) :: ElembyNode
+
+    INTEGER, INTENT(OUT) :: Rocktype(NbNode)
+
     INTEGER :: i
     INTEGER :: kpt, k
-    INTEGER :: rt(IndThermique+1)
-    DOUBLE PRECISION :: v(IndThermique+1), vk(IndThermique+1)
+    INTEGER :: rt
+    DOUBLE PRECISION :: v, vk
 
     DO i=1, NbNode
-      IF(IdNode(i)%Frac == "y")THEN
-        kpt = FracbyNode%Pt(i)+1
-        k = FracbyNode%Num(kpt)
+      IF(IsRocktypeNode(i))THEN
+        kpt = ElembyNode%Pt(i)+1
+        k = ElembyNode%Num(kpt)
 
-        rt = FracRocktype(:,k)
-        v(1) = PermFrac(k)
-#ifdef _THERMIQUE_
-        v(2) = CondThermalFrac(k)
-#endif
+        rt = ElemRocktype(k)
+        v = ElemPermeability(k)
+        DO kpt = ElembyNode%Pt(i)+2, ElembyNode%Pt(i+1)
+          k = ElembyNode%Num(kpt)
 
-        do kpt = FracbyNode%Pt(i)+2, FracbyNode%Pt(i+1)
-          k = FracbyNode%Num(kpt)
-
-          vk(1) = PermFrac(k)
-#ifdef _THERMIQUE_
-          vk(2) = CondThermalFrac(k)
-#endif
-          IF( rt(1) /= FracRocktype(1,k) .AND. vk(1) > v(1) )THEN
-            rt(1) = FracRocktype(1,k)
-            v(1) = vk(1)
+          vk = ElemPermeability(k)
+          IF( rt /= ElemRocktype(k) .AND. vk > v )THEN
+            rt = ElemRocktype(k)
+            v = vk
           ENDIF
-
-#ifdef _THERMIQUE_
-          IF( rt(2) /= FracRocktype(2,k) .AND. vk(2) > v(2) )THEN
-            rt(2) = FracRocktype(2,k)
-            v(2) = vk(2)
-          ENDIF
-#endif
         ENDDO
-      ELSE
-        kpt = CellbyNode%Pt(i)+1
-        k = CellbyNode%Num(kpt)
 
-        rt = CellRocktype(:,k)
-        v(1) = MAXVAL(PermCell(:,:,k))
-#ifdef _THERMIQUE_
-        v(2) = MAXVAL(CondThermalCell(:,:,k))
-#endif
-        DO kpt = CellbyNode%Pt(i)+2, CellbyNode%Pt(i+1)
-          k = CellbyNode%Num(kpt)
-
-          vk(1) = MAXVAL(PermCell(:,:,k))
-#ifdef _THERMIQUE_
-          vk(2) = MAXVAL(CondThermalCell(:,:,k))
-#endif
-          IF( rt(1) /= CellRocktype(1,k) .AND. vk(1) > v(1) )THEN
-            rt(1) = CellRocktype(1,k)
-            v(1) = vk(1)
-          ENDIF
-#ifdef _THERMIQUE_
-          IF( rt(2) /= CellRocktype(2,k) .AND. vk(2) > v(2) )THEN
-            rt(2) = CellRocktype(2,k)
-            v(2) = vk(2)
-          ENDIF
-#endif
-        ENDDO
+        Rocktype(i) = rt
       ENDIF
-      NodeRocktype(:,i) = rt
     ENDDO
-  END SUBROUTINE GlobalMesh_SetNodeRocktype
+  END SUBROUTINE GlobalMesh_SetRocktype
 
 
   subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
@@ -448,8 +477,10 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     call GlobalMesh_Make_post_read_fracture_and_dirBC
   
+    call GlobalMesh_allocate_rocktype
+
     call GlobalMesh_Make_post_read_set_poroperm
-	
+
     call GlobalMesh_Make_post_read_well_connectivity_and_ip
 
   end subroutine GlobalMesh_Make_post_read
@@ -1203,6 +1234,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     call CommonType_deallocCSR(FacebyCell)
     call CommonType_deallocCSR(NodebyFace)
     call CommonType_deallocCSR(NodebyCell)
+    call CommonType_deallocCSR(FacebyNode)
     call CommonType_deallocCSR(CellbyNode)
     call CommonType_deallocCSR(FracbyNode)
     call CommonType_deallocCSR(CellbyCell)
@@ -1261,6 +1293,68 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
       end if
     end do
   end subroutine GlobalMesh_NodeOfFrac
+
+
+  ! Output:
+  !  FacebyNode
+  ! Use:
+  !   NodebyFace
+  !> \brief Make FacebyNode using NodebyFace.
+  subroutine GlobalMesh_FaceByNodeGlobal
+
+    integer :: i, j
+    integer, allocatable, dimension(:)  ::  nbFacebyNode
+    integer :: counterNumFacebyNode, nbtempFace, beginNode, loadNode
+
+    allocate(nbFacebyNode(NbNode))
+    nbFacebyNode(:)=0
+    counterNumFacebyNode=0
+
+    FacebyNode%Nb = NbNode
+    allocate(FacebyNode%Pt(NbNode+1))
+
+    ! 1st step - counting
+    do i=1,NbFace
+      nbtempFace=NodebyFace%Pt(i+1)-NodebyFace%Pt(i)
+      beginNode= NodebyFace%Pt(i)+1
+      ! Loop over the nodes of cell i
+      do j=1, nbtempFace
+        loadNode=NodebyFace%Num(beginNode+j-1)
+        ! Number of cells surrounding node j
+        nbFacebyNode(loadNode)=nbFacebyNode(loadNode)+1
+      enddo
+    enddo
+
+    FacebyNode%Pt(:)=0
+    do i=1,NbNode
+      counterNumFacebyNode=counterNumFacebyNode+nbFacebyNode(i)
+      FacebyNode%Pt(i+1)=FacebyNode%Pt(i)+nbFacebyNode(i)
+    enddo
+
+    allocate(FacebyNode%Num(counterNumFacebyNode))
+
+    ! 2nd step - filling
+    nbFacebyNode(:)=0    
+    do i=1,NbFace
+      nbtempFace=NodebyFace%Pt(i+1)-NodebyFace%Pt(i)
+      beginNode= NodebyFace%Pt(i)+1
+
+      ! Loop over the nodes of cell i
+      do j=1, nbtempFace
+        loadNode=NodebyFace%Num(beginNode+j-1)
+        nbFacebyNode(loadNode)=nbFacebyNode(loadNode)+1
+        ! Number of cells surrounding node j
+        FacebyNode%Num(nbFacebyNode(loadNode)+FacebyNode%Pt(loadNode))=i
+      enddo
+
+    enddo
+
+    deallocate(nbFacebyNode)
+
+  end subroutine GlobalMesh_FaceByNodeGlobal
+
+
+
 
   ! Output:
   !  FracbyNode

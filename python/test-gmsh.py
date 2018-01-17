@@ -43,7 +43,7 @@ vtkw.write_vtu(
         nodes, 
         np.array(offsets[1:], copy=False), # no first zero offset for wtk 
         np.array(cellnodes, copy=False),
-        mesh.vtk_ids(),
+        mesh.cells_vtk_ids(),
         celldata={'physical': physical}
     ),
     filename.replace('.msh', '_3D.vtu')
@@ -60,10 +60,11 @@ rear_faces_tag = physical[bc[where]]
 
 face_nodes = mesh.connectivity.faces.nodes
 rear_elements = [face_nodes[fk] for fk in rear_faces]
-rear_celltypes = np.array([elt.vtk_id() for elt in rear_elements])
 rear_cellnodes = [np.array(elt) for elt in rear_elements]
 rear_offsets = np.cumsum([a.shape[0] for a in rear_cellnodes])
 rear_cellnodes = np.hstack(rear_cellnodes)
+faces_vtk_ids = mesh.faces_vtk_ids()
+rear_celltypes = np.array([faces_vtk_ids[fk] for fk in rear_faces])
 
 vtkw.write_vtu(
     vtkw.vtu_doc_from_COC(

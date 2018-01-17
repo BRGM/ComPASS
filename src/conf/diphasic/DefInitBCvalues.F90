@@ -17,7 +17,7 @@ subroutine IncCV_SetDirBCValue
 
   integer :: icPor
   integer :: rtPor(IndThermique+1)
-  double precision :: PlPor
+  double precision :: PlPor, PlTop, PlRef, zRef
   double precision :: SPor(NbPhase)
   double precision :: PcPor, PgPor, PPor
   double precision :: TPor
@@ -26,6 +26,8 @@ subroutine IncCV_SetDirBCValue
   double precision :: CegPor, CagPor
   double precision :: CelPor, CalPor
   double precision :: SlPor, SgPor
+  double precision :: CPor(NbComp)
+  double precision :: rho, dPf, dTf, dCf(NbComp)
   integer :: icGal
   integer :: rtGal(IndThermique+1)
   double precision :: PcGal, PgGal, PGal
@@ -43,7 +45,7 @@ subroutine IncCV_SetDirBCValue
 
   icPor = 2
 
-  PlPor = 4.0d+6
+  PlTop = 4.0d+6
   SgPor = 0.d0
   SlPor = 1.d0
   TPor = 303.d0
@@ -55,6 +57,12 @@ subroutine IncCV_SetDirBCValue
 
   CalPor = 0.d0
   CelPor = 1.d0
+
+  CPor = (/ CalPor, CelPor /)
+
+  zRef = meshSizeS_zmin
+  PlRef = PlTop
+  CALL f_DensiteMassique(PHASE_WATER,PlRef,TPor,CPor,SPor,rho,dPf,dTf,dCf,dSf)
 
 !   !!!!!!!!!!!!!!!!!!!!!!!
 ! 
@@ -141,6 +149,8 @@ subroutine IncCV_SetDirBCValue
 
         else if( NodeFlagsLocal(i) == 2 )then
 
+          PlPor = liquid_pressure(zRef, PlRef, rho, Gravite, XNodeLocal(3,i))
+
           rtPor = NodeRocktypeLocal(:,i)
           CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)
 
@@ -174,7 +184,8 @@ subroutine IncCV_SetInitialValue
   double precision :: sizeZ, sol
 
   integer :: icPor
-  double precision :: PlPor, PgPor, PcPor, PPor
+  double precision :: PlPor, PlTop, PlRef, zRef
+  double precision :: PgPor, PcPor, PPor
   double precision :: TPor
   double precision :: HurPor
   double precision :: PsatPor, dT_PSatPor
@@ -184,6 +195,8 @@ subroutine IncCV_SetInitialValue
   double precision :: SlPor, SgPor, SPor(NbPhase)
   double precision :: Ha
   double precision :: DSf(NbPhase)
+  double precision :: CPor(NbComp)
+  double precision :: rho, dPf, dTf, dCf(NbComp)
 
   PlPor = 40.0d+5
   icPor = 2
@@ -200,7 +213,7 @@ subroutine IncCV_SetInitialValue
 
   icPor = 2
 
-  PlPor = 40.0d+5
+  PlTop = 4.0d+6
   SgPor = 0.d0
   SlPor = 1.d0
   TPor = 303.d0
@@ -212,6 +225,12 @@ subroutine IncCV_SetInitialValue
 
   CalPor = 0.d0
   CelPor = 1.d0
+
+  CPor = (/ CalPor, CelPor /)
+
+  zRef = meshSizeS_zmin
+  PlRef = PlTop
+  CALL f_DensiteMassique(PHASE_WATER,PlRef,TPor,CPor,SPor,rho,dPf,dTf,dCf,dSf)
 
 !  !!!!!!!!!!!!!!!!!!!
 !  
@@ -238,13 +257,13 @@ subroutine IncCV_SetInitialValue
 !  CALL f_Sl(PcPor,SlPor)
 !  SgPor = 1 - SlPor
 
+  PlPor = PlTop
 
   ! Node
   do i=1, NbNodeLocal_Ncpus(commRank+1)
 
     rt = NodeRocktypeLocal(:,i)
-
-    CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
+    CALL f_PressionCapillaire(rt,PHASE_WATER,SPor,PcPor,DSf)
 
     PPor = PlPor - PcPor
     PgPor = PPor
@@ -266,11 +285,11 @@ subroutine IncCV_SetInitialValue
   do i=1, NbCellLocal_Ncpus(commRank+1)
 
     rt = CellRocktypeLocal(:,i)
-
-    CALL f_PressionCapillaire(rt,2,SPor,PcPor,DSf)
+    CALL f_PressionCapillaire(rt,PHASE_WATER,SPor,PcPor,DSf)
 
     PPor = PlPor - PcPor
     PgPor = PPor
+
 
     IncCell(i)%ic = icPor
     IncCell(i)%Pression = PPor

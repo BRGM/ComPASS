@@ -37,10 +37,12 @@ SUBROUTINE GlobalMesh_SetFaceFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyFace%Pt(k+1) - NodebyFace%Pt(k))
 
-    IF(xk(3) <= 1.d0)THEN
+    IF( ABS(xk(3)-Mesh_zmin) < eps )THEN 
+      FaceFlags(k) = 1
+    ELSEIF( ABS(xk(3)-Mesh_zmax) < eps )THEN
       FaceFlags(k) = 2
     ELSE
-      FaceFlags(k) = 1
+      FaceFlags(k) = 0
     ENDIF
   ENDDO
 END SUBROUTINE GlobalMesh_SetFaceFlags
@@ -127,19 +129,21 @@ END SUBROUTINE GlobalMesh_SetFracThermalSourceType
 
 
 SUBROUTINE GlobalMesh_SetNodeFlags
-  INTEGER :: k
+  INTEGER :: i, k, kpt
+  INTEGER :: f
   DOUBLE PRECISION :: xk(3)
 
-  DO k=1,NbNode
-    xk = XNode(:,k)
+  DO i=1,NbNode
 
-    IF( ABS(xk(3)-Mesh_zmin) < eps )THEN 
-      NodeFlags(k) = 1
-    ELSEIF( ABS(xk(3)-Mesh_zmax) < eps )THEN
-      NodeFlags(k) = 2
-    ELSE
-      NodeFlags(k) = 0
-    ENDIF
+    kpt = FacebyNode%Pt(i)+1
+    k = FacebyNode%Num(kpt)
+    f = FaceFlags(k)
+    DO kpt = FacebyNode%Pt(i)+2, FacebyNode%Pt(i+1)
+      k = FacebyNode%Num(kpt)
+
+      f = MAX(f, FaceFlags(k))
+    ENDDO
+    NodeFlags(i) = f
   ENDDO
 END SUBROUTINE GlobalMesh_SetNodeFlags
 
