@@ -9,6 +9,7 @@
 import sys
 import atexit
 import importlib
+import copy
 
 # We must load mpi wrapper first so that MPI is  initialized before calling PETSC_Initialize
 import ComPASS.mpi as mpi
@@ -65,6 +66,11 @@ class Grid:
         self.extent = extent
         self.origin = origin
 
+# This is temporary but will be generalized in the future
+# here Properties will just be used as a namespace
+class Properties:
+    pass
+
 # FIXME: grid is kept for backward compatibility, should be deprecated
 #        then mesh should not default to None and be explicitely provided
 def init(
@@ -73,15 +79,24 @@ def init(
     fracture_faces = lambda: None,
     cells_porosity = lambda: None,
     faces_porosity = lambda: None,
-    cells_permeability = lambda: None,
-    faces_permeability = lambda: None,
-    fractures_permeability = lambda: None,
     set_dirichlet_nodes = lambda: None,
     set_pressure_dirichlet_nodes = lambda: None,
     set_temperature_dirichlet_nodes = lambda: None,
     set_global_flags = None,
-    set_global_rocktype = None
+    set_global_rocktype = None,
+    **kwargs
 ):
+    # here properties will just be used as a namespace
+    properties = Properties()
+    for name in ['cells_permeability', 'fractures_permeability']:
+        try:
+            f = kwargs[name]
+        except KeyError:
+            f = lambda: None    
+        if not callable(f):
+            value = copy.deepcopy(f)
+            f = lambda: value
+        setattr(properties, name, f)
     # FUTURE: This could be managed through a context manager ?
     global initialized
     assert not initialized
@@ -162,24 +177,15 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
-        cellperm = cells_permeability()
+        cellperm = properties.cells_permeability()
         if cellperm is not None:
             get_cell_permeability()[:] = np.ascontiguousarray( cellperm )
-        faceperm = faces_permeability()
-        fracperm = fractures_permeability()
-        if fractures is not None:
-            if faceperm is not None:
-                assert fracperm is None
-                # the following assert is annoying when we just want to broadcast a values (typically a scalar value)
-                # anyway assignement through the numpy.ndarray interface will fail
-                # assert kernel.get_face_permeability().shape==faceperm.shape
-                get_face_permeability()[:] = np.ascontiguousarray( faceperm )[fractures]
-            elif fracperm is not None:
-                assert faceperm is None
-                #the following assert is annoying when we just want to broadcast a values (typically a scalar value)
-                # anyway assignement through the numpy.ndarray interface will fail
-                #assert fracperm.shape==tuple(np.count(fractures))
-                get_face_permeability()[fractures] = np.ascontiguousarray( fracperm )
+        fracperm = properties.fractures_permeability()
+        if fractures is not None and fracperm is not None:
+            #the following assert is annoying when we just want to broadcast a values (typically a scalar value)
+            # anyway assignement through the numpy.ndarray interface will fail
+            #assert fracperm.shape==tuple(np.count(fractures))
+            get_fracture_permeability()[:] = np.ascontiguousarray( fracperm )
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -195,8 +201,8 @@ def get_global_id_faces():
 def get_cell_permeability():
    return np.array(kernel.get_cell_permeability_buffer(), copy = False)
 
-def get_face_permeability():
-   return np.array(kernel.get_face_permeability_buffer(), copy = False)
+def get_fracture_permeability():
+   return np.array(kernel.get_fracture_permeability_buffer(), copy = False)
 
 def get_cell_porosity():
    return np.array(kernel.get_cell_porosity_buffer(), copy = False)

@@ -12,6 +12,17 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+pres = 20. * MPa            # initial reservoir pressure
+Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to Kelvin degrees
+Tinjection = degC2K( 30. )  # injection temperature - convert Celsius to Kelvin degrees
+Qm = 300. * ton / hour      # production flowrate
+k_matrix = 1E-15            # matrix permeability in m^2
+k_fracture = 1E-12          # fracture permeability in m^2
+
+Lx, Ly, Lz = 3000., 2000., 100.
+Ox, Oy, Oz = -1500., -1000., -1600.
+nx, ny, nz = 31, 21, 10
+
 
 ComPASS.load_eos('water2ph')
 
@@ -24,18 +35,35 @@ def fractures_factory(grid):
         return np.abs(face_centers[:, 2] - zfrac) < 0.5 * dz
     return select_fractures
 
-grid = ComPASS.Grid(
-    origin = (-1500., -1000., -1600.),
-    extent = (3000., 2000., 100.),
-    shape = (31, 21, 11)
-)
+def wells_factory(grid):
+    def make_wells():
+        interwell_distance = 1 * km
+        Cx, Cy, Cz = doublet_utils.center(grid)
+        producer = doublet_utils.make_well((Cx - 0.5 * interwell_distance, Cy))
+        producer.operate_on_flowrate = Qm , 1. * bar
+        producer.produce()
+        injector = doublet_utils.make_well((Cx + 0.5 * interwell_distance, Cy))
+        injector.operate_on_flowrate = Qm, pres + 100. * MPa
+        injector.inject(Tinjection)
+        return (producer, injector)
+    return make_wells
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
+grid = ComPASS.Grid(
+    shape = (nx, ny, nz),
+    extent = (Lx, Ly, Lz),
+    origin = (Ox, Oy, Oz),
+)
+
 ComPASS.init(
     grid = grid,
-    wells = doublet_utils.make_wells_factory(grid),
-    fracture_faces = fractures_factory(grid)
+    wells = wells_factory(grid),
+    fracture_faces = fractures_factory(grid),
+    cells_permeability = k_matrix,
+    fractures_permeability = k_fracture,
 )
+
+doublet_utils.init_states(pres, Tres)
 
 standard_loop(final_time = 30 * year, output_period = year)

@@ -49,9 +49,9 @@
           retrieve_global_mesh_connectivity, &
           retrieve_mesh_connectivity, &
           retrieve_cell_porosity, &
-          retrieve_face_porosity, &
+          retrieve_fracture_porosity, &
           retrieve_cell_permeability, &
-          retrieve_face_permeability, &
+          retrieve_fracture_permeability, &
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_make_post_read_from_C, &
@@ -357,8 +357,8 @@
 
        end subroutine retrieve_cell_porosity
 
-       subroutine retrieve_face_porosity(cpp_array) &
-          bind(C, name="retrieve_face_porosity")
+       subroutine retrieve_fracture_porosity(cpp_array) &
+          bind(C, name="retrieve_fracture_porosity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -377,7 +377,7 @@
           cpp_array%p = c_loc(PorositeFrac(1))
           cpp_array%n = size(PorositeFrac)
 
-       end subroutine retrieve_face_porosity
+       end subroutine retrieve_fracture_porosity
 
        subroutine retrieve_cell_permeability(cpp_array) &
           bind(C, name="retrieve_cell_permeability")
@@ -401,8 +401,8 @@
 
        end subroutine retrieve_cell_permeability
 
-       subroutine retrieve_face_permeability(cpp_array) &
-          bind(C, name="retrieve_face_permeability")
+       subroutine retrieve_fracture_permeability(cpp_array) &
+          bind(C, name="retrieve_fracture_permeability")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -421,7 +421,7 @@
           cpp_array%p = c_loc(PermFrac(1))
           cpp_array%n = size(PermFrac)
 
-       end subroutine retrieve_face_permeability
+       end subroutine retrieve_fracture_permeability
 
        subroutine retrieve_global_id_node(cpp_array) &
           bind(C, name="retrieve_global_id_node")

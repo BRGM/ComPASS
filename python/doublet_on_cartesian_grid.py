@@ -13,15 +13,14 @@ from ComPASS.timeloops import standard_loop
 
 ComPASS.load_eos('water2ph')
 
-pres = 20. * MPa
-Tres = degC2K( 70. ) # convert Celsius to Kelvin degrees
-Tinjection = degC2K( 30. )
-Qm = 300. * ton / hour
-
-nx, ny, nz = 31, 21, 3
+pres = 20. * MPa                  # initial reservoir pressure
+Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius to Kelvin degreessius to Kelvin degrees
+Tinjection = degC2K( 30. )        # injection temperature - convert Celsius to Kelvin degrees
+Qm = 300. * ton / hour            # production flowrate
+                                  
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
-
+nx, ny, nz = 31, 21, 3            
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
