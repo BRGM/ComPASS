@@ -49,6 +49,7 @@
           retrieve_global_id_faces, &
           retrieve_global_mesh_connectivity, &
           retrieve_mesh_connectivity, &
+          retrieve_nodes_by_fractures, &
           retrieve_cell_porosity, &
           retrieve_fracture_porosity, &
           retrieve_cell_permeability, &
@@ -491,6 +492,15 @@
           call retrieve_coc(empty_CSR, connectivity%CellbyCell)
 
        end subroutine retrieve_mesh_connectivity
+
+       subroutine retrieve_nodes_by_fractures(coc) &
+          bind(C, name="retrieve_nodes_by_fractures")
+
+          type(cpp_COC), intent(inout) :: coc
+
+          call retrieve_coc(NodebyFractureLocal, coc)
+
+       end subroutine retrieve_nodes_by_fractures
 
        subroutine GlobalMesh_build_cartesian_grid_from_C(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz) &
           bind(C, name="GlobalMesh_build_cartesian_grid")

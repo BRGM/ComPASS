@@ -89,11 +89,18 @@ public:
 	}
 	auto end() const {
 		assert(nb_containers >= 0);
-		assert(container_offset[nb_containers] >= 0);
 		auto offset = container_offset;
 		auto content = container_content;
-		std::advance(offset, nb_containers);
-		std::advance(content, container_offset[nb_containers]);
+		if (offset != nullptr) {
+			assert(nb_containers > 0);
+			assert(container_offset != nullptr);
+			assert(container_offset[nb_containers] > 0);
+			std::advance(offset, nb_containers);
+			std::advance(content, container_offset[nb_containers]);
+		}
+		else {
+			assert(container_offset == nullptr);
+		}
 		return COC_iterator{ offset, content };
 	}
 	auto operator[](const int i) {

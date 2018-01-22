@@ -1605,6 +1605,7 @@ contains
     if(allocated(NodebyFractureLocal%Pt)) then
        deallocate(NodebyFractureLocal%Pt)
     end if
+    NodebyFractureLocal%Nb = nbfractures
     allocate(NodebyFractureLocal%Pt(nbfractures+1))
 
     !print *, "DEBUG - Allocated CSR pointer"

@@ -54,6 +54,7 @@ extern "C"
 	void retrieve_global_vertices(XArrayWrapper<Point>&);
 	void retrieve_global_mesh_connectivity(MeshConnectivity&);
 	void retrieve_mesh_connectivity(MeshConnectivity&);
+	void retrieve_nodes_by_fractures(COC&);
 	void retrieve_global_id_faces(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
 	void retrieve_fracture_porosity(ArrayWrapper&);
@@ -156,6 +157,12 @@ void add_mesh_utilities_wrappers(py::module& module)
 	},
 		"Get local mesh connectivity."
 		);
+
+	module.def("get_nodes_by_fractures", []() {
+		COC coc;
+		retrieve_nodes_by_fractures(coc);
+		return coc;
+	});
 
 	// FIXME: preprocessor directives to be removed!
 #ifdef _THERMIQUE_

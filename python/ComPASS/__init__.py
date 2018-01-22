@@ -119,7 +119,8 @@ def init(
             celltypes = ComPASS.global_celltypes()
             celltypes[:] = 11 # VTK_VOXEL
             facetypes = ComPASS.global_facetypes()
-            facetypes[:] = 8 # VTK_PIXEL
+            #facetypes[:] = 8 # VTK_PIXEL
+            facetypes[:] = 9 # VTK_QUAD
     else:
 #    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
         kernel.init_warmup(runtime.logfile)

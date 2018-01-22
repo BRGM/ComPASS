@@ -21,7 +21,7 @@ k_fracture = 1E-12          # fracture permeability in m^2
 
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
-nx, ny, nz = 31, 21, 10
+nx, ny, nz = 31, 21, 6
 
 
 ComPASS.load_eos('water2ph')
@@ -32,7 +32,7 @@ def fractures_factory(grid):
         dz = grid.extent[2] / grid.shape[2]
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = grid.origin[2] + 0.5 * grid.extent[2]
-        return np.abs(face_centers[:, 2] - zfrac) < 0.5 * dz
+        return np.abs(face_centers[:, 2] - zfrac) < 0.25 * dz
     return select_fractures
 
 def wells_factory(grid):

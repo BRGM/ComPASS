@@ -20,7 +20,7 @@ def fractures_factory(grid):
         dz = grid.extent[2] / grid.shape[2]
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = grid.origin[2] + 0.5 * grid.extent[2]
-        return np.abs(face_centers[:, 2] - zfrac) < 0.5 * dz
+        return np.abs(face_centers[:, 2] - zfrac) < 0.25 * dz
     return select_fractures
 
 grid = ComPASS.Grid(

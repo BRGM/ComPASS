@@ -92,11 +92,15 @@ class PostProcessor:
                        nodedata=None, celldata=None, fracdata=None):
         assert proc < self.distribution.nb_procs
         nb_own_cells = self.distribution.nb_own_cells[proc]
+        nb_own_faces = self.distribution.nb_own_faces[proc]
         if dump_procid:
             own_only = True
             assert nodedata is None and celldata is None and fracdata is None
             celldata = {'proc': np.array(np.tile(proc, nb_own_cells),
                                          dtype=self.proc_id_type)}
+            if nb_own_faces>0:
+                fracdata = {'proc': np.array(np.tile(proc, nb_own_faces),
+                                             dtype=self.proc_id_type)}
         if nodedata is None:
             nodedata = {}
         if celldata is None:
@@ -129,22 +133,31 @@ class PostProcessor:
             fracdata_size = int(np.unique([len(a) for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
             if fracdata_size>0:
                 fracpiecefile = self.to_vtu_directory('fracture_%s_%s.vtu' % (basename, proc_label))
+                cell_nodes_offsets = mesh['fracturenodes_offsets']
+                cell_nodes = mesh['fracturenodes_values']
+                cell_types = mesh['fracture_types']
+                if own_only:
+                    cell_nodes_offsets = cell_nodes_offsets[:nb_own_faces]
+                    cell_nodes = cell_nodes[:cell_nodes_offsets[-1]]
+                    cell_types = cell_types[:nb_own_faces]
                 vtkw.write_vtu(
                     vtkw.vtu_doc_from_COC(
-                        mesh['vertices'], 
-                        mesh['fracturenodes_offsets'], 
-                        mesh['fracturenodes_values'], 
-                        mesh['fracture_types'], 
-                        celldata = fracdata,
-                    ), fracpiecefile
+                        mesh['vertices'], cell_nodes_offsets, cell_nodes, cell_types, 
+                        celldata=fracdata
+                    ),
+                    fracpiecefile,
                 )
                 return piecefile, fracpiecefile
-        return piecefile
+        return piecefile, None
     
     def collect_proc_ids(self):
-        pieces = [os.path.relpath(self.write_mesh_vtu(proc, 'mesh', dump_procid=True),
-                                  self.to_paraview_directory())
-                             for proc in range(self.distribution.nb_procs)]
+        pieces, fracpieces = [], []
+        for proc in range(self.distribution.nb_procs):
+            piecefiles = self.write_mesh_vtu(proc, 'mesh', dump_procid=True)
+            assert piecefiles[0] is not None
+            pieces.append(os.path.relpath(piecefiles[0], self.to_paraview_directory()))
+            if piecefiles[1] is not None:
+                fracpieces.append(os.path.relpath(piecefiles[1], self.to_paraview_directory()))
         vtkw.write_pvtu(
             vtkw.pvtu_doc(
                 self.vertices_type, pieces,
@@ -152,7 +165,14 @@ class PostProcessor:
             ),
             self.to_paraview_directory('mesh.pvtu')
         )
-      
+        if len(fracpieces)>0:
+            vtkw.write_pvtu(
+                vtkw.pvtu_doc(
+                    self.vertices_type, fracpieces,
+                    celldata_types = {'proc': self.proc_id_type},
+                ),
+                self.to_paraview_directory('fractures_mesh.pvtu')
+            )  
         
     def collect_snapshots(self):
         snapshots_file = self.dumper.to_output_directory('snapshots')
@@ -194,35 +214,32 @@ class PostProcessor:
         snapshots = self.collect_snapshots()
         pvd = {}
         for tag in snapshots:
-            pieces = []
+            all_pieces = []
             for proc in range(self.distribution.nb_procs):
                 data_arrays = self.extract_data(proc, tag)
-                piece = self.write_mesh_vtu(proc, 'states_' + tag,
-                                            nodedata=data_arrays['node'],
-                                            celldata=data_arrays['cell'],
-                                            fracdata=data_arrays['fracture'])
-                if not type(piece) is tuple:
-                    piece = (piece,)
-                pieces.append(piece)
+                pieces = self.write_mesh_vtu(proc, 'states_' + tag,
+                                             nodedata=data_arrays['node'],
+                                             celldata=data_arrays['cell'],
+                                             fracdata=data_arrays['fracture'])
+                all_pieces.append(pieces)
             pvtufile = self.to_vtu_directory('state_' + tag + '.pvtu')            
             vtkw.write_pvtu(
                 vtkw.pvtu_doc(
                     self.vertices_type,
-                    [os.path.relpath(piece[0], self.to_vtu_directory()) for piece in pieces],
+                    [os.path.relpath(pieces[0], self.to_vtu_directory()) for pieces in all_pieces],
                     pointdata_types = self.data_types['node'],
                     celldata_types = self.data_types['cell']
                 ),
                 pvtufile
             )
             pvtus = (pvtufile,)
-            if any(len(piece)>1 for piece in pieces):
+            if any(pieces[1] is not None for pieces in all_pieces):
                 fracpvtufile = self.to_vtu_directory('fracture_state_' + tag + '.pvtu')            
                 vtkw.write_pvtu(
                     vtkw.pvtu_doc(
                         self.vertices_type,
-                        [os.path.relpath(piece[1], self.to_vtu_directory()) for piece in pieces if len(piece)>1],
-                        pointdata_types = self.data_types['node'],
-                        celldata_types = self.data_types['cell']
+                        [os.path.relpath(pieces[1], self.to_vtu_directory()) for pieces in all_pieces if pieces[1] is not None],
+                        celldata_types = self.data_types['fracture']
                     ),
                     fracpvtufile
                 )
@@ -236,10 +253,11 @@ class PostProcessor:
             self.to_paraview_directory('states')
         )
         if any(len(pvtus)>1 for pvtus in pvd.values()):
+            assert all(len(pvtus)>1 for pvtus in pvd.values())
             vtkw.write_pvd(
                 vtkw.pvd_doc(
                     [(t, os.path.relpath(pvtus[1], self.to_paraview_directory()))
-                        for t, pvtus in pvd.items() if len(pvtus)>1]                    
+                        for t, pvtus in pvd.items()]                    
                 ),
                 self.to_paraview_directory('fracture_states')
             )
