@@ -17,6 +17,8 @@ pres = 20. * MPa                  # initial reservoir pressure
 Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius to Kelvin degreessius to Kelvin degrees
 Tinjection = degC2K( 30. )        # injection temperature - convert Celsius to Kelvin degrees
 Qm = 300. * ton / hour            # production flowrate
+omega_reservoir = 0.15            # reservoir porosity
+k_reservoir = 1E-12               # reservoir permeability in m^2
                                   
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
@@ -45,6 +47,8 @@ ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = doublet_utils.select_boundary_factory(grid),
     wells = make_wells,
+    cell_porosity = omega_reservoir,
+    cell_permeability = k_reservoir,
 )
 
 doublet_utils.init_states(pres, Tres)

@@ -77,8 +77,6 @@ def init(
     mesh=None, grid=None,
     wells = lambda: [],
     fracture_faces = lambda: None,
-    cells_porosity = lambda: None,
-    faces_porosity = lambda: None,
     set_dirichlet_nodes = lambda: None,
     set_pressure_dirichlet_nodes = lambda: None,
     set_temperature_dirichlet_nodes = lambda: None,
@@ -88,15 +86,17 @@ def init(
 ):
     # here properties will just be used as a namespace
     properties = Properties()
-    for name in ['cells_permeability', 'fractures_permeability']:
-        try:
-            f = kwargs[name]
-        except KeyError:
-            f = lambda: None    
-        if not callable(f):
-            value = copy.deepcopy(f)
-            f = lambda: value
-        setattr(properties, name, f)
+    for location in ['cell', 'fracture']:
+        for property in ['porosity', 'permeability']:
+            name = '%s_%s' % (location, property)
+            try:
+                f = kwargs[name]
+            except KeyError:
+                f = lambda: None    
+            if not callable(f):
+                value = copy.deepcopy(f)
+                f = lambda: value
+            setattr(properties, name, f)
     # FUTURE: This could be managed through a context manager ?
     global initialized
     assert not initialized
@@ -177,15 +177,25 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
-        cellperm = properties.cells_permeability()
-        if cellperm is not None:
-            get_cell_permeability()[:] = np.ascontiguousarray( cellperm )
-        fracperm = properties.fractures_permeability()
-        if fractures is not None and fracperm is not None:
-            #the following assert is annoying when we just want to broadcast a values (typically a scalar value)
-            # anyway assignement through the numpy.ndarray interface will fail
-            #assert fracperm.shape==tuple(np.count(fractures))
-            get_fracture_permeability()[:] = np.ascontiguousarray( fracperm )
+        for location in ['cell', 'fracture']:
+            for property in ['porosity', 'permeability']:
+                value = getattr(properties, location + '_' + property)()
+                if value is not None:
+                    dim = 3
+                    if location=='fracture':
+                        assert fractures is not None
+                        dim = 2
+                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                    value = np.ascontiguousarray( value )
+                    if property=='permeability':
+                        n = buffer.shape[0]
+                        if value.shape==(1,): # scalar value
+                            value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
+                        if value.shape==(dim, dim): # tensor value
+                            value = np.tile(value, (n, 1, 1))
+                        assert value.shape==(n, dim, dim)
+                        assert buffer.shape==value.shape
+                    buffer[:] = value
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -207,8 +217,8 @@ def get_fracture_permeability():
 def get_cell_porosity():
    return np.array(kernel.get_cell_porosity_buffer(), copy = False)
 
-def get_face_porosity():
-   return np.array(kernel.get_face_porosity_buffer(), copy = False)
+def get_fracture_porosity():
+   return np.array(kernel.get_fracture_porosity_buffer(), copy = False)
 
 def _compute_centers(points, elements):
     return np.array([

@@ -52,7 +52,9 @@ class Snapshooter:
 
 def standard_loop(final_time, initial_timestep=1.,
                   output_period = None, output_every = None,
-                  nb_output = None, nitermax = None, tstart=0, dumper=None):
+                  nb_output = None, nitermax = None, tstart=0, dumper=None,
+                  iteration_callbacks = None, output_callbacks = None,
+                 ):
     if output_period is None:
         if nb_output is None:
             output_period = final_time    
@@ -60,6 +62,10 @@ def standard_loop(final_time, initial_timestep=1.,
             nb_output = max(2, nb_output)
             output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
     assert not(output_period is None or output_period<=0)
+    if iteration_callbacks is None:
+        iteration_callbacks = tuple()
+    if output_callbacks is None:
+        output_callbacks = tuple()
     # this is necessary for well operating on pressures
     check_well_pressure()
     t = tstart
@@ -75,6 +81,8 @@ def standard_loop(final_time, initial_timestep=1.,
         print('Timestep: %.3g s = %.3f d = %.3f y' % (timestep, timestep / day, timestep / year))
     while t < final_time and (nitermax is None or n < nitermax):
         if t >= t_output or not(output_every is None or n%output_every>0):
+            for callback in output_callbacks:
+                callback(n, t)
             shooter.shoot(t)
             # WARNING / CHECKME we may loose some outputs
             while (t_output < t):
@@ -85,7 +93,11 @@ def standard_loop(final_time, initial_timestep=1.,
         t = ComPASS.get_current_time()
         timestep = ComPASS.get_timestep()
         ComPASS.timestep_summary()
+        for callback in iteration_callbacks:
+            callback(n, t)
     # Output final time
     if shooter.latest_snapshot_time < t:
+        for callback in output_callbacks:
+            callback(n, t)
         shooter.shoot(t)
     mpi.synchronize()

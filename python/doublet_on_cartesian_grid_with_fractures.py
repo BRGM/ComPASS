@@ -60,10 +60,10 @@ ComPASS.init(
     grid = grid,
     wells = wells_factory(grid),
     fracture_faces = fractures_factory(grid),
-    cells_permeability = k_matrix,
-    fractures_permeability = k_fracture,
+    cell_permeability = k_matrix,
+    fracture_permeability = k_fracture,
 )
 
 doublet_utils.init_states(pres, Tres)
 
-standard_loop(final_time = 30 * year, output_period = year)
+standard_loop(initial_timestep = day, final_time = 2 * year, output_period = year)
