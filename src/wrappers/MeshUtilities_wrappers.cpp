@@ -36,6 +36,8 @@ struct Point
 // Fortran functions
 extern "C"
 {
+	void get_global_number_of_nodes(long&);
+	void get_global_number_of_cells(long&);
 	void retrieve_vertices(XArrayWrapper<Point>&);
 	void retrieve_nodeflags(XArrayWrapper<int>&);
 	void retrieve_global_nodeflags(XArrayWrapper<int>&);
@@ -93,6 +95,22 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "nb_faces_own", retrieve_nb_faces_own);
 	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
 	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
+
+	module.def("global_number_of_nodes",
+		[]() {
+		long n = 0;
+		get_global_number_of_nodes(n);
+		return n;
+	}
+	);
+
+	module.def("global_number_of_cells",
+		[]() {
+		long n = 0;
+		get_global_number_of_cells(n);
+		return n;
+	}
+	);
 
 	module.def("get_global_id_faces_buffer",
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_global_id_faces); },

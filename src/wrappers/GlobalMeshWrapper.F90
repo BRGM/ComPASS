@@ -6,7 +6,6 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-
     module GlobalMeshWrapper
 
        use, intrinsic :: iso_c_binding
@@ -24,17 +23,19 @@
 
        type, bind(C) :: cpp_MeshConnectivity
           type(cpp_COC) :: NodebyCell
-          type(cpp_COC) :: NodebyFace;
-          type(cpp_COC) :: FacebyNode;
-          type(cpp_COC) :: FacebyCell;
-          type(cpp_COC) :: CellbyNode;
-          type(cpp_COC) :: CellbyFace;
-          type(cpp_COC) :: CellbyCell;
+          type(cpp_COC) :: NodebyFace; 
+          type(cpp_COC) :: FacebyNode; 
+          type(cpp_COC) :: FacebyCell; 
+          type(cpp_COC) :: CellbyNode; 
+          type(cpp_COC) :: CellbyFace; 
+          type(cpp_COC) :: CellbyCell; 
        end type cpp_MeshConnectivity
 
        public :: &
           GlobalMesh_allocate_id_nodes, &
           GlobalMesh_count_dirichlet_nodes, &
+          get_global_number_of_nodes, &
+          get_global_number_of_cells, &
           check_mesh_allocation, &
           retrieve_global_vertices, &
           retrieve_global_nodeflags, &
@@ -73,35 +74,35 @@
 
     contains
 
-    subroutine GlobalMesh_allocate_id_nodes() &
-        bind(C, name="GlobalMesh_allocate_id_nodes")
+       subroutine GlobalMesh_allocate_id_nodes() &
+          bind(C, name="GlobalMesh_allocate_id_nodes")
 
-    if(allocated(Idnode)) then
-        deallocate(IdNode)
-    end if
-    allocate(IdNode(NbNode))
+          if (allocated(Idnode)) then
+             deallocate (IdNode)
+          end if
+          allocate (IdNode(NbNode))
 
-        end subroutine GlobalMesh_allocate_id_nodes
+       end subroutine GlobalMesh_allocate_id_nodes
 
-    subroutine GlobalMesh_count_dirichlet_nodes() &
-        bind(C, name="GlobalMesh_count_dirichlet_nodes")
+       subroutine GlobalMesh_count_dirichlet_nodes() &
+          bind(C, name="GlobalMesh_count_dirichlet_nodes")
 
-    integer :: i
+          integer :: i
 
-    NbDirNodeP = 0
+          NbDirNodeP = 0
 #ifdef _THERMIQUE_
-    NbDirNodeT = 0
+          NbDirNodeT = 0
 #endif
-    do i=1, NbNode
-        if(IdNode(i)%P.eq."d") NbDirNodeP = NbDirNodeP + 1
+          do i = 1, NbNode
+             if (IdNode(i)%P .eq. "d") NbDirNodeP = NbDirNodeP + 1
 #ifdef _THERMIQUE_
-        if(IdNode(i)%T.eq."d") NbDirNodeT = NbDirNodeT + 1
+             if (IdNode(i)%T .eq. "d") NbDirNodeT = NbDirNodeT + 1
 #endif
-    end do
+          end do
 
-    end subroutine GlobalMesh_count_dirichlet_nodes
+       end subroutine GlobalMesh_count_dirichlet_nodes
 
-    subroutine retrieve_global_vertices(cpp_array) &
+       subroutine retrieve_global_vertices(cpp_array) &
           bind(C, name="retrieve_global_vertices")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -126,7 +127,7 @@
 
        end subroutine retrieve_global_vertices
 
-    subroutine retrieve_global_nodeflags(cpp_array) &
+       subroutine retrieve_global_nodeflags(cpp_array) &
           bind(C, name="retrieve_global_nodeflags")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -151,7 +152,7 @@
 
        end subroutine retrieve_global_nodeflags
 
-    subroutine retrieve_global_cellflags(cpp_array) &
+       subroutine retrieve_global_cellflags(cpp_array) &
           bind(C, name="retrieve_global_cellflags")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -176,7 +177,7 @@
 
        end subroutine retrieve_global_cellflags
 
-    subroutine retrieve_global_faceflags(cpp_array) &
+       subroutine retrieve_global_faceflags(cpp_array) &
           bind(C, name="retrieve_global_faceflags")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -201,7 +202,7 @@
 
        end subroutine retrieve_global_faceflags
 
-    subroutine retrieve_global_celltypes(cpp_array) &
+       subroutine retrieve_global_celltypes(cpp_array) &
           bind(C, name="retrieve_global_celltypes")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -226,7 +227,7 @@
 
        end subroutine retrieve_global_celltypes
 
-    subroutine retrieve_global_facetypes(cpp_array) &
+       subroutine retrieve_global_facetypes(cpp_array) &
           bind(C, name="retrieve_global_facetypes")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -251,8 +252,6 @@
 
        end subroutine retrieve_global_facetypes
 
-
-
        subroutine GlobalMesh_allocate_rocktype_from_C() &
           bind(C, name="GlobalMesh_allocate_rocktype")
 
@@ -260,8 +259,7 @@
 
        end subroutine GlobalMesh_allocate_rocktype_from_C
 
-
-    subroutine retrieve_global_cellrocktype(cpp_array) &
+       subroutine retrieve_global_cellrocktype(cpp_array) &
           bind(C, name="retrieve_global_cellrocktype")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -282,12 +280,11 @@
           end if
 
           cpp_array%p = c_loc(CellRocktype)
-          cpp_array%n = (IndThermique+1)*size(CellRocktype, 2)
+          cpp_array%n = (IndThermique + 1)*size(CellRocktype, 2)
 
        end subroutine retrieve_global_cellrocktype
 
-
-    subroutine retrieve_global_fracrocktype(cpp_array) &
+       subroutine retrieve_global_fracrocktype(cpp_array) &
           bind(C, name="retrieve_global_fracrocktype")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -308,10 +305,9 @@
           end if
 
           cpp_array%p = c_loc(FracRocktype)
-          cpp_array%n = (IndThermique+1)*size(FracRocktype, 2)
+          cpp_array%n = (IndThermique + 1)*size(FracRocktype, 2)
 
        end subroutine retrieve_global_fracrocktype
-
 
        subroutine retrieve_global_id_faces(cpp_array) &
           bind(C, name="retrieve_global_id_faces")
@@ -378,6 +374,22 @@
           cpp_array%n = size(PorositeFrac)
 
        end subroutine retrieve_fracture_porosity
+
+       subroutine get_global_number_of_nodes(n) &
+          bind(C, name="get_global_number_of_nodes")
+
+          integer(c_long), intent(out) :: n
+          n = NbNode
+
+       end subroutine get_global_number_of_nodes
+
+       subroutine get_global_number_of_cells(n) &
+          bind(C, name="get_global_number_of_cells")
+
+          integer(c_long), intent(out) :: n
+          n = NbCell
+
+       end subroutine get_global_number_of_cells
 
        subroutine retrieve_cell_permeability(cpp_array) &
           bind(C, name="retrieve_cell_permeability")
@@ -447,7 +459,7 @@
        end subroutine retrieve_global_id_node
 
        subroutine retrieve_global_mesh_connectivity(connectivity) &
-           bind(C, name="retrieve_global_mesh_connectivity")
+          bind(C, name="retrieve_global_mesh_connectivity")
 
           type(cpp_MeshConnectivity), intent(inout) :: connectivity
 
@@ -462,21 +474,21 @@
        end subroutine retrieve_global_mesh_connectivity
 
        subroutine retrieve_mesh_connectivity(connectivity) &
-           bind(C, name="retrieve_mesh_connectivity")
+          bind(C, name="retrieve_mesh_connectivity")
 
-       type(cpp_MeshConnectivity), intent(inout) :: connectivity
-       type(CSR) :: empty_CSR
-       empty_CSR%Nb = 0
+          type(cpp_MeshConnectivity), intent(inout) :: connectivity
+          type(CSR) :: empty_CSR
+          empty_CSR%Nb = 0
 
-       call retrieve_coc(NodebyCellLocal, connectivity%NodebyCell)
-       call retrieve_coc(NodebyFaceLocal, connectivity%NodebyFace)
-       call retrieve_coc(FacebyCellLocal, connectivity%FacebyCell)
-       ! FIXME: Use a local connectivity structure
-       ! The following connectivity elements are not defined locally
-       call retrieve_coc(empty_CSR, connectivity%FacebyNode)
-       call retrieve_coc(empty_CSR, connectivity%CellbyNode)
-       call retrieve_coc(empty_CSR, connectivity%CellbyFace)
-       call retrieve_coc(empty_CSR, connectivity%CellbyCell)
+          call retrieve_coc(NodebyCellLocal, connectivity%NodebyCell)
+          call retrieve_coc(NodebyFaceLocal, connectivity%NodebyFace)
+          call retrieve_coc(FacebyCellLocal, connectivity%FacebyCell)
+          ! FIXME: Use a local connectivity structure
+          ! The following connectivity elements are not defined locally
+          call retrieve_coc(empty_CSR, connectivity%FacebyNode)
+          call retrieve_coc(empty_CSR, connectivity%CellbyNode)
+          call retrieve_coc(empty_CSR, connectivity%CellbyFace)
+          call retrieve_coc(empty_CSR, connectivity%CellbyCell)
 
        end subroutine retrieve_mesh_connectivity
 
@@ -630,27 +642,27 @@
                                       cell_id, face_id, &
                                       .true.)
 
-          end subroutine GlobalMesh_create_mesh_from_C
+       end subroutine GlobalMesh_create_mesh_from_C
 
-          subroutine GlobalMesh_set_cartesian_mesh() &
-              bind(C, name="GlobalMesh_set_cartesian_mesh")
+       subroutine GlobalMesh_set_cartesian_mesh() &
+          bind(C, name="GlobalMesh_set_cartesian_mesh")
           MESH_TYPE = "cartesian-quad"
-          end subroutine GlobalMesh_set_cartesian_mesh
+       end subroutine GlobalMesh_set_cartesian_mesh
 
-          subroutine GlobalMesh_set_hexahedron_mesh() &
-              bind(C, name="GlobalMesh_set_hexahedron_mesh")
+       subroutine GlobalMesh_set_hexahedron_mesh() &
+          bind(C, name="GlobalMesh_set_hexahedron_mesh")
           MESH_TYPE = "hexahedron-quad"
-          end subroutine GlobalMesh_set_hexahedron_mesh
+       end subroutine GlobalMesh_set_hexahedron_mesh
 
-          subroutine GlobalMesh_set_tetrahedron_mesh() &
-              bind(C, name="GlobalMesh_set_tetrahedron_mesh")
+       subroutine GlobalMesh_set_tetrahedron_mesh() &
+          bind(C, name="GlobalMesh_set_tetrahedron_mesh")
           MESH_TYPE = "tetrahedron-triangle"
-          end subroutine GlobalMesh_set_tetrahedron_mesh
+       end subroutine GlobalMesh_set_tetrahedron_mesh
 
-          subroutine GlobalMesh_set_wedge_mesh() &
-              bind(C, name="GlobalMesh_set_wedge_mesh")
+       subroutine GlobalMesh_set_wedge_mesh() &
+          bind(C, name="GlobalMesh_set_wedge_mesh")
           MESH_TYPE = "wedge"
-          end subroutine GlobalMesh_set_wedge_mesh
+       end subroutine GlobalMesh_set_wedge_mesh
 
     end module GlobalMeshWrapper
 
