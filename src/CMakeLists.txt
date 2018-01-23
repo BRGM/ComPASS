@@ -12,6 +12,22 @@
 # When there is no longer hard-coded include directives this should be enough
 # add_subdirectory(core)
 
+
+# SCOREP is used or not used for all sources... to be refined later
+# scorep scripts (scorep-mpicc, scorep-mpicxx and scorep-mpif90) shall be on your path
+# scorep must also have been built with the --enable-shared option
+if(DEF_SCOREP_INSTRUMENTATION)
+    find_program(SCOREP_MPICC_SCRIPT scorep-mpicc)
+    find_program(SCOREP_MPICXX_SCRIPT scorep-mpicxx)
+    find_program(SCOREP_MPIF90_SCRIPT scorep-mpif90)
+    set(CMAKE_C_COMPILER ${SCOREP_MPICC_SCRIPT})
+    set(CMAKE_CXX_COMPILER ${SCOREP_MPICXX_SCRIPT})
+    set(CMAKE_F_COMPILER ${SCOREP_MPIF90_SCRIPT})
+    # This will build a instrumented wrapper around the python interpreter
+    add_subdirectory(perfanalysis)
+endif(DEF_SCOREP_INSTRUMENTATION)
+
+
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
@@ -135,7 +151,6 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
-#  Score-P.cpp
   StringWrapper.h
   StringWrapper.F90
   Well.h

@@ -68,6 +68,8 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 get_directory_property( DirDefs COMPILE_DEFINITIONS )
 message(STATUS "COMPILE_DEFINITIONS ${DirDefs}" )
 
+option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" ON)
+
 ##################
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran CACHE PATH "Single Directory for all fortran modules.")
