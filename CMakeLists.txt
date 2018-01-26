@@ -35,6 +35,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(${THIRD_PARTY_DIR})
 
+option(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE "Builds ComPASS v.3 executable" OFF)
 option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
 
 if(DEF_Python_BINDINGS)

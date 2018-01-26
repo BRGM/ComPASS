@@ -22,7 +22,7 @@ if(DEF_SCOREP_INSTRUMENTATION)
     find_program(SCOREP_MPIF90_SCRIPT scorep-mpif90)
     set(CMAKE_C_COMPILER ${SCOREP_MPICC_SCRIPT})
     set(CMAKE_CXX_COMPILER ${SCOREP_MPICXX_SCRIPT})
-    set(CMAKE_F_COMPILER ${SCOREP_MPIF90_SCRIPT})
+    set(CMAKE_Fortran_COMPILER ${SCOREP_MPIF90_SCRIPT})
     # This will build a instrumented wrapper around the python interpreter
     add_subdirectory(perfanalysis)
 endif(DEF_SCOREP_INSTRUMENTATION)
@@ -88,6 +88,7 @@ set( CONF_SRCS
     DefWell.F90
 )
 
+if(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
 foreach(_conf ${CONFIGURATIONS})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASS-${_conf})
@@ -123,6 +124,7 @@ foreach(_conf ${CONFIGURATIONS})
     endif(DEF_HDF5)
     include(${CONF_DIR}/cmake.conf)
 endforeach()
+endif(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
 
 set( WRAPPERS_SRCS
   ArrayWrapper.h
