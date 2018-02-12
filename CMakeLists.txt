@@ -75,12 +75,12 @@ option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" ON)
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran CACHE PATH "Single Directory for all fortran modules.")
 
-#CHECKME ???? -> portability + test constants are compiled as double
-set(CMAKE_Fortran_FLAGS "-I${LIB_PREFIX}/include/shared -fdefault-real-8 -fdefault-double-8" CACHE STRING "Fortran FLAGS") # make sure that the constants (ex. 1.0) are compiled as double (ex. 1.d0) -fdefault-real-8 -fdefault-double-8
-# add_definitions(-fdefault-real-8 -fdefault-double-8)
+# #CHECKME ???? -> portability + test constants are compiled as double
+# set(CMAKE_Fortran_FLAGS "-I${LIB_PREFIX}/include/shared -fdefault-real-8 -fdefault-double-8" CACHE STRING "Fortran FLAGS") # make sure that the constants (ex. 1.0) are compiled as double (ex. 1.d0) -fdefault-real-8 -fdefault-double-8
+# # add_definitions(-fdefault-real-8 -fdefault-double-8)
 
-#CHECKME: is this the place ? portability -> Windows ?
-add_definitions(-O0 -g)
+# #CHECKME: is this the place ? portability -> Windows ?
+# add_definitions(-O0 -g)
 
 ## CHECKME: CMake -> cmake ?
 set(CMAKE_FIND_DIR ${CMAKE_SOURCE_DIR}/CMake)

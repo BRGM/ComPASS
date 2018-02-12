@@ -14,7 +14,7 @@ from ComPASS.timeloops import standard_loop
 ComPASS.load_eos('water2ph')
 
 pres = 20. * MPa                  # initial reservoir pressure
-Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius to Kelvin degreessius to Kelvin degrees
+Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 Tinjection = degC2K( 30. )        # injection temperature - convert Celsius to Kelvin degrees
 Qm = 300. * ton / hour            # production flowrate
 omega_reservoir = 0.15            # reservoir porosity
