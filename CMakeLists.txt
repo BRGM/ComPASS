@@ -69,7 +69,7 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 get_directory_property( DirDefs COMPILE_DEFINITIONS )
 message(STATUS "COMPILE_DEFINITIONS ${DirDefs}" )
 
-option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" ON)
+option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" OFF)
 
 ##################
 
