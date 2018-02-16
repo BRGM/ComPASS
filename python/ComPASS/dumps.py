@@ -15,6 +15,9 @@ class Dumper:
         self.states_directory = os.path.join(self.output_directory, 'states')
         self.simulation_running = False
         self.proc_label_pattern = 'proc_{:06d}' #IMPROVE: hard coded maximum nb of procs
+        create_directories(self.to_output_directory())
+        create_directories(self.to_mesh_directory())
+        create_directories(self.to_states_directory())
 
     def to_output_directory(self, filename=''):
         return os.path.join(self.output_directory, filename)
@@ -38,9 +41,6 @@ class Dumper:
 
     def start_simulation(self):
         assert not self.simulation_running
-        create_directories(self.to_output_directory())
-        create_directories(self.to_mesh_directory())
-        create_directories(self.to_states_directory())
         self.simulation_running = True
         self.dump_own_element_numbers()
         self.dump_mesh()
