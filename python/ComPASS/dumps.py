@@ -99,7 +99,9 @@ class Dumper:
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
 
 def dump_mesh():
-    Dumper().dump_mesh()
+    dumper = Dumper()
+    dumper.dump_own_element_numbers()
+    dumper.dump_mesh()
 
 def dump_states(tag=''):
     Dumper().dump_states(tag)
