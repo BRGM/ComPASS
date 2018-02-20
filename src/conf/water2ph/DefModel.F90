@@ -109,7 +109,7 @@ module DefModel
   ! aligmethod=2, inverse diagnal
   !     it is necessary to define aligmat formally for compile
 
-  integer, parameter :: aligmethod = 1
+  integer, parameter :: aligmethod = 2
 
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
