@@ -22,7 +22,7 @@ k_reservoir = 1E-12               # reservoir permeability in m^2
                                   
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
-nx, ny, nz = 30, 20, 3            
+nx, ny, nz = 768, 480, 60
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
