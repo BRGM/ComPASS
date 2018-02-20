@@ -85,18 +85,20 @@ def init(
     **kwargs
 ):
     # here properties will just be used as a namespace
-    properties = Properties()
+    properties = {}
+    def make_property_accessor(value):
+        return lambda: value
     for location in ['cell', 'fracture']:
         for property in ['porosity', 'permeability']:
             name = '%s_%s' % (location, property)
             try:
                 f = kwargs[name]
+                if callable(f):
+                    properties[name] = f
+                else:
+                    properties[name] = make_property_accessor(f)
             except KeyError:
-                f = lambda: None    
-            if not callable(f):
-                value = copy.deepcopy(f)
-                f = lambda: value
-            setattr(properties, name, f)
+                properties[name] = lambda: None
     # FUTURE: This could be managed through a context manager ?
     global initialized
     assert not initialized
@@ -180,7 +182,7 @@ def init(
         kernel.global_mesh_make_post_read_set_poroperm()
         for location in ['cell', 'fracture']:
             for property in ['porosity', 'permeability']:
-                value = getattr(properties, location + '_' + property)()
+                value = properties[location + '_' + property]()
                 if value is not None:
                     dim = 3
                     if location=='fracture':
@@ -188,7 +190,8 @@ def init(
                         dim = 2
                     buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
                     value = np.ascontiguousarray( value )
-                    if property=='permeability':
+                    # CHECKME: fracture permeability is scalar
+                    if property=='permeability' and location=='cell':
                         n = buffer.shape[0]
                         if value.shape==(1,): # scalar value
                             value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
