@@ -35,9 +35,6 @@ module DefModel
   integer, parameter :: PHASE_GAS = 1
   integer, parameter :: PHASE_WATER = 2
 
-  ! Gravite
-  double precision, parameter :: Gravite = 10.d0 !< Gravity constant
-
   ! CpRoche
   double precision, parameter :: CpRoche = 800.d0 * 2000.d0 !< ???
 

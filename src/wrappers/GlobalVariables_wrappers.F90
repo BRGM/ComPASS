@@ -12,6 +12,7 @@
        use, intrinsic :: iso_c_binding
 
        use DefModel
+       use Physics
        use NN
 
        implicit none
@@ -22,6 +23,7 @@
           get_final_time, &
           set_final_time, &
           get_gravity, &
+          set_gravity, &
           get_initial_timestep, &
           get_maximum_timestep, &
           set_initial_timestep, &
@@ -54,10 +56,16 @@
        end subroutine set_final_time
 
        function get_gravity() result(g) &
-          bind(C, name="gravity")
+          bind(C, name="get_gravity")
           real(c_double) :: g
-          g = Gravite
+          g = gravity
        end function get_gravity
+
+       subroutine set_gravity(g) &
+          bind(C, name="set_gravity")
+          real(c_double), value, intent(in) :: g
+          gravity = g
+       end subroutine set_gravity
 
        function get_initial_timestep() result(t) &
           bind(C, name="get_initial_timestep")

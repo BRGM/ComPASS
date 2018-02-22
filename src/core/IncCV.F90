@@ -13,6 +13,7 @@ module IncCV
 
   use NumbyContext  
   use CommonMPI
+  use Physics
 
 #ifdef _HDF5_
   use hdf5
@@ -914,7 +915,7 @@ contains
 
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
-             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)
+             Pdrop = PerfoWellProd(sparent)%Density * gravity * (zp - zs)
              Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
              PerfoWellProd(s)%Pression = Pws
@@ -963,7 +964,7 @@ contains
       do n=1, Npiece
           call f_DensiteMolaire(PHASE_WATER, Ptmp, T, C, Stmp, &
               Rhotmp, dPf, dTf, dCf, dSf)
-          Ptmp = Ptmp - direction * Gravite * Rhotmp * dz
+          Ptmp = Ptmp - direction * gravity * Rhotmp * dz
       end do
       PerfoWellInj(s+direction)%Pression  = Ptmp
   end do

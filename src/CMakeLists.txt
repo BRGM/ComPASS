@@ -41,6 +41,7 @@ set( ComPASSCore_SRCS
     NumbyContext.F90
     PartitionMesh.F90
     Partition.c
+    Physics.F90
     Residu.F90
     SolvePetsc.F90
     VAGFrac.F90
