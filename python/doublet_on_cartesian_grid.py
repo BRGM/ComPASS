@@ -43,6 +43,8 @@ def make_wells():
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
+ComPASS.set_gravity(0)
+
 ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = doublet_utils.select_boundary_factory(grid),
