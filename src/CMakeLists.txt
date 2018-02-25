@@ -91,6 +91,7 @@ set( CONF_SRCS
 
 if(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
 foreach(_conf ${CONFIGURATIONS})
+    set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASS-${_conf})
     set(CONF_ALL_SRCS ${ComPASSCore_SRCS})
@@ -174,6 +175,7 @@ set(pyComPASS_EOS_DIRECTORY "${pyComPASS_DIRECTORY}/eos")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 foreach(_conf ${CONFIGURATIONS})
+    set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASSlib-${_conf})
     set(CONF_ALL_SRCS ${ComPASSCore_SRCS})
