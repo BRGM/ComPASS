@@ -24,6 +24,8 @@ Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
 nx, ny, nz = 30, 20, 10
 
+ComPASS.set_gravity(0)
+
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
     extent = (Lx, Ly, Lz),
