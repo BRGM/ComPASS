@@ -49,12 +49,15 @@ class Dumper:
     def dump_own_element_numbers(self):
         filename = self.to_output_directory('own_elements')
         communicator = mpi.communicator()
+        np_linewidth_backup = np.get_printoptions()['linewidth']
+        np.set_printoptions(linewidth=np.inf) # we want all outputs below on a single line
         with open(filename, 'w') as f:
             print('# Number of procs', file=f)
             print('nb_procs =', communicator.size, file=f)
             print('nb_own_cells =', ComPASS.nb_cells_own(), file=f)
             print('nb_own_nodes =', ComPASS.nb_nodes_own(), file=f)
             print('nb_own_faces =', ComPASS.nb_faces_own(), file=f)
+        np.set_printoptions(linewidth=np_linewidth_backup)
 
     def dump_mesh(self):
         connectivity = ComPASS.get_connectivity()
