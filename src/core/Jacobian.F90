@@ -17,6 +17,7 @@ module Jacobian
 
   use DefModel
   use LoisThermoHydro
+  use Physics
   use Residu
 
   implicit none
@@ -2816,7 +2817,7 @@ contains
        sum_aksgz = sum_aksgz + TkLocal_Darcy(k)%pt(s,rf) * (XCellLocal(3,k)-XFaceLocal(3,numr))
     end do
 
-    sum_aksgz = sum_aksgz * Gravite
+    sum_aksgz = sum_aksgz * gravity
 
     ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
     call Jacobian_divrho_cellnode(k,s,nums, &
@@ -3042,7 +3043,7 @@ contains
        sum_aksgz = sum_aksgz + TkLocal_Darcy(k)%pt(sf,rf) * (XCellLocal(3,k)-XFaceLocal(3,numr))
     end do
 
-    sum_aksgz = sum_aksgz * Gravite
+    sum_aksgz = sum_aksgz * gravity
 
     ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
     call Jacobian_divrho_cellfrac(k,s,nums, &
@@ -3243,7 +3244,7 @@ contains
        sum_aksgz = sum_aksgz + TkFracLocal_Darcy(k)%pt(s,r) * (XFaceLocal(3,fk)-XNodeLocal(3,numr))
     end do
 
-    sum_aksgz = sum_aksgz * Gravite
+    sum_aksgz = sum_aksgz * gravity
 
     ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
     call Jacobian_divrho_fracnode(k,s,nums, &

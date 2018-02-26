@@ -14,6 +14,7 @@
 module DefFlash
 
   use DefModel
+  use Physics
   use IncCV
   use VAGFrac
   use LoisThermoHydro
@@ -865,7 +866,7 @@ contains
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
              ! as the loop is done from head to queue, %Density is updated before being used
-             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)
+             Pdrop = PerfoWellProd(sparent)%Density * gravity * (zp - zs)
              Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
              PerfoWellProd(s)%Pression = Pws
@@ -960,7 +961,7 @@ contains
              sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
              ! as the loop is done from head to queue, %Density is updated before being used
-             Pdrop = PerfoWellProd(sparent)%Density * Gravite * (zp - zs)
+             Pdrop = PerfoWellProd(sparent)%Density * gravity * (zp - zs)
              Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
              PerfoWellProd(s)%Pression = Pws
@@ -1151,7 +1152,7 @@ contains
   !         call f_DensiteMolaire(PHASE_WATER, Ptmp, PerfoWellInj(pts1)%Temperature, &
   !             DataWellInjLocal(k)%CompTotal, Sat, Rhotmp, dPf, dTf, dCf, dSf)
   !         ! gravity points downwards, heights points upwards, hence the negative sign
-  !         Ptmp = Ptmp - Gravite * Rhotmp * dz
+  !         Ptmp = Ptmp - gravity * Rhotmp * dz
   !       end do
 
   !       PerfoWellInj(pts2)%Pression = Ptmp

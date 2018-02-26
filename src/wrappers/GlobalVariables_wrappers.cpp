@@ -14,8 +14,9 @@ extern "C"
 	double get_final_time();
 	double get_initial_timestep();
 	double get_maximum_timestep();
-	double gravity();
-	void set_final_time(double);
+    double get_gravity();
+    void set_gravity(double);
+    void set_final_time(double);
 	void set_initial_timestep(double);
 	void set_maximum_timestep(double);
 }
@@ -33,6 +34,7 @@ void add_global_variables_wrappers(py::module& module)
 	module.def("set_initial_timestep", &set_initial_timestep);
 	module.def("get_maximum_timestep", &get_maximum_timestep);
 	module.def("set_maximum_timestep", &set_maximum_timestep);
-	module.def("gravity", &gravity);
+    module.def("get_gravity", &get_gravity);
+    module.def("set_gravity", &set_gravity);
 
 }

@@ -149,7 +149,7 @@ subroutine IncCV_SetDirBCValue
 
         else if( NodeFlagsLocal(i) == 2 )then
 
-          PlPor = liquid_pressure(zRef, PlRef, rho, Gravite, XNodeLocal(3,i))
+          PlPor = liquid_pressure(zRef, PlRef, rho, gravity, XNodeLocal(3,i))
 
           rtPor = NodeRocktypeLocal(:,i)
           CALL f_PressionCapillaire(rtPor,2,SPor,PcPor,DSf)

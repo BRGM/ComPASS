@@ -15,6 +15,7 @@ module Flux
 
   use LoisThermoHydro
   use VAGFrac
+  use Physics
 
   implicit none
 
@@ -173,7 +174,7 @@ contains
 
           Tkij = TkLocal_Darcy(k)%Pt(i,j) ! a_{k,s}^s'
           Pkj = IncCell(k)%Pression - IncNode(numj)%Pression ! P_k - P_s'
-          zkj  = Gravite*(XCellLocal(3,k) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
+          zkj  = gravity*(XCellLocal(3,k) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
 
           ! loop of Q_k
           Id_Qki(:) = .false.
@@ -212,7 +213,7 @@ contains
 
           Tkij = TkLocal_Darcy(k)%Pt(i,j+NbNodeCell) ! a_{k,s}^s'
           Pkj = IncCell(k)%Pression - IncFrac(numj)%Pression ! P_k - P_s'
-          zkj  = Gravite*(XCellLocal(3,k) - XFaceLocal(3,fj)) ! g*(z_k - z_s')
+          zkj  = gravity*(XCellLocal(3,k) - XFaceLocal(3,fj)) ! g*(z_k - z_s')
 
           ! loop of Q_k
           Id_Qki(:) = .false.
@@ -305,7 +306,7 @@ contains
 
           Tkij = TkLocal_Darcy(k)%Pt(i+NbNodeCell,j)            ! a_{k,s}^s'
           Pkj  = IncCell(k)%Pression - IncNode(numj)%Pression   ! P_k - P_s'
-          zkj  = Gravite*(XCellLocal(3,k) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
+          zkj  = gravity*(XCellLocal(3,k) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
 
           ! loop of Q_k
           Id_Qki(:) = .false.
@@ -346,7 +347,7 @@ contains
 
           Tkij = TkLocal_Darcy(k)%Pt(i+NbNodeCell,j+NbNodeCell) ! a_{k,s}^s'
           Pkj = IncCell(k)%Pression - IncFrac(numj)%Pression    ! P_k - P_s'
-          zkj  = Gravite*(XCellLocal(3,k) - XFaceLocal(3,fj))   ! g*(z_k - z_s')
+          zkj  = gravity*(XCellLocal(3,k) - XFaceLocal(3,fj))   ! g*(z_k - z_s')
 
           ! loop of Q_k
           Id_Qki(:) = .false.
@@ -478,7 +479,7 @@ contains
 
           Tkij = TkFracLocal_Darcy(k)%Pt(i,j) ! a_{k,s}^s'
           Pkj = IncFrac(k)%Pression - IncNode(numj)%Pression ! P_k - P_s'
-          zkj  = Gravite*(XFaceLocal(3,fk) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
+          zkj  = gravity*(XFaceLocal(3,fk) - XNodeLocal(3,numj)) ! g*(z_k - z_s')
 
           ! loop of Q_k
           Id_Qki(:) = .false.
