@@ -152,7 +152,7 @@ namespace MeshTools
         auto facets() const -> Facets_array {
             return Facets_array{
                 Triangle{ nodes[0], nodes[1], nodes[2] },
-                Triangle{ nodes[3], nodes[5], nodes[4] },
+                Triangle{ nodes[3], nodes[4], nodes[5] },
                 Quad{ nodes[0], nodes[2], nodes[5], nodes[3] },
                 Quad{ nodes[1], nodes[4], nodes[5], nodes[2] },
                 Quad{ nodes[0], nodes[3], nodes[4], nodes[1] }
