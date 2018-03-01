@@ -11,24 +11,30 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-import ComPASS.GridTools as GT
-MT = ComPASS.ComPASS.MeshTools
+import thirdparties
+import MeshTools as MT
+import GridTools as GT
 
 gridshape = (1, 1, 1)
 gridextent = (1E3, 1E3, 1E3)
 vertices, tets = GT.grid2tets(gridshape, gridextent)
-tets = np.asarray(tets, dtype=MT.idtype())
+tets = [
+	MT.Tetrahedron(np.asarray(tet, dtype=np.int32)) for tet in tets
+]
 
-mesh = MT.tetmesh(vertices, tets)
+mesh = MT.TetMesh.create(vertices, tets)
 
-zmax = mesh.vertices[:, -1].max()
-topnodes = np.nonzero(mesh.vertices[:, -1]==zmax)[0]
+vertices = mesh.vertices_array() 
+zmax = vertices[:, -1].max()
+topnodes = np.nonzero(vertices[:, -1]==zmax)[0]
+
+ComPASS.load_eos('water2ph')
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def select_dirichlet_nodes():
     print('Selecting', topnodes.shape[0], 'top nodes.')
-    on_top = np.zeros(mesh.nb_vertices(), dtype=np.bool)
+    on_top = np.zeros(mesh.nb_vertices, dtype=np.bool)
     on_top[topnodes] = True
     return on_top
 
@@ -48,7 +54,7 @@ def set_initial_values():
         state.S[:] = [0, 1]
         state.C[:] = 1.
 
-print('Gravity:', ComPASS.gravity())
+print('Gravity:', ComPASS.get_gravity())
 
 ComPASS.init(
     mesh = mesh,
