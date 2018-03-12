@@ -2343,15 +2343,12 @@ contains
     ! nf: nb of frac, used to make FracbyProc(ip)%Num
     nf = 0
     do i=1,FacebyProc(ip1)%Nb
-
        do j=FacebyProc(ip1)%Pt(i)+1, FacebyProc(ip1)%Pt(i+1)
-
           ! if FacebyProc(ip1)%Num(j) is frac
           if (IdFace( FacebyProc(ip1)%Num(j) )==-2) then
              nf = nf + 1
           end if
        end do
-
        FracbyProc(ip1)%Pt(i+1) = nf
     end do
 
@@ -2363,9 +2360,7 @@ contains
 
     nf = 0
     do i=1,FacebyProc(ip1)%Nb
-
        do j=FacebyProc(ip1)%Pt(i)+1, FacebyProc(ip1)%Pt(i+1)
-
           ! if FacebyProc(ip1)%Num(j) is frac
           if (IdFace( FacebyProc(ip1)%Num(j) )==-2) then
              nf = nf + 1

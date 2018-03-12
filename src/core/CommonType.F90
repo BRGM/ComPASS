@@ -50,6 +50,17 @@ module CommonType
     integer(kind=c_int), allocatable, dimension(:) :: Num
   end type COC
 
+  type FractureInfo
+    integer(kind=c_int)                            :: face
+    integer(kind=c_int)                            :: fracture
+  end type FractureInfo
+
+  type FractureInfoCOC
+    integer(kind=c_int)                            :: Nb
+    integer(kind=c_int), allocatable, dimension(:) :: Pt
+    type(FractureInfo), allocatable, dimension(:)  :: Num
+  end type FractureInfoCOC
+
   !> Standar type CSR with Pt, Num, and Val (1d double precision)
   type CSRdble
     integer :: Nb
@@ -162,6 +173,19 @@ contains
     end if
 
   end subroutine CommonType_deallocCOC
+
+  subroutine CommonType_deallocFracInfoCOC(COC)
+
+    type(FractureInfoCOC), intent(inout) :: COC
+
+    if(allocated(COC%Pt)) then
+      deallocate(COC%Pt)
+    end if
+    if(allocated(COC%Num)) then
+      deallocate(COC%Num)
+    end if
+
+  end subroutine CommonType_deallocFracInfoCOC
 
   !> \brief Deallocate CSRdble (\%Pt, \%Num and \%Val)
   subroutine CommonType_deallocCSRdble(CSR1)

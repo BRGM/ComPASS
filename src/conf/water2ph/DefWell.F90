@@ -168,7 +168,9 @@ contains
 
     integer, intent(in) :: NbNode
     double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, FracbyNode, NodebyFace
+    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+    !type(FractureInfoCOC), intent(in) :: FracbyNode
+    type(CSR), intent(in) :: FracbyNode
 
     double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
     double precision, allocatable, dimension(:), intent(in) :: PermFrac
@@ -215,7 +217,9 @@ contains
 
     integer, intent(in) :: NbWellInj, NbWellProd, NbNode
     double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, FracbyNode, NodebyFace
+    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+    !type(FractureInfoCOC), intent(in) :: FracbyNode
+    type(CSR), intent(in) :: FracbyNode
 
     double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
     double precision, allocatable, dimension(:), intent(in) :: PermFrac
@@ -250,13 +254,15 @@ contains
     type(TYPE_CSRDataNodeWell), intent(inout) :: NodeDatabyWell
 
     double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, FracbyNode, NodebyFace
+    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+    !type(FractureInfoCOC), intent(in) :: FracbyNode
+    type(CSR), intent(in) :: FracbyNode
 
     double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
     double precision, allocatable, dimension(:), intent(in) :: PermFrac
 
     integer :: i, j, k, kp, m, ind, num_node, num_parent, &
-         num_cell, num_frac, comptCell, comptFrac
+         num_cell, num_face, comptCell, comptFrac
     logical :: cell_edge
     double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length
     double precision, dimension(3) :: xn1, xn2, xk
@@ -337,21 +343,21 @@ contains
           comptFrac = 0
 
           ! loop over frac of node
-          do k=FracbyNode%Pt(num_node)+1,FracbyNode%Pt(num_node+1)
+          do k=FracbyNode%Pt(num_node)+1, FracbyNode%Pt(num_node+1)
 
              comptFrac = comptFrac + 1
-             num_frac = FracbyNode%Num(k)
+             num_face = FracbyNode%Num(k)
 
              ! find coordinates of center of frac
              xk(:) = 0.d0
-             do m = NodebyFace%Pt(num_frac)+1, NodebyFace%Pt(num_frac+1)
+             do m = NodebyFace%Pt(num_face)+1, NodebyFace%Pt(num_face+1)
                 xk(:) = xk(:) + XNode(:, NodebyFace%Num(m))
              enddo
-             xk(:) = xk(:)/dble(NodebyFace%Pt(num_frac+1) - NodebyFace%Pt(num_frac))
+             xk(:) = xk(:)/dble(NodebyFace%Pt(num_face+1) - NodebyFace%Pt(num_face))
              length = dsqrt( dot_product(xk-xn1, xk-xn1) ) ! dist of cell frac to the node
              meanDist = meanDist + length
 
-             meanPerm = meanPerm + PermFrac(num_frac)  ! this formula is true if perm iso !
+             meanPerm = meanPerm + PermFrac(num_face)  ! this formula is true if perm iso !
              meanThickness = meanThickness + Thickness
           enddo
           if(comptFrac>0)then

@@ -120,7 +120,9 @@ module Jacobian
        Jacobian_Alignment_diag,     &
        Jacobian_Alignment_diag_row, &
        Jacobian_Alignment_man,      &
-       Jacobian_Alignment_man_row
+       Jacobian_Alignment_man_row,  &
+      
+       Jacobian_JacBigA_locate_frac_row
 
 contains
 
@@ -1134,6 +1136,49 @@ contains
   end subroutine Jacobian_JacBigA_BigSm_cell
 
 
+  subroutine Jacobian_JacBigA_locate_frac_row(row)
+  
+    integer, intent(in) :: row
+
+    integer :: rowk, colk, &      ! row/col of frac k in JacBigA
+         rowSR( NbNodeFaceMax), & ! rows (in JacBigA) of nodes in frac k
+         colSR( NbNodeFaceMax)    ! cols (in JacBigA) of nodes in frac k
+
+    integer :: k, fk, i
+    integer :: nbNodeFrac
+
+    !open(UNIT=17,FILE='fractures.dat',status='old')
+    !do k=1, NbFracLocal_Ncpus(commRank+1)
+    !    fk = FracToFaceLocal(k) ! fk is face num
+    !    nbNodeFrac = NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk)
+    !    write (17,*) "face", k, fk, NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1))
+    !end do
+    !close(unit=17)
+
+ do k=1, NbFracLocal_Ncpus(commRank+1)
+
+       fk = FracToFaceLocal(k) ! fk is face num
+       nbNodeFrac = NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk)
+
+       !print *, "face", k, fk, NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1))
+       
+       call Jacobian_RowCol_FR(k, nbNodeFrac, &
+            rowk, colk, rowSR, colSR)
+
+       if(row>=rowk .and. row<rowk+NbCompThermique) then
+            print *, "row:", row, "frac:", k, "face:", fk
+       end if
+
+       do i=1, NbNodeFaceMax
+           if(row>=rowSR(i) .and. row<rowSR(i)+NbCompThermique) then
+                print *, "row:", row, "frac:", k, "face:", fk, "node", i, rowSR
+           end if
+       end do
+       
+   end do
+       
+  end subroutine Jacobian_JacBigA_locate_frac_row
+
   ! loop of frac, index is k
   ! {
   !   loop of nodes in frac k
@@ -1208,7 +1253,7 @@ contains
             rowk, colk, rowSR, colSR)
 
        do m=JacBigA%Pt(rowk)+1, JacBigA%Pt(rowk+1)
-          csrK( JacBigA%Num(m) ) = m - JacBigA%Pt(rowk)
+          csrK( JacBigA%Num(m) ) = m - JacBigA%Pt(rowk) ! CHECKME: m: 1 -> NbCompThermique ?
        end do
 
        do s=1, nbNodeFrac
@@ -4236,7 +4281,11 @@ contains
     call dgetrf(NbCompThermique, NbCompThermique, &
          BB, NbCompThermique, ipival, info)
     if(info/=0) then
-       print*, "dgetrf error in Alignment, rowk/colk = ", rowk, colk
+       print*, "dgetrf error", info, "in Alignment, rowk/colk = ", rowk, colk
+       print*, "shape of BB", shape(BB)
+       print*, BB
+       print *, "Try to locate error..."
+       call Jacobian_JacBigA_locate_frac_row(rowk)
        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 
@@ -4244,7 +4293,7 @@ contains
          ipival, work, lwork, info)
     ! print*, lwork(1)
     if(info /= 0) then
-       print*, "dgetri error in Alignment, rowk/colk = ", rowk, colk
+       print*, "dgetri error", info, "in Alignment, rowk/colk = ", rowk, colk
        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 

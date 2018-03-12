@@ -113,9 +113,13 @@ module GlobalMesh
     NodebyWellInj, & !< CSR list of Nodes of each injection Well
     NodebyWellProd   !< CSR list of Nodes of each production Well
 
-  ! Connectivity used to compute Well Index
+  !type(FractureInfoCOC), protected :: &
+  !type(COC), protected :: &
   type(CSR), protected :: &
-    FracbyNode  !< CSR list of Fracture surrounding each Node; if no fracture around node i: \%Pt(i+1) = \%Pt(i)
+    FracbyNode
+
+  !integer(c_int), allocatable, dimension(:), target :: &
+  !  FacetoFracGlobal, FractoFaceGlobal
 
   ! IdFace is filled in GlobalMesh_ReadMesh for Dir
   !                     GlobalMesh_Frac for Frac: IdFace(fracface)=-2
@@ -323,7 +327,7 @@ end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 subroutine GlobalMesh_allocate_rocktype()
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
-    ALLOCATE(FracRocktype(IndThermique+1,NbFrac))
+    ALLOCATE(FracRocktype(IndThermique+1,NbFace))
     ALLOCATE(CellRocktype(IndThermique+1,NbCell))
 
     CALL GlobalMesh_SetCellRocktype
@@ -331,9 +335,31 @@ subroutine GlobalMesh_allocate_rocktype()
 
 end subroutine GlobalMesh_allocate_rocktype
 
+subroutine GlobalMesh_deallocate_rocktypes()
+
+    deallocate(NodeRocktype)
+    deallocate(FracRocktype)
+    deallocate(CellRocktype)
+
+end subroutine GlobalMesh_deallocate_rocktypes
+
 
 subroutine GlobalMesh_Make_post_read_set_poroperm()
 
+    integer   :: i, n
+    !type(CSR) :: FractureIdbyNode
+    !
+    !n = FracbyNode%Nb
+    !FractureIdbyNode%Nb = n 
+    !allocate(FractureIdbyNode%Pt(n+1))
+    !FractureIdbyNode%Pt = FracbyNode%Pt
+    !n = FractureIdbyNode%Pt(n+1)
+    !allocate(FractureIdbyNode%Num(n))
+    !
+    !do i=1, n
+    !    FractureIdbyNode%Num(i) = FracbyNode%Num(i)%fracture
+    !end do
+        
     ! set porosity from file DefModel
     CALL DefModel_SetPorosite( &
       NbCell, CellRocktype, &
@@ -343,7 +369,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! set permeabilites from file DefModel
     CALL DefModel_SetPerm( &
       NbCell, CellRocktype, &
-      NbFrac, FracRocktype, &
+      NbFace, FracRocktype, &
       PermCell, PermFrac)
 
     CALL GlobalMesh_SetRocktype( &
@@ -357,10 +383,11 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     CALL GlobalMesh_SetRocktype( &
       NbNode, &
-      NbFrac, &
+      NbFace, &
       IdNode%Frac == "y", &
       FracRocktype(1,:), &
       PermFrac, &
+      !FractureIdbyNode, &
       FracbyNode, &
       NodeRocktype(1,:))
 
@@ -368,7 +395,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 #ifdef _THERMIQUE_
      CALL DefModel_SetCondThermique( &
        NbCell, CellRocktype, &
-       NbFrac, FracRocktype, &
+       NbFace, FracRocktype, &
        CondThermalCell, CondThermalFrac)
 
      CALL GlobalMesh_SetRocktype( &
@@ -382,15 +409,16 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
      CALL GlobalMesh_SetRocktype( &
        NbNode, &
-       NbFrac, &
+       NbFace, &
        IdNode%Frac == "y", &
        FracRocktype(2,:), &
        CondThermalFrac, &
+       !FractureIdbyNode, &
        FracbyNode, &
        NodeRocktype(2,:))
 
     ALLOCATE(CellThermalSourceType(NbCell))
-    ALLOCATE(FracThermalSourceType(NbFrac))
+    ALLOCATE(FracThermalSourceType(NbFace))
 
     CALL GlobalMesh_SetCellThermalSourceType
     CALL GlobalMesh_SetFracThermalSourceType
@@ -398,12 +426,15 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     CALL DefModel_SetThermalSource( &
       NbCell, &
       CellThermalSourceType, &
-      NbFrac, &
+      NbFace, &
       FracThermalSourceType, &
       CellThermalSource, &
       FracThermalSource)
 #endif
-  end subroutine GlobalMesh_Make_post_read_set_poroperm
+
+    !call CommonType_deallocCSR(FractureIdbyNode)
+
+end subroutine GlobalMesh_Make_post_read_set_poroperm
 
 
   SUBROUTINE GlobalMesh_SetRocktype( &
@@ -1230,12 +1261,15 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     deallocate(XNode)
 
     call GlobalMesh_deallocate_flags
+    call GlobalMesh_deallocate_rocktypes
 
     call CommonType_deallocCSR(FacebyCell)
     call CommonType_deallocCSR(NodebyFace)
     call CommonType_deallocCSR(NodebyCell)
     call CommonType_deallocCSR(FacebyNode)
     call CommonType_deallocCSR(CellbyNode)
+    !call CommonType_deallocFracInfoCOC(FracbyNode)
+    !call CommonType_deallocCOC(FracbyNode)
     call CommonType_deallocCSR(FracbyNode)
     call CommonType_deallocCSR(CellbyCell)
     call CommonType_deallocCSR(CellbyFace)
@@ -1254,6 +1288,9 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     deallocate(PermCell)
     deallocate(PermFrac)
 
+    !deallocate(FractoFaceGlobal)
+    !deallocate(FacetoFracGlobal)
+    
 #ifdef _THERMIQUE_
     deallocate(CondThermalCell)
     deallocate(CondThermalFrac)
@@ -1365,7 +1402,7 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
   !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt
   subroutine GlobalMesh_FracbyNode
 
-    integer :: i,n, num_face, num_node, npt
+    integer :: i, n, num_face, num_frac, num_node, npt
     integer, allocatable, dimension(:) :: comptNode
 
     allocate(comptNode(NbNode))
@@ -1383,21 +1420,38 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     ! Filling
     FracbyNode%Nb = NbNode
-    allocate(FracbyNode%Pt(FracbyNode%Nb+1))
-    FracbyNode%Pt(:) = 0.d0
+    allocate(FracbyNode%Pt(NbNode+1))
+    FracbyNode%Pt(:) = 0
     do i=1,NbNode
       FracbyNode%Pt(i+1) = FracbyNode%Pt(i) + comptNode(i)
     enddo
-
-    allocate(FracbyNode%Num(FracbyNode%Pt(NbNode+1)))
+        
+    !if(allocated(FractoFaceGlobal))
+    !    deallocate(FractoFaceGlobal)
+    !end if
+    !if(allocated(FacetoFracGlobal))
+    !    deallocate(FacetoFracGlobal)
+    !end if
+    !allocate(FractoFaceGlobal(NbFrac))
+    !FractoFaceGlobal(:) = 0
+    !allocate(FacetoFracGlobal(NbFace))
+    !FacetoFracGlobal(:) = 0
+    
+    allocate(FracbyNode%Num(FracbyNode%Pt(NbNode+1)))    
     comptNode(:) = 0
-    do num_face=1,NbFace
+    num_frac = 0
+    do num_face=1, NbFace
       if(IdFace(num_face) == -2) then ! fracface
+        num_frac = num_frac + 1
         do n=NodebyFace%Pt(num_face)+1,NodebyFace%Pt(num_face+1)
           num_node = NodebyFace%Num(n)
           comptNode(num_node) = comptNode(num_node) + 1
           npt = FracbyNode%Pt(num_node) + comptNode(num_node)
           FracbyNode%Num(npt) = num_face
+          !FracbyNode%Num(npt)%face = num_face
+          !FracbyNode%Num(npt)%fracture = num_frac
+          !FractoFaceGlobal(num_frac) = num_face
+          !FacetoFracGlobal(num_face) = num_frac
         enddo
       endif
     enddo
@@ -1607,8 +1661,8 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     ! some tests
     if(OrderedNodes(1) == 0) then
       ! no node has been stored for this well, error
-      write(*,*) 'no node in OrderedNodes (maybe no queue detected, or cyclic well), &
-        are you sure about the format of your Filemesh?'
+      write(*,*) 'no node in OrderedNodes (maybe no queue detected, or cyclic well)'
+      write(*,*) 'are you sure about the format of your Filemesh?'
       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     endif
     do i=2, io-1
