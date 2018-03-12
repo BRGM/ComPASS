@@ -256,6 +256,12 @@ def compute_face_centers():
         get_connectivity().NodebyFace
     )
 
+def compute_fracture_centers():
+    return _compute_centers(
+        vertices().view(dtype=np.double).reshape((-1, 3)),
+        ComPASS.get_nodes_by_fractures()
+    )
+
 def compute_global_face_normals():
     vertices = global_vertices().view(dtype=np.double).reshape((-1, 3))
     connectivity = get_global_connectivity()
