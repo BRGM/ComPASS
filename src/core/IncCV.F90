@@ -10,6 +10,7 @@ module IncCV
 
   use MeshSchema
   use DefModel
+  use Thermodynamics
 
   use NumbyContext  
   use CommonMPI

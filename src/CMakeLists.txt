@@ -87,6 +87,7 @@ set( CONF_SRCS
     DefFlash.F90
     DefModel.F90
     DefWell.F90
+    Thermodynamics.F90
 )
 
 if(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
@@ -147,6 +148,8 @@ set( WRAPPERS_SRCS
   MeshUtilities.h
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
+  Model_wrappers.h
+  Model_wrappers.cpp
   MeshSchema_wrappers.F90
   NN_wrappers.h
   NN_wrappers.cpp

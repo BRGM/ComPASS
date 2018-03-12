@@ -8,6 +8,7 @@
 #include "GlobalVariables_wrappers.h"
 #include "IncCV_wrappers.h"
 #include "MeshUtilities_wrappers.h"
+#include "Model_wrappers.h"
 #include "Well_wrappers.h"
 
 PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
@@ -22,6 +23,7 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
 	add_mesh_utilities_wrappers(module);
 	add_well_wrappers(module);
 	add_global_variables_wrappers(module);
-	add_IncCV_wrappers(module);
+    add_IncCV_wrappers(module);
+    add_Model_wrappers(module);
 
 }

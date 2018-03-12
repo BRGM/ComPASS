@@ -15,6 +15,7 @@ module DefFlash
 
   use DefModel
   use Physics
+  use Thermodynamics
   use IncCV
   use VAGFrac
   use LoisThermoHydro
@@ -881,7 +882,7 @@ contains
           end do
 
           ! initialize newton with Tsat
-          call DefModel_Tsat(PerfoWellProd(s)%Pression, T, dP_Tsat)
+          call FluidThermodynamics_Tsat(PerfoWellProd(s)%Pression, T, dP_Tsat)
 
           converged = .false.
 
@@ -979,7 +980,7 @@ contains
           ID_PHASE = -1
           ! then T=Tsat(P)
 #ifdef _THERMIQUE_
-          call DefModel_Tsat(Pws, Tsat, dP_Tsat)
+          call FluidThermodynamics_Tsat(Pws, Tsat, dP_Tsat)
 #endif
           Temp = Tsat
 

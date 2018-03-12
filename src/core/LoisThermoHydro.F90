@@ -1,6 +1,7 @@
 module LoisThermoHydro
 
   use DefModel
+  use Thermodynamics
   use NumbyContext
   use IncCV
 

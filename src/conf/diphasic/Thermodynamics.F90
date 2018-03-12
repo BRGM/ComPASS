@@ -6,10 +6,9 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-module Physics
-    
-    use iso_c_binding, only: c_double
+module Thermodynamics
+ 
+    ! TO BE DONE
+    ! functions are yet to be found in DefModel
 
-    real(c_double) :: gravity = 9.81d0
-
-end module Physics
+end module Thermodynamics
