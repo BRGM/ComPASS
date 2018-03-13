@@ -181,12 +181,14 @@ module MeshSchema
        MeshSchema_SurfFracLocal,            &
        MeshSchema_Surf12f,                  & ! used by MeshSchema_SurfFraclocal
        MeshSchema_NbNodeCellMax,            &
-       MeshSchema_NbNodeFaceMax
+       MeshSchema_NbNodeFaceMax,            &
+       MeshSchema_local_face_surface_from_nodes
 
   public :: &
        MeshSchema_make, &
-       MeshSchema_Free
-
+       MeshSchema_Free, &
+       MeshSchema_local_face_surface
+  
 contains
 
   subroutine MeshSchema_make
@@ -1507,29 +1509,49 @@ contains
 
   end subroutine MeshSchema_XFaceLocal
 
+  function MeshSchema_local_face_surface_from_nodes(barycenter, nodes) result(surface)
 
-  ! surf of frac face
+  double precision, dimension(3), intent(in) :: barycenter
+  integer, intent(in) :: nodes(:)
+  integer :: edges(size(nodes)+1)
+  real(c_double) :: surface
+
+  integer :: i, nbnodes
+  double precision, dimension(3) :: x1, x2, xt ! coordinates
+  double precision :: contribution12f
+
+  surface = 0.d0
+  ! loop on face edges
+  nbnodes = size(nodes)
+  edges(1:nbnodes) = nodes
+  edges(nbnodes+1) = nodes(1)
+  do i = 1, nbnodes
+      x1(:) = XNodeLocal(:, edges(i))
+      x2(:) = XNodeLocal(:, edges(i+1))
+      ! Surface of triangle (arete n1, n2 and center of face) and normal vector
+      xt(:) = (x1(:)+x2(:)+barycenter(:))/3.d0
+      call MeshSchema_Surf12f(x1,x2,barycenter,xt,contribution12f)
+      surface = surface + contribution12f
+  end do
+
+  end function MeshSchema_local_face_surface_from_nodes
+
+  function MeshSchema_local_face_surface(fk) result(surface) &
+      bind(C, name="face_surface")
+
+  integer(c_int), intent(in) :: fk
+  real(c_double) :: surface
+
+  surface = MeshSchema_local_face_surface_from_nodes( &
+      XFaceLocal(:, fk), &
+      NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1)) &
+      )
+
+  end function MeshSchema_local_face_surface
+
   subroutine MeshSchema_SurfFracLocal
 
-    double precision, dimension(3) :: &
-         xf, x1, x2, xt ! cordinate
-         
-
-    double precision :: &
-         SurfFace, & ! surface of a face
-         Surf12f     ! surface of a triangle with nodes 1,2 and center of face
-
-    integer :: &
-         n1, n2, & ! num (local) of a node
-         in1, in2  ! num (face) of a node
-
-    integer :: &
-         i, ifrac,    & ! i: loop of face frac, ifrac: num (local) of i
-         m
-
-    integer :: errcode, Ierr
-
-    integer :: nbNodeFace
+    integer :: ifrac, errcode, Ierr
 
     ! check if XFaceLocal is computed
     if (allocated(XFaceLocal) .eqv. .false.) then
@@ -1541,55 +1563,12 @@ contains
     end if
 
     allocate(SurfFracLocal(NbFracLocal_Ncpus(commRank+1))) ! surf of face
+
     SurfFracLocal(:) = 0.d0
-
-    ! boucle sur les face frac     
+    
     do ifrac = 1, NbFracLocal_Ncpus(commRank+1)
-       i = FracToFaceLocal(ifrac)
-
-       ! num of nodes in face i
-       nbNodeFace = NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-
-       ! isobarycentre de la face 
-       xf(:) = XFaceLocal(:,i)
-
-       ! init SurfFace as zero, surface of face i
-       SurfFace = 0.d0
-
-       do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
-
-          ! edge of nodes n1, n2
-          ! num (face) of n1 and n2 are in1 and in2            
-          in1 = m - NodebyFaceLocal%Pt(i)
-          n1 = NodebyFaceLocal%Num(m)
-
-          if (m==NodebyFaceLocal%Pt(i+1)) then 
-             n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
-             in2 = 1
-          else 
-             n2 = NodebyFaceLocal%Num(m+1)
-             in2 = in1 + 1
-          endif
-
-          x1(:) = XNodeLocal(:,n1)
-          x2(:) = XNodeLocal(:,n2)
-
-          ! Surface of triangle (arete n1, n2 and center of face) and normal vector
-          xt(:) = (x1(:)+x2(:)+xf(:))/3.d0
-
-          call MeshSchema_Surf12f(x1,x2,xf,xt,Surf12f)
-
-          ! Surface of Face i is sum of surf12f
-          SurfFace = SurfFace + Surf12f 
-
-       end do ! end of loop edge in face       
-
-       SurfFracLocal(ifrac) = SurfFace ! area of frac
-       !if(SurfFace<eps) then
-       !     print *, "DEBUG - Small fracture surface for fracture", ifrac    
-       !endif
-
-    end do ! end of loop face
+       SurfFracLocal(ifrac) = MeshSchema_local_face_surface(FracToFaceLocal(ifrac))
+    end do
 
   end subroutine MeshSchema_SurfFracLocal
 
