@@ -118,7 +118,8 @@ module IncCV
        IncCV_LoadIncPreviousTimeStep, &
        IncCV_SaveIncPreviousTimeStep, &
        IncCV_free, &
-       IncCV_clear_neumann_contributions
+       IncCV_clear_neumann_contributions, &
+       IncCV_set_face_neumann_contributions
 
   ! The following subroutines are defined in:
   ! DefInitBCvalues.F90
@@ -163,6 +164,31 @@ contains
   end do
 
   end subroutine IncCV_clear_neumann_contributions
+
+  subroutine IncCV_set_face_neumann_contributions(nbcont, faces, fluxes)
+
+  integer(c_int), value :: nbcont
+  integer(c_int) :: faces(nbcont)
+  type(TYPE_NeumannBC), intent(in) :: fluxes(nbcont)
+  
+  integer :: k, fk, ps, s
+  double precision :: node_surface_contribution
+  
+  do k=1, nbcont
+      fk = faces(k)
+      ! FIXME: This should take into account surface fractions
+      node_surface_contribution = MeshSchema_local_face_surface(fk) / &
+          (NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk))
+      do ps = NodebyFaceLocal%Pt(fk)+1, NodebyFaceLocal%Pt(fk+1)
+        s = NodebyFaceLocal%Num(ps)
+        NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
+                     + node_surface_contribution * fluxes(k)%molar_flux 
+        NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
+            + node_surface_contribution * fluxes(k)%heat_flux  
+      end do
+  end do
+  
+  end subroutine IncCV_set_face_neumann_contributions
 
   
   !> \brief Allocate unknown vectors
