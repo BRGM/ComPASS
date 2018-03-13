@@ -21,13 +21,13 @@ module Flux
 
   ! flux Darcy V_{k,s}^alpha, k is cell/frac
   double precision, allocatable, dimension(:,:,:), public :: &
-      FluxDarcyKI, &
-      FluxDarcyFI
+      FluxDarcyKI, & ! Darcy flux from cell K to dof I (may be node or frac)
+      FluxDarcyFI    ! Darcy flux from frac F to dof I (may be cell or frac)
 
   ! flux Fourier
   double precision, allocatable, dimension(:,:), protected :: &
-      FluxFourierKI, &
-      FluxFourierFI
+      FluxFourierKI, &  ! Fourier flux from cell K to dof I (may be node or frac)
+      FluxFourierFI     ! Fourier flux from frac F to dof I (may be cell or frac)
 
   public :: &
       Flux_allocate, &
