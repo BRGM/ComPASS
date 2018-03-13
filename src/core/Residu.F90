@@ -186,7 +186,7 @@ contains
          copy(i) = accumulations(icp)
       end do
 
-      ! CHECKME: is size differnent from NbCompThermique: hence inc(:) = 0.d0 is enough
+      ! CHECKME: is size differnent from NbCompThermique: inc(:) = 0.d0 would be enough
       accumulations(1:NbCompThermique) = 0.d0
 
       do i = 1, NbCompCtilde_ctx(ic)
