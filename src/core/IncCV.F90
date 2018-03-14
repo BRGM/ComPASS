@@ -119,6 +119,7 @@ module IncCV
        IncCV_SaveIncPreviousTimeStep, &
        IncCV_free, &
        IncCV_clear_neumann_contributions, &
+       IncCV_set_face_with_neumann_contribution, &
        IncCV_set_faces_with_neumann_contribution, &
        IncCV_set_face_neumann_contributions
 
@@ -166,6 +167,41 @@ contains
 
   end subroutine IncCV_clear_neumann_contributions
 
+  subroutine IncCV_set_face_with_neumann_contribution(face, fluxes) &
+      bind(C, name="set_face_with_neumann_contribution")
+
+  integer(c_int), value :: face
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+
+  integer :: ps, s, nbnodes
+  double precision :: node_surface_contribution
+
+  ! We count non fracture nodes
+  nbnodes = 0
+  do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+      s = NodebyFaceLocal%Num(ps)
+      if(IdNodeLocal(s)%Frac == "y") then
+          nbnodes = nbnodes + 1
+      end if
+  end do
+  if(nbnodes>0) then
+      ! FIXME: This should take into account surface fractions
+      node_surface_contribution = MeshSchema_local_face_surface(face) / nbnodes
+      do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+          s = NodebyFaceLocal%Num(ps)
+          if(IdNodeLocal(s)%Frac == 'y') then
+              NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
+                  + node_surface_contribution * fluxes%molar_flux
+              NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
+                  + node_surface_contribution * fluxes%heat_flux
+          end if
+      end do
+  else
+      print *, 'WARNONG: no Neumann contribution for face fk on proc', commRank+1
+  end if
+
+  end subroutine IncCV_set_face_with_neumann_contribution
+
   subroutine IncCV_set_faces_with_neumann_contribution(nbfaces, faces, fluxes) &
       bind(C, name="set_faces_with_neumann_contribution")
 
@@ -173,23 +209,12 @@ contains
   integer(c_int) :: faces(nbfaces)
   type(TYPE_NeumannBC), intent(in) :: fluxes
   
-  integer :: k, fk, ps, s
-  double precision :: node_surface_contribution
+  integer :: k
   
   do k=1, nbfaces
-      fk = faces(k)
-      ! FIXME: This should take into account surface fractions
-      node_surface_contribution = MeshSchema_local_face_surface(fk) / &
-          (NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk))
-      do ps = NodebyFaceLocal%Pt(fk)+1, NodebyFaceLocal%Pt(fk+1)
-        s = NodebyFaceLocal%Num(ps)
-        NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
-                     + node_surface_contribution * fluxes%molar_flux 
-        NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
-            + node_surface_contribution * fluxes%heat_flux  
-      end do
+      call IncCV_set_face_with_neumann_contribution(faces(k), fluxes)
   end do
-  
+
   end subroutine IncCV_set_faces_with_neumann_contribution
 
   subroutine IncCV_set_face_neumann_contributions(nbcont, faces, fluxes) &
@@ -199,21 +224,10 @@ contains
   integer(c_int) :: faces(nbcont)
   type(TYPE_NeumannBC), intent(in) :: fluxes(nbcont)
   
-  integer :: k, fk, ps, s
-  double precision :: node_surface_contribution
+  integer :: k
   
   do k=1, nbcont
-      fk = faces(k)
-      ! FIXME: This should take into account surface fractions
-      node_surface_contribution = MeshSchema_local_face_surface(fk) / &
-          (NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk))
-      do ps = NodebyFaceLocal%Pt(fk)+1, NodebyFaceLocal%Pt(fk+1)
-        s = NodebyFaceLocal%Num(ps)
-        NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
-                     + node_surface_contribution * fluxes(k)%molar_flux 
-        NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
-            + node_surface_contribution * fluxes(k)%heat_flux  
-      end do
+      call IncCV_set_face_with_neumann_contribution(faces(k), fluxes(k))
   end do
   
   end subroutine IncCV_set_face_neumann_contributions
