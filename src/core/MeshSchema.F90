@@ -127,7 +127,7 @@ module MeshSchema
        NumWellProdbyProc
 
   ! 7. XCellLocal, XFaceLocal
-  double precision, dimension(:,:), allocatable, public :: &
+  real(c_double), dimension(:,:), allocatable, public, target :: &
        XCellLocal,&     ! center of cell
        XFaceLocal       ! center of frac
 

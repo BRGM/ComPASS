@@ -41,7 +41,8 @@ module Residu
    private :: &
       Residu_AccVol, &
       Residu_add_flux_contributions, &
-      Residu_reset_dirichlet_nodes, &
+      Residu_reset_Dirichlet_nodes, &
+      Residu_add_Neumann_contributions, &
       Residu_add_flux_contributions_wells, &
       Residu_clear_absent_components_accumulation
 
@@ -124,11 +125,13 @@ contains
       ! Residu from conservation composants
       call Residu_add_flux_contributions
 
-      call Residu_reset_dirichlet_nodes
+      call Residu_reset_Dirichlet_nodes
+
+      call Residu_add_Neumann_contributions
 
    end subroutine Residu_compute
 
-   subroutine Residu_reset_dirichlet_nodes
+   subroutine Residu_reset_Dirichlet_nodes
 
       integer :: k
 
@@ -153,9 +156,19 @@ contains
       end do
 #endif
 
-   end subroutine Residu_reset_dirichlet_nodes
+   end subroutine Residu_reset_Dirichlet_nodes
 
-   ! allocate
+   subroutine Residu_add_Neumann_contributions
+
+      integer :: k
+
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
+         ResiduNode(1:NbComp, k) = ResiduNode(1:NbComp, k) - NodeNeumannBC(k)%molar_flux
+         ResiduNode(NbCompThermique, k) = ResiduNode(NbCompThermique, k) - NodeNeumannBC(k)%heat_flux
+      end do
+
+   end subroutine Residu_add_Neumann_contributions
+
    subroutine Residu_allocate
 
       ! For node/frac/well, both of own and ghost are computed,

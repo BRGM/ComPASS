@@ -19,6 +19,7 @@ constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 extern "C"
 {
     void FluidThermodynamics_molar_density(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
+    void FluidThermodynamics_molar_enthalpy(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_Psat(double, double&, double&);
     void FluidThermodynamics_Tsat(double, double&, double&);
     void check_array_interop(const double*, double*);
@@ -35,8 +36,19 @@ inline double liquid_molar_density(double p, double T)
     return xsi;
 }
 
+inline double liquid_molar_enthalpy(double p, double T)
+{
+    double h, dhdp, dhdT;
+    double C[NC] = { 1 };
+    double S[NP] = { 0, 1 };
+    double dhdC[NC] = { 0 };
+    double dhdS[NP] = { 0, 0 };
+    FluidThermodynamics_molar_enthalpy(2, p, T, C, S, h, dhdp, dhdT, dhdC, dhdS);
+    return h;
+}
+
 inline double Psat(double T)
-{ 
+{
     double result;
     double dPsatdT;
     FluidThermodynamics_Psat(T, result, dPsatdT);
@@ -58,11 +70,6 @@ void add_Model_wrappers(py::module& module)
     module.def("Psat", py::vectorize(Psat));
     module.def("Tsat", py::vectorize(Tsat));
     module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
+    module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
 
-    module.def("check_array_interop", []() {
-        double a[NP] = { 1, 2 };
-        double b[NP] = { 0, 0 };
-        check_array_interop(a, b);
-        py::print("out", b[0], b[1]);
-    });
 }

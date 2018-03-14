@@ -27,6 +27,9 @@ plt.xlabel('temperature (Celsius degree)')
 plt.ylabel('liquid specific mass')
 plt.savefig('rhol.png')
 
+T = np.linspace(degC2K(20), degC2K(300))
+h = ComPASS.liquid_molar_enthalpy(ComPASS.Psat(T), degC2K(T))
+
 try:
     from scipy.integrate import ode
 except ImportError:

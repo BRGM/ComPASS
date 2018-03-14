@@ -40,7 +40,7 @@ module IncCV
   end TYPE TYPE_IncCV
   
   !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
-  TYPE TYPE_NeumannBC
+  TYPE, bind(C) :: TYPE_NeumannBC
 
      real(c_double) :: &     
           molar_flux(NbComp), & !< component molar flux
@@ -119,6 +119,7 @@ module IncCV
        IncCV_SaveIncPreviousTimeStep, &
        IncCV_free, &
        IncCV_clear_neumann_contributions, &
+       IncCV_set_faces_with_neumann_contribution, &
        IncCV_set_face_neumann_contributions
 
   ! The following subroutines are defined in:
@@ -165,7 +166,34 @@ contains
 
   end subroutine IncCV_clear_neumann_contributions
 
-  subroutine IncCV_set_face_neumann_contributions(nbcont, faces, fluxes)
+  subroutine IncCV_set_faces_with_neumann_contribution(nbfaces, faces, fluxes) &
+      bind(C, name="set_faces_with_neumann_contribution")
+
+  integer(c_int), value :: nbfaces
+  integer(c_int) :: faces(nbfaces)
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+  
+  integer :: k, fk, ps, s
+  double precision :: node_surface_contribution
+  
+  do k=1, nbfaces
+      fk = faces(k)
+      ! FIXME: This should take into account surface fractions
+      node_surface_contribution = MeshSchema_local_face_surface(fk) / &
+          (NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk))
+      do ps = NodebyFaceLocal%Pt(fk)+1, NodebyFaceLocal%Pt(fk+1)
+        s = NodebyFaceLocal%Num(ps)
+        NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
+                     + node_surface_contribution * fluxes%molar_flux 
+        NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
+            + node_surface_contribution * fluxes%heat_flux  
+      end do
+  end do
+  
+  end subroutine IncCV_set_faces_with_neumann_contribution
+
+  subroutine IncCV_set_face_neumann_contributions(nbcont, faces, fluxes) &
+      bind(C, name="set_face_neumann_contributions")
 
   integer(c_int), value :: nbcont
   integer(c_int) :: faces(nbcont)
@@ -213,7 +241,6 @@ contains
 
     allocate(IncNodeDirBC(NbNodeLocal_Ncpus(commRank+1)))
     allocate(NodeNeumannBC(NbNodeLocal_Ncpus(commRank+1)))
-
     call IncCV_clear_neumann_contributions
     
     allocate(IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank+1)))
