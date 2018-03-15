@@ -336,3 +336,10 @@ def find_fracture_edges(faces):
             if in_fracture[i-1] and in_fracture[i]:
                 fracture_edges.append((nodes[i-1], nodes[i]))
     return np.array(fracture_edges)
+
+def set_Neumann_faces(bottom_faces, Neumann):
+    bottom_faces = np.asarray(bottom_faces)
+    if bottom_faces.dtype==np.bool:
+        bottom_faces = np.nonzero(bottom_faces)[0]
+    bottom_faces+= 1 # Fortran indexing starts at 1   
+    kernel.set_Neumann_faces(bottom_faces, Neumann)

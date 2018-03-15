@@ -12,28 +12,27 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+p0 = 1. * bar              # initial reservoir pressure
+T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
+bottom_heat_flux = 0.08    # W/m2                                  
+k_matrix = 1E-18           # column permeability in m^2 (low permeability -> bigger time steps)
+phi_matrix = 0.15          # column porosity
+
+H = 3000.                  # column height
+nx, ny, nz = 1, 1, 300     # discretization
+
 ComPASS.load_eos('water2ph')
-
-p0 = 1. * bar # initial reservoir pressure
-T0 = degC2K( 20. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
-k_matrix = 1E-18               # reservoir permeability in m^2 (low permeability -> bigger time steps)
-phi_matrix = 0.15            # reservoir porosity
-                                  
-H = 3000.
-nx, ny, nz = 1, 1, 300
-
-def top_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    on_top = vertices.z >= H
-    return on_top
+ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
-    extent = (1., 1., H),
-    origin = (-0.5, -0.5, -H),
+    extent = (10., 10., H),
+    origin = (-5, -5, -H),
 )
 
-ComPASS.set_output_directory_and_logfile(__file__)
+def top_nodes():
+    vertices = np.rec.array(ComPASS.global_vertices())
+    return vertices.z >= H
 
 ComPASS.init(
     grid = grid,
@@ -48,20 +47,19 @@ def set_initial_states(states):
     states.T[:] = T0
     states.S[:] = [0, 1]
     states.C[:] = 1.
-set_initial_states(ComPASS.dirichlet_node_states())
-set_initial_states(ComPASS.node_states())
-set_initial_states(ComPASS.cell_states())
+for states in [ComPASS.dirichlet_node_states(),
+               ComPASS.node_states(),
+               ComPASS.cell_states()]:
+    set_initial_states(states)
 
 def set_boundary_heat_flux():
-    face_centers = np.rec.array(ComPASS.face_centers())
-    bottom_faces = np.nonzero(face_centers.z <= -H)[0]
-    bottom_faces = np.asarray(bottom_faces + 1, dtype=np.int32) # Fortran indexing starts at 1   
     Neumann = ComPASS.NeumannBC()
-    Neumann.heat_flux = 0.08 # W/m2
-    ComPASS.set_Neumann_faces(bottom_faces, Neumann) 
+    Neumann.heat_flux = bottom_heat_flux
+    face_centers = np.rec.array(ComPASS.face_centers())   
+    ComPASS.set_Neumann_faces(face_centers.z <= -H, Neumann) 
 set_boundary_heat_flux()
 
-final_time = 1E6 * year
-output_period = 1E4 * year
+final_time = 1E4 * year
+output_period = 1E3 * year
 ComPASS.set_maximum_timestep(output_period)
 standard_loop(initial_timestep= 30 * day, final_time = final_time, output_period = output_period)
