@@ -180,7 +180,8 @@ contains
   nbnodes = 0
   do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
       s = NodebyFaceLocal%Num(ps)
-      if(IdNodeLocal(s)%Frac == "y") then
+      ! FIXME: should we exclude Dirichlet nodes here ?
+      if(IdNodeLocal(s)%Frac /= "y") then
           nbnodes = nbnodes + 1
       end if
   end do
@@ -189,7 +190,8 @@ contains
       node_surface_contribution = MeshSchema_local_face_surface(face) / nbnodes
       do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
           s = NodebyFaceLocal%Num(ps)
-          if(IdNodeLocal(s)%Frac == 'y') then
+          ! FIXME: should we exclude Dirichlet nodes here ?
+          if(IdNodeLocal(s)%Frac /= 'y') then
               NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
                   + node_surface_contribution * fluxes%molar_flux
               NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
@@ -197,7 +199,7 @@ contains
           end if
       end do
   else
-      print *, 'WARNONG: no Neumann contribution for face fk on proc', commRank+1
+      print *, 'WARNING: no Neumann contribution for face fk on proc', commRank+1
   end if
 
   end subroutine IncCV_set_face_with_neumann_contribution

@@ -75,7 +75,6 @@ extern "C"
 
 #include "IncCV_wrappers.h"
 #include <pybind11/numpy.h>
-//#include <pybind11/stl.h>
 #include "PyXArrayWrapper.h"
 
 template<typename AttributeType, typename PyClass>
@@ -154,7 +153,7 @@ void add_IncCV_wrappers(py::module& module)
     );
 
     module.def("set_Neumann_faces", [](
-        py::array_t<int, py::array::c_style> faces,
+        py::array_t<int, py::array::c_style | py::array::forcecast> faces,
         const NeumannBC& condition
         ) {
         auto raw_faces = faces.unchecked<1>();
