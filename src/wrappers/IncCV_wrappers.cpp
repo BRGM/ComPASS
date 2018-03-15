@@ -19,31 +19,42 @@ struct Model {
 
 template <typename Model_type, typename Real_type = double>
 struct IncCV {
-	typedef int Context;
-	typedef Real_type Real;
-	static constexpr std::size_t nc = Model_type::nc;
-	static constexpr std::size_t np = Model_type::np;
-	// FIXME: preprocessor directives to be removed!
+    typedef int Context;
+    typedef Real_type Real;
+    static constexpr std::size_t nc = Model_type::nc;
+    static constexpr std::size_t np = Model_type::np;
+    // FIXME: preprocessor directives to be removed!
 #ifdef _THERMIQUE_
-	static constexpr std::size_t nbdof = nc + 1;
+    static constexpr std::size_t nbdof = nc + 1;
 #else
-	static constexpr std::size_t nbdof = nc;
+    static constexpr std::size_t nbdof = nc;
 #endif
-	typedef std::array<Real, nc> Component_vector;
-	typedef std::array<Component_vector, np> Phase_component_matrix;
-	typedef std::array<Real, np> Phase_vector;
-	typedef std::array<Real, nbdof> Accumulation_vector;
-	Context context;
-	Real p;
-	Real T;
-	Phase_component_matrix C;
-	Phase_vector S;
-	Accumulation_vector accumulation;
+    typedef std::array<Real, nc> Component_vector;
+    typedef std::array<Component_vector, np> Phase_component_matrix;
+    typedef std::array<Real, np> Phase_vector;
+    typedef std::array<Real, nbdof> Accumulation_vector;
+    Context context;
+    Real p;
+    Real T;
+    Phase_component_matrix C;
+    Phase_vector S;
+    Accumulation_vector accumulation;
+};
+
+template <typename Model_type, typename Real_type = double>
+struct NeumannBoundaryConditions {
+    typedef Real_type Real;
+    static constexpr std::size_t nc = Model_type::nc;
+    typedef std::array<Real, nc> Component_vector;
+    Component_vector molar_flux;
+    Real heat_flux;
 };
 
 // FIXME: This is to be removed later
 typedef IncCV<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>> X;
 typedef XArrayWrapper<X> StateArray;
+using NeumannBC = NeumannBoundaryConditions<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;
+//typedef XArrayWrapper<Neumann> NeumannArray;
 
 // Fortran functions
 extern "C"
@@ -56,7 +67,10 @@ extern "C"
 	void retrieve_fracture_states(StateArray&);
 	void retrieve_cell_states(StateArray&);
 	void retrieve_injection_whp(XArrayWrapper<double>&);
-	void retrieve_production_whp(XArrayWrapper<double>&);
+    void retrieve_production_whp(XArrayWrapper<double>&);
+    void retrieve_production_whp(XArrayWrapper<double>&);
+    void set_faces_with_neumann_contribution(int, const int*, const NeumannBC*);
+    void set_face_neumann_contributions(int, int*, NeumannBC*);
 }
 
 #include "IncCV_wrappers.h"
@@ -76,7 +90,7 @@ auto add_attribute_array(PyClass& states, const char *name, std::size_t offset,
 		std::copy(strides.begin(), strides.end(), std::back_inserter(final_strides));
 		return py::array_t<AttributeType, py::array::c_style>{ final_shape, final_strides, attribute_position, self };
 	},
-		py::return_value_policy::reference_internal // py::keep_alive<0, 1>(): because the StateArray instance must be kept alive as long as the attribute is used
+		py::return_value_policy::reference_internal // py::keep_alive<0, 1>(): because the StateArray instance must be kept alive as long as the attribute is used - should be ok this is tge default for def_property
 		);
 };
 
@@ -98,6 +112,11 @@ void add_IncCV_wrappers(py::module& module)
 	add_attribute_array<typename X::Real>(PyStateArray, "C", offsetof(X, C), { X::np, X::nc }, { X::nc * sizeof(X::Real), sizeof(X::Real) });
 	add_attribute_array<typename X::Real>(PyStateArray, "S", offsetof(X, S), { X::np }, { sizeof(X::Real) });
 	add_attribute_array<typename X::Real>(PyStateArray, "accumulation", offsetof(X, accumulation), { X::nbdof }, { sizeof(X::Real) });
+    //auto PyNeumannArray = py::class_<NeumannArray>(module, "NeumannContributions")
+    //    .def("size", [](const NeumannArray& self) { return self.length; })
+    //    .def_property_readonly("shape", [](const NeumannArray& self) { return py::make_tuple(self.length); });
+    //add_attribute_array<typename Neumann::molar_flux>(PyNeumannArray, "molar_flux", offsetof(Neumann, molar_flux), { Neumann::nc }, { sizeof(X::Real) });
+    //add_attribute_array<typename Neumann::Real>(PyNeumannArray, "heat_flux", offsetof(Neumann, heat_flux));
 
 	module.def("dirichlet_node_states", []() { return StateArray::retrieve(retrieve_dirichlet_node_states); });
 	module.def("node_states", []() { return StateArray::retrieve(retrieve_node_states); });
@@ -116,6 +135,48 @@ void add_IncCV_wrappers(py::module& module)
 	//	retrieve_boundary_states(wrapper);
 	//	return py::array_t<X, py::array::c_style>{wrapper.length, wrapper.pointer};
 	//});
+    
+    py::class_<NeumannBC>(module, "NeumannBC")
+        .def(py::init<>())
+        .def_readwrite("heat_flux", &NeumannBC::heat_flux)
+            .def_property_readonly("molar_flux", [](py::object& self) {
+        auto data = self.cast<NeumannBC*>()->molar_flux.data(); // C++ pointer to underlying NeumannBC instance
+        return py::array_t<NeumannBC::Real, py::array::c_style>({ NeumannBC::nc }, { sizeof(NeumannBC::Real) }, data, self);
+    }) // return value policy defaults to py::return_value_policy::reference_internal which is ok
+        ;
+
+    module.def("set_Neumann_faces_check", [](
+        py::array_t<int, py::array::c_style> faces
+        ) {
+        auto raw_faces = faces.unchecked<1>();
+        py::print(faces);
+    }
+    );
+
+    module.def("set_Neumann_faces", [](
+        py::array_t<int, py::array::c_style> faces,
+        const NeumannBC& condition
+        ) {
+        auto raw_faces = faces.unchecked<1>();
+        set_faces_with_neumann_contribution(
+            raw_faces.shape(0),
+            raw_faces.data(0),
+            &condition
+        );
+    }
+    );
+
+    //PYBIND11_NUMPY_DTYPE(NeumannBC, molar_flux, heat_flux);
+    //module.def("neumann_conditions", [](std::size_t n) {
+    //    return py::array_t<NeumannBC, py::array::c_style>{ n };
+    //});
+
+    //module.def("node_states", []() {
+    //	auto wrapper = StateArray{};
+    //	retrieve_boundary_states(wrapper);
+    //	return py::array_t<X, py::array::c_style>{wrapper.length, wrapper.pointer};
+    //});
+
 
 	add_array_wrapper(module, "injection_whp", retrieve_injection_whp);
 	add_array_wrapper(module, "production_whp", retrieve_production_whp);

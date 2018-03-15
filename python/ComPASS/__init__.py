@@ -324,3 +324,15 @@ def add_output_subdirectory(path):
             os.makedirs(target)
     mpi.synchronize()
     assert os.path.isdir(target)
+
+def find_fracture_edges(faces):
+    face_nodes = get_connectivity().NodebyFace
+    fracture_edges = []
+    info = np.rec.array(node_info(), copy=False)
+    for face in faces:
+        nodes = np.array(face_nodes[face], copy=False) - 1 # Fortran indexing...
+        in_fracture = info.frac[nodes] == ord('y')
+        for i in range(nodes.shape[0]):
+            if in_fracture[i-1] and in_fracture[i]:
+                fracture_edges.append((nodes[i-1], nodes[i]))
+    return np.array(fracture_edges)

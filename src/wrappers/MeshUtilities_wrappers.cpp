@@ -38,8 +38,10 @@ extern "C"
 {
 	void get_global_number_of_nodes(long&);
 	void get_global_number_of_cells(long&);
-	void retrieve_vertices(XArrayWrapper<Point>&);
-	void retrieve_nodeflags(XArrayWrapper<int>&);
+    void retrieve_vertices(XArrayWrapper<Point>&);
+    void retrieve_cell_centers(XArrayWrapper<Point>&);
+    void retrieve_face_centers(XArrayWrapper<Point>&);
+    void retrieve_nodeflags(XArrayWrapper<int>&);
 	void retrieve_global_nodeflags(XArrayWrapper<int>&);
 	void retrieve_cellflags(XArrayWrapper<int>&);
 	void retrieve_global_cellflags(XArrayWrapper<int>&);
@@ -84,8 +86,10 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "global_fracrocktype", retrieve_global_fracrocktype);
 	add_array_wrapper(module, "global_celltypes", retrieve_global_celltypes);
 	add_array_wrapper(module, "global_facetypes", retrieve_global_facetypes);
-	add_array_wrapper(module, "vertices", retrieve_vertices);
-	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
+    add_array_wrapper(module, "vertices", retrieve_vertices);
+    add_array_wrapper(module, "vertices", retrieve_vertices);
+    add_array_wrapper(module, "cell_centers", retrieve_cell_centers);
+    add_array_wrapper(module, "face_centers", retrieve_face_centers);
 	add_array_wrapper(module, "cellflags", retrieve_cellflags);
 	add_array_wrapper(module, "faceflags", retrieve_faceflags);
 	add_array_wrapper(module, "celltypes", retrieve_celltypes);

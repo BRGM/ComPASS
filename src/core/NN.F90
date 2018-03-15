@@ -1100,37 +1100,7 @@ subroutine NN_init_phase2(OutputDir)
 
       call DefFlash_TimeFlash
 
-      TimeCurrent = TimeCurrent + Delta_t
-
-      do k=1, NbNodeLocal_Ncpus(commRank+1)
-        IF(IncNode(k)%Temperature < 293)THEN
-          PRINT*, ''
-          PRINT*, ''
-          PRINT*, 'TEMP', IncNode(k)%Temperature
-        ENDIF
-      ENDDO
-
-
-!      do k=1, NbNodeLocal_Ncpus(commRank+1)
-!         write(*,*)' nodes '
-!         write(*,*)' ic ',k,IncNode(k)%ic         
-!         write(*,*)' P ',k,IncNode(k)%Pression
-!         write(*,*)' T ',k,IncNode(k)%Temperature
-!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
-!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
-!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
-!      ENDDO
-
-!      do k=1, NbCellLocal_Ncpus(commRank+1)
-!         write(*,*)' cells '
-!         write(*,*)' ic ',k,IncCell(k)%ic         
-!         write(*,*)' P ',k,IncCell(k)%Pression
-!         write(*,*)' T ',k,IncCell(k)%Temperature
-!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
-!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
-!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
-!      ENDDO      
-      
+      TimeCurrent = TimeCurrent + Delta_t      
 
       ! FiXME: What is the policy for time step management
       ! compute Delta_t for the next time step

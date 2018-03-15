@@ -18,9 +18,43 @@
           retrieve_nb_cells_own, &
           retrieve_nb_faces_own, &
           retrieve_nb_nodes_own, &
-          retrieve_nb_fractures_own
+          retrieve_nb_fractures_own, &
+          retrieve_cell_centers, &
+          retrieve_face_centers
 
     contains
+
+       subroutine retrieve_cell_centers(cpp_array) &
+          bind(C, name="retrieve_cell_centers")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(XCellLocal)) then
+             print *, "Local cell centers are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(XCellLocal(1, 1))
+          cpp_array%n = size(XCellLocal, 2)
+
+       end subroutine retrieve_cell_centers
+
+       subroutine retrieve_face_centers(cpp_array) &
+          bind(C, name="retrieve_face_centers")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(XFaceLocal)) then
+             print *, "Local face centers are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(XFaceLocal(1, 1))
+          cpp_array%n = size(XFaceLocal, 2)
+
+       end subroutine retrieve_face_centers
 
        subroutine retrieve_id_node(cpp_array) &
           bind(C, name="retrieve_id_node")
@@ -36,9 +70,10 @@
           cpp_array%p = c_loc(IdNodeLocal(1))
           cpp_array%n = size(IdNodeLocal)
 
-       end subroutine retrieve_id_node
+          end subroutine retrieve_id_node
 
-       subroutine retrieve_frac_face_id(cpp_array) &
+
+      subroutine retrieve_frac_face_id(cpp_array) &
           bind(C, name="retrieve_frac_face_id")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array

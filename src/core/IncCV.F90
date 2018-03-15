@@ -28,7 +28,7 @@ module IncCV
   !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
   TYPE TYPE_IncCV
 
-     integer(c_int) :: ic !< context (???)
+     integer(c_int) :: ic        !< context (???)
 
      real(c_double) ::         & ! values of Inc
           Pression,              & !< Pressure of the element
@@ -38,6 +38,15 @@ module IncCV
           AccVol(NbCompThermique)  !< ??? of the element
 
   end TYPE TYPE_IncCV
+  
+  !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
+  TYPE, bind(C) :: TYPE_NeumannBC
+
+     real(c_double) :: &     
+          molar_flux(NbComp), & !< component molar flux
+          heat_flux             !< heat flux
+
+  end TYPE TYPE_NeumannBC
   
   ! Data of well prod/inj, Ref=max for inj and min for prod
   ! TYPE TYPE_DataWell
@@ -84,6 +93,9 @@ module IncCV
   TYPE(TYPE_IncCV), allocatable, dimension(:), target, public :: &
        IncNodeDirBC !< Dirichlet boundary unknowns for current time step (size NbNodeLocal)
 
+  TYPE(TYPE_NeumannBC), allocatable, dimension(:), target, public :: &
+       NodeNeumannBC !< Neumann contributions (size NbNodeLocal)
+
   ! Inc for previous time step: current time step - 1
   TYPE(TYPE_IncCV), allocatable, dimension(:), public :: &
        IncCellPreviousTimeStep, & !< Cell unknowns for previous time step
@@ -105,7 +117,11 @@ module IncCV
        IncCV_NewtonIncrement,  &
        IncCV_LoadIncPreviousTimeStep, &
        IncCV_SaveIncPreviousTimeStep, &
-       IncCV_free
+       IncCV_free, &
+       IncCV_clear_neumann_contributions, &
+       IncCV_set_face_with_neumann_contribution, &
+       IncCV_set_faces_with_neumann_contribution, &
+       IncCV_set_face_neumann_contributions
 
   ! The following subroutines are defined in:
   ! DefInitBCvalues.F90
@@ -140,6 +156,83 @@ contains
 
   end subroutine assign_type_inccv
 
+  subroutine IncCV_clear_neumann_contributions
+
+  integer :: k
+
+  do k =1, size(NodeNeumannBC)
+      NodeNeumannBC(k)%molar_flux(:) = 0.d0
+      NodeNeumannBC(k)%heat_flux = 0.d0
+  end do
+
+  end subroutine IncCV_clear_neumann_contributions
+
+  subroutine IncCV_set_face_with_neumann_contribution(face, fluxes) &
+      bind(C, name="set_face_with_neumann_contribution")
+
+  integer(c_int), value :: face
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+
+  integer :: ps, s, nbnodes
+  double precision :: node_surface_contribution
+
+  ! We count non fracture nodes
+  nbnodes = 0
+  do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+      s = NodebyFaceLocal%Num(ps)
+      if(IdNodeLocal(s)%Frac == "y") then
+          nbnodes = nbnodes + 1
+      end if
+  end do
+  if(nbnodes>0) then
+      ! FIXME: This should take into account surface fractions
+      node_surface_contribution = MeshSchema_local_face_surface(face) / nbnodes
+      do ps = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+          s = NodebyFaceLocal%Num(ps)
+          if(IdNodeLocal(s)%Frac == 'y') then
+              NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
+                  + node_surface_contribution * fluxes%molar_flux
+              NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
+                  + node_surface_contribution * fluxes%heat_flux
+          end if
+      end do
+  else
+      print *, 'WARNONG: no Neumann contribution for face fk on proc', commRank+1
+  end if
+
+  end subroutine IncCV_set_face_with_neumann_contribution
+
+  subroutine IncCV_set_faces_with_neumann_contribution(nbfaces, faces, fluxes) &
+      bind(C, name="set_faces_with_neumann_contribution")
+
+  integer(c_int), value :: nbfaces
+  integer(c_int) :: faces(nbfaces)
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+  
+  integer :: k
+  
+  do k=1, nbfaces
+      call IncCV_set_face_with_neumann_contribution(faces(k), fluxes)
+  end do
+
+  end subroutine IncCV_set_faces_with_neumann_contribution
+
+  subroutine IncCV_set_face_neumann_contributions(nbcont, faces, fluxes) &
+      bind(C, name="set_face_neumann_contributions")
+
+  integer(c_int), value :: nbcont
+  integer(c_int) :: faces(nbcont)
+  type(TYPE_NeumannBC), intent(in) :: fluxes(nbcont)
+  
+  integer :: k
+  
+  do k=1, nbcont
+      call IncCV_set_face_with_neumann_contribution(faces(k), fluxes(k))
+  end do
+  
+  end subroutine IncCV_set_face_neumann_contributions
+
+  
   !> \brief Allocate unknown vectors
   subroutine IncCV_allocate
 
@@ -161,7 +254,9 @@ contains
     allocate(PerfoWellProd(Nnz))
 
     allocate(IncNodeDirBC(NbNodeLocal_Ncpus(commRank+1)))
-
+    allocate(NodeNeumannBC(NbNodeLocal_Ncpus(commRank+1)))
+    call IncCV_clear_neumann_contributions
+    
     allocate(IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank+1)))
     allocate(IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank+1)))
     allocate(IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank+1)))
@@ -185,7 +280,6 @@ contains
 
     integer :: k
 
-    ! Pressure
     do k=1, NbNodeLocal_Ncpus(commRank+1)
 
        if(IdNodeLocal(k)%P == "d") then
@@ -197,12 +291,13 @@ contains
 
 #ifdef _THERMIQUE_
 
-       ! Temperature
        if(IdNodeLocal(k)%T == "d") then
           IncNode(k)%ic = IncNodeDirBC(k)%ic
           IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
        end if
+
 #endif
+
     end do
 
   end subroutine IncCV_UpdateDirBCValue
@@ -1017,6 +1112,7 @@ contains
     deallocate(PerfoWellProd)
 
     deallocate(IncNodeDirBC)
+    deallocate(NodeNeumannBC)
 
     deallocate(IncCellPreviousTimeStep)
     deallocate(IncFracPreviousTimeStep)
