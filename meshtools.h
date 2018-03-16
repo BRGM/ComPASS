@@ -87,15 +87,31 @@ namespace MeshTools
 		constexpr static std::size_t nbfacets() { return std::tuple_size<Facet_types>::value; }
 	};
 
-	struct Triangle :
-		Element_by_nodes<3>
-	{
-		using Element_by_nodes<nbnodes()>::Element_by_nodes;
-		static constexpr auto name = "Triangle";
-		static constexpr auto VTK_ID = VTK_ID_type{ 5 };
-	};
+    struct Line :
+        Element_by_nodes<2>
+    {
+        using Element_by_nodes<nbnodes()>::Element_by_nodes;
+        static constexpr auto name = "Line";
+        static constexpr auto VTK_ID = VTK_ID_type{ 3 };
+    };
 
-	struct Quad :
+    struct Triangle :
+        Element_by_nodes<3>,
+        With_facets<Line, Line, Line>
+    {
+        using Element_by_nodes<nbnodes()>::Element_by_nodes;
+        static constexpr auto name = "Triangle";
+        static constexpr auto VTK_ID = VTK_ID_type{ 5 };
+        auto facets() const -> Facets_array {
+            return Facets_array{
+                Line{ nodes[0], nodes[1] },
+                Line{ nodes[1], nodes[2] },
+                Line{ nodes[2], nodes[0] }
+            };
+        };
+    };
+
+    struct Quad :
 		Element_by_nodes<4>
 	{
 		using Element_by_nodes<nbnodes()>::Element_by_nodes;
@@ -794,7 +810,9 @@ namespace MeshTools
 		constexpr static auto dimension = Vertex_type::dimension;
 		typedef MeshConnectivity<CellTypes...> Connectivity;
 		typedef typename Connectivity::Mesh_traits Mesh_traits;
-		Vertices vertices;
+        typedef typename Mesh_traits::Cell_type Cell_type;
+        typedef typename Mesh_traits::Facet_type Facet_type;
+        Vertices vertices;
 		Connectivity connectivity;
 		template <typename Functor, typename NodeElementType>
 		void apply_on_vertices(Functor& F, const NodeElementType& element) const {

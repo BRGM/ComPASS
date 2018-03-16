@@ -4,7 +4,7 @@ import vtkwriters as vtkw
 
 idarray = lambda a: np.asarray(a, dtype=idtype())
 
-def to_vtu(mesh, filename):
+def to_vtu(mesh, filename, **kwargs):
     offsets, cellsnodes = mesh.cells_nodes_as_COC()
     vtkw.write_vtu(
         vtkw.vtu_doc_from_COC(
@@ -12,6 +12,7 @@ def to_vtu(mesh, filename):
                 np.array(offsets[1:], copy=False), # vtk: no first zero offset 
                 np.array(cellsnodes, copy=False),
                 mesh.cells_vtk_ids(),
+                **kwargs
         ),
         filename,
     ) 

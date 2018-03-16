@@ -450,6 +450,7 @@ auto add_mesh(py::module module)
 		.def("id", [](const Faces& self, const typename Mesh_traits::Facet_type& facet) {
 		return self.ids.at(Connectivity::make_face_index(facet));
 	});
+    auto mesh_class =
 	py::class_<Mesh>(module, "Mesh", py::module_local())
 		.def(py::init<>())
 		.def_readwrite("vertices", &Mesh::vertices)
@@ -506,6 +507,9 @@ auto add_mesh(py::module module)
 		.def("identify_faces_from_positions", (decltype(&identify_faces_from_positions<Mesh>))&identify_faces_from_positions<Mesh>)  // decltype is due to gcc bug
         .def("set_vertices", &set_mesh_vertices<Mesh>)
     ;
+
+    return mesh_class;
+
 }
 
 template <typename MeshType>
@@ -645,21 +649,31 @@ template <typename MeshType>
 auto add_mesh_submodule(py::module& module, const std::string& name)
 {
 	auto submodule = module.def_submodule(name.c_str());
-	add_mesh<MeshType>(submodule);
+	auto mesh_class = add_mesh<MeshType>(submodule);
 	submodule.def("create", (decltype(&make_generic_mesh<MeshType>))&make_generic_mesh<MeshType>);
 	submodule.def("create_from_remap", (decltype(&create_from_remap<MeshType>))&create_from_remap<MeshType>);
-	return submodule;
+	return std::make_tuple(submodule, mesh_class);
 }
 
 template <typename ElementType>
 auto add_uniform_mesh_submodule(py::module& module, const std::string& name)
 {
 	typedef Mesh<ElementType> Mesh_type;
-	auto submodule = add_mesh_submodule<Mesh_type>(module, name);
-	// CHECKME: The weird conversion is due to a gcc bug
+    // FIXME: TO be replaced by structured bindings in C++17 (e.g: auto [submodule, mesh_class] = add_mesh_submodule...)
+	auto tuple = add_mesh_submodule<Mesh_type>(module, name);
+    auto submodule = std::get<0>(tuple);
+    auto mesh_class = std::get<1>(tuple);
+    // CHECKME: The weird conversion is due to a gcc bug
 	// cf. https://stackoverflow.com/questions/45077622/using-a-template-function-pointer-inside-another-template-function?noredirect=1#comment77158283_45077622
-	submodule.def("make", (decltype(&make_uniform_mesh<Mesh_type>))&make_uniform_mesh<Mesh_type>);
-	return submodule;
+    submodule.def("make", (decltype(&make_uniform_mesh<Mesh_type>))&make_uniform_mesh<Mesh_type>);
+    mesh_class.def("face_id", [](const Mesh_type& self, const typename Mesh_type::Facet_type& facet) {
+        const auto& faces_id_map = self.connectivity.faces.ids;
+        auto position = faces_id_map.find(self.connectivity.make_face_index(facet));
+        assert(self.nb_faces() < std::numeric_limits<MT::FaceId>::max());
+        if (position == faces_id_map.end()) return static_cast<MT::FaceId>(self.nb_faces());
+        return position->second;
+    });
+    return submodule;
 }
 
 void add_mesh_tools(py::module& module)
@@ -697,8 +711,9 @@ void add_mesh_tools(py::module& module)
 	bind_vector<std::vector<Point>>(module, "Vertices");
 	bind_vector<std::vector<MT::FaceNeighbors>>(module, "FacesCells");
 
-	add_uniform_mesh_submodule<MT::Tetrahedron>(module, "TetMesh");
-	add_uniform_mesh_submodule<MT::Hexahedron>(module, "HexMesh");
+    add_uniform_mesh_submodule<MT::Triangle>(module, "TSurf");
+    add_uniform_mesh_submodule<MT::Tetrahedron>(module, "TetMesh");
+    add_uniform_mesh_submodule<MT::Hexahedron>(module, "HexMesh");
     //add_uniform_mesh_submodule<MT::Pyramid>(module, "PyramidMesh");
     add_mesh_submodule<Mesh<MT::Tetrahedron, MT::Wedge>>(module, "TetWedgeMesh");
 	// FIXME: The following would require to define 2D elements facets (as 3D objects or 1D ?)
