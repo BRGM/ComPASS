@@ -251,12 +251,22 @@ def compute_cell_centers():
     )
 
 def compute_face_centers():
+    centers = ComPASS.face_centers()
+    dtype = set(centers.dtype[k] for k in range(len(centers.dtype)))
+    centers = centers.view(dtype=dtype.pop()).reshape((-1, 3))
+    assert not dtype # dtype should be empty here
+    return centers
+
+def compute_fracture_centers():
+    return compute_face_centers()[ComPASS.frac_face_id() -1] # Fortran indexes start at 1
+
+def old_compute_face_centers():
     return _compute_centers(
         vertices().view(dtype=np.double).reshape((-1, 3)),
         get_connectivity().NodebyFace
     )
 
-def compute_fracture_centers():
+def old_compute_fracture_centers():
     return _compute_centers(
         vertices().view(dtype=np.double).reshape((-1, 3)),
         ComPASS.get_nodes_by_fractures()
