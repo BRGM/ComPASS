@@ -17,7 +17,7 @@ ComPASS.load_eos('water2ph')
 ComPASS.set_output_directory_and_logfile(__file__)
 
 Lx, Ly, Lz = 100., 100., 100.
-nx, ny, nz = 2, 1, 1
+nx, ny, nz = 30, 30, 30
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -27,7 +27,6 @@ grid = ComPASS.Grid(
 def fractures():
     centers = ComPASS.compute_global_face_centers()
     selection = centers[:, 0] == 0.5 * Lx
-    print('Selecting fractures:', np.nonzero(selection)[0])
     return selection
 
 ComPASS.init(
@@ -35,14 +34,14 @@ ComPASS.init(
     fracture_faces = fractures
 )
 
-print('Old computation')
-print(ComPASS.old_compute_face_centers())
-print('New computation')
-print(ComPASS.compute_face_centers())
+#print('Old computation')
+#print(ComPASS.old_compute_face_centers())
+#print('New computation')
+#print(ComPASS.compute_face_centers())
 assert np.all(ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
-print('Fractures old computation')
-print(ComPASS.old_compute_fracture_centers())
-print('Fractures new computation')
-print(ComPASS.compute_fracture_centers())
+#print('Fractures old computation')
+#print(ComPASS.old_compute_fracture_centers())
+#print('Fractures new computation')
+#print(ComPASS.compute_fracture_centers())
 assert np.all(ComPASS.old_compute_fracture_centers()==ComPASS.compute_fracture_centers())
 
