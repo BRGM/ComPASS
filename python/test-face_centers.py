@@ -38,10 +38,12 @@ ComPASS.init(
 #print(ComPASS.old_compute_face_centers())
 #print('New computation')
 #print(ComPASS.compute_face_centers())
-assert np.all(ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
+assert np.all((len(ComPASS.old_compute_face_centers())==0 and len(ComPASS.compute_face_centers())==0) or
+               ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
 #print('Fractures old computation')
 #print(ComPASS.old_compute_fracture_centers())
 #print('Fractures new computation')
 #print(ComPASS.compute_fracture_centers())
-assert np.all(ComPASS.old_compute_fracture_centers()==ComPASS.compute_fracture_centers())
+assert np.all((len(ComPASS.old_compute_fracture_centers())==0 and len(ComPASS.compute_fracture_centers())==0) or
+               ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
 
