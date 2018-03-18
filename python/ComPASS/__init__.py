@@ -336,6 +336,9 @@ def add_output_subdirectory(path):
     assert os.path.isdir(target)
 
 def find_fracture_edges(faces):
+    faces = np.asarray(faces)
+    if faces.dtype==np.bool:
+        faces = np.nonzero(faces)[0]
     face_nodes = get_connectivity().NodebyFace
     fracture_edges = []
     info = np.rec.array(node_info(), copy=False)
@@ -347,9 +350,14 @@ def find_fracture_edges(faces):
                 fracture_edges.append((nodes[i-1], nodes[i]))
     return np.array(fracture_edges)
 
-def set_Neumann_faces(bottom_faces, Neumann):
-    bottom_faces = np.asarray(bottom_faces)
-    if bottom_faces.dtype==np.bool:
-        bottom_faces = np.nonzero(bottom_faces)[0]
-    bottom_faces+= 1 # Fortran indexing starts at 1   
-    kernel.set_Neumann_faces(bottom_faces, Neumann)
+def set_Neumann_faces(faces, Neumann):
+    faces = np.asarray(faces)
+    if faces.dtype==np.bool:
+        faces = np.nonzero(faces)[0]
+    faces+= 1 # Fortran indexing starts at 1   
+    kernel.set_Neumann_faces(faces, Neumann)
+
+def set_Neumann_fracture_edges(edges, Neumann):
+    edges = np.asarray(edges)
+    edges+= 1 # Fortran indexing starts at 1   
+    kernel.set_Neumann_fracture_edges(edges, Neumann)

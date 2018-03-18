@@ -111,17 +111,20 @@ module IncCV
   double precision, allocatable, dimension(:), protected :: ZSortedInj_Zval
 
   public :: &
-       IncCV_allocate, &
-       IncCV_UpdateDirBCValue, &
-       IncCV_NewtonRelax,      &
-       IncCV_NewtonIncrement,  &
-       IncCV_LoadIncPreviousTimeStep, &
-       IncCV_SaveIncPreviousTimeStep, &
-       IncCV_free, &
-       IncCV_clear_neumann_contributions, &
-       IncCV_set_face_with_neumann_contribution, &
-       IncCV_set_faces_with_neumann_contribution, &
-       IncCV_set_face_neumann_contributions
+      IncCV_allocate, &
+      IncCV_UpdateDirBCValue, &
+      IncCV_NewtonRelax,      &
+      IncCV_NewtonIncrement,  &
+      IncCV_LoadIncPreviousTimeStep, &
+      IncCV_SaveIncPreviousTimeStep, &
+      IncCV_free, &
+      IncCV_clear_neumann_contributions, &
+      IncCV_set_fracture_edge_with_neumann_contribution, &
+      IncCV_set_fracture_edges_with_neumann_contribution, &
+      IncCV_set_fracture_edges_neumann_contributions, &
+      IncCV_set_face_with_neumann_contribution, &
+      IncCV_set_faces_with_neumann_contribution, &
+      IncCV_set_face_neumann_contributions
 
   ! The following subroutines are defined in:
   ! DefInitBCvalues.F90
@@ -166,6 +169,63 @@ contains
   end do
 
   end subroutine IncCV_clear_neumann_contributions
+
+  subroutine IncCV_set_fracture_edge_with_neumann_contribution(edge, fluxes) &
+      bind(C, name="set_fracture_edge_with_neumann_contribution")
+
+  integer(c_int) :: edge(2)
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+
+  integer :: k, s
+  integer :: Ierr, errcode ! used for MPI_Abort
+  double precision :: half_length
+
+  if(IdNodeLocal(edge(1))%Frac/='y'.or.IdNodeLocal(edge(2))%Frac/='y') then
+      print *, 'ERROR: edge', edge, 'does not seem to be a fracture edge on proc', commRank+1
+      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+  end if
+
+  half_length = 0.5 * norm2(XNodeLocal(:, edge(2)) - XNodeLocal(:, edge(1)))
+  do k = 1, 2
+      s = edge(k)
+      ! FIXME: This should take into account node fractions (and variable thicknesses...)
+      NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
+          + half_length * Thickness * fluxes%molar_flux
+      NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
+          + half_length * Thickness * fluxes%heat_flux
+  end do
+
+  end subroutine IncCV_set_fracture_edge_with_neumann_contribution
+
+  subroutine IncCV_set_fracture_edges_with_neumann_contribution(nbedges, edges, fluxes) &
+      bind(C, name="set_fracture_edges_with_neumann_contribution")
+
+  integer(c_int), value :: nbedges
+  integer(c_int) :: edges(2, nbedges)
+  type(TYPE_NeumannBC), intent(in) :: fluxes
+
+  integer :: k
+
+  do k=1, nbedges
+      call IncCV_set_fracture_edge_with_neumann_contribution(edges(:, k), fluxes)
+  end do
+
+  end subroutine IncCV_set_fracture_edges_with_neumann_contribution
+
+  subroutine IncCV_set_fracture_edges_neumann_contributions(nbcont, edges, fluxes) &
+      bind(C, name="set_fracture_edges_neumann_contributions")
+
+  integer(c_int), value :: nbcont
+  integer(c_int) :: edges(2, nbcont)
+  type(TYPE_NeumannBC), intent(in) :: fluxes(nbcont)
+
+  integer :: k
+
+  do k=1, nbcont
+      call IncCV_set_fracture_edge_with_neumann_contribution(edges(:, k), fluxes(k))
+  end do
+
+  end subroutine IncCV_set_fracture_edges_neumann_contributions
 
   subroutine IncCV_set_face_with_neumann_contribution(face, fluxes) &
       bind(C, name="set_face_with_neumann_contribution")

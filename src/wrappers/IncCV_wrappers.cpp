@@ -69,8 +69,12 @@ extern "C"
 	void retrieve_injection_whp(XArrayWrapper<double>&);
     void retrieve_production_whp(XArrayWrapper<double>&);
     void retrieve_production_whp(XArrayWrapper<double>&);
-    void set_faces_with_neumann_contribution(int, const int*, const NeumannBC*);
+    void set_face_with_neumann_contribution(int, const NeumannBC&);
+    void set_faces_with_neumann_contribution(int, const int*, const NeumannBC&);
     void set_face_neumann_contributions(int, int*, NeumannBC*);
+    void set_fracture_edge_with_neumann_contribution(const int*, const NeumannBC&);
+    void set_fracture_edges_with_neumann_contribution(int, const int*, const NeumannBC&);
+    void set_fracture_edge_neumann_contributions(int, int*, NeumannBC*);
 }
 
 #include "IncCV_wrappers.h"
@@ -144,14 +148,6 @@ void add_IncCV_wrappers(py::module& module)
     }) // return value policy defaults to py::return_value_policy::reference_internal which is ok
         ;
 
-    module.def("set_Neumann_faces_check", [](
-        py::array_t<int, py::array::c_style> faces
-        ) {
-        auto raw_faces = faces.unchecked<1>();
-        py::print(faces);
-    }
-    );
-
     module.def("set_Neumann_faces", [](
         py::array_t<int, py::array::c_style | py::array::forcecast> faces,
         const NeumannBC& condition
@@ -160,7 +156,20 @@ void add_IncCV_wrappers(py::module& module)
         set_faces_with_neumann_contribution(
             raw_faces.shape(0),
             raw_faces.data(0),
-            &condition
+            condition
+        );
+    }
+    );
+
+    module.def("set_Neumann_fracture_edges", [](
+        py::array_t<int, py::array::c_style | py::array::forcecast> edges,
+        const NeumannBC& condition
+        ) {
+        auto raw_edges = edges.unchecked<2>();
+        set_fracture_edges_with_neumann_contribution(
+            raw_edges.shape(0),
+            raw_edges.data(0, 0),
+            condition
         );
     }
     );

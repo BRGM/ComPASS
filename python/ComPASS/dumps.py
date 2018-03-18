@@ -66,7 +66,7 @@ class Dumper:
         fracturenodes_offsets = np.cumsum([len(a) for a in fracture_nodes])
         fracturenodes_values = np.hstack(fracture_nodes) if len(fracture_nodes)>0 else np.array([])
         fracture_faces = ComPASS.frac_face_id()
-        fracture_types = ComPASS.facetypes()[fracture_faces]
+        fracture_types = ComPASS.facetypes()[fracture_faces - 1] # switch first node indexing from 1 to 0 
         np.savez(self.mesh_filename(mpi.proc_rank),
             vertices =  ComPASS.vertices().view(dtype=np.double).reshape((-1, 3)),
             cellnodes_offsets = connectivity.NodebyCell.offsets()[1:], # VTK does not use the first 0 offset
