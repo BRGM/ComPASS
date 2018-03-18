@@ -14,15 +14,15 @@ from ComPASS.timeloops import standard_loop
 
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
-qmass = 0.1                # 
-Tbottom = degC2K( 200. )   # temperature influx
-k_matrix = 1E-17           # domain permeability in m^2
+qmass = 1E-1               # 
+Tbottom = degC2K( 300. )   # temperature influx
+k_matrix = 1E-14           # domain permeability in m^2
 phi_matrix = 0.15          # domain porosity
 k_fracture = 1E-12         # fracture permeability in m^2
 phi_fracture = 0.3         # fracture porosity
 
-H = 1000.                  # domain height
-nH = 20               # discretization
+H = 300.                  # domain height
+nH = 100               # discretization
 nx, ny, nz = 2*nH, 1, nH
 Lx, Ly, Lz = 2*H, 0.1*H, H
 
@@ -80,7 +80,7 @@ def set_boundary_fluxes():
     ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
 set_boundary_fluxes()
 
-final_time = 1E4 * year
-output_period = 1E3 * year
+final_time = 20 * year
+output_period = 0.05 * final_time
 ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 0.1 * hour, final_time = final_time, output_period = output_period)
+standard_loop(initial_timestep= 1 * hour, final_time = final_time, output_period = output_period)

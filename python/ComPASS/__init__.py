@@ -340,15 +340,19 @@ def find_fracture_edges(faces):
     if faces.dtype==np.bool:
         faces = np.nonzero(faces)[0]
     face_nodes = get_connectivity().NodebyFace
-    fracture_edges = []
+    # we do not want to store twice the same edge
+    fracture_edges = set()
     info = np.rec.array(node_info(), copy=False)
     for face in faces:
         nodes = np.array(face_nodes[face], copy=False) - 1 # Fortran indexing...
         in_fracture = info.frac[nodes] == ord('y')
         for i in range(nodes.shape[0]):
             if in_fracture[i-1] and in_fracture[i]:
-                fracture_edges.append((nodes[i-1], nodes[i]))
-    return np.array(fracture_edges)
+                if nodes[i-1]<nodes[i]:
+                    fracture_edges.add((nodes[i-1], nodes[i]))
+                else:
+                    fracture_edges.add((nodes[i], nodes[i-1]))
+    return  np.array(list(fracture_edges))
 
 def set_Neumann_faces(faces, Neumann):
     faces = np.asarray(faces)

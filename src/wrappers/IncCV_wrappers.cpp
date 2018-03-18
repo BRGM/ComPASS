@@ -152,27 +152,23 @@ void add_IncCV_wrappers(py::module& module)
         py::array_t<int, py::array::c_style | py::array::forcecast> faces,
         const NeumannBC& condition
         ) {
+        if (faces.ndim() != 1 || faces.size()==0) return;
         auto raw_faces = faces.unchecked<1>();
         set_faces_with_neumann_contribution(
-            raw_faces.shape(0),
-            raw_faces.data(0),
-            condition
+            raw_faces.shape(0), raw_faces.data(0), condition
         );
-    }
-    );
+    });
 
     module.def("set_Neumann_fracture_edges", [](
         py::array_t<int, py::array::c_style | py::array::forcecast> edges,
         const NeumannBC& condition
         ) {
+        if (edges.ndim() != 2 || edges.size() == 0) return;
         auto raw_edges = edges.unchecked<2>();
         set_fracture_edges_with_neumann_contribution(
-            raw_edges.shape(0),
-            raw_edges.data(0, 0),
-            condition
+            raw_edges.shape(0), raw_edges.data(0, 0), condition
         );
-    }
-    );
+    });
 
     //PYBIND11_NUMPY_DTYPE(NeumannBC, molar_flux, heat_flux);
     //module.def("neumann_conditions", [](std::size_t n) {
