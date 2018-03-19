@@ -122,7 +122,7 @@ contains
 
          call FluidThermodynamics_Psat(T, Psat, dT_Psat)
 
-         Cs = 35.d0
+         Cs = 0.d0 ! salinity
          rho0 = 780.83795d0
          a = 1.6269192d0
          b = -3.0635410d-3
