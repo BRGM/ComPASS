@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import os
 import numpy as np
 
@@ -6,7 +14,7 @@ mpi = ComPASS.mpi
 create_directories = ComPASS.utils.create_directories
 
 class Dumper:
-    
+
     def __init__(self, output_directory=None):
         if output_directory is None:
             output_directory = ComPASS.to_output_directory('')
@@ -21,10 +29,10 @@ class Dumper:
 
     def to_output_directory(self, filename=''):
         return os.path.join(self.output_directory, filename)
-        
+
     def to_mesh_directory(self, filename=''):
         return os.path.join(self.mesh_directory, filename)
-        
+
     def to_states_directory(self, filename=''):
         return os.path.join(self.states_directory, filename)
 
@@ -62,15 +70,15 @@ class Dumper:
     def dump_mesh(self):
         connectivity = ComPASS.get_connectivity()
         fracture_nodes_coc = ComPASS.get_nodes_by_fractures()
-        fracture_nodes = [np.array(nodes) - 1 for nodes in fracture_nodes_coc]  # switch first node indexing from 1 to 0 
+        fracture_nodes = [np.array(nodes) - 1 for nodes in fracture_nodes_coc]  # switch first node indexing from 1 to 0
         fracturenodes_offsets = np.cumsum([len(a) for a in fracture_nodes])
         fracturenodes_values = np.hstack(fracture_nodes) if len(fracture_nodes)>0 else np.array([])
         fracture_faces = ComPASS.frac_face_id()
-        fracture_types = ComPASS.facetypes()[fracture_faces - 1] # switch first node indexing from 1 to 0 
+        fracture_types = ComPASS.facetypes()[fracture_faces - 1] # switch first node indexing from 1 to 0
         np.savez(self.mesh_filename(mpi.proc_rank),
             vertices =  ComPASS.vertices().view(dtype=np.double).reshape((-1, 3)),
             cellnodes_offsets = connectivity.NodebyCell.offsets()[1:], # VTK does not use the first 0 offset
-            cellnodes_values = connectivity.NodebyCell.contiguous_content() - 1, # switch first node indexing from 1 to 0 
+            cellnodes_values = connectivity.NodebyCell.contiguous_content() - 1, # switch first node indexing from 1 to 0
             celltypes = ComPASS.celltypes(),
             fracturenodes_offsets = fracturenodes_offsets,
             fracturenodes_values = fracturenodes_values,
@@ -88,17 +96,17 @@ class Dumper:
             'cell_pressure': cell_states.p,
             'cell_temperature': cell_states.T,
             'fracture_pressure': fracture_states.p,
-            'fracture_temperature': fracture_states.T,        
+            'fracture_temperature': fracture_states.T,
         }
         for phase in range(ComPASS.number_of_phases()):
-            dumped_states['cell_saturation_phase_%d'%(phase+1)] = cell_states.S[:, phase] 
-            dumped_states['node_saturation_phase_%d'%(phase+1)] = node_states.S[:, phase] 
-            dumped_states['fracture_saturation_phase_%d'%(phase+1)] = fracture_states.S[:, phase] 
+            dumped_states['cell_saturation_phase_%d'%(phase+1)] = cell_states.S[:, phase]
+            dumped_states['node_saturation_phase_%d'%(phase+1)] = node_states.S[:, phase]
+            dumped_states['fracture_saturation_phase_%d'%(phase+1)] = fracture_states.S[:, phase]
         for phase in range(ComPASS.number_of_phases()):
             for comp in range(ComPASS.number_of_components()):
-                dumped_states['cell_comp%d_in_phase_%d'%(comp+1, phase+1)] = cell_states.C[:, phase, comp] 
-                dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp] 
-                dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp] 
+                dumped_states['cell_comp%d_in_phase_%d'%(comp+1, phase+1)] = cell_states.C[:, phase, comp]
+                dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp]
+                dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp]
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
 
 def dump_mesh():

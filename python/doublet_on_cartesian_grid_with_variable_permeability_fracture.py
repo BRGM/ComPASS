@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
@@ -19,7 +27,7 @@ def fractures_factory(grid):
         zfrac = Oz + 0.5 * Lz
         where = (np.abs(zfaces - zfrac) < dz) & (ux==0) & (uy==0)
         print('Selecting', np.sum(where), 'faces as fractures')
-        return where 
+        return where
     return fractures
 
 def face_permeability_factory(grid, channel_width=None):

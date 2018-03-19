@@ -1,8 +1,16 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Model: 2 phase 2 comp thermal, MCP=(1,1,1,1)
-!                 
+!
 ! 1: Gas
 ! 2: Liquid
-!                 
+!
 ! 1: Air
 ! 2: H2O
 
@@ -21,7 +29,7 @@ module DefModel
   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
-  ! MCP 
+  ! MCP
   integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = RESHAPE( &
       (/ 1, 1, 1, 1 /), (/NbComp, NbPhase/))
@@ -35,7 +43,7 @@ module DefModel
 
   ! thickness of frac
   double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
-  
+
   ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1
@@ -48,8 +56,8 @@ module DefModel
 
   ! Nombre Max d'eq d'equilibre
   !	       d'eq de fermeture thermodynamique
-  !	       d'inc P (T) C 
-  !	       d'inc P (T) C primaires 
+  !	       d'inc P (T) C
+  !	       d'inc P (T) C primaires
   integer, parameter :: &
        NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
        NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
@@ -67,21 +75,21 @@ module DefModel
   ! pschoice=1: manually
   !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
   !
-  ! WARNING 
+  ! WARNING
   ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
-  ! P est forcement primaire et en numero 1 
-  ! Si T est primaire elle doit etre en numero 2 
-  
+  ! P est forcement primaire et en numero 1
+  ! Si T est primaire elle doit etre en numero 2
+
   ! pschoice=2: Glouton method
   !     the matrix psprim and pssecd are defined formally for compile
-  
+
   ! pschoise=3: Gauss method
   !     the matrix psprim and pssecd are defined formally for compile
 
   integer, parameter :: pschoice = 1
 
 
-  
+
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
       1, 2, 3, & ! ic=1
@@ -146,7 +154,7 @@ module DefModel
   double precision, parameter :: OneMonth = 30.5d0 * OneDay
   double precision, parameter :: OneYear = 3.6525d2 * OneDay
 
-  ! time step init and max 
+  ! time step init and max
   ! FIXME: parameter is removed to assign variable from python
   double precision :: TimeFinal = 200*OneYear
 
@@ -157,7 +165,7 @@ module DefModel
   double precision, parameter :: output_frequency = OneSecond
 
 
-  ! ! ****** Newton iters max and stop condition ****** ! !   
+  ! ! ****** Newton iters max and stop condition ****** ! !
   integer, parameter :: NewtonNiterMax = 100
   double precision, parameter :: NewtonTol = 1.d-7
 
@@ -189,8 +197,8 @@ module DefModel
       omegaDarcyCell = 0.075,    & ! darcy cell/frac
       omegaDarcyFrac = 0.15
 
-  double precision, parameter :: & 
-      omegaFourierCell = 0.075,  & ! fourier cell/frac 
+  double precision, parameter :: &
+      omegaFourierCell = 0.075,  & ! fourier cell/frac
       omegaFourierFrac = 0.15
 
 
@@ -235,7 +243,7 @@ contains
   ! Fugacity coefficient
   ! f * c_i
   ! P = Pg pression de reference
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
@@ -251,20 +259,20 @@ contains
     DOUBLE PRECISION :: RZetal
 
     RZetal = 8.314d0 * 1000.d0 / 0.018d0
-    
+
     IF(iph == PHASE_GAS)THEN
-       f = P 
+       f = P
 
        dPf = 1.d0
        dTf = 0.d0
-       dCf = 0.d0 
+       dCf = 0.d0
        dSf = 0.d0
     ELSE IF(iph == PHASE_WATER)THEN
       IF(icp==1)THEN
         CALL air_henry(T,f)
         dPf = 0.d0
         CALL air_henry_dT(dTf)
-        dCf = 0.d0 
+        dCf = 0.d0
         dSf = 0.d0
       ELSE
         CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
@@ -274,7 +282,7 @@ contains
 
         dPf = 0.d0
         dTf = (dTSat - Psat*Pc/RZetal/(T**2))*DEXP(Pc/(T*RZetal))
-        dCf = 0.d0 
+        dCf = 0.d0
         dSf = DSPc * f/(T*RZetal)
       ENDIF
     END IF
@@ -322,8 +330,8 @@ contains
    END SUBROUTINE
 
 
-  ! Densite molaire 
-  ! iph is an identificator for each phase: 
+  ! Densite molaire
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -373,8 +381,8 @@ contains
   END SUBROUTINE H2O_MasseMolaire
 
 
-  ! Densite Massique 
-  ! iph is an identificator for each phase: 
+  ! Densite Massique
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_DensiteMassique(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -406,7 +414,7 @@ contains
 
 
   ! Viscosities
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -423,7 +431,7 @@ contains
     IF(iph==PHASE_GAS)THEN
       f = 18.51d-6
     ELSE
-      f = 1.0d-3  
+      f = 1.0d-3
     ENDIF
 
     dPf = 0.d0
@@ -435,7 +443,7 @@ contains
 
 
   ! Permeabilites = S**2
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_PermRel(rt,iph,S,f,DSf)
 
@@ -454,13 +462,13 @@ contains
     dSf = 0.d0
 
     IF(rt(1) == 1)THEN
-      Slrk = 0.4d0 
-      Sgrk = 0.d0 
+      Slrk = 0.4d0
+      Sgrk = 0.d0
       rNvgk = 1.49d0
       rMvgk = 1.d0-1.d0/rNvgk
     ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
-      Sgrk = 0.d0 
+      Sgrk = 0.d0
       rNvgk = 1.54d0
       rMvgk = 1.d0-1.d0/rNvgk
     ELSE
@@ -493,7 +501,7 @@ contains
       if (S(iph).le.Slrk) then
          f = 0.d0
          dSf(iph) = 0.d0
-      else if ( (S(iph).ge.Slrk).and.(S(iph).le.1-c) ) then 
+      else if ( (S(iph).ge.Slrk).and.(S(iph).le.1-c) ) then
          f = dsqrt(Sbl)*(1.d0 - (1.d0-(Sbl)**(1.d0/rMvgk))**rMvgk)**2
          ds = Sbl**(1.d0/rMvgk-1.d0) &
            *( 1.d0-(Sbl)**(1.d0/rMvgk) )**(rMvgk-1.d0)
@@ -505,7 +513,7 @@ contains
       else
         f = 1.d0
         dSf(iph) = 0.d0
-      endif 
+      endif
     ENDIF
   END SUBROUTINE f_PermRel
 
@@ -525,14 +533,14 @@ contains
     double precision :: Sbl, dSbl, Sbl1, Pc1, Sgrk
 
     IF(rt(1) == 1)THEN
-      Slrk = 0.4d0 
-      Sgrk = 0.d0 
+      Slrk = 0.4d0
+      Sgrk = 0.d0
       rNvgk = 1.49d0
       Prvgk = 15.d+6
       rMvgk = 1.d0-1.d0/rNvgk
     ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
-      Sgrk = 0.d0 
+      Sgrk = 0.d0
       rNvgk = 1.54d0
       Prvgk = 2.d+6
       rMvgk = 1.d0-1.d0/rNvgk
@@ -552,10 +560,10 @@ contains
       Pc1 = Prvgk*( Sbl1**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk)
 
       if (Sbl < 1.0E-7) then
-        write(*,*)' Sbl < 1.0E-7 ',Sbl,S(iph)  
+        write(*,*)' Sbl < 1.0E-7 ',Sbl,S(iph)
         stop
       ELSE IF (Sbl < Sbl1) THEN
-        f = Prvgk*( Sbl**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk) 
+        f = Prvgk*( Sbl**(-1.d0/rMvgk) - 1.d0 )**(1.d0/rNvgk)
         dSf(iph) = - Prvgk*dSbl/(rNvgk*rMvgk)*Sbl**(-1.d0/rMvgk-1.d0) &
           *( Sbl**(-1.d0/rMvgk) -1.d0 )**(1.d0/rNvgk-1.d0)
       ELSE IF  ( Sbl <= 1.0 ) THEN
@@ -564,7 +572,7 @@ contains
       ELSE
         f = 0.d0
         dSf(iph) = 0.d0
-      ENDIF    
+      ENDIF
 
       f = -f
       dSf(iph) = -dSf(iph)
@@ -576,20 +584,20 @@ contains
 
     INTEGER, INTENT(IN) :: rt(IndThermique+1)
     DOUBLE PRECISION, INTENT(IN) :: Pc
-    
+
     DOUBLE PRECISION, INTENT(OUT) :: Sl
 
     DOUBLE PRECISION :: Slrk, Sgrk, Prvgk, rNvgk, rMvgk
 
     IF(rt(1) == 1)THEN
-      Slrk = 0.4d0 
-      Sgrk = 0.d0 
+      Slrk = 0.4d0
+      Sgrk = 0.d0
       rNvgk = 1.49d0
       Prvgk = 15.d+6
       rMvgk = 1.d0-1.d0/rNvgk
     ELSEIF( rt(1) == 2 )THEN
       Slrk = 0.01d0
-      Sgrk = 0.d0 
+      Sgrk = 0.d0
       rNvgk = 1.54d0
       Prvgk = 2.d+6
       rMvgk = 1.d0-1.d0/rNvgk
@@ -599,18 +607,18 @@ contains
     ENDIF
 
 
-    IF(Pc < 0.d0) THEN 
-      Sl = 1.d0 
+    IF(Pc < 0.d0) THEN
+      Sl = 1.d0
     ELSE
       Sl = Slrk + (1.d0-Slrk)*( 1.d0 + (Pc/Prvgk)**rNvgk )**(-rMvgk)
-    ENDIF   
+    ENDIF
   END SUBROUTINE
 
-  
+
 #ifdef _THERMIQUE_
 
   ! EnergieInterne
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -627,7 +635,7 @@ contains
 
 
   ! Enthalpie
-  ! iph is an identificator for each phase: 
+  ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   ! If Enthalpide depends on the compositon C, change DefFlash.F90
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
@@ -648,7 +656,7 @@ contains
       cc = -1.91264d+3
       d = 0.2997d+3
 
-      Ts = T/100.d0 
+      Ts = T/100.d0
 
       ss = a + b*Ts + cc*Ts**2 + d*Ts**3
 
@@ -675,7 +683,7 @@ contains
 
       CALL H2O_MasseMolaire(m)
 
-      f = ss * m     
+      f = ss * m
 
       ss = b + 2*cc*(T-T0) + 3*d*(T-T0)**2
 
@@ -691,7 +699,7 @@ contains
 
     DOUBLE PRECISION, INTENT(OUT) :: c
 
-    c = 1000.d0  
+    c = 1000.d0
   END SUBROUTINE
 
 #endif
@@ -733,7 +741,7 @@ contains
        PermCellG(3,3,i) = 1.d-18
      ELSE
        PRINT*, 'error DefModel_SetPerm, unknow rocktype'
-       PRINT*, i, CellRocktypeG(1,i) 
+       PRINT*, i, CellRocktypeG(1,i)
        STOP
      ENDIF
     end do
@@ -767,7 +775,7 @@ contains
         PorositeCell(i) = 0.3d0
       ELSE
         PRINT*, 'error in DefModel_SetPorosite, unknow CellRocktype'
-        PRINT*, i, CellRocktypeG(1,i) 
+        PRINT*, i, CellRocktypeG(1,i)
         STOP
       ENDIF
     end do
@@ -780,7 +788,7 @@ contains
         PorositeFrac(i) = 0.3d0
       ELSE
         PRINT*, 'error in DefModel_SetPorosite, unknow FracRocktype'
-        PRINT*, i, FracRocktypeG(1,i) 
+        PRINT*, i, FracRocktypeG(1,i)
         STOP
       ENDIF
     ENDDO
@@ -819,7 +827,7 @@ contains
         CondThermalCellG(3,3,i) = 2.d0
       ELSE
         PRINT*, 'error in DefModel_SetCondThermique, unknow FracRocktype'
-        PRINT*, i, FracRocktypeG(2,i) 
+        PRINT*, i, FracRocktypeG(2,i)
         STOP
       ENDIF
     end do
@@ -860,7 +868,7 @@ contains
     double precision, intent(out) :: Psat, dT_PSat
 
     Psat = 1.013E+5*dexp(13.7d0 -5120.d0/T)
-    dT_PSat = 5120.d0*Psat/T**2 
+    dT_PSat = 5120.d0*Psat/T**2
 
   end subroutine DefModel_Psat
 
@@ -872,7 +880,7 @@ contains
     double precision, intent(out) :: Tsat, dP_Tsat
 
     Tsat = - 5120.d0 / (DLOG(P/1.013E+5) - 13.7d0)
-    dP_Tsat = 5120.d0 * ( 1.013E+5  / P ) / (DLOG(P/1.013E+5) - 13.7d0)**2 
+    dP_Tsat = 5120.d0 * ( 1.013E+5  / P ) / (DLOG(P/1.013E+5) - 13.7d0)**2
 
   end subroutine DefModel_Tsat
 

@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! Model: 2 phase 2 comp thermal, MCP=(1)
 !        fractures z=0
 
@@ -37,7 +45,7 @@ subroutine IncCV_SetDirBCValue
   double precision :: CegGal, CagGal
   double precision :: CelGal, CalGal
   double precision :: SlGal, SgGal
-  double precision :: SGal(NbPhase)  
+  double precision :: SGal(NbPhase)
   double precision :: RZetal
   double precision :: DSf(NbPhase)
   double precision :: Ha
@@ -65,44 +73,44 @@ subroutine IncCV_SetDirBCValue
   CALL f_DensiteMassique(PHASE_WATER,PlRef,TPor,CPor,SPor,rho,dPf,dTf,dCf,dSf)
 
 !   !!!!!!!!!!!!!!!!!!!!!!!
-! 
+!
 !   icPor=3
-! 
+!
 !   PgPor = 1.d5
 !   TPor = 303.d0
 !   HurPor = 0.9d0
-! 
+!
 !   PPor = PgPor
-! 
+!
 !   CALL DefModel_Psat(TPor, PsatPor, dT_PSatPor)
-! 
+!
 !   CegPor = PsatPor*HurPor/PgPor
 !   CagPor = 1.d0 - CegPor
-! 
+!
 !   CALL air_henry(TPor,Ha)
 !   CalPor = CagPor*PgPor/Ha
 !   CelPor = 1.d0 - CalPor
-! 
+!
 !   RZetal = 8.314d0 * 1000.d0 / 0.018d0
 !   PcPor = DLOG(CelPor/HurPor) * RZetal * TPor
-! 
+!
 !   CALL f_Sl(PcPor,SlPor)
 !   SgPor = 1 - SlPor
-!  
+!
 !  !!!!!!!!!!!!!!!!!!!!!!!
 
   icGal=3
 
 !  PgGal = 1.d5
 !  TGal = 303.d0
-!  SlGal = 0.5d0 
-!  SgGal = 1 - SlGal  
+!  SlGal = 0.5d0
+!  SgGal = 1 - SlGal
 !  PGal = PgGal
 !  SGal = (/ SgGal, SlGal /)
-!  CALL f_PressionCapillaire(rt,2,SGal,PcGal,DSf)   
+!  CALL f_PressionCapillaire(rt,2,SGal,PcGal,DSf)
 !  CALL DefModel_Psat(TGal, PsatGal, dT_PSatGal)
 !  RZetal = 8.314d0 * 1000.d0 / 0.018d0
-!  Psatt =  PsatGal*dexp(PcGal/RZetal / TGal)  
+!  Psatt =  PsatGal*dexp(PcGal/RZetal / TGal)
 !  CALL air_henry(TGal,Ha)
 !  CelGal = (Ha-PgGal)/(Ha-Psatt)
 !  CalGal = 1.d0 - CelGal
@@ -233,7 +241,7 @@ subroutine IncCV_SetInitialValue
   CALL f_DensiteMassique(PHASE_WATER,PlRef,TPor,CPor,SPor,rho,dPf,dTf,dCf,dSf)
 
 !  !!!!!!!!!!!!!!!!!!!
-!  
+!
 !  icPor=3
 !
 !  PgPor = 1.d5

@@ -1,3 +1,11 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 
 
 # cf. format description at:
@@ -23,7 +31,7 @@ def retrieve_nodes(stream):
     line = stream.readline().strip()
     nbnodes = int(line)
     for i in range(nbnodes):
-        line = stream.readline().strip()    
+        line = stream.readline().strip()
         assert line
         line = line.split()
         assert int(line[0]) == i+1
@@ -37,7 +45,7 @@ def retrieve_elements(stream):
     line = stream.readline().strip()
     nbelts = int(line)
     for i in range(nbelts):
-        line = stream.readline().strip()    
+        line = stream.readline().strip()
         assert line
         line = tuple(int(s) for s in line.split())
         assert line[0] == i+1

@@ -1,3 +1,11 @@
+!
+! This file is part of ComPASS.
+!
+! ComPASS is free software: you can redistribute it and/or modify it under both the terms
+! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+!
+
 ! *** Part of module GlobalMesh.F90 *** !
 
 
@@ -37,7 +45,7 @@ SUBROUTINE GlobalMesh_SetFaceFlags
     ENDDO
     xk(:) = xk(:)/dble(NodebyFace%Pt(k+1) - NodebyFace%Pt(k))
 
-    IF( ABS(xk(3)-Mesh_zmin) < eps )THEN 
+    IF( ABS(xk(3)-Mesh_zmin) < eps )THEN
       FaceFlags(k) = 1
     ELSEIF( ABS(xk(3)-Mesh_zmax) < eps )THEN
       FaceFlags(k) = 2
@@ -191,7 +199,7 @@ subroutine GlobalMesh_SetDirBC
      end if
 
   end do
-  
+
 end subroutine GlobalMesh_SetDirBC
 
 
@@ -205,9 +213,9 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   NbWellInj = 0
   allocate(NbEdgebyWellInj(NbWellInj))
   allocate(NumNodebyEdgebyWellInj(2,nz,NbWellInj))
-  
+
    NbEdgebyWellInj(:) = nz
-   NumNodebyEdgebyWellInj(:,:,:) = -1    
+   NumNodebyEdgebyWellInj(:,:,:) = -1
 
   iwell = 2*nx/3
   jwell = ny/2
@@ -225,16 +233,16 @@ subroutine GlobalMesh_SetWellCar(nx,ny,nz)
   allocate(NumNodebyEdgebyWellProd(2,nz,NbWellProd))
 
   NbEdgebyWellProd(:) = nz
-  NumNodebyEdgebyWellProd(:,:,:) = -1    
+  NumNodebyEdgebyWellProd(:,:,:) = -1
 
   iwell = nx/3
   jwell = ny/2
-  
+
   do i=1,NbWellProd
      do j=1,NbEdgebyWellProd(i)
         NumNodebyEdgebyWellProd(1,j,i) = j*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
         NumNodebyEdgebyWellProd(2,j,i) = (j-1)*(nx+1)*(ny+1) + jwell * (nx+1) + iwell + 1
      end do
   end do
-  
+
 end subroutine GlobalMesh_SetWellCar

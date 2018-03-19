@@ -1,3 +1,11 @@
+//
+// This file is part of ComPASS.
+//
+// ComPASS is free software: you can redistribute it and/or modify it under both the terms
+// of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+// and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+//
+
 // Fortran functions
 extern "C"
 {
@@ -26,7 +34,7 @@ extern "C"
 #include "GlobalMesh_wrappers.h"
 #include <pybind11/numpy.h>
 
-// FIXME: Retrive id and coordinate types from meshtools (avoid double and int here)
+// FIXME: Retrieve id and coordinate types from meshtools (avoid double and int here)
 void create_mesh(
 	py::array_t<double, py::array::c_style> vertices,
 	py::array_t<int, py::array::c_style> cells_nodes_pointers,
@@ -96,7 +104,7 @@ void add_GlobalMesh_wrappers(py::module& module)
 	},
 		py::arg("shape"), py::arg("extent") = py::none{}, py::arg("origin") = py::none{},
 		"Build a cartesian grid. This routine must be called by the master process.");
-	
+
 	//module.def("create_mesh", [](
 	//	py::array_t<double, py::array::c_style> vertices,
 	//	py::tuple connectivity
