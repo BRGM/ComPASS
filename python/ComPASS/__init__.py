@@ -7,6 +7,7 @@
 #
 
 import sys
+import os
 import atexit
 import importlib
 import copy
