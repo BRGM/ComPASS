@@ -14,7 +14,6 @@ import numpy as np
 from ComPASS.dumps import Dumper
 from ComPASS.utils import create_directories
 from ComPASS.utils.units import year
-import thirdparties
 import vtkwriters as vtkw
 
 

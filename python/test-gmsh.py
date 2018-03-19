@@ -8,7 +8,6 @@
 #
 
 import numpy as np
-import thirdparties
 import MeshTools as MT
 import vtkwriters as vtkw
 import gmsh_reader

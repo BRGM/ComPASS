@@ -7,7 +7,6 @@
 #
 
 import numpy as np
-import thirdparties
 import MeshTools as MT
 import GridTools as GT
 import vtkwriters as vtkw

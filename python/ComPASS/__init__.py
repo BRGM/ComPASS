@@ -19,10 +19,6 @@ import ComPASS.dumps
 
 import numpy as np
 
-# FIXME: This is to import thirdparties
-import os
-sys.path.append(os.path.abspath('..'))
-import thirdparties
 import MeshTools as MT
 
 initialized = False

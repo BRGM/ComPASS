@@ -12,7 +12,6 @@
 # http://gmsh.info/doc/texinfo/gmsh.html#MSH-ASCII-file-format
 
 import numpy as np
-import thirdparties
 import MeshTools as MT
 import vtkwriters as vtkw
 

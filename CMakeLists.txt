@@ -32,6 +32,9 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(COMPASS_CONFIG_DIRECTORY ${PROJECT_SOURCE_DIR}/config CACHE PATH "path to configuration scripts")
+set(COMPASS_PYTHON_DIRECTORY ${PROJECT_SOURCE_DIR}/python CACHE PATH "python package directory")
+
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(${THIRD_PARTY_DIR})
 
@@ -104,3 +107,7 @@ include_directories(${THIRD_PARTY_DIR}/pybind11/include)
 include_directories(${THIRD_PARTY_DIR}/mapbox/include)
 
 add_subdirectory(src)
+
+install(CODE "message(\"Installing ComPASS python environment.\")")
+# make module available through user site packages
+install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" add_to_site.py ComPASS \"${COMPASS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")

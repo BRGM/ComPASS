@@ -12,7 +12,6 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-import thirdparties
 import MeshTools as MT
 import vtkwriters as vtkw
 import gmsh_reader
