@@ -1098,7 +1098,7 @@ subroutine NN_init_phase2(OutputDir)
 
       end do ! end of do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
 
-      call DefFlash_TimeFlash
+      call DefFlash_TimeFlash_Wells
 
       TimeCurrent = TimeCurrent + Delta_t      
 

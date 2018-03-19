@@ -6,7 +6,7 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp, thermal well
+! Model: 2 phase 2 comp, context switch
 
 !> \brief Define the flash to determine the phases
 !! which are actualy present in each cell, and
@@ -52,9 +52,9 @@ module DefFlash
 
 
   public :: &
-       DefFlash_allocate,  &  ! Allocation, initialization and deallocation (in NN.F90)
-       DefFlash_Flash,     &  ! Flash after each Newton iteration
-       DefFlash_TimeFlash, &  ! Flash after each time step
+       DefFlash_allocate,        &  ! Allocation, initialization and deallocation (in NN.F90)
+       DefFlash_Flash,           &  ! Flash after each Newton iteration
+       DefFlash_TimeFlash_Wells, &  ! Flash after each time step
        DefFlash_free
 
   private :: &
@@ -112,7 +112,7 @@ contains
   end subroutine DefFlash_Flash
 
   !> \brief Main surboutine, after each time iteration
-  subroutine DefFlash_TimeFlash
+  subroutine DefFlash_TimeFlash_Wells
 
     integer :: num_Well
 
@@ -124,7 +124,7 @@ contains
        ! print*, "head ", headmolarFluxInj(num_Well)
     end do
 
-  end subroutine DefFlash_TimeFlash
+  end subroutine DefFlash_TimeFlash_Wells
 
 
   !> Allocate global vectors used only in this file
@@ -243,31 +243,66 @@ contains
   !! Applied to IncNode, IncFrac and IncCell.
   !! \param[in]      porovol   porous Volume ?????
   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-  subroutine DefFlash_Flash_cv(inc, rt, porovol)
+  subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
 
     type(Type_IncCV), intent(inout) :: inc
-    INTEGER, INTENT(IN) :: rt(IndThermique+1)
+    INTEGER, INTENT(IN) :: rocktype(IndThermique+1)
     double precision, intent(in) :: porovol ! porovol
 
     integer :: i, iph, j, icp, m, mph, ic
     double precision :: DensiteMolaire(NbComp), acc1, acc2, &
          dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    double precision :: Tsat, dP_Tsat, Psat, dT_Psat
+    double precision :: Tsat, dTsatdP, Psat, dPsatdT
 
     ic = inc%ic
 
-    if(ic==2) then
+    if(ic==1) then
+       
+       call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
+       
+       if(inc%Pression > Psat) then          
+          inc%ic = 3
+          inc%Pression = Psat
+          ! inc%Temperature is the saturation temperature (by construction)
+          inc%Saturation(1) = 1.d0
+          inc%Saturation(2) = 0.d0
+       end if
+       
+    else if(ic==2) then
 
-       inc%ic = 2
+       call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
-       inc%Saturation(PHASE_GAS) = 0.d0
-       inc%Saturation(PHASE_WATER) = 1.d0
+       if(inc%Pression < Psat) then
+          inc%ic = 3
+          inc%Pression = Psat
+          ! inc%Temperature is the saturation temperature (by construction)
+          inc%Saturation(1) = 0.d0
+          inc%Saturation(2) = 1.d0
+       end if
+       
+    else if(ic==3) then
 
-       inc%Comp(:,:) = 1.d0
+       call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
+       call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
+       
+       inc%Temperature = Tsat
+       inc%Pression = Psat
+       
+       if(inc%Saturation(1)<0.d0) then
+          inc%ic = 2
+          inc%Saturation(1) = 0.d0
+          inc%Saturation(2) = 1.d0
+       else if (inc%Saturation(2)<0.d0) then
+          inc%ic = 1
+          inc%Saturation(1) = 1.d0
+          inc%Saturation(2) = 0.d0
+       end if
+
     else
        print*, "Error in Flash: no such context"
     end if
+
 
   end subroutine DefFlash_Flash_cv
 
