@@ -27,6 +27,7 @@ module NN
    use SolvePetsc
 
    use DefFlash
+   use DefFlashWells
 
 #include <finclude/petscdef.h>
    use petsc
@@ -527,7 +528,7 @@ subroutine NN_init_phase2(OutputDir)
       call IncCV_SetInitialValue
 
       ! init and sort for flash
-      call DefFlash_allocate
+      call DefFlashWells_allocate
 
 #ifdef _VISU_
 
@@ -1098,7 +1099,7 @@ subroutine NN_init_phase2(OutputDir)
 
       end do ! end of do while( (NewtonConv .eqv. .false.) .or. (KspConv .eqv. .false.))
 
-      call DefFlash_TimeFlash_Wells
+      call DefFlashWells_TimeFlash
 
       TimeCurrent = TimeCurrent + Delta_t      
 

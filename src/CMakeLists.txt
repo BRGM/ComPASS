@@ -85,6 +85,7 @@ set( CONFIGURATIONS
 
 set( CONF_SRCS
     DefFlash.F90
+    DefFlashWells.F90
     DefModel.F90
     DefWell.F90
     Thermodynamics.F90
