@@ -1,0 +1,11 @@
+build/
+*.TMP
+*.ilk
+*.pdb
+*.pyd
+*.vtu
+*.pyc
+*.pyproj
+Lamentin/
+*.so
+trash/
