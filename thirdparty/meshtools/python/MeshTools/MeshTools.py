@@ -19,7 +19,7 @@ def to_vtu(mesh, filename, **kwargs):
     ) 
 
 def grid3D(**kwargs):
-    vertices, hexs = GT.grid2hexs(idtype=idtype(), **kwargs)
+    vertices, hexs = GT.grid2hexs(**kwargs, idtype=idtype())
     return HexMesh.make(vertices, hexs)
 
 ## Tet Volumes

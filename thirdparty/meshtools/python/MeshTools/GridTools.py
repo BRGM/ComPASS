@@ -2,7 +2,7 @@ import numpy as np
 
 class GridInfo:
     def __init__(self, shape=None, extent=None, origin=None):
-        assert not shape is None and extent is None
+        assert shape is not None or extent is not None
         if shape is None:
             shape = (1,) * len(tuple(extent))
         shape = tuple(shape)
@@ -168,7 +168,10 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     return vertices, tets
 
 def grid2hexs(idtype=np.int64, **kwargs):
-    gridinfo = GridInfo(**kwargs)
+    if 'gridinfo' in kwargs:
+        gridinfo = kwargs['gridinfo']
+    else:
+        gridinfo = GridInfo(**kwargs)
     # number of cells
     ncx, ncy, ncz = gridinfo.shape
     # number of nodes

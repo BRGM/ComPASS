@@ -21,6 +21,7 @@ import ComPASS.dumps
 import numpy as np
 
 import MeshTools as MT
+import GridTools as GT
 
 initialized = False
 
@@ -42,26 +43,7 @@ def load_eos(eosname):
 def set_output_directory_and_logfile(case_name):
     runtime.output_directory, runtime.logfile = ComPASS.utils.filenames.output_directory_and_logfile(case_name)
 
-class Grid:
-    def __init__(self, shape, extent=None, origin=None):
-        shape = tuple(shape)
-        dim = len(shape)
-        assert dim<=3
-        if origin is None:
-            origin = (0.,) * dim
-        origin = tuple(origin)
-        assert len(origin)==dim
-        if extent is None:
-            extent = (1.,) * dim
-        extent = tuple(extent)
-        assert len(extent)==dim
-        if dim<3:
-            shape+= (1,) * (3 - dim) # grid is always in 3D
-            origin+= (0.,) * (3 - dim) # grid is always in 3D
-            extent+= (1.,) * (3 - dim) # grid is always in 3D
-        self.shape = shape
-        self.extent = extent
-        self.origin = origin
+Grid = GT.GridInfo
 
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
@@ -71,7 +53,8 @@ class Properties:
 # FIXME: grid is kept for backward compatibility, should be deprecated
 #        then mesh should not default to None and be explicitely provided
 def init(
-    mesh=None, grid=None,
+    #grid = None,
+    mesh = None,
     wells = lambda: [],
     fracture_faces = lambda: None,
     set_dirichlet_nodes = lambda: None,
@@ -104,26 +87,19 @@ def init(
     if grid is not None:
         assert mesh is None
         mesh = grid
+    assert mesh is not None
     if type(mesh) is str:
         if not os.path.exists(mesh):
             print('Mesh file (%s) not found!' % mesh)
         print('Loading mesh from file is desactivated here.')
         # FIXME: This should be something like MPI.Abort()
         sys.exit(-1)
-    elif type(mesh) is Grid:
-        kernel.init_warmup(runtime.logfile)
-        kernel.global_mesh_set_cartesian_mesh()
-        if mpi.is_on_master_proc:
-            kernel.build_grid(shape = grid.shape, origin = grid.origin, extent = grid.extent)
-            celltypes = ComPASS.global_celltypes()
-            celltypes[:] = 11 # VTK_VOXEL
-            facetypes = ComPASS.global_facetypes()
-            #facetypes[:] = 8 # VTK_PIXEL
-            facetypes[:] = 9 # VTK_QUAD
     else:
-#    elif type(mesh) in [MeshTools.TetMesh, MeshTools.HexMesh]:
         kernel.init_warmup(runtime.logfile)
         if mpi.is_on_master_proc:
+            # this a bit redundant be we want to rely entirely on MeshTools
+            if type(mesh) is GT.GridInfo:
+                mesh = MT.grid3D(gridinfo=mesh)
             vertices = MT.as_coordinate_array(mesh.vertices)
             cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
             kernel.create_mesh(vertices,
