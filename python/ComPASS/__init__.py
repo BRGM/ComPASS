@@ -58,7 +58,7 @@ class Grid:
         if dim<3:
             shape+= (1,) * (3 - dim) # grid is always in 3D
             origin+= (0.,) * (3 - dim) # grid is always in 3D
-            shape+= (1.,) * (3 - dim) # grid is always in 3D
+            extent+= (1.,) * (3 - dim) # grid is always in 3D
         self.shape = shape
         self.extent = extent
         self.origin = origin
