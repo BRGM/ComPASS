@@ -67,11 +67,7 @@
           GlobalMesh_SetDirBC_from_C, &
           GlobalMesh_FracbyNode_from_C, &
           DefWell_make_compute_well_index_from_C, &
-          GlobalMesh_create_mesh_from_C, &
-          GlobalMesh_set_cartesian_mesh, &
-          GlobalMesh_set_hexahedron_mesh, &
-          GlobalMesh_set_tetrahedron_mesh, &
-          GlobalMesh_set_wedge_mesh
+          GlobalMesh_create_mesh_from_C
 
     contains
 
@@ -653,26 +649,6 @@
                                       .true.)
 
        end subroutine GlobalMesh_create_mesh_from_C
-
-       subroutine GlobalMesh_set_cartesian_mesh() &
-          bind(C, name="GlobalMesh_set_cartesian_mesh")
-          MESH_TYPE = "cartesian-quad"
-       end subroutine GlobalMesh_set_cartesian_mesh
-
-       subroutine GlobalMesh_set_hexahedron_mesh() &
-          bind(C, name="GlobalMesh_set_hexahedron_mesh")
-          MESH_TYPE = "hexahedron-quad"
-       end subroutine GlobalMesh_set_hexahedron_mesh
-
-       subroutine GlobalMesh_set_tetrahedron_mesh() &
-          bind(C, name="GlobalMesh_set_tetrahedron_mesh")
-          MESH_TYPE = "tetrahedron-triangle"
-       end subroutine GlobalMesh_set_tetrahedron_mesh
-
-       subroutine GlobalMesh_set_wedge_mesh() &
-          bind(C, name="GlobalMesh_set_wedge_mesh")
-          MESH_TYPE = "wedge"
-       end subroutine GlobalMesh_set_wedge_mesh
 
     end module GlobalMeshWrapper
 

@@ -29,6 +29,7 @@ module GlobalMesh
   use CommonMPI
   use DefModel
   use DefWell
+  use SchemeParameters ! FIXME: to be removed: for eps
 
   implicit none
 

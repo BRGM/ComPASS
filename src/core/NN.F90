@@ -14,6 +14,7 @@ module NN
    use PartitionMesh
    use LocalMesh
    use MeshSchema
+   use SchemeParameters
 
    use DefModel
    use NumbyContext

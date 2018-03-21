@@ -13,282 +13,204 @@
 
 module DefModel
 
-  use CommonType
+   use CommonType
 
-  implicit none
+   implicit none
 
-  ! ! ****** Model ****** ! !
+   ! ! ****** Model ****** ! !
 
-  integer, parameter :: &
-       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
-       NbPhase = ComPASS_NUMBER_OF_PHASES
+   integer, parameter :: &
+      NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
+      NbPhase = ComPASS_NUMBER_OF_PHASES
 
-  integer, parameter :: &
+   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
-  ! MCP
-  integer, parameter, dimension(NbComp, NbPhase) :: &
+   ! MCP
+   integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
-      (/ 1, 1 /), (/NbPhase, NbComp/)))
+                      (/1, 1/), (/NbPhase, NbComp/)))
 
-  ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-  integer, parameter :: PHASE_GAS = 1
-  integer, parameter :: PHASE_WATER = 2
+   ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
+   integer, parameter :: PHASE_GAS = 1
+   integer, parameter :: PHASE_WATER = 2
 
-  ! CpRoche
-  double precision, parameter :: CpRoche = 800.d0 * 2000.d0 !< ???
+   ! CpRoche
+   double precision, parameter :: CpRoche = 800.d0*2000.d0 !< ???
 
-  ! thickness of frac
-  double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
+   ! thickness of frac
+   double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
 
-  ! Thermique
+   ! Thermique
 #ifdef _THERMIQUE_
-  integer, parameter :: IndThermique = 1
+   integer, parameter :: IndThermique = 1
 #else
-  integer, parameter :: IndThermique = 0
+   integer, parameter :: IndThermique = 0
 #endif
 
+   ! ! ****** Constants derived from model (do not edit) ****** ! !
 
-  ! ! ****** Constants derived from model (do not edit) ****** ! !
+   ! Nombre Max d'eq d'equilibre
+   !               d'eq de fermeture thermodynamique
+   !               d'inc P (T) C
+   !               d'inc P (T) C primaires
+   integer, parameter :: &
+      NbEqEquilibreMax = NbComp*(NbPhase - 1), & !< Max number of balance equations
+      NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
+      NbIncPTCMax = 1 + IndThermique + sum(MCP), &
+      NbIncPTCSecondMax = NbEqFermetureMax, &
+      NbIncPTCSMax = NbIncPTCMax + NbPhase, &
+      NbIncPTCSPrimMax = NbComp + IndThermique, &
+      NbCompThermique = NbComp + IndThermique
 
-  ! Nombre Max d'eq d'equilibre
-  !	       d'eq de fermeture thermodynamique
-  !	       d'inc P (T) C
-  !	       d'inc P (T) C primaires
-  integer, parameter :: &
-       NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
-       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-       NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
-       NbIncPTCSecondMax = NbEqFermetureMax,             &
-       NbIncPTCSMax      = NbIncPTCMax + NbPhase,        &
-       NbIncPTCSPrimMax  = NbComp + IndThermique,        &
-       NbCompThermique   = NbComp + IndThermique
+   ! ! ****** How to choose primary variables ****** ! !
 
+   ! Served in module LoisthermoHydro.F90
 
-  ! ! ****** How to choose primary variables ****** ! !
+   ! pschoice=1: manually
+   !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
+   ! pschoice=2: Glouton method
+   !     the matrix psprim and pssecd are defined formally for compile
+   ! pschoise=3: Gauss method
+   !     the matrix psprim and pssecd are defined formally for compile
 
-  ! Served in module LoisthermoHydro.F90
+   integer, parameter :: pschoice = 1
 
-  ! pschoice=1: manually
-  !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
-  ! pschoice=2: Glouton method
-  !     the matrix psprim and pssecd are defined formally for compile
-  ! pschoise=3: Gauss method
-  !     the matrix psprim and pssecd are defined formally for compile
+   integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
+      psprim = reshape((/ &
+                       1, 2, & ! ic=1
+                       1, 2, & ! ic=2
+                       1, 5 & ! ic=3
+                       /), (/NbIncPTCSPrimMax, NbContexte/))
 
-  integer, parameter :: pschoice = 1
+   integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
+      pssecd = reshape((/ &
+                       3, 4, 0, & ! ic=1
+                       3, 4, 0, & ! ic=2
+                       2, 3, 4 & ! ic=3
+                       /), (/NbIncPTCSecondMax, NbContexte/))
 
-  integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
-       psprim = reshape( (/ &
-       1, 2, & ! ic=1
-       1, 2, & ! ic=2
-       1, 5  & ! ic=3
-       /), (/ NbIncPTCSPrimMax, NbContexte/))
+   ! ! ****** Alignment method ****** ! !
 
-  integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
-       pssecd = reshape( (/ &
-       3, 4, 0, & ! ic=1
-       3, 4, 0, & ! ic=2
-       2, 3, 4  & ! ic=3
-       /), (/ NbIncPTCSecondMax, NbContexte/))
+   ! Served in module Jacobian.F90
 
-  ! ! ****** Alignment method ****** ! !
+   ! aligmethod=1, manually
+   !     it is necessary to give a three-dimension matrix: aligmat
+   !     aligmat(:,:,ic) is the alignment matrix for context ic
+   !     the index order of aligmat(:,:,ic) is (col,row), it allows us
+   !     to define aligmat(:,:,ic) without considering that the matrix
+   !     in Fortran is column-major
+   !
+   ! aligmethod=2, inverse diagnal
+   !     it is necessary to define aligmat formally for compile
 
-  ! Served in module Jacobian.F90
+   integer, parameter :: aligmethod = 2
 
-  ! aligmethod=1, manually
-  !     it is necessary to give a three-dimension matrix: aligmat
-  !     aligmat(:,:,ic) is the alignment matrix for context ic
-  !     the index order of aligmat(:,:,ic) is (col,row), it allows us
-  !     to define aligmat(:,:,ic) without considering that the matrix
-  !     in Fortran is column-major
-  !
-  ! aligmethod=2, inverse diagnal
-  !     it is necessary to define aligmat formally for compile
-
-  integer, parameter :: aligmethod = 2
-
-  double precision, parameter, &
-       dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
-       aligmat = reshape( (/ &
-       1.d0, 0.d0, & ! ic=1
-       0.d0, 1.d0, &
-       !
-       1.d0, 0.d0, & ! ic=2
-       0.d0, 1.d0, &
-       !
-       1.d0, 0.d0, & ! ic=3
-       0.d0, 1.d0  &
-       /), (/ NbCompThermique, NbCompThermique, NbContexte /))
-
-
-  ! ! ******* Mesh type ****** ! !
-  ! ! * cartesian-quad
-  ! ! * hexahedron-quad
-  ! ! * tetrahedron-triangle
-  ! ! * wedge
-  character(len=40) :: &
-      MESH_TYPE = "cartesian-quad"
-
-
-  ! ! ****** Times ****** ! !
-
-  ! One day
-  double precision, parameter :: OneSecond = 1.d0
-  double precision, parameter :: OneDay = 24.d0 * 3600.d0
-  double precision, parameter :: OneMonth = 3.d1 * OneDay
-  double precision, parameter :: OneYear = 3.6525d2 * OneDay
-
-  ! time step init and max
-  ! FIXME: parameter is removed to assign variable from python
-  double precision :: TimeFinal = 30 * OneYear
-
-  double precision :: TimeStepInit = OneDay
-  double precision :: TimeStepMax = OneYear
-
-  ! output_frequency for visu
-  double precision, parameter :: output_frequency = OneYear
-
-
-  ! ! ****** Newton iters max and stop condition ****** ! !
-  integer, parameter :: NewtonNiterMax = 40
-  double precision, parameter :: NewtonTol = 1.d-5
-
-
-  ! ! ****** ksp linear solver iters max and stop condition ****** ! !
-  integer, parameter :: KspNiterMax = 150        ! max nb of iterations
-  double precision, parameter :: KspTol = 1.d-6  ! tolerance
-
-
-  ! ! ****** Obj values used to compute Newton increment ****** ! !
-
-  double precision, parameter ::  &
-      NewtonIncreObj_P = 5.d5,   &
-      NewtonIncreObj_T = 20.d0,  &
-      NewtonIncreObj_C = 1.d0,   &
-      NewtonIncreObj_S = 0.2d0
-
-
-  ! ! ****** Obj values used to compute next time step ****** ! !
-
-  double precision, parameter :: &
-      TimeStepObj_P = 5.d5,     &
-      TimeStepObj_T = 20.d0,    &
-      TimeStepObj_C = 1.d0,     &
-      TimeStepObj_S = 0.6d0
-
-
-  ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
-
-  double precision, parameter :: &
-      omegaDarcyCell = 0.075,    & ! darcy cell/frac
-      omegaDarcyFrac = 0.15
-
-  double precision, parameter :: &
-      omegaFourierCell = 0.075,  & ! fourier cell/frac
-      omegaFourierFrac = 0.15
-
-
-  ! ! ****** Others ****** ! !
-
-  ! eps
-  double precision, parameter :: eps = 1.0d-10
+   double precision, parameter, &
+      dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
+      aligmat = reshape((/ &
+                        1.d0, 0.d0, & ! ic=1
+                        0.d0, 1.d0, &
+                        !
+                        1.d0, 0.d0, & ! ic=2
+                        0.d0, 1.d0, &
+                        !
+                        1.d0, 0.d0, & ! ic=3
+                        0.d0, 1.d0 &
+                        /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 contains
 
-  !> \brief User set permeability
-  !!
-  !! \param[in] NbCellG,NbFracG Global number of cell and fracture face
-  !! \param[in] IdCellG it is possible to set different permeability by rocktype
-  !! \param[in,out] PermCellG Permeability tensor for each cell
-  !! \param[in,out] PermFracG Permeability constant for each fracture face
-  subroutine DefModel_SetPerm( &
+   !> \brief User set permeability
+   !!
+   !! \param[in] NbCellG,NbFracG Global number of cell and fracture face
+   !! \param[in] IdCellG it is possible to set different permeability by rocktype
+   !! \param[in,out] PermCellG Permeability tensor for each cell
+   !! \param[in,out] PermFracG Permeability constant for each fracture face
+   subroutine DefModel_SetPerm( &
       NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
       PermCellG, PermFracG)
 
-    integer, intent(in) :: NbCellG
-    integer, dimension(:,:), intent(in) :: CellRocktypeG
-    integer, intent(in) :: NbFracG
-    integer, dimension(:,:), intent(in) :: FracRocktypeG
-    ! ouptuts:
-    double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-        PermCellG
-    double precision, dimension(:), allocatable, intent(inout) :: &
-        PermFracG
+      integer, intent(in) :: NbCellG
+      integer, dimension(:, :), intent(in) :: CellRocktypeG
+      integer, intent(in) :: NbFracG
+      integer, dimension(:, :), intent(in) :: FracRocktypeG
+      ! ouptuts:
+      double precision, dimension(:, :, :), allocatable, intent(inout) :: &
+         PermCellG
+      double precision, dimension(:), allocatable, intent(inout) :: &
+         PermFracG
 
-    integer :: i
+      integer :: i
 
-    ! allocate and set values
-    allocate(PermCellG(3,3,NbCellG))
-    do i=1, NbCellG
-      PermCellG(:,:,i) = 0.d0
-      PermCellG(1,1,i) = 1.d-14
-      PermCellG(2,2,i) = 1.d-14
-      PermCellG(3,3,i) = 1.d-14
-    end do
+      ! allocate and set values
+      allocate (PermCellG(3, 3, NbCellG))
+      do i = 1, NbCellG
+         PermCellG(:, :, i) = 0.d0
+         PermCellG(1, 1, i) = 1.d-14
+         PermCellG(2, 2, i) = 1.d-14
+         PermCellG(3, 3, i) = 1.d-14
+      end do
 
-    allocate(PermFracG(NbFracG))
-    PermFracG(:) = 1.d-11
+      allocate (PermFracG(NbFracG))
+      PermFracG(:) = 1.d-11
 
-  end subroutine DefModel_SetPerm
+   end subroutine DefModel_SetPerm
 
-  subroutine DefModel_SetPorosite( &
+   subroutine DefModel_SetPorosite( &
       NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
       PorositeCell, PorositeFrac)
 
-    integer, intent(in) :: NbCellG
-    integer, dimension(:,:), intent(in) :: CellRocktypeG
-    integer, intent(in) :: NbFracG
-    integer, dimension(:,:), intent(in) :: FracRocktypeG
-    ! ouptuts:
-    double precision, dimension(:), allocatable, intent(inout) :: &
-      PorositeCell
-    double precision, dimension(:), allocatable, intent(inout) :: &
-      PorositeFrac
+      integer, intent(in) :: NbCellG
+      integer, dimension(:, :), intent(in) :: CellRocktypeG
+      integer, intent(in) :: NbFracG
+      integer, dimension(:, :), intent(in) :: FracRocktypeG
+      ! ouptuts:
+      double precision, dimension(:), allocatable, intent(inout) :: &
+         PorositeCell
+      double precision, dimension(:), allocatable, intent(inout) :: &
+         PorositeFrac
 
+      allocate (PorositeCell(NbCellG))
+      allocate (PorositeFrac(NbFracG))
 
-  allocate(PorositeCell(NbCellG))
-  allocate(PorositeFrac(NbFracG))
-
-  PorositeCell(:) = 1.d-1
-  PorositeFrac(:) = 4.d-1
-  end subroutine DefModel_SetPorosite
-
+      PorositeCell(:) = 1.d-1
+      PorositeFrac(:) = 4.d-1
+   end subroutine DefModel_SetPorosite
 
 #ifdef _THERMIQUE_
 
-  subroutine DefModel_SetCondThermique( &
+   subroutine DefModel_SetCondThermique( &
       NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
       CondThermalCellG, CondThermalFracG)
 
-    integer, intent(in) :: NbCellG
-    integer, dimension(:,:), intent(in) :: CellRocktypeG
-    integer, intent(in) :: NbFracG
-    integer, dimension(:,:), intent(in) :: FracRocktypeG
+      integer, intent(in) :: NbCellG
+      integer, dimension(:, :), intent(in) :: CellRocktypeG
+      integer, intent(in) :: NbFracG
+      integer, dimension(:, :), intent(in) :: FracRocktypeG
 
-    ! ouptuts:
-    double precision, dimension(:,:,:), allocatable, intent(inout) :: &
-        CondThermalCellG
-    double precision, dimension(:), allocatable, intent(inout) :: &
-        CondThermalFracG
+      ! ouptuts:
+      double precision, dimension(:, :, :), allocatable, intent(inout) :: &
+         CondThermalCellG
+      double precision, dimension(:), allocatable, intent(inout) :: &
+         CondThermalFracG
 
-    integer :: i
+      integer :: i
 
-    allocate(CondThermalCellG(3,3,NbCellG))
-    do i=1, NbCellG
-      CondThermalCellG(:,:,i) = 0.d0
-      CondThermalCellG(1,1,i) = 2.d0
-      CondThermalCellG(2,2,i) = 2.d0
-      CondThermalCellG(3,3,i) = 2.d0
-    end do
+      allocate (CondThermalCellG(3, 3, NbCellG))
+      do i = 1, NbCellG
+         CondThermalCellG(:, :, i) = 0.d0
+         CondThermalCellG(1, 1, i) = 2.d0
+         CondThermalCellG(2, 2, i) = 2.d0
+         CondThermalCellG(3, 3, i) = 2.d0
+      end do
 
-    allocate(CondThermalFracG(NbFracG))
-    CondThermalFracG(:) = 2.d0
+      allocate (CondThermalFracG(NbFracG))
+      CondThermalFracG(:) = 2.d0
 
-  end subroutine DefModel_SetCondThermique
+   end subroutine DefModel_SetCondThermique
 
-
-  SUBROUTINE DefModel_SetThermalSource( &
+   SUBROUTINE DefModel_SetThermalSource( &
       NbCell, &
       CellThermalSourceType, &
       NbFrac, &
@@ -296,19 +218,19 @@ contains
       CellThermalSource, &
       FracThermalSource)
 
-    INTEGER, INTENT(IN) :: NbCell
-    INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
-    INTEGER, INTENT(IN) :: NbFrac
-    INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
-    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
-    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
+      INTEGER, INTENT(IN) :: NbCell
+      INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
+      INTEGER, INTENT(IN) :: NbFrac
+      INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
+      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
+      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
 
-    ALLOCATE(CellThermalSource(NbCell))
-    CellThermalSource = 0.d0
+      ALLOCATE (CellThermalSource(NbCell))
+      CellThermalSource = 0.d0
 
-    ALLOCATE(FracThermalSource(NbFrac))
-    FracThermalSource = 0.d0
-  END SUBROUTINE DefModel_SetThermalSource
+      ALLOCATE (FracThermalSource(NbFrac))
+      FracThermalSource = 0.d0
+   END SUBROUTINE DefModel_SetThermalSource
 
 #endif
 

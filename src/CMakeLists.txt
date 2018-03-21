@@ -43,6 +43,7 @@ set( ComPASSCore_SRCS
     Partition.c
     Physics.F90
     Residu.F90
+    SchemeParameters.F90
     SolvePetsc.F90
     VAGFrac.F90
     NN.F90
