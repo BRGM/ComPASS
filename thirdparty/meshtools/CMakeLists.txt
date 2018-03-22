@@ -63,4 +63,4 @@ if(MESHTOOLS_MASTER_PROJECT)
 endif(MESHTOOLS_MASTER_PROJECT)
 
 # make module available through user site packages
-install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" add_to_site.py MeshTools \"${MESHTOOLS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${MESHTOOLS_CONFIG_DIRECTORY}\")")
+install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add MeshTools \"${MESHTOOLS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${MESHTOOLS_CONFIG_DIRECTORY}\")")
