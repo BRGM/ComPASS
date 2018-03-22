@@ -110,4 +110,4 @@ add_subdirectory(src)
 
 install(CODE "message(\"Installing ComPASS python environment.\")")
 # make module available through user site packages
-install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" add_to_site.py ComPASS \"${COMPASS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" add_to_site.py --add ComPASS \"${COMPASS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
