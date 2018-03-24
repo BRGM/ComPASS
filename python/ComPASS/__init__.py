@@ -53,7 +53,7 @@ class Properties:
 # FIXME: grid is kept for backward compatibility, should be deprecated
 #        then mesh should not default to None and be explicitely provided
 def init(
-    #grid = None,
+    grid = None,
     mesh = None,
     wells = lambda: [],
     fracture_faces = lambda: None,
@@ -83,11 +83,6 @@ def init(
     global initialized
     assert not initialized
     # FIXME: grid is kept for backward compatibility, should be deprecated
-    assert not (grid is None and mesh is None)
-    if grid is not None:
-        assert mesh is None
-        mesh = grid
-    assert mesh is not None
     if type(mesh) is str:
         if not os.path.exists(mesh):
             print('Mesh file (%s) not found!' % mesh)
@@ -97,6 +92,11 @@ def init(
     else:
         kernel.init_warmup(runtime.logfile)
         if mpi.is_on_master_proc:
+            assert not (grid is None and mesh is None)
+            if grid is not None:
+                assert mesh is None
+                mesh = grid
+            assert mesh is not None
             # this a bit redundant be we want to rely entirely on MeshTools
             if type(mesh) is GT.GridInfo:
                 mesh = MT.grid3D(gridinfo=mesh)
