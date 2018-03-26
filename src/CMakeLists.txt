@@ -43,6 +43,7 @@ set( ComPASSCore_SRCS
     Partition.c
     Physics.F90
     Residu.F90
+    SchemeParameters.F90
     SolvePetsc.F90
     VAGFrac.F90
     NN.F90
@@ -85,6 +86,7 @@ set( CONFIGURATIONS
 
 set( CONF_SRCS
     DefFlash.F90
+    DefFlashWells.F90
     DefModel.F90
     DefWell.F90
     Thermodynamics.F90

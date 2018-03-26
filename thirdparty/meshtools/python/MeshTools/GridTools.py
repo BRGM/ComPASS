@@ -1,5 +1,29 @@
 import numpy as np
 
+class GridInfo:
+    def __init__(self, shape=None, extent=None, origin=None):
+        assert shape is not None or extent is not None
+        if shape is None:
+            shape = (1,) * len(tuple(extent))
+        shape = tuple(shape)
+        dim = len(shape)
+        assert dim<=3
+        if origin is None:
+            origin = (0.,) * dim
+        origin = tuple(origin)
+        assert len(origin)==dim
+        if extent is None:
+            extent = (1.,) * dim
+        extent = tuple(extent)
+        assert len(extent)==dim
+        if dim<3:
+            shape+= (1,) * (3 - dim) # grid is always in 3D
+            origin+= (0.,) * (3 - dim) # grid is always in 3D
+            extent+= (1.,) * (3 - dim) # grid is always in 3D
+        self.shape = shape
+        self.extent = extent
+        self.origin = origin
+
 def grid_elements(node_shape=None, extent=None, cell_shape=None, steps=None,
                   quad=False):
     if not cell_shape is None:
@@ -143,17 +167,22 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     
     return vertices, tets
 
-def grid2hexs(shape, extent=(1., 1., 1.), idtype=np.int64):
+def grid2hexs(idtype=np.int64, **kwargs):
+    if 'gridinfo' in kwargs:
+        gridinfo = kwargs['gridinfo']
+    else:
+        gridinfo = GridInfo(**kwargs)
     # number of cells
-    ncx, ncy, ncz = shape
+    ncx, ncy, ncz = gridinfo.shape
     # number of nodes
     nx, ny, nz = ncx+1, ncy+1, ncz+1
-    x, y, z = [np.linspace(0, L, n) for L, n in zip(extent, (nx, ny, nz))]
+    x, y, z = [np.linspace(0, L, n) for L, n in zip(gridinfo.extent, (nx, ny, nz))]
     nnodes = nx * ny * nz
     vertices = np.zeros((nnodes, 3), dtype=np.double)
     vertices[:, 0] = np.tile(x, ny*nz)
     vertices[:, 1] = np.tile(np.hstack([np.tile(yi, nx) for yi in y]), nz)
     vertices[:, 2] = np.hstack([np.tile(zi, nx*ny) for zi in z])
+    vertices+= np.array(gridinfo.origin)
     nhexs = ncx * ncy * ncz
     hexs = np.zeros((nhexs, 8), dtype=idtype)
     tmp = np.arange(ncx)

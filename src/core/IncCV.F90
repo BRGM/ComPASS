@@ -15,6 +15,7 @@ module IncCV
   use NumbyContext  
   use CommonMPI
   use Physics
+  use SchemeParameters
 
 #ifdef _HDF5_
   use hdf5

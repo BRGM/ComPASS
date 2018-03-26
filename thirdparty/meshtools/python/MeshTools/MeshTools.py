@@ -1,5 +1,6 @@
 import numpy as np
 from _MeshTools import *
+import GridTools as GT
 import vtkwriters as vtkw
 
 idarray = lambda a: np.asarray(a, dtype=idtype())
@@ -16,6 +17,10 @@ def to_vtu(mesh, filename, **kwargs):
         ),
         filename,
     ) 
+
+def grid3D(**kwargs):
+    vertices, hexs = GT.grid2hexs(**kwargs, idtype=idtype())
+    return HexMesh.make(vertices, hexs)
 
 ## Tet Volumes
 #A = mesh.vertices[mesh.cellnodes[:, 0]]

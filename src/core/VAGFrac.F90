@@ -20,6 +20,7 @@ module VAGFrac
   use CommonMPI
   use MeshSchema
   use DefModel
+  use SchemeParameters
 
   implicit none
 
