@@ -90,6 +90,7 @@ void add_mesh_utilities_wrappers(py::module& module)
     add_array_wrapper(module, "vertices", retrieve_vertices);
     add_array_wrapper(module, "cell_centers", retrieve_cell_centers);
     add_array_wrapper(module, "face_centers", retrieve_face_centers);
+	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
 	add_array_wrapper(module, "cellflags", retrieve_cellflags);
 	add_array_wrapper(module, "faceflags", retrieve_faceflags);
 	add_array_wrapper(module, "celltypes", retrieve_celltypes);
