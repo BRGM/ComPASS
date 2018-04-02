@@ -16,6 +16,8 @@ extern "C"
 	double get_maximum_timestep();
     double get_gravity();
     void set_gravity(double);
+    double get_fracture_thickness();
+    void set_fracture_thickness(double);
     void set_final_time(double);
 	void set_initial_timestep(double);
 	void set_maximum_timestep(double);
@@ -36,5 +38,7 @@ void add_global_variables_wrappers(py::module& module)
 	module.def("set_maximum_timestep", &set_maximum_timestep);
     module.def("get_gravity", &get_gravity);
     module.def("set_gravity", &set_gravity);
+    module.def("get_fracture_thickness", &get_fracture_thickness);
+    module.def("set_fracture_thickness", &set_fracture_thickness);
 
 }

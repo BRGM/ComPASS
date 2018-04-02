@@ -10,7 +10,8 @@ module DefWell
 
   use CommonMPI
   use DefModel
-
+  use Physics
+  
   implicit none
 
   ! Data of well inj

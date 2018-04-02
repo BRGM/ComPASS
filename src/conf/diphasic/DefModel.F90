@@ -41,9 +41,6 @@ module DefModel
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
 
-  ! thickness of frac
-  double precision, parameter :: Thickness = 1.d0 !< Thickness of the fractures
-
   ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1

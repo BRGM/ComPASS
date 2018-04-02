@@ -24,6 +24,8 @@
           set_final_time, &
           get_gravity, &
           set_gravity, &
+          get_fracture_thickness, &
+          set_fracture_thickness, &
           get_initial_timestep, &
           get_maximum_timestep, &
           set_initial_timestep, &
@@ -66,6 +68,18 @@
           real(c_double), value, intent(in) :: g
           gravity = g
        end subroutine set_gravity
+
+       function get_fracture_thickness() result(d) &
+          bind(C, name="get_fracture_thickness")
+          real(c_double) :: d
+          d = Thickness
+       end function get_fracture_thickness
+
+       subroutine set_fracture_thickness(d) &
+          bind(C, name="set_fracture_thickness")
+          real(c_double), value, intent(in) :: d
+          Thickness = d
+       end subroutine set_fracture_thickness
 
        function get_initial_timestep() result(t) &
           bind(C, name="get_initial_timestep")
