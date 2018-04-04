@@ -174,11 +174,13 @@ contains
    ! Viscosities
    ! iph is an identificator for each phase:
    ! PHASE_GAS = 1; PHASE_WATER = 2
-   subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+   subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
       ! input
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      integer(c_int), value, intent(in) :: iph
+      real(c_double), value, intent(in) :: P, T
+      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
 
       ! output
       real(c_double), intent(out) :: &
