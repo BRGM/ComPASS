@@ -27,6 +27,7 @@ Ttop = degC2K( 25. )
 Tbot_matrix = degC2K( 200. )
 Tbot_fracture = degC2K( 325. )
 thfrac = 1.                    # fracture thickness in meters
+qmass = 1.                     # surface mass flux (kg/m2)
 
 # no flux first
 # bottom flux condion
@@ -65,18 +66,12 @@ mesh_faces = mesh.connectivity.faces
 fracture_faces = [mesh_faces.id(MT.Triangle(triangle)) for triangle in faces]
 fracture_faces = np.array(fracture_faces)
 
-def pressure_dirichlet_boundaries():
+def dirichlet_nodes():
     vertices = np.rec.array(ComPASS.global_vertices())
     on_top = (vertices.z >= H)
     on_bottom = (vertices.z <= 0)
     fracture_nodes = np.rec.array(ComPASS.global_node_info(), copy=False).frac == ord('y')
-    return on_top
-
-def temperature_dirichlet_boundaries():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    on_top = (vertices.z >= H)
-    on_bottom = (vertices.z <= 0)
-    return on_top | on_bottom
+    return on_top | (on_bottom & (np.logical_not(fracture_nodes)))
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
@@ -87,9 +82,7 @@ ComPASS.init(
     fracture_faces = lambda: fracture_faces,
     fracture_permeability = k_fracture,
     fracture_porosity = phi_fracture,
-    set_pressure_dirichlet_nodes = pressure_dirichlet_boundaries,
-    set_temperature_dirichlet_nodes = temperature_dirichlet_boundaries,
-    #set_dirichlet_nodes = temperature_dirichlet_boundaries,
+    set_dirichlet_nodes = dirichlet_nodes,
 )
 
 def set_states(states, z):
@@ -110,7 +103,16 @@ def set_fracture_dirichlet_bottom_temperature():
     ComPASS.node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
 set_fracture_dirichlet_bottom_temperature()
 
+def set_boundary_fluxes():
+    Neumann = ComPASS.NeumannBC()
+    Neumann.molar_flux[:] = qmass
+    Neumann.heat_flux = qmass * ComPASS.liquid_molar_enthalpy(pbot, Tbot_fracture)
+    face_centers = np.rec.array(ComPASS.face_centers())   
+    bottom_fracture_edges = ComPASS.find_fracture_edges(face_centers.z <= 0)
+    ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
+set_boundary_fluxes()
+
 final_time = 200 * year
-output_period = 10 * year
+output_period = 0.1 * final_time
 ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 30 * day, final_time = final_time, output_period = output_period)
+standard_loop(initial_timestep= 1 * minute, final_time = final_time, output_period = output_period)
