@@ -263,9 +263,20 @@ class PostProcessor:
 
 for directory in args:
     print('processing results in', directory)
+    something_done = False
     if options.collect_procs_id or options.collect_states:
         pp = PostProcessor(directory)
         if options.collect_procs_id:
             pp.collect_proc_ids()
+            something_done = True
         if options.collect_states:
             pp.collect_states()
+            something_done = True
+    if not something_done:
+        print()
+        print('************* WARNING **************')
+        print()
+        print('Nothing done: ckeck command options!')
+        print()
+        print('************************************')
+        print()
