@@ -20,6 +20,7 @@ extern "C"
 {
     void FluidThermodynamics_molar_density(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_molar_enthalpy(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
+    void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_Psat(double, double&, double&);
     void FluidThermodynamics_Tsat(double, double&, double&);
     void check_array_interop(const double*, double*);
@@ -47,6 +48,17 @@ inline double liquid_molar_enthalpy(double p, double T)
     return h;
 }
 
+inline double liquid_dynamic_viscosity(double p, double T)
+{
+    double mu, dmudp, dmudT;
+    double C[NC] = { 1 };
+    double S[NP] = { 0, 1 };
+    double dmudC[NC] = { 0 };
+    double dmudS[NP] = { 0, 0 };
+    FluidThermodynamics_dynamic_viscosity(2, p, T, C, S, mu, dmudp, dmudT, dmudC, dmudS);
+    return mu;
+}
+
 inline double Psat(double T)
 {
     double result;
@@ -71,5 +83,6 @@ void add_Model_wrappers(py::module& module)
     module.def("Tsat", py::vectorize(Tsat));
     module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
     module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
+    module.def("liquid_dynamic_viscosity", py::vectorize(liquid_dynamic_viscosity));
 
 }
