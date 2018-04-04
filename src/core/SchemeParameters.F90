@@ -31,7 +31,7 @@ module SchemeParameters
    real(c_double), parameter :: output_frequency = OneYear
 
    ! ! ****** Newton iters max and stop condition ****** ! !
-   integer, parameter :: NewtonNiterMax = 40
+   integer, parameter :: NewtonNiterMax = 8
    real(c_double), parameter :: NewtonTol = 1.d-5
 
    ! ! ****** ksp linear solver iters max and stop condition ****** ! !
