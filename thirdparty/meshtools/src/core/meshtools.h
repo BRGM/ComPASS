@@ -22,13 +22,13 @@ this would make addition / mesh merging more difficult (order might change)
 namespace MeshTools
 {
 
-	typedef int ElementId;
+	typedef uint64_t ElementId;
 	typedef ElementId NodeId;
 	typedef ElementId CellId;
 	typedef ElementId FaceId;
 	// FIXME: We'd better use std::size_t here to avoid static casts
 	//        this is for compatibility reasons with ComPASS internal Fortran mesh structures
-	typedef int DefaultCOCPointerType;
+	typedef ElementId DefaultCOCPointerType;
 	
 	/** Elements Connectivity is exactly the same as in the VTK library.
 	cf. http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf */

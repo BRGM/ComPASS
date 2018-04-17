@@ -2,6 +2,7 @@
 #include <pybind11/numpy.h>
 
 #include "C3t3Wrapper.h"
+#include "C3t3Wrapper-module.h"
 
 namespace py = pybind11;
 
@@ -14,21 +15,23 @@ auto to_array(const Buffer& buffer)
     };
 }
 
-PYBIND11_MODULE(C3t3Wrapper, module)
+void add_c3t3_wrapper(py::module& module)
 {
 
     module.doc() = "pybind11 homemade CGAL C3t3 interface";
 
 	py::class_<C3t3Wrapper>(module, "C3t3")
-        .def(py::init<>())
-        .def(py::init([](const std::string& filename)
+        .def(py::init([](const std::string& filename, bool binary)
             {
                 auto wrapper = std::make_unique<C3t3Wrapper>();
-                wrapper->reload(filename);
+                if (binary) wrapper->binary_reload(filename);
+                else wrapper->reload(filename);
                 return wrapper;
             }
-        ))
+        ), py::arg("filename"), py::arg("binary") = true)
         .def("reload", &C3t3Wrapper::reload)
+                .def("binary_reload", &C3t3Wrapper::binary_reload)
+                // default return value policy for def_property is keep_alive<0,1>
                 .def_property_readonly("vertices", [](C3t3Wrapper& self) {
                 return to_array(self.vertices_buffer());
             })

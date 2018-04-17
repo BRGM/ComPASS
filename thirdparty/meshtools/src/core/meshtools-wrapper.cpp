@@ -363,38 +363,66 @@ auto locate_faces_with_cell(const Mesh& mesh, py::array_t<MeshTools::CellId, py:
 }
 
 template <typename Vector>
-auto bind_vector(py::module module, const char * classname)
+struct CheckBinds
 {
-	typedef typename Vector::value_type value_type;
-	typedef int8_t byte;
-	static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
-	return py::bind_vector<Vector>(module, classname)
-		.def_static("from_raw_array", [](py::array_t<byte, py::array::c_style> raw_array) {
-		assert(raw_array.ndim() == 2);
-		assert(raw_array.shape(1) == sizeof(value_type));
-		auto begin = reinterpret_cast<const value_type *>(raw_array.data());
-		auto end = begin + raw_array.shape(0);
-		return Vector{ begin, end };
-	})
-		.def("raw_array", [](const Vector& self) {
-		return py::array_t<byte, py::array::c_style> {
-			{ self.size(), sizeof(value_type) }, // shape
-			{ sizeof(value_type), sizeof(byte) }, // stride
-			reinterpret_cast<const byte*>(self.data())
-		};
-	}, py::keep_alive<0, 1>())
-	;
+private:
+    CheckBinds() = delete;
+    CheckBinds(const CheckBinds&) = delete;
+    static bool already_binded;
+public:
+    static bool needs_binding() {
+        if (already_binded) return false;
+        already_binded = true;
+        return true;
+    }
+};
+
+template <typename Vector>
+bool CheckBinds<Vector>::already_binded = false;
+
+template <typename Vector>
+auto pybind_vector(py::module module, const char * classname)
+{
+    typedef typename Vector::value_type value_type;
+    typedef int8_t byte;
+    static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
+    return py::bind_vector<Vector>(module, classname)
+        .def_static("from_raw_array", [](py::array_t<byte, py::array::c_style> raw_array) {
+        assert(raw_array.ndim() == 2);
+        assert(raw_array.shape(1) == sizeof(value_type));
+        auto begin = reinterpret_cast<const value_type *>(raw_array.data());
+        auto end = begin + raw_array.shape(0);
+        return Vector{ begin, end };
+    })
+        .def("raw_array", [](const Vector& self) {
+        return py::array_t<byte, py::array::c_style> {
+            { self.size(), sizeof(value_type) }, // shape
+            { sizeof(value_type), sizeof(byte) }, // stride
+                reinterpret_cast<const byte*>(self.data())
+        };
+    }, py::keep_alive<0, 1>())
+        ;
 }
 
 template <typename Vector>
-auto bind_vector_with_array_view(py::module module, const char * classname)
+void bind_vector(py::module module, const char * classname)
 {
-	typedef typename Vector::value_type value_type;
-	return bind_vector<Vector>(module, classname).def("array_view", [](const Vector& self) {
-		return py::array_t<value_type, py::array::c_style> {
-			{self.size()}, { sizeof(value_type) }, self.data()
-		};
-	}, py::keep_alive<0, 1>());
+    if(CheckBinds<Vector>::needs_binding()) {
+        pybind_vector<Vector>(module, classname);
+    }
+}
+
+template <typename Vector>
+void bind_vector_with_array_view(py::module module, const char * classname)
+{
+    if(CheckBinds<Vector>::needs_binding()) {
+        typedef typename Vector::value_type value_type;
+        pybind_vector<Vector>(module, classname).def("array_view", [](const Vector& self) {
+            return py::array_t<value_type, py::array::c_style> {
+                {self.size()}, { sizeof(value_type) }, self.data()
+            };
+        }, py::keep_alive<0, 1>());
+    }
 }
 
 template <typename MeshType>
@@ -434,12 +462,12 @@ auto add_mesh(py::module module)
 		.def_readwrite("nodes", &Cells::nodes)
 		.def_readwrite("faces", &Cells::faces);
 	typedef typename Connectivity::Faces Faces;
-    // CHECKME: If the following is uncommented python scripts execution fails with 
+    // CHECKME: Without the CheckBinds counter the following bind_vector would fail at import with 
     //          ImportError: generic_type: type "FacesNodes" is already registered!
-	//py::bind_vector<typename Faces::Nodes>(module, "FacesNodes", py::module_local(true));
-	py::class_<Faces>(module, "Faces", py::module_local())
-		.def_readwrite("nodes", &Faces::nodes)
-		.def_readwrite("cells", &Faces::cells)
+    bind_vector<typename Faces::Nodes>(module, "FacesNodes");
+    py::class_<Faces>(module, "Faces", py::module_local())
+        .def_readwrite("nodes", &Faces::nodes)
+        .def_readwrite("cells", &Faces::cells)
 		.def("cells_as_array", [](const Faces& self) {
 		return py::array_t<MeshTools::CellId, py::array::c_style>{
 			std::vector<std::size_t>{ { self.cells.size(), 2 } }, // shape 
@@ -706,10 +734,11 @@ void add_mesh_tools(py::module& module)
 		return buffer.str();
 	});
 
-	bind_vector_with_array_view<std::vector<std::size_t>>(module, "COCPointersVector");
+	//bind_vector_with_array_view<std::vector<std::size_t>>(module, "COCPointersVector");
 	bind_vector_with_array_view<std::vector<MT::ElementId>>(module, "IDVector");
-	bind_vector<std::vector<Point>>(module, "Vertices");
-	bind_vector<std::vector<MT::FaceNeighbors>>(module, "FacesCells");
+    bind_vector<std::vector<Point>>(module, "Vertices");
+    bind_vector<std::vector<MT::Quad>>(module, "QuadVector");
+    bind_vector<std::vector<MT::FaceNeighbors>>(module, "FacesCells");
 
     add_uniform_mesh_submodule<MT::Triangle>(module, "TSurf");
     add_uniform_mesh_submodule<MT::Tetrahedron>(module, "TetMesh");

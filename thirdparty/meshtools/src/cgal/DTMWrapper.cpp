@@ -4,6 +4,7 @@
 #include <pybind11/numpy.h>
 
 #include "DTM.h"
+#include "DTMWrapper-module.h"
 
 namespace BRGM = ExperimentalBRGM;
 
@@ -66,7 +67,7 @@ auto compute_depths(const DTM& dtm, py::array_t<Coordinate_type, py::array::c_st
 	return result;
 }
 
-PYBIND11_MODULE(DTMWrapper, module)
+void add_dtm_wrapper(py::module& module)
 {
 
     module.doc() = "pybind11 quick and dirty DTM wrapper";

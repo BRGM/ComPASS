@@ -1,5 +1,7 @@
 import numpy as np
 
+import MeshTools as MT
+
 class GridInfo:
     def __init__(self, shape=None, extent=None, origin=None):
         assert shape is not None or extent is not None
@@ -167,7 +169,7 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     
     return vertices, tets
 
-def grid2hexs(idtype=np.int64, **kwargs):
+def grid2hexs(idtype=MT.idtype(), **kwargs):
     if 'gridinfo' in kwargs:
         gridinfo = kwargs['gridinfo']
     else:

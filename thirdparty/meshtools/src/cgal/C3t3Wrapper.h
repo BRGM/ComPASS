@@ -12,6 +12,7 @@
 #include "CGAL/Mesh_domain_with_polyline_features_3.h"
 #include "CGAL/Mesh_triangulation_3.h"
 #include "CGAL/Mesh_complex_3_in_triangulation_3.h"
+#include <CGAL/IO/File_binary_mesh_3.h>
 
 #include "DummyDomain.h"
 #include "BufferInfo.h"
@@ -46,7 +47,7 @@ namespace CGAL
 
 }
 
-int load_c3t3(const std::string& filename, C3t3& c3t3)
+bool load_c3t3(const std::string& filename, C3t3& c3t3)
 {
 
 	std::cout << "Extracting data from file: " << filename << std::endl;
@@ -68,10 +69,33 @@ int load_c3t3(const std::string& filename, C3t3& c3t3)
 	else {
 		file.close();
 		std::cerr << "Something went wrong loading c3t3." << std::endl;
-		return -1;
+        throw std::runtime_error("Could not extract C3T3 from " + filename);
+        return false;
 	}
 	file.close();
-	return 0;
+	return true;
+
+}
+
+bool binary_load_c3t3(const std::string& filename, C3t3& c3t3)
+{
+
+    std::cout << "Extracting data from file: " << filename << std::endl;
+    std::ifstream file(filename, std::ios_base::binary | std::ios_base::in);
+    bool ok = file.good();
+    if (ok) {
+        ok = CGAL::Mesh_3::load_binary_file(file, c3t3);
+        std::cout << "Complex statistics:" << std::endl;
+        std::cout << c3t3.number_of_cells() << " cells" << std::endl;
+        std::cout << c3t3.number_of_facets() << " facets" << std::endl;
+    }
+    file.close();
+    if(!ok) {
+        std::cerr << "Something went wrong loading c3t3." << std::endl;
+        throw std::runtime_error("Could not extract C3T3 from " + filename);
+        return false;
+    }
+    return true;
 
 }
 
@@ -218,11 +242,15 @@ protected:
 		//dtree = std::make_shared<DTree>(complex);
 	}
 public:
+    void binary_reload(const std::string& filename) {
+        binary_load_c3t3(filename, c3t3);
+        update_info();
+    }
     void reload(const std::string& filename) {
         load_c3t3(filename, c3t3);
         update_info();
     }
- //   auto squared_distance_functor(Id_type f1, Id_type f2) const {
+    //   auto squared_distance_functor(Id_type f1, Id_type f2) const {
 	//	auto tree = std::shared_ptr<DTree>{ dtree };
 	//	auto spi = SurfacePatchIndex{ f1, f2 };
 	//	return [tree, spi](const Pt& P) -> double {
