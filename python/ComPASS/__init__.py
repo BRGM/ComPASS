@@ -21,7 +21,7 @@ import ComPASS.dumps
 import numpy as np
 
 import MeshTools as MT
-import GridTools as GT
+import MeshTools.GridTools as GT
 
 initialized = False
 
