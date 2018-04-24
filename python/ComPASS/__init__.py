@@ -170,6 +170,8 @@ def init(
                             value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
                         if value.shape==(dim, dim): # tensor value
                             value = np.tile(value, (n, 1, 1))
+                        if value.shape==(n,): # scalar values
+                            value = value[:, None, None] * np.eye(dim)
                         assert value.shape==(n, dim, dim)
                         assert buffer.shape==value.shape
                     buffer[:] = value
