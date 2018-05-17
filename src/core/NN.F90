@@ -30,7 +30,12 @@ module NN
    use DefFlash
    use DefFlashWells
 
-#include <finclude/petscdef.h>
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
+#include <finclude/petscdef.h> 
+#else
+#include <petsc/finclude/petsc.h>
+#endif
+
    use petsc
 
 !! FIXME: This is define through CMake options #define _VISU_
