@@ -533,12 +533,6 @@ subroutine NN_init_phase2(OutputDir)
 
       comptime_total = comptime_total + comptime_part
 
-      !! set dir bc values
-      !call IncCV_SetDirBCValue
-      !
-      !! initial value
-      !call IncCV_SetInitialValue
-
       ! init and sort for flash
       call DefFlashWells_allocate
 
