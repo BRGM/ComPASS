@@ -30,17 +30,7 @@ module DirichletContribution
         DirichletContribution_free, &
         DirichletContribution_update
 
-     ! The following subroutines are defined in:
-    ! DefInitBCvalues.F90
-    public :: &
-        IncCV_SetInitialValue, &
-        IncCV_SetDirBCValue
-
     contains
-
-       ! IncCV_SetInitialvalue and
-    ! IncCV_SetDirBCvalue are defined in:
-#include "DefInitBCvalues.F90"
 
     subroutine DirichletContribution_allocate
 
