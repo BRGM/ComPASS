@@ -33,6 +33,9 @@ set( ComPASSCore_SRCS
     CommonType.F90
     GlobalMesh.F90
     IncCV.F90
+    IncCVReservoir.F90
+    IncCVWells.F90
+    NeumannContribution.F90
     Flux.F90
     Jacobian.F90 
     LocalMesh.F90

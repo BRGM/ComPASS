@@ -11,7 +11,8 @@ module LoisThermoHydro
   use DefModel
   use Thermodynamics
   use NumbyContext
-  use IncCV
+  use IncCVReservoir
+  use IncCVWells
 
   implicit none
 
@@ -403,7 +404,7 @@ contains
        DensitemolaireKrViscoEnthalpie,  divDensitemolaireKrViscoEnthalpie,  SmDensitemolaireKrViscoEnthalpie)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
 
     integer, intent(in) :: rt(IndThermique+1)
 
@@ -699,7 +700,7 @@ contains
 
   subroutine LoisThermoHydro_init_cv(inc)
 
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
 
     NbPhasePresente = NbPhasePresente_ctx(inc%ic)
     NbCompCtilde = NbCompCtilde_ctx(inc%ic)
@@ -731,7 +732,7 @@ contains
   ! compute dFsurdX for each control volume
   subroutine LoisThermoHydro_dFsurdX_cv(inc, rt, dFsurdX, SmF)
 
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
     integer, intent(in) :: rt(IndThermique+1)
     double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
@@ -854,7 +855,7 @@ contains
   subroutine LoisThermoHydro_ps_cv(inc, dFsurdX, pschoicecv, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
 
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
     double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
     integer, intent(in) :: pschoicecv
     integer, intent(out) :: NumIncPTCSPrimCV( NbIncPTCSPrimMax)
@@ -896,7 +897,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, dXssurdXp, SmdXs)
 
     ! inputs
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
     double precision, intent(in) ::  & ! (col, row) index order
          dFsurdX(NbIncPTCSMax, NbEqFermetureMax), &
          SmF(NbEqFermetureMax)
@@ -994,7 +995,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     double precision, intent(in) :: &    ! (col, row) index order
          dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1095,7 +1096,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1192,7 +1193,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1284,7 +1285,7 @@ contains
   subroutine LoisThermoHydro_PermRel_cv(inc, rt, val, dval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     INTEGER, INTENT(IN) :: rt(IndThermique+1)
 
     ! output
@@ -1326,7 +1327,7 @@ contains
        dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     integer, intent(in) :: &
          NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
          NumIncPTCSecondCV( NbEqFermetureMax)
@@ -1376,7 +1377,7 @@ contains
        dval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     integer, intent(in) :: &
          NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
          NumIncPTCSecondCV( NbEqFermetureMax)
@@ -1430,7 +1431,7 @@ contains
 
     ! input
     integer, intent(in) :: rt(IndThermique+1)
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
 
     ! output
     double precision, intent(out) :: val(NbPhase)
@@ -1468,7 +1469,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1565,7 +1566,7 @@ contains
        dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     integer, intent(in) :: &
          NumIncPTCSPrimCV( NbIncPTCSPrimMax), &
          NumIncPTCSecondCV( NbEqFermetureMax)
@@ -1618,7 +1619,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in)  :: inc
+    type(TYPE_IncCVReservoir), intent(in)  :: inc
     double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1714,7 +1715,7 @@ contains
        val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc ! contains Saturation
+    type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
 
     double precision, intent(in) :: &
          divSaturation(NbIncPTCSPrimMax, NbPhase), &
@@ -1771,7 +1772,7 @@ contains
        val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc ! contains Saturation
+    type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
 
     double precision, intent(in) :: &
          divSaturation(NbIncPTCSPrimMax, NbPhase), &
@@ -1985,7 +1986,7 @@ contains
        val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
 
     double precision, intent(in) :: &
          DensiteMolaire(NbPhase),   &
@@ -2145,7 +2146,7 @@ contains
        val, dval, Smval)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc ! contains Saturation
+    type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
 
     double precision, intent(in) :: &
          DensiteMolaire(NbPhase), &
@@ -2272,7 +2273,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
     double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
 
     ! output
@@ -2390,7 +2391,7 @@ contains
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
 
     ! input
-    type(Type_IncCV), intent(in) :: inc
+    type(TYPE_IncCVReservoir), intent(in) :: inc
     double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
 
     ! output

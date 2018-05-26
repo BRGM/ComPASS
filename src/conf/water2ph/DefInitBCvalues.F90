@@ -117,7 +117,7 @@ subroutine IncCV_SetInitialValue
   end do
 
   ! Compute PerfoWellInj%Pressure, %PressureDrop with Pw
-  call IncCV_PressureDropWellInj
+  call IncCVWells_PressureDropWellInj
 
   do i=1, NbWellProdLocal_Ncpus(commRank+1)
 
@@ -132,6 +132,6 @@ subroutine IncCV_SetInitialValue
   end do
 
   ! Compute PerfoWellProd%Pressure, %PressureDrop, %Density with Pw
-  call IncCV_PressureDropWellProd
+  call IncCVWells_PressureDropWellProd
 
 end subroutine IncCV_SetInitialValue

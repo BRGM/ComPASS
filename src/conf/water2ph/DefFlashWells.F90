@@ -15,7 +15,7 @@ module DefFlashWells
 
    use Physics
    use Thermodynamics
-   use IncCV
+   use IncCVReservoir
    use VAGFrac
    use LoisThermoHydro
 
@@ -217,7 +217,7 @@ contains
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
    subroutine DefFlashWells_Flash_cv(inc, rocktype, porovol)
 
-      type(Type_IncCV), intent(inout) :: inc
+      type(TYPE_IncCVReservoir), intent(inout) :: inc
       INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 

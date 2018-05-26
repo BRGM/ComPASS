@@ -19,6 +19,9 @@ module NN
    use DefModel
    use NumbyContext
    use IncCV
+   use IncCVReservoir
+   use IncCVWells
+   use NeumannContribution
    use VAGFrac
 
    use LoisThermoHydro
@@ -474,6 +477,7 @@ subroutine NN_init_phase2(OutputDir)
 
       ! unknowns allocate
       call IncCV_allocate
+      call NeumannContribution_allocate
 
       ! allcoate Loisthermohydro
       call LoisThermoHydro_allocate
@@ -827,8 +831,8 @@ subroutine NN_init_phase2(OutputDir)
       ! save current status, copy Inc* to Inc*PrevisousTimeStep
       call IncCV_SaveIncPreviousTimeStep
 
-      call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
-      call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+      call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
+      call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
 
       ! *** Newton iterations *** !
 
@@ -856,12 +860,12 @@ subroutine NN_init_phase2(OutputDir)
          do NewtonIter = 1, NewtonNiterMax
 
             ! Copy Dir boundary values to Inc
-            call IncCV_UpdateDirBCValue
+            call IncCVReservoir_UpdateDirBCValue
 
             ! compute pressure of perforations with well pressure
 !           IncPressionWellInj(:) = 2.d7
-            call IncCV_PressureDropWellInj
-            call IncCV_PressureDropWellProd
+            call IncCVWells_PressureDropWellInj
+            call IncCVWells_PressureDropWellProd
 
             ! LoisThermohydro
             call LoisThermoHydro_compute
@@ -957,8 +961,8 @@ subroutine NN_init_phase2(OutputDir)
 
                ! load status
                call IncCV_LoadIncPreviousTimeStep
-               call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
-               call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+               call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
+               call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
 
                ! print residu if Ksp failure
                if (commRank == 0) then
@@ -1005,7 +1009,7 @@ subroutine NN_init_phase2(OutputDir)
                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell)
 
                ! compute Newton relaxation
-               call IncCV_NewtonRelax( &
+               call IncCVReservoir_NewtonRelax( &
                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, NewtonRelax)
 
                ! ???
@@ -1022,7 +1026,7 @@ subroutine NN_init_phase2(OutputDir)
                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
                   NewtonIncreWellInj, NewtonIncreWellProd, NewtonRelax)
 
-               call IncCV_UpdateDirBCValue
+               call IncCVReservoir_UpdateDirBCValue
 
                ! call IncCV_ToVec( &
                !      dataviscuell, datavisufrac, datavisunode &
@@ -1035,36 +1039,7 @@ subroutine NN_init_phase2(OutputDir)
                ! Flash
                call DefFlash_Flash
 
-
-!      do k=1, NbNodeLocal_Ncpus(commRank+1)
-!         write(*,*)' nodes '
-!         write(*,*)' ic ',k,IncNode(k)%ic         
-!         write(*,*)' P ',k,IncNode(k)%Pression
-!         write(*,*)' T ',k,IncNode(k)%Temperature
-!         write(*,*)' S ',k,IncNode(k)%Saturation(:)
-!         write(*,*)' Cg ',k,IncNode(k)%Comp(:,1)
-!         write(*,*)' Cl ',k,IncNode(k)%Comp(:,2)         
-!      ENDDO
-
-!      do k=1, NbCellLocal_Ncpus(commRank+1)
-!         write(*,*)' cells '
-!         write(*,*)' ic ',k,IncCell(k)%ic         
-!         write(*,*)' P ',k,IncCell(k)%Pression
-!         write(*,*)' T ',k,IncCell(k)%Temperature
-!         write(*,*)' S ',k,IncCell(k)%Saturation(:)
-!         write(*,*)' Cg ',k,IncCell(k)%Comp(:,1)
-!         write(*,*)' Cl ',k,IncCell(k)%Comp(:,2)         
-!      ENDDO      
-               
-               ! if(commRank==0) then
-               !    ! print*, ""
-               !    ! write(*,'(A,E15.3)') "pressure inj", IncPressionWellInj
-               !    ! write(*,'(A,E15.3)') "pressure prod", IncPressionWellProd
-               ! end if
-
             end if ! end if converge/not converge
-
-            ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
 
          end do ! end of : NewtonIter=1, NewtonNiterMax
 
@@ -1097,8 +1072,8 @@ subroutine NN_init_phase2(OutputDir)
 
             ! load status
             call IncCV_LoadIncPreviousTimeStep
-            call IncCV_PressureDropWellInj ! compute PerfoWellInj%Pression
-            call IncCV_PressureDropWellProd ! compute PerfoWellDrop%Pression
+            call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
+            call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
 
             ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
          end if
@@ -1315,6 +1290,7 @@ subroutine NN_init_phase2(OutputDir)
       call VAGFrac_free
       call LoisThermoHydro_free
       call IncCV_free
+      call NeumannContribution_free
       ! call DefFlash_free
       call MeshSchema_free
 
