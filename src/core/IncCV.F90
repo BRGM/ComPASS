@@ -8,15 +8,6 @@
 
     module IncCV
 
-    !use MeshSchema
-    !use DefModel
-    !use Thermodynamics
-    !
-    !use NumbyContext
-    !use CommonMPI
-    !use Physics
-    !use SchemeParameters
-
     use IncCVReservoir
     use IncCVWells
 
@@ -32,20 +23,7 @@
         IncCV_SaveIncPreviousTimeStep, &
         IncCV_free
 
-    ! The following subroutines are defined in:
-    ! DefInitBCvalues.F90
-    public :: &
-        IncCV_SetInitialValue, &
-        IncCV_SetDirBCValue
-
-    !private :: &
-    !    IncCV_NewtonIncrement_reservoir
-
     contains
-
-    ! IncCV_SetInitialvalue and
-    ! IncCV_SetDirBCvalue are defined in:
-#include "DefInitBCvalues.F90"
 
     subroutine IncCV_allocate
 
@@ -54,7 +32,6 @@
     
     end subroutine IncCV_allocate
 
-    !> \brief Deallocate unknowns vectors
     subroutine IncCV_free
 
     call IncCVReservoir_free

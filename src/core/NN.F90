@@ -21,6 +21,7 @@ module NN
    use IncCV
    use IncCVReservoir
    use IncCVWells
+   use DirichletContribution
    use NeumannContribution
    use VAGFrac
 
@@ -477,6 +478,7 @@ subroutine NN_init_phase2(OutputDir)
 
       ! unknowns allocate
       call IncCV_allocate
+      call DirichletContribution_allocate
       call NeumannContribution_allocate
 
       ! allcoate Loisthermohydro
@@ -860,7 +862,7 @@ subroutine NN_init_phase2(OutputDir)
          do NewtonIter = 1, NewtonNiterMax
 
             ! Copy Dir boundary values to Inc
-            call IncCVReservoir_UpdateDirBCValue
+            call DirichletContribution_update
 
             ! compute pressure of perforations with well pressure
 !           IncPressionWellInj(:) = 2.d7
@@ -1026,7 +1028,7 @@ subroutine NN_init_phase2(OutputDir)
                   NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
                   NewtonIncreWellInj, NewtonIncreWellProd, NewtonRelax)
 
-               call IncCVReservoir_UpdateDirBCValue
+               call DirichletContribution_update
 
                ! call IncCV_ToVec( &
                !      dataviscuell, datavisufrac, datavisunode &
@@ -1290,6 +1292,7 @@ subroutine NN_init_phase2(OutputDir)
       call VAGFrac_free
       call LoisThermoHydro_free
       call IncCV_free
+      call DirichletContribution_free
       call NeumannContribution_free
       ! call DefFlash_free
       call MeshSchema_free

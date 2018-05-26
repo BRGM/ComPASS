@@ -14,6 +14,7 @@
        use DefModel
        use IncCVReservoir
        use IncCVWells
+       use DirichletContribution
        use CommonTypesWrapper
 
        implicit none

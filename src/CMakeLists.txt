@@ -35,6 +35,7 @@ set( ComPASSCore_SRCS
     IncCV.F90
     IncCVReservoir.F90
     IncCVWells.F90
+    DirichletContribution.F90
     NeumannContribution.F90
     Flux.F90
     Jacobian.F90 

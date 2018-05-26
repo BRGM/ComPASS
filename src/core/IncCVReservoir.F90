@@ -46,10 +46,6 @@
     IncFrac, & !< Fracture Face unknowns for current time step
     IncNode !< Node unknowns for current time step
 
-    ! Dir BC
-    TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: &
-        IncNodeDirBC !< Dirichlet boundary unknowns for current time step (size NbNodeLocal)
-
     ! Inc for previous time step: current time step - 1
     TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), public :: &
         IncCellPreviousTimeStep, & !< Cell unknowns for previous time step
@@ -58,27 +54,16 @@
 
     public :: &
         IncCVReservoir_allocate, &
-        IncCVReservoir_UpdateDirBCValue, &
         IncCVReservoir_NewtonRelax, &
         IncCVReservoir_NewtonIncrement, &
         IncCVReservoir_LoadIncPreviousTimeStep, &
         IncCVReservoir_SaveIncPreviousTimeStep, &
         IncCVReservoir_free
 
-    !! The following subroutines are defined in:
-    !! DefInitBCvalues.F90
-    !public :: &
-    !    IncCV_SetInitialValue, &
-    !    IncCV_SetDirBCValue
-
-    private :: &
+private :: &
         IncCVReservoir_NewtonIncrement_reservoir
 
     contains
-
-    ! IncCV_SetInitialvalue and
-    ! IncCV_SetDirBCvalue are defined in:
-!#include "DefInitBCvalues.F90"
 
     !> \brief Define operator = between two TYPE_IncCV:  inc2=inc1
     subroutine assign_type_inccv(inc2, inc1)
@@ -106,8 +91,6 @@
     allocate (IncFrac(NbFracLocal_Ncpus(commRank + 1)))
     allocate (IncNode(NbNodeLocal_Ncpus(commRank + 1)))
 
-    allocate (IncNodeDirBC(NbNodeLocal_Ncpus(commRank + 1)))
-
     allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
     allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
     allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
@@ -126,34 +109,6 @@
     deallocate (IncNodePreviousTimeStep)
 
     end subroutine IncCVReservoir_free
-
-    !> \brief Update the values of the node IncNode(k) if k is Dirichlet
-    !! with the Dirichlet boundary values IncNodeDirBC(k)
-    subroutine IncCVReservoir_UpdateDirBCValue
-
-    integer :: k
-
-    do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-
-        if (IdNodeLocal(k)%P == "d") then
-            IncNode(k)%ic = IncNodeDirBC(k)%ic
-            IncNode(k)%Pression = IncNodeDirBC(k)%Pression
-            IncNode(k)%Saturation(:) = IncNodeDirBC(k)%Saturation(:)
-            IncNode(k)%Comp(:, :) = IncNodeDirBC(k)%Comp(:, :)
-        end if
-
-#ifdef _THERMIQUE_
-
-        if (IdNodeLocal(k)%T == "d") then
-            IncNode(k)%ic = IncNodeDirBC(k)%ic
-            IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
-        end if
-
-#endif
-
-    end do
-
-    end subroutine IncCVReservoir_UpdateDirBCValue
 
     subroutine IncCVReservoir_NewtonIncrement( &
         NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
