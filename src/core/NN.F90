@@ -127,6 +127,10 @@ module NN
       NN_main_make_timestep, &
       NN_main_summarize_timestep, &
       NN_finalize
+   
+   private :: &
+       NN_flash_all_control_volumes, &
+       NN_flash_control_volumes
 
 contains
 
@@ -460,6 +464,37 @@ subroutine NN_init_phase2(OutputDir)
 
    end subroutine NN_init_phase2
 
+   subroutine NN_flash_control_volumes(n, state, rocktypes, volume)
+
+   integer, intent(in) :: n
+   type(Type_IncCVReservoir), intent(inout) :: state(n)
+   integer, intent(in) :: rocktypes(IndThermique + 1, n)
+   double precision, intent(in) :: volume(n)
+
+   integer :: k
+
+   do k = 1, n
+       call DefFlash_Flash_cv(state(k), rocktypes(:, k), volume(k))
+   end do
+
+   end subroutine NN_flash_control_volumes
+
+   !> \brief Main surboutine, after each Newton iteration
+   !! execute the flash to determine the phases
+   !! which are actualy present, and
+   !! the mode of the well (flowrate or pressure).
+   subroutine NN_flash_all_control_volumes
+
+   call NN_flash_control_volumes(NbNodeLocal_Ncpus(commRank + 1), IncNode, NodeRocktypeLocal, PoroVolDarcyNode)
+   call NN_flash_control_volumes(NbFracLocal_Ncpus(commRank + 1), IncFrac, FracRocktypeLocal, PoroVolDarcyFrac)
+   call NN_flash_control_volumes(NbCellLocal_Ncpus(commRank + 1), IncCell, CellRocktypeLocal, PoroVolDarcyCell)
+
+   ! choose between linear or non-linear update of the Newton unknown Pw
+   ! The next subroutines also compute the mode of the wells ('pressure' or 'flowrate')
+   call DefFlashWells_NewtonFlashLinWells
+
+   end subroutine NN_flash_all_control_volumes
+
    subroutine NN_main_make_timestep(initial_time_step)
 
       real(c_double), optional, intent(in) :: initial_time_step
@@ -663,8 +698,7 @@ subroutine NN_init_phase2(OutputDir)
 
                call DirichletContribution_update
 
-               ! Flash
-               call DefFlash_Flash
+               call NN_flash_all_control_volumes
 
             end if ! end if converge/not converge
 
