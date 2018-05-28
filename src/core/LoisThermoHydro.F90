@@ -2643,8 +2643,8 @@ contains
     integer :: rt(IndThermique+1)
     integer :: s, i
 
-    Sw(:) = 0
-    Sw(PHASE_WATER) = 1.d0
+    Sw(:) = 0.d0
+    Sw(LIQUID_PHASE) = 1.d0
 
     ! node of well k
     do s=NodeDatabyWellInjLocal%Pt(k)+1, NodeDatabyWellInjLocal%Pt(k+1)
@@ -2657,19 +2657,19 @@ contains
        rt = NodeRocktypeLocal(:,s)
 
        ! Permrel
-       call f_PermRel(rt,PHASE_WATER, Sw, PermRel, dSf)
+       call f_PermRel(rt,LIQUID_PHASE, Sw, PermRel, dSf)
 
        ! Molar density
-       call f_DensiteMolaire(PHASE_WATER, Pws, Tw, Cw, Sw, &
+       call f_DensiteMolaire(LIQUID_PHASE, Pws, Tw, Cw, Sw, &
             DensiteMolaire, dP_DensiteMolaire, dTf, dCf, dSf)
 
        ! Viscosite
-       call f_Viscosite(PHASE_WATER, Pws, Tw, Cw, Sw, &
+       call f_Viscosite(LIQUID_PHASE, Pws, Tw, Cw, Sw, &
             Viscosite, dP_Viscosite, dTf, dCf, dSf)
 
 #ifdef _THERMIQUE_
        ! Enthalpie
-       call f_Enthalpie(PHASE_WATER, Pws, Tw, Cw, Sw, &
+       call f_Enthalpie(LIQUID_PHASE, Pws, Tw, Cw, Sw, &
             Enthalpie, dP_Enthalpie, dTf, dCf, dSf)
 #endif
 
