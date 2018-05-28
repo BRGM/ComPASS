@@ -84,6 +84,7 @@ set(MAIN_SRCS ${_tmp})
 
 # Configuration to be built
 set( CONFIGURATIONS
+    liquid_water
     water2ph
     diphasic
 )

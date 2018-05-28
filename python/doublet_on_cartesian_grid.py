@@ -11,7 +11,7 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
-ComPASS.load_eos('water2ph')
+ComPASS.load_eos('liquid_water')
 
 pres = 20. * MPa                  # initial reservoir pressure
 Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
