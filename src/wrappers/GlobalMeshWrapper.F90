@@ -56,8 +56,8 @@
           retrieve_fracture_permeability, &
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
-          GlobalMesh_make_post_read_from_C, &
-          GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
+          !GlobalMesh_make_post_read_from_C, &
+          !GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
           GlobalMesh_Make_post_read_set_poroperm_from_C, &
           GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C, &
           GlobalMesh_MeshBoundingBox_from_C, &
@@ -517,38 +517,38 @@
 
        end subroutine GlobalMesh_build_cartesian_grid_from_C
 
-       subroutine GlobalMesh_make_post_read_from_C() &
-          bind(C, name="GlobalMesh_make_post_read")
-
-          if (commRank /= 0) then
-             print *, "GlobalMesh_make_post_read_from_C is supposed to be run by master process."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
-
-          call GlobalMesh_Make_post_read()
-
-       end subroutine GlobalMesh_make_post_read_from_C
-
-       subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C() &
-          bind(C, name="GlobalMesh_make_post_read_fracture_and_dirBC")
-
-          call GlobalMesh_Make_post_read_fracture_and_dirBC
-
-       end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C
-
+       !subroutine GlobalMesh_make_post_read_from_C() &
+       !   bind(C, name="GlobalMesh_make_post_read")
+       !
+       !   if (commRank /= 0) then
+       !      print *, "GlobalMesh_make_post_read_from_C is supposed to be run by master process."
+       !      !CHECKME: MPI_Abort is supposed to end all MPI processes
+       !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+       !   end if
+       !
+       !   call GlobalMesh_Make_post_read()
+       !
+       !end subroutine GlobalMesh_make_post_read_from_C
+       !
+       !subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C() &
+       !   bind(C, name="GlobalMesh_make_post_read_fracture_and_dirBC")
+       !
+       !   call GlobalMesh_Make_post_read_fracture_and_dirBC
+       !
+       !end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C
+       
        subroutine GlobalMesh_Make_post_read_set_poroperm_from_C() &
           bind(C, name="GlobalMesh_make_post_read_set_poroperm")
-
+       
           call GlobalMesh_Make_post_read_set_poroperm
-
+       
        end subroutine GlobalMesh_Make_post_read_set_poroperm_from_C
-
+       
        subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C() &
           bind(C, name="GlobalMesh_make_post_read_well_connectivity_and_ip")
-
+       
           call GlobalMesh_Make_post_read_well_connectivity_and_ip
-
+       
        end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C
 
        subroutine GlobalMesh_MeshBoundingBox_from_C() &

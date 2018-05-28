@@ -140,87 +140,87 @@ module NN
    ! ! ********************************** ! !
 
    public :: &
-      NN_init, &
-      NN_main, &
+      !NN_init, &
+      !NN_main, &
       NN_main_make_timestep, &
-      NN_main_output_visu, &
+      !NN_main_output_visu, &
       NN_main_summarize_timestep, &
       NN_finalize
 
 contains
 
    subroutine NN_init_output_streams(Logfile)
-
+   
       character(len=*), intent(in) :: LogFile
-
+   
       ! Report file
       if (commRank == 0) then
          open (11, file=trim(LogFile), status="unknown")
       end if
-
+   
       allocate (fd(2)); fd = (/6, 11/) ! stdout: 6, logfile: 11
       ! allocate(fd(1)); fd = (/11/)
-
+   
    end subroutine NN_init_output_streams
 
-   subroutine NN_init_read_mesh(MeshFile)
+   !subroutine NN_init_read_mesh(MeshFile)
+   !
+   !   character(len=*), intent(in) :: MeshFile
+   !
+   !   !FIXME: This is more of an assertion for consistency, might be removed
+   !   if (.NOT. commRank == 0) then
+   !      print *, "Mesh is supposed to be read by master process."
+   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
+   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+   !   end if
+   !
+   !   inquire (FILE=MeshFile, EXIST=file_exists)
+   !   if (file_exists .eqv. .false.) then
+   !      print *, " "
+   !      print *, "Mesh does not exist   ", MeshFile
+   !      print *, " "
+   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
+   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+   !   end if
+   !   print *, "Mesh read from file: ", MeshFile
+   !
+   !   ! Read Global Mesh
+   !   call GlobalMesh_Make_read_file(MeshFile)
+   !
+   !   call GlobalMesh_Make_post_read()
+   !
+   !   call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+   !   call DefWell_Make_ComputeWellIndex( &
+   !      NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+   !      PermCell, PermFrac)
+   !
+   !end subroutine NN_init_read_mesh
 
-      character(len=*), intent(in) :: MeshFile
-
-      !FIXME: This is more of an assertion for consistency, might be removed
-      if (.NOT. commRank == 0) then
-         print *, "Mesh is supposed to be read by master process."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      inquire (FILE=MeshFile, EXIST=file_exists)
-      if (file_exists .eqv. .false.) then
-         print *, " "
-         print *, "Mesh does not exist   ", MeshFile
-         print *, " "
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-      print *, "Mesh read from file: ", MeshFile
-
-      ! Read Global Mesh
-      call GlobalMesh_Make_read_file(MeshFile)
-
-      call GlobalMesh_Make_post_read()
-
-      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-      call DefWell_Make_ComputeWellIndex( &
-         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-         PermCell, PermFrac)
-
-   end subroutine NN_init_read_mesh
-
-   subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-
-      real(kind=c_double), intent(in)  :: Ox, Oy, Oz
-      real(kind=c_double), intent(in)  :: lx, ly, lz
-      integer(kind=c_int), intent(in)  :: nx, ny, nz
-
-      !FIXME: This is more of an assertion for consistency, might be removed
-      if (.NOT. commRank == 0) then
-         print *, "Mesh is supposed to be built by master process."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-
-      call GlobalMesh_SetWellCar(nx, ny, nz)
-
-      call GlobalMesh_Make_post_read()
-
-      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-      call DefWell_Make_ComputeWellIndex( &
-         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-         PermCell, PermFrac)
-
-   end subroutine NN_init_build_grid
+   !subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+   !
+   !   real(kind=c_double), intent(in)  :: Ox, Oy, Oz
+   !   real(kind=c_double), intent(in)  :: lx, ly, lz
+   !   integer(kind=c_int), intent(in)  :: nx, ny, nz
+   !
+   !   !FIXME: This is more of an assertion for consistency, might be removed
+   !   if (.NOT. commRank == 0) then
+   !      print *, "Mesh is supposed to be built by master process."
+   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
+   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+   !   end if
+   !
+   !   call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+   !
+   !   call GlobalMesh_SetWellCar(nx, ny, nz)
+   !
+   !   call GlobalMesh_Make_post_read()
+   !
+   !   call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+   !   call DefWell_Make_ComputeWellIndex( &
+   !      NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+   !      PermCell, PermFrac)
+   !
+   !end subroutine NN_init_build_grid
 
    subroutine NN_partition_mesh(status)
 
@@ -257,88 +257,88 @@ contains
    end subroutine NN_partition_mesh
 
    subroutine NN_init_warmup(LogFile)
-
+   
       character(len=*), intent(in) :: LogFile
-
+   
       ! initialisation petsc/MPI
       call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
       CHKERRQ(Ierr)
-
+   
       ! init mpi, communicator/commRank/commSize
       call CommonMPI_init(PETSC_COMM_WORLD)
-
+   
       call NN_init_output_streams(Logfile)
-
+   
       comptime_readmesh = MPI_WTIME()
-
+   
    end subroutine NN_init_warmup
 
-   subroutine NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+   !subroutine NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+   !
+   !   character(len=*), intent(in) :: MeshFile, LogFile
+   !
+   !   call NN_init_warmup(Logfile)
+   !
+   !   ! *** Global Mesh *** !
+   !
+   !   if (commRank == 0) then
+   !      call NN_init_read_mesh(MeshFile)
+   !   end if
+   !   call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+   !
+   !end subroutine NN_init_warmup_and_read_mesh
 
-      character(len=*), intent(in) :: MeshFile, LogFile
-
-      call NN_init_warmup(Logfile)
-
-      ! *** Global Mesh *** !
-
-      if (commRank == 0) then
-         call NN_init_read_mesh(MeshFile)
-      end if
-      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
-
-   end subroutine NN_init_warmup_and_read_mesh
-
-subroutine init_visualization(OutputDir)
-
-      character(len=*), intent(in) :: OutputDir
-
-#ifdef _VISU_
-
-      ! initialize visu
-      if (trim(MESH_TYPE) == "cartesian-quad") then
-         call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "hexahedron-quad") then
-         call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "tetrahedron-triangle") then
-         call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-
-      else if (trim(MESH_TYPE) == "wedge") then
-         call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
-                                    NbComp, NbPhase, MCP, IndThermique)
-      else
-         write (*, *) ""
-         write (*, *) "This mesh type is not supported!"
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      ! vectors that regroup datas (P, T, C, S) from IncCV(:)
-      allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
-      allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
-      allocate (datavisunode(NbIncPTCSMax*NbNodeOwn_Ncpus(commRank + 1)))
-
-      ! pressure at well edges, inj/prod
-      n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
-      allocate (datavisuwellinj(n))
-      n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank + 1)))
-      allocate (datavisuwellprod(n))
-
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            write (fd(i), *) ""
-            write (fd(i), *) " *** Warning : visualization vtk of data of wells has not been implemented ***"
-         end do
-      end if
-
-#endif
-
-    VisuTimeIter = 0
-
-end subroutine init_visualization
+!subroutine init_visualization(OutputDir)
+!
+!      character(len=*), intent(in) :: OutputDir
+!
+!#ifdef _VISU_
+!
+!      ! initialize visu
+!      if (trim(MESH_TYPE) == "cartesian-quad") then
+!         call VisuVTK_VisuTime_Init(MESH_CAR, OutputDir, TimeFinal, output_frequency, &
+!                                    NbComp, NbPhase, MCP, IndThermique)
+!
+!      else if (trim(MESH_TYPE) == "hexahedron-quad") then
+!         call VisuVTK_VisuTime_Init(MESH_HEX, OutputDir, TimeFinal, output_frequency, &
+!                                    NbComp, NbPhase, MCP, IndThermique)
+!
+!      else if (trim(MESH_TYPE) == "tetrahedron-triangle") then
+!         call VisuVTK_VisuTime_Init(MESH_TET, OutputDir, TimeFinal, output_frequency, &
+!                                    NbComp, NbPhase, MCP, IndThermique)
+!
+!      else if (trim(MESH_TYPE) == "wedge") then
+!         call VisuVTK_VisuTime_Init(MESH_WEDGE, OutputDir, TimeFinal, output_frequency, &
+!                                    NbComp, NbPhase, MCP, IndThermique)
+!      else
+!         write (*, *) ""
+!         write (*, *) "This mesh type is not supported!"
+!         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+!      end if
+!
+!      ! vectors that regroup datas (P, T, C, S) from IncCV(:)
+!      allocate (datavisucell(NbIncPTCSMax*NbCellOwn_Ncpus(commRank + 1)))
+!      allocate (datavisufrac(NbIncPTCSMax*NbFracOwn_Ncpus(commRank + 1)))
+!      allocate (datavisunode(NbIncPTCSMax*NbNodeOwn_Ncpus(commRank + 1)))
+!
+!      ! pressure at well edges, inj/prod
+!      n = sum(NbEdgebyWellInjLocal(1:NbWellInjOwn_Ncpus(commRank + 1)))
+!      allocate (datavisuwellinj(n))
+!      n = sum(NbEdgebyWellProdLocal(1:NbWellProdOwn_Ncpus(commRank + 1)))
+!      allocate (datavisuwellprod(n))
+!
+!      if (commRank == 0) then
+!         do i = 1, size(fd)
+!            write (fd(i), *) ""
+!            write (fd(i), *) " *** Warning : visualization vtk of data of wells has not been implemented ***"
+!         end do
+!      end if
+!
+!#endif
+!
+!    VisuTimeIter = 0
+!
+!end subroutine init_visualization
 
 subroutine NN_init_phase2(OutputDir)
 
@@ -520,7 +520,7 @@ subroutine NN_init_phase2(OutputDir)
       allocate (NewtonIncreWellProd &
                 (NbWellProdLocal_Ncpus(commRank + 1)))
 
-      call init_visualization(OutputDir)
+      !call init_visualization(OutputDir)
 
       comptime_part = MPI_WTIME() - comptime_start
       comptime_start = MPI_WTIME()
@@ -640,177 +640,177 @@ subroutine NN_init_phase2(OutputDir)
 
    end subroutine NN_init_phase2
 
-   subroutine NN_init(MeshFile, LogFile, OutputDir)
+   !subroutine NN_init(MeshFile, LogFile, OutputDir)
+   !
+   !   character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
+   !
+   !   call NN_init_warmup_and_read_mesh(MeshFile, LogFile)
+   !   call NN_init_phase2(OutputDir)
+   !
+   !end subroutine NN_init
 
-      character(len=*), intent(in) :: MeshFile, LogFile, OutputDir
-
-      call NN_init_warmup_and_read_mesh(MeshFile, LogFile)
-      call NN_init_phase2(OutputDir)
-
-   end subroutine NN_init
-
-   subroutine NN_main_output_visu(TimeIter, OutputDir)
-
-      integer, intent(in) :: TimeIter
-      character(len=*), intent(in) :: OutputDir
-
-#ifdef _VISU_
-
-      call IncCV_ToVec( &
-        datavisucell, &
-        datavisufrac, &
-        datavisunode, &
-        datavisuwellinj, &
-        datavisuwellprod)
-
-      call VisuVTK_VisuTime_writedata( &
-        TimeCurrent/OneDay, &
-        datavisucell, &
-        datavisufrac, &
-        datavisunode, &
-        datavisuwellinj, &
-        datavisuwellprod)
-
-      ! max and min temperature
-      Tempmaxloc = -1.d4
-      Tempminloc = 1.d4
-
-      do k = 1, NbCellOwn_Ncpus(commRank + 1)
-         Tempmaxloc = max(IncCell(k)%Temperature, Tempmaxloc)
-         Tempminloc = min(IncCell(k)%Temperature, Tempminloc)
-      end do
-      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
-         Tempmaxloc = max(IncNode(k)%Temperature, Tempmaxloc)
-         Tempminloc = min(IncNode(k)%Temperature, Tempminloc)
-      end do
-      do k = 1, NbFracOwn_Ncpus(commRank + 1)
-         Tempmaxloc = max(IncFrac(k)%Temperature, Tempmaxloc)
-         Tempminloc = min(IncFrac(k)%Temperature, Tempminloc)
-      end do
-
-      call MPI_AllReduce(Tempmaxloc, Tempmax, 1, MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
-      call MPI_AllReduce(Tempminloc, Tempmin, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-
-      ! if(commRank==0) then
-
-      !    ! print*, ""
-      !    ! print*, ""
-      !    ! print*, Tempmax, Tempmin
-
-      !    do k=1, NbCellOwn_Ncpus(commRank+1)
-
-      !       if( abs(IncCell(k)%Temperature-Tempmax)<1.d-5) then
-      !          print*, "cell ", k, XCellLocal(:,k)
-      !       end if
-      !    end do
-
-      !    do k=1, NbNodeOwn_Ncpus(commRank+1)
-
-      !       if( abs(IncNode(k)%Temperature-Tempmax)<1.d-5) then
-      !          print*, "node ", k, XNodeLocal(:,k)
-      !       end if
-      !    end do
-
-      !    do k=1, NbFracOwn_Ncpus(commRank+1)
-
-      !       if( abs(IncFrac(k)%Temperature-Tempmax)<1.d-5) then
-      !          print*, "frac ", k, XCellLocal(:,FracToFaceLocal(k))
-      !       end if
-      !    end do
-      ! end if
-
-      ! if this proc constains at least one well, then write well data to file
-      if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
-          NbWellProdOwn_Ncpus(commRank + 1) > 0) then
-
-         ! write well data to file
-         write (output_path, '(A,I0)') trim(OutputDir)//"/wellinfo/time_", VisuTimeIter
-         call make_directory(output_path)
-
-         write (Wellinfoname, '(A,I0,A,I0,A)') &
-            trim(OutputDir)//"/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
-
-         open (12, file=Wellinfoname, status="unknown")
-
-         ! time step info
-         write (12, *) "TimeStep"
-         write (12, *) TimeIter
-         write (12, *) "Time"
-         write (12, '(F16.5)') TimeCurrent/OneDay
-
-         ! data of perforation nodes of inj well
-         do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
-
-            head = NodebyWellInjLocal%Pt(i + 1) ! head
-
-            write (12, '(A,I0)') &
-               "Nb of perforation nodes of own inj well ", i
-            write (12, '(I0,A)') &
-               NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
-
-            ! data of head perforation node
-            write (12, '(A,I0)') &
-               "Data of head perforation node of own inj well ", i
-
-            write (12, '(ES17.7)', advance='no') IncPressionWellInj(i) ! pressure
-            write (12, '(ES17.7)', advance='no') PerfoWellInj(head)%Temperature ! temperature
-! FIXME: headmolarFluxInj is not defined in all configuration files
-!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux
-            write (12, *) ""
-         end do
-
-         ! data of perforation nodes of prod well
-         do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
-
-            write (12, '(A,I0)') &
-               "Nb of perforation nodes of own prod well ", i
-            write (12, '(I0,A)') &
-               NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
-
-            ! data of head perforation node
-            write (12, '(A,I0,A)') &
-               "Data of head perforation node of own prod well ", i, &
-               ":  Pressure / Temperature / cumulFluxmolar / cumulFluxEnergy"
-            head = NodebyWellProdLocal%Pt(i + 1)
-
-            do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
-
-               ! write(12,'(ES17.7)',advance='no') IncPressionWellProd(i)     ! pressure
-               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Pression ! pressure
-               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Temperature ! temperature
-               write (12, '(ES17.7)', advance='no') summolarFluxProd(:, j) ! head molar flux
-               write (12, '(ES17.7)', advance='no') sumnrjFluxProd(j) ! head energy flux
-               write (12, *) ""
-            end do
-         end do
-
-         ! max and min temperature
-         write (12, '(A)') "max/min temperature"
-         write (12, '(ES17.7)', advance='no') Tempmax
-         write (12, '(ES17.7)', advance='no') Tempmin
-         write (12, *) ""
-
-         close (12)
-
-         VisuTimeIter = VisuTimeIter + 1
-
-      end if
-#endif
-
-   end subroutine NN_main_output_visu
-
-   subroutine NN_main_checkpoint(OutputDir)
-
-      character(len=*), intent(in) :: OutputDir
-
-#ifdef _HDF5_
-      call IncCV_WriteSolToFile(OutputDir, &
-                                TimeIter, TimeCurrent, Delta_t, TimeOutput, &
-                                NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
-                                comptime_total, comptime_timestep)
-#endif
-
-   end subroutine NN_main_checkpoint
+!   subroutine NN_main_output_visu(TimeIter, OutputDir)
+!
+!      integer, intent(in) :: TimeIter
+!      character(len=*), intent(in) :: OutputDir
+!
+!#ifdef _VISU_
+!
+!      call IncCV_ToVec( &
+!        datavisucell, &
+!        datavisufrac, &
+!        datavisunode, &
+!        datavisuwellinj, &
+!        datavisuwellprod)
+!
+!      call VisuVTK_VisuTime_writedata( &
+!        TimeCurrent/OneDay, &
+!        datavisucell, &
+!        datavisufrac, &
+!        datavisunode, &
+!        datavisuwellinj, &
+!        datavisuwellprod)
+!
+!      ! max and min temperature
+!      Tempmaxloc = -1.d4
+!      Tempminloc = 1.d4
+!
+!      do k = 1, NbCellOwn_Ncpus(commRank + 1)
+!         Tempmaxloc = max(IncCell(k)%Temperature, Tempmaxloc)
+!         Tempminloc = min(IncCell(k)%Temperature, Tempminloc)
+!      end do
+!      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
+!         Tempmaxloc = max(IncNode(k)%Temperature, Tempmaxloc)
+!         Tempminloc = min(IncNode(k)%Temperature, Tempminloc)
+!      end do
+!      do k = 1, NbFracOwn_Ncpus(commRank + 1)
+!         Tempmaxloc = max(IncFrac(k)%Temperature, Tempmaxloc)
+!         Tempminloc = min(IncFrac(k)%Temperature, Tempminloc)
+!      end do
+!
+!      call MPI_AllReduce(Tempmaxloc, Tempmax, 1, MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+!      call MPI_AllReduce(Tempminloc, Tempmin, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+!
+!      ! if(commRank==0) then
+!
+!      !    ! print*, ""
+!      !    ! print*, ""
+!      !    ! print*, Tempmax, Tempmin
+!
+!      !    do k=1, NbCellOwn_Ncpus(commRank+1)
+!
+!      !       if( abs(IncCell(k)%Temperature-Tempmax)<1.d-5) then
+!      !          print*, "cell ", k, XCellLocal(:,k)
+!      !       end if
+!      !    end do
+!
+!      !    do k=1, NbNodeOwn_Ncpus(commRank+1)
+!
+!      !       if( abs(IncNode(k)%Temperature-Tempmax)<1.d-5) then
+!      !          print*, "node ", k, XNodeLocal(:,k)
+!      !       end if
+!      !    end do
+!
+!      !    do k=1, NbFracOwn_Ncpus(commRank+1)
+!
+!      !       if( abs(IncFrac(k)%Temperature-Tempmax)<1.d-5) then
+!      !          print*, "frac ", k, XCellLocal(:,FracToFaceLocal(k))
+!      !       end if
+!      !    end do
+!      ! end if
+!
+!      ! if this proc constains at least one well, then write well data to file
+!      if (NbWellInjOwn_Ncpus(commRank + 1) > 0 .or. &
+!          NbWellProdOwn_Ncpus(commRank + 1) > 0) then
+!
+!         ! write well data to file
+!         write (output_path, '(A,I0)') trim(OutputDir)//"/wellinfo/time_", VisuTimeIter
+!         call make_directory(output_path)
+!
+!         write (Wellinfoname, '(A,I0,A,I0,A)') &
+!            trim(OutputDir)//"/wellinfo/time_", VisuTimeIter, "/proc_", commRank, ".txt"
+!
+!         open (12, file=Wellinfoname, status="unknown")
+!
+!         ! time step info
+!         write (12, *) "TimeStep"
+!         write (12, *) TimeIter
+!         write (12, *) "Time"
+!         write (12, '(F16.5)') TimeCurrent/OneDay
+!
+!         ! data of perforation nodes of inj well
+!         do i = 1, NbWellInjOwn_Ncpus(commRank + 1)
+!
+!            head = NodebyWellInjLocal%Pt(i + 1) ! head
+!
+!            write (12, '(A,I0)') &
+!               "Nb of perforation nodes of own inj well ", i
+!            write (12, '(I0,A)') &
+!               NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i), " "
+!
+!            ! data of head perforation node
+!            write (12, '(A,I0)') &
+!               "Data of head perforation node of own inj well ", i
+!
+!            write (12, '(ES17.7)', advance='no') IncPressionWellInj(i) ! pressure
+!            write (12, '(ES17.7)', advance='no') PerfoWellInj(head)%Temperature ! temperature
+!! FIXME: headmolarFluxInj is not defined in all configuration files
+!!             write(12,'(ES17.7)',advance='no') headmolarFluxInj(i) ! head molar flux
+!            write (12, *) ""
+!         end do
+!
+!         ! data of perforation nodes of prod well
+!         do i = 1, NbWellProdOwn_Ncpus(commRank + 1)
+!
+!            write (12, '(A,I0)') &
+!               "Nb of perforation nodes of own prod well ", i
+!            write (12, '(I0,A)') &
+!               NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i), " "
+!
+!            ! data of head perforation node
+!            write (12, '(A,I0,A)') &
+!               "Data of head perforation node of own prod well ", i, &
+!               ":  Pressure / Temperature / cumulFluxmolar / cumulFluxEnergy"
+!            head = NodebyWellProdLocal%Pt(i + 1)
+!
+!            do j = NodebyWellProdLocal%Pt(i) + 1, NodebyWellProdLocal%Pt(i + 1)
+!
+!               ! write(12,'(ES17.7)',advance='no') IncPressionWellProd(i)     ! pressure
+!               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Pression ! pressure
+!               write (12, '(ES17.7)', advance='no') PerfoWellProd(j)%Temperature ! temperature
+!               write (12, '(ES17.7)', advance='no') summolarFluxProd(:, j) ! head molar flux
+!               write (12, '(ES17.7)', advance='no') sumnrjFluxProd(j) ! head energy flux
+!               write (12, *) ""
+!            end do
+!         end do
+!
+!         ! max and min temperature
+!         write (12, '(A)') "max/min temperature"
+!         write (12, '(ES17.7)', advance='no') Tempmax
+!         write (12, '(ES17.7)', advance='no') Tempmin
+!         write (12, *) ""
+!
+!         close (12)
+!
+!         VisuTimeIter = VisuTimeIter + 1
+!
+!      end if
+!#endif
+!
+!   end subroutine NN_main_output_visu
+!
+!   subroutine NN_main_checkpoint(OutputDir)
+!
+!      character(len=*), intent(in) :: OutputDir
+!
+!#ifdef _HDF5_
+!      call IncCV_WriteSolToFile(OutputDir, &
+!                                TimeIter, TimeCurrent, Delta_t, TimeOutput, &
+!                                NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
+!                                comptime_total, comptime_timestep)
+!#endif
+!
+!   end subroutine NN_main_checkpoint
 
    subroutine NN_main_make_timestep(initial_time_step)
 
@@ -1092,70 +1092,70 @@ subroutine NN_init_phase2(OutputDir)
 
    end subroutine NN_main_make_timestep
 
-   subroutine NN_main(TimeIter, OutputDir)
+!   subroutine NN_main(TimeIter, OutputDir)
+!
+!      integer, intent(inout) :: TimeIter
+!      character(len=*), intent(in) :: OutputDir
+!
+!#ifdef _HDF5_
+!      if (TimeIter > 0) then
+!         call IncCV_ReadSolFromFile(OutputDir, &
+!                                    TimeIter, TimeCurrent, Delta_t, TimeOutput, &
+!                                    NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
+!                                    comptime_total, comptime_timestep)
+!      end if
+!#endif
+!
+!      do while (TimeCurrent < (TimeFinal + eps))
+!
+!         TimeIter = TimeIter + 1
+!
+!         if (commRank == 0) then
+!            do i = 1, size(fd)
+!               j = fd(i)
+!               write (j, *) ""
+!               write (j, *) ""
+!               write (j, '(A,I0)') "Time Step: ", TimeIter
+!               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneSecond, "seconds"
+!
+!               write (j, *)
+!               write (j, '(A)', advance="no") "   -- Initial time step: "
+!               write (j, *) Delta_t/OneSecond
+!            end do
+!         end if
+!
+!         call NN_main_make_timestep
+!
+!         ! checkpoint and visu
+!         if (TimeCurrent > TimeOutput) then
+!
+!            call NN_main_output_visu(TimeIter, OutputDir)
+!
+!            call NN_main_checkpoint(OutputDir)
+!
+!            TimeOutput = NN_ceiling(TimeCurrent / output_frequency) * output_frequency
+!
+!         end if
+!
+!         if (commRank == 0) then
+!            call NN_main_summarize_timestep
+!         end if
+!
+!      end do ! end of time steps
+!
+!   end subroutine NN_main
 
-      integer, intent(inout) :: TimeIter
-      character(len=*), intent(in) :: OutputDir
 
-#ifdef _HDF5_
-      if (TimeIter > 0) then
-         call IncCV_ReadSolFromFile(OutputDir, &
-                                    TimeIter, TimeCurrent, Delta_t, TimeOutput, &
-                                    NewtonNiterTotal, NewtonNbFailure, KspNiterTotal, KspNbFailure, &
-                                    comptime_total, comptime_timestep)
-      end if
-#endif
-
-      do while (TimeCurrent < (TimeFinal + eps))
-
-         TimeIter = TimeIter + 1
-
-         if (commRank == 0) then
-            do i = 1, size(fd)
-               j = fd(i)
-               write (j, *) ""
-               write (j, *) ""
-               write (j, '(A,I0)') "Time Step: ", TimeIter
-               write (j, '(A,F16.5)') "Time at previous time step: ", TimeCurrent/OneSecond, "seconds"
-
-               write (j, *)
-               write (j, '(A)', advance="no") "   -- Initial time step: "
-               write (j, *) Delta_t/OneSecond
-            end do
-         end if
-
-         call NN_main_make_timestep
-
-         ! checkpoint and visu
-         if (TimeCurrent > TimeOutput) then
-
-            call NN_main_output_visu(TimeIter, OutputDir)
-
-            call NN_main_checkpoint(OutputDir)
-
-            TimeOutput = NN_ceiling(TimeCurrent / output_frequency) * output_frequency
-
-         end if
-
-         if (commRank == 0) then
-            call NN_main_summarize_timestep
-         end if
-
-      end do ! end of time steps
-
-   end subroutine NN_main
-
-
-   ! personal ceiling function
-   ! ceiling(x) returns an integer which unbound when x is huge
-   FUNCTION NN_ceiling(x)
-     DOUBLE PRECISION, INTENT(IN) :: x
-
-     DOUBLE PRECISION :: NN_ceiling
-
-     NN_ceiling = AINT(x)
-     NN_ceiling = NN_ceiling + MERGE(1, 0, x > 0 .AND. x /= NN_ceiling)
-   END FUNCTION NN_ceiling
+   !! personal ceiling function
+   !! ceiling(x) returns an integer which unbound when x is huge
+   !FUNCTION NN_ceiling(x)
+   !  DOUBLE PRECISION, INTENT(IN) :: x
+   !
+   !  DOUBLE PRECISION :: NN_ceiling
+   !
+   !  NN_ceiling = AINT(x)
+   !  NN_ceiling = NN_ceiling + MERGE(1, 0, x > 0 .AND. x /= NN_ceiling)
+   !END FUNCTION NN_ceiling
 
 
    subroutine NN_main_summarize_timestep()

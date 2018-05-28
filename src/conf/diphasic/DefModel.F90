@@ -762,27 +762,27 @@ contains
   end subroutine DefModel_SetCondThermique
 
 
-  SUBROUTINE DefModel_SetThermalSource( &
-      NbCell, &
-      CellThermalSourceType, &
-      NbFrac, &
-      FracThermalSourceType, &
-      CellThermalSource, &
-      FracThermalSource)
-
-    INTEGER, INTENT(IN) :: NbCell
-    INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
-    INTEGER, INTENT(IN) :: NbFrac
-    INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
-    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
-    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
-
-    ALLOCATE(CellThermalSource(NbCell))
-    CellThermalSource = MERGE(30.d0, 0.d0, CellThermalSourceType == 1)
-
-    ALLOCATE(FracThermalSource(NbFrac))
-    FracThermalSource = 0.d0
-  END SUBROUTINE DefModel_SetThermalSource
+  !SUBROUTINE DefModel_SetThermalSource( &
+  !    NbCell, &
+  !    CellThermalSourceType, &
+  !    NbFrac, &
+  !    FracThermalSourceType, &
+  !    CellThermalSource, &
+  !    FracThermalSource)
+  !
+  !  INTEGER, INTENT(IN) :: NbCell
+  !  INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
+  !  INTEGER, INTENT(IN) :: NbFrac
+  !  INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
+  !  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
+  !  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
+  !
+  !  ALLOCATE(CellThermalSource(NbCell))
+  !  CellThermalSource = MERGE(30.d0, 0.d0, CellThermalSourceType == 1)
+  !
+  !  ALLOCATE(FracThermalSource(NbFrac))
+  !  FracThermalSource = 0.d0
+  !END SUBROUTINE DefModel_SetThermalSource
 
 
   ! Compute Psat(T)

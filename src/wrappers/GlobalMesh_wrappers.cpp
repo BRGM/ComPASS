@@ -11,8 +11,8 @@ extern "C"
 {
 	void GlobalMesh_build_cartesian_grid(double, double, double, double, double, double, int, int, int);
 	void GlobalMesh_create_mesh(int, int, int, const double[], const int[], const int[], const int[], const int[], const int[], const int[], const int[], const int[]);
-	void GlobalMesh_make_post_read();
-	void GlobalMesh_make_post_read_fracture_and_dirBC();
+	//void GlobalMesh_make_post_read();
+	//void GlobalMesh_make_post_read_fracture_and_dirBC();
 	void GlobalMesh_make_post_read_set_poroperm();
 	void GlobalMesh_make_post_read_well_connectivity_and_ip();
 	void GlobalMesh_mesh_bounding_box();
@@ -110,8 +110,8 @@ void add_GlobalMesh_wrappers(py::module& module)
 	module.def("create_mesh", &create_mesh);
 
 	// This is only transitory
-	module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");
-	module.def("global_mesh_make_post_read_fracture_and_dirBC", &GlobalMesh_make_post_read_fracture_and_dirBC, "Set fractures and boudary conditions.");
+	//module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");
+	//module.def("global_mesh_make_post_read_fracture_and_dirBC", &GlobalMesh_make_post_read_fracture_and_dirBC, "Set fractures and boudary conditions.");
 	module.def("global_mesh_make_post_read_set_poroperm", &GlobalMesh_make_post_read_set_poroperm, "Set porosity and permeability.");
 	module.def("global_mesh_make_post_read_well_connectivity_and_ip", &GlobalMesh_make_post_read_well_connectivity_and_ip, "Compute well connectivity and PI.");
 	module.def("global_mesh_mesh_bounding_box", &GlobalMesh_mesh_bounding_box);
