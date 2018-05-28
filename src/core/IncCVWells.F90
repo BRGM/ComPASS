@@ -176,8 +176,8 @@ contains
 
       Ptmp = Pfirst
       ! Saturation is fixed to liquid
-      Stmp(PHASE_GAS) = 0.d0
-      Stmp(PHASE_WATER) = 1.d0
+      Stmp(:) = 0.d0
+      Stmp(LIQUID_PHASE) = 1.d0
       PerfoWellInj(sfirst)%Pression = Pfirst
       do s = sfirst, slast - direction, direction
          z1 = ZSortedInj_Zval(s)
@@ -190,7 +190,7 @@ contains
 #endif
          dz = (z2 - z1)/Npiece
          do n = 1, Npiece
-            call f_DensiteMolaire(PHASE_WATER, Ptmp, T, C, Stmp, &
+            call f_DensiteMolaire(LIQUID_PHASE, Ptmp, T, C, Stmp, &
                                   Rhotmp, dPf, dTf, dCf, dSf)
             Ptmp = Ptmp - direction*gravity*Rhotmp*dz
          end do

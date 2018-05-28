@@ -38,6 +38,9 @@ module DefModel
   integer, parameter :: PHASE_GAS = 1
   integer, parameter :: PHASE_WATER = 2
 
+  !FIXME: this is used for wells which are monophasic
+  integer, parameter :: LIQUID_PHASE = PHASE_WATER
+
   ! CpRoche
   double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
 
