@@ -55,9 +55,6 @@ module DefFlashWells
       DefFlashWells_free
 
    private :: &
-      DefFlashWells_Flash_cv
-
-   private :: &
       DefFlashWells_NewtonFlashLinWellInj, & ! Flash after each Newton iteratio
       DefFlashWells_NewtonFlashLinWellProd, & ! Flash after each Newton iteration
       DefFlashWells_NewtonFlashNonLinWellInj, & ! Flash after each Newton iteration
@@ -208,74 +205,6 @@ contains
       write (fdFl, *) '}'
 
    end subroutine DefFlashWells_SortHeights_and_Init
-
-   !> \brief Determine the phases
-   !! which are actualy present.
-   !!
-   !! Applied to IncNode, IncFrac and IncCell.
-   !! \param[in]      porovol   porous Volume ?????
-   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlashWells_Flash_cv(inc, rocktype, porovol)
-
-      type(TYPE_IncCVReservoir), intent(inout) :: inc
-      INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
-      double precision, intent(in) :: porovol ! porovol
-
-      integer :: i, iph, j, icp, m, mph, ic
-      double precision :: DensiteMolaire(NbComp), acc1, acc2, &
-         dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      double precision :: Tsat, dTsatdP, Psat, dPsatdT
-
-      ic = inc%ic
-
-      if (ic == 1) then
-
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
-
-         if (inc%Pression > Psat) then
-            inc%ic = 3
-            inc%Pression = Psat
-            ! inc%Temperature is the saturation temperature (by construction)
-            inc%Saturation(1) = 1.d0
-            inc%Saturation(2) = 0.d0
-         end if
-
-      else if (ic == 2) then
-
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
-
-         if (inc%Pression < Psat) then
-            inc%ic = 3
-            inc%Pression = Psat
-            ! inc%Temperature is the saturation temperature (by construction)
-            inc%Saturation(1) = 0.d0
-            inc%Saturation(2) = 1.d0
-         end if
-
-      else if (ic == 3) then
-
-         call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
-
-         inc%Temperature = Tsat
-         inc%Pression = Psat
-
-         if (inc%Saturation(1) < 0.d0) then
-            inc%ic = 2
-            inc%Saturation(1) = 0.d0
-            inc%Saturation(2) = 1.d0
-         else if (inc%Saturation(2) < 0.d0) then
-            inc%ic = 1
-            inc%Saturation(1) = 1.d0
-            inc%Saturation(2) = 0.d0
-         end if
-
-      else
-         print *, "Error in Flash: no such context"
-      end if
-
-   end subroutine DefFlashWells_Flash_cv
 
    !> \brief Non linear update of Pw and
    !! determine the mode of the injection well
