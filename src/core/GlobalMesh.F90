@@ -244,7 +244,7 @@ contains
   !   GlobalMesh_SetFrac: set face fracture
   !   GlobalMesh_SetCellFlags: set cell flag
   !   GlobalMesh_SetFaceFlags: set face flag
-#include "DefGeometry.F90"
+  !#include "DefGeometry.F90"
 
   subroutine GlobalMesh_Make_read_file(fileMesh)
 
@@ -306,10 +306,13 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
 
     call GlobalMesh_Compute_all_connectivies
 
-    CALL GlobalMesh_SetCellFlags
-    CALL GlobalMesh_SetFaceFlags
-    CALL GlobalMesh_SetNodeFlags
-
+    !CALL GlobalMesh_SetCellFlags
+    CellFlags = 1
+    !CALL GlobalMesh_SetFaceFlags
+    FaceFlags = 1
+    !CALL GlobalMesh_SetNodeFlags
+    NodeFlags = 1
+    
     ! Frac
     call GlobalMesh_SetFrac
 
@@ -317,7 +320,7 @@ subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
     call GlobalMesh_NodeOfFrac
 
     ! IdNode Part 2: Dir BC -> IdNode(.)%P, IdNode(.)%T
-    call GlobalMesh_SetDirBC
+    !call GlobalMesh_SetDirBC
 
     ! Fill FracbyNode
     call GlobalMesh_FracbyNode
@@ -328,11 +331,11 @@ end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 subroutine GlobalMesh_allocate_rocktype()
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
-    ALLOCATE(FracRocktype(IndThermique+1,NbFace))
+    NodeRocktype = 1
     ALLOCATE(CellRocktype(IndThermique+1,NbCell))
-
-    CALL GlobalMesh_SetCellRocktype
-    CALL GlobalMesh_SetFracRocktype
+    CellRocktype = 1
+    ALLOCATE(FracRocktype(IndThermique+1,NbFace))
+    FracRockType = 1
 
 end subroutine GlobalMesh_allocate_rocktype
 

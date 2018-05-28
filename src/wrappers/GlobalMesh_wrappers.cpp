@@ -19,7 +19,7 @@ extern "C"
 	void GlobalMesh_compute_all_connectivies();
 	void GlobalMesh_set_frac();
 	void GlobalMesh_node_of_frac();
-	void GlobalMesh_set_dir_BC();
+	//void GlobalMesh_set_dir_BC();
 	void GlobalMesh_frac_by_node();
 	void DefWell_make_compute_well_index();
 	void GlobalMesh_allocate_id_nodes();

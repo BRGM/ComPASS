@@ -64,7 +64,7 @@
           GlobalMesh_Compute_all_connectivies_from_C, &
           GlobalMesh_SetFrac_from_C, &
           GlobalMesh_NodeOfFrac_from_C, &
-          GlobalMesh_SetDirBC_from_C, &
+          !GlobalMesh_SetDirBC_from_C, &
           GlobalMesh_FracbyNode_from_C, &
           DefWell_make_compute_well_index_from_C, &
           GlobalMesh_create_mesh_from_C
@@ -571,10 +571,10 @@
           call GlobalMesh_NodeOfFrac
        end subroutine GlobalMesh_NodeOfFrac_from_C
 
-       subroutine GlobalMesh_SetDirBC_from_C() &
-          bind(C, name="GlobalMesh_set_dir_BC")
-          call GlobalMesh_SetDirBC
-       end subroutine GlobalMesh_SetDirBC_from_C
+       !subroutine GlobalMesh_SetDirBC_from_C() &
+       !   bind(C, name="GlobalMesh_set_dir_BC")
+       !   call GlobalMesh_SetDirBC
+       !end subroutine GlobalMesh_SetDirBC_from_C
 
        subroutine GlobalMesh_FracbyNode_from_C() &
           bind(C, name="GlobalMesh_frac_by_node")
