@@ -21,8 +21,8 @@ after_script:
   - echo "For example you might do some cleanup here"
 
 build:
-   stage: build
-   script:
+  stage: build
+  script:
     - docker build -t charms/ComPASS:4.0.0 .
   #  artifacts:
   #    expire_in: 1 month
@@ -31,8 +31,9 @@ build:
 
 
 deploy:
-    stage: deploy
-    script:
+  stage: deploy
+  script:
+    - echo "deploy"
     #  - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
     #  - docker stop epos-gui || true && docker rm epos-gui || true
     #  - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
@@ -40,5 +41,6 @@ deploy:
 unit test:
   stage: test
   script:
+    - echo "unit test"
   #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
 
