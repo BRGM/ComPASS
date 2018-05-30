@@ -23,7 +23,8 @@ after_script:
 build:
   stage: build
   script:
-    - docker build -t charms/ComPASS:4.0.0 .
+    - echo "build"
+  # - docker build -t charms/ComPASS:4.0.0 .
   #  artifacts:
   #    expire_in: 1 month
   #    paths:
