@@ -23,24 +23,22 @@ after_script:
 build:
    stage: build
    script:
-    - docker build -t epos-gui-dev:latest -f gitlab/DockerFileTesting --build-arg SHORT_GIT_SHA=$SHORT_SHA .
-    # - docker stop epos-gui-dev || true && docker rm epos-gui-dev || true
-    # - docker run --rm -p 4200:80 --name epos-gui-dev -td epos-gui-dev:latest
-   artifacts:
-     expire_in: 1 month
-     paths:
-      - dist
+    - docker build -t charms/ComPASS:4.0.0 .
+  #  artifacts:
+  #    expire_in: 1 month
+  #    paths:
+      # - dist
 
 
 deploy:
     stage: deploy
     script:
-     - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
-     - docker stop epos-gui || true && docker rm epos-gui || true
-     - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
+    #  - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
+    #  - docker stop epos-gui || true && docker rm epos-gui || true
+    #  - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
     
 unit test:
   stage: test
   script:
-   - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
+  #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
 
