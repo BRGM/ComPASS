@@ -10,7 +10,7 @@ stages:
     #- deploy
     
 variables:
-  CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
+  CONTAINER_IMAGE: registry.gitlab.inria.fr/$CI_PROJECT_PATH
 
 
 # first build epos_gui image to run in docker.
@@ -29,6 +29,8 @@ build:
   script:
     - echo "building.."
     - docker build --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
+    - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
+    - docker push $CONTAINER_IMAGE:latest
 
 
 deploy:
