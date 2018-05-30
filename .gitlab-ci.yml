@@ -15,7 +15,7 @@ variables:
 
 # first build epos_gui image to run in docker.
 before_script:
-  - echo "Before script section"
+  - echo "Preparing build..."
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
    
@@ -27,12 +27,8 @@ after_script:
 build:
   stage: build
   script:
-    - echo "build"
-  # - docker build -t charms/ComPASS:4.0.0 .
-  #  artifacts:
-  #    expire_in: 1 month
-  #    paths:
-      # - dist
+    - echo "building.."
+    - docker build --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
 
 
 deploy:
