@@ -22,6 +22,7 @@ services:
 before_script:
   - echo "Preparing build..."
   - docker info
+  - echo $CI_JOB_TOKEN
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
    
 
