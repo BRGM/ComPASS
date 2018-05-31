@@ -22,8 +22,7 @@ services:
 before_script:
   - echo "Preparing build..."
   - docker info
-  - echo $CI_JOB_TOKEN
-  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+ # - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
    
 
 after_script:
@@ -35,8 +34,8 @@ build:
   script:
     - echo "building.."
     - docker build --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
-    - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
-    - docker push $CONTAINER_IMAGE:latest
+ #   - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
+  #  - docker push $CONTAINER_IMAGE:latest
 
 
 deploy:
