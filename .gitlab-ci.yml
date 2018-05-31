@@ -14,7 +14,6 @@ stages:
 variables:
   CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
   DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://docker/2375/ 
 
 services:
   - docker:dind
