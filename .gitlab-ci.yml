@@ -13,6 +13,7 @@ stages:
     
 variables:
   CONTAINER_IMAGE: registry.gitlab.inria.fr/$CI_PROJECT_PATH
+  DOCKER_DRIVER: overlay2
 
 services:
   - docker:dind
