@@ -12,6 +12,8 @@ stages:
 variables:
   CONTAINER_IMAGE: registry.gitlab.inria.fr/$CI_PROJECT_PATH
 
+services:
+  - docker:dind
 
 # first build epos_gui image to run in docker.
 before_script:
