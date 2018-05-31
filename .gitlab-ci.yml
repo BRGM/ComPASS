@@ -4,6 +4,8 @@
 # you can delete this line if you're not using Docker
 #image: docker:latest
 
+image: docker:git
+
 stages:
     #- build
     #- test
