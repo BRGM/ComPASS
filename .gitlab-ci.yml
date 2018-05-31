@@ -12,7 +12,7 @@ stages:
     #- deploy
     
 variables:
-  CONTAINER_IMAGE: registry.gitlab.inria.fr/$CI_PROJECT_PATH
+  CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
   DOCKER_DRIVER: overlay2
 
 services:
