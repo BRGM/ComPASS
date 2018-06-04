@@ -22,6 +22,9 @@ import numpy as np
 
 import MeshTools as MT
 import MeshTools.GridTools as GT
+from MeshTools.vtkwriters import vtk_celltype as vtk_celltype
+
+from ComPASS.RawMesh import RawMesh
 
 initialized = False
 
@@ -98,20 +101,48 @@ def init(
                 mesh = grid
             assert mesh is not None
             # this a bit redundant be we want to rely entirely on MeshTools
-            if type(mesh) is GT.GridInfo:
-                mesh = MT.grid3D(gridinfo=mesh)
-            vertices = MT.as_coordinate_array(mesh.vertices)
-            cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
-            kernel.create_mesh(vertices,
-                               *cells_nodes,
-                               *cells_faces,
-                               *faces_nodes
-                               )
-            # distribute cell types to be able to reconstruct local meshes
-            celltypes = ComPASS.global_celltypes()
-            celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
-            facetypes = ComPASS.global_facetypes()
-            facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
+            if type(mesh) is RawMesh:
+                subsizes = lambda collection: np.array([len(a) for a in collection])
+                make_pointers = lambda a: np.cumsum(np.hstack([[0], a]))
+                cell_nbnodes = subsizes(mesh.cell_nodes)
+                face_nbnodes = subsizes(mesh.face_nodes)
+                int_array = lambda a: np.asarray(a, dtype=np.int32)
+                double_array = lambda a: np.asarray(a, dtype=np.double)
+                kernel.create_mesh(
+                    double_array(mesh.vertices),
+                    int_array(make_pointers(cell_nbnodes)),
+                    int_array(np.hstack(mesh.cell_nodes)),
+                    int_array(make_pointers(subsizes(mesh.cell_faces))),
+                    int_array(np.hstack(mesh.cell_faces)),
+                    int_array(make_pointers(face_nbnodes)),
+                    int_array(np.hstack(mesh.face_nodes)),
+                )
+                # cell and face types default to -1
+                # try hint with simple geometries
+                celltypes = ComPASS.global_celltypes()
+                celltypes[:] = -1
+                celltypes[cell_nbnodes==4] = vtk_celltype['tet']
+                celltypes[cell_nbnodes==8] = vtk_celltype['voxel']
+                facetypes = ComPASS.global_facetypes()
+                print('>'*10, facetypes.shape)
+                facetypes[:] = -1
+                facetypes[face_nbnodes==3] = vtk_celltype['triangle']
+                facetypes[face_nbnodes==4] = vtk_celltype['pixel']
+            else:
+                if type(mesh) is GT.GridInfo:
+                    mesh = MT.grid3D(gridinfo=mesh)
+                vertices = MT.as_coordinate_array(mesh.vertices)
+                cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
+                kernel.create_mesh(vertices,
+                                   *cells_nodes,
+                                   *cells_faces,
+                                   *faces_nodes
+                                   )
+                # distribute cell types to be able to reconstruct local meshes
+                celltypes = ComPASS.global_celltypes()
+                celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
+                facetypes = ComPASS.global_facetypes()
+                facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
 #    else:
 #        print('Mesh type not understood!')
 #        # FIXME: This should be something like MPI.Abort()

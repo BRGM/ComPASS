@@ -164,8 +164,8 @@ module GlobalMesh
     CondThermalFrac !< Permeability tensor for each cell, set by user in file DefModel.F90
 
   ! Thermal source
-  integer(c_int), allocatable, dimension(:), target :: CellThermalSourceType
-  integer(c_int), allocatable, dimension(:), target :: FracThermalSourceType
+  !integer(c_int), allocatable, dimension(:), target :: CellThermalSourceType
+  !integer(c_int), allocatable, dimension(:), target :: FracThermalSourceType
 
   real(c_double), allocatable, dimension(:), target :: CellThermalSource
   real(c_double), allocatable, dimension(:), target :: FracThermalSource
@@ -178,16 +178,16 @@ module GlobalMesh
 
   ! main subroutine in this module
   public :: &
-    GlobalMesh_Make_read_file, &
-    GlobalMesh_Make_post_read, &
+    !GlobalMesh_Make_read_file, &
+    !GlobalMesh_Make_post_read, &
     GlobalMesh_free
 
   !FIXME: All routines are made public here
   !private :: &
   public :: &
     GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
-    GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
-    GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
+    !GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
+    !GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
     GlobalMesh_FaceByNodeGlobal,     & ! make FacebyNode
     GlobalMesh_CellByNodeGlobal,     & ! make CellbyNode
     GlobalMesh_CellByCellGlobal,     & ! make CellbyCell
@@ -195,6 +195,7 @@ module GlobalMesh
     GlobalMesh_NodeOfFrac,           & ! IdNode()%Frac
     GlobalMesh_FracbyNode,           & ! Make FracbyNode for Well Index
     GlobalMesh_WellConnectivity,     & ! NodebyWell and NodeDatabyWell
+    GlobalMesh_SetFrac,              &
     GlobalMesh_create_mesh
 
 contains
@@ -244,36 +245,57 @@ contains
   !   GlobalMesh_SetFrac: set face fracture
   !   GlobalMesh_SetCellFlags: set cell flag
   !   GlobalMesh_SetFaceFlags: set face flag
-#include "DefGeometry.F90"
+  !#include "DefGeometry.F90"
+  subroutine GlobalMesh_SetFrac
 
-  subroutine GlobalMesh_Make_read_file(fileMesh)
+  integer :: i, j
+  double precision :: xi(3)
 
-    character(len=*), intent(in) :: fileMesh
-    integer :: i, ios
-    character :: lignevide
+  NbFrac = 0
 
-    ! Read NbNode:
-    !   <0 cartesian;
-    !   >0 read from file
-    open(15, File=fileMesh, status="old", IOSTAT=ios)
-    if (ios /= 0) then 
-      print *,"Error impossible to open file :", trim(fileMesh)
-    endif
-    do i=1,3
-      read (15,'(a1)') lignevide
-    enddo
-    ! read number of nodes
-    read (15,*) NbNode
-    close(15)
+  do i=1, NbFace
 
-    if(NbNode<0) then
-      call GlobalMesh_ReadMeshCar(fileMesh) ! cartesian mesh
-    else
-      call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
-    end if
+      if( IdFace(i) == -2 ) then
+          NbFrac = NbFrac + 1
+      else
+          IdFace(i) = 0
+      end if
+  end do
 
-  end subroutine GlobalMesh_Make_read_file
+  ! IdFace(:) = 0
 
+  end subroutine GlobalMesh_SetFrac
+
+  !subroutine GlobalMesh_Make_read_file(fileMesh)
+  !
+  !  character(len=*), intent(in) :: fileMesh
+  !  integer :: i, ios, errcode, Ierr
+  !  character :: lignevide
+  !
+  !  ! Read NbNode:
+  !  !   <0 cartesian;
+  !  !   >0 read from file
+  !  open(15, File=fileMesh, status="old", IOSTAT=ios)
+  !  if (ios /= 0) then 
+  !    print *,"Error impossible to open file :", trim(fileMesh)
+  !  endif
+  !  do i=1,3
+  !    read (15,'(a1)') lignevide
+  !  enddo
+  !  ! read number of nodes
+  !  read (15,*) NbNode
+  !  close(15)
+  !
+  !  if(NbNode<0) then
+  !      write(*,*) 'Reading cartesian grid was desactivated... use MeshTools.GridTools instead'
+  !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+  !    !call GlobalMesh_ReadMeshCar(fileMesh) ! cartesian mesh
+  !  else
+  !    call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
+  !  end if
+  !
+  !end subroutine GlobalMesh_Make_read_file
+  !
   subroutine GlobalMesh_Compute_all_connectivies()
 
     ! FacebyNode
@@ -290,49 +312,52 @@ contains
 
   end subroutine GlobalMesh_Compute_all_connectivies
 
-subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
-
-    ! #define _DEBUG_LVL1_
-#if defined _DEBUG_ && defined _DEBUG_LVL1_
-    fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
-    ! fdGm_unit = -3
-#else
-    open(unit=12, status='SCRATCH')
-    fdGm = 12
-    ! fdGm_unit = -1
-#endif
-
-    call GlobalMesh_MeshBoundingBox
-
-    call GlobalMesh_Compute_all_connectivies
-
-    CALL GlobalMesh_SetCellFlags
-    CALL GlobalMesh_SetFaceFlags
-    CALL GlobalMesh_SetNodeFlags
-
-    ! Frac
-    call GlobalMesh_SetFrac
-
-    ! IdNode Part 1: Nodes in Frac -> IdNode(.)%Frac
-    call GlobalMesh_NodeOfFrac
-
-    ! IdNode Part 2: Dir BC -> IdNode(.)%P, IdNode(.)%T
-    call GlobalMesh_SetDirBC
-
-    ! Fill FracbyNode
-    call GlobalMesh_FracbyNode
-
-end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
+!subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
+!
+!    ! #define _DEBUG_LVL1_
+!#if defined _DEBUG_ && defined _DEBUG_LVL1_
+!    fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
+!    ! fdGm_unit = -3
+!#else
+!    open(unit=12, status='SCRATCH')
+!    fdGm = 12
+!    ! fdGm_unit = -1
+!#endif
+!
+!    call GlobalMesh_MeshBoundingBox
+!
+!    call GlobalMesh_Compute_all_connectivies
+!
+!    !CALL GlobalMesh_SetCellFlags
+!    CellFlags = 1
+!    !CALL GlobalMesh_SetFaceFlags
+!    FaceFlags = 1
+!    !CALL GlobalMesh_SetNodeFlags
+!    NodeFlags = 1
+!    
+!    ! Frac
+!    !call GlobalMesh_SetFrac
+!
+!    ! IdNode Part 1: Nodes in Frac -> IdNode(.)%Frac
+!    call GlobalMesh_NodeOfFrac
+!
+!    ! IdNode Part 2: Dir BC -> IdNode(.)%P, IdNode(.)%T
+!    !call GlobalMesh_SetDirBC
+!
+!    ! Fill FracbyNode
+!    call GlobalMesh_FracbyNode
+!
+!end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
 
 
 subroutine GlobalMesh_allocate_rocktype()
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
-    ALLOCATE(FracRocktype(IndThermique+1,NbFace))
+    NodeRocktype = 1
     ALLOCATE(CellRocktype(IndThermique+1,NbCell))
-
-    CALL GlobalMesh_SetCellRocktype
-    CALL GlobalMesh_SetFracRocktype
+    CellRocktype = 1
+    ALLOCATE(FracRocktype(IndThermique+1,NbFace))
+    FracRockType = 1
 
 end subroutine GlobalMesh_allocate_rocktype
 
@@ -361,19 +386,23 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
     !    FractureIdbyNode%Num(i) = FracbyNode%Num(i)%fracture
     !end do
         
-    ! set porosity from file DefModel
-    CALL DefModel_SetPorosite( &
-      NbCell, CellRocktype, &
-      NbFrac, FracRocktype, &
-      PorositeCell, PorositeFrac)
+    allocate (PorositeCell(NbCell))
+    PorositeCell(:) = 1.d-99
+    allocate (PorositeFrac(NbFrac))
+    PorositeFrac(:) = 1.d-99
 
-    ! set permeabilites from file DefModel
-    CALL DefModel_SetPerm( &
-      NbCell, CellRocktype, &
-      NbFace, FracRocktype, &
-      PermCell, PermFrac)
+    allocate (PermCell(3, 3, NbCell))
+    do i = 1, NbCell
+        PermCell(:, :, i) = 0.d0
+        PermCell(1, 1, i) = 1.d-99
+        PermCell(2, 2, i) = 1.d-99
+        PermCell(3, 3, i) = 1.d-99
+    end do
 
-    CALL GlobalMesh_SetRocktype( &
+    allocate (PermFrac(NbFrac))
+    PermFrac(:) = 1.d-99
+
+      CALL GlobalMesh_SetRocktype( &
       NbNode, &
       NbCell, &
       IdNode%Frac /= "y", &
@@ -394,12 +423,19 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
 
     ! set conductivities thermal
 #ifdef _THERMIQUE_
-     CALL DefModel_SetCondThermique( &
-       NbCell, CellRocktype, &
-       NbFace, FracRocktype, &
-       CondThermalCell, CondThermalFrac)
 
-     CALL GlobalMesh_SetRocktype( &
+      allocate (CondThermalCell(3, 3, NbCell))
+      do i = 1, NbCell
+         CondThermalCell(:, :, i) = 0.d0
+         CondThermalCell(1, 1, i) = 2.d0
+         CondThermalCell(2, 2, i) = 2.d0
+         CondThermalCell(3, 3, i) = 2.d0
+      end do
+
+      allocate (CondThermalFrac(NbFrac))
+      CondThermalFrac(:) = 2.d0
+
+      CALL GlobalMesh_SetRocktype( &
        NbNode, &
        NbCell, &
        IdNode%Frac /= "y", &
@@ -418,19 +454,24 @@ subroutine GlobalMesh_Make_post_read_set_poroperm()
        FracbyNode, &
        NodeRocktype(2,:))
 
-    ALLOCATE(CellThermalSourceType(NbCell))
-    ALLOCATE(FracThermalSourceType(NbFace))
+    !ALLOCATE(CellThermalSourceType(NbCell))
+    !ALLOCATE(FracThermalSourceType(NbFace))
+    !
+    !CALL GlobalMesh_SetCellThermalSourceType
+    !CALL GlobalMesh_SetFracThermalSourceType
+    !
+    !CALL DefModel_SetThermalSource( &
+    !  NbCell, &
+    !  CellThermalSourceType, &
+    !  NbFace, &
+    !  FracThermalSourceType, &
+    !  CellThermalSource, &
+    !  FracThermalSource)
+    allocate(CellThermalSource(NbCell))
+    CellThermalSource = 0
+    allocate(FracThermalSource(NbFace))
+    FracThermalSource = 0
 
-    CALL GlobalMesh_SetCellThermalSourceType
-    CALL GlobalMesh_SetFracThermalSourceType
-
-    CALL DefModel_SetThermalSource( &
-      NbCell, &
-      CellThermalSourceType, &
-      NbFace, &
-      FracThermalSourceType, &
-      CellThermalSource, &
-      FracThermalSource)
 #endif
 
     !call CommonType_deallocCSR(FractureIdbyNode)
@@ -487,7 +528,6 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
 
   subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
 
-    ! Building well connectivity
     call GlobalMesh_WellConnectivity
 
     if(allocated(IdNodeFromFile)) then
@@ -505,17 +545,17 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
   !! set identificators for the fractures and the boundaries;
   !! set the porosity and the permeability;
   !! and compute the well indexes (using Peaceman formula).
-  subroutine GlobalMesh_Make_post_read
-
-    call GlobalMesh_Make_post_read_fracture_and_dirBC
-  
-    call GlobalMesh_allocate_rocktype
-
-    call GlobalMesh_Make_post_read_set_poroperm
-
-    call GlobalMesh_Make_post_read_well_connectivity_and_ip
-
-  end subroutine GlobalMesh_Make_post_read
+  !subroutine GlobalMesh_Make_post_read
+  !
+  !  call GlobalMesh_Make_post_read_fracture_and_dirBC
+  !
+  !  call GlobalMesh_allocate_rocktype
+  !
+  !  call GlobalMesh_Make_post_read_set_poroperm
+  !
+  !  call GlobalMesh_Make_post_read_well_connectivity_and_ip
+  !
+  !end subroutine GlobalMesh_Make_post_read
 
   subroutine GlobalMesh_allocate_flags()
 
@@ -755,38 +795,38 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
   !! and IdFace are build.
   !  Nodes in cell ordre of vtk_voxel
   !  Nodes in face order cicle (not same as vtk_pixel!)
-  subroutine GlobalMesh_ReadMeshCar(fileMesh)
-
-    ! Mesh file
-    character(len=*), intent(in) :: fileMesh
-
-    ! temporary vectors
-    character (1)  ::lignevide
-
-    ! domain informations read from meshfile
-    double precision :: lx,ly,lz
-    double precision :: Ox,Oy,Oz
-    integer :: i, ios, nx, ny, nz
-
-    ! Read nx, ny, nz and lx, ly, lz
-    open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
-    do i=1, 5
-      read (15,'(a1)') lignevide
-    enddo
-
-    read (15,*) nx,ny,nz 
-    read (15,'(a1)') lignevide
-    read (15,*) lx,ly,lz
-    read (15,'(a1)') lignevide
-    read (15,*) Ox,Oy,Oz
-
-    call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-
-    close(15)
-
-    call GlobalMesh_SetWellCar(nx,ny,nz)
-
-  end subroutine GlobalMesh_ReadMeshCar
+  !subroutine GlobalMesh_ReadMeshCar(fileMesh)
+  !
+  !  ! Mesh file
+  !  character(len=*), intent(in) :: fileMesh
+  !
+  !  ! temporary vectors
+  !  character (1)  ::lignevide
+  !
+  !  ! domain informations read from meshfile
+  !  double precision :: lx,ly,lz
+  !  double precision :: Ox,Oy,Oz
+  !  integer :: i, ios, nx, ny, nz
+  !
+  !  ! Read nx, ny, nz and lx, ly, lz
+  !  open(unit=15, File=fileMesh, status="old", IOSTAT=ios)
+  !  do i=1, 5
+  !    read (15,'(a1)') lignevide
+  !  enddo
+  !
+  !  read (15,*) nx,ny,nz 
+  !  read (15,'(a1)') lignevide
+  !  read (15,*) lx,ly,lz
+  !  read (15,'(a1)') lignevide
+  !  read (15,*) Ox,Oy,Oz
+  !
+  !  call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
+  !
+  !  close(15)
+  !
+  !  call GlobalMesh_SetWellCar(nx,ny,nz)
+  !
+  !end subroutine GlobalMesh_ReadMeshCar
 
   !> \brief Read mesh from Meshfile.
   !!
@@ -795,201 +835,201 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
   !! The subroutine fills FacebyCell, NodebyFace, NodebyCell
   !! and IdCell, IdFace with the data of the file.
   !! It also contains the Wells and fills NumNodebyEdgebyWell.
-  subroutine GlobalMesh_ReadMeshFromFile(fileMesh)
-
-    ! Mesh file
-    character(len=*), intent(in) :: fileMesh
-
-    character (1)  ::lignevide
-    double precision :: aux
-    integer :: i, kk , j, lect(50), is, ios
-    integer :: NbEdgesMaxInj, NbEdgesMaxProd
-
-    open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
-    do i=1,3
-      read(16,'(a1)') lignevide
-    enddo
-
-    ! read number of nodes
-    read(16,*) NbNode
-    read(16,'(a1)') lignevide
-    read(16,*) NbCell
-    read(16,'(a1)') lignevide
-    read(16,*) NbFace
-    read(16,'(a1)') lignevide
-
-    ! Coordinates of nodes
-    allocate(XNode(3,NbNode))
-    do i=1, NbNode
-      read(16,*) XNode(1,i), XNode(2,i), XNode(3,i)
-    end do
-
-    ! Cells / Faces - counting, 1st step
-    read(16,'(a1)') lignevide
-    FacebyCell%Nb = NbCell
-    allocate (FacebyCell%Pt(NbCell+1))
-    FacebyCell%Pt(1) = 0
-    do i=1,NbCell
-      read (16,*) kk,(lect(j),j=1,kk) 
-      FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
-    enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
-
-    ! Cells / Nodes - counting, 1st step
-    read(16,'(a1)') lignevide
-    NodebyCell%Nb = NbCell
-    allocate (NodebyCell%Pt(NbCell+1))
-    NodebyCell%Pt(1) = 0
-    do i=1,NbCell
-      read (16,*) kk,(lect(j),j=1,kk)
-      NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
-    enddo
-    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
-
-    ! Faces / Nodes - counting, 1st step
-    read(16,'(a1)') lignevide
-    NodebyFace%Nb = NbFace
-    allocate (NodebyFace%Pt(NbFace+1))
-    NodebyFace%Pt(1) = 0
-    do i=1,NbFace
-      read (16,*) kk,(lect(j),j=1,kk)
-      NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
-    enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
-
-    ! IdCell
-    ! rmq : homogene by default...
-    ! donc a voir si besoin des heterogeneites (calcul centre maille + fct test)
-    read(16,'(a1)') lignevide
-    allocate(IdCell(NbCell))
-    do i=1,NbCell
-      read(16,*) kk, IdCell(i)
-    enddo
-
-    ! IdFaces
-    read(16,'(a1)') lignevide
-    allocate(IdFace(NbFace))
-    do i=1, NbFace
-      read(16,*) IdFace(i)
-    enddo
-
-
-    ! IdNodeFromFile
-    allocate(IdNodeFromFile(NbNode))
-    ! read (16,'(a1)') lignevide
-    ! do i=1, NbNode
-    !    read(16,*) IdNodeFromFile(i)
-    ! enddo
-
-    ! Number of injection wells
-    read(16,'(a1)') lignevide
-    read(16,*) NbWellInj
-    allocate(NbEdgebyWellInj(NbWellInj))
-
-    ! Edges / Wells - counting, 1st step
-    do i=1,NbWellInj
-      read(16,'(a1)') lignevide
-      read(16,*) NbEdgebyWellInj(i)
-      do j=1,NbEdgebyWellInj(i)
-        read(16,'(a1)') lignevide
-      end do
-    end do
-    NbEdgesMaxInj = maxval(NbEdgebyWellInj)
-
-    ! Number of production wells
-    read(16,'(a1)') lignevide
-    read(16,*) NbWellProd
-    allocate(NbEdgebyWellProd(NbWellProd))
-
-    ! Edges / Wells - counting, 1st step
-    do i=1,NbWellProd
-      read(16,'(a1)') lignevide
-      read(16,*) NbEdgebyWellProd(i)
-      do j=1,NbEdgebyWellProd(i)
-        read(16,'(a1)') lignevide
-      end do
-    end do
-    NbEdgesMaxProd = maxval(NbEdgebyWellProd)
-
-    allocate(NumNodebyEdgebyWellInj(2,NbEdgesMaxInj,NbWellInj))
-    allocate(NumNodebyEdgebyWellProd(2,NbEdgesMaxProd,NbWellProd))
-    NumNodebyEdgebyWellInj = -1
-    NumNodebyEdgebyWellProd = -1
-
-    close(16)
-
-    !**** 2eme passe de remplissage *****
-    open(unit=16, File=fileMesh, status="old")
-
-    !**** 2nd step filling *****
-    rewind(16) ! go at the beginning of file(16)
-
-    do i = 1,9 ! skip the first lines
-      read (16,'(a1)') lignevide
-    enddo
-
-    read (16,*) (aux,aux,aux,is=1, NbNode)
-
-    ! Cells / Faces - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
-    enddo
-
-    ! Cells / Nodes - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
-    enddo
-
-    ! Faces / Nodes - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbFace
-      read (16,*) kk, (NodebyFace%Num(j),j=NodebyFace%Pt(i)+1,NodebyFace%Pt(i+1))
-    enddo
-
-    ! blank read material number (fill IdCell if heteregeonity)
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,'(a1)') lignevide
-    enddo
-
-    ! blank read faces->controlvolumes
-    read (16,'(a1)') lignevide
-    do i=1,NbFace
-      read (16,'(a1)') lignevide
-    enddo
-
-    read(16,'(a1)') lignevide
-    read(16,'(a1)') lignevide
-
-    ! Edges / Wells - filling, step 2
-    do i=1,NbWellInj
-      read(16,'(a1)') lignevide
-      read(16,'(a1)') lignevide
-      do j=1,NbEdgebyWellInj(i)
-        read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
-      enddo
-    enddo
-
-    read(16,'(a1)') lignevide
-    read(16,'(a1)') lignevide
-
-    ! Edges / Wells - filling, step 2
-    do i=1,NbWellProd
-      read(16,'(a1)') lignevide
-      read(16,'(a1)') lignevide
-      do j=1,NbEdgebyWellProd(i)
-        read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
-      enddo
-    enddo
-
-    close(16)
-
-    ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
-    call GlobalMesh_allocate_flags
-
-  end subroutine GlobalMesh_ReadMeshFromFile
+  !subroutine GlobalMesh_ReadMeshFromFile(fileMesh)
+  !
+  !  ! Mesh file
+  !  character(len=*), intent(in) :: fileMesh
+  !
+  !  character (1)  ::lignevide
+  !  double precision :: aux
+  !  integer :: i, kk , j, lect(50), is, ios
+  !  integer :: NbEdgesMaxInj, NbEdgesMaxProd
+  !
+  !  open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
+  !  do i=1,3
+  !    read(16,'(a1)') lignevide
+  !  enddo
+  !
+  !  ! read number of nodes
+  !  read(16,*) NbNode
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbCell
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbFace
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Coordinates of nodes
+  !  allocate(XNode(3,NbNode))
+  !  do i=1, NbNode
+  !    read(16,*) XNode(1,i), XNode(2,i), XNode(3,i)
+  !  end do
+  !
+  !  ! Cells / Faces - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  FacebyCell%Nb = NbCell
+  !  allocate (FacebyCell%Pt(NbCell+1))
+  !  FacebyCell%Pt(1) = 0
+  !  do i=1,NbCell
+  !    read (16,*) kk,(lect(j),j=1,kk) 
+  !    FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
+  !  enddo
+  !  allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+  !
+  !  ! Cells / Nodes - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  NodebyCell%Nb = NbCell
+  !  allocate (NodebyCell%Pt(NbCell+1))
+  !  NodebyCell%Pt(1) = 0
+  !  do i=1,NbCell
+  !    read (16,*) kk,(lect(j),j=1,kk)
+  !    NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
+  !  enddo
+  !  allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
+  !
+  !  ! Faces / Nodes - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  NodebyFace%Nb = NbFace
+  !  allocate (NodebyFace%Pt(NbFace+1))
+  !  NodebyFace%Pt(1) = 0
+  !  do i=1,NbFace
+  !    read (16,*) kk,(lect(j),j=1,kk)
+  !    NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
+  !  enddo
+  !  allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+  !
+  !  ! IdCell
+  !  ! rmq : homogene by default...
+  !  ! donc a voir si besoin des heterogeneites (calcul centre maille + fct test)
+  !  read(16,'(a1)') lignevide
+  !  allocate(IdCell(NbCell))
+  !  do i=1,NbCell
+  !    read(16,*) kk, IdCell(i)
+  !  enddo
+  !
+  !  ! IdFaces
+  !  read(16,'(a1)') lignevide
+  !  allocate(IdFace(NbFace))
+  !  do i=1, NbFace
+  !    read(16,*) IdFace(i)
+  !  enddo
+  !
+  !
+  !  ! IdNodeFromFile
+  !  allocate(IdNodeFromFile(NbNode))
+  !  ! read (16,'(a1)') lignevide
+  !  ! do i=1, NbNode
+  !  !    read(16,*) IdNodeFromFile(i)
+  !  ! enddo
+  !
+  !  ! Number of injection wells
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbWellInj
+  !  allocate(NbEdgebyWellInj(NbWellInj))
+  !
+  !  ! Edges / Wells - counting, 1st step
+  !  do i=1,NbWellInj
+  !    read(16,'(a1)') lignevide
+  !    read(16,*) NbEdgebyWellInj(i)
+  !    do j=1,NbEdgebyWellInj(i)
+  !      read(16,'(a1)') lignevide
+  !    end do
+  !  end do
+  !  NbEdgesMaxInj = maxval(NbEdgebyWellInj)
+  !
+  !  ! Number of production wells
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbWellProd
+  !  allocate(NbEdgebyWellProd(NbWellProd))
+  !
+  !  ! Edges / Wells - counting, 1st step
+  !  do i=1,NbWellProd
+  !    read(16,'(a1)') lignevide
+  !    read(16,*) NbEdgebyWellProd(i)
+  !    do j=1,NbEdgebyWellProd(i)
+  !      read(16,'(a1)') lignevide
+  !    end do
+  !  end do
+  !  NbEdgesMaxProd = maxval(NbEdgebyWellProd)
+  !
+  !  allocate(NumNodebyEdgebyWellInj(2,NbEdgesMaxInj,NbWellInj))
+  !  allocate(NumNodebyEdgebyWellProd(2,NbEdgesMaxProd,NbWellProd))
+  !  NumNodebyEdgebyWellInj = -1
+  !  NumNodebyEdgebyWellProd = -1
+  !
+  !  close(16)
+  !
+  !  !**** 2eme passe de remplissage *****
+  !  open(unit=16, File=fileMesh, status="old")
+  !
+  !  !**** 2nd step filling *****
+  !  rewind(16) ! go at the beginning of file(16)
+  !
+  !  do i = 1,9 ! skip the first lines
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  read (16,*) (aux,aux,aux,is=1, NbNode)
+  !
+  !  ! Cells / Faces - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
+  !  enddo
+  !
+  !  ! Cells / Nodes - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
+  !  enddo
+  !
+  !  ! Faces / Nodes - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbFace
+  !    read (16,*) kk, (NodebyFace%Num(j),j=NodebyFace%Pt(i)+1,NodebyFace%Pt(i+1))
+  !  enddo
+  !
+  !  ! blank read material number (fill IdCell if heteregeonity)
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  ! blank read faces->controlvolumes
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbFace
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  read(16,'(a1)') lignevide
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Edges / Wells - filling, step 2
+  !  do i=1,NbWellInj
+  !    read(16,'(a1)') lignevide
+  !    read(16,'(a1)') lignevide
+  !    do j=1,NbEdgebyWellInj(i)
+  !      read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
+  !    enddo
+  !  enddo
+  !
+  !  read(16,'(a1)') lignevide
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Edges / Wells - filling, step 2
+  !  do i=1,NbWellProd
+  !    read(16,'(a1)') lignevide
+  !    read(16,'(a1)') lignevide
+  !    do j=1,NbEdgebyWellProd(i)
+  !      read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
+  !    enddo
+  !  enddo
+  !
+  !  close(16)
+  !
+  !  ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
+  !  call GlobalMesh_allocate_flags
+  !
+  !end subroutine GlobalMesh_ReadMeshFromFile
 
   ! Output:
   !   CellbyCellGlobal
@@ -1296,8 +1336,8 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
     deallocate(CondThermalCell)
     deallocate(CondThermalFrac)
 
-    deallocate(CellThermalSourceType)
-    deallocate(FracThermalSourceType)
+    !deallocate(CellThermalSourceType)
+    !deallocate(FracThermalSourceType)
 
     deallocate(CellThermalSource)
     deallocate(FracThermalSource)

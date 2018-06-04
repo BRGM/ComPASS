@@ -35,7 +35,10 @@ module DefModel
    integer, parameter :: PHASE_GAS = 1
    integer, parameter :: PHASE_WATER = 2
 
-   ! CpRoche
+   !FIXME: this is used for wells which are monophasic
+   integer, parameter :: LIQUID_PHASE = PHASE_WATER
+
+    ! CpRoche
    double precision, parameter :: CpRoche = 800.d0*2000.d0 !< ???
 
    ! Thermique
@@ -115,120 +118,5 @@ module DefModel
                         1.d0, 0.d0, & ! ic=3
                         0.d0, 1.d0 &
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
-
-contains
-
-   !> \brief User set permeability
-   !!
-   !! \param[in] NbCellG,NbFracG Global number of cell and fracture face
-   !! \param[in] IdCellG it is possible to set different permeability by rocktype
-   !! \param[in,out] PermCellG Permeability tensor for each cell
-   !! \param[in,out] PermFracG Permeability constant for each fracture face
-   subroutine DefModel_SetPerm( &
-      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
-      PermCellG, PermFracG)
-
-      integer, intent(in) :: NbCellG
-      integer, dimension(:, :), intent(in) :: CellRocktypeG
-      integer, intent(in) :: NbFracG
-      integer, dimension(:, :), intent(in) :: FracRocktypeG
-      ! ouptuts:
-      double precision, dimension(:, :, :), allocatable, intent(inout) :: &
-         PermCellG
-      double precision, dimension(:), allocatable, intent(inout) :: &
-         PermFracG
-
-      integer :: i
-
-      ! allocate and set values
-      allocate (PermCellG(3, 3, NbCellG))
-      do i = 1, NbCellG
-         PermCellG(:, :, i) = 0.d0
-         PermCellG(1, 1, i) = 1.d-14
-         PermCellG(2, 2, i) = 1.d-14
-         PermCellG(3, 3, i) = 1.d-14
-      end do
-
-      allocate (PermFracG(NbFracG))
-      PermFracG(:) = 1.d-11
-
-   end subroutine DefModel_SetPerm
-
-   subroutine DefModel_SetPorosite( &
-      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
-      PorositeCell, PorositeFrac)
-
-      integer, intent(in) :: NbCellG
-      integer, dimension(:, :), intent(in) :: CellRocktypeG
-      integer, intent(in) :: NbFracG
-      integer, dimension(:, :), intent(in) :: FracRocktypeG
-      ! ouptuts:
-      double precision, dimension(:), allocatable, intent(inout) :: &
-         PorositeCell
-      double precision, dimension(:), allocatable, intent(inout) :: &
-         PorositeFrac
-
-      allocate (PorositeCell(NbCellG))
-      allocate (PorositeFrac(NbFracG))
-
-      PorositeCell(:) = 1.d-1
-      PorositeFrac(:) = 4.d-1
-   end subroutine DefModel_SetPorosite
-
-#ifdef _THERMIQUE_
-
-   subroutine DefModel_SetCondThermique( &
-      NbCellG, CellRocktypeG, NbFracG, FracRocktypeG, &
-      CondThermalCellG, CondThermalFracG)
-
-      integer, intent(in) :: NbCellG
-      integer, dimension(:, :), intent(in) :: CellRocktypeG
-      integer, intent(in) :: NbFracG
-      integer, dimension(:, :), intent(in) :: FracRocktypeG
-
-      ! ouptuts:
-      double precision, dimension(:, :, :), allocatable, intent(inout) :: &
-         CondThermalCellG
-      double precision, dimension(:), allocatable, intent(inout) :: &
-         CondThermalFracG
-
-      integer :: i
-
-      allocate (CondThermalCellG(3, 3, NbCellG))
-      do i = 1, NbCellG
-         CondThermalCellG(:, :, i) = 0.d0
-         CondThermalCellG(1, 1, i) = 2.d0
-         CondThermalCellG(2, 2, i) = 2.d0
-         CondThermalCellG(3, 3, i) = 2.d0
-      end do
-
-      allocate (CondThermalFracG(NbFracG))
-      CondThermalFracG(:) = 2.d0
-
-   end subroutine DefModel_SetCondThermique
-
-   SUBROUTINE DefModel_SetThermalSource( &
-      NbCell, &
-      CellThermalSourceType, &
-      NbFrac, &
-      FracThermalSourceType, &
-      CellThermalSource, &
-      FracThermalSource)
-
-      INTEGER, INTENT(IN) :: NbCell
-      INTEGER, DIMENSION(:), INTENT(IN) :: CellThermalSourceType
-      INTEGER, INTENT(IN) :: NbFrac
-      INTEGER, DIMENSION(:), INTENT(IN) :: FracThermalSourceType
-      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: CellThermalSource
-      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: FracThermalSource
-
-      ALLOCATE (CellThermalSource(NbCell))
-      CellThermalSource = 0.d0
-
-      ALLOCATE (FracThermalSource(NbFrac))
-      FracThermalSource = 0.d0
-   END SUBROUTINE DefModel_SetThermalSource
-
-#endif
 
 end module DefModel

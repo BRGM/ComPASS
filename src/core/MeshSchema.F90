@@ -160,8 +160,8 @@ module MeshSchema
        CondThermalFracLocal
 
   ! Thermal source
-  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, PUBLIC :: CellThermalSourceLocal
-  DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE, PUBLIC :: FracThermalSourceLocal
+  real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: CellThermalSourceLocal
+  real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: FracThermalSourceLocal
 #endif
 
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
