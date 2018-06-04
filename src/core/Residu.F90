@@ -9,7 +9,9 @@
 module Residu
 
    use DefModel
-   use IncCV
+   use IncCVReservoir
+   use IncCVWells
+    use NeumannContribution
    use LoisThermoHydro
    use Flux
 

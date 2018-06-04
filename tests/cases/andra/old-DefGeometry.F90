@@ -156,11 +156,11 @@ SUBROUTINE GlobalMesh_SetNodeFlags
 END SUBROUTINE GlobalMesh_SetNodeFlags
 
 
-! Set dirichlet boundary
-!    cartesian mesh:   manually
-!    other mesh: manually or
-!                according to IdNodeFromfile could be served
-! The node index read from mesh file is: IdNodeFromfile (integer)
+ Set dirichlet boundary
+    cartesian mesh:   manually
+    other mesh: manually or
+                according to IdNodeFromfile could be served
+ The node index read from mesh file is: IdNodeFromfile (integer)
 subroutine GlobalMesh_SetDirBC
 
   integer :: i, j
