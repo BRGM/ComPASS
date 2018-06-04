@@ -15,8 +15,8 @@ variables:
   CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
   #DOCKER_DRIVER: overlay2
 
-services:
-  - docker:dind
+#services:
+#  - docker:dind
 
 # first build epos_gui image to run in docker.
 before_script:
