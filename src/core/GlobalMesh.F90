@@ -178,7 +178,7 @@ module GlobalMesh
 
   ! main subroutine in this module
   public :: &
-    GlobalMesh_Make_read_file, &
+    !GlobalMesh_Make_read_file, &
     !GlobalMesh_Make_post_read, &
     GlobalMesh_free
 
@@ -187,7 +187,7 @@ module GlobalMesh
   public :: &
     GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
     !GlobalMesh_ReadMeshCar,          & ! generate cartesian mesh
-    GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
+    !GlobalMesh_ReadMeshFromFile,     & ! read mesh from file
     GlobalMesh_FaceByNodeGlobal,     & ! make FacebyNode
     GlobalMesh_CellByNodeGlobal,     & ! make CellbyNode
     GlobalMesh_CellByCellGlobal,     & ! make CellbyCell
@@ -266,36 +266,36 @@ contains
 
   end subroutine GlobalMesh_SetFrac
 
-  subroutine GlobalMesh_Make_read_file(fileMesh)
-
-    character(len=*), intent(in) :: fileMesh
-    integer :: i, ios, errcode, Ierr
-    character :: lignevide
-
-    ! Read NbNode:
-    !   <0 cartesian;
-    !   >0 read from file
-    open(15, File=fileMesh, status="old", IOSTAT=ios)
-    if (ios /= 0) then 
-      print *,"Error impossible to open file :", trim(fileMesh)
-    endif
-    do i=1,3
-      read (15,'(a1)') lignevide
-    enddo
-    ! read number of nodes
-    read (15,*) NbNode
-    close(15)
-
-    if(NbNode<0) then
-        write(*,*) 'Reading cartesian grid was desactivated... use MeshTools.GridTools instead'
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      !call GlobalMesh_ReadMeshCar(fileMesh) ! cartesian mesh
-    else
-      call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
-    end if
-
-  end subroutine GlobalMesh_Make_read_file
-
+  !subroutine GlobalMesh_Make_read_file(fileMesh)
+  !
+  !  character(len=*), intent(in) :: fileMesh
+  !  integer :: i, ios, errcode, Ierr
+  !  character :: lignevide
+  !
+  !  ! Read NbNode:
+  !  !   <0 cartesian;
+  !  !   >0 read from file
+  !  open(15, File=fileMesh, status="old", IOSTAT=ios)
+  !  if (ios /= 0) then 
+  !    print *,"Error impossible to open file :", trim(fileMesh)
+  !  endif
+  !  do i=1,3
+  !    read (15,'(a1)') lignevide
+  !  enddo
+  !  ! read number of nodes
+  !  read (15,*) NbNode
+  !  close(15)
+  !
+  !  if(NbNode<0) then
+  !      write(*,*) 'Reading cartesian grid was desactivated... use MeshTools.GridTools instead'
+  !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+  !    !call GlobalMesh_ReadMeshCar(fileMesh) ! cartesian mesh
+  !  else
+  !    call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
+  !  end if
+  !
+  !end subroutine GlobalMesh_Make_read_file
+  !
   subroutine GlobalMesh_Compute_all_connectivies()
 
     ! FacebyNode
@@ -835,201 +835,201 @@ end subroutine GlobalMesh_Make_post_read_set_poroperm
   !! The subroutine fills FacebyCell, NodebyFace, NodebyCell
   !! and IdCell, IdFace with the data of the file.
   !! It also contains the Wells and fills NumNodebyEdgebyWell.
-  subroutine GlobalMesh_ReadMeshFromFile(fileMesh)
-
-    ! Mesh file
-    character(len=*), intent(in) :: fileMesh
-
-    character (1)  ::lignevide
-    double precision :: aux
-    integer :: i, kk , j, lect(50), is, ios
-    integer :: NbEdgesMaxInj, NbEdgesMaxProd
-
-    open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
-    do i=1,3
-      read(16,'(a1)') lignevide
-    enddo
-
-    ! read number of nodes
-    read(16,*) NbNode
-    read(16,'(a1)') lignevide
-    read(16,*) NbCell
-    read(16,'(a1)') lignevide
-    read(16,*) NbFace
-    read(16,'(a1)') lignevide
-
-    ! Coordinates of nodes
-    allocate(XNode(3,NbNode))
-    do i=1, NbNode
-      read(16,*) XNode(1,i), XNode(2,i), XNode(3,i)
-    end do
-
-    ! Cells / Faces - counting, 1st step
-    read(16,'(a1)') lignevide
-    FacebyCell%Nb = NbCell
-    allocate (FacebyCell%Pt(NbCell+1))
-    FacebyCell%Pt(1) = 0
-    do i=1,NbCell
-      read (16,*) kk,(lect(j),j=1,kk) 
-      FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
-    enddo
-    allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
-
-    ! Cells / Nodes - counting, 1st step
-    read(16,'(a1)') lignevide
-    NodebyCell%Nb = NbCell
-    allocate (NodebyCell%Pt(NbCell+1))
-    NodebyCell%Pt(1) = 0
-    do i=1,NbCell
-      read (16,*) kk,(lect(j),j=1,kk)
-      NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
-    enddo
-    allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
-
-    ! Faces / Nodes - counting, 1st step
-    read(16,'(a1)') lignevide
-    NodebyFace%Nb = NbFace
-    allocate (NodebyFace%Pt(NbFace+1))
-    NodebyFace%Pt(1) = 0
-    do i=1,NbFace
-      read (16,*) kk,(lect(j),j=1,kk)
-      NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
-    enddo
-    allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
-
-    ! IdCell
-    ! rmq : homogene by default...
-    ! donc a voir si besoin des heterogeneites (calcul centre maille + fct test)
-    read(16,'(a1)') lignevide
-    allocate(IdCell(NbCell))
-    do i=1,NbCell
-      read(16,*) kk, IdCell(i)
-    enddo
-
-    ! IdFaces
-    read(16,'(a1)') lignevide
-    allocate(IdFace(NbFace))
-    do i=1, NbFace
-      read(16,*) IdFace(i)
-    enddo
-
-
-    ! IdNodeFromFile
-    allocate(IdNodeFromFile(NbNode))
-    ! read (16,'(a1)') lignevide
-    ! do i=1, NbNode
-    !    read(16,*) IdNodeFromFile(i)
-    ! enddo
-
-    ! Number of injection wells
-    read(16,'(a1)') lignevide
-    read(16,*) NbWellInj
-    allocate(NbEdgebyWellInj(NbWellInj))
-
-    ! Edges / Wells - counting, 1st step
-    do i=1,NbWellInj
-      read(16,'(a1)') lignevide
-      read(16,*) NbEdgebyWellInj(i)
-      do j=1,NbEdgebyWellInj(i)
-        read(16,'(a1)') lignevide
-      end do
-    end do
-    NbEdgesMaxInj = maxval(NbEdgebyWellInj)
-
-    ! Number of production wells
-    read(16,'(a1)') lignevide
-    read(16,*) NbWellProd
-    allocate(NbEdgebyWellProd(NbWellProd))
-
-    ! Edges / Wells - counting, 1st step
-    do i=1,NbWellProd
-      read(16,'(a1)') lignevide
-      read(16,*) NbEdgebyWellProd(i)
-      do j=1,NbEdgebyWellProd(i)
-        read(16,'(a1)') lignevide
-      end do
-    end do
-    NbEdgesMaxProd = maxval(NbEdgebyWellProd)
-
-    allocate(NumNodebyEdgebyWellInj(2,NbEdgesMaxInj,NbWellInj))
-    allocate(NumNodebyEdgebyWellProd(2,NbEdgesMaxProd,NbWellProd))
-    NumNodebyEdgebyWellInj = -1
-    NumNodebyEdgebyWellProd = -1
-
-    close(16)
-
-    !**** 2eme passe de remplissage *****
-    open(unit=16, File=fileMesh, status="old")
-
-    !**** 2nd step filling *****
-    rewind(16) ! go at the beginning of file(16)
-
-    do i = 1,9 ! skip the first lines
-      read (16,'(a1)') lignevide
-    enddo
-
-    read (16,*) (aux,aux,aux,is=1, NbNode)
-
-    ! Cells / Faces - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
-    enddo
-
-    ! Cells / Nodes - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
-    enddo
-
-    ! Faces / Nodes - filling, step 2
-    read (16,'(a1)') lignevide
-    do i=1,NbFace
-      read (16,*) kk, (NodebyFace%Num(j),j=NodebyFace%Pt(i)+1,NodebyFace%Pt(i+1))
-    enddo
-
-    ! blank read material number (fill IdCell if heteregeonity)
-    read (16,'(a1)') lignevide
-    do i=1,NbCell
-      read (16,'(a1)') lignevide
-    enddo
-
-    ! blank read faces->controlvolumes
-    read (16,'(a1)') lignevide
-    do i=1,NbFace
-      read (16,'(a1)') lignevide
-    enddo
-
-    read(16,'(a1)') lignevide
-    read(16,'(a1)') lignevide
-
-    ! Edges / Wells - filling, step 2
-    do i=1,NbWellInj
-      read(16,'(a1)') lignevide
-      read(16,'(a1)') lignevide
-      do j=1,NbEdgebyWellInj(i)
-        read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
-      enddo
-    enddo
-
-    read(16,'(a1)') lignevide
-    read(16,'(a1)') lignevide
-
-    ! Edges / Wells - filling, step 2
-    do i=1,NbWellProd
-      read(16,'(a1)') lignevide
-      read(16,'(a1)') lignevide
-      do j=1,NbEdgebyWellProd(i)
-        read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
-      enddo
-    enddo
-
-    close(16)
-
-    ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
-    call GlobalMesh_allocate_flags
-
-  end subroutine GlobalMesh_ReadMeshFromFile
+  !subroutine GlobalMesh_ReadMeshFromFile(fileMesh)
+  !
+  !  ! Mesh file
+  !  character(len=*), intent(in) :: fileMesh
+  !
+  !  character (1)  ::lignevide
+  !  double precision :: aux
+  !  integer :: i, kk , j, lect(50), is, ios
+  !  integer :: NbEdgesMaxInj, NbEdgesMaxProd
+  !
+  !  open(unit=16, File=fileMesh, status="old", IOSTAT=ios)
+  !  do i=1,3
+  !    read(16,'(a1)') lignevide
+  !  enddo
+  !
+  !  ! read number of nodes
+  !  read(16,*) NbNode
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbCell
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbFace
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Coordinates of nodes
+  !  allocate(XNode(3,NbNode))
+  !  do i=1, NbNode
+  !    read(16,*) XNode(1,i), XNode(2,i), XNode(3,i)
+  !  end do
+  !
+  !  ! Cells / Faces - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  FacebyCell%Nb = NbCell
+  !  allocate (FacebyCell%Pt(NbCell+1))
+  !  FacebyCell%Pt(1) = 0
+  !  do i=1,NbCell
+  !    read (16,*) kk,(lect(j),j=1,kk) 
+  !    FacebyCell%Pt(i+1) = FacebyCell%Pt(i) + kk
+  !  enddo
+  !  allocate (FacebyCell%Num(FacebyCell%Pt(NbCell+1))) 
+  !
+  !  ! Cells / Nodes - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  NodebyCell%Nb = NbCell
+  !  allocate (NodebyCell%Pt(NbCell+1))
+  !  NodebyCell%Pt(1) = 0
+  !  do i=1,NbCell
+  !    read (16,*) kk,(lect(j),j=1,kk)
+  !    NodebyCell%Pt(i+1) = NodebyCell%Pt(i) + kk 
+  !  enddo
+  !  allocate(NodebyCell%Num(NodebyCell%Pt(NbCell+1))) 
+  !
+  !  ! Faces / Nodes - counting, 1st step
+  !  read(16,'(a1)') lignevide
+  !  NodebyFace%Nb = NbFace
+  !  allocate (NodebyFace%Pt(NbFace+1))
+  !  NodebyFace%Pt(1) = 0
+  !  do i=1,NbFace
+  !    read (16,*) kk,(lect(j),j=1,kk)
+  !    NodebyFace%Pt(i+1) = NodebyFace%Pt(i) + kk 
+  !  enddo
+  !  allocate(NodebyFace%Num(NodebyFace%Pt(NbFace+1))) 
+  !
+  !  ! IdCell
+  !  ! rmq : homogene by default...
+  !  ! donc a voir si besoin des heterogeneites (calcul centre maille + fct test)
+  !  read(16,'(a1)') lignevide
+  !  allocate(IdCell(NbCell))
+  !  do i=1,NbCell
+  !    read(16,*) kk, IdCell(i)
+  !  enddo
+  !
+  !  ! IdFaces
+  !  read(16,'(a1)') lignevide
+  !  allocate(IdFace(NbFace))
+  !  do i=1, NbFace
+  !    read(16,*) IdFace(i)
+  !  enddo
+  !
+  !
+  !  ! IdNodeFromFile
+  !  allocate(IdNodeFromFile(NbNode))
+  !  ! read (16,'(a1)') lignevide
+  !  ! do i=1, NbNode
+  !  !    read(16,*) IdNodeFromFile(i)
+  !  ! enddo
+  !
+  !  ! Number of injection wells
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbWellInj
+  !  allocate(NbEdgebyWellInj(NbWellInj))
+  !
+  !  ! Edges / Wells - counting, 1st step
+  !  do i=1,NbWellInj
+  !    read(16,'(a1)') lignevide
+  !    read(16,*) NbEdgebyWellInj(i)
+  !    do j=1,NbEdgebyWellInj(i)
+  !      read(16,'(a1)') lignevide
+  !    end do
+  !  end do
+  !  NbEdgesMaxInj = maxval(NbEdgebyWellInj)
+  !
+  !  ! Number of production wells
+  !  read(16,'(a1)') lignevide
+  !  read(16,*) NbWellProd
+  !  allocate(NbEdgebyWellProd(NbWellProd))
+  !
+  !  ! Edges / Wells - counting, 1st step
+  !  do i=1,NbWellProd
+  !    read(16,'(a1)') lignevide
+  !    read(16,*) NbEdgebyWellProd(i)
+  !    do j=1,NbEdgebyWellProd(i)
+  !      read(16,'(a1)') lignevide
+  !    end do
+  !  end do
+  !  NbEdgesMaxProd = maxval(NbEdgebyWellProd)
+  !
+  !  allocate(NumNodebyEdgebyWellInj(2,NbEdgesMaxInj,NbWellInj))
+  !  allocate(NumNodebyEdgebyWellProd(2,NbEdgesMaxProd,NbWellProd))
+  !  NumNodebyEdgebyWellInj = -1
+  !  NumNodebyEdgebyWellProd = -1
+  !
+  !  close(16)
+  !
+  !  !**** 2eme passe de remplissage *****
+  !  open(unit=16, File=fileMesh, status="old")
+  !
+  !  !**** 2nd step filling *****
+  !  rewind(16) ! go at the beginning of file(16)
+  !
+  !  do i = 1,9 ! skip the first lines
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  read (16,*) (aux,aux,aux,is=1, NbNode)
+  !
+  !  ! Cells / Faces - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,*) kk, (FacebyCell%Num(j),j=FacebyCell%Pt(i)+1,FacebyCell%Pt(i+1)) 
+  !  enddo
+  !
+  !  ! Cells / Nodes - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,*) kk, (NodebyCell%Num(j),j=NodebyCell%Pt(i)+1,NodebyCell%Pt(i+1)) 
+  !  enddo
+  !
+  !  ! Faces / Nodes - filling, step 2
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbFace
+  !    read (16,*) kk, (NodebyFace%Num(j),j=NodebyFace%Pt(i)+1,NodebyFace%Pt(i+1))
+  !  enddo
+  !
+  !  ! blank read material number (fill IdCell if heteregeonity)
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbCell
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  ! blank read faces->controlvolumes
+  !  read (16,'(a1)') lignevide
+  !  do i=1,NbFace
+  !    read (16,'(a1)') lignevide
+  !  enddo
+  !
+  !  read(16,'(a1)') lignevide
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Edges / Wells - filling, step 2
+  !  do i=1,NbWellInj
+  !    read(16,'(a1)') lignevide
+  !    read(16,'(a1)') lignevide
+  !    do j=1,NbEdgebyWellInj(i)
+  !      read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
+  !    enddo
+  !  enddo
+  !
+  !  read(16,'(a1)') lignevide
+  !  read(16,'(a1)') lignevide
+  !
+  !  ! Edges / Wells - filling, step 2
+  !  do i=1,NbWellProd
+  !    read(16,'(a1)') lignevide
+  !    read(16,'(a1)') lignevide
+  !    do j=1,NbEdgebyWellProd(i)
+  !      read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
+  !    enddo
+  !  enddo
+  !
+  !  close(16)
+  !
+  !  ! CHECKME/FIXME: Is number of faces (NbFace) is correct here ?
+  !  call GlobalMesh_allocate_flags
+  !
+  !end subroutine GlobalMesh_ReadMeshFromFile
 
   ! Output:
   !   CellbyCellGlobal
