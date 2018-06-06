@@ -1795,7 +1795,7 @@ contains
 
        if(FluxDarcyKI(mph,s,k)>=0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=...
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=...
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
