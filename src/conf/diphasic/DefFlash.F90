@@ -70,7 +70,8 @@ contains
       !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
 
       IF (ic == 2) THEN
-         CALL air_henry(T, Ha)
+        ! air fugacity
+        CALL air_henry(T, Ha)
          PgCag = inc%Comp(1, PHASE_WATER)*Ha
 
          RZetal = 8.314d0*1000.d0/0.018d0
@@ -78,9 +79,10 @@ contains
 
          iph = 2
          CALL f_PressionCapillaire(rt, iph, S, Pc, DSPc)
-
+         ! liquid fugacity
          PgCeg = inc%Comp(2, PHASE_WATER)*Psat*DEXP(Pc/(T*RZetal))
 
+         ! don't divide inequality by Pg (migth be negative during Newton iteration)
          IF (PgCag + PgCeg > Pg) THEN
 
 !        write(*,*)' apparition gas ', Pg, T
