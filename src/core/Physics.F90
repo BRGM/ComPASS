@@ -15,4 +15,9 @@ module Physics
     !FIXME: must be put elsewhere and must be an array
     real(c_double) :: Thickness = 1.d0 !< Thickness of the fractures
 
+    !FIXME: must be put elsewhere and must be an array
+    !       we wait for v.4.1.0 and parameter distribution from python
+    ! Volumetric heat capacity
+    real(c_double) :: CpRoche = 800.d0*2000.d0 !< J/m3
+
 end module Physics
