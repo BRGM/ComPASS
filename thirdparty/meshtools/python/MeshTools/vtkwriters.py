@@ -461,6 +461,12 @@ def write_unstructured_snapshots(
         extension='.vtu', indent=' ' * 2, newl='\n',
     )
 
+def points_as_vtu(vertices):
+    tmp = np.reshape(vertices, (-1, 3))
+    return vtu_doc(
+            tmp,
+            np.rehsape(np.arange(tmp.shape[0]), (-1, 1)),
+            )
 
 if __name__ == '__main__':
     import itertools
