@@ -18,7 +18,12 @@ module SolvePetsc
 
   use Jacobian
 
-#include <finclude/petscdef.h>
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
+#include <finclude/petscdef.h> 
+#else
+#include <petsc/finclude/petsc.h>
+#endif
+
   use petsc
 
   implicit none
@@ -965,8 +970,14 @@ contains
     CHKERRQ(Ierr)
     call PCHYPRESetType(pcamg_p, "boomeramg", Ierr)
     CHKERRQ(Ierr)
+
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
     call PetscOptionsSetValue("-pc_hypre_boomeramg_strong_threshold","0.5",Ierr)
+#else
+    call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_hypre_boomeramg_strong_threshold","0.5",Ierr)
+#endif
     CHKERRQ(Ierr)
+
     call PCSetFromOptions(pcamg_p, Ierr)
     CHKERRQ(Ierr)
 
@@ -976,6 +987,8 @@ contains
     CHKERRQ(Ierr)
     call PCSetOperators(pcilu0, A_mpi, A_mpi, Ierr)
     CHKERRQ(Ierr)
+
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
     call PCSetType(pcilu0, PCHYPRE, Ierr)
     CHKERRQ(Ierr)
     call PCHYPRESetType(pcilu0, "euclid", Ierr)
@@ -983,7 +996,12 @@ contains
     call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr)
     CHKERRQ(Ierr)
     call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
+    CHKERRQ(Ierr)    
+#else
+    call PCSetType(pcilu0, PCBJACOBI, Ierr)	
     CHKERRQ(Ierr)
+#endif
+
     call PCSetFromOptions(pcilu0, Ierr)
     CHKERRQ(Ierr)
 

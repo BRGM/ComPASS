@@ -33,6 +33,10 @@ set( ComPASSCore_SRCS
     CommonType.F90
     GlobalMesh.F90
     IncCV.F90
+    IncCVReservoir.F90
+    IncCVWells.F90
+    DirichletContribution.F90
+    NeumannContribution.F90
     Flux.F90
     Jacobian.F90 
     LocalMesh.F90
@@ -47,6 +51,11 @@ set( ComPASSCore_SRCS
     SolvePetsc.F90
     VAGFrac.F90
     NN.F90
+)
+
+set( ComPASSWells_SRCS
+    DefWell.F90
+    DefFlashWells.F90
 )
 
 # FIXME: DISPMODULE from Thibault branch ?
@@ -67,16 +76,11 @@ foreach(_src ${ComPASSCore_SRCS})
 endforeach()
 set(ComPASSCore_SRCS ${_tmp})
 
-set( MAIN_SRCS
-  ComPASS.F90
-  PathUtilities.F90
-)
-
 unset(_tmp)
-foreach(_src ${MAIN_SRCS})
-    list(APPEND _tmp main/${_src})
+foreach(_src ${ComPASSWells_SRCS})
+    list(APPEND _tmp wells/${_src})
 endforeach()
-set(MAIN_SRCS ${_tmp})
+set(ComPASSWells_SRCS ${_tmp})
 
 # Configuration to be built
 set( CONFIGURATIONS
@@ -86,50 +90,9 @@ set( CONFIGURATIONS
 
 set( CONF_SRCS
     DefFlash.F90
-    DefFlashWells.F90
     DefModel.F90
-    DefWell.F90
     Thermodynamics.F90
 )
-
-if(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
-foreach(_conf ${CONFIGURATIONS})
-    set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
-    set(CONF_DIR conf/${_conf})
-    set(CONF_TARGETNAME ComPASS-${_conf})
-    set(CONF_ALL_SRCS ${ComPASSCore_SRCS})
-    foreach(_src ${CONF_SRCS})
-        list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
-    endforeach()
-    add_executable(${CONF_TARGETNAME} ${CONF_ALL_SRCS} ${MAIN_SRCS})
-    set_target_properties(${CONF_TARGETNAME}
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    )
-    
-    set_target_properties(${CONF_TARGETNAME} PROPERTIES LINKER_LANGUAGE Fortran)
-
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
-    set_target_properties(${CONF_TARGETNAME}
-        PROPERTIES
-        COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
-    )
-    target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
-    target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
-    # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-    target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
-    if(DEF_HDF5)
-        target_include_directories(${CONF_TARGETNAME} PUBLIC ${HDF5_INCLUDE_DIRS})
-        target_compile_definitions(${CONF_TARGETNAME} PUBLIC ${HDF5_Fortran_DEFINITIONS})
-        target_link_libraries(${CONF_TARGETNAME} ${HDF5_Fortran_LIBRARIES} ${HDF5_Fortran_HL_LIBRARIES})
-    endif(DEF_HDF5)
-    include(${CONF_DIR}/cmake.conf)
-endforeach()
-endif(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE)
 
 set( WRAPPERS_SRCS
   ArrayWrapper.h
@@ -183,7 +146,7 @@ foreach(_conf ${CONFIGURATIONS})
     set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASSlib-${_conf})
-    set(CONF_ALL_SRCS ${ComPASSCore_SRCS})
+    set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
@@ -213,23 +176,21 @@ foreach(_conf ${CONFIGURATIONS})
     target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
     include(${CONF_DIR}/cmake.conf)
 
-    if(DEF_Python_BINDINGS)
-        set(eos_target ${_conf})
-        pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
-        target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})
-        set_target_properties(${eos_target}
-            PROPERTIES
-            CXX_STANDARD 14
-            CXX_STANDARD_REQUIRED YES
-            CXX_EXTENSIONS NO
-            LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_EOS_DIRECTORY}
-            LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_EOS_DIRECTORY}
-            LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_EOS_DIRECTORY}
-        )
-        include_directories(${pybind11_INCLUDE_DIR})
-        target_include_directories(${eos_target} PUBLIC ${pybind11_INCLUDE_DIR})
-        target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
-    endif(DEF_Python_BINDINGS)
+    set(eos_target ${_conf})
+    pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
+    target_compile_definitions(${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target})
+    set_target_properties(${eos_target}
+        PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+        LIBRARY_OUTPUT_DIRECTORY ${pyComPASS_EOS_DIRECTORY}
+        LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_EOS_DIRECTORY}
+        LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_EOS_DIRECTORY}
+    )
+    include_directories(${pybind11_INCLUDE_DIR})
+    target_include_directories(${eos_target} PUBLIC ${pybind11_INCLUDE_DIR})
+    target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
     
 endforeach()
 

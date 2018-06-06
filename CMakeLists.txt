@@ -38,20 +38,15 @@ set(COMPASS_PYTHON_DIRECTORY ${PROJECT_SOURCE_DIR}/python CACHE PATH "python pac
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(${THIRD_PARTY_DIR})
 
-option(DEF_BUILD_COMPASS_v3_FORTRAN_EXECUTABLE "Builds ComPASS v.3 executable" OFF)
-option(DEF_Python_BINDINGS "Builds ComPASS python module" ON)
-
-if(DEF_Python_BINDINGS)
-  set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
-  # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
-  if(NOT ${PYTHONINTERP_FOUND})
+set(PYBIND11_PYTHON_VERSION 3 CACHE STRING "Python version to use for compiling modules")
+# The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+if(NOT ${PYTHONINTERP_FOUND})
     message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
-  endif(NOT ${PYTHONINTERP_FOUND})
-  # The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
-  if(NOT ${PYTHONLIBS_FOUND})
+endif(NOT ${PYTHONINTERP_FOUND})
+# The following test is not mandatory as python interpreter comes as a by-product of requiring pybind11
+if(NOT ${PYTHONLIBS_FOUND})
     message(FATAL_ERROR "python libraries are mandatory, CMake will stop.")
-  endif(NOT ${PYTHONLIBS_FOUND})
-endif(DEF_Python_BINDINGS)
+endif(NOT ${PYTHONLIBS_FOUND})
 
 ########### Configuration options
 
@@ -89,11 +84,14 @@ set(CMAKE_FIND_DIR ${CMAKE_SOURCE_DIR}/CMake)
 find_package(MPI REQUIRED)
 find_package(METIS REQUIRED)
 find_package(PETSc REQUIRED)
-# cache PETSC version
-set(PETSC_VERSION ${PETSC_VERSION} CACHE INTERNAL "PETSC version") 
-if(${PETSC_VERSION} VERSION_GREATER 3.6)
-    message(FATAL_ERROR "PETSC version should not be greater than 3.5.x")
-endif()
+
+if(${PETSC_VERSION} VERSION_LESS 3.6)
+    add_definitions(-DCOMPASS_PETSC_VERSION_LESS_3_6)
+elseif(${PETSC_VERSION} VERSION_LESS 3.8)
+    message(FATAL_ERROR "Your PETSc version is " ${PETSC_VERSION} ".
+    Please use a PETSc version lower or equal to 3.5.4 or greater or equal to 3.8.0.")
+endif(${PETSC_VERSION} VERSION_LESS 3.6)
+
 find_package(LAPACK REQUIRED)
 
 enable_testing()

@@ -5,7 +5,13 @@ DefFiles-Feng/
 foo/
 python/output-*
 src/conf/dummy/
-tests/
 python/Lamentin/
 *.log
 *.vtu
+*.png
+*.npz
+*.msh
+output-*/*
+*/output-*/
+tests/sanity/elder/output-elder/
+tests/sanity/SO1/output-SO1/
