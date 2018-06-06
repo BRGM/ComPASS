@@ -1392,6 +1392,7 @@ contains
 
     dval(:,:) = 0.d0
 
+    ! secondary staturation is the first non present phase
     DO i=1, NbPhasePresente - 1
       iph = NumPhasePresente(i)
 
