@@ -41,9 +41,6 @@ module DefModel
   !FIXME: this is used for wells which are monophasic
   integer, parameter :: LIQUID_PHASE = PHASE_WATER
 
-  ! CpRoche
-  double precision, parameter :: CpRoche = 2000.d0*1000.d0 !< en volumique
-
   ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1
