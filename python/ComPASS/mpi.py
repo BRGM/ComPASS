@@ -10,7 +10,8 @@
 from mpi4py import MPI
 
 proc_rank = MPI.COMM_WORLD.rank
-is_on_master_proc = proc_rank==0
+master_proc_rank = 0
+is_on_master_proc = proc_rank==master_proc_rank
 
 def communicator():
     return MPI.COMM_WORLD
