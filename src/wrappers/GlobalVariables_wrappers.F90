@@ -24,6 +24,8 @@
           set_final_time, &
           get_gravity, &
           set_gravity, &
+          get_volumetric_heat_capacity, &
+          set_volumetric_heat_capacity, &
           get_fracture_thickness, &
           set_fracture_thickness, &
           get_initial_timestep, &
@@ -68,6 +70,18 @@
           real(c_double), value, intent(in) :: g
           gravity = g
        end subroutine set_gravity
+
+       function get_volumetric_heat_capacity() result(cp) &
+          bind(C, name="get_volumetric_heat_capacity")
+          real(c_double) :: cp
+          cp = CpRoche
+       end function get_volumetric_heat_capacity
+
+       subroutine set_volumetric_heat_capacity(cp) &
+          bind(C, name="set_volumetric_heat_capacity")
+          real(c_double), value, intent(in) :: cp
+          CpRoche = cp
+       end subroutine set_volumetric_heat_capacity
 
        function get_fracture_thickness() result(d) &
           bind(C, name="get_fracture_thickness")
