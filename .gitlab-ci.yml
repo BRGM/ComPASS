@@ -22,7 +22,7 @@ variables:
 before_script:
   - echo "Preparing build..."
   - docker info
- # - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
    
 
 after_script:
@@ -42,6 +42,7 @@ deploy:
   stage: deploy
   script:
     - echo "deploy"
+       - docker push $CONTAINER_IMAGE:$CI_COMMIT_SHA
     #  - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
     #  - docker stop epos-gui || true && docker rm epos-gui || true
     #  - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
