@@ -2,12 +2,12 @@ From debian:buster
 # as builder remove because gitlab runner version is older than this feature.
 #to uncomment when building @BRGM
 #ENV http_proxy='http://proxy.brgm.fr:8080/'
-RUN  apt-get update && apt-get install --yes build-essential gcc gfortran cmake libmetis-dev python3 
+RUN  apt-get update && apt-get install --yes build-essential gcc gfortran cmake libmetis-dev python3 mpi-default-dev petsc-dev python3-dev
 WORKDIR /build/
 RUN mkdir /source/
 COPY ./ /source/ComPASS-develop
 #RUN cd /source && tar xzf ComPASS-develop.tar.gz && ls -al /source/
-mpi-default-dev petsc-dev python3-dev
+
 RUN CC=mpicc cmake ../source/ComPASS-develop && make
 
 
