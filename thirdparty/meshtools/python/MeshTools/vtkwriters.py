@@ -14,8 +14,10 @@ vtk_celltype = ({
     'point': 1, 'vertex': 1, 'pt': 1,
     'line': 3,
     'triangle': 5, 'tri': 5,
+    'pixel': 8,
     'quad': 9,
     'tetrahedron': 10, 'tet': 10,
+    'voxel': 11,
     'hexahedron': 12, 'hex': 12,
     'wedge': 13,
 })
@@ -461,6 +463,12 @@ def write_unstructured_snapshots(
         extension='.vtu', indent=' ' * 2, newl='\n',
     )
 
+def points_as_vtu(vertices):
+    tmp = np.reshape(vertices, (-1, 3))
+    return vtu_doc(
+            tmp,
+            np.rehsape(np.arange(tmp.shape[0]), (-1, 1)),
+            )
 
 if __name__ == '__main__':
     import itertools

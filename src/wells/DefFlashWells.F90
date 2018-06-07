@@ -6,16 +6,16 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp, thermal well
+! Model: 2 phase 2 comp, context switch
 
 !> \brief Define the flash to determine the phases
 !! which are actualy present in each cell, and
 !! the mode of the well (flowrate or pressure).
 module DefFlashWells
 
-   use DefModel
-   use IncCV
    use Physics
+   use Thermodynamics
+   use IncCVReservoir
    use VAGFrac
    use LoisThermoHydro
 
@@ -50,7 +50,7 @@ module DefFlashWells
 
    public :: &
       DefFlashWells_allocate, & ! Allocation, initialization and deallocation (in NN.F90)
-      DefFlashWells_NewtonFlashLinWells, &
+      DefFlashWells_NewtonFlashLinWells, & ! Flash after each Newton iteration
       DefFlashWells_TimeFlash, & ! Flash after each time step
       DefFlashWells_free
 
@@ -281,7 +281,7 @@ contains
          Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
          R(PHASE_WATER, s) = IncNode(nums)%Pression - PerfoWellInj(s)%PressureDrop ! R_s = P_s^{n} - PressureDrop_{w,s}^{n-1}
          Sw(PHASE_WATER) = 1.d0 ! Monophasic liquid
-!       Sw(PHASE_GAS) = 0.d0
+         Sw(PHASE_GAS) = 0.d0
          Cw = DataWellInjLocal(nWell)%CompTotal
          rt = NodeRocktype(:, s)
 
@@ -599,7 +599,6 @@ contains
    subroutine DefFlashWells_FlowrateWellProd(num_Well)
 
       integer, intent(in) :: num_Well
-
       integer :: s, nums, icp, m, mph, sparent
       double precision :: Pws, Ps, WIDws
       double precision:: Flux_ks(NbComp), FluxT_ks
@@ -766,7 +765,7 @@ contains
       integer :: k, s, icp, sparent, Nnz, i
       logical :: converged
 
-!    Sat(PHASE_GAS) = 0.d0
+      Sat(PHASE_GAS) = 0.d0
       Sat(PHASE_WATER) = 1.d0
 
       summolarFluxProd(:, :) = 0.d0
@@ -810,7 +809,7 @@ contains
             end do
 
             ! initialize newton with Tsat
-            call DefModel_Tsat(PerfoWellProd(s)%Pression, T, dP_Tsat)
+            call FluidThermodynamics_Tsat(PerfoWellProd(s)%Pression, T, dP_Tsat)
 
             converged = .false.
 
@@ -908,14 +907,14 @@ contains
             ID_PHASE = -1
             ! then T=Tsat(P)
 #ifdef _THERMIQUE_
-            call DefModel_Tsat(Pws, Tsat, dP_Tsat)
+            call FluidThermodynamics_Tsat(Pws, Tsat, dP_Tsat)
 #endif
             Temp = Tsat
 
             ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
             ! molarFrac is not used in the computation of the enthalpies
 #ifdef _THERMIQUE_
-!          call f_Enthalpie(PHASE_GAS, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
+            call f_Enthalpie(PHASE_GAS, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
             call f_Enthalpie(PHASE_WATER, Pws, Temp, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
 #endif
             ! and compute liq_molarfrac
@@ -1074,7 +1073,7 @@ contains
    !       Ptmp = PerfoWellInj(pts1)%Pression
    !       ztmp = XNodeLocal(3, nums1) ! just to check we are OK
 
-   !       dz = (XNodeLocal(3, nums2) - XNodeLocal(3, nums1)) / dble(Nslice)
+   !       dz = (XNodeLocal(3, nums2) - XNodeLocal(3, nums1)) / dble(WellsNslice)
    !       ! pressure update loop:  p^{n+1} = p^{n} + rho(p^{n}) * g * (z^{n+1} - z^{n})
    !       do i=1, WellsNslice
    !         ztmp = ztmp + dz
