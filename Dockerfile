@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install --yes python3-mpi4py python3-numpy metis l
 WORKDIR /build/
 COPY ./docker/script/docker_entrypoint.sh /
 COPY --from=builder /source/ComPASS-develop/python ./compassModule
-COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python/MeshTools ./meshtoolsModule
+COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python ./meshtoolsModule
 VOLUME [/data]
 
 
