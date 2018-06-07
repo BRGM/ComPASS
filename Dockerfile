@@ -1,4 +1,4 @@
-From debian:buster
+From debian:buster as builder
 # as builder remove because gitlab runner version is older than this feature.
 #to uncomment when building @BRGM
 #ENV http_proxy='http://proxy.brgm.fr:8080/'
@@ -20,8 +20,8 @@ RUN apt-get update && apt-get install --yes python3-mpi4py python3-numpy metis l
 #&& rm -rf /var/lib/apt/lists/*
 WORKDIR /build/
 COPY ./docker/script/docker_entrypoint.sh /
-COPY --from=0 /source/ComPASS-develop/python ./compassModule
-COPY --from=0 /source/ComPASS-develop/thirdparty/meshtools/python/MeshTools ./meshtoolsModule
+COPY --from=builder /source/ComPASS-develop/python ./compassModule
+COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python/MeshTools ./meshtoolsModule
 VOLUME [/data]
 
 
