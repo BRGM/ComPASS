@@ -14,7 +14,7 @@
 module DefFlashWells
 
    use DefModel
-   use IncCV
+   !use IncCVReservoir
    use Physics
    use VAGFrac
    use LoisThermoHydro

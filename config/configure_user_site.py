@@ -35,11 +35,12 @@ def add_pth_file_to_user_site(mname, mpath, message=True):
 def add(mname, mpath):
     assert sys.version_info.major == 3
     # ModuleNotFoundError is new version 3.6.
-    if sys.version_info.minor < 6:
-        ModuleNotFoundError = ImportError
+    ModuleNotFound = ImportError
+    if sys.version_info.minor > 5:
+        ModuleNotFound = ModuleNotFoundError
     try:
         mfound = importlib.import_module(mname)
-    except ModuleNotFoundError:
+    except ModuleNotFound:
         mfound = None 
     if mfound is not None:
         mfoundpath, mfile = os.path.split(mfound.__file__)

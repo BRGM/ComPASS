@@ -13,7 +13,7 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
-   use IncCV
+   use IncCVReservoir
    use Physics
    use VAGFrac ! to have rocktypes
 
@@ -61,7 +61,7 @@ contains
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
    subroutine DefFlash_Flash_cv(inc, rt, porovol)
 
-      type(Type_IncCV), intent(inout) :: inc
+      type(Type_IncCVReservoir), intent(inout) :: inc
       INTEGER, INTENT(IN) :: rt(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 

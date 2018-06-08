@@ -12,7 +12,9 @@
        use, intrinsic :: iso_c_binding
 
        use DefModel
-       use IncCV
+       use IncCVReservoir
+       use IncCVWells
+       use DirichletContribution
        use CommonTypesWrapper
 
        implicit none
@@ -45,13 +47,13 @@
        function size_of_unknowns() result(n) &
           bind(C, name="size_of_unknowns")
           integer(c_int) :: n
-          type(TYPE_IncCV) :: dummy
+          type(TYPE_IncCVReservoir) :: dummy
           n = sizeof(dummy)
        end function size_of_unknowns
 
        subroutine retrieve_state_array(states, cpp_array)
 
-          TYPE(TYPE_IncCV), allocatable, dimension(:), target, intent(inout) :: states
+          TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, intent(inout) :: states
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: n
 

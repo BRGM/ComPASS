@@ -6,10 +6,9 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp thermal, MCP=(1,1)
+! Model: 1 phase 1 comp thermal, MCP
 
-! 1: Gas
-! 2: Water
+! 1: Water
 
 module DefModel
 
@@ -23,7 +22,10 @@ module DefModel
       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
       NbPhase = ComPASS_NUMBER_OF_PHASES
 
-   integer, parameter :: &
+    !FIXME: Asssume that the latest phase is the liquid phase
+    integer, parameter :: LIQUID_PHASE = NbPhase
+
+    integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
    ! MCP
@@ -31,14 +33,7 @@ module DefModel
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
 
-   ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-   integer, parameter :: PHASE_GAS = 1
-   integer, parameter :: PHASE_WATER = 2
-
-   !FIXME: this is used for wells which are monophasic
-   integer, parameter :: LIQUID_PHASE = PHASE_WATER
-
-    ! CpRoche
+   ! CpRoche
    double precision, parameter :: CpRoche = 800.d0*2000.d0 !< ???
 
    ! Thermique
@@ -78,16 +73,12 @@ module DefModel
 
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
-                       1, 2, & ! ic=1
-                       1, 2, & ! ic=2
-                       1, 5 & ! ic=3
+                       1, 2 & ! ic=1
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       3, 4, 0, & ! ic=1
-                       3, 4, 0, & ! ic=2
-                       2, 3, 4 & ! ic=3
+                       3, 4, 0 & ! ic=1
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
@@ -110,12 +101,6 @@ module DefModel
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
                         1.d0, 0.d0, & ! ic=1
-                        0.d0, 1.d0, &
-                        !
-                        1.d0, 0.d0, & ! ic=2
-                        0.d0, 1.d0, &
-                        !
-                        1.d0, 0.d0, & ! ic=3
                         0.d0, 1.d0 &
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
