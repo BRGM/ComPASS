@@ -67,7 +67,7 @@ module DefModel
 
   ! ! ****** How to choose primary variables ****** ! !
 
-  ! Served in module LoisthermoHydro.F90
+  ! Used in module LoisthermoHydro.F90
 
   ! pschoice=1: manually
   !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
@@ -104,11 +104,11 @@ module DefModel
 
   ! ! ****** Alignment method ****** ! !
 
-  ! Served in module Jacobian.F90
+  ! Used in module Jacobian.F90
   ! The idea is to have postive diagonal using linear combinations
   ! (alternative is to used inverse of block = LC of)
   ! good for LU O (pas bonne pour amg)
-  ! not used if not preconditionner (but avoir pivoting)
+  ! not used if not preconditionner (but avoid pivoting)
   ! aligmethod=1, manually
   !     it is necessary to give a three-dimension matrix: aligmat
   !     aligmat(:,:,ic) is the alignment matrix for context ic

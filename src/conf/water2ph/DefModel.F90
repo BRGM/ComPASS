@@ -62,10 +62,14 @@ module DefModel
 
    ! ! ****** How to choose primary variables ****** ! !
 
-   ! Served in module LoisthermoHydro.F90
+   ! Used in module LoisthermoHydro.F90
 
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
+  ! WARNING
+  ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
+  ! P est forcement primaire et en numero 1
+  ! Si T est primaire elle doit etre en numero 2
    ! pschoice=2: Glouton method
    !     the matrix psprim and pssecd are defined formally for compile
    ! pschoise=3: Gauss method
@@ -73,24 +77,32 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+   integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
+   private :: P, T, C, Sg, Sl
+   
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
-                       1, 2, & ! ic=1
-                       1, 2, & ! ic=2
-                       1, 5 & ! ic=3
+                       P, T, & ! ic=1
+                       P, T, & ! ic=2
+                       P, Sl & ! ic=3
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
+  ! Sum Salpha =1 was already eliminated
+   ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       3, 4, 0, & ! ic=1
-                       3, 4, 0, & ! ic=2
-                       2, 3, 4 & ! ic=3
+                       C, Sg, 0, & ! ic=1
+                       C, Sg, 0, & ! ic=2
+                       T, C, Sg &  ! ic=3
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
 
-   ! Served in module Jacobian.F90
-
+  ! Used in module Jacobian.F90
+  ! The idea is to have postive diagonal using linear combinations
+  ! (alternative is to used inverse of block = LC of)
+  ! good for LU O (pas bonne pour amg)
+  ! not used if not preconditionner (but avoid pivoting)
    ! aligmethod=1, manually
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic
