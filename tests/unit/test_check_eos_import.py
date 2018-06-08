@@ -10,5 +10,6 @@ def import_eos(eos):
     return True
 
 def test_import_all_eos():
+    assert import_eos('liquid_water')
     assert import_eos('water2ph')
     assert import_eos('diphasic')
