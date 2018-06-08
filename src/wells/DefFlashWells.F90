@@ -13,6 +13,7 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlashWells
 
+   use DefModel
    use Physics
    use Thermodynamics
    use IncCVReservoir
@@ -53,6 +54,9 @@ module DefFlashWells
       DefFlashWells_NewtonFlashLinWells, & ! Flash after each Newton iteration
       DefFlashWells_TimeFlash, & ! Flash after each time step
       DefFlashWells_free
+
+   private :: &
+      DefFlashWells_Flash_cv
 
    private :: &
       DefFlashWells_NewtonFlashLinWellInj, & ! Flash after each Newton iteratio
@@ -206,6 +210,22 @@ contains
 
    end subroutine DefFlashWells_SortHeights_and_Init
 
+   !> \brief Determine the phases
+   !! which are actualy present.
+   !!
+   !! Applied to IncNode, IncFrac and IncCell.
+   !! \param[in]      porovol   porous Volume ?????
+   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
+   subroutine DefFlashWells_Flash_cv(inc, rocktype, porovol)
+
+      type(TYPE_IncCVReservoir), intent(inout) :: inc
+      INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
+      double precision, intent(in) :: porovol ! porovol
+
+      inc%ic = 1
+
+   end subroutine DefFlashWells_Flash_cv
+
    !> \brief Non linear update of Pw and
    !! determine the mode of the injection well
    !! (flowrate or pressure). The injection
@@ -279,25 +299,25 @@ contains
          nums = NodebyWellInjLocal%Num(s)
          Pws = IncPressionWellInj(nWell) + PerfoWellInj(s)%PressureDrop ! P_{w,s} = P_w^{n} + PressureDrop_{w,s}^{n-1}
          Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
-         R(PHASE_WATER, s) = IncNode(nums)%Pression - PerfoWellInj(s)%PressureDrop ! R_s = P_s^{n} - PressureDrop_{w,s}^{n-1}
-         Sw(PHASE_WATER) = 1.d0 ! Monophasic liquid
-         Sw(PHASE_GAS) = 0.d0
+         R(LIQUID_PHASE, s) = IncNode(nums)%Pression - PerfoWellInj(s)%PressureDrop ! R_s = P_s^{n} - PressureDrop_{w,s}^{n-1}
+         Sw(:) = 0.d0
+         Sw(LIQUID_PHASE) = 1.d0 ! Monophasic liquid
          Cw = DataWellInjLocal(nWell)%CompTotal
          rt = NodeRocktype(:, s)
 
-         ! PHASE_WATER (monophasic in injection well)
+         ! LIQUID_PHASE (monophasic in injection well)
          ! Molar density
-         call f_DensiteMolaire(PHASE_WATER, Pws, Tws, Cw, Sw, &
+         call f_DensiteMolaire(LIQUID_PHASE, Pws, Tws, Cw, Sw, &
                                DensiteMolaire, dPf, dTf, dCf, dSf)
          ! viscosity
-         call f_Viscosite(PHASE_WATER, Pws, Tws, Cw, Sw, &
+         call f_Viscosite(LIQUID_PHASE, Pws, Tws, Cw, Sw, &
                           Viscosity, dPf, dTf, dCf, dSf)
          ! Permrel
-         call f_PermRel(rt, PHASE_WATER, Sw, PermRel, dSf)
+         call f_PermRel(rt, LIQUID_PHASE, Sw, PermRel, dSf)
 
-         Mob(PHASE_WATER, s) = PermRel*DensiteMolaire/Viscosity*WIDws
+         Mob(LIQUID_PHASE, s) = PermRel*DensiteMolaire/Viscosity*WIDws
          ! initialization of RSorted before calling QuickSortCSR
-         RSortedInj%Val(s) = R(PHASE_WATER, s)
+         RSortedInj%Val(s) = R(LIQUID_PHASE, s)
          RSortedInj%Num(s) = s
       enddo ! node s
 
@@ -307,7 +327,7 @@ contains
       call QuickSortCSR(RSortedInj, RSortedInj%Pt(nWell) + 1, RSortedInj%Pt(nWell + 1), 'i')
       ! sort CSR Mob in same order than RSortedInj
       do s = RSortedInj%Pt(nWell) + 1, RSortedInj%Pt(nWell + 1)
-         MobSortedInj(s) = Mob(PHASE_WATER, RSortedInj%Num(s))
+         MobSortedInj(s) = Mob(LIQUID_PHASE, RSortedInj%Num(s))
       enddo
 
       ! compute Flow(i) = sum_{j=1}^{i-1} MobSortedInj(j) * (RSortedInj%Val(i) - RSortedInj%Val(j))
@@ -765,8 +785,8 @@ contains
       integer :: k, s, icp, sparent, Nnz, i
       logical :: converged
 
-      Sat(PHASE_GAS) = 0.d0
-      Sat(PHASE_WATER) = 1.d0
+      Sat(:) = 0.d0
+      Sat(LIQUID_PHASE) = 1.d0
 
       summolarFluxProd(:, :) = 0.d0
       sumnrjFluxProd(:) = 0.d0
@@ -815,7 +835,7 @@ contains
 
             do i = 1, WellsNewtonMaxiter
 
-               call f_Enthalpie(PHASE_WATER, Pws, T, Ci(:), Sat(:), &
+               call f_Enthalpie(LIQUID_PHASE, Pws, T, Ci(:), Sat(:), &
                                 H, dPf, dTf, dCf, dSf)
 
                RT = E - H*sumci ! residu
@@ -836,7 +856,7 @@ contains
 
             ! update PhysPerfoWell
             PerfoWellProd(s)%Temperature = T
-            call f_DensiteMassique(PHASE_WATER, Pws, T, Ci, Sat, rhoMean, &
+            call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, Sat, rhoMean, &
                                    dPf, dTf, dCf, dSf)
             PerfoWellProd(s)%Density = rhoMean
 
@@ -860,7 +880,7 @@ contains
       double precision :: sumci, E, Res, Pdrop
       ! not used, empty passed to f_Enthalpie
       double precision :: dPf, dTf, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
-      integer :: Nnz, nWell, s, sparent, icp, i, ID_PHASE ! ID_PHASE=(-1 if diphasique, PHASE_GAS if gas, PHASE_WATER if liq)
+      integer :: Nnz, nWell, s, sparent, icp, i, ID_PHASE ! ID_PHASE=(-1 if diphasique, PHASE_GAS if gas, LIQUID_PHASE if liq)
 
       summolarFluxProd(:, :) = 0.d0
       sumnrjFluxProd(:) = 0.d0
@@ -914,19 +934,19 @@ contains
             ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
             ! molarFrac is not used in the computation of the enthalpies
 #ifdef _THERMIQUE_
-            call f_Enthalpie(PHASE_GAS, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
-            call f_Enthalpie(PHASE_WATER, Pws, Temp, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
+            !call f_Enthalpie(GAS_PHASE, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
+            call f_Enthalpie(LIQUID_PHASE, Pws, Temp, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
 #endif
-            ! and compute liq_molarfrac
-            liq_molarfrac = (Hgas - sumnrjFluxProd(s)/totalMolarFlux)/(Hgas - Hliq)
-
-            if (liq_molarfrac < 0.d0) then ! the hypothesis that the two phases are present is wrong: only gas
-               liq_molarfrac = 0.d0
-               ID_PHASE = PHASE_GAS
-            else if (liq_molarfrac > 1.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
+            !! and compute liq_molarfrac
+            !liq_molarfrac = (Hgas - sumnrjFluxProd(s)/totalMolarFlux)/(Hgas - Hliq)
+            !
+            !if (liq_molarfrac < 0.d0) then ! the hypothesis that the two phases are present is wrong: only gas
+            !   liq_molarfrac = 0.d0
+            !   ID_PHASE = PHASE_GAS
+            !else if (liq_molarfrac > 1.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
                liq_molarfrac = 1.d0
-               ID_PHASE = PHASE_WATER
-            endif
+               ID_PHASE = LIQUID_PHASE
+            !endif
 
             if (ID_PHASE > 0) then
 
@@ -961,8 +981,8 @@ contains
 
             ! we deduce the mean density
             ! molarFrac is not used in the computation of the massique densities
-            call f_DensiteMassique(PHASE_GAS, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
-            call f_DensiteMassique(PHASE_WATER, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
+            !call f_DensiteMassique(PHASE_GAS, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
+            call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
             PerfoWellProd(s)%Density = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
 
             ! fill PhysPerfoWell%T
@@ -1068,7 +1088,7 @@ contains
    !       nums2 = NodebyWellInjLocal%Num(pts2)
 
    !       Sat(PHASE_GAS) = 0.d0
-   !       Sat(PHASE_WATER) = 1.d0
+   !       Sat(LIQUID_PHASE) = 1.d0
 
    !       Ptmp = PerfoWellInj(pts1)%Pression
    !       ztmp = XNodeLocal(3, nums1) ! just to check we are OK
@@ -1077,7 +1097,7 @@ contains
    !       ! pressure update loop:  p^{n+1} = p^{n} + rho(p^{n}) * g * (z^{n+1} - z^{n})
    !       do i=1, WellsNslice
    !         ztmp = ztmp + dz
-   !         call f_DensiteMolaire(PHASE_WATER, Ptmp, PerfoWellInj(pts1)%Temperature, &
+   !         call f_DensiteMolaire(LIQUID_PHASE, Ptmp, PerfoWellInj(pts1)%Temperature, &
    !             DataWellInjLocal(k)%CompTotal, Sat, Rhotmp, dPf, dTf, dCf, dSf)
    !         ! gravity points downwards, heights points upwards, hence the negative sign
    !         Ptmp = Ptmp - gravity * Rhotmp * dz

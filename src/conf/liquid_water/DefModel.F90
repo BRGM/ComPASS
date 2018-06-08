@@ -33,9 +33,6 @@ module DefModel
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
 
-   ! CpRoche
-   double precision, parameter :: CpRoche = 800.d0*2000.d0 !< ???
-
    ! Thermique
 #ifdef _THERMIQUE_
    integer, parameter :: IndThermique = 1
