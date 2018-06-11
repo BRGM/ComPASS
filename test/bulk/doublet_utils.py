@@ -40,8 +40,7 @@ def init_states(p, T):
         set_states(states)
 
 def make_well(xy, well_radius = None):
-    vertices = np.rec.array(ComPASS.global_vertices())
-    x, y, z = vertices.x, vertices.y, vertices.z
+    x, y, z = ComPASS.coordinates(ComPASS.global_vertices())
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]
     well_nodes = np.nonzero((x == x_well) & (y == y_well))[0]
