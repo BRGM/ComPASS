@@ -52,11 +52,11 @@ Grid = GT.GridInfo
 def abort(message):
     print('''
 
-!!!
-!!! %s
-!!!
+!! ERROR !!
+!! ERROR !! %s
+!! ERROR !!
 ''' % message)
-    ComPASS.mpi.MPI.Abort()       
+    ComPASS.mpi.MPI.COMM_WORLD.Abort()       
 
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
