@@ -71,6 +71,7 @@ contains
 
    end subroutine f_Fugacity
 
+   ! FIXME: To be removed
    subroutine check_array_interop(ina, outa) &
       bind(C, name="check_array_interop")
 

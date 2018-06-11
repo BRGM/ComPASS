@@ -26,8 +26,8 @@ module Thermodynamics
   public :: &
       f_EnergieInterne,     &
       f_Enthalpie, &
-      Thermodynamics_Psat, &
-      Thermodynamics_Tsat
+      FluidThermodynamics_Psat, &
+      FluidThermodynamics_Tsat
 #endif
 
 contains
@@ -81,7 +81,7 @@ contains
         dSf = 0.d0
       ELSE
         CALL f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-        CALL Thermodynamics_Psat(T, Psat, dTSat)
+        CALL FluidThermodynamics_Psat(T, Psat, dTSat)
 
         f = Psat * DEXP(Pc/(T*RZetal))
 
@@ -138,7 +138,8 @@ contains
   ! Densite molaire
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
+  subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_molar_density")
 
     ! input
     INTEGER, INTENT(IN) :: iph
@@ -221,7 +222,8 @@ contains
   ! Viscosities
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
+  subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
     ! input
     integer, intent(in) :: iph
@@ -443,7 +445,8 @@ contains
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
   ! If Enthalpide depends on the compositon C, change DefFlash.F90
-  subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
+  subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_molar_enthalpy")
 
     ! input
     integer, intent(in) :: iph
@@ -511,7 +514,8 @@ contains
 
 #ifdef _THERMIQUE_
   ! Compute Psat(T)
-  subroutine Thermodynamics_Psat(T, Psat, dT_PSat)
+  subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
+      bind(C, name="FluidThermodynamics_Psat")
 
     double precision, intent(in) :: T
     double precision, intent(out) :: Psat, dT_PSat
@@ -519,11 +523,12 @@ contains
     Psat = 1.013E+5*dexp(13.7d0 -5120.d0/T)
     dT_PSat = 5120.d0*Psat/T**2
 
-  end subroutine Thermodynamics_Psat
+  end subroutine FluidThermodynamics_Psat
 
 
   ! Compute Tsat(P)
-  subroutine Thermodynamics_Tsat(P, Tsat, dP_Tsat)
+  subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
+      bind(C, name="FluidThermodynamics_Tsat")
 
     double precision, intent(in) :: P
     double precision, intent(out) :: Tsat, dP_Tsat
@@ -531,7 +536,7 @@ contains
     Tsat = - 5120.d0 / (DLOG(P/1.013E+5) - 13.7d0)
     dP_Tsat = 5120.d0 * ( 1.013E+5  / P ) / (DLOG(P/1.013E+5) - 13.7d0)**2
 
-  end subroutine Thermodynamics_Tsat
+  end subroutine FluidThermodynamics_Tsat
 
 #endif
 
