@@ -44,6 +44,9 @@ py::module& add_array_wrapper(py::module& module, const char *getter_name, void(
 	return module;
 }
 
+// FIXME: Creating local reference through py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{}
+// is a bit weird/dangerous ?
+// User buffer_info instead or a DummyStructure so that the returned array is not a copy ?
 template <typename Wrapper>
 py::module& add_vertices_array_wrapper(py::module& module, const char *getter_name, void(*bind)(Wrapper&))
 {
@@ -52,7 +55,8 @@ py::module& add_vertices_array_wrapper(py::module& module, const char *getter_na
             auto wrapper = Wrapper{};
             bind(wrapper);
             return py::array_t<double, py::array::c_style>{ 
-                std::vector<std::size_t>({wrapper.length, 3}), wrapper.pointer
+                std::vector<std::size_t>({wrapper.length, 3}), wrapper.pointer,
+                py::array_t<double, py::array::c_style>{}
             };
         } );
     return module;
