@@ -60,9 +60,11 @@ extern "C"
 	void retrieve_global_id_faces(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
 	void retrieve_fracture_porosity(ArrayWrapper&);
-	void retrieve_cell_permeability(ArrayWrapper&);
-	void retrieve_fracture_permeability(ArrayWrapper&);
-	void retrieve_global_id_node(XArrayWrapper<NodeInfo>&);
+    void retrieve_cell_permeability(ArrayWrapper&);
+    void retrieve_fracture_permeability(ArrayWrapper&);
+    void retrieve_cell_thermal_conductivity(ArrayWrapper&);
+    void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
+    void retrieve_global_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_frac_face_id(XArrayWrapper<int>&);
 	void retrieve_face_frac_id(XArrayWrapper<int>&);
@@ -130,15 +132,23 @@ void add_mesh_utilities_wrappers(py::module& module)
 		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_porosity); }
 	);
 
-	module.def("get_cell_permeability_buffer",
-		[]() { return retrieve_buffer<TensorBuffer>(retrieve_cell_permeability); }
-	);
+    module.def("get_cell_permeability_buffer",
+        []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_permeability); }
+    );
 
-	module.def("get_fracture_permeability_buffer",
-		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_permeability); }
-	);
+    module.def("get_fracture_permeability_buffer",
+        []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_permeability); }
+    );
 
-	py::class_<MeshConnectivity>(module, "MeshConnectivity")
+    module.def("get_cell_thermal_conductivity_buffer",
+        []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_thermal_conductivity); }
+    );
+
+    module.def("get_fracture_thermal_conductivity_buffer",
+        []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_thermal_conductivity); }
+    );
+
+    py::class_<MeshConnectivity>(module, "MeshConnectivity")
 		.def_readwrite("NodebyCell", &MeshConnectivity::NodebyCell)
 		.def_readwrite("NodebyFace", &MeshConnectivity::NodebyFace)
 		.def_readwrite("FacebyNode", &MeshConnectivity::FacebyNode)

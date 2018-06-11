@@ -72,13 +72,13 @@
        end subroutine set_gravity
 
        function get_volumetric_heat_capacity() result(cp) &
-          bind(C, name="get_volumetric_heat_capacity")
+          bind(C, name="get_rock_volumetric_heat_capacity")
           real(c_double) :: cp
           cp = CpRoche
        end function get_volumetric_heat_capacity
 
        subroutine set_volumetric_heat_capacity(cp) &
-          bind(C, name="set_volumetric_heat_capacity")
+          bind(C, name="set_rock_volumetric_heat_capacity")
           real(c_double), value, intent(in) :: cp
           CpRoche = cp
        end subroutine set_volumetric_heat_capacity

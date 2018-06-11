@@ -72,7 +72,7 @@ def init(
     def make_property_accessor(value):
         return lambda: value
     for location in ['cell', 'fracture']:
-        for property in ['porosity', 'permeability']:
+        for property in ['porosity', 'permeability', 'thermal_conductivity']:
             name = '%s_%s' % (location, property)
             try:
                 f = kwargs[name]
@@ -185,7 +185,7 @@ def init(
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
         for location in ['cell', 'fracture']:
-            for property in ['porosity', 'permeability']:
+            for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
                 if value is not None:
                     dim = 3
@@ -195,7 +195,7 @@ def init(
                     buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
                     value = np.ascontiguousarray( value )
                     # CHECKME: fracture permeability is scalar
-                    if property=='permeability' and location=='cell':
+                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
                         n = buffer.shape[0]
                         if value.shape==(1,): # scalar value
                             value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
