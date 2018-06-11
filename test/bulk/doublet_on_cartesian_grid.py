@@ -11,7 +11,7 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
-ComPASS.load_eos('liquid_water')
+ComPASS.load_eos('water2ph')
 
 pres = 20. * MPa                  # initial reservoir pressure
 Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -19,7 +19,8 @@ Tinjection = degC2K( 30. )        # injection temperature - convert Celsius to K
 Qm = 300. * ton / hour            # production flowrate
 omega_reservoir = 0.15            # reservoir porosity
 k_reservoir = 1E-12               # reservoir permeability in m^2
-                                  
+K_reservoir = 2                   # bulk thermal conductivity in W/m/K
+
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
 nx, ny, nz = 30, 20, 10
@@ -51,6 +52,7 @@ ComPASS.init(
     wells = make_wells,
     cell_porosity = omega_reservoir,
     cell_permeability = k_reservoir,
+    cell_thermal_conductivity = K_reservoir,
 )
 
 doublet_utils.init_states(pres, Tres)

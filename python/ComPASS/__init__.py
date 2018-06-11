@@ -48,6 +48,16 @@ def set_output_directory_and_logfile(case_name):
 
 Grid = GT.GridInfo
 
+
+def abort(message):
+    print('''
+
+!!!
+!!! %s
+!!!
+''' % message)
+    ComPASS.mpi.MPI.Abort()       
+
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -184,6 +194,7 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
+        print('properties', properties.keys())
         for location in ['cell', 'fracture']:
             for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
@@ -206,6 +217,11 @@ def init(
                         assert value.shape==(n, dim, dim)
                         assert buffer.shape==value.shape
                     buffer[:] = value
+                else:
+                    if location=='cell':
+                        abort('You must define: cell_%s' % property)
+                    elif fractures is not None:
+                        abort('You must define: fracture_%s' % property)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
