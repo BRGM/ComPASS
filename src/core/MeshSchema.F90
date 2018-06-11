@@ -179,7 +179,6 @@ module MeshSchema
        MeshSchema_VolCellLocal,             &
        MeshSchema_XFaceLocal,               &
        MeshSchema_SurfFracLocal,            &
-       MeshSchema_Surf12f,                  & ! used by MeshSchema_SurfFraclocal
        MeshSchema_NbNodeCellMax,            &
        MeshSchema_NbNodeFaceMax,            &
        MeshSchema_local_face_surface_from_nodes
@@ -187,6 +186,7 @@ module MeshSchema
   public :: &
        MeshSchema_make, &
        MeshSchema_Free, &
+       MeshSchema_triangle_area, &
        MeshSchema_local_face_surface
   
 contains
@@ -1528,10 +1528,7 @@ contains
   do i = 1, nbnodes
       x1(:) = XNodeLocal(:, edges(i))
       x2(:) = XNodeLocal(:, edges(i+1))
-      ! Surface of triangle (arete n1, n2 and center of face) and normal vector
-      xt(:) = (x1(:)+x2(:)+barycenter(:))/3.d0
-      call MeshSchema_Surf12f(x1,x2,barycenter,xt,contribution12f)
-      surface = surface + contribution12f
+      surface = surface + MeshSchema_triangle_area(x1, x2, barycenter)
   end do
 
   end function MeshSchema_local_face_surface_from_nodes
@@ -1621,30 +1618,20 @@ contains
 
   end subroutine MeshSchema_collect_fracture_nodes
   
-  subroutine MeshSchema_Surf12f(x1,x2,x3,x,surf)
+  function MeshSchema_triangle_area(A, B, C) result(area)
 
-    ! calcul du vecteur normal unitaire d'un triangle defini par les 
-    ! coordonnees de ses trois points sortant par rapport 
-    ! au point x,y,z > vx,vy,vz 
-    ! + surface du triangle = surf 
+    double precision, dimension(3), intent(in) :: A, B, C
+    double precision, dimension(3) :: AB, AC
+    double precision :: area
 
-    double precision, dimension(3), intent(in) :: x1 ,x2, x3, x
-    double precision, intent(out) :: surf
-    double precision, dimension(3) :: xt, v
-    double precision :: s
+    AB = B - A
+    AC = C - A
+    area = dsqrt(                               &
+               (AB(2)*AC(3) - AB(3)*AC(2))**2 + &
+               (AB(3)*AC(1) - AB(1)*AC(3))**2 + &
+               (AB(1)*AC(2) - AB(2)*AC(1))**2 ) / 2.d0
 
-    xt(:) = (x1(:)+x2(:)+x3(:))/3.d0
-
-    v(1) = (x1(3)-x3(3))*(x1(2)-x2(2)) - (x1(2)-x3(2))*(x1(3)-x2(3))
-    v(2) = (x1(1)-x3(1))*(x1(3)-x2(3)) - (x1(3)-x3(3))*(x1(1)-x2(1))
-    v(3) = (x1(2)-x3(2))*(x1(1)-x2(1)) - (x1(1)-x3(1))*(x1(2)-x2(2))
-
-    s = dsqrt(v(1)**2+v(2)**2+v(3)**2)
-    surf = s/2.d0
-
-  end subroutine MeshSchema_Surf12f
-
-
+  end function MeshSchema_triangle_area
 
   ! max number of nodes in a cell
   subroutine MeshSchema_NbNodeCellMax
