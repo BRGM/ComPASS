@@ -79,6 +79,10 @@ def init(
 ):
     # here properties will just be used as a namespace
     properties = {}
+    def call_if_callable(f):
+        if callable(f):
+            return f()
+        return f
     def make_property_accessor(value):
         return lambda: value
     for location in ['cell', 'fracture']:
@@ -165,7 +169,7 @@ def init(
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
-        fractures = fracture_faces()
+        fractures = call_if_callable(fracture_faces)
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
@@ -175,15 +179,15 @@ def init(
         info = np.rec.array(global_node_info(), copy=False)
         for a in [info.pressure, info.temperature]:
             a[:] = ord('i')
-        dirichlet = set_dirichlet_nodes()
+        dirichlet = call_if_callable(set_dirichlet_nodes)
         if dirichlet is not None:
             for a in [info.pressure, info.temperature]:
                 a[dirichlet] = ord('d')
         else:
-            dirichlet = set_pressure_dirichlet_nodes()
+            dirichlet = call_if_callable(set_pressure_dirichlet_nodes)
             if dirichlet is not None:
                 info.pressure[dirichlet] = ord('d')
-            dirichlet = set_temperature_dirichlet_nodes()
+            dirichlet = call_if_callable(set_temperature_dirichlet_nodes)
             if dirichlet is not None:
                 info.temperature[dirichlet] = ord('d')
         kernel.global_mesh_count_dirichlet_nodes()
