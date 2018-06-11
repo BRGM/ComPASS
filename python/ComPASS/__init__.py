@@ -390,3 +390,7 @@ def set_Neumann_fracture_edges(edges, Neumann):
     edges = np.asarray(edges)
     edges+= 1 # Fortran indexing starts at 1   
     kernel.set_Neumann_fracture_edges(edges, Neumann)
+
+def coordinates(a):
+    assert len(a.shape)==2 and a.shape[1]==3
+    return (a[:, j] for j in range(a.shape[1]))
