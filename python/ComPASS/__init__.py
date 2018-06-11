@@ -198,7 +198,6 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
-        print('properties', properties.keys())
         for location in ['cell', 'fracture']:
             for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
