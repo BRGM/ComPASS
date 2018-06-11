@@ -45,8 +45,7 @@ ComPASS.set_rock_volumetric_heat_capacity(rhor*Cr)
 grid = ComPASS.Grid(shape = shape, extent = extent, origin = origin)
 
 def outlet_nodes():
-   vertices = np.rec.array(ComPASS.global_vertices())
-   return vertices.x >= Lx
+   return ComPASS.global_vertices()[:, 0] >= Lx
 
 ComPASS.init(
    grid = grid,
@@ -74,8 +73,7 @@ def set_boundary_flux():
     # energy inflow is approximated using p0
     Neumann.heat_flux = specific_massflux * ComPASS.liquid_molar_enthalpy(p0, T_injection)
     print('flux',  flowrate * ComPASS.liquid_molar_density(p0, T_injection) * ComPASS.liquid_molar_enthalpy(p0, T_injection))
-    face_centers = np.rec.array(ComPASS.face_centers())   
-    ComPASS.set_Neumann_faces(face_centers.x <= 0, Neumann) 
+    ComPASS.set_Neumann_faces(ComPASS.face_centers()[:, 0] <= 0, Neumann) 
 set_boundary_flux()
 
 output_period = 0.1 * final_time
@@ -93,8 +91,8 @@ standard_loop(initial_timestep= 1 * hour, final_time = final_time,
 
 # save table with collected temperatures
 with open('SO1-T.csv', 'w') as f:
-    cell_centers = np.rec.array(ComPASS.cell_centers())
-    print(";", " ; ".join([str(xi) for xi in cell_centers.x]), file=f) 
+    cell_centers = ComPASS.cell_centers()
+    print(";", " ; ".join([str(xi) for xi in cell_centers[:, 0]]), file=f) 
     for output in T:
         print(output[0], ";", " ; ".join([str(theta) for theta in output[1]]), file=f) 
 
@@ -124,9 +122,9 @@ except ImportError:
     raise
 else:
     plt.clf()
-    plt.plot(cell_centers.x, solution(last_time, cell_centers.x), '-k', label='analytical')
+    plt.plot(cell_centers[:, 0], solution(last_time, cell_centers[:, 0]), '-k', label='analytical')
     # plot 1 out of 50 points
-    plt.plot(cell_centers.x[::50], last_T[::50], 'xk', label='ComPASS')
+    plt.plot(cell_centers[:, 0][::50], last_T[::50], 'xk', label='ComPASS')
     plt.legend()
     plt.xlabel('distance (m)')
     plt.ylabel('temperature (deg C)')
@@ -134,7 +132,7 @@ else:
     plt.savefig('SO1-comparison.png')
     plt.clf()
     for output in T:
-        plt.plot(cell_centers.x, output[1], label='t=%.1f y' % (output[0]/year))
+        plt.plot(cell_centers[:, 0], output[1], label='t=%.1f y' % (output[0]/year))
     plt.legend()
     plt.xlabel('distance (m)')
     plt.ylabel('temperature (deg C)')

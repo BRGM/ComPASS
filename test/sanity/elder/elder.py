@@ -14,14 +14,15 @@ from ComPASS.timeloops import standard_loop
 
 ComPASS.load_eos('water2ph')
 ComPASS.set_gravity(0)
-ComPASS.set_volumetric_heat_capacity(0)
+ComPASS.set_rock_volumetric_heat_capacity(0)
 
 p0 = 1. * bar # initial reservoir pressure
 T0 = degC2K( 12. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 T1 = degC2K( 20. )
-k_matrix = 1.21E-10               # reservoir permeability in m^2 (low permeability -> bigger time steps)
-phi_matrix = 0.1            # reservoir porosity
-                                  
+k_matrix = 1.21E-10             # reservoir permeability in m^2 (low permeability -> bigger time steps)
+phi_matrix = 0.1                # reservoir porosity
+K_matrix = 2                    # bulk thermal conductivity in W/m/K
+                                
 Lx, Ly, Lz = 600., 10., 150.
 #Ox, Oy, Oz = -1500., -1000., -1600.
 nx, ny, nz = 100, 1, 100
@@ -33,22 +34,22 @@ grid = ComPASS.Grid(
 )
 
 def bottom_dirichlet_nodes(vertices):
-    on_bottom = vertices.z <= 0.
-    on_bottom&= (vertices.x>=0.25*Lx) & (vertices.x<=0.75*Lx)
+    on_bottom = vertices[:,2] <= 0.
+    on_bottom&= (vertices[:,0]>=0.25*Lx) & (vertices[:,0]<=0.75*Lx)
     return on_bottom
 
 def pressure_base_node():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    zmax = vertices.z.max()
-    xmin = vertices.x.min()
-    xmax = vertices.x.max()
-    on_corner = (vertices.z == zmax) & ((vertices.x == xmin) | (vertices.x == xmax))
+    vertices = ComPASS.global_vertices()
+    zmax = vertices[:,2].max()
+    xmin = vertices[:,0].min()
+    xmax = vertices[:,0].max()
+    on_corner = (vertices[:,2] == zmax) & ((vertices[:,0] == xmin) | (vertices[:,0] == xmax))
     return on_corner
 
 def dirichlet_nodes():
     vertices = np.rec.array(ComPASS.global_vertices())
-    zmax = vertices.z.max()
-    on_top = vertices.z >= zmax
+    zmax = vertices[:,2].max()
+    on_top = vertices[:,2] >= zmax
     return on_top | bottom_dirichlet_nodes(vertices)
 
 ComPASS.set_output_directory_and_logfile(__file__)
@@ -57,6 +58,7 @@ ComPASS.init(
     grid = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
+    cell_thermal_conductivity = K_matrix,
     set_temperature_dirichlet_nodes = dirichlet_nodes,
     set_pressure_dirichlet_nodes = pressure_base_node,
 )
@@ -69,12 +71,12 @@ def set_initial_states(states, z):
     states.T[:] = T0
     states.S[:] = [0, 1]
     states.C[:] = 1.
-set_initial_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices()).z)
-set_initial_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).z)
+set_initial_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,2])
+set_initial_states(ComPASS.node_states(), ComPASS.vertices()[:,2])
 set_initial_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
 
 states = ComPASS.dirichlet_node_states()
-where = bottom_dirichlet_nodes(np.rec.array(ComPASS.vertices()))
+where = bottom_dirichlet_nodes(ComPASS.vertices())
 states.T[where] = T1
 
 import matplotlib
@@ -83,11 +85,11 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 
 def my_graph(n, t):
-    vertices = np.rec.array(ComPASS.vertices())
+    vertices = ComPASS.vertices()
     states = ComPASS.node_states()
-    where = vertices.y==0
-    x = vertices.x[where]
-    z = vertices.z[where]
+    where = vertices[:,1]==0
+    x = vertices[:,0][where]
+    z = vertices[:,2][where]
     T = K2degC(states.T[where])
     plt.clf()
     plt.tricontourf(x, z, T, np.linspace(K2degC(T0), K2degC(T1), 10))
