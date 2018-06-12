@@ -55,7 +55,7 @@ py::module& add_vertices_array_wrapper(py::module& module, const char *getter_na
             auto wrapper = Wrapper{};
             bind(wrapper);
             return py::array_t<double, py::array::c_style>{ 
-                std::vector<std::size_t>({wrapper.length, 3}), wrapper.pointer,
+                {wrapper.length, static_cast<std::size_t>(3)}, wrapper.pointer,
                 py::array_t<double, py::array::c_style>{}
             };
         } );
