@@ -1,0 +1,36 @@
+before_script:
+  - echo "Before script section run with id $USER"
+  - docker info
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+  - COMPASS_TEST_ROOT=`pwd`/test
+   
+after_script:
+  - echo "After script section"
+   
+variables:
+  CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
+
+build1:
+  stage: build
+  tags:
+    - test
+  script:
+    - pwd
+#    - docker build -t compass .
+    - docker build --cache-from $CONTAINER_IMAGE:$CI_COMMIT_REF_NAME --tag $CONTAINER_IMAGE:$CI_BUILD_REF --tag $CONTAINER_IMAGE:$CI_COMMIT_REF_NAME .
+    
+test:
+  stage: test
+  tags:
+    - test
+  script:
+    - mkdir -p ~/pipelines/$CI_PIPELINE_ID
+    - cd ~/pipelines/$CI_PIPELINE_ID
+    - cp -r $COMPASS_TEST_ROOT .
+    - cd test/unit
+    - shopt -s expand_aliases
+    - alias compass="docker run --volume=`pwd`:/data $CONTAINER_IMAGE:$CI_BUILD_REF"
+    - compass test_import_liquid_water.py
+    - compass test_import_water2ph.py
+    - compass test_import_diphasic.py
+
