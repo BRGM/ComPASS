@@ -27,10 +27,11 @@ COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python ./meshto
 #to uncomment when bash script will be done.
 #ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
 
-RUN useradd --create-home -s /bin/bash compass
-USER compass
+#RUN useradd --create-home -s /bin/bash compass
+#USER compass
 VOLUME ["/data"]
 
 WORKDIR /data/
-ENTRYPOINT ["mpirun -n `nproc` python3"]
+#ENTRYPOINT ["mpirun -n `nproc` python3"]
+ENTRYPOINT ["python3"]
 CMD [""]
