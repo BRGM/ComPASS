@@ -47,7 +47,7 @@ unit test:
     - echo "unit test"
   #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
 
-#release only on master and if tests passed
+#release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
 release:
   stage: release
   script:
