@@ -12,7 +12,7 @@ stages:
     #- deploy
     
 variables:
-  CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
+  CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
   #DOCKER_DRIVER: overlay2
 
 services:
@@ -29,14 +29,26 @@ after_script:
   - echo "After script section"
   - echo "For example you might do some cleanup here"
 
+# master have another name
+build-master:
+  stage: build
+  script:
+    - echo "building.."
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE .
+    - docker push $CI_REGISTRY_IMAGE
+
+  only:
+    - master
+
+#not master image is named differently.
 build:
   stage: build
   script:
     - echo "building.."
-    - docker pull $CONTAINER_IMAGE:latest || true
-    - docker build --force-rm --cache-from $CONTAINER_IMAGE:latest --pull --tag $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG --tag $CONTAINER_IMAGE:latest .
- #   - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
-  #  - docker push $CONTAINER_IMAGE:latest
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   except:
     - master
 
@@ -44,10 +56,8 @@ deploy:
   stage: deploy
   script:
     - echo "deploy"
-    - docker push $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG
-    #  - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
-    #  - docker stop epos-gui || true && docker rm epos-gui || true
-    #  - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
+    #- docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
     
 unit test:
   stage: test
