@@ -26,6 +26,9 @@ VOLUME [/data]
 
 WORKDIR /data
 
+RUN useradd --create-home -s /bin/bash compass
+USER compass
+
 #to uncomment when bash script will be done.
 #ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
 ENTRYPOINT ["python3"]
