@@ -30,17 +30,6 @@ after_script:
   - echo "After script section"
   - echo "For example you might do some cleanup here"
 
-# master have another name
-build-master:
-  stage: build
-  script:
-    - echo "building.."
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE .
-    - docker push $CI_REGISTRY_IMAGE
-  only:
-    - master
-
 #not master image is named differently.
 build:
   stage: build
@@ -58,12 +47,12 @@ unit test:
     - echo "unit test"
   #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
 
-#
+#release only on master and if tests passed
 release:
   stage: release
   script:
     - docker pull $CI_REGISTRY_IMAGE
-    - docker tag $CI_REGISTRY_IMAGE $CI_REGISTRY_IMAGE:latest
-    - docker push $CI_REGISTRY_IMAGE:lastest
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
   only:
     - master
