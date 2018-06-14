@@ -7,12 +7,13 @@
 image: docker:stable
 
 stages:
-    #- build
-    #- test
-    #- deploy
+    - build
+    - test
+    - release
     
 variables:
   CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
+
   #DOCKER_DRIVER: overlay2
 
 services:
@@ -37,7 +38,6 @@ build-master:
     - docker pull $CI_REGISTRY_IMAGE:latest || true
     - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE .
     - docker push $CI_REGISTRY_IMAGE
-
   only:
     - master
 
@@ -51,13 +51,6 @@ build:
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   except:
     - master
-
-deploy:
-  stage: deploy
-  script:
-    - echo "deploy"
-    #- docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-
     
 unit test:
   stage: test
@@ -65,3 +58,12 @@ unit test:
     - echo "unit test"
   #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
 
+#
+release:
+  stage: release
+  script:
+    - docker pull $CI_REGISTRY_IMAGE
+    - docker tag $CI_REGISTRY_IMAGE $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:lastest
+  only:
+    - master
