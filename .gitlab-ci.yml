@@ -6,6 +6,7 @@
 
 image: docker:stable
 
+# this sequence will force to have unit tests in docker image. Making unit test before build docker image help remove unit test, but need to split dockerfile multijob build.
 stages:
     - build
     - test
@@ -45,7 +46,8 @@ unit test:
   stage: test
   script:
     - echo "unit test"
-  #  - docker run --rm -td epos-gui-dev node_modules/.bin/ng test -sr --browsers PhantomJS
+    - docker run --rm compass /build/compassModule/vertical_column.py
+    - docker run --rm compass /build/compassModule/vertical_column.p
 
 #release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
 release:
