@@ -26,7 +26,7 @@ VOLUME [/data]
 
 WORKDIR /data
 
-RUN useradd --create-home -s /bin/bash compass
+RUN useradd --create-home -s /bin/bash compass && chown compass:compass /data
 USER compass
 
 #to uncomment when bash script will be done.
