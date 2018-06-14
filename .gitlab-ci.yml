@@ -15,8 +15,8 @@ variables:
   CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
   #DOCKER_DRIVER: overlay2
 
-#services:
-#  - docker:dind
+services:
+  - docker:dind
 
 # first build epos_gui image to run in docker.
 before_script:
@@ -34,7 +34,7 @@ build:
   script:
     - echo "building.."
     - docker pull $CONTAINER_IMAGE:latest || true
-    - docker build --force-rm --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_BUILD_REF --tag $CONTAINER_IMAGE:latest .
+    - docker build --force-rm --cache-from $CONTAINER_IMAGE:latest --pull --tag $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG --tag $CONTAINER_IMAGE:latest .
  #   - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
   #  - docker push $CONTAINER_IMAGE:latest
 
@@ -43,7 +43,7 @@ deploy:
   stage: deploy
   script:
     - echo "deploy"
-    - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
+    - docker push $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG
     #  - docker build -t epos-gui:latest --build-arg SHORT_GIT_SHA=$SHORT_SHA .
     #  - docker stop epos-gui || true && docker rm epos-gui || true
     #  - docker run --rm -p 8080:80 --name epos-gui -td epos-gui
