@@ -24,6 +24,8 @@ COPY --from=builder /source/ComPASS-develop/python ./compassModule
 COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python ./meshtoolsModule
 VOLUME [/data]
 
+WORKDIR /data
 
 #to uncomment when bash script will be done.
-ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
+#ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
+ENTRYPOINT ["python3"]
