@@ -37,7 +37,8 @@ build:
     - docker build --force-rm --cache-from $CONTAINER_IMAGE:latest --pull --tag $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG --tag $CONTAINER_IMAGE:latest .
  #   - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
   #  - docker push $CONTAINER_IMAGE:latest
-
+  except:
+    - master
 
 deploy:
   stage: deploy
