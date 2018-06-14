@@ -47,8 +47,7 @@ unit test:
   script:
     - echo "unit test"
     - docker run --rm $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG /build/compassModule/vertical_column.py
-    - docker run --rm $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG /build/compassModule/vertical_column.p
-
+    
 #release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
 release:
   stage: release
