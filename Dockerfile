@@ -31,4 +31,7 @@ USER compass
 
 #to uncomment when bash script will be done.
 #ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
-ENTRYPOINT ["python3"]
+#ENTRYPOINT ["python3"]
+ENTRYPOINT ["mpirun", "-n", "`nproc`", "python3"]
+
+
