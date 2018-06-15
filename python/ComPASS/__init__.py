@@ -58,6 +58,59 @@ def abort(message):
 ''' % message)
     ComPASS.mpi.MPI.COMM_WORLD.Abort()       
 
+def init_and_load_mesh(mesh):
+    kernel.init_warmup(runtime.logfile)
+    if mpi.is_on_master_proc:
+        # this is a bit redundant but we want to rely entirely on MeshTools
+        if type(mesh) is RawMesh:
+            subsizes = lambda collection: np.array([len(a) for a in collection])
+            make_pointers = lambda a: np.cumsum(np.hstack([[0], a]))
+            cell_nbnodes = subsizes(mesh.cell_nodes)
+            face_nbnodes = subsizes(mesh.face_nodes)
+            int_array = lambda a: np.asarray(a, dtype=np.int32)
+            double_array = lambda a: np.asarray(a, dtype=np.double)
+            kernel.create_mesh(
+                double_array(mesh.vertices),
+                int_array(make_pointers(cell_nbnodes)),
+                int_array(np.hstack(mesh.cell_nodes)),
+                int_array(make_pointers(subsizes(mesh.cell_faces))),
+                int_array(np.hstack(mesh.cell_faces)),
+                int_array(make_pointers(face_nbnodes)),
+                int_array(np.hstack(mesh.face_nodes)),
+            )
+            # cell and face types default to -1
+            # try hint with simple geometries
+            celltypes = ComPASS.global_celltypes()
+            celltypes[:] = -1
+            celltypes[cell_nbnodes==4] = vtk_celltype['tet']
+            celltypes[cell_nbnodes==8] = vtk_celltype['voxel']
+            facetypes = ComPASS.global_facetypes()
+            print('>'*10, facetypes.shape)
+            facetypes[:] = -1
+            facetypes[face_nbnodes==3] = vtk_celltype['triangle']
+            facetypes[face_nbnodes==4] = vtk_celltype['pixel']
+        else:
+            if type(mesh) is GT.GridInfo:
+                mesh = MT.grid3D(gridinfo=mesh)
+            vertices = MT.as_coordinate_array(mesh.vertices)
+            cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
+            kernel.create_mesh(vertices,
+                                *cells_nodes,
+                                *cells_faces,
+                                *faces_nodes
+                                )
+            # distribute cell types to be able to reconstruct local meshes
+            celltypes = ComPASS.global_celltypes()
+            celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
+            facetypes = ComPASS.global_facetypes()
+            facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
+    #    else:
+    #        print('Mesh type not understood!')
+    #        # FIXME: This should be something like MPI.Abort()
+    #        sys.exit(-1)
+
+
+
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -107,60 +160,12 @@ def init(
         # FIXME: This should be something like MPI.Abort()
         sys.exit(-1)
     else:
-        kernel.init_warmup(runtime.logfile)
-        if mpi.is_on_master_proc:
-            assert not (grid is None and mesh is None)
-            if grid is not None:
-                assert mesh is None
-                mesh = grid
-            assert mesh is not None
-            # this a bit redundant be we want to rely entirely on MeshTools
-            if type(mesh) is RawMesh:
-                subsizes = lambda collection: np.array([len(a) for a in collection])
-                make_pointers = lambda a: np.cumsum(np.hstack([[0], a]))
-                cell_nbnodes = subsizes(mesh.cell_nodes)
-                face_nbnodes = subsizes(mesh.face_nodes)
-                int_array = lambda a: np.asarray(a, dtype=np.int32)
-                double_array = lambda a: np.asarray(a, dtype=np.double)
-                kernel.create_mesh(
-                    double_array(mesh.vertices),
-                    int_array(make_pointers(cell_nbnodes)),
-                    int_array(np.hstack(mesh.cell_nodes)),
-                    int_array(make_pointers(subsizes(mesh.cell_faces))),
-                    int_array(np.hstack(mesh.cell_faces)),
-                    int_array(make_pointers(face_nbnodes)),
-                    int_array(np.hstack(mesh.face_nodes)),
-                )
-                # cell and face types default to -1
-                # try hint with simple geometries
-                celltypes = ComPASS.global_celltypes()
-                celltypes[:] = -1
-                celltypes[cell_nbnodes==4] = vtk_celltype['tet']
-                celltypes[cell_nbnodes==8] = vtk_celltype['voxel']
-                facetypes = ComPASS.global_facetypes()
-                print('>'*10, facetypes.shape)
-                facetypes[:] = -1
-                facetypes[face_nbnodes==3] = vtk_celltype['triangle']
-                facetypes[face_nbnodes==4] = vtk_celltype['pixel']
-            else:
-                if type(mesh) is GT.GridInfo:
-                    mesh = MT.grid3D(gridinfo=mesh)
-                vertices = MT.as_coordinate_array(mesh.vertices)
-                cells_nodes, cells_faces, faces_nodes = mesh.COC_data()
-                kernel.create_mesh(vertices,
-                                   *cells_nodes,
-                                   *cells_faces,
-                                   *faces_nodes
-                                   )
-                # distribute cell types to be able to reconstruct local meshes
-                celltypes = ComPASS.global_celltypes()
-                celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
-                facetypes = ComPASS.global_facetypes()
-                facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
-#    else:
-#        print('Mesh type not understood!')
-#        # FIXME: This should be something like MPI.Abort()
-#        sys.exit(-1)
+        assert not (grid is None and mesh is None)
+        if grid is not None:
+            assert mesh is None
+            mesh = grid
+        assert mesh is not None
+    init_and_load_mesh(mesh)
     if mpi.is_on_master_proc and set_global_flags is not None:
         assert callable(set_global_flags)
         set_global_flags()
