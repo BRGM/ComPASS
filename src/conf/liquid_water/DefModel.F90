@@ -6,10 +6,9 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp thermal, MCP=(1,1)
+! Model: 1 phase 1 comp thermal, MCP
 
-! 1: Gas
-! 2: Water
+! 1: Water
 
 module DefModel
 
@@ -23,20 +22,16 @@ module DefModel
       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
       NbPhase = ComPASS_NUMBER_OF_PHASES
 
-   integer, parameter :: &
+    !FIXME: Asssume that the latest phase is the liquid phase
+    integer, parameter :: LIQUID_PHASE = NbPhase
+
+    integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
-
-   ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-   integer, parameter :: PHASE_GAS = 1
-   integer, parameter :: PHASE_WATER = 2
-
-   !FIXME: this is used for wells which are monophasic
-   integer, parameter :: LIQUID_PHASE = PHASE_WATER
 
    ! Thermique
 #ifdef _THERMIQUE_
@@ -62,14 +57,10 @@ module DefModel
 
    ! ! ****** How to choose primary variables ****** ! !
 
-   ! Used in module LoisthermoHydro.F90
+   ! Served in module LoisthermoHydro.F90
 
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
-  ! WARNING
-  ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
-  ! P est forcement primaire et en numero 1
-  ! Si T est primaire elle doit etre en numero 2
    ! pschoice=2: Glouton method
    !     the matrix psprim and pssecd are defined formally for compile
    ! pschoise=3: Gauss method
@@ -77,32 +68,20 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
-   integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
-   private :: P, T, C, Sg, Sl
-   
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
-                       P, T, & ! ic=1
-                       P, T, & ! ic=2
-                       P, Sl & ! ic=3
+                       1, 2 & ! ic=1
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
-  ! Sum Salpha =1 was already eliminated
-   ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       C, Sg, 0, & ! ic=1
-                       C, Sg, 0, & ! ic=2
-                       T, C, Sg &  ! ic=3
+                       3, 4, 0 & ! ic=1
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
 
-  ! Used in module Jacobian.F90
-  ! The idea is to have postive diagonal using linear combinations
-  ! (alternative is to used inverse of block = LC of)
-  ! good for LU O (pas bonne pour amg)
-  ! not used if not preconditionner (but avoid pivoting)
+   ! Served in module Jacobian.F90
+
    ! aligmethod=1, manually
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic
@@ -119,12 +98,6 @@ module DefModel
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
                         1.d0, 0.d0, & ! ic=1
-                        0.d0, 1.d0, &
-                        !
-                        1.d0, 0.d0, & ! ic=2
-                        0.d0, 1.d0, &
-                        !
-                        1.d0, 0.d0, & ! ic=3
                         0.d0, 1.d0 &
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 

@@ -48,6 +48,16 @@ def set_output_directory_and_logfile(case_name):
 
 Grid = GT.GridInfo
 
+
+def abort(message):
+    print('''
+
+!! ERROR !!
+!! ERROR !! %s
+!! ERROR !!
+''' % message)
+    ComPASS.mpi.MPI.COMM_WORLD.Abort()       
+
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -69,10 +79,14 @@ def init(
 ):
     # here properties will just be used as a namespace
     properties = {}
+    def call_if_callable(f):
+        if callable(f):
+            return f()
+        return f
     def make_property_accessor(value):
         return lambda: value
     for location in ['cell', 'fracture']:
-        for property in ['porosity', 'permeability']:
+        for property in ['porosity', 'permeability', 'thermal_conductivity']:
             name = '%s_%s' % (location, property)
             try:
                 f = kwargs[name]
@@ -155,7 +169,7 @@ def init(
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
-        fractures = fracture_faces()
+        fractures = call_if_callable(fracture_faces)
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
@@ -165,15 +179,15 @@ def init(
         info = np.rec.array(global_node_info(), copy=False)
         for a in [info.pressure, info.temperature]:
             a[:] = ord('i')
-        dirichlet = set_dirichlet_nodes()
+        dirichlet = call_if_callable(set_dirichlet_nodes)
         if dirichlet is not None:
             for a in [info.pressure, info.temperature]:
                 a[dirichlet] = ord('d')
         else:
-            dirichlet = set_pressure_dirichlet_nodes()
+            dirichlet = call_if_callable(set_pressure_dirichlet_nodes)
             if dirichlet is not None:
                 info.pressure[dirichlet] = ord('d')
-            dirichlet = set_temperature_dirichlet_nodes()
+            dirichlet = call_if_callable(set_temperature_dirichlet_nodes)
             if dirichlet is not None:
                 info.temperature[dirichlet] = ord('d')
         kernel.global_mesh_count_dirichlet_nodes()
@@ -185,7 +199,7 @@ def init(
             set_global_rocktype()
         kernel.global_mesh_make_post_read_set_poroperm()
         for location in ['cell', 'fracture']:
-            for property in ['porosity', 'permeability']:
+            for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
                 if value is not None:
                     dim = 3
@@ -195,7 +209,7 @@ def init(
                     buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
                     value = np.ascontiguousarray( value )
                     # CHECKME: fracture permeability is scalar
-                    if property=='permeability' and location=='cell':
+                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
                         n = buffer.shape[0]
                         if value.shape==(1,): # scalar value
                             value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
@@ -206,6 +220,11 @@ def init(
                         assert value.shape==(n, dim, dim)
                         assert buffer.shape==value.shape
                     buffer[:] = value
+                else:
+                    if location=='cell':
+                        abort('You must define: cell_%s' % property)
+                    elif fractures is not None:
+                        abort('You must define: fracture_%s' % property)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -371,3 +390,7 @@ def set_Neumann_fracture_edges(edges, Neumann):
     edges = np.asarray(edges)
     edges+= 1 # Fortran indexing starts at 1   
     kernel.set_Neumann_fracture_edges(edges, Neumann)
+
+def coordinates(a):
+    assert len(a.shape)==2 and a.shape[1]==3
+    return (a[:, j] for j in range(a.shape[1]))

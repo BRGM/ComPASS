@@ -75,7 +75,7 @@ contains
          PgCag = inc%Comp(1, PHASE_WATER)*Ha
 
          RZetal = 8.314d0*1000.d0/0.018d0
-         CALL DefModel_Psat(T, Psat, dTSat)
+         CALL FluidThermodynamics_Psat(T, Psat, dTSat)
 
          iph = 2
          CALL f_PressionCapillaire(rt, iph, S, Pc, DSPc)

@@ -145,23 +145,23 @@ module GlobalMesh
   ! Porosite
   ! FIXME: protected has been removed to access arrays from C
   real(c_double), allocatable, dimension(:), target :: &
-    PorositeCell, & !< Porosity of each Cell, set by user in file DefGeometry.F90
-    PorositeFrac    !< Porosity of each fracture face, set by user in file DefGeometry.F90
+    PorositeCell, & !< Porosity of each Cell
+    PorositeFrac    !< Porosity of each fracture face
 
   ! Permeability
   ! FIXME: protected has been removed to access array from C
   real(c_double), allocatable, dimension(:,:,:), target :: &
-    PermCell !< Permeability tensor for each cell, set by user in file DefModel.F90
+    PermCell !< Permeability tensor for each cell
   ! FIXME: protected has been removed to access array from C
   real(c_double), allocatable, dimension(:), target :: &
-    PermFrac !< Permeability constant for each fracture face, set by user in file DefModel.F90
+    PermFrac !< Permeability scalr value for each fracture face
 
 #ifdef _THERMIQUE_
   ! Thermal conductivity
   real(c_double), allocatable, dimension(:,:,:), target :: &
-    CondThermalCell !< Permeability tensor for each cell, set by user in file DefModel.F90
+    CondThermalCell !< Thermal conductivity tensor for each cell
   real(c_double), allocatable, dimension(:), target :: &
-    CondThermalFrac !< Permeability tensor for each cell, set by user in file DefModel.F90
+    CondThermalFrac !< Thermal conductivity scalar value for each fracture face
 
   ! Thermal source
   !integer(c_int), allocatable, dimension(:), target :: CellThermalSourceType

@@ -54,6 +54,8 @@
           retrieve_fracture_porosity, &
           retrieve_cell_permeability, &
           retrieve_fracture_permeability, &
+          retrieve_cell_thermal_conductivity, &
+          retrieve_fracture_thermal_conductivity, &
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
           !GlobalMesh_make_post_read_from_C, &
@@ -432,7 +434,51 @@
 
        end subroutine retrieve_fracture_permeability
 
-       subroutine retrieve_global_id_node(cpp_array) &
+       subroutine retrieve_cell_thermal_conductivity(cpp_array) &
+          bind(C, name="retrieve_cell_thermal_conductivity")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(CondThermalCell)) then
+             print *, "Cell thermal conductivity array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(CondThermalCell(1, 1, 1))
+          cpp_array%n = size(CondThermalCell, 3)
+
+       end subroutine retrieve_cell_thermal_conductivity
+
+       subroutine retrieve_fracture_thermal_conductivity(cpp_array) &
+          bind(C, name="retrieve_fracture_thermal_conductivity")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             print *, "Global mesh is supposed to be handled by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(CondThermalFrac)) then
+             print *, "face thermal conductivity array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(CondThermalFrac(1))
+          cpp_array%n = size(CondThermalFrac)
+
+          end subroutine retrieve_fracture_thermal_conductivity
+
+        subroutine retrieve_global_id_node(cpp_array) &
           bind(C, name="retrieve_global_id_node")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array

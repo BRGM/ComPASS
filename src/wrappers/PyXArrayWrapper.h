@@ -43,3 +43,21 @@ py::module& add_array_wrapper(py::module& module, const char *getter_name, void(
 	module.def(getter_name, [bind]() { return retrieve_ndarray(bind); });
 	return module;
 }
+
+// FIXME: Creating local reference through py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{}
+// is a bit weird/dangerous ?
+// User buffer_info instead or a DummyStructure so that the returned array is not a copy ?
+template <typename Wrapper>
+py::module& add_vertices_array_wrapper(py::module& module, const char *getter_name, void(*bind)(Wrapper&))
+{
+    static_assert(std::is_same<double, typename Wrapper::wrapped_type>::value, "coordinates should be double");
+    module.def(getter_name, [bind]() { 
+            auto wrapper = Wrapper{};
+            bind(wrapper);
+            return py::array_t<double, py::array::c_style>{ 
+                std::vector<std::size_t>({wrapper.length, 3}), wrapper.pointer,
+                py::array_t<double, py::array::c_style>{}
+            };
+        } );
+    return module;
+}

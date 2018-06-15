@@ -120,34 +120,25 @@
           integer(c_int), value :: face
           type(TYPE_NeumannBC), intent(in) :: fluxes
 
-          integer :: ps, s, nbnodes
-          double precision :: node_surface_contribution
+          integer :: k, nbnodes
+          integer, allocatable :: nodes(:)
+          double precision :: barycenter(3)
+          double precision :: alpha
 
-          ! We count non fracture nodes
-          nbnodes = 0
-          do ps = NodebyFaceLocal%Pt(face) + 1, NodebyFaceLocal%Pt(face + 1)
-             s = NodebyFaceLocal%Num(ps)
-             ! FIXME: should we exclude Dirichlet nodes here ?
-             if (IdNodeLocal(s)%Frac /= "y") then
-                nbnodes = nbnodes + 1
-             end if
+          barycenter(:) = XFaceLocal(:, face)
+          nbnodes = NodebyFaceLocal%Pt(face + 1) - NodebyFaceLocal%Pt(face)
+          allocate (nodes(nbnodes + 2))
+          nodes(1:nbnodes) = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(face) + 1:NodebyFaceLocal%Pt(face + 1))
+          nodes(nbnodes + 1:nbnodes + 2) = nodes(1:2)
+          do k = 2, nbnodes + 1
+             alpha = MeshSchema_local_face_surface(face)/nbnodes
+             alpha = alpha + MeshSchema_triangle_area(XNodeLocal(:, nodes(k - 1)), XNodeLocal(:, nodes(k)), barycenter)
+             alpha = alpha + MeshSchema_triangle_area(XNodeLocal(:, nodes(k)), XNodeLocal(:, nodes(k + 1)), barycenter)
+             alpha = alpha/3.d0
+             NodeNeumannBC(nodes(k))%molar_flux = NodeNeumannBC(nodes(k))%molar_flux + alpha*fluxes%molar_flux
+             NodeNeumannBC(nodes(k))%heat_flux = NodeNeumannBC(nodes(k))%heat_flux + alpha*fluxes%heat_flux
           end do
-          if (nbnodes > 0) then
-             ! FIXME: This should take into account surface fractions
-             node_surface_contribution = MeshSchema_local_face_surface(face)/nbnodes
-             do ps = NodebyFaceLocal%Pt(face) + 1, NodebyFaceLocal%Pt(face + 1)
-                s = NodebyFaceLocal%Num(ps)
-                ! FIXME: should we exclude Dirichlet nodes here ?
-                if (IdNodeLocal(s)%Frac /= 'y') then
-                   NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
-                                                 + node_surface_contribution*fluxes%molar_flux
-                   NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
-                                                + node_surface_contribution*fluxes%heat_flux
-                end if
-             end do
-          else
-             print *, 'WARNING: no Neumann contribution for face fk on proc', commRank + 1
-          end if
+          deallocate (nodes)
 
        end subroutine NeumannContribution_set_face_with_contribution
 
