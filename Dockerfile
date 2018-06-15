@@ -15,7 +15,7 @@ From debian:buster-slim
 ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
 RUN apt-get update && apt-get install --yes --no-install-recommends libpython3-dev python3-mpi4py python3-numpy metis libpetsc-real3.8 && apt-get clean 
 WORKDIR /build/
-COPY ./docker/script/docker_entrypoint.sh /
+#COPY ./docker/script/docker_entrypoint.sh /
 COPY --from=builder /source/ComPASS-develop/python ./compassModule
 COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python ./meshtoolsModule
 VOLUME [/data]
@@ -27,7 +27,7 @@ USER compass
 
 #to uncomment when bash script will be done.
 #ENTRYPOINT ["/bin/bash","/docker_entrypoint.sh"]
-#ENTRYPOINT ["python3"]
-ENTRYPOINT ["mpirun", "-n", "`nproc`", "python3"]
+ENTRYPOINT ["python3"]
+#ENTRYPOINT ["mpirun", "-n", "`nproc`", "python3"]
 
 
