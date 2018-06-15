@@ -219,6 +219,9 @@ def init(
                             value = value[:, None, None] * np.eye(dim)
                         assert value.shape==(n, dim, dim)
                         assert buffer.shape==value.shape
+                    if location=='fracture' and value.shape[0]>buffer.shape[0]:
+                        assert np.sum(fractures)==buffer.shape[0]
+                        value = value[fractures]
                     buffer[:] = value
                 else:
                     if location=='cell':
