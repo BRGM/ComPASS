@@ -1,67 +1,38 @@
-# This file is a template, and might need editing before it works on your project.
-# see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
-
-# you can delete this line if you're not using Docker
-#image: docker:latest
-
-image: docker:stable
-
-# this sequence will force to have unit tests in docker image. Making unit test before build docker image help remove unit test, but need to split dockerfile multijob build.
-stages:
-    - build
-    - test
-    - release
-    
-variables:
-  CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
-
-  #DOCKER_DRIVER: overlay2
-
-services:
-  - docker:dind
-
-# first build epos_gui image to run in docker.
 before_script:
-  - echo "Preparing build..."
+  - echo "Before script section run with id $USER"
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+  - COMPASS_TEST_ROOT=`pwd`/test
    
-
 after_script:
   - echo "After script section"
-  - echo "For example you might do some cleanup here"
+   
+variables:
+  CONTAINER_IMAGE: registry.gitlab.inria.fr/charms/compass
 
-#not master image is named differently.
-build:
+build1:
   stage: build
+  tags:
+    - test
   script:
-    - echo "building.."
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    
-    #TODO
-    #how to use docker cache ? split dockerfile to have a build image.fixed.
-    #how to prevent from rebuild all code when only test change.
-    # add gitlab runner docker in slave 2 to run dind
-    # clean mechanism for docker images ?
+    - pwd
+#    - docker build -t compass .
+    - docker build --cache-from $CONTAINER_IMAGE:$CI_BUILD_REF --tag $CONTAINER_IMAGE:$CI_BUILD_REF .
+    - docker push $CONTAINER_IMAGE:$CI_BUILD_REF
 
-integration_test:
+    
+test:
   stage: test
+  tags:
+    - test
   script:
-    - echo "unit test"
-    - docker run --rm $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG /build/compassModule/vertical_column.py
-    #- docker run --rm --entrypoint "mpirun" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG -n `nproc` python3 /build/compassModule/vertical_column.py
-#release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
-release:
-  stage: release
-  script:
-    - docker pull $CI_REGISTRY_IMAGE
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:latest
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-    - docker push $CI_REGISTRY_IMAGE:latest
-   # - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-  only:
-    - master
-    - tags
-  when: on_success
+    - mkdir -p ~/pipelines/$CI_PIPELINE_ID
+    - cd ~/pipelines/$CI_PIPELINE_ID
+    - cp -r $COMPASS_TEST_ROOT .
+    - cd test/unit
+    - shopt -s expand_aliases
+    - alias compass="docker run --volume=`pwd`:/data $CONTAINER_IMAGE:$CI_BUILD_REF"
+    - compass test_import_liquid_water.py
+    - compass test_import_water2ph.py
+    - compass test_import_diphasic.py
+
