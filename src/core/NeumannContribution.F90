@@ -26,8 +26,9 @@
 
           real(c_double) :: &
              molar_flux(NbComp), & !< component molar flux
+#ifdef _THERMIQUE_
              heat_flux !< heat flux
-
+#endif
        end TYPE TYPE_NeumannBC
 
        TYPE(TYPE_NeumannBC), allocatable, dimension(:), target, public :: &
@@ -78,8 +79,10 @@
              ! FIXME: This should take into account node fractions (and variable thicknesses...)
              NodeNeumannBC(s)%molar_flux = NodeNeumannBC(s)%molar_flux &
                                            + half_length*Thickness*fluxes%molar_flux
+#ifdef _THERMIQUE_
              NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
                                           + half_length*Thickness*fluxes%heat_flux
+#endif
           end do
 
        end subroutine NeumannContribution_set_fracture_edge_with_contribution
@@ -136,7 +139,9 @@
              alpha = alpha + MeshSchema_triangle_area(XNodeLocal(:, nodes(k)), XNodeLocal(:, nodes(k + 1)), barycenter)
              alpha = alpha/3.d0
              NodeNeumannBC(nodes(k))%molar_flux = NodeNeumannBC(nodes(k))%molar_flux + alpha*fluxes%molar_flux
+#ifdef _THERMIQUE_
              NodeNeumannBC(nodes(k))%heat_flux = NodeNeumannBC(nodes(k))%heat_flux + alpha*fluxes%heat_flux
+#endif
           end do
           deallocate (nodes)
 
