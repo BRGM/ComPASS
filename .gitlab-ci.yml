@@ -40,7 +40,8 @@ build:
     - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     
-    #how to use docker cache ? split dockerfile to have a build image.
+    #how to use docker cache ? split dockerfile to have a build image.fixed.
+    #how to prevent from rebuild all code when only test change.
 
 unit test:
   stage: test
