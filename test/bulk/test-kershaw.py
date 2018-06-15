@@ -25,20 +25,21 @@ T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius deg
 bottom_heat_flux = 0.08    # W/m2                                  
 k_matrix = 1E-18           # column permeability in m^2 (low permeability -> bigger time steps)
 phi_matrix = 0.15          # column porosity
+K_matrix = 2               # bulk thermal conductivity in W/m/K
 
 ComPASS.load_eos('water2ph')
 ComPASS.set_gravity(0)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def top_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    return vertices.z + epsilon >= 1
+    return ComPASS.global_vertices()[:,2] + epsilon >= 1
 
 ComPASS.init(
     mesh = mesh,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
     set_dirichlet_nodes = top_nodes,
+    cell_thermal_conductivity = K_matrix,
 )
 
 def set_initial_states(states):
@@ -55,8 +56,7 @@ for states in [ComPASS.dirichlet_node_states(),
 def set_boundary_heat_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.heat_flux = bottom_heat_flux
-    face_centers = np.rec.array(ComPASS.face_centers())   
-    ComPASS.set_Neumann_faces(face_centers.z - epsilon<= 0, Neumann) 
+    ComPASS.set_Neumann_faces(ComPASS.face_centers()[:,2] - epsilon<= 0, Neumann) 
 set_boundary_heat_flux()
 
 final_time = 1 * hour

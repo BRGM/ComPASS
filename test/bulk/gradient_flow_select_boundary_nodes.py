@@ -17,6 +17,7 @@ pleft, pright = 30 * MPa, 10 * MPa
 Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
 k_reservoir = 1E-12 # reservoir permeability in m^2
+K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 
 Lx = 1000.
 nx = 100
@@ -37,8 +38,8 @@ on_the_left = lambda x: x <= grid.origin[0]
 on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]
 
 def select_dirichlet_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices(), copy=False)
-    return on_the_left(vertices.x) | on_the_right(vertices.x)
+    x = ComPASS.global_vertices()[:,0]
+    return on_the_left(x) | on_the_right(x)
 
 def set_boundary_conditions():
     def set_states(states, x):
@@ -52,16 +53,16 @@ def set_boundary_conditions():
         states.context[both] = 2
         states.S[both] = [0, 1]
         states.C[both] = 1.
-    set_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices(), copy=False).x)
+    set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0])
 
 def set_initial_values():
     def set_states(states, x):
         states.context[:] = 2
-        states.p[:] = pleft + (pright - pleft) * (x - grid.origin[0]) / Lx
+        states.p[:] = pright # pleft + (pright - pleft) * (x - grid.origin[0]) / Lx
         states.T[:] = Tright
         states.S[:] = [0, 1]
         states.C[:] = 1.
-    set_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).x)
+    set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
     set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
 
 # %%% Simulation %%%
@@ -75,6 +76,7 @@ ComPASS.init(
     set_dirichlet_nodes = select_dirichlet_nodes,
     cell_porosity = omega_reservoir,
     cell_permeability = k_reservoir,
+    cell_thermal_conductivity = K_reservoir,
 )
 
 set_initial_values()
