@@ -15,6 +15,10 @@ namespace py = pybind11;
 
 #include "XArrayWrapper.h"
 
+template <typename T>
+inline auto encapsulate(T *p) {
+    return py::capsule(p);
+}
 
 // FIXME: Creating local reference through py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{}
 // is a bit weird/dangerous ?
@@ -51,13 +55,14 @@ template <typename Wrapper>
 py::module& add_vertices_array_wrapper(py::module& module, const char *getter_name, void(*bind)(Wrapper&))
 {
     static_assert(std::is_same<double, typename Wrapper::wrapped_type>::value, "coordinates should be double");
-    module.def(getter_name, [bind]() { 
-            auto wrapper = Wrapper{};
-            bind(wrapper);
-            return py::array_t<double, py::array::c_style>{ 
-                {wrapper.length, static_cast<std::size_t>(3)}, wrapper.pointer,
-                py::array_t<double, py::array::c_style>{}
-            };
-        } );
+    module.def(getter_name, [bind]() {
+        auto wrapper = Wrapper{};
+        bind(wrapper);
+        return py::array_t<double, py::array::c_style>{
+            {wrapper.length, static_cast<std::size_t>(3)},
+            wrapper.pointer,
+            encapsulate(wrapper.pointer)
+        };
+    });
     return module;
 }
