@@ -17,7 +17,11 @@ Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to
 Tinjection = degC2K( 30. )  # injection temperature - convert Celsius to Kelvin degrees
 Qm = 300. * ton / hour      # production flowrate
 k_matrix = 1E-15            # matrix permeability in m^2
+omega_matrix = 0.15         # matrix porosity
+K_matrix = 2                # bulk thermal conductivity in W/m/K
 k_fracture = 1E-12          # fracture permeability in m^2
+omega_fracture = 0.5        # fracture porosity
+K_fracture = 2              # bulk thermal conductivity in W/m/K
 
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
@@ -60,8 +64,12 @@ ComPASS.init(
     grid = grid,
     wells = wells_factory(grid),
     fracture_faces = fractures_factory(grid),
+    cell_porosity = omega_matrix,
     cell_permeability = k_matrix,
+    cell_thermal_conductivity = K_matrix,
+    fracture_porosity = omega_fracture,
     fracture_permeability = k_fracture,
+    fracture_thermal_conductivity = K_fracture,
 )
 
 doublet_utils.init_states(pres, Tres)
