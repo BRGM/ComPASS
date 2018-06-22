@@ -1884,7 +1884,7 @@ contains
         !         !"with porosity value", PorositeFrac( FracbyProc(ip1)%Num(i))
         !         "with porosity value", PorositeFrac(i)
        !PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac(FracbyProc(ip1)%Num(i))
-       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac(i)
+       PorositeFrac_Ncpus(ip1)%Val(i) = PorositeFrac(FracbyProc(ip1)%Num(i))
     end do
 
   end subroutine LocalMesh_Porosite

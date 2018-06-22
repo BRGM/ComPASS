@@ -59,6 +59,7 @@ def abort(message):
     ComPASS.mpi.MPI.COMM_WORLD.Abort()       
 
 def init_and_load_mesh(mesh):
+    print('We try to load the mesh!')
     kernel.init_warmup(runtime.logfile)
     if mpi.is_on_master_proc:
         # this is a bit redundant but we want to rely entirely on MeshTools
@@ -108,6 +109,7 @@ def init_and_load_mesh(mesh):
     #        print('Mesh type not understood!')
     #        # FIXME: This should be something like MPI.Abort()
     #        sys.exit(-1)
+    print('We loaded the mesh!')
 
 
 
@@ -174,7 +176,10 @@ def init(
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
+        # print('before', type(fracture_faces), fracture_faces.shape, fracture_faces, np.sum(fracture_faces))
         fractures = call_if_callable(fracture_faces)
+        print('after', type(fractures), fractures.shape, fractures, np.sum(fractures))
+        # 1/0
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
@@ -202,7 +207,7 @@ def init(
         if set_global_rocktype is not None:
             assert callable(set_global_rocktype)
             set_global_rocktype()
-        kernel.global_mesh_make_post_read_set_poroperm()
+        kernel.global_mesh_allocate_petrophysics()
         for location in ['cell', 'fracture']:
             for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
@@ -224,15 +229,17 @@ def init(
                             value = value[:, None, None] * np.eye(dim)
                         assert value.shape==(n, dim, dim)
                         assert buffer.shape==value.shape
-                    if location=='fracture' and value.shape[0]>buffer.shape[0]:
-                        assert np.sum(fractures)==buffer.shape[0]
-                        value = value[fractures]
-                    buffer[:] = value
+                    if location=='fracture':
+                        if value.shape[0]<buffer.shape[0]:
+                            buffer[fractures] = value
+                        else:
+                            buffer[:] = value
                 else:
                     if location=='cell':
                         abort('You must define: cell_%s' % property)
                     elif fractures is not None:
                         abort('You must define: fracture_%s' % property)
+        kernel.global_mesh_set_all_rocktypes()
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -284,11 +291,11 @@ def compute_cell_centers():
     )
 
 def compute_face_centers():
-    centers = ComPASS.face_centers()
-    dtype = set(centers.dtype[k] for k in range(len(centers.dtype)))
-    centers = centers.view(dtype=dtype.pop()).reshape((-1, 3))
-    assert not dtype # dtype should be empty here
-    return centers
+    # centers = ComPASS.face_centers()
+    # dtype = set(centers.dtype[k] for k in range(len(centers.dtype)))
+    # centers = centers.view(dtype=dtype.pop()).reshape((-1, 3))
+    # assert not dtype # dtype should be empty here
+    return ComPASS.face_centers()
 
 def compute_fracture_centers():
     return compute_face_centers()[ComPASS.frac_face_id() -1] # Fortran indexes start at 1
@@ -346,6 +353,7 @@ def get_boundary_vertices():
 
 def set_fractures(faces):
     idfaces = get_global_id_faces()
+    assert faces.shape==idfaces.shape or (faces.max()<idfaces.shape[0] and faces.min()>=0)
     idfaces[faces] = -2
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 

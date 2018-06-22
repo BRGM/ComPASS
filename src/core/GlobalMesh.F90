@@ -23,7 +23,7 @@ module GlobalMesh
   ! 3. IdFace, Mesh Part
 
   ! This for array that are interfaced with python/C++
-  use iso_c_binding, only: c_double
+  use iso_c_binding
 
   use CommonType
   use CommonMPI
@@ -196,7 +196,9 @@ module GlobalMesh
     GlobalMesh_FracbyNode,           & ! Make FracbyNode for Well Index
     GlobalMesh_WellConnectivity,     & ! NodebyWell and NodeDatabyWell
     GlobalMesh_SetFrac,              &
-    GlobalMesh_create_mesh
+    GlobalMesh_create_mesh,          &
+    GlobalMesh_allocate_petrophysics, &
+    GlobalMesh_set_all_rocktypes
 
 contains
 
@@ -369,163 +371,132 @@ subroutine GlobalMesh_deallocate_rocktypes()
 
 end subroutine GlobalMesh_deallocate_rocktypes
 
+subroutine GlobalMesh_allocate_petrophysics() &
+bind(C, name="GlobalMesh_allocate_petrophysics")
 
-subroutine GlobalMesh_Make_post_read_set_poroperm()
 
-    integer   :: i, n
-    !type(CSR) :: FractureIdbyNode
-    !
-    !n = FracbyNode%Nb
-    !FractureIdbyNode%Nb = n 
-    !allocate(FractureIdbyNode%Pt(n+1))
-    !FractureIdbyNode%Pt = FracbyNode%Pt
-    !n = FractureIdbyNode%Pt(n+1)
-    !allocate(FractureIdbyNode%Num(n))
-    !
-    !do i=1, n
-    !    FractureIdbyNode%Num(i) = FracbyNode%Num(i)%fracture
-    !end do
-        
-    allocate (PorositeCell(NbCell))
-    PorositeCell(:) = 1.d-99
-    allocate (PorositeFrac(NbFrac))
-    PorositeFrac(:) = 1.d-99
+allocate (PorositeCell(NbCell))
+PorositeCell(:) = 0.d0
+allocate (PorositeFrac(NbFace))
+PorositeFrac(:) = 0.d0
 
-    allocate (PermCell(3, 3, NbCell))
-    do i = 1, NbCell
-        PermCell(:, :, i) = 0.d0
-        PermCell(1, 1, i) = 1.d-99
-        PermCell(2, 2, i) = 1.d-99
-        PermCell(3, 3, i) = 1.d-99
-    end do
+allocate (PermCell(3, 3, NbCell))
+PermCell(:,:,:) = 0.d0
 
-    allocate (PermFrac(NbFrac))
-    PermFrac(:) = 1.d-99
+allocate (PermFrac(NbFace))
+PermFrac(:) = 0.d0
 
-      CALL GlobalMesh_SetRocktype( &
-      NbNode, &
-      NbCell, &
-      IdNode%Frac /= "y", &
-      CellRocktype(1,:), &
-      MAXVAL(RESHAPE(PermCell, (/ 9, NbCell /)), 1), &
-      CellbyNode, &
-      NodeRocktype(1,:))
 
-    CALL GlobalMesh_SetRocktype( &
-      NbNode, &
-      NbFace, &
-      IdNode%Frac == "y", &
-      FracRocktype(1,:), &
-      PermFrac, &
-      !FractureIdbyNode, &
-      FracbyNode, &
-      NodeRocktype(1,:))
-
-    ! set conductivities thermal
 #ifdef _THERMIQUE_
 
-      allocate (CondThermalCell(3, 3, NbCell))
-      do i = 1, NbCell
-         CondThermalCell(:, :, i) = 0.d0
-         CondThermalCell(1, 1, i) = 2.d0
-         CondThermalCell(2, 2, i) = 2.d0
-         CondThermalCell(3, 3, i) = 2.d0
-      end do
+allocate (CondThermalCell(3, 3, NbCell))
+CondThermalCell(:, :, :) = 0.d0
 
-      allocate (CondThermalFrac(NbFrac))
-      CondThermalFrac(:) = 2.d0
+allocate (CondThermalFrac(NbFace))
+CondThermalFrac(:) = 0.d0
 
-      CALL GlobalMesh_SetRocktype( &
-       NbNode, &
-       NbCell, &
-       IdNode%Frac /= "y", &
-       CellRocktype(2,:), &
-       MAXVAL(RESHAPE(CondThermalCell, (/ 9, NbCell /)), 1), &
-       CellbyNode, &
-       NodeRocktype(2,:))
-
-     CALL GlobalMesh_SetRocktype( &
-       NbNode, &
-       NbFace, &
-       IdNode%Frac == "y", &
-       FracRocktype(2,:), &
-       CondThermalFrac, &
-       !FractureIdbyNode, &
-       FracbyNode, &
-       NodeRocktype(2,:))
-
-    !ALLOCATE(CellThermalSourceType(NbCell))
-    !ALLOCATE(FracThermalSourceType(NbFace))
-    !
-    !CALL GlobalMesh_SetCellThermalSourceType
-    !CALL GlobalMesh_SetFracThermalSourceType
-    !
-    !CALL DefModel_SetThermalSource( &
-    !  NbCell, &
-    !  CellThermalSourceType, &
-    !  NbFace, &
-    !  FracThermalSourceType, &
-    !  CellThermalSource, &
-    !  FracThermalSource)
-    allocate(CellThermalSource(NbCell))
-    CellThermalSource = 0
-    allocate(FracThermalSource(NbFace))
-    FracThermalSource = 0
+allocate(CellThermalSource(NbCell))
+CellThermalSource = 0.d0
+allocate(FracThermalSource(NbFace))
+FracThermalSource = 0.d0
 
 #endif
 
-    !call CommonType_deallocCSR(FractureIdbyNode)
+!call CommonType_deallocCSR(FractureIdbyNode)
 
-end subroutine GlobalMesh_Make_post_read_set_poroperm
-
-
-  SUBROUTINE GlobalMesh_SetRocktype( &
-      NbNode, &
-      NbElem, &
-      IsRocktypeNode, &
-      ElemRocktype, &
-      ElemPermeability, &
-      ElembyNode, &
-      Rocktype)
+end subroutine GlobalMesh_allocate_petrophysics
 
 
-    INTEGER, INTENT(IN) :: NbNode
-    INTEGER, INTENT(IN) :: NbElem
-    LOGICAL, INTENT(IN) :: IsRocktypeNode(NbNode)
-    INTEGER, INTENT(IN) :: ElemRocktype(NbElem)
-    DOUBLE PRECISION, INTENT(IN) :: ElemPermeability(NbElem)
-    TYPE(CSR), INTENT(IN) :: ElembyNode
+SUBROUTINE GlobalMesh_SetRocktype( &
+    NbNode, &
+    NbElem, &
+    IsRocktypeNode, &
+    ElemRocktype, &
+    ElemPermeability, &
+    ElembyNode, &
+    Rocktype)
 
-    INTEGER, INTENT(OUT) :: Rocktype(NbNode)
 
-    INTEGER :: i
-    INTEGER :: kpt, k
-    INTEGER :: rt
-    DOUBLE PRECISION :: v, vk
+INTEGER, INTENT(IN) :: NbNode
+INTEGER, INTENT(IN) :: NbElem
+LOGICAL, INTENT(IN) :: IsRocktypeNode(NbNode)
+INTEGER, INTENT(IN) :: ElemRocktype(NbElem)
+DOUBLE PRECISION, INTENT(IN) :: ElemPermeability(NbElem)
+TYPE(CSR), INTENT(IN) :: ElembyNode
 
-    DO i=1, NbNode
-      IF(IsRocktypeNode(i))THEN
+INTEGER, INTENT(OUT) :: Rocktype(NbNode)
+
+INTEGER :: i
+INTEGER :: kpt, k
+INTEGER :: rt
+DOUBLE PRECISION :: v, vk
+
+DO i=1, NbNode
+    IF(IsRocktypeNode(i))THEN
         kpt = ElembyNode%Pt(i)+1
         k = ElembyNode%Num(kpt)
 
         rt = ElemRocktype(k)
         v = ElemPermeability(k)
         DO kpt = ElembyNode%Pt(i)+2, ElembyNode%Pt(i+1)
-          k = ElembyNode%Num(kpt)
+            k = ElembyNode%Num(kpt)
 
-          vk = ElemPermeability(k)
-          IF( rt /= ElemRocktype(k) .AND. vk > v )THEN
-            rt = ElemRocktype(k)
-            v = vk
-          ENDIF
+            vk = ElemPermeability(k)
+            IF( rt /= ElemRocktype(k) .AND. vk > v )THEN
+                rt = ElemRocktype(k)
+                v = vk
+            ENDIF
         ENDDO
 
         Rocktype(i) = rt
-      ENDIF
-    ENDDO
-  END SUBROUTINE GlobalMesh_SetRocktype
+    ENDIF
+ENDDO
+END SUBROUTINE GlobalMesh_SetRocktype
 
+subroutine GlobalMesh_set_all_rocktypes() &
+    bind(C, name="GlobalMesh_set_all_rocktypes")
 
+CALL GlobalMesh_SetRocktype( &
+    NbNode, NbCell, &
+    IdNode%Frac /= "y", &
+    CellRocktype(1,:), &
+    MAXVAL(RESHAPE(PermCell, (/ 9, NbCell /)), 1), &
+    CellbyNode, &
+    NodeRocktype(1,:))
+
+CALL GlobalMesh_SetRocktype( &
+    NbNode, NbFace, &
+    IdNode%Frac == "y", &
+    FracRocktype(1,:), &
+    PermFrac, &
+    !FractureIdbyNode, &
+    FracbyNode, &
+    NodeRocktype(1,:))
+
+#ifdef _THERMIQUE_
+
+CALL GlobalMesh_SetRocktype( &
+    NbNode, NbCell, &
+    IdNode%Frac /= "y", &
+    CellRocktype(2,:), &
+    MAXVAL(RESHAPE(CondThermalCell, (/ 9, NbCell /)), 1), &
+    CellbyNode, &
+    NodeRocktype(2,:))
+
+CALL GlobalMesh_SetRocktype( &
+    NbNode, &
+    NbFace, &
+    IdNode%Frac == "y", &
+    FracRocktype(2,:), &
+    CondThermalFrac, &
+    !FractureIdbyNode, &
+    FracbyNode, &
+    NodeRocktype(2,:))
+
+#endif
+
+    end subroutine GlobalMesh_set_all_rocktypes
+    
   subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
 
     call GlobalMesh_WellConnectivity
