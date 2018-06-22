@@ -74,19 +74,27 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+#ifdef _THERMIQUE_
    integer, parameter :: P=1, T=2, Cw=3, Ct=4, Sl=5
+#else
+   integer, parameter :: P=1, T=-1, Cw=2, Ct=3, Sl=4
+#endif
    private :: P, T, Cw, Ct, Sl
    
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
+#ifdef _THERMIQUE_
                        P, T, Ct & ! only one context
+#else
+                       P, Ct & ! only one context
+#endif
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
   ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       Cw, Sl & ! only one context
+                       Cw & ! only one context
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
@@ -103,17 +111,22 @@ module DefModel
    !     to define aligmat(:,:,ic) without considering that the matrix
    !     in Fortran is column-major
    !
-   ! aligmethod=2, inverse diagnal
+   ! aligmethod=2, inverse diagonal
    !     it is necessary to define aligmat formally for compile
 
-   integer, parameter :: aligmethod = 2
+   integer, parameter :: aligmethod = 1
 
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
-                        1.d0, 1.d0, 0.d0,  & ! only one context
-                        0.d0, 0.d0, 1.d0,  &
-                        0.d0, 1.d0, 0.d0   &
-                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
+#ifdef _THERMIQUE_
+            1.d0, 1.d0, 0.d0,  & ! only one context
+            0.d0, 0.d0, 1.d0,  &
+            0.d0, 1.d0, 0.d0   &
+#else
+            1.d0, 0.d0,  & ! only one context
+            0.d0, 1.d0   &
+#endif
+/), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 end module DefModel

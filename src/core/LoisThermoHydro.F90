@@ -850,7 +850,7 @@ contains
   end subroutine LoisThermoHydro_dFsurdX_cv
 
 
-  ! choose prim and sec inconnus for each CV
+  ! choose primary and secondary unknowns for each CV
   ! fill inc%Nb/NumIncPrim/Secd
   subroutine LoisThermoHydro_ps_cv(inc, dFsurdX, pschoicecv, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
@@ -2799,17 +2799,17 @@ contains
     allocate(DensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
     allocate(divDensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
 
+    ! the following arrays must be allocated even if there is no energy transfer
+    allocate( SmTemperatureCell( nbCell))
+    allocate( SmTemperatureFrac( nbFrac))
+    allocate( SmTemperatureNode( nbNode))
+
 #ifdef _THERMIQUE_
 
     ! temperature
     allocate( divTemperatureCell(NbIncPTCSPrimMax, nbCell) )
     allocate( divTemperatureFrac(NbIncPTCSPrimMax, nbFrac) )
     allocate( divTemperatureNode(NbIncPTCSPrimMax, nbNode) )
-
-    allocate( SmTemperatureCell( nbCell))
-    allocate( SmTemperatureFrac( nbFrac))
-    allocate( SmTemperatureNode( nbNode))
-
 
     ! DensiteMolaire * PermRel / Viscosite * Enthalpie
     allocate( DensitemolaireKrViscoEnthalpieCell(NbPhase, nbCell))
@@ -2930,14 +2930,15 @@ contains
     deallocate(DensitemolaireKrViscoEnthalpieWellInj)
     deallocate(divDensitemolaireKrViscoEnthalpieWellInj)
 
+    deallocate( SmTemperatureCell)
+    deallocate( SmTemperatureFrac)
+    deallocate( SmTemperatureNode)
+
 #ifdef _THERMIQUE_
     ! temperature
     deallocate( divTemperatureCell)
     deallocate( divTemperatureFrac)
     deallocate( divTemperatureNode)
-    deallocate( SmTemperatureCell)
-    deallocate( SmTemperatureFrac)
-    deallocate( SmTemperatureNode)
 
     ! densitemolaire * Permrel / viscosite * Enthalpie
     deallocate( DensitemolaireKrViscoEnthalpieCell)

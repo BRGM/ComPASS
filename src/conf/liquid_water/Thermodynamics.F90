@@ -28,13 +28,9 @@ module Thermodynamics
       f_PermRel, & ! k_{r_alpha}(S)
       f_PressionCapillaire, & ! P_{c,alpha}(S)
       FluidThermodynamics_Psat, &
-      FluidThermodynamics_Tsat
-
-#ifdef _THERMIQUE_
-   public :: &
+      FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
       f_Enthalpie
-#endif
 
 contains
 
@@ -192,8 +188,6 @@ contains
 
    end subroutine f_PressionCapillaire
 
-#ifdef _THERMIQUE_
-
    ! EnergieInterne
    ! iph is an identificator for each phase:
    ! PHASE_GAS = 1; PHASE_WATER = 2
@@ -241,8 +235,6 @@ contains
       dSf(:) = 0.d0
 
    end subroutine f_Enthalpie
-
-#endif
 
    subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")

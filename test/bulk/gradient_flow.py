@@ -22,6 +22,8 @@ K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 Lx = 1000.
 nx = 100
 
+onecomp = False
+
 mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
 print('Average Darcy velocity:', U * year, 'm/year')
@@ -52,7 +54,10 @@ def set_boundary_conditions():
         both = (left | right)
         states.context[both] = 1
         states.S[both] = 1
-        states.C[both] = (1., 0)
+        if onecomp:
+            states.C[both] = 1.
+        else:
+            states.C[both] = (1., 0)
     set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0])
 
 def set_initial_values():
@@ -61,7 +66,10 @@ def set_initial_values():
         states.p[:] = pright # pleft + (pright - pleft) * (x - grid.origin[0]) / Lx
         states.T[:] = Tright
         states.S[:] = 1
-        states.C[:] = (1., 0)
+        if onecomp:
+            states.C[:] = 1.
+        else:
+            states.C[:] = (1., 0)
     set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
     set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
 
@@ -69,7 +77,10 @@ def set_initial_values():
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-ComPASS.load_eos('water_with_tracer')
+if onecomp:
+    ComPASS.load_eos('liquid_water')
+else:
+    ComPASS.load_eos('water_with_tracer')
 
 ComPASS.init(
     grid = grid,

@@ -28,13 +28,9 @@ module Thermodynamics
       f_PermRel, & ! k_{r_alpha}(S)
       f_PressionCapillaire, & ! P_{c,alpha}(S)
       FluidThermodynamics_Psat, &
-      FluidThermodynamics_Tsat
-
-#ifdef _THERMIQUE_
-   public :: &
+      FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
       f_Enthalpie
-#endif
 
 contains
 
