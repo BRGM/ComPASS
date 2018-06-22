@@ -111,6 +111,54 @@ def init_and_load_mesh(mesh):
     #        sys.exit(-1)
     print('We loaded the mesh!')
 
+def petrophysics_statistics_on_gobal_mesh(fractures):
+    if mpi.is_on_master_proc:
+        for location in ['cell', 'fracture']:
+            # TODO permeability and thermal_condutvity are tensors
+            # for property in ['porosity', 'permeability', 'thermal_conductivity']:
+            for property in ['porosity']:
+                buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                if location=='fracture':
+                    buffer = buffer[fractures]
+                print(buffer.min(), '<=', location, property, '<=', buffer.max())
+
+def set_petrophysics_on_gobal_mesh(properties, fractures):
+    if mpi.is_on_master_proc:
+        kernel.global_mesh_allocate_petrophysics()
+        for location in ['cell', 'fracture']:
+            for property in ['porosity', 'permeability', 'thermal_conductivity']:
+                value = properties[location + '_' + property]()
+                if value is not None:
+                    dim = 3
+                    if location=='fracture':
+                        assert fractures is not None
+                        dim = 2
+                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                    value = np.ascontiguousarray( value )
+                    # CHECKME: fracture permeability is scalar
+                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
+                        n = buffer.shape[0]
+                        if value.shape==(1,): # scalar value
+                            value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
+                        if value.shape==(dim, dim): # tensor value
+                            value = np.tile(value, (n, 1, 1))
+                        if value.shape==(n,): # scalar values
+                            value = value[:, None, None] * np.eye(dim)
+                        assert value.shape==(n, dim, dim)
+                        assert buffer.shape==value.shape
+                    if location=='fracture':
+                        if value.shape[0]<buffer.shape[0]:
+                            buffer[fractures] = value
+                        else:
+                            buffer[:] = value
+                else:
+                    if location=='cell':
+                        abort('You must define: cell_%s' % property)
+                    elif fractures is not None:
+                        abort('You must define: fracture_%s' % property)
+        print('petrophysics')
+        petrophysics_statistics_on_gobal_mesh(fractures)
+        kernel.global_mesh_set_all_rocktypes()
 
 
 # This is temporary but will be generalized in the future
@@ -207,39 +255,7 @@ def init(
         if set_global_rocktype is not None:
             assert callable(set_global_rocktype)
             set_global_rocktype()
-        kernel.global_mesh_allocate_petrophysics()
-        for location in ['cell', 'fracture']:
-            for property in ['porosity', 'permeability', 'thermal_conductivity']:
-                value = properties[location + '_' + property]()
-                if value is not None:
-                    dim = 3
-                    if location=='fracture':
-                        assert fractures is not None
-                        dim = 2
-                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
-                    value = np.ascontiguousarray( value )
-                    # CHECKME: fracture permeability is scalar
-                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
-                        n = buffer.shape[0]
-                        if value.shape==(1,): # scalar value
-                            value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
-                        if value.shape==(dim, dim): # tensor value
-                            value = np.tile(value, (n, 1, 1))
-                        if value.shape==(n,): # scalar values
-                            value = value[:, None, None] * np.eye(dim)
-                        assert value.shape==(n, dim, dim)
-                        assert buffer.shape==value.shape
-                    if location=='fracture':
-                        if value.shape[0]<buffer.shape[0]:
-                            buffer[fractures] = value
-                        else:
-                            buffer[:] = value
-                else:
-                    if location=='cell':
-                        abort('You must define: cell_%s' % property)
-                    elif fractures is not None:
-                        abort('You must define: fracture_%s' % property)
-        kernel.global_mesh_set_all_rocktypes()
+        set_petrophysics_on_gobal_mesh(properties, fractures)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
