@@ -459,7 +459,7 @@ contains
   end subroutine VAGFrac_TransFrac
 
 
-  ! shift the fraction omega of the cell volume to the nodes according to the
+  ! split the fraction omega of the cell volume to the nodes according to the
   ! label
   SUBROUTINE VAGFrac_SplitCellVolume( &
       NbCellLocal, &
@@ -643,6 +643,15 @@ contains
     allocate(CellThermalSourceVol(NbCellLocal_Ncpus(commRank+1)))
     allocate(FracThermalSourceVol(NbFracLocal_Ncpus(commRank+1)))
     allocate(NodeThermalSourceVol(NbNodeLocal_Ncpus(commRank+1)))
+
+#ifndef NDEBUG
+    write(*,*) "Splitting volumes statistics:"
+    write(*,*) minval(VolCellLocal), "< cell volume <", maxval(VolCellLocal)
+    write(*,*) minval(PorositeCellLocal), "< cell porosity <", maxval(PorositeCellLocal)
+    write(*,*) "fracture thickness is constant set to", Thickness
+    write(*,*) minval(SurfFracLocal), "< fracture surface <", maxval(SurfFracLocal)
+    write(*,*) minval(PorositeFracLocal), "< fracture porosity <", maxval(PorositeFracLocal)
+#endif
 
     PoroVolFourierCell = PorositeCellLocal * VolCellLocal
     PoroVolFourierFrac = PorositeFracLocal * Thickness * SurfFracLocal
