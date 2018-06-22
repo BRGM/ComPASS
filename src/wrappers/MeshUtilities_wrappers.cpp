@@ -22,10 +22,7 @@ struct NodeInfo
 			   // FIXME: Name is to be changed
 	char pressure; // 'd' / 'n' / 'i' : dirichlet / neumann / interior for the pressure
 				   // FIXME: preprocessor directives to be removed!
-#ifdef _THERMIQUE_
-				   // FIXME: Name is to be changed
 	char temperature; // 'd' / 'n' / 'i' : dirichlet / neumann / interior for the temperature
-#endif
 };
 
 // Fortran functions
@@ -178,12 +175,7 @@ void add_mesh_utilities_wrappers(py::module& module)
 		return coc;
 	});
 
-	// FIXME: preprocessor directives to be removed!
-#ifdef _THERMIQUE_
 	PYBIND11_NUMPY_DTYPE(NodeInfo, proc, frac, pressure, temperature);
-	#else
-	PYBIND11_NUMPY_DTYPE(NodeInfo, proc, frac, pressure);
-#endif
 
 	add_array_wrapper(module, "global_node_info", retrieve_global_id_node);
 	add_array_wrapper(module, "node_info", retrieve_id_node);

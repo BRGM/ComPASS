@@ -141,8 +141,11 @@ def reshape_as_tensor_array(value, n, dim):
 def set_petrophysics_on_gobal_mesh(properties, fractures):
     if mpi.is_on_master_proc:
         kernel.global_mesh_allocate_petrophysics()
+        useful_properties =  ['porosity', 'permeability']
+        if kernel.has_energy_transfer_enabled():
+            useful_properties.append('thermal_conductivity')
         for location in ['cell', 'fracture']:
-            for property in ['porosity', 'permeability', 'thermal_conductivity']:
+            for property in useful_properties:
                 value = properties[location + '_' + property]()
                 if value is not None:
                     buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)

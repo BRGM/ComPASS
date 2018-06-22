@@ -44,5 +44,12 @@ void add_global_variables_wrappers(py::module& module)
     module.def("set_rock_volumetric_heat_capacity", &set_rock_volumetric_heat_capacity);
     module.def("get_fracture_thickness", &get_fracture_thickness);
     module.def("set_fracture_thickness", &set_fracture_thickness);
+    module.def("has_energy_transfer_enabled", []() {
+#ifdef _THERMIQUE_
+        return true;
+#else
+        return false;
+#endif
+    });
 
 }
