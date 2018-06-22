@@ -28,7 +28,7 @@ background_fracture_permeability = 1E-12    # permeability in m^2
 
 Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
-nx, ny, nz = 61, 41, 4
+nx, ny, nz = 61, 41, 3
 
 ComPASS.load_eos('water2ph')
 ComPASS.set_gravity(9.81)
