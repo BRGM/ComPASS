@@ -192,8 +192,6 @@ contains
 
    end subroutine f_PressionCapillaire
 
-#ifdef _THERMIQUE_
-
    ! EnergieInterne
    ! iph is an identificator for each phase:
    ! PHASE_GAS = 1; PHASE_WATER = 2
@@ -241,8 +239,6 @@ contains
       dSf(:) = 0.d0
 
    end subroutine f_Enthalpie
-
-#endif
 
    subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
