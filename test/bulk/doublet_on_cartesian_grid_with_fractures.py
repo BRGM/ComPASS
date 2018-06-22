@@ -16,7 +16,7 @@ pres = 20. * MPa            # initial reservoir pressure
 Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to Kelvin degrees
 Tinjection = degC2K( 30. )  # injection temperature - convert Celsius to Kelvin degrees
 Qm = 300. * ton / hour      # production flowrate
-k_matrix = 1E-15            # matrix permeability in m^2
+k_matrix = 1E-13            # matrix permeability in m^2
 omega_matrix = 0.15         # matrix porosity
 K_matrix = 2                # bulk thermal conductivity in W/m/K
 k_fracture = 1E-12          # fracture permeability in m^2
@@ -74,4 +74,4 @@ ComPASS.init(
 
 doublet_utils.init_states(pres, Tres)
 
-standard_loop(initial_timestep = day, final_time = 2 * year, output_period = year)
+standard_loop(initial_timestep = day, final_time = 2 * year, output_period = 30 * day)
