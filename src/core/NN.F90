@@ -510,9 +510,8 @@ subroutine NN_init_phase2(OutputDir)
       ! save current status, copy Inc* to Inc*PrevisousTimeStep
       call IncCV_SaveIncPreviousTimeStep
 
-      call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
-      call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
-
+      call IncCVWells_PressureDrop
+      
       ! *** Newton iterations *** !
 
       ! if Jacobian Ksp solver doesn't converge
@@ -543,8 +542,7 @@ subroutine NN_init_phase2(OutputDir)
 
             ! compute pressure of perforations with well pressure
 !           IncPressionWellInj(:) = 2.d7
-            call IncCVWells_PressureDropWellInj
-            call IncCVWells_PressureDropWellProd
+            call IncCVWells_PressureDrop
 
             ! LoisThermohydro
             call LoisThermoHydro_compute
@@ -631,8 +629,7 @@ subroutine NN_init_phase2(OutputDir)
 
                ! load status
                call IncCV_LoadIncPreviousTimeStep
-               call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
-               call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
+               call IncCVWells_PressureDrop
 
                ! print residu if Ksp failure
                if (commRank == 0) then
@@ -733,8 +730,7 @@ subroutine NN_init_phase2(OutputDir)
 
             ! load status
             call IncCV_LoadIncPreviousTimeStep
-            call IncCVWells_PressureDropWellInj ! compute PerfoWellInj%Pression
-            call IncCVWells_PressureDropWellProd ! compute PerfoWellDrop%Pression
+            call IncCVWells_PressureDrop
 
             ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
          end if
