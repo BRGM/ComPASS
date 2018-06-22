@@ -122,6 +122,24 @@ def petrophysics_statistics_on_gobal_mesh(fractures):
                     buffer = buffer[fractures]
                 print(buffer.min(), '<=', location, property, '<=', buffer.max())
 
+def reshape_as_scalar_array(value, n):
+    value = np.ascontiguousarray( value )
+    if value.shape==(1,): # scalar value
+        value = np.tile(value[0], n) 
+    assert value.shape==(n,)
+    return value
+
+def reshape_as_tensor_array(value, n, dim):
+    value = np.ascontiguousarray( value )
+    if value.shape==(1,): # scalar value
+        value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
+    if value.shape==(dim, dim): # tensor value
+        value = np.tile(value, (n, 1, 1))
+    if value.shape==(n,): # scalar values
+        value = value[:, None, None] * np.eye(dim)
+    assert value.shape==(n, dim, dim)
+    return value
+
 def set_petrophysics_on_gobal_mesh(properties, fractures):
     if mpi.is_on_master_proc:
         kernel.global_mesh_allocate_petrophysics()
@@ -129,28 +147,21 @@ def set_petrophysics_on_gobal_mesh(properties, fractures):
             for property in ['porosity', 'permeability', 'thermal_conductivity']:
                 value = properties[location + '_' + property]()
                 if value is not None:
+                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                    n = buffer.shape[0]
                     dim = 3
                     if location=='fracture':
                         assert fractures is not None
+                        n = np.count_nonzero(fractures)
                         dim = 2
-                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
-                    value = np.ascontiguousarray( value )
-                    # CHECKME: fracture permeability is scalar
                     if property in ['permeability', 'thermal_conductivity'] and location=='cell':
-                        n = buffer.shape[0]
-                        if value.shape==(1,): # scalar value
-                            value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
-                        if value.shape==(dim, dim): # tensor value
-                            value = np.tile(value, (n, 1, 1))
-                        if value.shape==(n,): # scalar values
-                            value = value[:, None, None] * np.eye(dim)
-                        assert value.shape==(n, dim, dim)
-                        assert buffer.shape==value.shape
+                        value = reshape_as_tensor_array(value, n, dim)
+                    else:
+                        value = reshape_as_scalar_array(value, n)
                     if location=='fracture':
-                        if value.shape[0]<buffer.shape[0]:
-                            buffer[fractures] = value
-                        else:
-                            buffer[:] = value
+                        buffer[fractures] = value
+                    else:
+                        buffer[:] = value
                 else:
                     if location=='cell':
                         abort('You must define: cell_%s' % property)
