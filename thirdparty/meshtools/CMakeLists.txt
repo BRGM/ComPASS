@@ -28,7 +28,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(MESHTOOLS_CONFIG_DIRECTORY ${MESHTOOLS_ROOT_DIRECTORY}/config CACHE PATH "path to configuration scripts")
 # FORCE is used here if MeshTools is already present on the computer
 set(MESHTOOLS_PYTHON_DIRECTORY ${MESHTOOLS_ROOT_DIRECTORY}/python CACHE PATH "python package directory" FORCE)
-set(MESHTOOLS_PYTHON_MODULES_OUTPUT_DIRECTORY ${MESHTOOLS_PYTHON_DIRECTORY}/MeshTools CACHE PATH "where compiled python modules will be installed")
+set(MESHTOOLS_PYTHON_MODULES_OUTPUT_DIRECTORY ${MESHTOOLS_PYTHON_DIRECTORY}/MeshTools CACHE PATH "where compiled python modules will be installed" FORCE)
 
 set(MESHTOOLS_THIRDPARTIES_DIRECTORY ${MESHTOOLS_ROOT_DIRECTORY}/thirdparties)
 

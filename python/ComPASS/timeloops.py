@@ -96,7 +96,7 @@ def standard_loop(final_time, initial_timestep=1.,
         for callback in iteration_callbacks:
             callback(n, t)
     # Output final time
-    if shooter.latest_snapshot_time < t:
+    if shooter.latest_snapshot_time is None or shooter.latest_snapshot_time < t:
         for callback in output_callbacks:
             callback(n, t)
         shooter.shoot(t)

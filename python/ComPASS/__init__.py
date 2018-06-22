@@ -109,6 +109,65 @@ def init_and_load_mesh(mesh):
     #        # FIXME: This should be something like MPI.Abort()
     #        sys.exit(-1)
 
+def petrophysics_statistics_on_gobal_mesh(fractures):
+    if mpi.is_on_master_proc:
+        for location in ['cell', 'fracture']:
+            # TODO permeability and thermal_condutvity are tensors
+            # for property in ['porosity', 'permeability', 'thermal_conductivity']:
+            for property in ['porosity']:
+                buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                if location=='fracture':
+                    buffer = buffer[fractures]
+                print(buffer.min(), '<=', location, property, '<=', buffer.max())
+
+def reshape_as_scalar_array(value, n):
+    value = np.ascontiguousarray( value )
+    if value.shape==(1,): # scalar value
+        value = np.tile(value[0], n) 
+    assert value.shape==(n,)
+    return value
+
+def reshape_as_tensor_array(value, n, dim):
+    value = np.ascontiguousarray( value )
+    if value.shape==(1,): # scalar value
+        value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
+    if value.shape==(dim, dim): # tensor value
+        value = np.tile(value, (n, 1, 1))
+    if value.shape==(n,): # scalar values
+        value = value[:, None, None] * np.eye(dim)
+    assert value.shape==(n, dim, dim)
+    return value
+
+def set_petrophysics_on_gobal_mesh(properties, fractures):
+    if mpi.is_on_master_proc:
+        kernel.global_mesh_allocate_petrophysics()
+        for location in ['cell', 'fracture']:
+            for property in ['porosity', 'permeability', 'thermal_conductivity']:
+                value = properties[location + '_' + property]()
+                if value is not None:
+                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                    n = buffer.shape[0]
+                    dim = 3
+                    if location=='fracture':
+                        assert fractures is not None
+                        n = np.count_nonzero(fractures)
+                        dim = 2
+                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
+                        value = reshape_as_tensor_array(value, n, dim)
+                    else:
+                        value = reshape_as_scalar_array(value, n)
+                    if location=='fracture':
+                        buffer[fractures] = value
+                    else:
+                        buffer[:] = value
+                else:
+                    if location=='cell':
+                        abort('You must define: cell_%s' % property)
+                    elif fractures is not None:
+                        abort('You must define: fracture_%s' % property)
+        print('petrophysics')
+        petrophysics_statistics_on_gobal_mesh(fractures)
+        kernel.global_mesh_set_all_rocktypes()
 
 
 # This is temporary but will be generalized in the future
@@ -202,37 +261,7 @@ def init(
         if set_global_rocktype is not None:
             assert callable(set_global_rocktype)
             set_global_rocktype()
-        kernel.global_mesh_make_post_read_set_poroperm()
-        for location in ['cell', 'fracture']:
-            for property in ['porosity', 'permeability', 'thermal_conductivity']:
-                value = properties[location + '_' + property]()
-                if value is not None:
-                    dim = 3
-                    if location=='fracture':
-                        assert fractures is not None
-                        dim = 2
-                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
-                    value = np.ascontiguousarray( value )
-                    # CHECKME: fracture permeability is scalar
-                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
-                        n = buffer.shape[0]
-                        if value.shape==(1,): # scalar value
-                            value = np.tile(value[0] * np.eye(dim), (n, 1 ,1)) 
-                        if value.shape==(dim, dim): # tensor value
-                            value = np.tile(value, (n, 1, 1))
-                        if value.shape==(n,): # scalar values
-                            value = value[:, None, None] * np.eye(dim)
-                        assert value.shape==(n, dim, dim)
-                        assert buffer.shape==value.shape
-                    if location=='fracture' and value.shape[0]>buffer.shape[0]:
-                        assert np.sum(fractures)==buffer.shape[0]
-                        value = value[fractures]
-                    buffer[:] = value
-                else:
-                    if location=='cell':
-                        abort('You must define: cell_%s' % property)
-                    elif fractures is not None:
-                        abort('You must define: fracture_%s' % property)
+        set_petrophysics_on_gobal_mesh(properties, fractures)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -284,11 +313,11 @@ def compute_cell_centers():
     )
 
 def compute_face_centers():
-    centers = ComPASS.face_centers()
-    dtype = set(centers.dtype[k] for k in range(len(centers.dtype)))
-    centers = centers.view(dtype=dtype.pop()).reshape((-1, 3))
-    assert not dtype # dtype should be empty here
-    return centers
+    # centers = ComPASS.face_centers()
+    # dtype = set(centers.dtype[k] for k in range(len(centers.dtype)))
+    # centers = centers.view(dtype=dtype.pop()).reshape((-1, 3))
+    # assert not dtype # dtype should be empty here
+    return ComPASS.face_centers()
 
 def compute_fracture_centers():
     return compute_face_centers()[ComPASS.frac_face_id() -1] # Fortran indexes start at 1
@@ -346,6 +375,7 @@ def get_boundary_vertices():
 
 def set_fractures(faces):
     idfaces = get_global_id_faces()
+    assert faces.shape==idfaces.shape or (faces.max()<idfaces.shape[0] and faces.min()>=0)
     idfaces[faces] = -2
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 

@@ -13,8 +13,9 @@ extern "C"
 	void GlobalMesh_create_mesh(int, int, int, const double[], const int[], const int[], const int[], const int[], const int[], const int[], const int[], const int[]);
 	//void GlobalMesh_make_post_read();
 	//void GlobalMesh_make_post_read_fracture_and_dirBC();
-	void GlobalMesh_make_post_read_set_poroperm();
-	void GlobalMesh_make_post_read_well_connectivity_and_ip();
+    void GlobalMesh_allocate_petrophysics();
+    void GlobalMesh_set_all_rocktypes();
+    void GlobalMesh_make_post_read_well_connectivity_and_ip();
 	void GlobalMesh_mesh_bounding_box();
 	void GlobalMesh_compute_all_connectivies();
 	void GlobalMesh_set_frac();
@@ -112,9 +113,10 @@ void add_GlobalMesh_wrappers(py::module& module)
 	// This is only transitory
 	//module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read, "Compute all well indices.");
 	//module.def("global_mesh_make_post_read_fracture_and_dirBC", &GlobalMesh_make_post_read_fracture_and_dirBC, "Set fractures and boudary conditions.");
-	module.def("global_mesh_make_post_read_set_poroperm", &GlobalMesh_make_post_read_set_poroperm, "Set porosity and permeability.");
-	module.def("global_mesh_make_post_read_well_connectivity_and_ip", &GlobalMesh_make_post_read_well_connectivity_and_ip, "Compute well connectivity and PI.");
-	module.def("global_mesh_mesh_bounding_box", &GlobalMesh_mesh_bounding_box);
+    module.def("global_mesh_allocate_petrophysics", &GlobalMesh_allocate_petrophysics, "Allocate porosity and permeability.");
+    module.def("global_mesh_set_all_rocktypes", &GlobalMesh_set_all_rocktypes, "Set node rocktypes taking into account neighboring permeabilities/conductivities.");
+    module.def("global_mesh_make_post_read_well_connectivity_and_ip", &GlobalMesh_make_post_read_well_connectivity_and_ip, "Compute well connectivity and PI.");
+    module.def("global_mesh_mesh_bounding_box", &GlobalMesh_mesh_bounding_box);
 	module.def("global_mesh_compute_all_connectivies", &GlobalMesh_compute_all_connectivies);
 	module.def("global_mesh_set_frac", &GlobalMesh_set_frac);
 	module.def("global_mesh_node_of_frac", &GlobalMesh_node_of_frac);
