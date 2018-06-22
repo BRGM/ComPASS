@@ -166,7 +166,9 @@ contains
 
       do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
          ResiduNode(1:NbComp, k) = ResiduNode(1:NbComp, k) - NodeNeumannBC(k)%molar_flux
+#ifdef _THERMIQUE_
          ResiduNode(NbCompThermique, k) = ResiduNode(NbCompThermique, k) - NodeNeumannBC(k)%heat_flux
+#endif
       end do
 
    end subroutine Residu_add_Neumann_contributions

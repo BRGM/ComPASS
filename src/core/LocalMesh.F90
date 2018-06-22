@@ -1916,6 +1916,7 @@ contains
 
   end subroutine LocalMesh_Perm
 
+#ifdef _THERMIQUE_
 
   ! Output:
   !  CondThermalCellLocal_Ncpus(ip), CondThermalFracLocal_Ncpus(ip)
@@ -1943,7 +1944,6 @@ contains
 
   end subroutine LocalMesh_CondThermal
 
-
   ! Output:
   !  CellThermalSource_Ncpus(ip), FracThermalSource_Ncpus(ip)
   ! Use:
@@ -1969,6 +1969,7 @@ contains
     END DO
   END SUBROUTINE LocalMesh_ThermalSource
 
+#endif
 
   ! Output:
   !  NodeDatabyWellLocal_Ncpus(ip)

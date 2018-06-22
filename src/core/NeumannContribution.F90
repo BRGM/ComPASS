@@ -24,10 +24,9 @@
        !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
        TYPE, bind(C) :: TYPE_NeumannBC
 
-          real(c_double) :: &
-             molar_flux(NbComp), & !< component molar flux
+          real(c_double) :: molar_flux(NbComp) !< component molar flux
 #ifdef _THERMIQUE_
-             heat_flux !< heat flux
+          real(c_double) :: heat_flux !< heat flux
 #endif
        end TYPE TYPE_NeumannBC
 
@@ -53,7 +52,9 @@
 
           do k = 1, size(NodeNeumannBC)
              NodeNeumannBC(k)%molar_flux(:) = 0.d0
+#ifdef _THERMIQUE_
              NodeNeumannBC(k)%heat_flux = 0.d0
+#endif
           end do
 
        end subroutine NeumannContribution_clear

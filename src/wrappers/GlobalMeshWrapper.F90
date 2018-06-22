@@ -54,8 +54,10 @@
           retrieve_fracture_porosity, &
           retrieve_cell_permeability, &
           retrieve_fracture_permeability, &
+#ifdef _THERMIQUE_
           retrieve_cell_thermal_conductivity, &
           retrieve_fracture_thermal_conductivity, &
+#endif
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C, &
@@ -430,6 +432,8 @@
 
        end subroutine retrieve_fracture_permeability
 
+#ifdef _THERMIQUE_
+
        subroutine retrieve_cell_thermal_conductivity(cpp_array) &
           bind(C, name="retrieve_cell_thermal_conductivity")
 
@@ -473,6 +477,8 @@
           cpp_array%n = size(CondThermalFrac)
 
           end subroutine retrieve_fracture_thermal_conductivity
+
+#endif
 
         subroutine retrieve_global_id_node(cpp_array) &
           bind(C, name="retrieve_global_id_node")
