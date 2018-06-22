@@ -266,36 +266,6 @@ contains
 
   end subroutine GlobalMesh_SetFrac
 
-  !subroutine GlobalMesh_Make_read_file(fileMesh)
-  !
-  !  character(len=*), intent(in) :: fileMesh
-  !  integer :: i, ios, errcode, Ierr
-  !  character :: lignevide
-  !
-  !  ! Read NbNode:
-  !  !   <0 cartesian;
-  !  !   >0 read from file
-  !  open(15, File=fileMesh, status="old", IOSTAT=ios)
-  !  if (ios /= 0) then 
-  !    print *,"Error impossible to open file :", trim(fileMesh)
-  !  endif
-  !  do i=1,3
-  !    read (15,'(a1)') lignevide
-  !  enddo
-  !  ! read number of nodes
-  !  read (15,*) NbNode
-  !  close(15)
-  !
-  !  if(NbNode<0) then
-  !      write(*,*) 'Reading cartesian grid was desactivated... use MeshTools.GridTools instead'
-  !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-  !    !call GlobalMesh_ReadMeshCar(fileMesh) ! cartesian mesh
-  !  else
-  !    call GlobalMesh_ReadMeshFromFile(fileMesh) ! mesh from file
-  !  end if
-  !
-  !end subroutine GlobalMesh_Make_read_file
-  !
   subroutine GlobalMesh_Compute_all_connectivies()
 
     ! FacebyNode
@@ -311,45 +281,6 @@ contains
     call GlobalMesh_CellbyFaceGlobal
 
   end subroutine GlobalMesh_Compute_all_connectivies
-
-! TODO clean
-!subroutine GlobalMesh_Make_post_read_fracture_and_dirBC()
-!
-!    ! #define _DEBUG_LVL1_
-!#if defined _DEBUG_ && defined _DEBUG_LVL1_
-!    fdGm = 6 ! stdout: 6, scratch (temporary discarded file): 12
-!    ! fdGm_unit = -3
-!#else
-!    open(unit=12, status='SCRATCH')
-!    fdGm = 12
-!    ! fdGm_unit = -1
-!#endif
-!
-!    call GlobalMesh_MeshBoundingBox
-!
-!    call GlobalMesh_Compute_all_connectivies
-!
-!    !CALL GlobalMesh_SetCellFlags
-!    CellFlags = 1
-!    !CALL GlobalMesh_SetFaceFlags
-!    FaceFlags = 1
-!    !CALL GlobalMesh_SetNodeFlags
-!    NodeFlags = 1
-!    
-!    ! Frac
-!    !call GlobalMesh_SetFrac
-!
-!    ! IdNode Part 1: Nodes in Frac -> IdNode(.)%Frac
-!    call GlobalMesh_NodeOfFrac
-!
-!    ! IdNode Part 2: Dir BC -> IdNode(.)%P, IdNode(.)%T
-!    !call GlobalMesh_SetDirBC
-!
-!    ! Fill FracbyNode
-!    call GlobalMesh_FracbyNode
-!
-!end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC
-
 
 subroutine GlobalMesh_allocate_rocktype()
 

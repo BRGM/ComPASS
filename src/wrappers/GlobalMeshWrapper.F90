@@ -58,15 +58,11 @@
           retrieve_fracture_thermal_conductivity, &
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
-        ! TODO clean 
-           !GlobalMesh_make_post_read_from_C, &
-          !GlobalMesh_Make_post_read_fracture_and_dirBC_from_C, &
           GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C, &
           GlobalMesh_MeshBoundingBox_from_C, &
           GlobalMesh_Compute_all_connectivies_from_C, &
           GlobalMesh_SetFrac_from_C, &
           GlobalMesh_NodeOfFrac_from_C, &
-          !GlobalMesh_SetDirBC_from_C, &
           GlobalMesh_FracbyNode_from_C, &
           DefWell_make_compute_well_index_from_C, &
           GlobalMesh_create_mesh_from_C
@@ -562,27 +558,7 @@
           call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
        end subroutine GlobalMesh_build_cartesian_grid_from_C
-
-       !subroutine GlobalMesh_make_post_read_from_C() &
-       !   bind(C, name="GlobalMesh_make_post_read")
-       !
-       !   if (commRank /= 0) then
-       !      print *, "GlobalMesh_make_post_read_from_C is supposed to be run by master process."
-       !      !CHECKME: MPI_Abort is supposed to end all MPI processes
-       !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-       !   end if
-       !
-       !   call GlobalMesh_Make_post_read()
-       !
-       !end subroutine GlobalMesh_make_post_read_from_C
-       !
-       !subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C() &
-       !   bind(C, name="GlobalMesh_make_post_read_fracture_and_dirBC")
-       !
-       !   call GlobalMesh_Make_post_read_fracture_and_dirBC
-       !
-       !end subroutine GlobalMesh_Make_post_read_fracture_and_dirBC_from_C
-              
+             
        subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C() &
           bind(C, name="GlobalMesh_make_post_read_well_connectivity_and_ip")
        

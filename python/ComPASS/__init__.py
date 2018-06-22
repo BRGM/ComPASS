@@ -59,7 +59,6 @@ def abort(message):
     ComPASS.mpi.MPI.COMM_WORLD.Abort()       
 
 def init_and_load_mesh(mesh):
-    print('We try to load the mesh!')
     kernel.init_warmup(runtime.logfile)
     if mpi.is_on_master_proc:
         # this is a bit redundant but we want to rely entirely on MeshTools
@@ -109,7 +108,6 @@ def init_and_load_mesh(mesh):
     #        print('Mesh type not understood!')
     #        # FIXME: This should be something like MPI.Abort()
     #        sys.exit(-1)
-    print('We loaded the mesh!')
 
 def petrophysics_statistics_on_gobal_mesh(fractures):
     if mpi.is_on_master_proc:
@@ -235,10 +233,7 @@ def init(
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
-        # print('before', type(fracture_faces), fracture_faces.shape, fracture_faces, np.sum(fracture_faces))
         fractures = call_if_callable(fracture_faces)
-        print('after', type(fractures), fractures.shape, fractures, np.sum(fractures))
-        # 1/0
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
