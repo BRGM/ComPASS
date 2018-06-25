@@ -601,7 +601,14 @@ contains
        end do
     end do
 
-    ! create matrix
+    !write(*,*) 'proc', commRank, 'has', &
+    !            NbNodeOwn, 'nodes own', &
+    !            NbFracOwn, 'fractures own', &
+    !            NbCompThermique, 'components + thermal'
+    !write(*,*) 'create sparse matrix on proc', commRank, &
+    !           'with structure', &
+    !            NrowL, '(out of', NrowG, ') x', &
+    !            NcolL, '(out of', NcolG, ')'
     call MatCreateAIJ(ComPASS_COMM_WORLD, &
          NrowL, NcolL, &
          NrowG, NcolG, &
@@ -1741,9 +1748,9 @@ contains
          kspHistoryOutput
 
     integer :: i
-    PetscViewer :: viewer
+    !PetscViewer :: viewer
     PetscErrorCode :: Ierr
-    integer :: errcode
+    !integer :: errcode
     KSPConvergedReason :: reason
 
     ! solve
@@ -1756,17 +1763,34 @@ contains
     CHKERRQ(Ierr)
 
     if(reason<0) then
-
+       write(*,*)
+       write(*,*)
+       write(*,*) 'Iterative solver did not converge with reason', reason
        NkspIter = reason
-
        do i=1, kspitmax
           kspHistoryOutput(i) = kspHistory(i)
        end do
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_structure.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call KSPView(ksp_mpi, viewer)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_A.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call MatView(A_mpi, viewer, Ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_b.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call VecView(Sm_mpi, viewer, Ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     else
-
        call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations
        CHKERRQ(Ierr)
-
        NkspIter = NkspIter + 1
     end if
 
