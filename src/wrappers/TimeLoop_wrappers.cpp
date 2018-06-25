@@ -71,14 +71,4 @@ void add_time_loop_wrappers(py::module& module)
     module.def("NN_flash_all_control_volumes", &NN_flash_all_control_volumes);
     module.def("DefFlashWells_TimeFlash", &DefFlashWells_TimeFlash);
 
-    module.def("test_pass_and_dump_array", [] {
-        std::vector<double> v;
-        for (int i = 0; i < 8; ++i) v.push_back(i);
-        std::vector<std::size_t> shape;
-        shape.push_back(4);
-        shape.push_back(2);
-        pass_and_dump_array(v.data(), shape.data());
-        //pass_and_dump_dim_array(v.data(), 2, shape.data());
-    });
-
 }
