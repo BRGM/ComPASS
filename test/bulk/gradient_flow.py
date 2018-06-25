@@ -28,7 +28,7 @@ mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with tempe
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
 print('Average Darcy velocity:', U * year, 'm/year')
 print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulation domain in one year.')
-final_time = Lx/(U/omega_reservoir)
+final_time = (Lx/3) /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
 
 grid = ComPASS.Grid(
@@ -57,7 +57,8 @@ def set_boundary_conditions():
         if onecomp:
             states.C[both] = 1.
         else:
-            states.C[both] = (1., 0)
+            states.C[left] = (0, 1)
+            states.C[right] = (1, 0)
     set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0])
 
 def set_initial_values():
@@ -69,7 +70,7 @@ def set_initial_values():
         if onecomp:
             states.C[:] = 1.
         else:
-            states.C[:] = (1., 0)
+            states.C[:] = (1, 0)
     set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
     set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
 
@@ -104,7 +105,7 @@ def collect_node_temperature(iteration, t):
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-standard_loop(final_time = final_time, output_period = final_time/10, initial_timestep = final_time/100,
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/(10*nx),
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
