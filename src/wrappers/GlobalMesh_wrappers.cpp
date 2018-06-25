@@ -41,7 +41,7 @@ void create_mesh(
 {
 	std::vector<int> cellids;
 	const std::size_t nb_cells = cells_nodes_pointers.shape(0) - 1;
-	assert(nb_cells > 1);
+	assert(nb_cells > 0);
 	for (std::size_t i=0; i != nb_cells; ++i) {
 		cellids.emplace_back(0);
 	}
