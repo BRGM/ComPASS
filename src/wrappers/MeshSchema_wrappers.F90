@@ -28,11 +28,62 @@
           retrieve_nb_nodes_own, &
           retrieve_nb_fractures_own, &
           retrieve_cell_centers, &
-          retrieve_face_centers
+          retrieve_face_centers, &
+          retrieve_cell_rocktypes, &
+          retrieve_node_rocktypes, &
+          retrieve_fracture_rocktypes
 
     contains
 
-       subroutine retrieve_cell_centers(cpp_array) &
+       subroutine retrieve_cell_rocktypes(cpp_array) &
+          bind(C, name="retrieve_cell_rocktypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(CellRocktypeLocal)) then
+             print *, "cell rocktypes are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(CellRocktypeLocal)
+          cpp_array%n = size(CellRocktypeLocal, 2)
+
+       end subroutine retrieve_cell_rocktypes
+
+       subroutine retrieve_node_rocktypes(cpp_array) &
+          bind(C, name="retrieve_node_rocktypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(NodeRocktypeLocal)) then
+             print *, "node rocktypes are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(NodeRocktypeLocal)
+          cpp_array%n = size(NodeRocktypeLocal, 2)
+
+       end subroutine retrieve_node_rocktypes
+
+       subroutine retrieve_fracture_rocktypes(cpp_array) &
+          bind(C, name="retrieve_fracture_rocktypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (.not. allocated(FracRocktypeLocal)) then
+             print *, "frac rocktypes are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(FracRocktypeLocal)
+          cpp_array%n = size(FracRocktypeLocal, 2)
+
+          end subroutine retrieve_fracture_rocktypes
+
+          subroutine retrieve_cell_centers(cpp_array) &
           bind(C, name="retrieve_cell_centers")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array

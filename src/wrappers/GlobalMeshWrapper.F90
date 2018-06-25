@@ -42,8 +42,9 @@
           retrieve_global_cellflags, &
           retrieve_global_faceflags, &
           GlobalMesh_allocate_rocktype_from_C, &
-          retrieve_global_cellrocktype, &
-          retrieve_global_fracrocktype, &
+          retrieve_global_cell_rocktypes, &
+          retrieve_global_node_rocktypes, &
+          retrieve_global_fracture_rocktypes, &
           retrieve_global_celltypes, &
           retrieve_global_facetypes, &
           retrieve_global_id_faces, &
@@ -256,8 +257,8 @@
 
        end subroutine GlobalMesh_allocate_rocktype_from_C
 
-       subroutine retrieve_global_cellrocktype(cpp_array) &
-          bind(C, name="retrieve_global_cellrocktype")
+       subroutine retrieve_global_cell_rocktypes(cpp_array) &
+          bind(C, name="retrieve_global_cell_rocktypes")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -271,18 +272,43 @@
           end if
 
           if (.not. allocated(CellRocktype)) then
-             print *, "cell rocktype are not allocated."
+             print *, "cell rocktypes are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
           cpp_array%p = c_loc(CellRocktype)
-          cpp_array%n = (IndThermique + 1)*size(CellRocktype, 2)
+          cpp_array%n = size(CellRocktype, 2)
 
-       end subroutine retrieve_global_cellrocktype
+       end subroutine retrieve_global_cell_rocktypes
 
-       subroutine retrieve_global_fracrocktype(cpp_array) &
-          bind(C, name="retrieve_global_fracrocktype")
+       subroutine retrieve_global_node_rocktypes(cpp_array) &
+          bind(C, name="retrieve_global_node_rocktypes")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) then
+             !CHECKME: Maybe MPI_abort would be better here
+             !buffer%p = c_null_ptr
+             !buffer%n = 0
+             print *, "Global values are supposed to be read by master process."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          if (.not. allocated(NodeRocktype)) then
+             print *, "node rocktypes are not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          end if
+
+          cpp_array%p = c_loc(NodeRocktype)
+          cpp_array%n = size(NodeRocktype, 2)
+
+       end subroutine retrieve_global_node_rocktypes
+
+       subroutine retrieve_global_fracture_rocktypes(cpp_array) &
+          bind(C, name="retrieve_global_fracture_rocktypes")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -296,15 +322,15 @@
           end if
 
           if (.not. allocated(FracRocktype)) then
-             print *, "frac rocktype are not allocated."
+             print *, "fracture rocktypes are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
           cpp_array%p = c_loc(FracRocktype)
-          cpp_array%n = (IndThermique + 1)*size(FracRocktype, 2)
+          cpp_array%n = size(FracRocktype, 2)
 
-       end subroutine retrieve_global_fracrocktype
+       end subroutine retrieve_global_fracture_rocktypes
 
        subroutine retrieve_global_id_faces(cpp_array) &
           bind(C, name="retrieve_global_id_faces")

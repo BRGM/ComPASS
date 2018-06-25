@@ -66,3 +66,27 @@ py::module& add_vertices_array_wrapper(py::module& module, const char *getter_na
     });
     return module;
 }
+
+// FIXME: Creating local reference through py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{}
+// is a bit weird/dangerous ?
+// User buffer_info instead or a DummyStructure so that the returned array is not a copy ?
+template <typename Wrapper>
+py::module& add_rocktypes_array_wrapper(py::module& module, const char *getter_name, void(*bind)(Wrapper&))
+{
+    static_assert(std::is_same<int, typename Wrapper::wrapped_type>::value, "rocktypes should be integers");
+    module.def(getter_name, [bind]() {
+        auto wrapper = Wrapper{};
+        bind(wrapper);
+        return py::array_t<int, py::array::c_style>{
+#ifdef _THERMIQUE_
+            {wrapper.length, static_cast<std::size_t>(2)},
+#else
+            {wrapper.length},
+#endif
+                wrapper.pointer,
+                encapsulate(wrapper.pointer)
+        };
+    });
+    return module;
+}
+
