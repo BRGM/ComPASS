@@ -32,7 +32,6 @@
        end type cpp_MeshConnectivity
 
        public :: &
-          GlobalMesh_allocate_id_nodes, &
           GlobalMesh_count_dirichlet_nodes, &
           get_global_number_of_nodes, &
           get_global_number_of_cells, &
@@ -71,16 +70,6 @@
           GlobalMesh_create_mesh_from_C
 
     contains
-
-       subroutine GlobalMesh_allocate_id_nodes() &
-          bind(C, name="GlobalMesh_allocate_id_nodes")
-
-          if (allocated(Idnode)) then
-             deallocate (IdNode)
-          end if
-          allocate (IdNode(NbNode))
-
-       end subroutine GlobalMesh_allocate_id_nodes
 
        subroutine GlobalMesh_count_dirichlet_nodes() &
           bind(C, name="GlobalMesh_count_dirichlet_nodes")

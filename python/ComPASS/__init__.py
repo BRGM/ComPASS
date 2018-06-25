@@ -240,8 +240,6 @@ def init(
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
-        #kernel.global_mesh_set_dir_BC()
-        kernel.global_mesh_allocate_id_nodes()
         # Node information is reset first
         info = np.rec.array(global_node_info(), copy=False)
         for a in [info.pressure, info.temperature]:

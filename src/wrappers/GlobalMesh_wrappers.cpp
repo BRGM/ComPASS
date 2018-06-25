@@ -20,7 +20,6 @@ extern "C"
 	void GlobalMesh_node_of_frac();
 	void GlobalMesh_frac_by_node();
 	void DefWell_make_compute_well_index();
-	void GlobalMesh_allocate_id_nodes();
 	void GlobalMesh_allocate_rocktype();
 	void GlobalMesh_count_dirichlet_nodes();
 }
@@ -119,7 +118,6 @@ void add_GlobalMesh_wrappers(py::module& module)
 	module.def("global_mesh_node_of_frac", &GlobalMesh_node_of_frac);
 	//module.def("global_mesh_set_dir_BC", &GlobalMesh_set_dir_BC);
 	module.def("global_mesh_frac_by_node", &GlobalMesh_frac_by_node);
-	module.def("global_mesh_allocate_id_nodes", &GlobalMesh_allocate_id_nodes);
 	module.def("global_mesh_allocate_rocktype", &GlobalMesh_allocate_rocktype, "Allocate NodeRocktype, FracRocktype, CellRocktype");
 	module.def("global_mesh_count_dirichlet_nodes", &GlobalMesh_count_dirichlet_nodes);
 
