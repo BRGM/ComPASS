@@ -488,10 +488,6 @@ contains
 
     double precision :: SplitVolume
 
-    do k=1, NbNodeLocal
-        write(*,*) 'is node volume', k, IsVolumeNode(k)
-    end do
-
     do k=1, nbCellLocal
       NbVolume = 0
       NbInternalVolume = 0
@@ -536,9 +532,6 @@ contains
       end if
     end do
 
-    do k=1, NbNodeLocal_Ncpus(commRank+1)
-        write(*,*) 'node dirichlet',k,IdNodeLocal(k)%P, ' ', IdNodeLocal(k)%Frac
-    end do
     do k=1, NbNodeLocal_Ncpus(commRank+1)
       if(IdNodeLocal(k)%P /= "d" .and. VolDarcyNode(k)<eps) then
         print*, "vol non dirichlet node < 0: "
