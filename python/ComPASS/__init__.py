@@ -109,7 +109,7 @@ def init_and_load_mesh(mesh):
     #        # FIXME: This should be something like MPI.Abort()
     #        sys.exit(-1)
 
-def petrophysics_statistics_on_gobal_mesh(fractures):
+def petrophysics_statistics_on_global_mesh(fractures):
     if mpi.is_on_master_proc:
         for location in ['cell', 'fracture']:
             # TODO permeability and thermal_condutvity are tensors
@@ -169,7 +169,7 @@ def set_petrophysics_on_gobal_mesh(properties, fractures):
                     elif fractures is not None:
                         abort('You must define: fracture_%s' % property)
         print('petrophysics')
-        petrophysics_statistics_on_gobal_mesh(fractures)
+        petrophysics_statistics_on_global_mesh(fractures)
         kernel.global_mesh_set_all_rocktypes()
 
 
