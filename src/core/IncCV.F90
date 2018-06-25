@@ -42,17 +42,18 @@
     !> \brief Newton increment of Nodes, Fracture Faces, Cells and Wells unknows.
     subroutine IncCV_NewtonIncrement( &
         NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
-        NewtonIncreWellInj, NewtonIncreWellProd, relax)
+        NewtonIncreWellInj, NewtonIncreWellProd, relax) &
+        bind(C, name="IncCV_NewtonIncrement")
 
-    double precision, dimension(:, :), intent(in) :: &
+    real(c_double), dimension(:, :), intent(in) :: &
         NewtonIncreNode, &
         NewtonIncreFrac, &
         NewtonIncreCell
-    double precision, dimension(:), intent(in) :: &
+    real(c_double), dimension(:), intent(in) :: &
         NewtonIncreWellInj, &
         NewtonIncreWellProd
 
-    double precision, intent(in) :: relax
+    real(c_double), intent(in), value :: relax
 
     call IncCVReservoir_NewtonIncrement(NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax)
     call IncCVWells_NewtonIncrement(NewtonIncreWellInj, NewtonIncreWellProd, relax)
@@ -68,14 +69,14 @@
     subroutine IncCV_NewtonRelax( &
         NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax)
 
-    double precision, dimension(:, :), intent(in) :: &
+    real(c_double), dimension(:, :), intent(in) :: &
         NewtonIncreNode, &
         NewtonIncreFrac, &
         NewtonIncreCell
 
-    double precision, intent(out) :: relax
+    real(c_double), intent(out) :: relax
 
-    double precision :: &
+    real(c_double) :: &
         incremaxlocal_P, &
         incremaxlocal_T, &
         incremaxlocal_C(NbComp, NbPhase), &
@@ -288,7 +289,8 @@
     !> \brief Save current status if it is necessary to start again current time iteration.
     !!
     !! Copy IncObj to IncObjPreviousTimeStep
-    subroutine IncCV_SaveIncPreviousTimeStep
+    subroutine IncCV_SaveIncPreviousTimeStep() &
+        bind(C, name="IncCV_SaveIncPreviousTimeStep")
 
     call IncCVReservoir_SaveIncPreviousTimeStep
     call IncCVWells_SaveIncPreviousTimeStep
@@ -298,7 +300,8 @@
     !> \brief Load previous status to start again current time iteration.
     !!
     !! Copy IncObjPreviousTimeStep to IncObj
-    subroutine IncCV_LoadIncPreviousTimeStep
+    subroutine IncCV_LoadIncPreviousTimeStep() &
+        bind(C, name="IncCV_LoadIncPreviousTimeStep")
 
     call IncCVReservoir_LoadIncPreviousTimeStep
     call IncCVWells_LoadIncPreviousTimeStep

@@ -408,7 +408,8 @@ contains
 
 
   ! Setup: set values mat and second member
-  subroutine SolvePetsc_SetUp
+  subroutine SolvePetsc_SetUp() &
+    bind(C, name="SolvePetsc_SetUp")
 
     PetscErrorCode :: Ierr
 
@@ -704,7 +705,8 @@ contains
     call MatAssemblyEnd(A_mpi,MAT_FINAL_ASSEMBLY,Ierr)
     CHKERRQ(Ierr)
 
-    ! call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+    !write(*,*) '>>>>>>>>>> A is set <<<<<<<<<<'
+    !call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
 
   end subroutine SolvePetsc_SetAmpi
 
@@ -1729,16 +1731,19 @@ contains
 
 
   ! Solve A_mpi x = Sm_mpi
-  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput)
+  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput) &
+        bind(C, name="SolvePetsc_KspSolve")
 
     ! if converge: kspid>0
     ! if not converge: kspid<0
-    integer, intent(out) :: NkspIter
-    double precision, dimension(:), intent(inout) :: &
+    integer(c_int), intent(out) :: NkspIter
+    real(c_double), dimension(:), intent(inout) :: &
          kspHistoryOutput
 
     integer :: i
+    PetscViewer :: viewer
     PetscErrorCode :: Ierr
+    integer :: errcode
     KSPConvergedReason :: reason
 
     ! solve
@@ -1914,7 +1919,8 @@ contains
 
 
   ! x_s = M_s * x_mpi
-  subroutine SolvePetsc_Sync
+  subroutine SolvePetsc_Sync() &
+      bind(C, name="SolvePetsc_Sync")
 
     integer :: Ierr
 
@@ -1924,14 +1930,16 @@ contains
   end subroutine SolvePetsc_Sync
 
 
-  subroutine SolvePetsc_GetSolNodeFracWell(NewtonIncreNode, NewtonIncreFrac, &
-       NewtonIncreWellInj, NewtonIncreWellProd)
+  subroutine SolvePetsc_GetSolNodeFracWell( &
+       NewtonIncreNode, NewtonIncreFrac, &
+       NewtonIncreWellInj, NewtonIncreWellProd) &
+      bind(C, name="SolvePetsc_GetSolNodeFracWell")
 
-    double precision, dimension(:,:), intent(out) :: &
+    real(c_double), dimension(:,:), intent(out) :: &
          NewtonIncreNode, &
          NewtonIncreFrac
 
-    double precision, dimension(:), intent(out) :: &
+    real(c_double), dimension(:), intent(out) :: &
          NewtonIncreWellInj, &
          NewtonIncreWellProd
 

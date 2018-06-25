@@ -94,7 +94,8 @@ contains
 
   !       3. loop of frac j
   !          loops of Q_k and Q_i
-  subroutine Flux_DarcyFlux_Cell
+  subroutine Flux_DarcyFlux_Cell() &
+        bind(C, name="Flux_DarcyFlux_Cell")
 
     integer :: k, i, j, fj, fi
     integer :: numi, numj, nph_i, nph_k, numph_i, numph_k
@@ -397,7 +398,8 @@ contains
 
   !       2. loop of node j
   !          loops of Q_k and Q_i
-  subroutine Flux_DarcyFlux_Frac
+  subroutine Flux_DarcyFlux_Frac() &
+        bind(C, name="Flux_DarcyFlux_Frac")
 
     integer :: k, fk, i, j, numi, numj
     integer :: nph_i, numph_i, nph_k, numph_k
@@ -520,7 +522,8 @@ contains
   end subroutine Flux_DarcyFlux_Frac
 
 
-  subroutine Flux_FourierFlux_Cell
+  subroutine Flux_FourierFlux_Cell() &
+        bind(C, name="Flux_FourierFlux_Cell")
 
     integer :: k, i, j, fj
     integer :: numj
@@ -590,7 +593,8 @@ contains
   end subroutine Flux_FourierFlux_Cell
 
 
-  subroutine Flux_FourierFlux_Frac
+  subroutine Flux_FourierFlux_Frac() &
+        bind(C, name="Flux_FourierFlux_Frac")
 
     integer :: k, fk, i, j, numj
     integer :: NbNodeFrac

@@ -127,6 +127,8 @@ set( WRAPPERS_SRCS
   PyBuffer_wrappers.cpp
   StringWrapper.h
   StringWrapper.F90
+  TimeLoop_wrappers.h
+  TimeLoop_wrappers.cpp
   Well.h
   Well_wrappers.h
   Well_wrappers.cpp

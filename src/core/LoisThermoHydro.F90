@@ -221,7 +221,8 @@ contains
   ! compute all prim div for future use
   ! loop of cell/frac/node
   ! subroutine Loisthermohydro_divPrim_cv compute all prim div for one control volume
-  subroutine LoisThermoHydro_compute
+  subroutine LoisThermoHydro_compute() &
+        bind(C, name="LoisThermoHydro_compute")
 
     integer :: k
 
@@ -2980,9 +2981,10 @@ contains
   ! compute prim values using secd values
   ! secd = SmdX - dXssurdXp * prim
   subroutine LoisThermoHydro_PrimToSecd( &
-       vnode, vfrac, vcell)    ! prim and secd
+       vnode, vfrac, vcell) &
+      bind(C, name="LoisThermoHydro_PrimToSecd")
 
-    double precision, dimension(:,:), intent(inout) :: &
+    real(c_double), dimension(:,:), intent(inout) :: &
          vnode, vfrac, vcell
 
     double precision :: &

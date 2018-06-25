@@ -103,13 +103,13 @@ module NN
    integer :: KspNbFailure = 0
 
    ! Newton increment (NbInc,NbNodelocal)
-   double precision, dimension(:, :), allocatable :: &
+   real(c_double), dimension(:, :), allocatable :: &
       NewtonIncreNode, &
       NewtonIncreFrac, &
       NewtonIncreCell
 
    ! as well have only one unknown (pressure), only a vector (NbWellLocal)
-   double precision, dimension(:), allocatable :: &
+   real(c_double), dimension(:), allocatable :: &
       NewtonIncreWellInj, &
       NewtonIncreWellProd
 
@@ -126,10 +126,10 @@ module NN
    public :: &
       NN_main_make_timestep, &
       NN_main_summarize_timestep, &
+      NN_flash_all_control_volumes, &
       NN_finalize
    
    private :: &
-       NN_flash_all_control_volumes, &
        NN_flash_control_volumes
 
 contains
@@ -483,7 +483,8 @@ subroutine NN_init_phase2(OutputDir)
    !! execute the flash to determine the phases
    !! which are actualy present, and
    !! the mode of the well (flowrate or pressure).
-   subroutine NN_flash_all_control_volumes
+   subroutine NN_flash_all_control_volumes() &
+       bind(C, name="NN_flash_all_control_volumes")
 
    call NN_flash_control_volumes(NbNodeLocal_Ncpus(commRank + 1), IncNode, NodeRocktypeLocal, PoroVolDarcyNode)
    call NN_flash_control_volumes(NbFracLocal_Ncpus(commRank + 1), IncFrac, FracRocktypeLocal, PoroVolDarcyFrac)

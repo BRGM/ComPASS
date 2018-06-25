@@ -148,14 +148,15 @@ private :: &
     !! and NewtonIncreObjMax is the maximum of the Nemton increment
     !! in current iteration
     subroutine IncCVReservoir_NewtonRelax( &
-        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax)
+        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax) &
+        bind(C, name="IncCVReservoir_NewtonRelax")
 
-    double precision, dimension(:, :), intent(in) :: &
+    real(c_double), dimension(:, :), intent(in) :: &
         NewtonIncreNode, &
         NewtonIncreFrac, &
         NewtonIncreCell
 
-    double precision, intent(out) :: relax
+    real(c_double), intent(out) :: relax
 
     double precision :: &
         incremaxlocal_P, &

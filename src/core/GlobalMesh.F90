@@ -92,7 +92,7 @@ module GlobalMesh
       CellTypes, &
       FaceTypes
   
-  INTEGER, ALLOCATABLE, DIMENSION(:,:), TARGET :: &
+  integer(c_int), allocatable, dimension(:,:), target :: &
     NodeRocktype, &
     CellRocktype, &
     FracRocktype

@@ -156,9 +156,10 @@ contains
     end subroutine dump_jacobian
 
   ! compute Jacobian
-  subroutine Jacobian_ComputeJacSm(Delta_t)
+  subroutine Jacobian_ComputeJacSm(Delta_t)  &
+        bind(C, name="Jacobian_ComputeJacSm")
 
-    double precision, intent(in) :: Delta_t
+    real(c_double), intent(in), value :: Delta_t
     integer :: errcode, Ierr
 
     ! Jacobian and second member
@@ -5320,13 +5321,14 @@ contains
   ! A4 is a block diag matrix,
   ! its block element has been done LU factorization
   subroutine Jacobian_GetSolCell( &
-       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell)
+       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell) &
+        bind(C, name="Jacobian_GetSolCell")
 
-    double precision, dimension(:,:), intent(in) :: &
+    real(c_double), dimension(:,:), intent(in) :: &
          NewtonIncreNode, &
          NewtonIncreFrac
 
-    double precision, dimension(:,:), intent(out) :: &
+    real(c_double), dimension(:,:), intent(out) :: &
          NewtonIncreCell
 
     integer :: k, rowk, s, cols, nums, i, j, nz

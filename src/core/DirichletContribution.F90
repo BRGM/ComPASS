@@ -46,7 +46,8 @@ module DirichletContribution
 
     end subroutine DirichletContribution_free
 
-    subroutine DirichletContribution_update
+    subroutine DirichletContribution_update() &
+        bind(C, name="DirichletContribution_update")
 
         integer :: k
 
