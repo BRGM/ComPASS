@@ -34,16 +34,10 @@ contains
 
       type(TYPE_IncCVReservoir), intent(inout) :: inc
       INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
-      double precision, intent(in) :: porovol ! porovol
+      double precision, intent(in) :: porovol
 
-      integer :: i, iph, j, icp, m, mph, ic
-      double precision :: DensiteMolaire(NbComp), acc1, acc2, &
-         dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      double precision :: Tsat, dTsatdP, Psat, dPsatdT
-
-      if (ic /= 1) then
-         print *, "Error in Flash: no such context"
+      if (inc%ic /= 1) then
+         print *, "Error in Flash: no context labelled", inc%ic
       end if
 
       inc%ic = 1

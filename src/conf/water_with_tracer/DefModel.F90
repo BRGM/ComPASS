@@ -124,7 +124,7 @@ module DefModel
             0.d0, 0.d0, 1.d0,  &
             0.d0, 1.d0, 0.d0   &
 #else
-            1.d0, 0.d0,  & ! only one context
+            1.d0, 1.d0,  & ! only one context
             0.d0, 1.d0   &
 #endif
 /), (/NbCompThermique, NbCompThermique, NbContexte/))
