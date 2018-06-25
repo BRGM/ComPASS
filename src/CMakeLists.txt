@@ -87,6 +87,7 @@ set( CONFIGURATIONS
     liquid_water
     water2ph
     diphasic
+    water_with_tracer
 )
 
 set( CONF_SRCS
@@ -126,6 +127,8 @@ set( WRAPPERS_SRCS
   PyBuffer_wrappers.cpp
   StringWrapper.h
   StringWrapper.F90
+  TimeLoop_wrappers.h
+  TimeLoop_wrappers.cpp
   Well.h
   Well_wrappers.h
   Well_wrappers.cpp

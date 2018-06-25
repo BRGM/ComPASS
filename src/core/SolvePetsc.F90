@@ -408,7 +408,8 @@ contains
 
 
   ! Setup: set values mat and second member
-  subroutine SolvePetsc_SetUp
+  subroutine SolvePetsc_SetUp() &
+    bind(C, name="SolvePetsc_SetUp")
 
     PetscErrorCode :: Ierr
 
@@ -600,7 +601,14 @@ contains
        end do
     end do
 
-    ! create matrix
+    !write(*,*) 'proc', commRank, 'has', &
+    !            NbNodeOwn, 'nodes own', &
+    !            NbFracOwn, 'fractures own', &
+    !            NbCompThermique, 'components + thermal'
+    !write(*,*) 'create sparse matrix on proc', commRank, &
+    !           'with structure', &
+    !            NrowL, '(out of', NrowG, ') x', &
+    !            NcolL, '(out of', NcolG, ')'
     call MatCreateAIJ(ComPASS_COMM_WORLD, &
          NrowL, NcolL, &
          NrowG, NcolG, &
@@ -704,7 +712,8 @@ contains
     call MatAssemblyEnd(A_mpi,MAT_FINAL_ASSEMBLY,Ierr)
     CHKERRQ(Ierr)
 
-    ! call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
+    !write(*,*) '>>>>>>>>>> A is set <<<<<<<<<<'
+    !call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
 
   end subroutine SolvePetsc_SetAmpi
 
@@ -1729,16 +1738,19 @@ contains
 
 
   ! Solve A_mpi x = Sm_mpi
-  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput)
+  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput) &
+        bind(C, name="SolvePetsc_KspSolve")
 
     ! if converge: kspid>0
     ! if not converge: kspid<0
-    integer, intent(out) :: NkspIter
-    double precision, dimension(:), intent(inout) :: &
+    integer(c_int), intent(out) :: NkspIter
+    real(c_double), dimension(:), intent(inout) :: &
          kspHistoryOutput
 
     integer :: i
+    !PetscViewer :: viewer
     PetscErrorCode :: Ierr
+    !integer :: errcode
     KSPConvergedReason :: reason
 
     ! solve
@@ -1751,17 +1763,34 @@ contains
     CHKERRQ(Ierr)
 
     if(reason<0) then
-
+       write(*,*)
+       write(*,*)
+       write(*,*) 'Iterative solver did not converge with reason', reason
        NkspIter = reason
-
        do i=1, kspitmax
           kspHistoryOutput(i) = kspHistory(i)
        end do
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_structure.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call KSPView(ksp_mpi, viewer)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_A.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call MatView(A_mpi, viewer, Ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_b.dat', viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call VecView(Sm_mpi, viewer, Ierr)
+       !CHKERRQ(Ierr)
+       !call PetscViewerDestroy(viewer, ierr)
+       !CHKERRQ(Ierr)
+       !call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     else
-
        call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations
        CHKERRQ(Ierr)
-
        NkspIter = NkspIter + 1
     end if
 
@@ -1914,7 +1943,8 @@ contains
 
 
   ! x_s = M_s * x_mpi
-  subroutine SolvePetsc_Sync
+  subroutine SolvePetsc_Sync() &
+      bind(C, name="SolvePetsc_Sync")
 
     integer :: Ierr
 
@@ -1924,14 +1954,16 @@ contains
   end subroutine SolvePetsc_Sync
 
 
-  subroutine SolvePetsc_GetSolNodeFracWell(NewtonIncreNode, NewtonIncreFrac, &
-       NewtonIncreWellInj, NewtonIncreWellProd)
+  subroutine SolvePetsc_GetSolNodeFracWell( &
+       NewtonIncreNode, NewtonIncreFrac, &
+       NewtonIncreWellInj, NewtonIncreWellProd) &
+      bind(C, name="SolvePetsc_GetSolNodeFracWell")
 
-    double precision, dimension(:,:), intent(out) :: &
+    real(c_double), dimension(:,:), intent(out) :: &
          NewtonIncreNode, &
          NewtonIncreFrac
 
-    double precision, dimension(:), intent(out) :: &
+    real(c_double), dimension(:), intent(out) :: &
          NewtonIncreWellInj, &
          NewtonIncreWellProd
 

@@ -92,7 +92,7 @@ module GlobalMesh
       CellTypes, &
       FaceTypes
   
-  INTEGER, ALLOCATABLE, DIMENSION(:,:), TARGET :: &
+  integer(c_int), allocatable, dimension(:,:), target :: &
     NodeRocktype, &
     CellRocktype, &
     FracRocktype
@@ -982,9 +982,14 @@ CALL GlobalMesh_SetRocktype( &
   !! 'y': yes if node is in a fracture                    <br>
   !! 'n': no if node is not in a fracture
   subroutine GlobalMesh_NodeOfFrac
-    integer :: k, i, numi
 
-    if( .not. allocated(IdNode)) then
+    integer :: k, i, numi
+    integer :: Ierr, errcode ! used for MPI_Abort
+
+    if(allocated(IdNode)) then
+        write(*,*) 'IdNode should not be allocated'
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+    else
       allocate(IdNode(NbNode))
     end if
 

@@ -11,8 +11,6 @@ extern "C"
 {
 	void GlobalMesh_build_cartesian_grid(double, double, double, double, double, double, int, int, int);
 	void GlobalMesh_create_mesh(int, int, int, const double[], const int[], const int[], const int[], const int[], const int[], const int[], const int[], const int[]);
-	//void GlobalMesh_make_post_read();
-	//void GlobalMesh_make_post_read_fracture_and_dirBC();
     void GlobalMesh_allocate_petrophysics();
     void GlobalMesh_set_all_rocktypes();
     void GlobalMesh_make_post_read_well_connectivity_and_ip();
@@ -20,10 +18,8 @@ extern "C"
 	void GlobalMesh_compute_all_connectivies();
 	void GlobalMesh_set_frac();
 	void GlobalMesh_node_of_frac();
-	//void GlobalMesh_set_dir_BC();
 	void GlobalMesh_frac_by_node();
 	void DefWell_make_compute_well_index();
-	void GlobalMesh_allocate_id_nodes();
 	void GlobalMesh_allocate_rocktype();
 	void GlobalMesh_count_dirichlet_nodes();
 }
@@ -44,7 +40,7 @@ void create_mesh(
 {
 	std::vector<int> cellids;
 	const std::size_t nb_cells = cells_nodes_pointers.shape(0) - 1;
-	assert(nb_cells > 1);
+	assert(nb_cells > 0);
 	for (std::size_t i=0; i != nb_cells; ++i) {
 		cellids.emplace_back(0);
 	}
@@ -122,7 +118,6 @@ void add_GlobalMesh_wrappers(py::module& module)
 	module.def("global_mesh_node_of_frac", &GlobalMesh_node_of_frac);
 	//module.def("global_mesh_set_dir_BC", &GlobalMesh_set_dir_BC);
 	module.def("global_mesh_frac_by_node", &GlobalMesh_frac_by_node);
-	module.def("global_mesh_allocate_id_nodes", &GlobalMesh_allocate_id_nodes);
 	module.def("global_mesh_allocate_rocktype", &GlobalMesh_allocate_rocktype, "Allocate NodeRocktype, FracRocktype, CellRocktype");
 	module.def("global_mesh_count_dirichlet_nodes", &GlobalMesh_count_dirichlet_nodes);
 

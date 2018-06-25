@@ -88,7 +88,8 @@ contains
    end subroutine DefFlashWells_NewtonFlashLinWells
 
    !> \brief Main surboutine, after each time iteration
-   subroutine DefFlashWells_TimeFlash
+   subroutine DefFlashWells_TimeFlash() &
+       bind(C, name="DefFlashWells_TimeFlash")
 
       integer :: num_Well
 

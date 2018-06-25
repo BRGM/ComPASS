@@ -126,10 +126,40 @@ module Jacobian
 
 contains
 
-  ! compute Jacobian
-  subroutine Jacobian_ComputeJacSm(Delta_t)
+    subroutine dump_jacobian(specific_row, specific_col)
 
-    double precision, intent(in) :: Delta_t
+    integer, optional, intent(in) :: specific_row, specific_col
+    integer :: i, j, s, n
+    double precision :: a
+
+    do s=1, NbNodeOwn_Ncpus(commRank+1)
+        if( .not.present(specific_row) .or. s==specific_row) then
+            do n=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
+                if( .not.present(specific_col) .or. JacBigA%Num(n)==specific_col) then
+                    write(*,*) 'nodes', s, JacBigA%Num(n), 'nonzero', n, 'on proc', commRank
+                    do j=1, NbCompThermique
+                        do i=1, NbCompThermique
+                            a = JacBigA%Val(i,j,n)
+                            if(a==0. .or. a==1.) then
+                                write(*,"(I15)",advance="no") int(a)
+                            else
+                                write(*,"(E15.7)",advance="no") a
+                            end if
+                        end do
+                        write(*,*)
+                    end do
+                end if
+            end do
+        end if
+    end do
+
+    end subroutine dump_jacobian
+
+  ! compute Jacobian
+  subroutine Jacobian_ComputeJacSm(Delta_t)  &
+        bind(C, name="Jacobian_ComputeJacSm")
+
+    real(c_double), intent(in), value :: Delta_t
     integer :: errcode, Ierr
 
     ! Jacobian and second member
@@ -4156,9 +4186,9 @@ contains
        end do
 
        ! warning
+       ! TODO: CHECKME: the following is a magic number
        ! eps*1e-3 for small permeability in the pressure equation
-       ! TODO
-       ! find an automatic scaling
+       ! TODO: find an automatic scaling
        if(sumcol<eps*1e-3) then ! col i is null
 
           ! look for component C_{i}^alpha corresponding to the col i
@@ -5291,13 +5321,14 @@ contains
   ! A4 is a block diag matrix,
   ! its block element has been done LU factorization
   subroutine Jacobian_GetSolCell( &
-       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell)
+       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell) &
+        bind(C, name="Jacobian_GetSolCell")
 
-    double precision, dimension(:,:), intent(in) :: &
+    real(c_double), dimension(:,:), intent(in) :: &
          NewtonIncreNode, &
          NewtonIncreFrac
 
-    double precision, dimension(:,:), intent(out) :: &
+    real(c_double), dimension(:,:), intent(out) :: &
          NewtonIncreCell
 
     integer :: k, rowk, s, cols, nums, i, j, nz

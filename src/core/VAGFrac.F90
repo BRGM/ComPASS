@@ -461,7 +461,7 @@ contains
 
   ! split the fraction omega of the cell volume to the nodes according to the
   ! label
-  SUBROUTINE VAGFrac_SplitCellVolume( &
+  subroutine VAGFrac_SplitCellVolume( &
       NbCellLocal, &
       CellLabel, &
       NbNodeLocal, &
@@ -472,38 +472,38 @@ contains
       CellVolume, &
       NodeVolume)
 
-    INTEGER, INTENT(IN) :: NbCellLocal
-    INTEGER, INTENT(IN) :: CellLabel(NbCellLocal)
-    INTEGER, INTENT(IN) :: NbNodeLocal
-    INTEGER, INTENT(IN) :: NodeLabel(NbNodeLocal)
-    LOGICAL, INTENT(IN) :: IsVolumeNode(NbNodeLocal)
-    DOUBLE PRECISION, INTENT(IN) :: omega
-    TYPE(CSR), INTENT(IN) :: NodebyCellLocal
+    integer, intent(in) :: NbCellLocal
+    integer, intent(in) :: CellLabel(:)
+    integer, intent(in) :: NbNodeLocal
+    integer, intent(in) :: NodeLabel(:)
+    logical, intent(in) :: IsVolumeNode(:)
+    double precision, intent(in) :: omega
+    type(csr), intent(in) :: NodebyCellLocal
 
-    DOUBLE PRECISION, INTENT(INOUT) :: CellVolume(nbCellLocal)
-    DOUBLE PRECISION, INTENT(INOUT) :: NodeVolume(nbNodeLocal)
+    double precision, intent(inout) :: CellVolume(nbCellLocal)
+    double precision, intent(inout) :: NodeVolume(nbNodeLocal)
 
-    INTEGER :: k, ptnumi, numi
-    INTEGER :: NbVolume, NbInternalVolume
+    integer :: k, ptnumi, numi
+    integer :: NbVolume, NbInternalVolume
 
-    DOUBLE PRECISION :: SplitVolume
+    double precision :: SplitVolume
 
-    DO k=1, nbCellLocal
+    do k=1, nbCellLocal
       NbVolume = 0
       NbInternalVolume = 0
 
       ! loop of nodes in cell
-      DO ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+      do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
         numi = NodebyCellLocal%Num(ptnumi)
 
-        IF(IsVolumeNode(numi))THEN
+        if(IsVolumeNode(numi)) then
           NbVolume = NbVolume + 1
 
-          IF(CellLabel(k) == NodeLabel(numi))THEN
+          if(CellLabel(k) == NodeLabel(numi)) then
             NbInternalVolume = NbInternalVolume + 1
-          ENDIF
-        ENDIF
-      ENDDO
+          endif
+        endif
+      enddo
 
       SplitVolume = omega * CellVolume(k) * NbVolume / NbInternalVolume
 
@@ -511,21 +511,50 @@ contains
       do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
         numi = NodebyCellLocal%Num(ptnumi)
 
-        IF(IsVolumeNode(numi) .AND. CellLabel(k) == NodeLabel(numi))THEN
+        if(IsVolumeNode(numi) .AND. CellLabel(k) == NodeLabel(numi)) then
           CellVolume(k) = CellVolume(k) - SplitVolume
           NodeVolume(numi) = NodeVolume(numi) + SplitVolume
         end if
       end do
-    ENDDO
-  END SUBROUTINE VAGFrac_SplitCellVolume
+    enddo
+  end subroutine VAGFrac_SplitCellVolume
 
+    subroutine VAGFrac_check_volumes()
+
+    integer :: k
+    integer :: Ierr=-1, errcode=666
+
+    do k=1, NbCellLocal_Ncpus(commRank+1)
+      if(VolDarcyCell(k)<eps) then
+        print*, "vol darcy cell < 0: "
+        print*, "cell", k, "has volume", VolDarcyCell(k)
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+    end do
+
+    do k=1, NbNodeLocal_Ncpus(commRank+1)
+      if(IdNodeLocal(k)%P /= "d" .and. VolDarcyNode(k)<eps) then
+        print*, "vol non dirichlet node < 0: "
+        print*, "node", k, "has volume", VolDarcyNode(k)
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+    end do
+
+    do k=1, NbFracLocal_Ncpus(commRank+1)
+      if(VolDarcyFrac(k)<eps) then
+        print*, "vol darcy frac < 0: "
+        print*, "fracture", k, "has volume", VolDarcyFrac(k)
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+    end do
+    
+    end subroutine VAGFrac_check_volumes
 
   ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
     integer :: k, i, ifrac, numi, ptnumi
-    integer :: Ierr, errcode
     integer :: NbVolume, NbInternalVolume
 
     double precision :: s1, s2
@@ -593,30 +622,8 @@ contains
       NodebyFractureLocal, &
       PoroVolDarcyFrac, &
       PoroVolDarcyNode)
-
-
-    ! check if vol is positive
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-      if(VolDarcyCell(k)<eps) then
-        print*, "vol darcy cell < 0: ", k
-
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-    end do
-
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-      if(VolDarcyFrac(k)<eps) then
-
-        print*, "vol darcy frac < 0: ", k
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-    end do
-
-    ! if(commRank==1) then
-    !    do k=1, 2
-    !       print*, VolCellLocal(k), VolDarcyCell(k)
-    !    end do
-    ! end if
+    
+    call VAGFrac_check_volumes()
 
   end subroutine VAGFrac_VolsDarcy
 

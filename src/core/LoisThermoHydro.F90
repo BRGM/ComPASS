@@ -221,7 +221,8 @@ contains
   ! compute all prim div for future use
   ! loop of cell/frac/node
   ! subroutine Loisthermohydro_divPrim_cv compute all prim div for one control volume
-  subroutine LoisThermoHydro_compute
+  subroutine LoisThermoHydro_compute() &
+        bind(C, name="LoisThermoHydro_compute")
 
     integer :: k
 
@@ -850,7 +851,7 @@ contains
   end subroutine LoisThermoHydro_dFsurdX_cv
 
 
-  ! choose prim and sec inconnus for each CV
+  ! choose primary and secondary unknowns for each CV
   ! fill inc%Nb/NumIncPrim/Secd
   subroutine LoisThermoHydro_ps_cv(inc, dFsurdX, pschoicecv, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV)
@@ -2799,17 +2800,17 @@ contains
     allocate(DensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
     allocate(divDensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
 
+    ! the following arrays must be allocated even if there is no energy transfer
+    allocate( SmTemperatureCell( nbCell))
+    allocate( SmTemperatureFrac( nbFrac))
+    allocate( SmTemperatureNode( nbNode))
+
 #ifdef _THERMIQUE_
 
     ! temperature
     allocate( divTemperatureCell(NbIncPTCSPrimMax, nbCell) )
     allocate( divTemperatureFrac(NbIncPTCSPrimMax, nbFrac) )
     allocate( divTemperatureNode(NbIncPTCSPrimMax, nbNode) )
-
-    allocate( SmTemperatureCell( nbCell))
-    allocate( SmTemperatureFrac( nbFrac))
-    allocate( SmTemperatureNode( nbNode))
-
 
     ! DensiteMolaire * PermRel / Viscosite * Enthalpie
     allocate( DensitemolaireKrViscoEnthalpieCell(NbPhase, nbCell))
@@ -2930,14 +2931,15 @@ contains
     deallocate(DensitemolaireKrViscoEnthalpieWellInj)
     deallocate(divDensitemolaireKrViscoEnthalpieWellInj)
 
+    deallocate( SmTemperatureCell)
+    deallocate( SmTemperatureFrac)
+    deallocate( SmTemperatureNode)
+
 #ifdef _THERMIQUE_
     ! temperature
     deallocate( divTemperatureCell)
     deallocate( divTemperatureFrac)
     deallocate( divTemperatureNode)
-    deallocate( SmTemperatureCell)
-    deallocate( SmTemperatureFrac)
-    deallocate( SmTemperatureNode)
 
     ! densitemolaire * Permrel / viscosite * Enthalpie
     deallocate( DensitemolaireKrViscoEnthalpieCell)
@@ -2979,9 +2981,10 @@ contains
   ! compute prim values using secd values
   ! secd = SmdX - dXssurdXp * prim
   subroutine LoisThermoHydro_PrimToSecd( &
-       vnode, vfrac, vcell)    ! prim and secd
+       vnode, vfrac, vcell) &
+      bind(C, name="LoisThermoHydro_PrimToSecd")
 
-    double precision, dimension(:,:), intent(inout) :: &
+    real(c_double), dimension(:,:), intent(inout) :: &
          vnode, vfrac, vcell
 
     double precision :: &

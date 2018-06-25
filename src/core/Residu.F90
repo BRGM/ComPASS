@@ -51,10 +51,11 @@ module Residu
 contains
 
    ! compute Residu
-   subroutine Residu_compute(Delta_t, IterNewton)
+   subroutine Residu_compute(Delta_t, IterNewton)  &
+        bind(C, name="Residu_compute")
 
-      double precision, intent(in) :: Delta_t
-      integer, intent(in) :: IterNewton
+      real(c_double), intent(in), value :: Delta_t
+      integer(c_int), intent(in), value :: IterNewton
 
       integer :: i, k
 
@@ -705,15 +706,15 @@ contains
    end subroutine Residu_add_flux_contributions_wells
 
    subroutine Residu_RelativeNorm(Iter, Delta_t, &
-                                  ResNormRel, ResConvInit, ResClosInit)
+                                  ResNormRel, ResConvInit, ResClosInit) &
+        bind(C, name="Residu_RelativeNorm")
 
-      integer, intent(in) :: Iter ! Newton iteration: Iter
-      double precision, intent(in) :: Delta_t
-      double precision, intent(out) :: ResNormRel
-
+      integer(c_int), intent(in), value :: Iter ! Newton iteration: Iter
+      real(c_double), intent(in), value :: Delta_t
+      real(c_double), intent(out) :: ResNormRel
       ! Residu relative norm from first Newton iteration
       ! used for all Newton iterations
-      double precision, intent(inout) :: &
+      real(c_double), intent(inout) :: &
          ResConvInit(NbCompThermique), &
          ResClosInit
 

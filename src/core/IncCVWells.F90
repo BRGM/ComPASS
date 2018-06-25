@@ -57,8 +57,9 @@ module IncCVWells
       IncCVWells_free, &
       IncCVWells_SortHeightWellInj, &
       IncCVWells_PressureDropWellProd, &
-      IncCVWells_PressureDropWellInj_integrate, &
       IncCVWells_PressureDropWellInj, &
+      IncCVWells_PressureDrop, &
+      IncCVWells_PressureDropWellInj_integrate, &
       IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, &
       IncCVWells_LoadIncPreviousTimeStep
@@ -228,6 +229,14 @@ contains
       end do
 
    end subroutine IncCVWells_PressureDropWellInj
+
+   subroutine IncCVWells_PressureDrop() &
+      bind(C, name="IncCVWells_PressureDrop")
+
+      call IncCVWells_PressureDropWellInj
+      call IncCVWells_PressureDropWellProd
+
+   end subroutine IncCVWells_PressureDrop
 
    subroutine IncCVWells_allocate
 

@@ -114,7 +114,7 @@
     subroutine Well_set_producers_data(c_producers_data)
 
     type(cpp_array_wrapper), intent(in) :: c_producers_data
-    integer :: k, nb_producers
+    integer(c_size_t) :: k, nb_producers
     type(Producer_data), dimension(:), pointer :: producers_data
 
     nb_producers = c_producers_data%n
@@ -137,7 +137,7 @@
     subroutine Well_set_injectors_data(c_injectors_data)
 
     type(cpp_array_wrapper), intent(in) :: c_injectors_data
-    integer :: k, nb_injectors
+    integer(c_size_t) :: k, nb_injectors
     type(Injector_data), dimension(:), pointer :: injectors_data
 
     nb_injectors = c_injectors_data%n
