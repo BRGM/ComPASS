@@ -36,7 +36,7 @@ contains
       INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
-      integer :: i, iph, j, icp, m, mph, ic
+      integer :: i, iph, j, icp, m, mph, ic, errcode, Ierr
       double precision :: DensiteMolaire(NbComp), acc1, acc2, &
          dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
@@ -44,32 +44,37 @@ contains
 
       ic = inc%ic
 
-      if (ic == 1) then
+      if (ic == GAS_CONTEXT) then
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
          if (inc%Pression > Psat) then
-            inc%ic = 3
+            inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
             inc%Saturation(1) = 1.d0
             inc%Saturation(2) = 0.d0
          end if
 
-      else if (ic == 2) then
+      else if (ic == LIQUID_CONTEXT) then
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
          if (inc%Pression < Psat) then
-            inc%ic = 3
+            inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
             inc%Saturation(1) = 0.d0
             inc%Saturation(2) = 1.d0
          end if
 
-      else if (ic == 3) then
+      else if (ic == DIPHASIC_CONTEXT) then
 
+#ifndef _THERMIQUE_
+         write(*,*) 'ERROR: Diphasic context is meaningless without energy transfer!
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+#endif
+          
          call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
@@ -77,11 +82,11 @@ contains
          inc%Pression = Psat
 
          if (inc%Saturation(1) < 0.d0) then
-            inc%ic = 2
+            inc%ic = LIQUID_CONTEXT
             inc%Saturation(1) = 0.d0
             inc%Saturation(2) = 1.d0
          else if (inc%Saturation(2) < 0.d0) then
-            inc%ic = 1
+            inc%ic = GAS_CONTEXT
             inc%Saturation(1) = 1.d0
             inc%Saturation(2) = 0.d0
          end if
