@@ -24,3 +24,7 @@ def on_master_proc(f):
 
 def synchronize():
     MPI.COMM_WORLD.Barrier() # wait for every process to synchronize
+
+def abort():
+    MPI.COMM_WORLD.Abort()       
+

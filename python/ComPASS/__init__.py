@@ -17,6 +17,7 @@ import ComPASS.mpi as mpi
 import ComPASS.runtime as runtime
 import ComPASS.utils.filenames
 import ComPASS.dumps
+import ComPASS.messages as messages
 
 import numpy as np
 
@@ -47,16 +48,6 @@ def set_output_directory_and_logfile(case_name):
     runtime.output_directory, runtime.logfile = ComPASS.utils.filenames.output_directory_and_logfile(case_name)
 
 Grid = GT.GridInfo
-
-
-def abort(message):
-    print('''
-
-!! ERROR !!
-!! ERROR !! %s
-!! ERROR !!
-''' % message)
-    ComPASS.mpi.MPI.COMM_WORLD.Abort()       
 
 def init_and_load_mesh(mesh):
     kernel.init_warmup(runtime.logfile)
@@ -104,10 +95,6 @@ def init_and_load_mesh(mesh):
             celltypes[:] = mesh.cells_vtk_ids().astype(np.int8, copy=False)
             facetypes = ComPASS.global_facetypes()
             facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
-    #    else:
-    #        print('Mesh type not understood!')
-    #        # FIXME: This should be something like MPI.Abort()
-    #        sys.exit(-1)
 
 def petrophysics_statistics_on_global_mesh(fractures):
     if mpi.is_on_master_proc:
@@ -165,9 +152,9 @@ def set_petrophysics_on_gobal_mesh(properties, fractures):
                         buffer[:] = value
                 else:
                     if location=='cell':
-                        abort('You must define: cell_%s' % property)
+                        messages.error('You must define: cell_%s' % property)
                     elif fractures is not None:
-                        abort('You must define: fracture_%s' % property)
+                        messages.error('You must define: fracture_%s' % property)
         print('petrophysics')
         petrophysics_statistics_on_global_mesh(fractures)
         kernel.global_mesh_set_all_rocktypes()
@@ -218,15 +205,14 @@ def init(
     if type(mesh) is str:
         if not os.path.exists(mesh):
             print('Mesh file (%s) not found!' % mesh)
-        print('Loading mesh from file is desactivated here.')
-        # FIXME: This should be something like MPI.Abort()
-        sys.exit(-1)
+        messages.error('Loading mesh from file is desactivated.')
     else:
         assert not (grid is None and mesh is None)
         if grid is not None:
-            assert mesh is None
+            messages.deprecation('Use mesh keyword instead of grid')
+            if mesh is not None:
+                messages.error('You cannot define both grid and mesh keywords')
             mesh = grid
-        assert mesh is not None
     init_and_load_mesh(mesh)
     if mpi.is_on_master_proc and set_global_flags is not None:
         assert callable(set_global_flags)
