@@ -77,23 +77,39 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+#ifdef _THERMIQUE_
    integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
+#else
+   integer, parameter :: P=1, T=-1, C=2, Sg=3, Sl=4
+#endif
    private :: P, T, C, Sg, Sl
    
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
+#ifdef _THERMIQUE_
                        P, T, & ! ic=1
                        P, T, & ! ic=2
-                       P, Sl & ! ic=3
+                       P, Sg & ! ic=3
+#else
+                       P, & ! ic=1
+                       P, & ! ic=2
+                       Sg & ! ic=3
+#endif
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
   ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       C, Sg, 0, & ! ic=1
-                       C, Sg, 0, & ! ic=2
-                       T, C, Sg &  ! ic=3
+#ifdef _THERMIQUE_
+                       C, Sl, 0, & ! ic=1
+                       C, Sl, 0, & ! ic=2
+                       T, C, Sl  &  ! ic=3
+#else
+                       C, Sl, 0, & ! ic=1
+                       C, Sl, 0, & ! ic=2
+                       P, C, Sl  &  ! ic=3
+#endif
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
@@ -118,14 +134,18 @@ module DefModel
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
+#ifdef _THERMIQUE_
                         1.d0, 0.d0, & ! ic=1
                         0.d0, 1.d0, &
-                        !
                         1.d0, 0.d0, & ! ic=2
                         0.d0, 1.d0, &
-                        !
                         1.d0, 0.d0, & ! ic=3
                         0.d0, 1.d0 &
+#else
+                        1.d0, & ! ic=1
+                        1.d0, & ! ic=2
+                        1.d0  & ! ic=3
+#endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 end module DefModel
