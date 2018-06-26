@@ -6,7 +6,6 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-
     module CommonTypesWrapper
 
        use, intrinsic :: iso_c_binding
@@ -20,6 +19,17 @@
           type(c_ptr)       :: p
           integer(c_size_t) :: n
        end type cpp_array_wrapper
+
+       !type, bind(C) :: cpp_narray_wrapper
+       !   integer(c_int) :: dim
+       !   type(c_ptr)    :: shape
+       !   type(c_ptr)    :: data
+       !end type cpp_narray_wrapper
+
+       type, bind(C) :: cpp_narray_wrapper
+          type(c_ptr)    :: shape
+          type(c_ptr)    :: data
+       end type cpp_narray_wrapper
 
        ! Container of container
        type, bind(C) :: cpp_COC
@@ -40,7 +50,9 @@
           f2c_double_array_to_pointer, &
           f2c_double_array, &
           retrieve_double_array, &
-          retrieve_coc
+          retrieve_coc, &
+          bind_2array, &
+          bind_3array
 
     contains
 
@@ -89,17 +101,17 @@
              cpp_array%p = C_NULL_PTR
              cpp_array%n = 0
           else
-              n = size(fortran_array)
-              cpp_array%n = n
-              if (n==0) then
-                  ! FIXME: Remove comment
+             n = size(fortran_array)
+             cpp_array%n = n
+             if (n == 0) then
+                ! FIXME: Remove comment
 #ifdef TRACK_ZERO_SIZE_ARRAY
-                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+                write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
-                  cpp_array%p = C_NULL_PTR
-              else
-                  cpp_array%p = c_loc(fortran_array(1))
-              end if
+                cpp_array%p = C_NULL_PTR
+             else
+                cpp_array%p = c_loc(fortran_array(1))
+             end if
           end if
 
        end subroutine retrieve_double_array
@@ -114,29 +126,51 @@
           n = fortran_csr%Nb
           retrieved_coc%nb_containers = n
 
-          if(n==0) then
+          if (n == 0) then
 #ifdef TRACK_ZERO_SIZE_ARRAY
-              write(*,*) 'WARNING - Retrieving zero size COC.'
+             write (*, *) 'WARNING - Retrieving zero size COC.'
 #endif
-              retrieved_coc%container_offset = C_NULL_PTR
-              retrieved_coc%container_content = C_NULL_PTR
+             retrieved_coc%container_offset = C_NULL_PTR
+             retrieved_coc%container_content = C_NULL_PTR
           else
-              if ((.not. allocated(fortran_csr%Pt)) .or. &
-                  (.not. allocated(fortran_csr%Num))) then
-                 print *, "Trying to retrieve as COC a CSR which is not allocated."
-                 !CHECKME: MPI_Abort is supposed to end all MPI processes
-                 call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-              end if
-              if (allocated(fortran_csr%Val)) then
-                 print *, "Trying to retrieve as COC a CSR which has allocated values (i.e. it is not a COC but rather a true CSR)."
-                 !CHECKME: MPI_Abort is supposed to end all MPI processes
-                 call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-              end if
-              call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
-              call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
+             if ((.not. allocated(fortran_csr%Pt)) .or. &
+                 (.not. allocated(fortran_csr%Num))) then
+                print *, "Trying to retrieve as COC a CSR which is not allocated."
+                !CHECKME: MPI_Abort is supposed to end all MPI processes
+                call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+             end if
+             if (allocated(fortran_csr%Val)) then
+                print *, "Trying to retrieve as COC a CSR which has allocated values (i.e. it is not a COC but rather a true CSR)."
+                !CHECKME: MPI_Abort is supposed to end all MPI processes
+                call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+             end if
+             call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
+             call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
           end if
 
        end subroutine retrieve_coc
+
+       subroutine bind_2array(a, p)
+
+          type(cpp_narray_wrapper), intent(in) :: a
+          integer(c_size_t), pointer :: ashape(:)
+          real(c_double), pointer, intent(out) :: p(:, :)
+
+          call c_f_pointer(a%shape, ashape, shape=[2])
+          call c_f_pointer(a%data, p, shape=ashape)
+
+       end subroutine bind_2array
+
+       subroutine bind_3array(a, p)
+
+          type(cpp_narray_wrapper), intent(in) :: a
+          integer(c_size_t), pointer :: ashape(:)
+          real(c_double), pointer, intent(out) :: p(:, :, :)
+
+          call c_f_pointer(a%shape, ashape, shape=[3])
+          call c_f_pointer(a%data, p, shape=ashape)
+
+       end subroutine bind_3array
 
     end module CommonTypesWrapper
 
