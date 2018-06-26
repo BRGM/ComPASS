@@ -191,7 +191,25 @@ module MeshSchema
   
 contains
 
-  subroutine MeshSchema_make
+   function number_of_nodes() result(n) &
+   bind(C, name="number_of_nodes")
+    integer(c_size_t) :: n
+    n = NbNodeLocal_Ncpus(commRank+1)
+   end function number_of_nodes
+    
+   function number_of_cells() result(n) &
+   bind(C, name="number_of_cells")
+    integer(c_size_t) :: n
+    n = NbCellLocal_Ncpus(commRank+1)
+   end function number_of_cells
+    
+   function number_of_fractures() result(n) &
+   bind(C, name="number_of_fractures")
+    integer(c_size_t) :: n
+    n = NbFracLocal_Ncpus(commRank+1)
+   end function number_of_fractures
+        
+    subroutine MeshSchema_make
 
     call MeshSchema_sendrecv
     call MeshSchema_collect_fracture_nodes
