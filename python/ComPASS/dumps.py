@@ -85,7 +85,7 @@ class Dumper:
             fracture_types = fracture_types,
         )
 
-    def dump_states(self, tag=''):
+    def dump_states(self, tag='', dump_fluxes=True):
         assert self.simulation_running
         node_states = ComPASS.node_states()
         cell_states = ComPASS.cell_states()
@@ -98,15 +98,26 @@ class Dumper:
             'fracture_pressure': fracture_states.p,
             'fracture_temperature': fracture_states.T,
         }
-        for phase in range(ComPASS.number_of_phases()):
+        nbphases = ComPASS.number_of_phases()
+        nbcomponents = ComPASS.number_of_components() 
+        for phase in range(nbphases):
             dumped_states['cell_saturation_phase_%d'%(phase+1)] = cell_states.S[:, phase]
             dumped_states['node_saturation_phase_%d'%(phase+1)] = node_states.S[:, phase]
             dumped_states['fracture_saturation_phase_%d'%(phase+1)] = fracture_states.S[:, phase]
-        for phase in range(ComPASS.number_of_phases()):
-            for comp in range(ComPASS.number_of_components()):
-                dumped_states['cell_comp%d_in_phase_%d'%(comp+1, phase+1)] = cell_states.C[:, phase, comp]
-                dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp]
-                dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp]
+        for phase in range(nbphases):
+            if nbcomponents>1:
+                for comp in range(nbcomponents):
+                    dumped_states['cell_comp%d_in_phase_%d'%(comp+1, phase+1)] = cell_states.C[:, phase, comp]
+                    dumped_states['node_comp%d_in_phase_%d'%(comp+1, phase+1)] = node_states.C[:, phase, comp]
+                    dumped_states['fracture_comp%d_in_phase_%d'%(comp+1, phase+1)] = fracture_states.C[:, phase, comp]
+        if dump_fluxes:
+            cell_fluxes, fracture_fluxes = ComPASS.mass_fluxes()
+            dumped_states['cell_total_mass_flux'] = cell_fluxes.sum(axis=1)
+            dumped_states['fracture_total_mass_flux'] = fracture_fluxes.sum(axis=1)
+            if nbcomponents>1:
+                for comp in range(nbcomponents):
+                    dumped_states['cell_mass_flux_comp%d'%(comp+1)] = cell_fluxes[:, comp, :]
+                    dumped_states['fracture_mass_flux_comp%d'%(comp+1)] = fracture_fluxes[:, comp, :]
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
 
 def dump_mesh():

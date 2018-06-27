@@ -129,7 +129,7 @@ class PostProcessor:
             piecefile
         )
         if fracdata:
-            fracdata_size = int(np.unique([len(a) for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
+            fracdata_size = int(np.unique([a.shape[0] for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
             if fracdata_size>0:
                 fracpiecefile = self.to_vtu_directory('fracture_%s_%s.vtu' % (basename, proc_label))
                 cell_nodes_offsets = mesh['fracturenodes_offsets']
@@ -200,7 +200,7 @@ class PostProcessor:
                }
         datatype_checks = {
                             location: {
-                                    name: property.dtype
+                                    name: property.dtype if len(property.shape)==1 else (property.dtype, property.shape[1])
                                     for name, property in properties.items()
                                 } for location, properties in data_arrays.items()
                           }

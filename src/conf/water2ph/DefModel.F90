@@ -38,6 +38,10 @@ module DefModel
    !FIXME: this is used for wells which are monophasic
    integer, parameter :: LIQUID_PHASE = PHASE_WATER
 
+   integer, parameter :: GAS_CONTEXT = 1
+   integer, parameter :: LIQUID_CONTEXT = 2
+   integer, parameter :: DIPHASIC_CONTEXT = 3
+
    ! Thermique
 #ifdef _THERMIQUE_
    integer, parameter :: IndThermique = 1
@@ -80,20 +84,20 @@ module DefModel
 #ifdef _THERMIQUE_
    integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
 #else
-   integer, parameter :: P=1, T=-1, C=2, Sg=3, Sl=4
+   integer, parameter :: P=1, T=0, C=2, Sg=3, Sl=4
 #endif
    private :: P, T, C, Sg, Sl
    
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
-                       P, T, & ! ic=1
-                       P, T, & ! ic=2
-                       P, Sg & ! ic=3
+                       P, T, & ! ic=1 GAS_CONTEXT
+                       P, T, & ! ic=2 LIQUID_CONTEXT
+                       P, Sl & ! ic=3 DIPHASIC_CONTEXT
 #else
-                       P, & ! ic=1
-                       P, & ! ic=2
-                       Sg & ! ic=3
+                       P, & ! ic=1 GAS_CONTEXT
+                       P, & ! ic=2 LIQUID_CONTEXT
+                       Sl & ! ic=3 DIPHASIC_CONTEXT
 #endif
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
@@ -102,13 +106,13 @@ module DefModel
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
-                       C, Sl, 0, & ! ic=1
-                       C, Sl, 0, & ! ic=2
-                       T, C, Sl  &  ! ic=3
+                       C, Sg, 0, & ! ic=1 GAS_CONTEXT
+                       C, Sg, 0, & ! ic=2 LIQUID_CONTEXT
+                       T, C, Sg  & ! ic=3 DIPHASIC_CONTEXT
 #else
-                       C, Sl, 0, & ! ic=1
-                       C, Sl, 0, & ! ic=2
-                       P, C, Sl  &  ! ic=3
+                       C, Sg, 0, & ! ic=1 GAS_CONTEXT
+                       C, Sg, 0, & ! ic=2 LIQUID_CONTEXT
+                       0,  0, 0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
 #endif
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
@@ -135,16 +139,16 @@ module DefModel
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
 #ifdef _THERMIQUE_
-                        1.d0, 0.d0, & ! ic=1
+                        1.d0, 0.d0, & ! ic=1 GAS_CONTEXT
                         0.d0, 1.d0, &
-                        1.d0, 0.d0, & ! ic=2
+                        1.d0, 0.d0, & ! ic=2 LIQUID_CONTEXT
                         0.d0, 1.d0, &
-                        1.d0, 0.d0, & ! ic=3
+                        1.d0, 0.d0, & ! ic=3 DIPHASIC_CONTEXT
                         0.d0, 1.d0 &
 #else
-                        1.d0, & ! ic=1
-                        1.d0, & ! ic=2
-                        1.d0  & ! ic=3
+                        1.d0, & ! ic=1 GAS_CONTEXT
+                        1.d0, & ! ic=2 LIQUID_CONTEXT
+                        0.d0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 

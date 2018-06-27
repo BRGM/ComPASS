@@ -102,6 +102,9 @@ set( WRAPPERS_SRCS
   COC_wrappers.h
   COC_wrappers.cpp
   CommonTypesWrapper.F90
+  Flux_wrappers.h
+  Flux_wrappers.cpp
+  Flux_wrappers.F90
   GlobalMeshWrapper.F90
   GlobalMesh_wrappers.h
   GlobalMesh_wrappers.cpp
