@@ -126,7 +126,12 @@ def add_piece_data(piece, location, data=None, ofmt='ascii'):
     if data is None:
         data = {}
     for name in sorted(data):
-        add_dataarray(datanode, data[name], ofmt=ofmt, name=name)
+        a = data[name]
+        assert len(a.shape)==1 or len(a.shape)==2
+        if len(a.shape)==2:
+            add_dataarray(datanode, _ravel_information_block(a), ofmt=ofmt, name=name, nbcomp=a.shape[1])
+        else:
+            add_dataarray(datanode, a, ofmt=ofmt, name=name)
 
 
 def _ravel_information_block(block):
@@ -269,14 +274,18 @@ def pvtu_doc(
     pugrid = create_childnode(root_element, 'PUnstructuredGrid', {'GhostLevel': '0'})
     ppoints = create_childnode(pugrid, 'PPoints')
     add_pdataarray_node(ppoints, 'Points', vertices_type, ofmt, nbcomp=3)
-    if pointdata_types is not None:
-        pdata = create_childnode(pugrid, 'PPointData')
-        for name in sorted(pointdata_types):
-            add_pdataarray_node(pdata, name, pointdata_types[name], ofmt)
-    if celldata_types is not None:
-        cdata = create_childnode(pugrid, 'PCellData')
-        for name in sorted(celldata_types):
-            add_pdataarray_node(cdata, name, celldata_types[name], ofmt)
+    def add_data_node(node_name, data_types):
+        if data_types is not None:
+            data_node = create_childnode(pugrid, node_name)
+            for name in sorted(data_types):
+                data_type = data_types[name]
+                try:
+                    data_type, nbcomp = data_type
+                    add_pdataarray_node(data_node, name, data_type, ofmt, nbcomp=nbcomp)
+                except TypeError:
+                    add_pdataarray_node(data_node, name, data_type, ofmt)
+    add_data_node('PPointData', pointdata_types)
+    add_data_node('PCellData', celldata_types)
     for piece in pieces:
          create_childnode(pugrid, 'Piece', {'Source': piece})
     return doc

@@ -157,7 +157,7 @@
           real(c_double), pointer, intent(out) :: p(:, :)
 
           call c_f_pointer(a%shape, ashape, shape=[2])
-          call c_f_pointer(a%data, p, shape=ashape)
+          call c_f_pointer(a%data, p, shape=ashape(2:1:-1)) ! switch to Fortran column major mode
 
        end subroutine bind_2array
 
@@ -168,7 +168,7 @@
           real(c_double), pointer, intent(out) :: p(:, :, :)
 
           call c_f_pointer(a%shape, ashape, shape=[3])
-          call c_f_pointer(a%data, p, shape=ashape)
+          call c_f_pointer(a%data, p, shape=ashape(3:1:-1)) ! switch to Fortran column major mode
 
        end subroutine bind_3array
 
