@@ -207,7 +207,6 @@ def init(
             print('Mesh file (%s) not found!' % mesh)
         messages.error('Loading mesh from file is desactivated.')
     else:
-        assert not (grid is None and mesh is None)
         if grid is not None:
             messages.deprecation('Use mesh keyword instead of grid')
             if mesh is not None:
