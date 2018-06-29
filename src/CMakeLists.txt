@@ -31,6 +31,7 @@ endif(DEF_SCOREP_INSTRUMENTATION)
 set( ComPASSCore_SRCS
     CommonMPI.F90
     CommonType.F90
+    DebugUtils.F90
     GlobalMesh.F90
     IncCV.F90
     IncCVReservoir.F90
