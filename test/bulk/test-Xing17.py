@@ -21,6 +21,8 @@ k_fracture = 1E-12             # fracture permeability in m^2
 k_matrix = 1E-16               # reservoir permeability in m^2
 phi_fracture = 0.5             # fracture porosity
 phi_matrix = 0.25              # reservoir porosity
+lambda_reservoir = 2           # reservoir thermal conductivity ??? 
+lambda_fracture = 2            # fracture thermal conductivity ??? 
 ptop = 1 * bar
 pbot = 30. * MPa
 Ttop = degC2K( 25. )
@@ -67,9 +69,9 @@ fracture_faces = [mesh_faces.id(MT.Triangle(triangle)) for triangle in faces]
 fracture_faces = np.array(fracture_faces)
 
 def dirichlet_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    on_top = (vertices.z >= H)
-    on_bottom = (vertices.z <= 0)
+    vertices = ComPASS.global_vertices().view(np.double).reshape((-1, 3))
+    on_top = (vertices[:,2] >= H)
+    on_bottom = (vertices[:,2] <= 0)
     fracture_nodes = np.rec.array(ComPASS.global_node_info(), copy=False).frac == ord('y')
     return on_top | (on_bottom & (np.logical_not(fracture_nodes)))
 
@@ -79,11 +81,14 @@ ComPASS.init(
     mesh = mesh,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
+    cell_thermal_conductivity = lambda_reservoir,    
     fracture_faces = lambda: fracture_faces,
     fracture_permeability = k_fracture,
     fracture_porosity = phi_fracture,
+    fracture_thermal_conductivity = lambda_fracture,
     set_dirichlet_nodes = dirichlet_nodes,
 )
+
 
 def set_states(states, z):
     states.context[:] = 2
@@ -91,13 +96,13 @@ def set_states(states, z):
     states.T[:] = Ttop - ((Tbot_matrix - Ttop) / H) * (z - H)
     states.S[:] = [0, 1]
     states.C[:] = 1.
-set_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices()).z)
-set_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).z)
+set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,2])
+set_states(ComPASS.node_states(), ComPASS.vertices()[:,2])
 set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
 set_states(ComPASS.fracture_states(), ComPASS.compute_fracture_centers()[:,2])
 
 def set_fracture_dirichlet_bottom_temperature():
-    bottom_nodes = np.rec.array(ComPASS.vertices()).z == 0
+    bottom_nodes = ComPASS.vertices()[:,2] == 0
     fracture_nodes = np.rec.array(ComPASS.node_info(), copy=False).frac == ord('y')
     ComPASS.dirichlet_node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
     ComPASS.node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
@@ -108,7 +113,7 @@ def set_boundary_fluxes():
     Neumann.molar_flux[:] = qmass
     Neumann.heat_flux = qmass * ComPASS.liquid_molar_enthalpy(pbot, Tbot_fracture)
     face_centers = np.rec.array(ComPASS.face_centers())   
-    bottom_fracture_edges = ComPASS.find_fracture_edges(face_centers.z <= 0)
+    bottom_fracture_edges = ComPASS.find_fracture_edges(ComPASS.compute_face_centers()[:,2] <= 0)
     ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
 set_boundary_fluxes()
 
