@@ -21,6 +21,7 @@ module VAGFrac
   use MeshSchema
   use DefModel
   use SchemeParameters
+  use DebugUtils
 
   implicit none
 
@@ -510,52 +511,62 @@ contains
       ! loop of nodes in cell
       do ptnumi = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
         numi = NodebyCellLocal%Num(ptnumi)
-
         if(IsVolumeNode(numi) .AND. CellLabel(k) == NodeLabel(numi)) then
           CellVolume(k) = CellVolume(k) - SplitVolume
           NodeVolume(numi) = NodeVolume(numi) + SplitVolume
         end if
       end do
-    enddo
-  end subroutine VAGFrac_SplitCellVolume
 
-    subroutine VAGFrac_check_volumes()
+    enddo
+
+      end subroutine VAGFrac_SplitCellVolume
+
+      
+      subroutine VAGFrac_check_volumes()
 
     integer :: k
     integer :: Ierr=-1, errcode=666
+    logical :: everything_ok = .true.
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
       if(VolDarcyCell(k)<eps) then
         print*, "vol darcy cell < 0: "
         print*, "cell", k, "has volume", VolDarcyCell(k)
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+        everything_ok = .false.
       end if
     end do
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-      if(IdNodeLocal(k)%P /= "d" .and. VolDarcyNode(k)<eps) then
-        print*, "vol non dirichlet node < 0: "
-        print*, "node", k, "has volume", VolDarcyNode(k)
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
+        if(IdNodeLocal(k)%P /= "d" .and. VolDarcyNode(k)<eps) then
+            if(DebugUtils_is_own_frac_node(k).or.IdNodeLocal(k)%Proc/='g') then
+                print*, "vol non dirichlet node < 0"
+                print*, "node", k, "at", XNodeLocal(:,k), "has volume", VolDarcyNode(k)
+            end if
+        end if
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
       if(VolDarcyFrac(k)<eps) then
         print*, "vol darcy frac < 0: "
         print*, "fracture", k, "has volume", VolDarcyFrac(k)
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+        everything_ok = .false.
       end if
     end do
     
+    call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+    if(.not.everything_ok) then
+        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)    
+    end if
+    
     end subroutine VAGFrac_check_volumes
-
-  ! Compute vols darcy:
+    
+    ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
     integer :: k, i, ifrac, numi, ptnumi
     integer :: NbVolume, NbInternalVolume
+    !integer :: Ierr
 
     double precision :: s1, s2
 
@@ -574,6 +585,9 @@ contains
     VolDarcyFrac = Thickness * SurfFracLocal
     VolDarcyNode = 0.d0
 
+    !call DebugUtils_dump_mesh_info()
+    !call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+   
     CALL VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
       CellRocktypeLocal(1,:), &
@@ -590,7 +604,7 @@ contains
       FracRocktypeLocal(1,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(1,:), &
-      IdNodeLocal(:)%P /= "d", &
+      IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y", &
       omegaDarcyFrac, &
       NodebyFractureLocal, &
       VolDarcyFrac, &
