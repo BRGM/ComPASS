@@ -29,6 +29,11 @@ namespace pybind11 {
 	}
 } // namespace pybind11::detail
 
+namespace MeshTools {
+    typedef int8_t byte;
+    static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
+}
+
 namespace py = pybind11;
 namespace MT = MeshTools;
 
@@ -380,6 +385,36 @@ public:
 template <typename Vector>
 bool CheckBinds<Vector>::already_binded = false;
 
+// CHECKME: output type declaration (i.e. -> Vector) is necessary in MSVC
+//          for "decltype workaround" to work below
+//          "decltype workaround" itself is due to a gcc bug...
+template <typename Vector>
+auto from_raw_array(py::array_t<MeshTools::byte, py::array::c_style> raw_array) -> Vector
+{
+    typedef typename Vector::value_type value_type;
+    assert(raw_array.ndim() == 2);
+    assert(raw_array.shape(1) == sizeof(value_type));
+    auto begin = reinterpret_cast<const value_type *>(raw_array.data());
+    auto end = begin + raw_array.shape(0);
+    return Vector{ begin, end };
+}
+
+// CHECKME: output type declaration (i.e. -> py::array_t<...>) is necessary in MSVC
+//          for "decltype workaround" to work below
+//          "decltype workaround" itself is due to a gcc bug...
+template <typename Vector>
+auto as_raw_array(const Vector& v) -> py::array_t<MeshTools::byte, py::array::c_style>
+{
+    typedef typename Vector::value_type value_type;
+    typedef MeshTools::byte byte;
+    static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
+    return py::array_t<byte, py::array::c_style> {
+        { v.size(), sizeof(value_type) }, // shape
+        { sizeof(value_type), sizeof(byte) }, // stride
+            reinterpret_cast<const byte*>(v.data())
+    };
+}
+
 template <typename Vector>
 auto pybind_vector(py::module module, const char * classname)
 {
@@ -387,20 +422,9 @@ auto pybind_vector(py::module module, const char * classname)
     typedef int8_t byte;
     static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
     return py::bind_vector<Vector>(module, classname)
-        .def_static("from_raw_array", [](py::array_t<byte, py::array::c_style> raw_array) {
-        assert(raw_array.ndim() == 2);
-        assert(raw_array.shape(1) == sizeof(value_type));
-        auto begin = reinterpret_cast<const value_type *>(raw_array.data());
-        auto end = begin + raw_array.shape(0);
-        return Vector{ begin, end };
-    })
-        .def("raw_array", [](const Vector& self) {
-        return py::array_t<byte, py::array::c_style> {
-            { self.size(), sizeof(value_type) }, // shape
-            { sizeof(value_type), sizeof(byte) }, // stride
-                reinterpret_cast<const byte*>(self.data())
-        };
-    }, py::keep_alive<0, 1>())
+        .def_static("from_raw_array", (decltype(&from_raw_array<Vector>)) &from_raw_array<Vector>)  // decltype is due to gcc bug
+        .def("raw_array", (decltype(&as_raw_array<Vector>)) &as_raw_array<Vector>,  // decltype is due to gcc bug
+            py::keep_alive<0, 1>())
         ;
 }
 
