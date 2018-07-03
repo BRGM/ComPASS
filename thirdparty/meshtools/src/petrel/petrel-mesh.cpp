@@ -299,7 +299,50 @@ auto mesh(
         }
         ++n;
     }
-    return py::make_tuple(vertices, triangles, components_id);
+    std::set<std::pair<CDT::Vertex_handle, CDT::Vertex_handle>> constrained_edges;
+    std::vector<CDT::Vertex_handle> face_nodes;
+    py::list all_faces;
+    for (auto&& component : components) {
+        constrained_edges.clear();
+        for (auto&& face : component) {
+            for (int i = 0; i < 3; ++i) {
+                auto edge = CDT::Edge{ face, i };
+                if (cdt.is_constrained(edge) || cdt.is_infinite(face->neighbor(i))) {
+                    constrained_edges.insert(
+                    { face->vertex((i + 1) % 3), face->vertex((i + 2) % 3) }
+                    );
+                }
+            }
+        }
+        assert(constrained_edges.size() > 2);
+        face_nodes.clear();
+        auto edge = begin(constrained_edges);
+        face_nodes.push_back(edge->first);
+        face_nodes.push_back(edge->second);
+        constrained_edges.erase(edge);
+        while (!constrained_edges.empty()) {
+            for (edge = begin(constrained_edges); edge != end(constrained_edges); ++edge) {
+                if (face_nodes.back() == edge->first) {
+                    face_nodes.push_back(edge->second);
+                    constrained_edges.erase(edge);
+                    break;
+                }
+                if (face_nodes.back() == edge->second) {
+                    face_nodes.push_back(edge->first);
+                    constrained_edges.erase(edge);
+                    break;
+                }
+            }
+        }
+        assert(face_nodes.front() == face_nodes.back());
+        face_nodes.pop_back();
+        py::list l;
+        for (auto&& v : face_nodes) {
+            l.append(vmap[v]);
+        }
+        all_faces.append(l);
+    }
+    return py::make_tuple(vertices, triangles, components_id, all_faces);
 }
 
 PYBIND11_MODULE(PetrelMesh, module)

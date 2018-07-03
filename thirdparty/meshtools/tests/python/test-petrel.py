@@ -25,18 +25,20 @@ segments = np.array([
     (4, 8),
 ], dtype=np.int32)
 
-tvertices, triangles, component = PM.mesh(vertices, segments)
+tvertices, triangles, component, faces = PM.mesh(vertices, segments)
 
 plt.figure()
 plt.gca().set_aspect('equal')
-plt.triplot(tvertices[:,0], tvertices[:,1], triangles)
+plt.triplot(tvertices[:,0], tvertices[:,1], triangles, color='grey')
 for S in segments:
     plt.plot(vertices[S, 0], vertices[S, 1], 'r') 
 tcenters = np.vstack([tvertices[triangle].mean(axis=0) for triangle in triangles])
 for i, xy in enumerate(tcenters):
     x, y = xy
     plt.text(x, y, '%d' % component[i])
+for i, xy in enumerate(tvertices):
+    x, y = xy
+    plt.text(x, y, '%d' % i, color='b')
+for fi, face in enumerate(faces):
+    print("face", fi, ":", face)
 plt.show()
-
-
-
