@@ -1,7 +1,6 @@
-
 # check docker version if label builder is not accepted
 From debian:buster as builder
-RUN  apt-get update && apt-get install --yes build-essential gcc gfortran cmake libmetis-dev python3 mpi-default-dev petsc-dev python3-dev
+RUN  apt-get update && apt-get install --yes build-essential gcc gfortran cmake libmetis-dev python3 mpi-default-dev petsc-dev libpython3-dev
 WORKDIR /build/
 RUN mkdir /source/
 COPY ./ /source/ComPASS-develop
