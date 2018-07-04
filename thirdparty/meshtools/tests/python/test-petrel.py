@@ -27,6 +27,8 @@ segments = np.array([
 
 tvertices, triangles, component, faces = PM.mesh(vertices, segments)
 
+assert np.all(tvertices[:vertices.shape[0]]==vertices)
+
 plt.figure()
 plt.gca().set_aspect('equal')
 plt.triplot(tvertices[:,0], tvertices[:,1], triangles, color='grey')
