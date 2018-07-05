@@ -1,7 +1,5 @@
 import numpy as np
 
-import MeshTools as MT
-
 class GridInfo:
     def __init__(self, shape=None, extent=None, origin=None):
         assert shape is not None or extent is not None
@@ -169,22 +167,22 @@ def grid2tets(shape, extent=(1., 1., 1.)):
     
     return vertices, tets
 
-def grid2hexs(idtype=MT.idtype(), **kwargs):
-    if 'gridinfo' in kwargs:
-        gridinfo = kwargs['gridinfo']
-    else:
-        gridinfo = GridInfo(**kwargs)
-    # number of cells
-    ncx, ncy, ncz = gridinfo.shape
+def steps2hex(steps_along_axes, idtype=np.int):
+    x, y, z = (np.asarray(steps) for steps in steps_along_axes)
+    assert all(len(a.shape)==1 for a in (x, y, z))
     # number of nodes
-    nx, ny, nz = ncx+1, ncy+1, ncz+1
-    x, y, z = [np.linspace(0, L, n) for L, n in zip(gridinfo.extent, (nx, ny, nz))]
+    shape = nx, ny, nz = (steps.shape[0] for steps in (x, y, z))
+    assert all(n>1 for n in shape)
     nnodes = nx * ny * nz
+    # number of cells
+    ncx, ncy, ncz = nx-1, ny-1, nz-1
+    origin = np.array((x[0], y[0], z[0]))
+    assert all(np.all(a[:-1]<a[1:]) for a in (x, y, z))
     vertices = np.zeros((nnodes, 3), dtype=np.double)
     vertices[:, 0] = np.tile(x, ny*nz)
     vertices[:, 1] = np.tile(np.hstack([np.tile(yi, nx) for yi in y]), nz)
     vertices[:, 2] = np.hstack([np.tile(zi, nx*ny) for zi in z])
-    vertices+= np.array(gridinfo.origin)
+    vertices+= origin
     nhexs = ncx * ncy * ncz
     hexs = np.zeros((nhexs, 8), dtype=idtype)
     tmp = np.arange(ncx)
@@ -198,3 +196,17 @@ def grid2hexs(idtype=MT.idtype(), **kwargs):
     for k in range(1, ncz):
         hexs[k*(ncx*ncy):(k+1)*(ncx*ncy), :] = hexs[(k-1)*(ncx*ncy):k*(ncx*ncy), :] + nx*ny
     return vertices, hexs
+
+def grid2hexs(idtype=np.int, **kwargs):
+    if 'gridinfo' in kwargs:
+        gridinfo = kwargs['gridinfo']
+    else:
+        gridinfo = GridInfo(**kwargs)
+    # number of cells
+    ncx, ncy, ncz = gridinfo.shape
+    # number of nodes
+    nx, ny, nz = ncx+1, ncy+1, ncz+1
+    return steps2hex([
+        np.linspace(0, L, n)
+        for L, n in zip(gridinfo.extent, (nx, ny, nz))
+    ])
