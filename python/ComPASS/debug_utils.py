@@ -64,7 +64,7 @@ def dump_mesh(basename, vertices, cells, pointdata, facedata, celldata, fracture
         ) 
     if fractures is not None:
         vtkw.write_vtu(
-            vtkw.vtu_doc(vertices, fracs),
+            vtkw.vtu_doc(vertices, fractures),
             'frac_mesh' + basename + '.vtu',
         ) 
 
