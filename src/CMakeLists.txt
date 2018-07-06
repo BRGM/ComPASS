@@ -103,6 +103,8 @@ set( WRAPPERS_SRCS
   COC_wrappers.h
   COC_wrappers.cpp
   CommonTypesWrapper.F90
+  DebugUtils_wrappers.h
+  DebugUtils_wrappers.cpp
   Flux_wrappers.h
   Flux_wrappers.cpp
   Flux_wrappers.F90

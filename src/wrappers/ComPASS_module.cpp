@@ -17,6 +17,7 @@
 #include "IncCV_wrappers.h"
 #include "MeshUtilities_wrappers.h"
 #include "TimeLoop_wrappers.h"
+#include "DebugUtils_wrappers.h"
 #include "Model_wrappers.h"
 #include "Flux_wrappers.h"
 #include "Well_wrappers.h"
@@ -37,5 +38,6 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
     add_Model_wrappers(module);
     add_flux_wrappers(module);
     add_time_loop_wrappers(module);
+    add_debug_utils_wrappers(module);
 
 }

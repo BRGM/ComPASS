@@ -9,6 +9,7 @@
 module DebugUtils
 
    use MeshSchema
+   use iso_c_binding
 
    public :: &
       DebugUtils_is_own_frac_node, &
@@ -34,7 +35,8 @@ contains
 
    end function DebugUtils_is_own_frac_node
 
-   subroutine DebugUtils_dump_mesh_info()
+   subroutine DebugUtils_dump_mesh_info() &
+       bind(C, name = "debug_utils_dump_mesh_info")
 
       character(len=1024) :: filename
       integer :: k, Ierr, errcode
@@ -56,7 +58,8 @@ contains
       write (filename, "(A8I0.5)") "nodeinfo", commRank + 1
       open (unit=24, file=trim(filename), status='REPLACE')
       do k = 1, size(IdNodeLocal)
-         write (24, *) IdNodeLocal(k)%proc, ' ', IdNodeLocal(k)%frac
+         write (24, *) IdNodeLocal(k)%proc, ' ', IdNodeLocal(k)%frac, ' ', &
+                       IdNodeLocal(k)%P,    ' ', IdNodeLocal(k)%T
       end do
       close (24)
 
@@ -64,6 +67,34 @@ contains
       open (unit=24, file=trim(filename), status='REPLACE')
       do k = 1, NodebyFractureLocal%Nb
          write (24, *) NodebyFractureLocal%Num(NodebyFractureLocal%Pt(k) + 1:NodebyFractureLocal%Pt(k + 1)) - 1
+      end do
+      close (24)
+
+      write (filename, "(A9I0.5)") "nodeflags", commRank + 1
+      open (unit=24, file=trim(filename), status='REPLACE')
+      do k = 1, size(NodeFlagsLocal, 1)
+         write (24, *) NodeFlagsLocal(k)
+      end do
+      close (24)
+
+      write (filename, "(A9I0.5)") "cellflags", commRank + 1
+      open (unit=24, file=trim(filename), status='REPLACE')
+      do k = 1, size(CellFlagsLocal, 1)
+         write (24, *) CellFlagsLocal(k)
+      end do
+      close (24)
+
+      write (filename, "(A11I0.5)") "facecenters", commRank + 1
+      open (unit=24, file=trim(filename), status='REPLACE')
+      do k = 1, size(XFaceLocal, 2)
+         write (24, *) XFaceLocal(:, k)
+      end do
+      close (24)
+
+      write (filename, "(A9I0.5)") "faceflags", commRank + 1
+      open (unit=24, file=trim(filename), status='REPLACE')
+      do k = 1, size(FaceFlagsLocal, 1)
+         write (24, *) FaceFlagsLocal(k)
       end do
       close (24)
 
