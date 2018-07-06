@@ -10,10 +10,10 @@ def extract_mesh(basename):
             info.append(line.strip().split(' '))
     info = np.array(info, dtype='c')
     pointdata = {
-        'own': np.array(info[:,0]==b'o', dtype=np.int),
-        'frac': np.array(info[:,1]==b'y', dtype=np.int),
-        'dirichlet_P': np.array(info[:,2]==b'd', dtype=np.int),
-        'dirichlet_T': np.array(info[:,3]==b'd', dtype=np.int),
+        'own': np.array(info[:,0]==b'o', dtype=np.int8),
+        'frac': np.array(info[:,1]==b'y', dtype=np.int8),
+        'dirichlet_P': np.array(info[:,2]==b'd', dtype=np.int8),
+        'dirichlet_T': np.array(info[:,3]==b'd', dtype=np.int8),
     }
     facedata = {}
     celldata = {}
