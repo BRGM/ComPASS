@@ -209,4 +209,4 @@ def grid2hexs(idtype=np.int, **kwargs):
     return steps2hex([
         np.linspace(0, L, n)
         for L, n in zip(gridinfo.extent, (nx, ny, nz))
-    ])
+    ], idtype=idtype)
