@@ -21,3 +21,17 @@ z = np.hstack([-zpos[::-1], 0, zpos])
 mesh = MT.grid3D(steps=(x, y, z))
 
 MT.to_vtu(mesh, 'grid_with_fracture.vtu')
+
+def geometric(x0, xn, a, n):
+    assert a>=1 and n>0
+    dx = np.cumprod(np.hstack([1, np.tile(a, max(n-1, 0))]))
+    assert np.all(dx>0)
+    x = np.cumsum(dx)
+    assert np.all(x[1:]>=x[:-1])
+    return x0 + ((xn - x0)/(x[-1]-x[0])) * (x - x[0])
+
+zpos = geometric(0, H, 2., nz)
+z = np.hstack([-zpos[::-1], zpos[1:]])
+mesh = MT.grid3D(steps=(x, y, z))
+
+MT.to_vtu(mesh, 'grid_with_fracture_geometric.vtu')
