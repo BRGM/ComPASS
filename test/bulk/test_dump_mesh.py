@@ -23,6 +23,12 @@ grid = ComPASS.Grid(
     origin = (Ox, Oy, Oz),
 )
 
+def set_dirichlet():
+    vertices = ComPASS.global_vertices()
+    z = vertices[:, 2]
+    zmax = z.max()
+    return np.nonzero(z == zmax)[0]
+
 def set_flags():
     vertices = ComPASS.global_vertices()
     cell_centers = ComPASS.compute_global_cell_centers()
@@ -38,6 +44,7 @@ ComPASS.init(
     cell_permeability = 1e-12,
     cell_thermal_conductivity = 2,
     set_global_flags = set_flags,
+    set_dirichlet_nodes = set_dirichlet,
 )
 
 ComPASS.debug_utils_dump_mesh_info()
