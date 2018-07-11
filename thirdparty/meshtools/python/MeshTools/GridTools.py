@@ -182,7 +182,6 @@ def steps2hex(steps_along_axes, idtype=np.int):
     vertices[:, 0] = np.tile(x, ny*nz)
     vertices[:, 1] = np.tile(np.hstack([np.tile(yi, nx) for yi in y]), nz)
     vertices[:, 2] = np.hstack([np.tile(zi, nx*ny) for zi in z])
-    vertices+= origin
     nhexs = ncx * ncy * ncz
     hexs = np.zeros((nhexs, 8), dtype=idtype)
     tmp = np.arange(ncx)
