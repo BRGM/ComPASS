@@ -201,11 +201,7 @@ def grid2hexs(idtype=np.int, **kwargs):
         gridinfo = kwargs['gridinfo']
     else:
         gridinfo = GridInfo(**kwargs)
-    # number of cells
-    ncx, ncy, ncz = gridinfo.shape
-    # number of nodes
-    nx, ny, nz = ncx+1, ncy+1, ncz+1
     return steps2hex([
-        np.linspace(0, L, n)
-        for L, n in zip(gridinfo.extent, (nx, ny, nz))
+        np.linspace(O, O + L, n + 1) # nb cells -> nb nodes
+        for O, L, n in zip(gridinfo.origin, gridinfo.extent, gridinfo.shape)
     ], idtype=idtype)
