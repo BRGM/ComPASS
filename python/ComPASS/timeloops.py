@@ -54,6 +54,7 @@ def standard_loop(final_time, initial_timestep=1.,
                   output_period = None, output_every = None,
                   nb_output = None, nitermax = None, tstart=0, dumper=None,
                   iteration_callbacks = None, output_callbacks = None,
+                  specific_outputs = None
                  ):
     if output_period is None:
         if nb_output is None:
@@ -66,6 +67,11 @@ def standard_loop(final_time, initial_timestep=1.,
         iteration_callbacks = tuple()
     if output_callbacks is None:
         output_callbacks = tuple()
+    if specific_outputs is None:
+        specific_outputs = []
+    else:
+        specific_outputs = list(specific_outputs)
+        specific_outputs.sort()
     # this is necessary for well operating on pressures
     check_well_pressure()
     t = tstart
@@ -80,6 +86,10 @@ def standard_loop(final_time, initial_timestep=1.,
         print('Current time: %.1f y' % (t / year), ' -> final time:', final_time / year, 'y')
         print('Timestep: %.3g s = %.3f d = %.3f y' % (timestep, timestep / day, timestep / year))
     while t < final_time and (nitermax is None or n < nitermax):
+        if t < t_output and specific_outputs and t + timestep > specific_outputs[0]:
+            timestep = specific_outputs[0] - t
+            t_output = specific_outputs[0]
+            del specific_outputs[0]
         if t >= t_output or not(output_every is None or n%output_every>0):
             for callback in output_callbacks:
                 callback(n, t)
@@ -100,4 +110,9 @@ def standard_loop(final_time, initial_timestep=1.,
         for callback in output_callbacks:
             callback(n, t)
         shooter.shoot(t)
+    if mpi.is_on_master_proc:
+        if specific_outputs:
+            print('WARNING')
+            print('WARNING: Specific outputs were not reached:', specific_outputs)
+            print('WARNING')
     mpi.synchronize()
