@@ -4,6 +4,7 @@ if(MESHTOOLS_USES_CGAL)
     add_definitions(-DMESHTOOLS_USES_CGAL)
     add_subdirectory(petrel)
     add_subdirectory(URG)
+    add_subdirectory(corefinement)
 endif(MESHTOOLS_USES_CGAL)
 
 add_subdirectory(core)

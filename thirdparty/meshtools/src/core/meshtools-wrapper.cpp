@@ -571,8 +571,7 @@ auto add_mesh(py::module module)
                 if (t.size() != 2)
                     throw std::runtime_error("Invalid pickled state!");
                 auto mesh = Mesh{};
-                typedef typename Mesh::Vertices Vertices;
-                mesh.vertices = from_raw_array<Vertices>(t[0].cast<pyMT::RawArray>());
+                mesh.vertices = from_raw_array<Mesh::Vertices>(t[0].cast<pyMT::RawArray>());
                 mesh.connectivity.cells.nodes = from_raw_array<typename Cells::Nodes>(t[1].cast<pyMT::RawArray>());
                 mesh.connectivity.update_from_cellnodes();
                 return mesh;
