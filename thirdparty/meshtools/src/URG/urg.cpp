@@ -7,12 +7,15 @@
 #include <CGAL/Cartesian_converter.h>
 #include <CGAL/Convex_hull_3.h>
 #include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/corefinement.h>
 
 //FIXME: prefer standard compliant optional
 #include <boost/optional.hpp>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+
+#include "common.h"
 
 template <typename Point, typename Index>
 struct Indexed_point
@@ -28,10 +31,11 @@ struct Indexed_segment
     Index index;
 };
 
-template <typename Kernel>
+template <typename Kernel_type>
 struct Boundary_hull
 {
 
+    typedef Kernel_type Kernel;
     typedef typename Kernel::Point_3 Point;
     typedef typename Kernel::Segment_3 Segment;
     typedef typename Kernel::Plane_3 Plane;
@@ -93,7 +97,6 @@ struct Boundary_hull
                 }
             }
         }
-        Edge_collection edges;
         edges.reserve(edge_map.size());
         for (const auto& edge : edge_map) {
             const auto& index = edge.first;
@@ -103,6 +106,7 @@ struct Boundary_hull
             // FIXME: could be emplace_back here but does not work on MSVC 2015
             edges.push_back(Edge{ Segment{ points.front().point, points.back().point }, index });
         }
+        edges.shrink_to_fit();
         std::cerr << "Collected " << edges.size() << " edges" << std::endl;
         boundaries.resize(n);
         for (Plane_index i = 0; i < n; ++i) {
@@ -112,43 +116,130 @@ struct Boundary_hull
             points.reserve(plane_corners.size());
             for (const auto& corner : plane_corners) points.push_back(corner.point);
             auto& boundary = boundaries[i];
-            CGAL::convex_hull_3(begin(points), end(points), boundary);
+            CGAL::convex_hull_3(cbegin(points), cend(points), boundary);
             std::cout << "The convex hull contains " << boundary.number_of_vertices() << " vertices and " << boundary.number_of_faces() << " faces" << std::endl;
             for (const auto& face : boundary.faces()) {
                 std::cerr << "Face with " << boundary.degree(face) << " points" << std::endl;
             }
         }
+        boundaries.shrink_to_fit();
     }
+
+    void intersect(const Plane& plane, Surface_mesh& mesh) const
+    {
+        std::vector<Point> points;
+        for (const auto& edge : edges) {
+            auto intersection = CGAL::intersection(plane, edge.segment);
+            if (intersection) {
+                if (const Point * p = boost::get<Point>(&*intersection)) {
+                    if (is_inside(*p)) {
+                        points.push_back(*p);
+                    }
+                }
+                else {
+                    if (const Segment * S = boost::get<Segment>(&*intersection)) {
+                        // here *S and edge.segment are the same
+                        points.push_back(S->source());
+                        points.push_back(S->target());
+                    }
+                }
+            }
+        }
+        std::cerr << "Hull intersection with " << points.size() << " points." << std::endl;
+        CGAL::convex_hull_3(cbegin(points), cend(points), mesh);
+    }
+
 };
 
-void test_cube()
-{
-    typedef CGAL::Epick::Point_3 Point;
-    typedef CGAL::Epick::Vector_3 Vector;
-    typedef CGAL::Epick::Plane_3 Plane;
-    // cube
-    auto planes = std::vector<Plane>{};
-    planes.emplace_back(Point(-1, 0, 0), Vector(-1, 0, 0));
-    planes.emplace_back(Point(1, 0, 0), Vector(1, 0, 0));
-    planes.emplace_back(Point(0, -1, 0), Vector(0, -1, 0));
-    planes.emplace_back(Point(0, 1, 0), Vector(0, 1, 0));
-    planes.emplace_back(Point(0, 0, -1), Vector(0, 0, -1));
-    planes.emplace_back(Point(0, 0, 1), Vector(0, 0, 1));
-    Boundary_hull<CGAL::Epeck> hull{ cbegin(planes), cend(planes) };
-    std::cerr << "Done" << std::endl;
-}
+namespace py = pybind11;
 
+template <typename Surface_mesh>
+auto as_numpy_arrays(const Surface_mesh& mesh)
+{
+
+    typedef typename Surface_mesh::Point Surface_point;
+    typedef typename CGAL::Kernel_traits<Surface_point>::Kernel Surface_kernel;
+    typedef CGAL::Epick::Point_3 Point;
+    auto to_epick = CGAL::Cartesian_converter<Surface_kernel, CGAL::Epick>{};
+
+    typedef MeshTools::ElementId New_index;
+    std::vector<New_index> reindex;
+    reindex.resize(mesh.num_vertices());
+    auto nv = New_index{ 0 };
+    for (auto&& v : mesh.vertices()) {
+        reindex[v] = nv++;
+    }
+    auto vertices = py::array_t<double, py::array::c_style>{
+        { static_cast<std::size_t>(nv), static_cast<std::size_t>(Point::Ambient_dimension::value) }
+    };
+    {
+        auto p = reinterpret_cast<Point*>(vertices.request().ptr);
+        static_assert(sizeof(Point) == Point::Ambient_dimension::value * sizeof(double), "Inconsistent sizes in memory!");
+        for (auto&& v : mesh.vertices()) {
+            *(p++) = to_epick(mesh.point(v));
+        }
+    }
+    auto triangles = py::array_t<New_index, py::array::c_style>{
+        { static_cast<std::size_t>(mesh.number_of_faces()), static_cast<std::size_t>(3) }
+    };
+    {
+        auto p = reinterpret_cast<New_index*>(triangles.request().ptr);
+        for (auto&& f : mesh.faces()) {
+            assert(mesh.degree(f) == 3);
+            for (auto&& v : CGAL::vertices_around_face(mesh.halfedge(f), mesh)) {
+                *(p++) = reindex[v];
+            }
+        }
+    }
+    return py::make_tuple(vertices, triangles);
+}
 
 PYBIND11_MODULE(URG, module)
 {
 
     module.doc() = "plane intersection for URG model";
-    
-    module.def("test_cube", &test_cube);
-    //module.def("split_and_mesh", &split_and_mesh);
-    //module.def("foo", []() {
-    //    boost::optional<int> test;
-    //    test = false;
-    //    if (test) py::print("ya bon");
-    //});
+
+    typedef CGAL::Epick Kernel;
+    typedef typename Kernel::Point_3 Point;
+    typedef typename Kernel::Vector_3 Vector;
+    typedef typename Kernel::Plane_3 Plane;
+
+    py::class_<Point>(module, "Point")
+        .def(py::init<double, double, double>());
+
+    py::class_<Vector>(module, "Vector")
+        .def(py::init<double, double, double>());
+
+    py::class_<Plane>(module, "Plane")
+        .def(py::init<Point, Vector>());
+
+    typedef Boundary_hull<CGAL::Epeck> Hull;
+    typedef typename Hull::Surface_mesh Surface_mesh;
+
+    py::class_<Surface_mesh>(module, "Surface")
+        .def("as_arrays", &as_numpy_arrays<Surface_mesh>);
+
+    py::class_<Hull>(module, "Hull")
+        .def(py::init([](py::list plane_list) {
+        std::vector<Plane> planes;
+        planes.reserve(py::len(plane_list));
+        for (auto& plane : plane_list) {
+            planes.emplace_back(plane.cast<Plane>());
+        }
+        return std::make_unique<Hull>(cbegin(planes), cend(planes));
+    }))
+        .def("boundaries", [](const Hull& self) {
+        return py::make_iterator(begin(self.boundaries), end(self.boundaries));
+    }, py::keep_alive<0, 1>())
+        .def("intersect", [](const Hull& self, const Plane& plane) {
+        auto mesh = std::make_unique<Surface_mesh>();
+        self.intersect(
+            CGAL::Cartesian_converter<Kernel, typename Hull::Kernel>{}(plane),
+            *mesh
+        );
+        return mesh;
+    })
+            ;
+
+
 }

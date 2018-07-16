@@ -13,6 +13,7 @@ if (EIGEN3_FOUND)
     include( ${EIGEN3_USE_FILE} )
 endif()
 
+include_directories(../core)
 
 pybind11_add_module(URG urg.cpp)
 set_target_properties(URG
