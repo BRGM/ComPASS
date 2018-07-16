@@ -21,9 +21,17 @@ for bi, boundary in enumerate(hull.boundaries()):
     MT.to_vtu(mesh, "hull_boundary_%02d.vtu" % bi)
 
 
-P = Plane(Point(0, 0, 0), Vector(1, 1.5, 1))
-S = hull.intersect(P)
-mesh = MT.TSurf.make(*S.as_arrays())
+P1 = Plane(Point(0, 0, 0), Vector(1, 1.5, 1))
+P2 = Plane(Point(0, 0, -0.2), Vector(0.15, 0.1, 1))
+S1 = hull.intersect(P1)
+S2 = hull.intersect(P2)
 
-MT.to_vtu(mesh, "intersection.vtu")
+urg.corefine(S1, S2)
+
+on_side = urg.On_side(P1, Point(0,0, 0.5))
+S2.keep(on_side)
+
+for si, surface in enumerate([S1, S2]):
+    mesh = MT.TSurf.make(*surface.as_arrays())
+    MT.to_vtu(mesh, "surface%02d.vtu" % si)
 

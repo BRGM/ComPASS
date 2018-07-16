@@ -8,6 +8,7 @@
 #include <CGAL/Convex_hull_3.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
+#include <CGAL/barycenter.h>
 
 //FIXME: prefer standard compliant optional
 #include <boost/optional.hpp>
@@ -194,6 +195,62 @@ auto as_numpy_arrays(const Surface_mesh& mesh)
     return py::make_tuple(vertices, triangles);
 }
 
+template <typename Plane_type>
+struct On_plane_side
+{
+    typedef Plane_type Plane;
+    typedef typename CGAL::Kernel_traits<Plane>::Kernel Kernel;
+    typedef typename Kernel::Point_3 Point;
+protected:
+    Plane plane;
+    CGAL::Oriented_side side;
+public:
+    On_plane_side(const Plane& P, const Point& A) :
+        plane{ P },
+        side{ plane.oriented_side(A) }
+    {}
+    On_plane_side(Plane&& P, const Point& A) :
+        plane{ std::forward<Plane>(P) },
+        side{ plane.oriented_side(A) }
+    {}
+    bool operator()(const Point& P) const noexcept {
+        return plane.oriented_side(P) == side;
+    }
+};
+
+//typedef Boundary_hull<CGAL::Epeck> Hull;
+//typedef typename Hull::Surface_mesh Surface_mesh;
+//struct Mask
+//{
+//    template <typename T>
+//    bool operator()(const T&) const { return true; }
+//};
+
+template <typename Surface_mesh, typename Mask>
+void select_faces(Surface_mesh& mesh, const Mask& is_kept)
+{
+
+    typedef typename Surface_mesh::Point Surface_point;
+    typedef typename CGAL::Kernel_traits<Surface_point>::Kernel Surface_kernel;
+    typedef typename Surface_kernel::Triangle_3 Surface_triangle;
+
+    // special type to be used with CGAL:barycenter
+    typedef std::pair<Surface_point, typename Surface_kernel::FT> Face_point;
+    std::vector<Face_point> face_points;
+    for (auto&& face : mesh.faces()) {
+        face_points.clear();
+        for (auto&& v : CGAL::vertices_around_face(mesh.halfedge(face), mesh)) {
+            face_points.emplace_back(mesh.point(v), 1);
+        }
+        if (!is_kept(CGAL::barycenter(cbegin(face_points), cend(face_points)))) {
+            mesh.remove_face(face);
+        }
+    }
+    mesh.collect_garbage();
+
+}
+
+
 PYBIND11_MODULE(URG, module)
 {
 
@@ -205,19 +262,40 @@ PYBIND11_MODULE(URG, module)
     typedef typename Kernel::Plane_3 Plane;
 
     py::class_<Point>(module, "Point")
-        .def(py::init<double, double, double>());
+        .def(py::init<double, double, double>())
+        ;
 
     py::class_<Vector>(module, "Vector")
-        .def(py::init<double, double, double>());
+        .def(py::init<double, double, double>())
+        ;
 
     py::class_<Plane>(module, "Plane")
-        .def(py::init<Point, Vector>());
+        .def(py::init<Point, Vector>())
+        ;
 
     typedef Boundary_hull<CGAL::Epeck> Hull;
     typedef typename Hull::Surface_mesh Surface_mesh;
+    typedef On_plane_side<typename Hull::Kernel::Plane_3> On_side;
+
+    py::class_<On_side>(module, "On_side")
+        .def(py::init([](const Plane& plane, const Point& P) {
+        auto to_hull_kernel = CGAL::Cartesian_converter<Kernel, typename Hull::Kernel>{};
+        return std::make_unique<On_side>(
+            to_hull_kernel(plane),
+            to_hull_kernel(P)
+            );
+    }))
+        .def("__call__", [](const On_side& self, const Point& P) {
+        return self(CGAL::Cartesian_converter<Kernel, typename Hull::Kernel>{}(P));
+        })
+        ;
 
     py::class_<Surface_mesh>(module, "Surface")
-        .def("as_arrays", &as_numpy_arrays<Surface_mesh>);
+        .def("as_arrays", &as_numpy_arrays<Surface_mesh>)
+        .def("keep", [](Surface_mesh& self, const On_side& mask) {
+        select_faces(self, mask);
+    })
+        ;
 
     py::class_<Hull>(module, "Hull")
         .def(py::init([](py::list plane_list) {
@@ -241,5 +319,8 @@ PYBIND11_MODULE(URG, module)
     })
             ;
 
+    module.def("corefine", [](Surface_mesh& mesh1, Surface_mesh& mesh2) {
+        CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2);
+    });
 
 }
