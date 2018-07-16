@@ -320,7 +320,9 @@ PYBIND11_MODULE(URG, module)
             ;
 
     module.def("corefine", [](Surface_mesh& mesh1, Surface_mesh& mesh2) {
-        CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2);
+        if (CGAL::Polygon_mesh_processing::do_intersect(mesh1, mesh2)) {
+            CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2);
+        }
     });
 
 }
