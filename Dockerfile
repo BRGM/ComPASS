@@ -12,7 +12,7 @@ RUN CC=mpicc cmake ../source/ComPASS-develop && make
 
 From debian:buster-slim
 ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
-RUN apt-get update && apt-get install --yes --no-install-recommends libpython3-dev python3-mpi4py python3-numpy metis libpetsc-real3.8 && apt-get clean 
+RUN apt-get update && apt-get install --yes --no-install-recommends libpython3-dev python3-mpi4py python3-numpy metis libmpfr6 libgmp10 libpetsc-real3.8 && apt-get clean 
 WORKDIR /build/
 #COPY ./docker/script/docker_entrypoint.sh /
 COPY --from=builder /source/ComPASS-develop/python ./compassModule
