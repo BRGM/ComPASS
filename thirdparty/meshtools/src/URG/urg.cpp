@@ -32,6 +32,156 @@ struct Indexed_segment
     Index index;
 };
 
+template <typename Surface_index>
+struct Surface_vertex_index
+{
+    // There would be much less lines of code direcly replacing the variant by a std::set<Surface_index>
+    //struct Not_indexed {};
+    //typedef boost::variant <
+    //    Not_indexed,
+    //    Surface_index,
+    //    std::array<Surface_index, 2>,
+    //    std::array<Surface_index, 3>,
+    //    std::set<Surface_index>
+    //> Index_type;
+    //Index_type index;
+    //struct Adder : boost::static_visitor<Index_type> {
+    //    Surface_index added;
+    //    Adder(Surface_index si) :
+    //        boost::static_visitor<Index_type>{},
+    //        added{ si }
+    //    {}
+    //    result_type operator()(const Not_indexed&) const {
+    //        return added;
+    //    }
+    //    result_type operator()(const Surface_index& si) const {
+    //        if (added == si) return si;
+    //        if (si < added) return std::array<Surface_index, 2>{ {si, added } };
+    //        return std::array<Surface_index, 2>{ {added, si } };
+    //    }
+    //    result_type operator()(const std::array<Surface_index, 2>& sia) const {
+    //        assert(sia[0] < sia[1]);
+    //        if (added == sia[0] || added == sia[1]) return sia;
+    //        if (added < sia[0]) return std::array<Surface_index, 3>{ { added, sia[0], sia[1] } };
+    //        if (added < sia[1]) return std::array<Surface_index, 3>{ { sia[0], added, sia[1] } };
+    //        return std::array<Surface_index, 3>{ { sia[0], sia[1], added } };
+    //    }
+    //    result_type operator()(const std::array<Surface_index, 3>& sia) const {
+    //        if (added == sia[0] || added == sia[1] || added == sia[2]) return sia;
+    //        auto s = std::set<Surface_index>{ begin(sia), end(sia) };
+    //        s.insert(added);
+    //        return s;
+    //    }
+    //    result_type operator()(std::set<Surface_index>& s) const {
+    //        s.insert(added);
+    //        return s;
+    //    }
+    //};
+    //struct Degree : boost::static_visitor<std::size_t> {
+    //    constexpr result_type operator()(const Not_indexed&) const noexcept {
+    //        return 0;
+    //    }
+    //    constexpr result_type operator()(const Surface_index&) const noexcept {
+    //        return 1;
+    //    }
+    //    constexpr result_type operator()(const std::array<Surface_index, 2>&) const noexcept {
+    //        return 2;
+    //    }
+    //    constexpr result_type operator()(const std::array<Surface_index, 3>&) const noexcept {
+    //        return 3;
+    //    }
+    //    result_type operator()(std::set<Surface_index>& s) const noexcept {
+    //        return s.size();
+    //    }
+    //};
+    //Surface_vertex_index& add(Surface_index si) {
+    //    index = boost::apply_visitor(Adder{ si }, index);
+    //    return *this;
+    //}
+    //std::size_t degree() const {
+    //    return boost::apply_visitor(Degree{}, index);
+    //}
+    typedef std::set<Surface_index> Index_type;
+    Index_type index;
+    Surface_vertex_index& add(Surface_index si) {
+        index.insert(si);
+        return *this;
+    }
+    auto degree() const {
+        return index.size();
+    }
+};
+
+//template <typename Surface_index, typename Surface_mesh>
+//auto add_vertex_degree_map(Surface_mesh& mesh)
+//{
+//    typedef typename Surface_mesh::Vertex_index Vertex_index;
+//    typedef Surface_vertex_index<Surface_index> Vertex_degree;
+//    auto pmap = mesh.add_property_map<Vertex_index, Vertex_degree>("vertex_degree", Vertex_degree{});
+//    assert(pmap.second);
+//    return pmap.first;
+//}
+//
+//template <typename Surface_mesh>
+//auto add_is_contrained_edge_map(Surface_mesh& mesh)
+//{
+//    typedef typename Surface_mesh::Edge_index Edge_index;
+//    auto pmap = mesh.add_property_map<Edge_index, bool>("is_constrained_edge", false);
+//    assert(pmap.second);
+//    return pmap.first;
+//}
+
+//template <typename Surface_index, typename Surface_mesh>
+//void add_properties(Surface_mesh& mesh)
+//{
+//    add_vertex_degree_map<Surface_index>(mesh);
+//    add_is_contrained_edge_map(mesh);
+//}
+
+template <typename Surface_mesh_type, typename Surface_index_type>
+struct Surface_factory
+{
+    typedef Surface_mesh_type Surface_mesh;
+    typedef Surface_index_type Surface_index;
+    struct Surface
+    {
+        typedef Surface_mesh_type Surface_mesh;
+        typedef Surface_index_type Surface_index;
+        typedef Surface_vertex_index<Surface_index> Vertex_degree;
+        constexpr static const auto vertex_degree_map_name = "vertex_degree";
+        constexpr static const auto edge_constraint_map_name = "is_constrained_edge";
+        Surface_mesh mesh;
+        Surface_index index;
+        friend struct Surface_factory<Surface_mesh, Surface_index>;
+        Surface() = delete;
+        Surface(Surface_index si) :
+            mesh{},
+            index{ si }
+        {
+                auto vpmap = mesh.add_property_map<
+                    typename Surface_mesh::Vertex_index, Vertex_degree
+                >(vertex_degree_map_name, Vertex_degree{});
+                assert(vpmap.second);
+                auto epmap = mesh.add_property_map<
+                    typename Surface_mesh::Edge_index, bool
+                >(edge_constraint_map_name, false);
+                assert(epmap.second);
+        }
+    };
+    Surface_index new_index;
+    Surface_factory() :
+        new_index{ 0 }
+    {}
+    Surface_factory(const Surface_factory&) = delete;
+    Surface_factory& operator=(const Surface_factory&) = delete;
+    auto make() {
+        return Surface{ new_index++ };
+    }
+    auto make_unique_pointer() {
+        return std::make_unique<Surface>( new_index++ );
+    }
+};
+
 template <typename Kernel_type>
 struct Boundary_hull
 {
@@ -109,14 +259,16 @@ struct Boundary_hull
         }
         edges.shrink_to_fit();
         std::cerr << "Collected " << edges.size() << " edges" << std::endl;
-        boundaries.resize(n);
+        assert(boundaries.empty());
+        boundaries.reserve(n);
         for (Plane_index i = 0; i < n; ++i) {
             const auto& plane_corners = corners[i];
             std::cerr << "Size corners" << plane_corners.size() << std::endl;
             std::vector<Point> points;
             points.reserve(plane_corners.size());
             for (const auto& corner : plane_corners) points.push_back(corner.point);
-            auto& boundary = boundaries[i];
+            boundaries.emplace_back();
+            auto& boundary = boundaries.back();
             CGAL::convex_hull_3(cbegin(points), cend(points), boundary);
             std::cout << "The convex hull contains " << boundary.number_of_vertices() << " vertices and " << boundary.number_of_faces() << " faces" << std::endl;
             for (const auto& face : boundary.faces()) {
@@ -218,6 +370,39 @@ public:
     }
 };
 
+template <typename Surface_mesh>
+inline auto face_barycenter(const typename Surface_mesh::Halfedge_index h, const Surface_mesh& mesh)
+{
+
+    typedef typename Surface_mesh::Point Surface_point;
+    typedef typename CGAL::Kernel_traits<Surface_point>::Kernel Surface_kernel;
+    // special type to be used with CGAL:barycenter
+    typedef std::pair<Surface_point, typename Surface_kernel::FT> Face_point;
+
+    assert(!mesh.is_border(h));
+    std::vector<Face_point> face_points;
+    for (auto&& v : CGAL::vertices_around_face(h, mesh)) {
+        face_points.emplace_back(mesh.point(v), 1);
+    }
+    assert(!face_points.empty());
+    return CGAL::barycenter(cbegin(face_points), cend(face_points));
+
+}
+
+template <typename Surface_mesh, typename Mask>
+inline void select_faces(Surface_mesh& mesh, const Mask& is_kept)
+{
+
+    for (auto&& face : mesh.faces()) {
+        auto h = mesh.halfedge(face);
+        if (!is_kept(face_barycenter(h, mesh))) {
+            CGAL::Euler::remove_face(h, mesh);
+        }
+    }
+    mesh.collect_garbage();
+
+}
+
 //typedef Boundary_hull<CGAL::Epeck> Hull;
 //typedef typename Hull::Surface_mesh Surface_mesh;
 //struct Mask
@@ -226,40 +411,62 @@ public:
 //    bool operator()(const T&) const { return true; }
 //};
 
-template <typename Surface_mesh, typename Mask>
-void select_faces(Surface_mesh& mesh, const Mask& is_kept)
+template <typename Surface_mesh>
+void simplify_faces(Surface_mesh& mesh)
 {
 
-    typedef typename Surface_mesh::Point Surface_point;
-    typedef typename CGAL::Kernel_traits<Surface_point>::Kernel Surface_kernel;
-    typedef typename Surface_kernel::Triangle_3 Surface_triangle;
-
-    // special type to be used with CGAL:barycenter
-    typedef std::pair<Surface_point, typename Surface_kernel::FT> Face_point;
-    std::vector<Face_point> face_points;
-    for (auto&& face : mesh.faces()) {
-        face_points.clear();
-        for (auto&& v : CGAL::vertices_around_face(mesh.halfedge(face), mesh)) {
-            face_points.emplace_back(mesh.point(v), 1);
+    auto h = *(begin(mesh.halfedges()));
+    if (mesh.is_border(h)) h = mesh.opposite(h);
+    typedef boost::optional<decltype(h)> Flag;
+    auto loop_entry = Flag{};
+    while (!loop_entry || h != *loop_entry) {
+        if (mesh.is_border(mesh.opposite(h))) {
+            if (!loop_entry) loop_entry = Flag{ h };
+            h = mesh.next(h);
         }
-        if (!is_kept(CGAL::barycenter(cbegin(face_points), cend(face_points)))) {
-            mesh.remove_face(face);
+        else {
+            loop_entry = Flag{};
+            h = CGAL::Euler::join_face(h, mesh);
         }
     }
-    mesh.collect_garbage();
+    auto start = h;
+    typedef typename Surface_mesh::Point Surface_point;
+    typedef typename CGAL::Kernel_traits<Surface_point>::Kernel Surface_kernel;
+    auto to_epick = CGAL::Cartesian_converter<Surface_kernel, CGAL::Epick>{};
+    std::cerr << "Points (" << mesh.degree(mesh.face(h)) << "): ";
+    for (h = mesh.next(h); h != start; h = mesh.next(h)) {
+        std::cerr << to_epick(mesh.point(mesh.target(h))) << " | ";
+    }
+    std::cerr << std::endl;
+    assert(!mesh.is_border(h) && mesh.is_border(mesh.opposite(h)));
+    const auto P = face_barycenter(h, mesh);
+    h = CGAL::Euler::add_center_vertex(h, mesh);
+    mesh.point(mesh.target(h)) = P;
 
 }
 
+typedef CGAL::Epick Kernel;
+typedef typename Kernel::Point_3 Point;
+typedef typename Kernel::Vector_3 Vector;
+typedef typename Kernel::Plane_3 Plane;
+typedef std::size_t Surface_index;
+typedef Boundary_hull<CGAL::Epeck> Hull;
+typedef typename Hull::Surface_mesh Hull_boundary;
+typedef On_plane_side<typename Hull::Kernel::Plane_3> On_side;
+typedef Surface_factory<Hull_boundary, Surface_index> Factory;
+typedef typename Factory::Surface Surface;
+
+Factory surface_factory;
+
+Factory& get_surface_factory()
+{
+    return surface_factory;
+}
 
 PYBIND11_MODULE(URG, module)
 {
 
     module.doc() = "plane intersection for URG model";
-
-    typedef CGAL::Epick Kernel;
-    typedef typename Kernel::Point_3 Point;
-    typedef typename Kernel::Vector_3 Vector;
-    typedef typename Kernel::Plane_3 Plane;
 
     py::class_<Point>(module, "Point")
         .def(py::init<double, double, double>())
@@ -272,10 +479,6 @@ PYBIND11_MODULE(URG, module)
     py::class_<Plane>(module, "Plane")
         .def(py::init<Point, Vector>())
         ;
-
-    typedef Boundary_hull<CGAL::Epeck> Hull;
-    typedef typename Hull::Surface_mesh Surface_mesh;
-    typedef On_plane_side<typename Hull::Kernel::Plane_3> On_side;
 
     py::class_<On_side>(module, "On_side")
         .def(py::init([](const Plane& plane, const Point& P) {
@@ -290,14 +493,28 @@ PYBIND11_MODULE(URG, module)
         })
         ;
 
-    py::class_<Surface_mesh>(module, "Surface")
-        .def("as_arrays", &as_numpy_arrays<Surface_mesh>)
-        .def("keep", [](Surface_mesh& self, const On_side& mask) {
-        select_faces(self, mask);
-    })
-        ;
+        py::class_<Hull_boundary>(module, "Hull_boundary")
+            .def("as_arrays", &as_numpy_arrays<Hull_boundary>)
+            ;
+        
+        py::class_<Surface>(module, "Surface")
+            .def_readonly("index", &Surface::index)
+            .def("as_arrays", [](Surface& self) {
+            return as_numpy_arrays(self.mesh);
+        })
+        .def("keep", [](Surface& self, const On_side& mask) {
+            select_faces(self.mesh, mask);
+        })
+            ;
 
-    py::class_<Hull>(module, "Hull")
+        py::class_<Factory>(module, "Surface_factory")
+            .def("__call__", [](Factory& self) {
+            return self.make_unique_pointer();
+        });
+
+        module.def("surface_factory", &get_surface_factory);
+
+        py::class_<Hull>(module, "Hull")
         .def(py::init([](py::list plane_list) {
         std::vector<Plane> planes;
         planes.reserve(py::len(plane_list));
@@ -310,19 +527,40 @@ PYBIND11_MODULE(URG, module)
         return py::make_iterator(begin(self.boundaries), end(self.boundaries));
     }, py::keep_alive<0, 1>())
         .def("intersect", [](const Hull& self, const Plane& plane) {
-        auto mesh = std::make_unique<Surface_mesh>();
+        auto surface = surface_factory.make_unique_pointer();
         self.intersect(
             CGAL::Cartesian_converter<Kernel, typename Hull::Kernel>{}(plane),
-            *mesh
+            surface->mesh
         );
-        return mesh;
+        return surface;
     })
             ;
 
-    module.def("corefine", [](Surface_mesh& mesh1, Surface_mesh& mesh2) {
-        if (CGAL::Polygon_mesh_processing::do_intersect(mesh1, mesh2)) {
-            CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2);
-        }
+    module.def("corefine", [](Surface& S1, Surface& S2) {
+        typedef typename Surface::Surface_mesh Surface_mesh;
+        typedef Surface_mesh::Edge_index Edge_index;
+        auto& mesh1 = S1.mesh;
+        auto& mesh2 = S2.mesh;
+        const auto map_name = std::string{ "intersections_constraint" };
+        auto tmp_map1 = mesh1.add_property_map<Edge_index, bool>(map_name, false);
+        assert(tmp_map1.second);
+        auto tmp_map2 = mesh2.add_property_map<Edge_index, bool>(map_name, false);
+        assert(tmp_map2.second);
+        namespace parameters = CGAL::Polygon_mesh_processing::parameters;
+        CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2,
+            parameters::edge_is_constrained_map(tmp_map1.first),
+            parameters::edge_is_constrained_map(tmp_map2.first)
+        );
+        std::cerr << "Map sizes: " << std::count(std::begin(tmp_map1.first), std::end(tmp_map1.first), true) << std::endl;
+        std::cerr << "Map sizes: " << std::count(std::begin(tmp_map2.first), std::end(tmp_map2.first), true) << std::endl;
+    });
+
+    module.def("simplify", [](Hull_boundary& B) {
+        simplify_faces(B);
+    });
+
+    module.def("simplify", [](Surface& S) {
+        simplify_faces(S.mesh);
     });
 
 }
