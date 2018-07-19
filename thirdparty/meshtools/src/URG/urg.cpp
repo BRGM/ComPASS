@@ -103,6 +103,12 @@ struct Surface_vertex_index
     //}
     typedef std::set<Surface_index> Index_type;
     Index_type index;
+    Surface_vertex_index() = default;
+    Surface_vertex_index(const Surface_vertex_index&) = default;
+    Surface_vertex_index& operator=(const Surface_vertex_index&) = default;
+    Surface_vertex_index(Surface_index si) :
+        index{ si }
+    {}
     Surface_vertex_index& add(Surface_index si) {
         index.insert(si);
         return *this;
@@ -111,6 +117,18 @@ struct Surface_vertex_index
         return index.size();
     }
 };
+
+template <typename Surface_index>
+bool operator==(const Surface_vertex_index<Surface_index>& svi1, const Surface_vertex_index<Surface_index>& svi2)
+{
+    const auto& s1 = svi1.index;
+    const auto& s2 = svi2.index;
+    if (s1.size() != s2.size()) return false;
+    std::vector<Surface_index> intersection;
+    intersection.reserve(s1.size());
+    std::set_intersection(begin(s1), end(s1), begin(s2), end(s2), std::back_inserter(intersection));
+    return intersection.size() == s1.size();
+}
 
 //template <typename Surface_index, typename Surface_mesh>
 //auto add_vertex_degree_map(Surface_mesh& mesh)
@@ -138,18 +156,19 @@ struct Surface_vertex_index
 //    add_is_contrained_edge_map(mesh);
 //}
 
-template <typename Surface_mesh_type, typename Surface_index_type>
+template <typename Point_type, typename Surface_index_type>
 struct Surface_factory
 {
-    typedef Surface_mesh_type Surface_mesh;
+    typedef Point_type Point;
+    typedef CGAL::Surface_mesh<Point> Surface_mesh;
     typedef Surface_index_type Surface_index;
     struct Surface
     {
-        typedef Surface_mesh_type Surface_mesh;
+        typedef Surface_mesh Surface_mesh;
         typedef Surface_index_type Surface_index;
         typedef Surface_vertex_index<Surface_index> Vertex_degree;
         constexpr static const auto vertex_degree_map_name = "vertex_degree";
-        constexpr static const auto edge_constraint_map_name = "is_constrained_edge";
+        constexpr static const auto edge_constraints_map_name = "is_constrained_edge";
         Surface_mesh mesh;
         Surface_index index;
         friend struct Surface_factory<Surface_mesh, Surface_index>;
@@ -160,12 +179,36 @@ struct Surface_factory
         {
                 auto vpmap = mesh.add_property_map<
                     typename Surface_mesh::Vertex_index, Vertex_degree
-                >(vertex_degree_map_name, Vertex_degree{});
+                >(vertex_degree_map_name, { index });
                 assert(vpmap.second);
                 auto epmap = mesh.add_property_map<
                     typename Surface_mesh::Edge_index, bool
-                >(edge_constraint_map_name, false);
+                >(edge_constraints_map_name, false);
                 assert(epmap.second);
+        }
+        auto vertex_degree_map() {
+            auto map = mesh.property_map<
+                typename Surface_mesh::Vertex_index, Vertex_degree
+            >(vertex_degree_map_name);
+            assert(map.second);
+            return map.first;
+        }
+        auto edge_constraints_map() {
+            auto map = mesh.property_map<
+                typename Surface_mesh::Edge_index, bool
+            >(edge_constraints_map_name);
+            assert(map.second);
+            return map.first;
+        }
+        template <typename Location, typename value_type>
+        auto property_map(value_type t = value_type{}) {
+            auto pair = mesh.add_property_map<Location, value_type>("", t);
+            assert(pair.second);
+            return pair.first;
+        }
+        template <typename Property_map>
+        void remove_property_map(Property_map& p) {
+            mesh.remove_property_map(p);
         }
     };
     Surface_index new_index;
@@ -338,6 +381,7 @@ auto as_numpy_arrays(const Surface_mesh& mesh)
     {
         auto p = reinterpret_cast<New_index*>(triangles.request().ptr);
         for (auto&& f : mesh.faces()) {
+            //std::cerr << "Dumping: " << f << "(" << mesh.degree(f) << ")" << std::endl;
             assert(mesh.degree(f) == 3);
             for (auto&& v : CGAL::vertices_around_face(mesh.halfedge(f), mesh)) {
                 *(p++) = reindex[v];
@@ -399,7 +443,6 @@ inline void select_faces(Surface_mesh& mesh, const Mask& is_kept)
             CGAL::Euler::remove_face(h, mesh);
         }
     }
-    mesh.collect_garbage();
 
 }
 
@@ -445,6 +488,304 @@ void simplify_faces(Surface_mesh& mesh)
 
 }
 
+template <typename Surface>
+void simplify_connected_components(Surface& surface)
+{
+
+    typedef typename Surface::Surface_mesh Surface_mesh;
+    typedef typename Surface_mesh::Halfedge_index Halfedge_index;
+    typedef typename Surface_mesh::Vertex_index Vertex_index;
+    typedef typename Surface_mesh::Edge_index Edge_index;
+    typedef typename Surface_mesh::Face_index Face_index;
+    typedef typename Surface_mesh::faces_size_type Component_id;
+
+    namespace parameters = CGAL::Polygon_mesh_processing::parameters;
+    auto& mesh = surface.mesh;
+    auto is_constrained = surface.edge_constraints_map();
+    auto components = surface.property_map<Face_index, Component_id>();
+    const auto nb_components = CGAL::Polygon_mesh_processing::connected_components(
+        mesh, components,
+        parameters::edge_is_constrained_map(is_constrained)
+    );
+    //std::cerr << "Found " << nb_components << " connected components" << std::endl;
+
+    //std::cerr << "--- STATUS --- " << std::endl;
+    //for (auto&& v : mesh.vertices()) {
+    //    std::cerr << "Faces around " << v << ": ";
+    //    for (auto&& face : CGAL::faces_around_target(mesh.halfedge(v), mesh))
+    //        std::cerr << face << " ";
+    //    std::cerr << std::endl;
+    //}
+
+
+    //std::map<Component_id, std::map<Vertex_index, bool>> inner_component_vertices;
+    //std::map<Component_id, std::set<Edge_index>> component_edges;
+    //for (Component_id ci = 0; ci < nb_components; ++ci) {
+    //    component_edges[ci] = std::set<Edge_index>{};
+    //}
+    //for (auto&& face : mesh.faces()) {
+    //    auto& edges = component_edges[components[face]];
+    //    for (auto&& edge : CGAL::edges_around_face(mesh.halfedge(face), mesh)) {
+    //        edges.insert(edge);
+    //    }
+    //}
+    auto border_edges = surface.property_map<Edge_index, bool>(false);
+    auto collapsed_edges = std::set<Edge_index>{};
+    for (auto&& edge : mesh.edges()) {
+        if (mesh.is_border(edge) || is_constrained[edge]) {
+            border_edges[edge] = true;
+        }
+        else {
+            collapsed_edges.insert(edge);
+        }
+    }
+    //auto border_edges = surface.property_map<Edge_index, bool>(false);
+    //auto collapsed_edges = std::set<Edge_index>{}
+    //for (Component_id ci = 0; ci < nb_components; ++ci) {
+    //    edges = component_edges[ci];
+    //    for (auto&& edge : edges) {
+    //        if (mesh.is_border(edge) || is_constrained[edge]) {
+    //            border_edges[edge] = true;
+    //        }
+    //        else {
+    //            collapsed_edges.insert(edge);
+    //        }
+    //    }
+    //}
+    for (auto&& e : collapsed_edges) {
+        const auto hL = mesh.halfedge(e, 0);
+        const auto hR = mesh.halfedge(e, 1);
+        if (mesh.face(hL) == mesh.face(hR)) {
+            CGAL::Euler::collapse_edge(e, mesh, border_edges);
+        }
+        else {
+            CGAL::Euler::join_face(hL, mesh);
+        }
+    }
+    for (auto&& f : mesh.faces()) {
+        std::vector<Face_index> component_faces;
+        CGAL::Polygon_mesh_processing::connected_component(
+            f, mesh, std::back_inserter(component_faces),
+            parameters::edge_is_constrained_map(is_constrained)
+        );
+        std::cerr << "Surface " << surface.index
+                  << " component " << components[f]
+                  << " has " << component_faces.size()
+                  << " elements" << std::endl;
+        assert(component_faces.size() == 1);
+    }
+    //for (auto&& component : inner_component_edges) {
+    //    edges = component_edges[component.fier]
+    //    for (auto&& edge : component.second) {
+    //        const auto hL = mesh.halfedge(edge, 0);
+    //        const auto hR = mesh.halfedge(edge, 1);
+    //        if (mesh.face(hL) != mesh.face(hR)) {
+    //            CGAL::Euler::join_face(hL, mesh);
+    //        }
+    //        else {
+    //        }
+    //    }
+    //}
+
+    //for (auto&& component : inner_component_vertices) {
+    //    std::cerr << "STATUS of component " << component.first << " out of " << nb_components << std::endl;
+    //    for (auto&& pair : component.second) {
+    //        std::cerr << "faces around vertex " << pair.first << " (" << pair.second << "): ";
+    //        for (auto&& face : CGAL::faces_around_target(mesh.halfedge(pair.first), mesh))
+    //            std::cerr << face << " ";
+    //        std::cerr << std::endl;
+    //    }
+    //}
+    //for (auto&& component : inner_component_vertices) {
+    //    std::cerr << "processing component " << component.first << " out of " << nb_components << std::endl;
+    //    for (auto&& pair : component.second) {
+    //        if (pair.second) {
+    //            std::cerr << "current component size "
+    //                << std::distance(begin(component.second), end(component.second)) << std::endl;
+    //            std::cerr << "number of halfedges "
+    //                << size(CGAL::halfedges_around_target(mesh.halfedge(pair.first), mesh)) << std::endl;
+    //            assert(mesh.target(mesh.halfedge(pair.first)) == pair.first);
+    //            std::cerr << "faces around target: ";
+    //            for (auto&& face : CGAL::faces_around_target(mesh.halfedge(pair.first), mesh))
+    //                std::cerr << face << " ";
+    //            std::cerr << std::endl;
+    //            CGAL::Euler::remove_center_vertex(mesh.halfedge(pair.first), mesh);
+    //            pair.second = false;
+    //        }
+    //    }
+    //}
+    //auto processed = std::vector<bool>(nb_components, false);
+    //std::vector<Halfedge_index> seeds;
+    //for (auto&& face : mesh.faces()) {
+    //    assert(components[face] < nb_components);
+    //    if (!processed[components[face]]) {
+    //        seeds.emplace_back(mesh.halfedge(face));
+    //        processed[components[face]] = true;
+    //    }
+    //}
+    //for (auto&& seed : seeds) {
+    //    assert(!mesh.is_border(seed));
+    //    const auto component_id = components[mesh.face(seed)];
+    //    std::cerr << "processing surface " << surface.index
+    //              << " component " << component_id 
+    //              << " with " << std::count(std::begin(components), std::end(components), component_id)
+    //              << " faces" << std::endl;
+    //    typedef boost::optional<Halfedge_index> Flag;
+    //    auto loop_entry = Flag{};
+    //    auto h = seed;
+    //    while (!loop_entry || h != *loop_entry) {
+    //        const auto oh = mesh.opposite(h);
+    //        std::cerr << "Nb incident half edges: " << mesh.degree(mesh.target(h)) << " " << mesh.degree(mesh.source(h)) << std::endl;
+    //        assert(!mesh.is_removed(oh));
+    //        assert(h != oh);
+    //        assert(mesh.face(h) != mesh.face(oh));
+    //        assert(!mesh.is_border(h) && components[mesh.face(h)] == component_id);
+    //        // if inner component edge
+    //        if (!mesh.is_border(oh) && components[mesh.face(oh)] == component_id) {
+    //            assert(components[mesh.face(h)] == component_id);
+    //            assert(components[mesh.face(oh)] == component_id);
+    //            loop_entry = Flag{};
+    //            std::cerr << "number of component faces "
+    //                //<< std::count(std::begin(components), std::end(components), component_id)
+    //                << std::count_if(std::begin(mesh.faces()), std::end(mesh.faces()),
+    //                    [&components, component_id, &mesh](auto face)
+    //            { return components[face] == component_id; })
+    //                << " out of " << mesh.number_of_faces() << std::endl;
+    //            h = CGAL::Euler::join_face(h, mesh);
+    //            assert(mesh.is_valid(h));
+    //            assert(!mesh.is_isolated(mesh.source(h)));
+    //            assert(!mesh.is_isolated(mesh.target(h)));
+    //            assert(h != mesh.opposite(h));
+    //            assert(mesh.face(h) != mesh.face(mesh.opposite(h)));
+    //            assert(!mesh.is_removed(h));
+    //        }
+    //        else {
+    //            if (loop_entry) std::cerr << "already in loop" << std::endl;
+    //            if (!loop_entry) loop_entry = Flag{ h };
+    //            h = mesh.next(h);
+    //        }
+    //    }
+    //}
+    // TODO: change degree into vertex_index (confusion with mesh.degree)
+    auto degree = surface.vertex_degree_map();
+    //for (auto&& face : mesh.faces()) {
+    //    const auto start = mesh.halfedge(face);
+    //    const auto component_id = components[face];
+    //    auto h = start;
+    //    auto ph = h;
+    //    for (h = mesh.next(h); h != start; h = mesh.next(h)) {
+    //        assert(mesh.target(ph) == mesh.source(h));
+    //        const auto sh = mesh.source(h);
+    //        if (degree[sh].degree()==2 && degree[mesh.source(ph)] == degree[sh] && degree[sh] == degree[mesh.target(h)]) {
+    //            h = CGAL::Euler::join_vertex(h, mesh);
+    //            while (mesh.is_border(h) || components[mesh.face(h)] != component_id) {
+    //                h = mesh.next_around_target(h);
+    //            }
+    //        }
+    //        ph = h;
+    //    }
+    //}
+    std::set<Vertex_index> constrained_vertices;
+    for (auto&& e : mesh.edges()) {
+        if (is_constrained[e]) {
+            for(int i=0;i<2;++i) {
+                constrained_vertices.insert(mesh.vertex(e, i));
+            }
+        }
+    }
+    std::vector<Halfedge_index> candidates{ 2 };
+    std::cerr << "------------------------------- Simplifying edges" << std::endl;
+    for (auto& v : constrained_vertices) {
+        assert(!mesh.is_removed(v));
+        std::cerr << "Vertex " << v << " with degree " << mesh.degree(v) << std::endl;
+        const auto vd = degree[v];
+        if (vd.degree() == 2) {
+            candidates.clear();
+            for (auto&& h : CGAL::halfedges_around_source(v, mesh)) {
+                assert(mesh.source(h) == v);
+                if (degree[mesh.target(h)] == vd) {
+                    assert(!mesh.is_removed(mesh.target(h)));
+                    candidates.emplace_back(h);
+                }
+            }
+            assert(candidates.size() == 1 || candidates.size() == 2);
+            if (candidates.size() == 2) {
+                for (int i = 0; i < 2; ++i) {
+                    std::cerr << "Faces around " << i << ": " << mesh.face(candidates[i]) << " " << mesh.face(mesh.opposite(candidates[i])) << std::endl;
+                }
+                const auto h1 = candidates[0];
+                const auto h2 = candidates[1];
+                if (mesh.face(h1) == mesh.face(mesh.opposite(h2)) && mesh.face(h2) == mesh.face(mesh.opposite(h1))) {
+                    const auto h = CGAL::Euler::join_vertex(candidates.front(), mesh);
+                    if (mesh.is_border(h) || mesh.is_border(mesh.opposite(h))) {
+                        std::cerr << "Result on border: " << h << " | " << mesh.opposite(h) << " : "
+                            << mesh.face(h) << "(" << mesh.degree(mesh.face(h)) << ") " << std::endl;
+                    }
+                    else {
+                        std::cerr << "Result: " << h << " | " << mesh.opposite(h) << " : "
+                            << mesh.face(h) << "(" << mesh.degree(mesh.face(h)) << ") "
+                            << mesh.face(mesh.opposite(h)) << "(" << mesh.degree(mesh.face(mesh.opposite(h))) << ") " << std::endl;
+                    }
+                }
+            }
+        }
+    }
+    std::cerr << "------------------------------- done" << std::endl;
+    std::vector<Face_index> triangulation_candidates;
+    for (auto&& face : mesh.faces()) {
+        if (mesh.degree(face) > 3) {
+            triangulation_candidates.emplace_back(face);
+        }
+    }
+    for (auto&& face : triangulation_candidates) {
+        auto h = mesh.halfedge(face);
+        const auto P = face_barycenter(h, mesh);
+        h = CGAL::Euler::add_center_vertex(h, mesh);
+        const auto v = mesh.target(h);
+        degree[v] = Surface_index{ surface.index };
+        for (auto&& h2 : CGAL::halfedges_around_target(h, mesh)) {
+            is_constrained[mesh.edge(h2)] = false;
+        }
+        mesh.point(v) = P;
+    }
+    std::cerr << "Faces degree: ";
+    for (auto&& face : mesh.faces()) {
+        std::cerr << face << "(" << mesh.degree(face) << ") ";
+    }
+    std::cerr << std::endl;
+    surface.remove_property_map(components);
+    surface.remove_property_map(border_edges);
+
+}
+
+
+template <typename Surface>
+auto connected_components(Surface& surface)
+{
+
+    typedef typename Surface::Surface_mesh Surface_mesh;
+    typedef typename Surface_mesh::Face_index Face_index;
+    typedef typename Surface_mesh::Halfedge_index Halfedge_index;
+    typedef typename Surface_mesh::faces_size_type Component_id;
+
+    namespace parameters = CGAL::Polygon_mesh_processing::parameters;
+    auto components = surface.property_map<Face_index, Component_id>();
+    auto& mesh = surface.mesh;
+    auto result = py::array_t< Component_id, py::array::c_style > { mesh.number_of_faces() };
+    const auto nb_components = CGAL::Polygon_mesh_processing::connected_components(
+        mesh, components,
+        parameters::edge_is_constrained_map(surface.edge_constraints_map())
+    );
+    //std::cerr << "Found " << nb_components << " connected components" << std::endl;
+    auto p = reinterpret_cast<Component_id*>(result.request().ptr);
+    for (auto&& face : mesh.faces()) {
+        *p = components[face];
+        ++p;
+    }
+    surface.remove_property_map(components);
+    return result;
+}
+
 typedef CGAL::Epick Kernel;
 typedef typename Kernel::Point_3 Point;
 typedef typename Kernel::Vector_3 Vector;
@@ -453,7 +794,7 @@ typedef std::size_t Surface_index;
 typedef Boundary_hull<CGAL::Epeck> Hull;
 typedef typename Hull::Surface_mesh Hull_boundary;
 typedef On_plane_side<typename Hull::Kernel::Plane_3> On_side;
-typedef Surface_factory<Hull_boundary, Surface_index> Factory;
+typedef Surface_factory<typename Hull::Point, Surface_index> Factory;
 typedef typename Factory::Surface Surface;
 
 Factory surface_factory;
@@ -502,8 +843,14 @@ PYBIND11_MODULE(URG, module)
             .def("as_arrays", [](Surface& self) {
             return as_numpy_arrays(self.mesh);
         })
+            .def("simplify_connected_components", [](Surface& self) {
+            simplify_connected_components(self);
+        })
         .def("keep", [](Surface& self, const On_side& mask) {
             select_faces(self.mesh, mask);
+        })
+            .def("connected_components", [](Surface& self) {
+            return connected_components(self);
         })
             ;
 
@@ -539,20 +886,30 @@ PYBIND11_MODULE(URG, module)
     module.def("corefine", [](Surface& S1, Surface& S2) {
         typedef typename Surface::Surface_mesh Surface_mesh;
         typedef Surface_mesh::Edge_index Edge_index;
-        auto& mesh1 = S1.mesh;
-        auto& mesh2 = S2.mesh;
-        const auto map_name = std::string{ "intersections_constraint" };
-        auto tmp_map1 = mesh1.add_property_map<Edge_index, bool>(map_name, false);
-        assert(tmp_map1.second);
-        auto tmp_map2 = mesh2.add_property_map<Edge_index, bool>(map_name, false);
-        assert(tmp_map2.second);
+        auto constraints1 = S1.property_map<Edge_index, bool>(false);
+        auto constraints2 = S2.property_map<Edge_index, bool>(false);
         namespace parameters = CGAL::Polygon_mesh_processing::parameters;
-        CGAL::Polygon_mesh_processing::corefine(mesh1, mesh2,
-            parameters::edge_is_constrained_map(tmp_map1.first),
-            parameters::edge_is_constrained_map(tmp_map2.first)
+        CGAL::Polygon_mesh_processing::corefine(S1.mesh, S2.mesh,
+            parameters::edge_is_constrained_map(constraints1),
+            parameters::edge_is_constrained_map(constraints2)
         );
-        std::cerr << "Map sizes: " << std::count(std::begin(tmp_map1.first), std::end(tmp_map1.first), true) << std::endl;
-        std::cerr << "Map sizes: " << std::count(std::begin(tmp_map2.first), std::end(tmp_map2.first), true) << std::endl;
+        auto index_constrained_vertices = [](Surface& S, const auto& edge_is_constrained, Surface_index si) {
+            auto& mesh = S.mesh;
+            auto degree = S.vertex_degree_map();
+            auto constraint = S.edge_constraints_map();
+            for (auto&& edge : mesh.edges()) {
+                if (edge_is_constrained[edge]) {
+                    auto h = mesh.halfedge(edge);
+                    degree[mesh.source(h)].add(si);
+                    degree[mesh.target(h)].add(si);
+                    constraint[edge] = true;
+                }
+            }
+        };
+        index_constrained_vertices(S1, constraints1, S2.index);
+        index_constrained_vertices(S2, constraints2, S1.index);
+        S1.remove_property_map(constraints1);
+        S2.remove_property_map(constraints2);
     });
 
     module.def("simplify", [](Hull_boundary& B) {
@@ -561,6 +918,10 @@ PYBIND11_MODULE(URG, module)
 
     module.def("simplify", [](Surface& S) {
         simplify_faces(S.mesh);
+    });
+    
+    module.def("simplify_connected_components", [](Surface& S) {
+        simplify_connected_components(S);
     });
 
 }
