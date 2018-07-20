@@ -71,7 +71,7 @@ contains
       else if (ic == DIPHASIC_CONTEXT) then
 
 #ifndef _THERMIQUE_
-         write(*,*) 'ERROR: Diphasic context is meaningless without energy transfer!
+         write(*,*) 'ERROR: Diphasic context is meaningless without energy transfer!'
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
 #endif
           

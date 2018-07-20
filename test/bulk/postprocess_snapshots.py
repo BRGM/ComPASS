@@ -24,6 +24,9 @@ parser.add_option("-p", "--procs",
 parser.add_option("-s", "--states",
                   action="store_true", dest="collect_states", default=False,
                   help="ouput paraview files with transient states")
+parser.add_option("-C", "--Celsius",
+                  action="store_true", dest="convert_temperature", default=False,
+                  help="convert temperature from Kelvin to Celsius degrees")
 options, args = parser.parse_args()
 
 class MeshDistribution:
@@ -209,13 +212,18 @@ class PostProcessor:
         assert self.data_types == datatype_checks
         return data_arrays
     
-    def collect_states(self):
+    def collect_states(self, options):
         snapshots = self.collect_snapshots()
         pvd = {}
         for tag in snapshots:
             all_pieces = []
             for proc in range(self.distribution.nb_procs):
                 data_arrays = self.extract_data(proc, tag)
+                if options.convert_temperature:
+                    for location in data_arrays.keys():
+                        for property in data_arrays[location].keys():
+                            if property=='temperature':
+                                data_arrays[location][property]-= 273.15
                 pieces = self.write_mesh_vtu(proc, 'states_' + tag,
                                              nodedata=data_arrays['node'],
                                              celldata=data_arrays['cell'],
@@ -270,7 +278,7 @@ for directory in args:
             pp.collect_proc_ids()
             something_done = True
         if options.collect_states:
-            pp.collect_states()
+            pp.collect_states(options)
             something_done = True
     if not something_done:
         print()

@@ -19,8 +19,17 @@ def to_vtu(mesh, filename, **kwargs):
     ) 
 
 def grid3D(**kwargs):
-    vertices, hexs = GT.grid2hexs(**kwargs, idtype=idtype())
+    if 'steps' in kwargs:
+        assert len(kwargs)==1
+        vertices, hexs = GT.steps2hex(kwargs['steps'], idtype=idtype())
+    else:
+        assert not 'steps' in kwargs
+        vertices, hexs = GT.grid2hexs(**kwargs, idtype=idtype())
     return HexMesh.make(vertices, hexs)
+
+#def grid3D(**kwargs):
+#    vertices, hexs = GT.grid2hexs(**kwargs, idtype=idtype())
+#    return HexMesh.make(vertices, hexs)
 
 ## Tet Volumes
 #A = mesh.vertices[mesh.cellnodes[:, 0]]

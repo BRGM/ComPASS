@@ -4,11 +4,24 @@
 #include <CGAL/Bbox_2.h>
 #include <CGAL/box_intersection_d.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#include <CGAL/Constrained_triangulation_face_base_2.h>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
 
+struct Id_info {
+    typedef int Id_type;
+    static constexpr Id_type default_id = -1;
+    Id_type id;
+    Id_info() :
+        id{ default_id } {}
+};
+
 typedef CGAL::Epick Kernel;
+typedef CGAL::Triangulation_vertex_base_with_info_2<Id_info, Kernel> Vertex_base;
+typedef CGAL::Constrained_triangulation_face_base_2<Kernel> Face_base;
+typedef CGAL::Triangulation_data_structure_2<Vertex_base, Face_base> Tds;
 typedef CGAL::Exact_predicates_tag Itag;
-typedef CGAL::Constrained_Delaunay_triangulation_2<Kernel, CGAL::Default, Itag> CDT;
+typedef CGAL::Constrained_Delaunay_triangulation_2<Kernel, Tds, Itag> CDT;
 typedef CDT::Point Point;
 typedef CDT::Segment Segment;
 static_assert(Point::Ambient_dimension::value == 2, "wrong dimension");
@@ -215,13 +228,129 @@ auto split_and_mesh(
     return mesh_segment_soup(splitted_segments);
 }
 
-//#include "boost/optional.hpp"
+auto build_constrained_delaunay_triangulation(
+    py::array_t<double, py::array::c_style> vertices,
+    py::array_t<int, py::array::c_style> segments
+) {
+    CDT cdt;
+    auto nodes = reinterpret_cast<const Point *>(vertices.unchecked<2>().data(0, 0));
+    auto pairs = segments.unchecked<2>();
+    const auto n = pairs.shape(0);
+    for (int k = 0; k < n; ++k) {
+        auto id = pairs(k, 0);
+        auto v0 = cdt.insert(*(nodes + id));
+        v0->info().id = id;
+        id = pairs(k, 1);
+        auto v1 = cdt.insert(*(nodes + id));
+        v1->info().id = id;
+        cdt.insert_constraint(v0, v1);
+    }
+    return cdt;
+}
+
+auto mesh(
+    py::array_t<double, py::array::c_style> segment_vertices,
+    py::array_t<int, py::array::c_style> segments
+) {
+    auto cdt = build_constrained_delaunay_triangulation(segment_vertices, segments);
+    const std::size_t nv = cdt.number_of_vertices();
+    auto vertices = py::array_t<double, py::array::c_style>{ { nv, static_cast<std::size_t>(2) } };
+    std::map<CDT::Vertex_handle, std::size_t> vmap;
+    std::size_t n = segment_vertices.shape(0);
+    auto sp = reinterpret_cast<Point*>(segment_vertices.request().ptr);
+    auto p = reinterpret_cast<Point*>(vertices.request().ptr);
+    std::copy(sp, sp + n, p);
+    assert(n <= nv);
+    for (auto v = cdt.finite_vertices_begin(); v != cdt.finite_vertices_end(); ++v) {
+        auto id = v->info().id;
+        if (id < 0) {
+            vmap[v] = n;
+            *(p + n) = v->point();
+            ++n;
+        } else {
+            vmap[v] = static_cast<std::size_t>(id);
+        }
+    }
+    assert(n == nv);
+    const std::size_t nf = cdt.number_of_faces();
+    auto triangles = py::array_t<std::size_t, py::array::c_style>{ { nf, static_cast<std::size_t>(3) } };
+    auto rt = triangles.mutable_unchecked<2>();
+    n = 0;
+    for (auto f = cdt.finite_faces_begin(); f != cdt.finite_faces_end(); ++f) {
+        for (int k = 0; k<3; ++k) rt(n, k) = vmap[f->vertex(k)];
+        ++n;
+    }
+    typedef ConnectedComponents<NeighborhoodFactory::Element_handle> Connected_components;
+    auto components = Connected_components{
+        cdt.finite_faces_begin(), cdt.finite_faces_end(), NeighborhoodFactory{ &cdt }
+    };
+    std::map<CDT::Face_handle, std::size_t> fmap;
+    n = 0;
+    for (auto f = cdt.finite_faces_begin(); f != cdt.finite_faces_end(); ++f) {
+        fmap[f] = n;
+        ++n;
+    }
+    auto components_id = py::array_t<std::size_t, py::array::c_style>{ { nf } };
+    auto rid = components_id.mutable_unchecked<1>();
+    n = 0;
+    for (auto&& component : components) {
+        for (auto&& f : component) {
+            rid(fmap.at(f)) = n;
+        }
+        ++n;
+    }
+    std::set<std::pair<CDT::Vertex_handle, CDT::Vertex_handle>> constrained_edges;
+    std::vector<CDT::Vertex_handle> face_nodes;
+    py::list all_faces;
+    for (auto&& component : components) {
+        constrained_edges.clear();
+        for (auto&& face : component) {
+            for (int i = 0; i < 3; ++i) {
+                auto edge = CDT::Edge{ face, i };
+                if (cdt.is_constrained(edge) || cdt.is_infinite(face->neighbor(i))) {
+                    constrained_edges.insert(
+                    { face->vertex((i + 1) % 3), face->vertex((i + 2) % 3) }
+                    );
+                }
+            }
+        }
+        assert(constrained_edges.size() > 2);
+        face_nodes.clear();
+        auto edge = begin(constrained_edges);
+        face_nodes.push_back(edge->first);
+        face_nodes.push_back(edge->second);
+        constrained_edges.erase(edge);
+        while (!constrained_edges.empty()) {
+            for (edge = begin(constrained_edges); edge != end(constrained_edges); ++edge) {
+                if (face_nodes.back() == edge->first) {
+                    face_nodes.push_back(edge->second);
+                    constrained_edges.erase(edge);
+                    break;
+                }
+                if (face_nodes.back() == edge->second) {
+                    face_nodes.push_back(edge->first);
+                    constrained_edges.erase(edge);
+                    break;
+                }
+            }
+        }
+        assert(face_nodes.front() == face_nodes.back());
+        face_nodes.pop_back();
+        py::list l;
+        for (auto&& v : face_nodes) {
+            l.append(vmap[v]);
+        }
+        all_faces.append(l);
+    }
+    return py::make_tuple(vertices, triangles, components_id, all_faces);
+}
 
 PYBIND11_MODULE(PetrelMesh, module)
 {
 
     module.doc() = "pybind11 with CGAL2D (quick and dirty!!!)";
     module.def("split_and_mesh", &split_and_mesh);
+    module.def("mesh", &mesh);
     //module.def("foo", []() {
     //    boost::optional<int> test;
     //    test = false;

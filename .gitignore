@@ -16,3 +16,4 @@ output-*/*
 tests/sanity/elder/output-elder/
 tests/sanity/SO1/output-SO1/
 tests/unit/.cache/
+test/bulk/output-*/*

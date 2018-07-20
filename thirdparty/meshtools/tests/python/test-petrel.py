@@ -16,32 +16,31 @@ vertices = np.array([
     (1, 1.),
 ], dtype=np.double)
 
-S1 = np.array([
+segments = np.array([
     (0, 5),
     (1, 6),
     (3, 8),
-], dtype=np.int32)
-
-S2 = np.array([
     (0, 5),
     (2, 7),
     (4, 8),
 ], dtype=np.int32)
 
-tvertices, triangles, component = PM.split_and_mesh(vertices, S1, S2)
+tvertices, triangles, component, faces = PM.mesh(vertices, segments)
+
+assert np.all(tvertices[:vertices.shape[0]]==vertices)
 
 plt.figure()
 plt.gca().set_aspect('equal')
-plt.triplot(tvertices[:,0], tvertices[:,1], triangles)
-for S in S1:
+plt.triplot(tvertices[:,0], tvertices[:,1], triangles, color='grey')
+for S in segments:
     plt.plot(vertices[S, 0], vertices[S, 1], 'r') 
-for S in S2:
-    plt.plot(vertices[S, 0], vertices[S, 1], 'k') 
 tcenters = np.vstack([tvertices[triangle].mean(axis=0) for triangle in triangles])
 for i, xy in enumerate(tcenters):
     x, y = xy
     plt.text(x, y, '%d' % component[i])
+for i, xy in enumerate(tvertices):
+    x, y = xy
+    plt.text(x, y, '%d' % i, color='b')
+for fi, face in enumerate(faces):
+    print("face", fi, ":", face)
 plt.show()
-
-
-

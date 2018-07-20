@@ -32,6 +32,14 @@ namespace pybind11 {
 namespace py = pybind11;
 namespace MT = MeshTools;
 
+namespace pyMeshTools {
+    typedef int8_t byte;
+    static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
+    typedef py::array_t<byte, py::array::c_style> RawArray;
+}
+
+namespace pyMT = pyMeshTools;
+
 typedef MT::Point<double, 3> Point;
 template <typename ... CellTypes>
 using Mesh = MT::Mesh<Point, CellTypes...>;
@@ -380,6 +388,35 @@ public:
 template <typename Vector>
 bool CheckBinds<Vector>::already_binded = false;
 
+// CHECKME: output type declaration (i.e. -> Vector) is necessary in MSVC
+//          for "decltype workaround" to work below
+//          "decltype workaround" itself is due to a gcc bug...
+template <typename Vector>
+auto from_raw_array(pyMT::RawArray raw_array) -> Vector
+{
+    typedef typename Vector::value_type value_type;
+    assert(raw_array.ndim() == 2);
+    assert(raw_array.shape(1) == sizeof(value_type));
+    auto begin = reinterpret_cast<const value_type *>(raw_array.data());
+    auto end = begin + raw_array.shape(0);
+    return Vector{ begin, end };
+}
+
+// CHECKME: output type declaration (i.e. -> py::array_t<...>) is necessary in MSVC
+//          for "decltype workaround" to work below
+//          "decltype workaround" itself is due to a gcc bug...
+template <typename Vector>
+auto as_raw_array(const Vector& v) -> pyMT::RawArray
+{
+    typedef typename Vector::value_type value_type;
+    typedef pyMT::byte byte;
+    return pyMT::RawArray{
+        { v.size(), sizeof(value_type) }, // shape
+        { sizeof(value_type), sizeof(byte) }, // stride
+            reinterpret_cast<const byte*>(v.data())
+    };
+}
+
 template <typename Vector>
 auto pybind_vector(py::module module, const char * classname)
 {
@@ -387,20 +424,9 @@ auto pybind_vector(py::module module, const char * classname)
     typedef int8_t byte;
     static_assert(sizeof(byte) == 1, "Inconsistent byte size.");
     return py::bind_vector<Vector>(module, classname)
-        .def_static("from_raw_array", [](py::array_t<byte, py::array::c_style> raw_array) {
-        assert(raw_array.ndim() == 2);
-        assert(raw_array.shape(1) == sizeof(value_type));
-        auto begin = reinterpret_cast<const value_type *>(raw_array.data());
-        auto end = begin + raw_array.shape(0);
-        return Vector{ begin, end };
-    })
-        .def("raw_array", [](const Vector& self) {
-        return py::array_t<byte, py::array::c_style> {
-            { self.size(), sizeof(value_type) }, // shape
-            { sizeof(value_type), sizeof(byte) }, // stride
-                reinterpret_cast<const byte*>(self.data())
-        };
-    }, py::keep_alive<0, 1>())
+        .def_static("from_raw_array", (decltype(&from_raw_array<Vector>)) &from_raw_array<Vector>)  // decltype is due to gcc bug
+        .def("raw_array", (decltype(&as_raw_array<Vector>)) &as_raw_array<Vector>,  // decltype is due to gcc bug
+            py::keep_alive<0, 1>())
         ;
 }
 
@@ -534,6 +560,23 @@ auto add_mesh(py::module module)
 		.def("locate_faces_with_cell", (decltype(&locate_faces_with_cell<Mesh>))&locate_faces_with_cell<Mesh>)  // decltype is due to gcc bug
 		.def("identify_faces_from_positions", (decltype(&identify_faces_from_positions<Mesh>))&identify_faces_from_positions<Mesh>)  // decltype is due to gcc bug
         .def("set_vertices", &set_mesh_vertices<Mesh>)
+        .def(py::pickle(
+            [](const Mesh &mesh) { // __getstate__
+                return py::make_tuple(
+                    as_raw_array(mesh.vertices),
+                    as_raw_array(mesh.connectivity.cells.nodes)
+                );
+            },
+            [](py::tuple t) { // __setstate__
+                if (t.size() != 2)
+                    throw std::runtime_error("Invalid pickled state!");
+                auto mesh = Mesh{};
+                typedef typename Mesh::Vertices Vertices;
+                mesh.vertices = from_raw_array<Vertices>(t[0].cast<pyMT::RawArray>());
+                mesh.connectivity.cells.nodes = from_raw_array<typename Cells::Nodes>(t[1].cast<pyMT::RawArray>());
+                mesh.connectivity.update_from_cellnodes();
+                return mesh;
+            } ))
     ;
 
     return mesh_class;
