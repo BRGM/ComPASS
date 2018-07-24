@@ -46,7 +46,7 @@ plane_definitions = [PlaneDefinition(Point(*Oi), Vector(*ni))
 planes = [Plane(*definition) for definition in plane_definitions]
 
 # select subset of planes
-n = 5
+n = 20
 planes = planes[:n]
 
 # output normals as vtu
@@ -58,27 +58,89 @@ vtkw.write_vtu(
     'normals.vtu'
 )
 
-meshes = [hull.intersect(plane) for plane in planes]
-for mesh in meshes:
-    mesh.simplify_connected_components()
+surfaces = [hull.intersect(plane) for plane in planes]
+for S in surfaces:
+    S.mark_all_vertices_as_corners()
+    S.simplify_connected_components()
+
+for k, S in enumerate(surfaces):
+    mesh = MT.TSurf.make(*S.as_arrays())
+    MT.to_vtu(mesh, "original_surface%03d.vtu" % k,
+        celldata = {'component': S.connected_components()}
+    )
+
+def dump(k):
+    print('dumping', k)
+    Sk = surfaces[k]
+    print('   constraints:', Sk.constraints())
+    np.savetxt('constrained_midpoints%03d.txt' % k, Sk.constrained_midpoints())
+    mesh = MT.TSurf.make(*Sk.as_arrays())
+    MT.to_vtu(mesh, "surface%03d.vtu" % k,
+        celldata = {'component': Sk.connected_components()}
+    )
+    print('dumped', k)
 
 n = len(planes)
-for i in range(n):
-    print(i)
-    Pi = planes[i]
-    Mi = meshes[i]
-    for j in range(i+1, n):
-        Oj = plane_definitions[j].origin
-        Mj = meshes[j]
-        urg.corefine(Mi, Mj)
-        Mi.simplify_connected_components()
-        Mj.simplify_connected_components()
-        Mj.keep(urg.On_side(Pi, Oj))
-
-for mi, surface in enumerate(meshes):
-    mesh = MT.TSurf.make(*surface.as_arrays())
-    MT.to_vtu(mesh, "surface%03d.vtu" % mi,
-        celldata = {'component': surface.connected_components()}
+for j in range(1, n):
+    print(j)
+    Oj = plane_definitions[j].origin
+    Sj = surfaces[j]
+    for i in range(j):
+        #if j>=9:
+        print('#'*10, i, '<->', j)
+        Pi = planes[i]
+        Si = surfaces[i]
+        #if i == 0 and j>=17 :
+        #    for k in (j, i):
+        #        dump(k)
+        #if (i, j) == (0, 14) :
+        #    for k in (6, i, j):
+        #        dump(k)
+        #    1/0
+        nb_intersection_edges = urg.corefine(Si, Sj)
+        if nb_intersection_edges>0:
+            #print('>>>>>>>>> (', Si.index, Sj.index, ')', Si.number_of_constraints(Sj), 'vs', Sj.number_of_constraints(Si))
+            print('Constraints', Si.index, ':', Si.constraints())
+            print('           ', Sj.index, ':', Sj.constraints())
+            #if j>=9:
+            #    meshj = MT.TSurf.make(*Sj.as_arrays())
+            #    MT.to_vtu(meshj, "surface%03d.vtu" % j,
+            #        celldata = {'component': Sj.connected_components()}
+            #    )
+            #if i==4 and j==9:
+            #    relaxed = []
+            #else:
+            #    relaxed = Sj.keep_connected(urg.On_side(Pi, Oj))
+            relaxed = Sj.keep_connected(urg.On_side(Pi, Oj))
+            for sk in relaxed:
+                #print('relaxing', surfaces[sk].index, 'from', Sj.index)
+                #surfaces[sk].remove_constraint(Sj.index)
+                #if(j>=16 and surfaces[sk].index==0):
+                #    dump(6)
+                #    dump(0)
+                print('simplifying relaxed surface', surfaces[sk].index, 'from', Sj.index)
+                surfaces[sk].simplify_connected_components()
+                if(surfaces[sk].index==0):
+                    dump(sk)
+            #if True or j<6:
+            print('simplifying', Si.index)
+            Si.simplify_connected_components()
+            if(i==0):
+                dump(i)
+            #if j>=9:
+            print('simplifying', Sj.index)
+            Sj.simplify_connected_components()
+        #if (i, j) == (6, 14) :
+        #    for k in (0, i, j):
+        #        dump(k)
+        #    1/0
+    if j>=16:
+        dump(0)
+for k, S in enumerate(surfaces):
+    np.savetxt('constrained_midpoints%03d.txt' % k, S.constrained_midpoints())
+    mesh = MT.TSurf.make(*S.as_arrays())
+    MT.to_vtu(mesh, "surface%03d.vtu" % k,
+        celldata = {'component': S.connected_components()}
     )
 
 
