@@ -29,7 +29,7 @@ struct On_side
     auto clip(const Segment& S) const noexcept {
         typedef boost::optional<Segment> Result;
         const auto pieces = sided_object.split(S);
-        assert(size(pieces) > 0);
+        assert(pieces.size() > 0);
         for (auto&& Si : pieces) {
             if (this->operator()(CGAL::midpoint(Si.source(), Si.target()))) {
                 return Result{ Si };

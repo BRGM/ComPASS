@@ -21,7 +21,6 @@ struct Boundary_hull
 
     typedef Kernel_type Kernel;
     typedef typename Kernel::Point_3 Point;
-    typedef typename Kernel::Segment_3 Segment;
     typedef typename Kernel::Plane_3 Plane;
     typedef typename Kernel::Line_3 Line;
     typedef typename Kernel::Segment_3 Segment;

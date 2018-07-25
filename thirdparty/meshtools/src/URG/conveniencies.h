@@ -8,7 +8,7 @@
 namespace py = pybind11;
 
 template <typename Surface_mesh>
-auto as_numpy_arrays(const Surface_mesh& mesh)
+auto as_numpy_arrays(const Surface_mesh& mesh) -> py::tuple
 {
 
     typedef typename Surface_mesh::Point Surface_point;
