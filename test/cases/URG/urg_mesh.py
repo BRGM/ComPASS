@@ -59,9 +59,14 @@ vtkw.write_vtu(
 )
 
 surfaces = [hull.intersect(plane) for plane in planes]
+
+print('simplify original surfaces')
+
 for S in surfaces:
     S.mark_all_vertices_as_corners()
     S.simplify_connected_components()
+
+print('dump original surfaces')
 
 for k, S in enumerate(surfaces):
     mesh = MT.TSurf.make(*S.as_arrays())
@@ -93,10 +98,10 @@ for j in range(1, n):
         #if i == 0 and j>=17 :
         #    for k in (j, i):
         #        dump(k)
-        #if (i, j) == (0, 14) :
-        #    for k in (6, i, j):
-        #        dump(k)
-        #    1/0
+        if (i, j) == (18, 19) :
+            for k in (12, i, j):
+                dump(k)
+            #1/0
         nb_intersection_edges = urg.corefine(Si, Sj)
         if nb_intersection_edges>0:
             #print('>>>>>>>>> (', Si.index, Sj.index, ')', Si.number_of_constraints(Sj), 'vs', Sj.number_of_constraints(Si))
@@ -118,10 +123,12 @@ for j in range(1, n):
                 #if(j>=16 and surfaces[sk].index==0):
                 #    dump(6)
                 #    dump(0)
-                print('simplifying relaxed surface', surfaces[sk].index, 'from', Sj.index)
-                surfaces[sk].simplify_connected_components()
-                if(surfaces[sk].index==0):
-                    dump(sk)
+                print('simplifying relaxed surface', sk, 'from', 'S%d' % Sj.index)
+                if sk[0]=='S':
+                    k = int(sk[1:])
+                    surfaces[k].simplify_connected_components()
+                    if(surfaces[k].index==0):
+                        dump(k)
             #if True or j<6:
             print('simplifying', Si.index)
             Si.simplify_connected_components()
