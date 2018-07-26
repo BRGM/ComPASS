@@ -2,7 +2,7 @@
 import numpy as np
 import MeshTools as MT
 import MeshTools.vtkwriters as vtkw
-import MeshTools.URG2 as urg
+import MeshTools.URG as urg
 
 Point = urg.Point
 Vector = urg.Vector
@@ -35,7 +35,7 @@ hull = Hull([
     Plane(Point(xmin, ymin, zmax + Lv), Vector( 0, 0, 1)),
 ])
 
-#n = 50
+#n = 5
 #origins = origins[:n]
 #normals = normals[:n]
 
@@ -55,46 +55,74 @@ mesh = urg.Mesh(hull, list(zip(origins, normals)))
 
 print('built', len(list(mesh.surfaces())), 'surface meshes')
 
-mesh_arrays = [S.as_arrays() for S in mesh.surfaces()]
-nodes_offset = np.cumsum([0,] + [a[0].shape[0] for a in mesh_arrays])
-faces_offset = np.cumsum([0,] + [a[1].shape[0] for a in mesh_arrays])
+def dump_model(model, filename):
+    mesh_arrays = [S.as_arrays() for S in model.surfaces()]
+    nodes_offset = np.cumsum([0,] + [a[0].shape[0] for a in mesh_arrays])
+    faces_offset = np.cumsum([0,] + [a[1].shape[0] for a in mesh_arrays])
+    all_vertices = np.vstack([a[0] for a in mesh_arrays])
+    all_faces = np.vstack([a[1] + offset for a, offset in zip(mesh_arrays, nodes_offset[:-1])])
+    fault_id = np.zeros(all_faces.shape[0])
+    for fi, t in enumerate(zip(faces_offset[:-1], faces_offset[1:])):
+        fault_id[t[0]:t[1]] = fi
+    vtkw.write_vtu(
+        vtkw.vtu_doc(
+            all_vertices, all_faces, celldata={'id': fault_id}   
+        ),
+        filename
+    )
 
-all_vertices = np.vstack([a[0] for a in mesh_arrays])
-all_faces = np.vstack([a[1] + offset for a, offset in zip(mesh_arrays, nodes_offset[:-1])])
-fault_id = np.zeros(all_faces.shape[0])
-for fi, t in enumerate(zip(faces_offset[:-1], faces_offset[1:])):
-    fault_id[t[0]:t[1]] = fi
-
-vtkw.write_vtu(
-    vtkw.vtu_doc(
-        all_vertices, all_faces, celldata={'id': fault_id}   
-    ),
-    'all_faults.vtu'
-)
+dump_model(mesh,'all_faults.vtu')
 
 #for k, S in enumerate(mesh.surfaces()):
 #    mesh = MT.TSurf.make(*S.as_arrays())
-filename = 'rastersocle2750.txt'
-
-import Raster
-info = Raster.RasterInfo(filename)
-raw_data = np.loadtxt(filename, skiprows=6)
-#data = np.ma.array(raw_data, mask = raw_data==float(info.nodata))
-raw_data = raw_data.ravel()
-centers = info.centers()
-
-xyz = np.transpose(np.vstack([a.ravel() for a in centers] + [raw_data,]))
-
-xyz = xyz[raw_data!=float(info.nodata)]
-
-import MeshTools.CGALWrappers as CGAL
-
-dtm = CGAL.triangulate_points(xyz)
 
 
 #for k, S in enumerate(mesh.surfaces()):
 #    mesh = MT.TSurf.make(*S.as_arrays())
 #    MT.to_vtu(mesh, "surface%03d.vtu" % k)
 
+print("adding dtm")
+
+filename = 'raster2750.txt'
+
+import Raster
+info = Raster.RasterInfo(filename)
+raw_data = np.loadtxt(filename, skiprows=6)
+data = np.ma.array(raw_data, mask = raw_data==float(info.nodata))
+centers = info.centers()
+
+xyz = np.transpose(np.vstack([a.ravel() for a in centers] +
+                             [raw_data.ravel(),]))
+
+xyz = xyz[raw_data.ravel()!=float(info.nodata)]
+
+# center dtm
+xyz[:, 0] -= 1010922
+xyz[:, 1] -= 6810940
+
+
+#x = np.linspace(xmin-2*Lh, xmax+2*Lh)
+#y = np.linspace(ymin-2*Lh, ymax+2*Lh)
+
+#centers = np.meshgrid(x, y)
+#z = 500 + 1000 * np.sin((centers[0]-xmin) * (2*np.pi)/(xmax-xmin))
+
+#xyz = np.transpose(np.vstack([a.ravel() for a in centers] +
+#                             [z.ravel(),]))
+
+dtm = urg.elevation_surface(xyz)
+MT.to_vtu(MT.TSurf.make(*dtm.as_arrays()), "topography.vtu")
+
+#print('isotropic remeshing')
+#mesh.isotropic_remeshing(3000.)
+#mesh.add_surface(dtm)
+
+#dump_model(mesh, 'model_with_dtm.vtu')
+
+#from matplotlib import pyplot as plt
+
+#plt.clf()
+#plt.imshow(data)
+#plt.show()
 
 
