@@ -5,11 +5,6 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Cartesian_converter.h>
-#include <CGAL/Convex_hull_3.h>
-//#include <CGAL/Surface_mesh.h>
-//#include <CGAL/Polygon_mesh_processing/corefinement.h>
-//#include <CGAL/barycenter.h>
-//#include <CGAL/boost/graph/Euler_operations.h>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
 
 
