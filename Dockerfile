@@ -1,6 +1,5 @@
 # check docker version if label builder is not accepted
-From debian:buster as builder
-RUN  apt-get update && apt-get install --yes build-essential gcc gfortran cmake libmetis-dev libcgal-dev python3 mpi-default-dev petsc-dev python3-dev
+From registry.gitlab.inria.fr/charms/compass/build-environment:latest as builder
 WORKDIR /build/
 RUN mkdir /source/
 COPY ./ /source/ComPASS-develop
@@ -10,9 +9,8 @@ RUN CC=mpicc cmake ../source/ComPASS-develop && make
 
 
 
-From debian:buster-slim
+From registry.gitlab.inria.fr/charms/compass/run-environment:latest
 ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
-RUN apt-get update && apt-get install --yes --no-install-recommends libpython3-dev python3-mpi4py python3-numpy metis libpetsc-real3.8 && apt-get clean 
 WORKDIR /build/
 #COPY ./docker/script/docker_entrypoint.sh /
 COPY --from=builder /source/ComPASS-develop/python ./compassModule
