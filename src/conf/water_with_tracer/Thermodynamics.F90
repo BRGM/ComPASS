@@ -17,7 +17,7 @@ module Thermodynamics
 
    use DefModel
     use CommonMPI
-   
+
    implicit none
 
    public :: &
@@ -48,10 +48,10 @@ contains
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       integer :: errcode, Ierr
-      
+
 		write(*,*) "Should never be called with a single component."
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      
+
    end subroutine f_Fugacity
 
    ! Densite molaire
@@ -77,7 +77,7 @@ contains
       call FluidThermodynamics_Psat(T, Psat, dT_Psat)
 
       Cs = 0.d0 ! salinity
-      rho0 = 780.83795d0
+      rho0 = 1000 !780.83795d0
       a = 1.6269192d0
       b = -3.0635410d-3
 
@@ -227,7 +227,7 @@ contains
       d = 1.45008d-2
       T0 = 273.d0
 
-      f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
+      f = a + b*(T - T0)  !+ cc*(T - T0)**2 + d*(T - T0)**3
       dPf = 0.d0
       dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
 
