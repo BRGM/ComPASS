@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <CGAL/Kernel_traits.h>
-#include <CGAL/Convex_hull_3.h>
+#include <CGAL/convex_hull_3.h>
 #include <CGAL/Surface_mesh.h>
 
 //FIXME: prefer standard compliant optional
