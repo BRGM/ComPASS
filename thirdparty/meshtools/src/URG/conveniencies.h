@@ -7,6 +7,26 @@
 
 namespace py = pybind11;
 
+template <typename T>
+struct Array_view
+{
+    typedef std::remove_cv_t<T> value_type;
+    T * begin_;
+    T * end_;
+    template <typename TT>
+    Array_view(py::array_t<TT, py::array::c_style>& a) :
+        begin_{ reinterpret_cast<T*>(a.data()) },
+        end_{ begin_ } {
+        static_assert(sizeof(T) % sizeof(TT) == 0, "inconsistent size in memory");
+        assert(a.size() % (sizeof(T) / sizeof(TT)) == 0);
+        end_ += a.size() / (sizeof(T) / sizeof(TT));
+    }
+    auto begin() { return begin_; }
+    auto end() { return end_; }
+    auto begin() const { return begin_; }
+    auto end() const { return end_; }
+};
+
 template <typename Surface_mesh>
 auto as_numpy_arrays(const Surface_mesh& mesh) -> py::tuple
 {
