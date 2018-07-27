@@ -18,7 +18,7 @@ Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
 k_reservoir = 1E-12 # reservoir permeability in m^2
 K_reservoir = 2                   # bulk thermal conductivity in W/m/K
-a=20
+a=10
 
 Lx = 100.
 Ly=50
@@ -33,8 +33,9 @@ mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with tempe
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
 print('Average Darcy velocity:', U * year, 'm/year')
 print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulation domain in one year.')
-final_time =20* (Lx/3) /(U/omega_reservoir)
+final_time =2* Lx /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
+## Velocity (with omega is 2.4 m / hour, good final time is 8 to 10 hours  ! Initial time step is 7e-3 seconds
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -54,8 +55,8 @@ def set_boundary_conditions():
         left = on_the_left(x)
         states.p[left] = pleft
         leftmid = on_the_left_in_the_middle(x, y)
-        states.T[left] = Tleft
-        #states.T[leftmid] = Tleft
+        states.T[left] = Tright #Tleft
+        states.T[leftmid] = Tleft
         right = on_the_right(x)
         states.p[right] = pright
         states.T[right] = Tright
@@ -65,7 +66,8 @@ def set_boundary_conditions():
         if onecomp:
             states.C[both] = 1.
         else:
-            states.C[left] = (0, 1)
+            states.C[left] = (1, 0) #(0., 1)
+            states.C[leftmid] = (0., 1.)
             states.C[right] = (1, 0)
     verts = ComPASS.vertices()
     set_states(ComPASS.dirichlet_node_states(), verts[:,0], verts[:,1])
@@ -116,7 +118,7 @@ def collect_node_temperature(iteration, t):
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/(10*nx),
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e6,
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
