@@ -18,10 +18,11 @@ Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
 k_reservoir = 1E-12 # reservoir permeability in m^2
 K_reservoir = 2                   # bulk thermal conductivity in W/m/K
+a=20
 
-Lx = 1000.
-Ly=500
-Lz=10
+Lx = 100.
+Ly=50
+Lz=1
 nx = 100
 ny=50
 nz=1
@@ -32,15 +33,16 @@ mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with tempe
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
 print('Average Darcy velocity:', U * year, 'm/year')
 print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulation domain in one year.')
-final_time = (Lx/3) /(U/omega_reservoir)
+final_time =20* (Lx/3) /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
 
-grid = ComPASS.mesh(
+grid = ComPASS.Grid(
     shape = (nx, ny, nz),
     extent = (Lx, Ly, Lz),
 )
 
 on_the_left = lambda x: x <= grid.origin[0]
+on_the_left_in_the_middle = lambda x,y: (x <= grid.origin[0] ) & (grid.extent[1]/2-a <y) & (y< grid.extent[1]/2+a)
 on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]
 
 def select_dirichlet_nodes():
@@ -48,10 +50,12 @@ def select_dirichlet_nodes():
     return on_the_left(x) | on_the_right(x)
 
 def set_boundary_conditions():
-    def set_states(states, x):
+    def set_states(states, x,y):
         left = on_the_left(x)
         states.p[left] = pleft
+        leftmid = on_the_left_in_the_middle(x, y)
         states.T[left] = Tleft
+        #states.T[leftmid] = Tleft
         right = on_the_right(x)
         states.p[right] = pright
         states.T[right] = Tright
@@ -63,7 +67,8 @@ def set_boundary_conditions():
         else:
             states.C[left] = (0, 1)
             states.C[right] = (1, 0)
-    set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0])
+    verts = ComPASS.vertices()
+    set_states(ComPASS.dirichlet_node_states(), verts[:,0], verts[:,1])
 
 def set_initial_values():
     def set_states(states, x):
@@ -75,8 +80,10 @@ def set_initial_values():
             states.C[:] = 1.
         else:
             states.C[:] = (1, 0)
-    set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
-    set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
+    verts = ComPASS.vertices()
+    cellcenters = ComPASS.compute_cell_centers()
+    set_states(ComPASS.node_states(),  verts[:,0])
+    set_states(ComPASS.cell_states(), cellcenters[:,0])
 
 # %%% Simulation %%%
 
@@ -124,6 +131,7 @@ if ComPASS.mpi.communicator().size==1:
             print('%f;' %(t/year) + ';'.join(['%f' %(Ti) for Ti in T]), file=f)
     try:
         import matplotlib
+
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
     except ImportError:
@@ -138,3 +146,5 @@ if ComPASS.mpi.communicator().size==1:
         plt.xlabel('x in meters')
         plt.ylabel('temperature in Celsius degrees')
         plt.savefig(ComPASS.to_output_directory('cell_temperatures'))
+
+#etude de convergence par calcul d'erreur
