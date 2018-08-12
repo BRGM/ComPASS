@@ -28,6 +28,7 @@ ny=50
 nz=1
 
 onecomp = True
+exact_sol = True
 
 mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
@@ -92,7 +93,10 @@ def set_initial_values():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if onecomp:
-    ComPASS.load_eos('liquid_water')
+    if exact_sol:
+        ComPASS.load_eos('linear_liquid_water')
+    else:
+        ComPASS.load_eos('liquid_water')
 else:
     ComPASS.load_eos('water_with_tracer')
 
@@ -118,19 +122,21 @@ def collect_node_temperature(iteration, t):
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e6,
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e8,
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
-    x = ComPASS.compute_cell_centers()[:,0]
-    with open(ComPASS.to_output_directory('cell_temperatures.csv'), 'w') as f:
-        s = ';'.join(['%f' %(xi) for xi in x])
-        print('"time (years)\\x";' + s, file=f)
-        for tT in cell_temperatures:
-            t, T = tT
-            T = K2degC(T)
-            print('%f;' %(t/year) + ';'.join(['%f' %(Ti) for Ti in T]), file=f)
+    xy = ComPASS.compute_cell_centers()[:,0:2]
+    XX = xy[:, 0].reshape(ny, nx) 
+    YY = xy[:, 1].reshape(ny, nx) 
+    # with open(ComPASS.to_output_directory('cell_temperatures.csv'), 'w') as f:
+    #     s = ';'.join(['%f' %(xi) for xi in x])
+    #     print('"time (years)\\x";' + s, file=f)
+    #     for tT in cell_temperatures:
+    #         t, T = tT
+    #         T = K2degC(T)
+    #         print('%f;' %(t/year) + ';'.join(['%f' %(Ti) for Ti in T]), file=f)
     try:
         import matplotlib
 
@@ -144,7 +150,7 @@ if ComPASS.mpi.communicator().size==1:
         for tT in cell_temperatures:
             t, T = tT
             T = K2degC(T)
-            plt.plot(x, T)
+        plt.contourf(XX,YY, np.reshape(cell_temperatures[18][1], [ny,nx]))
         plt.xlabel('x in meters')
         plt.ylabel('temperature in Celsius degrees')
         plt.savefig(ComPASS.to_output_directory('cell_temperatures'))
