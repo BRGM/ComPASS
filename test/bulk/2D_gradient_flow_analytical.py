@@ -21,13 +21,13 @@ P = (U**2 + 4*Dx*Rd*(mu+gamma))**(1/2)
 
 def exact_sol(x,t):
     x = np.asarray(x)
-    where = x < 200
+    _where = x < 200
     exact_sol = np.zeros(x.shape, dtype=np.double)
-    xw = x[where]
-    #exact_sol[where] = 1/2*Cm*np.exp(gamma*t)*(np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5))+np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5)))
-    exact_sol[where] = 1.
-    where = np.logical_not(where)
-    xw = x[where]
+    xw = x[_where]
+    exact_sol[_where] = 1/2*Cm*np.exp(gamma*t)*(np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5))+np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5)))
+    exact_sol[_where] = 1.
+    #where = np.logical_not(_where)
+    #xw = x[_where]
     return exact_sol
 
 Lx, Ly, Lz = 100., 10., 1.
