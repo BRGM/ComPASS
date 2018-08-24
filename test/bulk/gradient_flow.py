@@ -22,7 +22,7 @@ K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 Lx = 1000.
 nx = 100
 
-onecomp = False
+onecomp = True
 
 mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
@@ -134,4 +134,3 @@ if ComPASS.mpi.communicator().size==1:
         plt.xlabel('x in meters')
         plt.ylabel('temperature in Celsius degrees')
         plt.savefig(ComPASS.to_output_directory('cell_temperatures'))
-                

@@ -28,7 +28,7 @@ def exact_sol(x,t):
     print(Dx,Rd,t)
     erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5))
     type(exact_sol[_where])
-    exact_sol[_where,t] = 1/2*Cm*np.exp(gamma*t)*(np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5))+np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5)))
+    exact_sol[xw,t] = 1/2*Cm*np.exp(gamma*t)*(np.exp(xw*(U-P)/(2*Dx))*erfc((Rd*xw-P*t)/(2*(Dx*Rd*t)**0.5))+np.exp(xw*(U+P)/(2*Dx))*erfc((Rd*xw+P*t)/(2*(Dx*Rd*t)**0.5)))
     #where = np.logical_not(_where)
     #xw = x[_where]
     return exact_sol
@@ -39,7 +39,7 @@ dx = 2
 day = 2. # seconds choix!!!!! relation avec np.arrange()
 x = np.arange(0, Lx , dx)
 t = day * np.hstack([0.1, np.arange(20, 1020, 30), 1E8/day])
-table = np.array([float(exact_sol(ti, x)) for ti in t>0])
+table = np.array([exact_sol(ti, x) for ti in t>0])
 
 csv_table = np.hstack([np.reshape(t/day, (-1, 1)),np.reshape(t, (-1, 1)),table])
 
