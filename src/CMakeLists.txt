@@ -86,6 +86,7 @@ set(ComPASSWells_SRCS ${_tmp})
 # Configuration to be built
 set( CONFIGURATIONS
     liquid_water
+    linear_liquid_water
     water2ph
     diphasic
     water_with_tracer
