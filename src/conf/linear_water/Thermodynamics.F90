@@ -6,21 +6,31 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp thermal, MCP=(1,1)
-
-! 1: Gas
-! 2: Water
+! Model: a single fluid phase with *linear* behavior
 
 module Thermodynamics
 
    use, intrinsic :: iso_c_binding
 
    use DefModel
-    use CommonMPI
-   
+   use CommonMPI
+
    implicit none
 
+   !isobar thermal expansivity (K-1) and isothermal compressibility (Pa-1)
+   type, bind(c) :: fluid_properties_type
+      real(c_double) :: specific_mass
+      real(c_double) :: compressibility
+      real(c_double) :: thermal_expansivity
+      real(c_double) :: specific_enthalpy
+      real(c_double) :: viscosity
+   end type
+
+   ! OPTIMIZE: is there a loss of performance uing the target keyword?
+   type(fluid_properties_type), target :: fluid_properties
+
    public :: &
+      get_fluid_properties, &
       f_Fugacity, & ! Fucacity
       f_DensiteMolaire, & ! \xi^alpha(P,T,C,S)
       f_DensiteMassique, & ! \rho^alpha(P,T,C,S)
@@ -32,9 +42,15 @@ module Thermodynamics
 
 contains
 
-   ! Fugacity
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
+   function get_fluid_properties() result(properties_p) &
+      bind(C, name="get_fluid_properties")
+
+      type(c_ptr) :: properties_p
+
+      properties_p = c_loc(fluid_properties)
+
+   end function get_fluid_properties
+
    subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
@@ -46,10 +62,10 @@ contains
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       integer :: errcode, Ierr
-      
-		write(*,*) "Should never be called with a single component."
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      
+
+      write (*, *) "Should never be called with a single component."
+      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
    end subroutine f_Fugacity
 
    ! Densite molaire
@@ -66,39 +82,9 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
-      real(c_double) :: u, R, T0, d, Z, ds, ss, rs, dZ
-      real(c_double) :: Psat, dT_Psat
-
-      rs = 0.d0
-
-      call FluidThermodynamics_Psat(T, Psat, dT_Psat)
-
-      Cs = 0.d0 ! salinity
-      rho0 = 780.83795d0
-      a = 1.6269192d0
-      b = -3.0635410d-3
-
-      a1 = 2.4638d-9
-      a2 = 1.1343d-17
-      b1 = -1.2171d-11
-      b2 = 4.8695d-20
-      c1 = 1.8452d-14
-      c2 = -5.9978d-23
-
-      ss = (rho0 + a*T + b*T**2)*(1.d0 + 6.51d-4*Cs)
-      ds = (a + b*T*2.d0)*(1.d0 + 6.51d-4*Cs)
-
-      cw = (1.d0 + 5.d-2*rs) &
-          *(a1 + a2*P + T*(b1 + b2*P) + T**2*(c1 + c2*P))
-
-      dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
-      dcwt = (1.d0 + 5.d-2*rs)*((b1 + b2*P) + T*2.d0*(c1 + c2*P))
-
-      f = ss*(1.d0 + cw*(P - Psat))
-      dPf = ss*dcwp*(P - Psat) + ss*cw
-      dTf = ds*(1.d0 + cw*(P - Psat)) + ss*dcwt*(P - Psat) - ss*cw*dT_Psat
-
+      f = fluid_properties%specific_mass
+      dPf = fluid_properties%specific_mass*fluid_properties%compressibility
+      dTf = fluid_properties%specific_mass*fluid_properties%thermal_expansivity
       dCf(:) = 0.d0
       dSf(:) = 0.d0
 
@@ -120,9 +106,6 @@ contains
 
    end subroutine f_DensiteMassique
 
-   ! Viscosities
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
@@ -135,20 +118,9 @@ contains
       real(c_double), intent(out) :: &
          f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: a, ss, ds, Cs, T1
-
-      T1 = 300.d0
-      Cs = 0.04d0
-      a = 1.d0 + Cs*1.34d0 + 6.12d0*Cs**2
-      ss = 0.021482*(T - 273.d0 - 8.435d0 &
-          + sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
-      ss = ss - 1.2
-      ds = 0.021482d0*(1.d0 + (T - 273.d0 - 8.435d0) &
-          /sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
-
-      f = 1.d-3*a/ss
+      f = fluid_properties%viscosity
       dPf = 0.d0
-      dTf = -a*1.d-3*ds/ss**2
+      dTf = 0.d0
 
    end subroutine f_Viscosite
 
@@ -165,8 +137,8 @@ contains
       ! output
       real(c_double), intent(out) :: f, DSf(NbPhase)
 
-         f = 1.d0
-         dSf = 0.d0
+      f = 1.d0
+      dSf = 0.d0
 
    end subroutine f_PermRel
 
@@ -217,18 +189,9 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: a, b, cc, d, T0
-
-      a = -14.4319d+3
-      b = 4.70915d+3
-      cc = -4.87534d0
-      d = 1.45008d-2
-      T0 = 273.d0
-
-      f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
+      f = fluid_properties%specific_enthalpy
       dPf = 0.d0
-      dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
-
+      dTf = 0.d0
       dCf(:) = 0.d0
       dSf(:) = 0.d0
 
