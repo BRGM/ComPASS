@@ -43,6 +43,11 @@ def load_eos(eosname):
     for key in kdict:
         if key not in gdict:
             gdict[key] = kdict[key]
+    init_model()
+
+def exit_eos_and_finalize():
+    finalize_model()
+    finalize()
 
 def set_output_directory_and_logfile(case_name):
     runtime.output_directory, runtime.logfile = ComPASS.utils.filenames.output_directory_and_logfile(case_name)
@@ -255,7 +260,7 @@ def init(
     mpi.synchronize() # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     initialized = True
-    atexit.register(finalize)
+    atexit.register(exit_eos_and_finalize)
 
 def get_global_id_faces():
    return np.array(kernel.get_global_id_faces_buffer(), copy = False)
