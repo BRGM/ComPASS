@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import special
 import time
 import math
 
@@ -14,7 +15,7 @@ def erf(x):
    return l"""
 
 def f(tau,x,y):
-    return tau**(-3/2)*(np.erf((a+y)/(4*Dt*tau)**(1/2))+np.erf((a-y)/(4*Dt*tau)**(1/2)))*np.exp(-(x-tau*v)**2/(4*Dl*tau)) #y pas encore défini
+    return tau**(-3/2)*(special.erf((a+y)/math.sqrt(4*Dt*tau))+special.erf((a-y)/math.sqrt(4*Dt*tau)))*np.exp(-(x-tau*v)**2/(4*Dl*tau)) #y pas encore défini
 
 
 def exact_sol(x,y,t):
@@ -22,7 +23,7 @@ def exact_sol(x,y,t):
     s=0
     for i in range(n):
         tau=t*np.cos((2*(i+1)-1)*np.pi/(4*n))**2
-        s=s+x*c0/(32*np.pi*Dl)**2 * np.pi/n*np.sin((2*(i+1)-1)*np.pi/(2*n))*f(tau,x,y)
+        s=s+x*t*c0/(32*np.pi*Dl)**2 * np.pi/n*np.sin((2*(i+1)-1)*np.pi/(2*n))*f(tau,x,y)
     return s
 
 
@@ -38,11 +39,12 @@ for i in range(nx):
 
 
 def test():
-    nx = Lx/dx
-    ny = Ly/dy
+    nx = math.floor(Lx/dx)
+    ny = math.floor(Ly/dy)
     x=np.linspace(0,Lx,nx)
     y=np.linspace(-Ly/2,Ly/2,ny)
     xx, yy = np.meshgrid(x, y)
+    
     for k in range(nt):
         t=(k+1)*dt
         c=exact_sol(xx,yy,t)
