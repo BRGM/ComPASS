@@ -48,11 +48,16 @@ def test():
     for k in range(nt):
         t=(k+1)*dt
         c=exact_sol(xx,yy,t)
+        #c=exact_sol(x,0.,t)
         if ((k+1)%10==0):
-            h = plt.contourf(x,y,c)
+            fig = plt.figure(1)
+            cs = plt.contourf(x,y,c)
+            #plt.plot(x,c)
             plt.title('t='+str(t))
-            plt.show()
-            #time.sleep(10)
+            fig.colorbar(cs)
+            plt.draw()
+            plt.pause(0.1)
+            plt.clf()
 
 if __name__ == '__main__':
     Dl = 1
