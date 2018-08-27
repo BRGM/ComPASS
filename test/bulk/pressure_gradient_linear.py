@@ -14,7 +14,7 @@ from ComPASS.timeloops import standard_loop
 
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
-hf = rhof * cpf          # specific enthalpy
+rhofcpf = rhof * cpf     # volumetric heat capacity
 muf = 1E-3               # viscosity Pa.s
 p_right = 1. * bar       # initial reservoir pressure
 T_right = degC2K( 20. )  # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -29,8 +29,8 @@ nx, ny, nz = 100, 1, 1        # discretization
 ComPASS.load_eos('linear_water')
 fluid_properties = ComPASS.get_fluid_properties()
 fluid_properties.specific_mass = rhof
-fluid_properties.specific_enthalpy = hf
-fluid_properties.viscosity = muf
+fluid_properties.volumetric_heat_capacity = rhofcpf
+fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_output_directory_and_logfile(__file__)
 ComPASS.set_gravity(0) # no gravity
@@ -69,7 +69,7 @@ for states in [ComPASS.dirichlet_node_states(),
 def set_boundary_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = mass_flux # one component
-    Neumann.heat_flux = mass_flux * hf
+    Neumann.heat_flux = mass_flux * rhofcpf * T_right
     face_centers = np.rec.array(ComPASS.face_centers())   
     ComPASS.set_Neumann_faces(face_centers[:, 0] <= 0, Neumann) 
 set_boundary_flux()
