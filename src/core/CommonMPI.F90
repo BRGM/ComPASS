@@ -51,4 +51,23 @@ contains
 
   end subroutine CommonMPI_init
 
+  subroutine CommonMPI_abort(reason, error_code)
+
+  character, intent(in) :: reason(:)
+  integer, intent(in), optional :: error_code
+  integer :: abortion_result
+
+  if(.not.present(error_code)) error_code = -1
+
+  write(*,*) "***"
+  write(*,*) "*** ComPASS aborted"
+  write(*,*) "***"
+  write(*,*)
+  write(*,*) reason
+  write(*,*)
+
+  call MPI_Abort(ComPASS_COMM_WORLD, error_code, abortion_result)
+
+  end subroutine CommonMPI_abort
+
 end module CommonMPI
