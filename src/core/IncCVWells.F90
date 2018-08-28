@@ -8,6 +8,8 @@
 
 module IncCVWells
 
+    use, intrinsic :: iso_c_binding
+
    use MeshSchema
    use DefModel
    use Thermodynamics
@@ -23,7 +25,7 @@ module IncCVWells
    implicit none
 
    !> Type for the perforations, stores informations which are not constant in the well
-   TYPE TYPE_PhysPerfoWell
+   type, bind(c) :: WellPerforationState_type
       double precision :: &
          Pression, & !< Pressure at the perforation
          Temperature, & !< Temperature at the perforation
@@ -31,7 +33,7 @@ module IncCVWells
          PressureDrop !< Pressure drop at the perforation, used to construct Pressure from the head pressure
       ! FluxMolar(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
       ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}
-   end TYPE TYPE_PhysPerfoWell
+   end type WellPerforationState_type
 
    ! well pressure for current time step
    real(c_double), allocatable, dimension(:), target, public :: &
@@ -39,7 +41,7 @@ module IncCVWells
       IncPressionWellProd !< Production Well unknown: head pressure for current time step
 
    ! like CSR format without stocking %Nb and %Pt (idem that NodebyWellLocal)
-   TYPE(TYPE_PhysPerfoWell), allocatable, dimension(:), target, public :: &
+   TYPE(WellPerforationState_type), allocatable, dimension(:), target, public :: &
       PerfoWellInj, & !< Injection Well informations at each perforation for current time step
       PerfoWellProd !< Production Well informations at each perforation for current time step
 
@@ -62,9 +64,39 @@ module IncCVWells
       IncCVWells_PressureDropWellInj_integrate, &
       IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, &
-      IncCVWells_LoadIncPreviousTimeStep
+      IncCVWells_LoadIncPreviousTimeStep, &
+      get_injectors_wellhead_states, &
+      get_producers_wellhead_states
 
 contains
+
+    function get_injectors_wellhead_states() result(p) &
+        bind(C, name="get_injectors_wellhead_states")
+
+    type(c_ptr) :: p
+
+    if(allocated(PerfoWellInj)) then
+        p = c_loc(PerfoWellInj(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_injectors_wellhead_states
+
+
+    function get_producers_wellhead_states() result(p) &
+        bind(C, name="get_producers_wellhead_states")
+
+    type(c_ptr) :: p
+
+    if(allocated(PerfoWellProd)) then
+        p = c_loc(PerfoWellProd(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_producers_wellhead_states
+
 
    ! sort the nodes of wells by z-cordinate from the smallest to the largest
    ! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)

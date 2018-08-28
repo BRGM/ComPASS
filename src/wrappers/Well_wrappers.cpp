@@ -33,6 +33,15 @@ struct Fortran_well_data
     double injection_temperature;
 };
 
+/** Common data structure shared by injectors and producers. */
+struct Wellhead_state
+{
+    double pressure;
+    double temperature;
+    double density;
+    double pressure_drop;
+};
+
 // Fortran functions
 extern "C"
 {
@@ -42,6 +51,8 @@ extern "C"
     int nb_injectors();
     Fortran_well_data * get_producers_data();
     int nb_producers();
+    Wellhead_state * get_injectors_wellhead_states();
+    Wellhead_state * get_producers_wellhead_states();
 }
 
 using namespace ComPASS::Well;
@@ -255,5 +266,37 @@ void add_well_wrappers(py::module& module)
         .def_readwrite("imposed_flowrate", &Fortran_well_data::imposed_flowrate)
         .def_readwrite("injection_temperature", &Fortran_well_data::injection_temperature)
         ;
+
+    py::class_<Wellhead_state>(module, "WellheadState")
+        .def_readonly("pressure", &Wellhead_state::pressure)
+        .def_readonly("temperature", &Wellhead_state::temperature)
+        .def_readonly("density", &Wellhead_state::density)
+        .def_readonly("pressure_drop", &Wellhead_state::pressure_drop)
+        ;
+
+    module.def("injectors_data",
+        []() {
+        auto p = get_injectors_data();
+        return py::make_iterator(p, p + nb_injectors());
+    }, py::return_value_policy::reference);
+
+    module.def("producers_data",
+        []() {
+        auto p = get_producers_data();
+        return py::make_iterator(p, p + nb_producers());
+    }, py::return_value_policy::reference);
+
+    module.def("injectors_wellhead_states",
+        []() {
+        auto p = get_injectors_wellhead_states();
+        return py::make_iterator(p, p + nb_injectors());
+    }, py::return_value_policy::reference);
+
+    module.def("producers_wellhead_states",
+        []() {
+        auto p = get_producers_wellhead_states();
+        return py::make_iterator(p, p + nb_producers());
+    }, py::return_value_policy::reference);
+
 
 }

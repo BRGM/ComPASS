@@ -54,8 +54,9 @@ implicit none
      module procedure assign_DataWell_equal
   end interface assignment(=)
 
-  type(WellData_type), allocatable, target, dimension(:), public :: DataWellInj
-  type(WellData_type), allocatable, target, dimension(:), public :: DataWellProd
+  type(WellData_type), allocatable, target, dimension(:), public :: &
+      DataWellInj, &
+      DataWellProd
 
   TYPE(TYPE_CSRDataNodeWell), public :: &
        NodeDatabyWellInj, & !< CSR store data about Parent and Well index of nodes of each injection Well

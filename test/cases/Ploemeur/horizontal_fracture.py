@@ -73,8 +73,8 @@ K_matrix = 2                                # bulk thermal conductivity in W/m/K
 ComPASS.load_eos('linear_water')
 fluid_properties = ComPASS.get_fluid_properties()
 fluid_properties.specific_mass = rhof
+fluid_properties.compressibility = 1E-10 # it helps...
 fluid_properties.volumetric_heat_capacity = rhofcpf
-fluid_properties.compressibility = 1E-10
 fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_gravity(0)
@@ -126,4 +126,11 @@ for states in [ComPASS.dirichlet_node_states(),
 final_time = 2E4
 output_period = 0.05 * final_time
 ComPASS.set_maximum_timestep( 0.5 * output_period)
-standard_loop(initial_timestep = 1E-5, final_time = final_time, output_period = output_period)
+
+def output_production_temperature(n, t):
+    for state in ComPASS.producers_wellhead_states():
+        print('production temperature at %15.10e s:', K2degC(state.temperature))
+
+standard_loop(initial_timestep = 1E-5, final_time = final_time,
+              iteration_callbacks = [output_production_temperature,],
+              output_period = output_period)
