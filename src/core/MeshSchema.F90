@@ -99,9 +99,9 @@ module MeshSchema
        NodebyWellInjLocal, &
        NodebyWellProdLocal
 
-  type(TYPE_DataWellInj), allocatable, dimension(:), public :: &
+  type(WellData_type), allocatable, dimension(:), public :: &
        DataWellInjLocal !< Data of injection well (Radius,...) for local well
-  type(TYPE_DataWellProd), allocatable, dimension(:), public :: &
+  type(WellData_type), allocatable, dimension(:), public :: &
        DataWellProdLocal !< Data of production well (Radius,...) for local well
 
   ! Data in nodes of wells

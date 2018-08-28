@@ -17,11 +17,31 @@
 
 #include "Well_wrappers.h"
 
+constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
+constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+
+/** Common data structure shared by injectors and producers. */
+struct Fortran_well_data
+{
+    typedef std::array<double, NC> Component_vector;
+    char operating_code;
+    double radius;
+    double maximum_pressure;
+    double minimum_pressure;
+    double imposed_flowrate;
+    Component_vector injection_composition;
+    double injection_temperature;
+};
+
 // Fortran functions
 extern "C"
 {
 	void Well_allocate_well_geometries(COC&, COC&);
 	void Well_set_wells_data(ArrayWrapper&, ArrayWrapper&);
+    Fortran_well_data * get_injectors_data();
+    int nb_injectors();
+    Fortran_well_data * get_producers_data();
+    int nb_producers();
 }
 
 using namespace ComPASS::Well;
@@ -225,5 +245,15 @@ void add_well_wrappers(py::module& module)
 
 	module.def("set_well_geometries", &set_well_geometries, "Set well geometries.");
 	module.def("set_well_data", &set_well_data, "Set well data.");
+
+
+    py::class_<Fortran_well_data>(module, "WellData")
+        .def_readwrite("operating_code", &Fortran_well_data::operating_code)
+        .def_readwrite("radius", &Fortran_well_data::radius)
+        .def_readwrite("maximum_pressure", &Fortran_well_data::maximum_pressure)
+        .def_readwrite("minimum_pressure", &Fortran_well_data::minimum_pressure)
+        .def_readwrite("imposed_flowrate", &Fortran_well_data::imposed_flowrate)
+        .def_readwrite("injection_temperature", &Fortran_well_data::injection_temperature)
+        ;
 
 }

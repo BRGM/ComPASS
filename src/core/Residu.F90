@@ -638,7 +638,7 @@ contains
          if (DataWellInjLocal(k)%IndWell == 'p') then
             ResiduWellInj(k) = DataWellInjLocal(k)%PressionMax - IncPressionWellInj(k)
          else if (DataWellInjLocal(k)%IndWell == 'f') then
-            ResiduWellInj(k) = qw - DataWellInjLocal(k)%FlowrateImposed
+            ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
          else
             call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
          end if
@@ -696,7 +696,7 @@ contains
          if (DataWellProdLocal(k)%IndWell == 'p') then
             ResiduWellProd(k) = IncPressionWellProd(k) - DataWellProdLocal(k)%PressionMin
          else if (DataWellProdLocal(k)%IndWell == 'f') then
-            ResiduWellProd(k) = DataWellProdLocal(k)%FlowrateImposed - qw
+            ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
          else
             call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
          end if

@@ -264,7 +264,7 @@ contains
             call LoisThermoHydro_divP_wellinj(nWell) ! update thermo Laws of nodes in well num_Well
             call DefFlashWells_PressureToFlowrateWellInj(nWell, Flowrate_head)
 
-            if (Flowrate_head < DataWellInjLocal(nWell)%FlowrateImposed) then ! inj well then DataWellInjLocal(nWell)%flowrate < 0
+            if (Flowrate_head < DataWellInjLocal(nWell)%ImposedFlowrate) then ! inj well then DataWellInjLocal(nWell)%flowrate < 0
                DataWellInjLocal(nWell)%IndWell = 'f' ! change to flowrate mode
                ! non linear update of the unknown pressure in well
                call DefFlashWells_NonLinPressureUpdateWellInj(nWell)
@@ -344,18 +344,18 @@ contains
 
       ! if Flow(n) < -Qmol_w then Pw > RSortedInj(n)
       ! -Qmol_w because flowrate is negatif (injection well)
-      if (Flow(RSortedInj%Pt(nWell + 1)) <= -DataWellInjLocal(nWell)%FlowrateImposed) then
+      if (Flow(RSortedInj%Pt(nWell + 1)) <= -DataWellInjLocal(nWell)%ImposedFlowrate) then
          j = RSortedInj%Pt(nWell + 1)
-         write (*, *) 'Flow(n) ,-qmol', Flow(j), -DataWellInjLocal(nWell)%FlowrateImposed
+         write (*, *) 'Flow(n) ,-qmol', Flow(j), -DataWellInjLocal(nWell)%ImposedFlowrate
       else
          ! find j such that Flow(j) <= -Qmol_w <= Flow(j+1)
          ! then r(i) <= Pw <= r(i+1)
          j = RSortedInj%Pt(nWell) + 1
-         do while (Flow(j) <= -DataWellInjLocal(nWell)%FlowrateImposed)
+         do while (Flow(j) <= -DataWellInjLocal(nWell)%ImposedFlowrate)
             j = j + 1
          enddo
          j = j - 1
-         write (*, *) 'Flow(j) ,-qmol,Flow(j+1)', Flow(j), -DataWellInjLocal(nWell)%FlowrateImposed, Flow(j + 1)
+         write (*, *) 'Flow(j) ,-qmol,Flow(j+1)', Flow(j), -DataWellInjLocal(nWell)%ImposedFlowrate, Flow(j + 1)
       endif
 
       SumMob = 0.d0
@@ -365,7 +365,7 @@ contains
          SumMobR = SumMobR + MobSortedInj(s)*RSortedInj%Val(s)
       enddo
       write (*, *) 'before update IncPressionWellInj(nWell)', IncPressionWellInj(nWell)
-      IncPressionWellInj(nWell) = (-DataWellInjLocal(nWell)%FlowrateImposed + SumMobR)/SumMob
+      IncPressionWellInj(nWell) = (-DataWellInjLocal(nWell)%ImposedFlowrate + SumMobR)/SumMob
       write (*, *) 'after update IncPressionWellInj(nWell)', IncPressionWellInj(nWell)
 
    end subroutine DefFlashWells_NonLinPressureUpdateWellInj
@@ -402,7 +402,7 @@ contains
             endif
             ! compute the new flowrate at the head node of well nWell
             call DefFlashWells_PressureToFlowrateWellProd(nWell, Flowrate_head)
-            if (Flowrate_head > DataWellProdLocal(nWell)%FlowrateImposed) then ! Prod well then DataWellProdLocal(nWell)%FlowrateImposed > 0
+            if (Flowrate_head > DataWellProdLocal(nWell)%ImposedFlowrate) then ! Prod well then DataWellProdLocal(nWell)%ImposedFlowrate > 0
                DataWellProdLocal(nWell)%IndWell = 'f' ! change to flowrate mode
                ! non linear update of the unknown pressure in well
                call DefFlashWells_NonLinPressureUpdateWellProd(nWell)
@@ -492,20 +492,20 @@ contains
       write (*, *) 'Flow', Flow(RSortedProd%Pt(nWell) + 1:RSortedProd%Pt(nWell) + comptn)
 
       ! if Qmol_w > Flow(1)   then    Pw < RSortedProd(1)
-      if (Flow(RSortedProd%Pt(nWell) + 1) <= DataWellProdLocal(nWell)%FlowrateImposed) then
+      if (Flow(RSortedProd%Pt(nWell) + 1) <= DataWellProdLocal(nWell)%ImposedFlowrate) then
          j = RSortedProd%Pt(nWell) + 1
 
-         write (*, *) 'Flow(1) ,qmol', Flow(j), DataWellProdLocal(nWell)%FlowrateImposed
+         write (*, *) 'Flow(1) ,qmol', Flow(j), DataWellProdLocal(nWell)%ImposedFlowrate
 
       else
          ! search for the index j such that Flow(j+1)<= Qmol_w <= Flow(j)
          ! then r(i) <= Pw <= r(i+1)
          j = RSortedProd%Pt(nWell) + comptn
-         do while (Flow(j) <= DataWellProdLocal(nWell)%FlowrateImposed)
+         do while (Flow(j) <= DataWellProdLocal(nWell)%ImposedFlowrate)
             j = j - 1
          enddo
          j = j + 1
-         write (*, *) 'Flow(j+1) ,qmol,Flow(j)', Flow(j + 1), DataWellProdLocal(nWell)%FlowrateImposed, Flow(j)
+         write (*, *) 'Flow(j+1) ,qmol,Flow(j)', Flow(j + 1), DataWellProdLocal(nWell)%ImposedFlowrate, Flow(j)
       endif
 
       SumMob = 0.d0
@@ -515,7 +515,7 @@ contains
          SumMobR = SumMobR + MobSortedProd(s)*RSortedProd%Val(s)
       enddo
       write (*, *) 'before update IncPressionWellProd(nWell)', IncPressionWellProd(nWell)
-      IncPressionWellProd(nWell) = (-DataWellProdLocal(nWell)%FlowrateImposed + SumMobR)/SumMob
+      IncPressionWellProd(nWell) = (-DataWellProdLocal(nWell)%ImposedFlowrate + SumMobR)/SumMob
       write (*, *) 'after update IncPressionWellProd(nWell)', IncPressionWellProd(nWell)
 
    end subroutine DefFlashWells_NonLinPressureUpdateWellProd
@@ -555,7 +555,7 @@ contains
             call LoisThermoHydro_divP_wellinj(num_Well) ! update thermo Laws of nodes in well num_Well
             call DefFlashWells_PressureToFlowrateWellInj(num_Well, Flowrate_head)
 
-            if (abs(Flowrate_head) > abs(DataWellInjLocal(num_Well)%FlowrateImposed)) then ! inj well then DataWellInjLocal(num_Well)%flowrate < 0
+            if (abs(Flowrate_head) > abs(DataWellInjLocal(num_Well)%ImposedFlowrate)) then ! inj well then DataWellInjLocal(num_Well)%flowrate < 0
                DataWellInjLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
             endif
          else
@@ -599,7 +599,7 @@ contains
             ! compute the new flowrate at the head node of the well num_Well
             call DefFlashWells_PressureToFlowrateWellProd(num_Well, Flowrate_head)
 
-            if (abs(Flowrate_head) > abs(DataWellProdLocal(num_Well)%FlowrateImposed)) then ! Prod well then DataWellProdLocal(num_Well)%flowrate > 0
+            if (abs(Flowrate_head) > abs(DataWellProdLocal(num_Well)%ImposedFlowrate)) then ! Prod well then DataWellProdLocal(num_Well)%flowrate > 0
                DataWellProdLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
             endif
          else

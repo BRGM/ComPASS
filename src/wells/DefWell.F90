@@ -8,36 +8,25 @@
 
 module DefWell
 
-  use CommonMPI
-  use DefModel
-  use Physics
-  
-  implicit none
+    use, intrinsic :: iso_c_binding
 
-  ! Data of well inj
-  type TYPE_DataWellInj
-     double precision :: &
-          Radius
-     double precision :: &
-          Temperature,   &
-          CompTotal(NbComp)
-     double precision :: &
-          PressionMax,   &
-          FlowrateImposed ! < 0, débit molaire
-     character :: &
-          IndWell  ! 'p' for pressure mode ; 'f' for flowrate mode
-  end type TYPE_DataWellInj
+    use CommonMPI
+    use DefModel
+    use Physics
 
-  ! Data of well prod
-  type TYPE_DataWellProd
-     double precision :: &
-          Radius
-     double precision :: &
-          PressionMin,   &
-          FlowrateImposed ! > 0, débit molaire
-     character :: &
-          IndWell  ! 'p' for pressure mode ; 'f' for flowrate mode
-  end type TYPE_DataWellProd
+implicit none
+
+  type, bind(c) :: WellData_type
+     character(c_char) :: &
+          IndWell  ! both well types 'p' for pressure mode ; 'f' for flowrate mode
+     real(c_double) :: &
+          Radius, & ! both well types
+          PressionMax, & ! injector only
+          PressionMin, & ! producer only
+          ImposedFlowrate, & ! both well types (>=0 for producer <0 for injector)
+          CompTotal(NbComp), & ! injector only
+          Temperature ! injector only
+  end type WellData_type
 
   !> Store data of one Node Well about parent and well index
   type TYPE_DataNodeWell
@@ -62,18 +51,11 @@ module DefWell
 
   !> to allow = between two DataWellInj
   interface assignment(=)
-     module procedure assign_DataWellInj_equal
+     module procedure assign_DataWell_equal
   end interface assignment(=)
 
-  !> to allow = between two DataWellProd
-  interface assignment(=)
-     module procedure assign_DataWellProd_equal
-  end interface assignment(=)
-
-
-  ! ! ****** Wells ****** ! !
-  TYPE(TYPE_DataWellInj), allocatable, dimension(:), public :: DataWellInj
-  TYPE(TYPE_DataWellProd), allocatable, dimension(:), public :: DataWellProd
+  type(WellData_type), allocatable, target, dimension(:), public :: DataWellInj
+  type(WellData_type), allocatable, target, dimension(:), public :: DataWellProd
 
   TYPE(TYPE_CSRDataNodeWell), public :: &
        NodeDatabyWellInj, & !< CSR store data about Parent and Well index of nodes of each injection Well
@@ -85,30 +67,81 @@ module DefWell
        DefWell_Make, &
        DefWell_WellIndex,       &    ! Compute Well index
        DefWell_csrdatawellcopy, &    ! copy CSRDatawell
-       DefWell_deallocCSRDataWell    ! free CSRdataWell
+       DefWell_deallocCSRDataWell, &    ! free CSRdataWell
+       get_injectors_data, nb_injectors, &
+       get_producers_data, nb_producers
 
 contains
 
-  subroutine DefWell_print_DataWellInj(datawell)
+    function get_injectors_data() result(p) &
+        bind(C, name="get_injectors_data")
 
-  type(TYPE_DataWellInj), intent(in) :: datawell
+    type(c_ptr) :: p
 
-  write(*,*) "%%", "iwd", datawell%Radius, &
+    if(allocated(DataWellInj)) then
+        p = c_loc(DataWellInj(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_injectors_data
+
+
+    function nb_injectors() result(n) &
+        bind(C, name="nb_injectors")
+
+    integer(c_int) :: n
+
+    if(allocated(DataWellInj)) then
+        n = size(DataWellInj, 1)
+    else
+        n = 0
+    end if
+
+    end function nb_injectors
+
+    function get_producers_data() result(p) &
+        bind(C, name="get_producers_data")
+
+    type(c_ptr) :: p
+
+    if(allocated(DataWellInj)) then
+        p = c_loc(DataWellInj(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_producers_data
+
+
+    function nb_producers() result(n) &
+        bind(C, name="nb_producers")
+
+    integer(c_int) :: n
+
+    if(allocated(DataWellInj)) then
+        n = size(DataWellInj, 1)
+    else
+        n = 0
+    end if
+
+    end function nb_producers
+
+
+  subroutine DefWell_print_WellData(datawell)
+
+  type(WellData_type), intent(in) :: datawell
+
+  write(*,*) "%%", "injector data", datawell%Radius, &
 	datawell%Temperature, datawell%compTotal(:), &
-	datawell%PressionMax, datawell%FlowrateImposed, &
+	datawell%PressionMax, datawell%ImposedFlowrate, &
 	datawell%IndWell
 
-  end subroutine DefWell_print_DataWellInj
-
-  subroutine DefWell_print_DataWellProd(datawell)
-
-  type(TYPE_DataWellProd), intent(in) :: datawell
-
-  write(*,*) "%%", "pwd", datawell%Radius, &
-  datawell%PressionMin, datawell%FlowrateImposed, &
+  write(*,*) "%%", "producer data", datawell%Radius, &
+  datawell%PressionMin, datawell%ImposedFlowrate, &
   datawell%IndWell
 
-  end subroutine DefWell_print_DataWellProd
+  end subroutine DefWell_print_WellData
 
   ! allocate DataWellInj and set Radius
   subroutine DefWell_SetDataWellInj(NbWell)
@@ -125,7 +158,7 @@ contains
 
        DataWellInj(k)%CompTotal(:) = 1.d0 ! here NbComp=1
        DataWellInj(k)%PressionMax = 3.d7
-       DataWellInj(k)%FlowrateImposed = - 1.d5/3600.d0
+       DataWellInj(k)%ImposedFlowrate = - 1.d5/3600.d0
 
        DataWellInj(k)%IndWell = 'p'
     end do
@@ -145,7 +178,7 @@ contains
 
        DataWellProd(k)%Radius = 0.1d0
        DataWellProd(k)%PressionMin = 1.d7
-       DataWellProd(k)%FlowrateImposed = 1.d5/3600.d0
+       DataWellProd(k)%ImposedFlowrate = 1.d5/3600.d0
 
        DataWellProd(k)%IndWell = 'p'
     end do
@@ -479,31 +512,19 @@ contains
   end subroutine assign_DataNodeWell_equal
 
   !> \brief Define operator = between two DataWellInj:  x2 = x1
-  subroutine assign_DataWellInj_equal(x2, x1)
+  subroutine assign_DataWell_equal(x2, x1)
 
-    TYPE(TYPE_DataWellInj), intent(in) :: x1
-    TYPE(TYPE_DataWellInj), intent(out) :: x2
+    TYPE(WellData_type), intent(in) :: x1
+    TYPE(WellData_type), intent(out) :: x2
 
+    x2%IndWell = x1%IndWell
     x2%Radius = x1%Radius
+    x2%PressionMax = x1%PressionMax
+    x2%PressionMin = x1%PressionMin
+    x2%ImposedFlowrate = x1%ImposedFlowrate
     x2%Temperature = x1%Temperature
     x2%CompTotal = x1%CompTotal
-    x2%PressionMax = x1%PressionMax
-    x2%FlowrateImposed = x1%FlowrateImposed
-    x2%IndWell = x1%IndWell
-
-  end subroutine assign_DataWellInj_equal
-
-  !> \brief Define operator = between two DataWellProd:  x2 = x1
-  subroutine assign_DataWellProd_equal(x2, x1)
-
-    TYPE(TYPE_DataWellProd), intent(in) :: x1
-    TYPE(TYPE_DataWellProd), intent(out) :: x2
-
-    x2%Radius = x1%Radius
-    x2%PressionMin = x1%PressionMin
-    x2%FlowrateImposed = x1%FlowrateImposed
-    x2%IndWell = x1%IndWell
-
-  end subroutine assign_DataWellProd_equal
+    
+  end subroutine assign_DataWell_equal
 
 end module DefWell
