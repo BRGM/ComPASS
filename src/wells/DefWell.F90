@@ -91,7 +91,7 @@ contains
     function nb_injectors() result(n) &
         bind(C, name="nb_injectors")
 
-    integer(c_int) :: n
+    integer(c_size_t) :: n
 
     if(allocated(DataWellInj)) then
         n = size(DataWellInj, 1)
@@ -118,7 +118,7 @@ contains
     function nb_producers() result(n) &
         bind(C, name="nb_producers")
 
-    integer(c_int) :: n
+    integer(c_size_t) :: n
 
     if(allocated(DataWellInj)) then
         n = size(DataWellInj, 1)

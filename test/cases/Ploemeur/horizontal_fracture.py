@@ -9,6 +9,7 @@ from ComPASS.utils.wells import create_vertical_well
 
 #%% mesh
 
+
 def geometric(x0, xn, a, n):
     assert a>=1 and n>0
     dx = np.cumprod(np.hstack([1, np.tile(a, max(n-1, 0))]))
@@ -22,10 +23,10 @@ def geometric(x0, xn, a, n):
 interwell_distance = 10 # meters
 grid_length = 3 * interwell_distance # meters
 grid_depth = interwell_distance # meters
-grid_heigth = 1.5 * interwell_distance # meters
+grid_height = 1.5 * interwell_distance # meters
 assert 0 < interwell_distance
 assert interwell_distance < grid_length
-n = 5
+n = 6
 nb_steps_x_outside_wells = n
 nb_steps_y = n 
 nb_steps_z = n 
@@ -45,7 +46,7 @@ x = np.hstack([
 ])
 ypos = geometric(0, 0.5 * grid_depth, steps_y_ratio, nb_steps_y)
 y = np.hstack([(-ypos[1:])[::-1], ypos])
-zpos = geometric(0, 0.5 * grid_heigth, steps_z_ratio, nb_steps_z)
+zpos = geometric(0, 0.5 * grid_height, steps_z_ratio, nb_steps_z)
 dz = zpos[1] - zpos[0]
 z = np.hstack([(-zpos[1:])[::-1], zpos])
 
@@ -69,6 +70,7 @@ K_fracture = 2                                # bulk thermal conductivity in W/m
 k_matrix = 1E-20            # matrix permeability in m^2
 omega_matrix = 0.15            # matrix porosity
 K_matrix = 2                                # bulk thermal conductivity in W/m/K
+fracture_thickness = 0.005
 
 ComPASS.load_eos('linear_water')
 fluid_properties = ComPASS.get_fluid_properties()
@@ -78,7 +80,7 @@ fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_gravity(0)
-ComPASS.set_fracture_thickness(0.01)
+ComPASS.set_fracture_thickness(fracture_thickness)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def build_wells():
@@ -125,12 +127,57 @@ for states in [ComPASS.dirichlet_node_states(),
 
 final_time = 2E4
 output_period = 0.05 * final_time
-ComPASS.set_maximum_timestep( 0.5 * output_period)
+ComPASS.set_maximum_timestep( 0.5 * output_period )
+ComPASS.set_maximum_timestep( 250 )
 
-def output_production_temperature(n, t):
-    for state in ComPASS.producers_wellhead_states():
-        print('production temperature at %15.10e s:', K2degC(state.temperature))
+production_temperatures = []
+def collect_production_temperatures(n, t):
+    if ComPASS.nb_producers()>0:
+        assert ComPASS.nb_producers()==1
+        producers_perforations = list(ComPASS.producers_perforations())
+        wellhead_state = producers_perforations[0][-1]  # latest perforation corresponds to well head
+        production_temperatures.append((t, wellhead_state.temperature))
+
+#%% First loop: injection of hot water
+injection_duration = 0.2 * final_time
+standard_loop(initial_timestep = 1E-5, final_time = injection_duration,
+              iteration_callbacks = [collect_production_temperatures,],
+              output_period = output_period)
+
+#%% Second loop: we reinject production water
+
+injectors_data = list(ComPASS.injectors_data())
+if injectors_data:
+    assert len(injectors_data)==1
+    injector_data = injectors_data[0]
+else:
+    injector_data = None
+# weak coupling -> should be synchronized between procs !!!
+def reinject_production(n, t):
+    tprod, Tprod = production_temperatures[-1]
+    assert t==tprod
+    if injector_data is not None:
+        print("setting injection temperature", K2degC(Tprod))
+        injector_data.injection_temperature = Tprod
 
 standard_loop(initial_timestep = 1E-5, final_time = final_time,
-              iteration_callbacks = [output_production_temperature,],
+              iteration_callbacks = [collect_production_temperatures, reinject_production],
               output_period = output_period)
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except ImportError:
+    print('WARNING - matplotlib was not found - no graphics will be generated')
+    plt = None
+else:
+    if production_temperatures:
+        plt.clf()
+        times = np.array([data[0] for data in production_temperatures])
+        temperatures = np.array([data[1] for data in production_temperatures])
+        plt.plot(times, K2degC(temperatures))
+        plt.xlabel('time (s)')
+        plt.ylabel('production temperature (Celsius degree)')
+        plt.savefig(ComPASS.to_output_directory('production_proc_%05d.png' % ComPASS.mpi.proc_rank))
+
