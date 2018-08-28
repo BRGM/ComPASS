@@ -10,6 +10,7 @@ import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
+import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -121,15 +122,32 @@ def collect_node_temperature(iteration, t):
     print('                           and time', t/year, 'years')
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
+"""
+    xy = ComPASS.compute_cell_centers()[:,0:2]
+    XX = xy[:, 0].reshape(ny, nx)
+    YY = xy[:, 1].reshape(ny, nx)
+    fig = plt.figure(1)
+    #plt.subplot(211)
+    cs = plt.contourf(XX,YY,np.reshape(K2degC(states.T),[ny,nx]))
+    fig.colorbar(cs)
+    #plt.subplot(212)
+    #plt.plot(x,c1)
+    plt.title('t='+str(t))
+    plt.xlabel('x in meters')
+    plt.ylabel('temperature in Celsius degrees')
+    plt.draw()
+    plt.pause(0.1)
+    plt.clf()
+"""
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e8,
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e10,
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
     xy = ComPASS.compute_cell_centers()[:,0:2]
-    XX = xy[:, 0].reshape(ny, nx) 
-    YY = xy[:, 1].reshape(ny, nx) 
+    XX = xy[:, 0].reshape(ny, nx)
+    YY = xy[:, 1].reshape(ny, nx)
     # with open(ComPASS.to_output_directory('cell_temperatures.csv'), 'w') as f:
     #     s = ';'.join(['%f' %(xi) for xi in x])
     #     print('"time (years)\\x";' + s, file=f)
@@ -149,10 +167,24 @@ if ComPASS.mpi.communicator().size==1:
         plt.clf()
         for tT in cell_temperatures:
             t, T = tT
-            T = K2degC(T)
-        plt.contourf(XX,YY, np.reshape(cell_temperatures[18][1], [ny,nx]))
-        plt.xlabel('x in meters')
-        plt.ylabel('temperature in Celsius degrees')
-        plt.savefig(ComPASS.to_output_directory('cell_temperatures'))
+            #T = K2degC(T)
+            fig = plt.figure(1)
+            #plt.subplot(211)
+            cs = plt.contourf(XX,YY,np.reshape(K2degC(T),[ny,nx]))
+            fig.colorbar(cs)
+            #plt.subplot(212)
+            #plt.plot(x,c1)
+            plt.title('t='+str(t))
+            plt.xlabel('x in meters')
+            plt.ylabel('temperature in Celsius degrees')
+            plt.draw()
+            plt.pause(0.1)
+            plt.savefig(ComPASS.to_output_directory('cell_temperatures_'+str(t)),format='png')
+            plt.clf()
+
+        #plt.contourf(XX,YY, np.reshape(cell_temperatures[18][1], [ny,nx]))
+            #plt.xlabel('x in meters')
+            #plt.ylabel('temperature in Celsius degrees')
+
 
 #etude de convergence par calcul d'erreur
