@@ -19,15 +19,16 @@ def geometric(x0, xn, a, n):
 
 # grid is centered on the middle of the segment between injection and production points
 # hence wells positions are (-0.5 * interwell_distance, 0, 0) and (0.5 * interwell_distance, 0, 0)
-interwell_distance = 5 # meters
+interwell_distance = 10 # meters
 grid_length = 3 * interwell_distance # meters
-grid_depth = 2 * interwell_distance # meters
+grid_depth = interwell_distance # meters
 grid_heigth = 1.5 * interwell_distance # meters
 assert 0 < interwell_distance
 assert interwell_distance < grid_length
-nb_steps_x_outside_wells = 5 
-nb_steps_y = 5 
-nb_steps_z = 5 
+n = 5
+nb_steps_x_outside_wells = n
+nb_steps_y = n 
+nb_steps_z = n 
 steps_x_ratio_outside_wells = 1.3 
 steps_y_ratio = 1.3 
 steps_z_ratio = 1.5 
@@ -57,13 +58,13 @@ MT.to_vtu(mesh, 'ploemeur_mesh.vtu')
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
 rhofcpf = rhof * cpf     # volumetric heat capacity
-muf = 1E-3               # viscosity Pa.s
-pres = 0. * MPa                  # initial reservoir pressure
-Tres = degC2K( 10. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
-Tinjection = degC2K( 15. )        # injection temperature - convert Celsius to Kelvin degrees
-Qm = 1. * ton / hour            # production/injection flowrate
-k_fracture = 1E-12               # fracture permeability in m^2
-omega_fracture = 0.55            # fracture porosity
+muf = 1E-3               # dynamic viscosity Pa.s
+pres = 0. * MPa              # initial reservoir pressure
+Tres = degC2K( 10. )          # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
+Tinjection = degC2K( 15. )    # injection temperature - convert Celsius to Kelvin degrees
+Qm = (rhof * 1E-3) / minute # production/injection mass flowrate
+k_fracture = 1E-12           # fracture permeability in m^2
+omega_fracture = 0.55        # fracture porosity
 K_fracture = 2                                # bulk thermal conductivity in W/m/K
 k_matrix = 1E-20            # matrix permeability in m^2
 omega_matrix = 0.15            # matrix porosity
@@ -73,9 +74,11 @@ ComPASS.load_eos('linear_water')
 fluid_properties = ComPASS.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhofcpf
+fluid_properties.compressibility = 1E-10
 fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_gravity(0)
+ComPASS.set_fracture_thickness(0.01)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def build_wells():
@@ -83,8 +86,8 @@ def build_wells():
     producer.operate_on_flowrate = Qm, -1E99 # mass flow rate, pressure limit (minimum)
     producer.produce()
     injector = create_vertical_well((-half_interwell_distance, 0), well_radius = 0.1, zmin=-dz, zmax=dz)
-    injector.operate_on_flowrate = -Qm * ton / hour, 1E99 # mass flow rate, pressure limit (maximum)
-    injector.inject(degC2K(Tinjection))
+    injector.operate_on_flowrate = -Qm, 1E99 # mass flow rate, pressure limit (maximum)
+    injector.inject(Tinjection)
     return (producer, injector)
 
 def select_dirichlet_nodes():
