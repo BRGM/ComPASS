@@ -49,13 +49,17 @@ class Snapshooter:
                 print(tag, '%.12g'%t, file=f)
         self.dumper.dump_states(tag)
 
+n = 0 # iteration counter
+shooter = None
 
 def standard_loop(final_time, initial_timestep=1.,
                   output_period = None, output_every = None,
-                  nb_output = None, nitermax = None, tstart=0, dumper=None,
+                  nb_output = None, nitermax = None, dumper=None,
                   iteration_callbacks = None, output_callbacks = None,
                   specific_outputs = None
                  ):
+    global n
+    global shooter
     if output_period is None:
         if nb_output is None:
             output_period = final_time    
@@ -74,11 +78,13 @@ def standard_loop(final_time, initial_timestep=1.,
         specific_outputs.sort()
     # this is necessary for well operating on pressures
     check_well_pressure()
-    t = tstart
+    t = ComPASS.get_current_time()
     timestep = initial_timestep
-    n = 0
-    t_output = 0
-    shooter = Snapshooter(dumper)
+    t_output = t
+    if shooter is None:
+        shooter = Snapshooter(dumper)
+    else:
+        t_output = t_output + output_period
     @mpi.on_master_proc
     def print_iteration_info():
         print()
