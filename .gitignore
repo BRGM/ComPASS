@@ -17,3 +17,12 @@ tests/sanity/elder/output-elder/
 tests/sanity/SO1/output-SO1/
 tests/unit/.cache/
 test/bulk/output-*/*
+*/output-*/*
+*.pvd
+*.pvtu
+*.mesh
+cellar/
+test/cases/Ploemeur/output-horizontal_fracture/
+test/cases/URG/*.csv
+test/cases/URG/URG_nvecs.out
+test/cases/URG/*.out
