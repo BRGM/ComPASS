@@ -640,7 +640,7 @@ contains
          else if (DataWellInjLocal(k)%IndWell == 'f') then
             ResiduWellInj(k) = qw - DataWellInjLocal(k)%FlowrateImposed
          else
-            print *, "indwell inj should be p or f"
+            call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
          end if
 
       end do ! end of node s in injection well k
@@ -698,7 +698,7 @@ contains
          else if (DataWellProdLocal(k)%IndWell == 'f') then
             ResiduWellProd(k) = DataWellProdLocal(k)%FlowrateImposed - qw
          else
-            print *, "indwell prod should be p or f"
+            call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
          end if
 
       end do
