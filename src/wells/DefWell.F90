@@ -106,8 +106,8 @@ contains
 
     type(c_ptr) :: p
 
-    if(allocated(DataWellInj)) then
-        p = c_loc(DataWellInj(1))
+    if(allocated(DataWellProd)) then
+        p = c_loc(DataWellProd(1))
     else
         p = c_null_ptr
     end if
@@ -120,8 +120,8 @@ contains
 
     integer(c_size_t) :: n
 
-    if(allocated(DataWellInj)) then
-        n = size(DataWellInj, 1)
+    if(allocated(DataWellProd)) then
+        n = size(DataWellProd, 1)
     else
         n = 0
     end if
