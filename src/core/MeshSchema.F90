@@ -99,9 +99,9 @@ module MeshSchema
        NodebyWellInjLocal, &
        NodebyWellProdLocal
 
-  type(WellData_type), allocatable, dimension(:), public :: &
+  type(WellData_type), allocatable, dimension(:), target, public :: &
        DataWellInjLocal !< Data of injection well (Radius,...) for local well
-  type(WellData_type), allocatable, dimension(:), public :: &
+  type(WellData_type), allocatable, dimension(:), target, public :: &
        DataWellProdLocal !< Data of production well (Radius,...) for local well
 
   ! Data in nodes of wells
@@ -187,9 +187,65 @@ module MeshSchema
        MeshSchema_make, &
        MeshSchema_Free, &
        MeshSchema_triangle_area, &
-       MeshSchema_local_face_surface
-  
+       MeshSchema_local_face_surface, &  
+       get_injectors_data, nb_injectors, &
+       get_producers_data, nb_producers
+
 contains
+
+    function get_injectors_data() result(p) &
+        bind(C, name="get_injectors_data")
+
+    type(c_ptr) :: p
+
+    if(allocated(DataWellInjLocal)) then
+        p = c_loc(DataWellInjLocal(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_injectors_data
+
+
+    function nb_injectors() result(n) &
+        bind(C, name="nb_injectors")
+
+    integer(c_size_t) :: n
+
+    if(allocated(DataWellInjLocal)) then
+        n = size(DataWellInjLocal, 1)
+    else
+        n = 0
+    end if
+
+    end function nb_injectors
+
+    function get_producers_data() result(p) &
+        bind(C, name="get_producers_data")
+
+    type(c_ptr) :: p
+
+    if(allocated(DataWellProdLocal)) then
+        p = c_loc(DataWellProdLocal(1))
+    else
+        p = c_null_ptr
+    end if
+
+    end function get_producers_data
+
+
+    function nb_producers() result(n) &
+        bind(C, name="nb_producers")
+
+    integer(c_size_t) :: n
+
+    if(allocated(DataWellProdLocal)) then
+        n = size(DataWellProdLocal, 1)
+    else
+        n = 0
+    end if
+
+    end function nb_producers
 
    function number_of_nodes() result(n) &
    bind(C, name="number_of_nodes")

@@ -139,7 +139,7 @@ def collect_production_temperatures(n, t):
         production_temperatures.append((t, wellhead_state.temperature))
 
 #%% First loop: injection of hot water
-injection_duration = 0.2 * final_time
+injection_duration = 0.1 * final_time
 standard_loop(initial_timestep = 1E-5, final_time = injection_duration,
               iteration_callbacks = [collect_production_temperatures,],
               output_period = output_period)
@@ -152,7 +152,8 @@ if injectors_data:
     injector_data = injectors_data[0]
 else:
     injector_data = None
-# weak coupling -> should be synchronized between procs !!!
+# weak coupling: injection at t_n is production at t_{n-1}
+# FIXME: should be synchronized between procs !!!
 def reinject_production(n, t):
     tprod, Tprod = production_temperatures[-1]
     assert t==tprod

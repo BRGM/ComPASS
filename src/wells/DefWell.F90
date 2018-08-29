@@ -69,13 +69,13 @@ implicit none
        DefWell_WellIndex,       &    ! Compute Well index
        DefWell_csrdatawellcopy, &    ! copy CSRDatawell
        DefWell_deallocCSRDataWell, &    ! free CSRdataWell
-       get_injectors_data, nb_injectors, &
-       get_producers_data, nb_producers
+       get_global_injectors_data, nb_global_injectors, &
+       get_global_producers_data, nb_global_producers
 
 contains
 
-    function get_injectors_data() result(p) &
-        bind(C, name="get_injectors_data")
+    function get_global_injectors_data() result(p) &
+        bind(C, name="get_global_injectors_data")
 
     type(c_ptr) :: p
 
@@ -85,11 +85,11 @@ contains
         p = c_null_ptr
     end if
 
-    end function get_injectors_data
+    end function get_global_injectors_data
 
 
-    function nb_injectors() result(n) &
-        bind(C, name="nb_injectors")
+    function nb_global_injectors() result(n) &
+        bind(C, name="nb_global_injectors")
 
     integer(c_size_t) :: n
 
@@ -99,10 +99,10 @@ contains
         n = 0
     end if
 
-    end function nb_injectors
+    end function nb_global_injectors
 
-    function get_producers_data() result(p) &
-        bind(C, name="get_producers_data")
+    function get_global_producers_data() result(p) &
+        bind(C, name="get_global_producers_data")
 
     type(c_ptr) :: p
 
@@ -112,11 +112,11 @@ contains
         p = c_null_ptr
     end if
 
-    end function get_producers_data
+    end function get_global_producers_data
 
 
-    function nb_producers() result(n) &
-        bind(C, name="nb_producers")
+    function nb_global_producers() result(n) &
+        bind(C, name="nb_global_producers")
 
     integer(c_size_t) :: n
 
@@ -126,7 +126,7 @@ contains
         n = 0
     end if
 
-    end function nb_producers
+    end function nb_global_producers
 
 
   subroutine DefWell_print_WellData(datawell)
