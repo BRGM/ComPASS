@@ -130,13 +130,32 @@ output_period = 0.05 * final_time
 ComPASS.set_maximum_timestep( 0.5 * output_period )
 ComPASS.set_maximum_timestep( 250 )
 
-production_temperatures = []
+communicator = ComPASS.mpi.communicator()
+master = ComPASS.mpi.master_proc_rank
+rank = ComPASS.mpi.proc_rank
+
+# Collect production temperature on master proc
+if rank==master:
+    production_temperatures = []
+else:
+    production_temperatures = None
+
+has_producer = ComPASS.nb_producers()>0
+assert ComPASS.nb_producers()<=1
+
 def collect_production_temperatures(n, t):
-    if ComPASS.nb_producers()>0:
+    if has_producer:
         assert ComPASS.nb_producers()==1
         producers_perforations = list(ComPASS.producers_perforations())
         wellhead_state = producers_perforations[0][-1]  # latest perforation corresponds to well head
-        production_temperatures.append((t, wellhead_state.temperature))
+        production_data = (t, wellhead_state.temperature)
+    else:
+        production_data = None
+    production_data = communicator.gather(production_data, root=master)
+    if rank==master:
+        production_data = [data for data in production_data if data is not None]
+        # We heavily rely on the fact that there is only one production well over the whole field
+        production_temperatures.append(production_data[0])
 
 #%% First loop: injection of hot water
 injection_duration = 0.1 * final_time
@@ -152,28 +171,35 @@ if injectors_data:
     injector_data = injectors_data[0]
 else:
     injector_data = None
+
 # weak coupling: injection at t_n is production at t_{n-1}
-# FIXME: should be synchronized between procs !!!
 def reinject_production(n, t):
-    tprod, Tprod = production_temperatures[-1]
+    if rank==master:
+        production_data = production_temperatures[-1]
+    else:
+        production_data = None
+    production_data = communicator.bcast(production_data, root=master)
+    ComPASS.mpi.synchronize()
+    print('on proc', rank, ':', production_data)
+    ComPASS.mpi.synchronize()
+    tprod, Tprod = production_data
     assert t==tprod
     if injector_data is not None:
-        print("setting injection temperature", K2degC(Tprod))
         injector_data.injection_temperature = Tprod
 
 standard_loop(initial_timestep = 1E-5, final_time = final_time,
               iteration_callbacks = [collect_production_temperatures, reinject_production],
               output_period = output_period)
 
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-except ImportError:
-    print('WARNING - matplotlib was not found - no graphics will be generated')
-    plt = None
-else:
-    if production_temperatures:
+if rank==master:
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print('WARNING - matplotlib was not found - no graphics will be generated')
+        plt = None
+    else:
         plt.clf()
         times = np.array([data[0] for data in production_temperatures])
         temperatures = np.array([data[1] for data in production_temperatures])
