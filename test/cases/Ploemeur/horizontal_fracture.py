@@ -179,9 +179,6 @@ def reinject_production(n, t):
     else:
         production_data = None
     production_data = communicator.bcast(production_data, root=master)
-    ComPASS.mpi.synchronize()
-    print('on proc', rank, ':', production_data)
-    ComPASS.mpi.synchronize()
     tprod, Tprod = production_data
     assert t==tprod
     if injector_data is not None:
