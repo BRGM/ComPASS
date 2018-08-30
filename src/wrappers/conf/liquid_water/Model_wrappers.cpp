@@ -6,7 +6,7 @@
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
-static_assert(NP == 1, "Wrong numpber of phases.");
+static_assert(NP == 1, "Wrong number of phases.");
 constexpr int SINGLE_PHASE = 0;
 
 // Fortran functions
