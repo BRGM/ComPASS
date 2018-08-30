@@ -8,7 +8,6 @@ from scipy import special
 
 
 
-#U = 1/(Phi+rhoCp*(1-Phi)/(rhow*b))*b #*densité molaire à priori constante
 #Dx = 1
 #P = (U**2 + 4*Dx*Rd*(mu+gamma))**(1/2)
 
@@ -36,21 +35,22 @@ def test():
         t = (k+1)*dt
         print(k)
         c=exact_sol(xx,yy,t)
-        if ((k+1)%5==0):
+        if ((k+1)%1==0):
             fig = plt.figure(1)
             plt.subplot(211)
             cs = plt.contourf(x,y,c)
             fig.colorbar(cs)
             plt.title('t='+str(t))
             plt.draw()
-            plt.pause(0.1)
+            plt.pause(1)
             #plt.savefig(('exact_sol_'+str(t)),format='png')
             plt.clf()
 
 
 if __name__ == '__main__':
-    tfinal = 100
-    dt = 2
+    year = 3.15e+7
+    tfinal = 2e+6
+    dt = 0.2 * tfinal
     nt = math.floor(tfinal/dt)
     Phi = 0.2
     rhow = 1000
@@ -58,12 +58,15 @@ if __name__ == '__main__':
     rhoCp = 1000*2000
     Rd = rhow*Phi*b+rhoCp*(1-Phi)
     print(Rd)
-    mu = b*rhow/Rd
+    U = 3e-5
+    mu = b*rhow/Rd*U
+    print(mu)
     C0 = 60+273  #température en x=0
     gamma = 0 #pas sur dans l'expression de P
-    mu = 1
-    Dl = 1e+7/Rd  #conductivité thermique/Rd
-    Dt = 1e+7/Rd
+    #mu = 1
+    Dl = 2/Rd  #conductivité thermique/Rd
+    Dt = 2/Rd
+    #U = 1/(Phi+rhoCp*(1-Phi)/(rhow*b))*b*rhow #*densité molaire à priori constante
     print(Dt)
     Lx, Ly, Lz = 100., 50., 1.
     n0 = Ly
