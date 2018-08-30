@@ -189,19 +189,4 @@ standard_loop(initial_timestep = 1E-5, final_time = final_time,
               output_period = output_period)
 
 if rank==master:
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print('WARNING - matplotlib was not found - no graphics will be generated')
-        plt = None
-    else:
-        plt.clf()
-        times = np.array([data[0] for data in production_temperatures])
-        temperatures = np.array([data[1] for data in production_temperatures])
-        plt.plot(times, K2degC(temperatures))
-        plt.xlabel('time (s)')
-        plt.ylabel('production temperature (Celsius degree)')
-        plt.savefig(ComPASS.to_output_directory('production_proc_%05d.png' % ComPASS.mpi.proc_rank))
-
+    np.save(ComPASS.to_output_directory('production_temperatures_%05d' % ComPASS.mpi.proc_rank), production_temperatures)
