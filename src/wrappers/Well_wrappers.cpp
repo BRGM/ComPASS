@@ -17,12 +17,86 @@
 
 #include "Well_wrappers.h"
 
+constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
+constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+
+/** Common data structure shared by injectors and producers. */
+struct Fortran_well_data
+{
+    typedef std::array<double, NC> Component_vector;
+    char operating_code;
+    double radius;
+    double maximum_pressure;
+    double minimum_pressure;
+    double imposed_flowrate;
+    Component_vector injection_composition;
+    double injection_temperature;
+};
+
+/** Common data structure shared by injectors and producers. */
+struct Perforation_state
+{
+    double pressure;
+    double temperature;
+    double density;
+    double pressure_drop;
+};
+
+struct Well_perforations
+{
+    Perforation_state * perforations_begin;
+    std::size_t nb_perforations;
+    auto size() const { return nb_perforations; }
+};
+
 // Fortran functions
 extern "C"
 {
 	void Well_allocate_well_geometries(COC&, COC&);
 	void Well_set_wells_data(ArrayWrapper&, ArrayWrapper&);
+    Fortran_well_data * get_injectors_data();
+    std::size_t nb_injectors();
+    Fortran_well_data * get_producers_data();
+    std::size_t nb_producers();
+    Well_perforations get_producing_perforations(std::size_t);
+    Well_perforations get_injecting_perforations(std::size_t);
 }
+
+struct Well_perforations_iterator
+{
+    enum Well_type { Producer, Injector, Undefined};
+    Well_type well_type;
+    std::size_t well_id;
+    Well_perforations operator*() {
+        switch (well_type) {
+        case Producer:
+            return get_producing_perforations(well_id);
+            break;
+        case Injector:
+            return get_injecting_perforations(well_id);
+            break;
+        default:
+            assert(false);
+        }
+        return Well_perforations{ nullptr, 0 };
+    }
+    Well_perforations_iterator& operator++() {
+        ++well_id;
+        return *this;
+    }
+    bool operator<(const Well_perforations_iterator& other) const {
+        assert(well_type == other.well_type);
+        return well_id < other.well_id;
+    }
+    bool operator==(const Well_perforations_iterator& other) const {
+        assert(well_type == other.well_type);
+        return well_id == other.well_id;
+    }
+    bool operator!=(const Well_perforations_iterator& other) const {
+        assert(well_type == other.well_type);
+        return well_id != other.well_id;
+    }
+};
 
 using namespace ComPASS::Well;
 
@@ -225,5 +299,74 @@ void add_well_wrappers(py::module& module)
 
 	module.def("set_well_geometries", &set_well_geometries, "Set well geometries.");
 	module.def("set_well_data", &set_well_data, "Set well data.");
+
+
+    py::class_<Fortran_well_data>(module, "WellData")
+        .def_readwrite("operating_code", &Fortran_well_data::operating_code)
+        .def_readwrite("radius", &Fortran_well_data::radius)
+        .def_readwrite("maximum_pressure", &Fortran_well_data::maximum_pressure)
+        .def_readwrite("minimum_pressure", &Fortran_well_data::minimum_pressure)
+        .def_readwrite("imposed_flowrate", &Fortran_well_data::imposed_flowrate)
+        .def_readwrite("injection_temperature", &Fortran_well_data::injection_temperature)
+        ;
+
+    py::class_<Perforation_state>(module, "PerforationState")
+        .def_readonly("pressure", &Perforation_state::pressure)
+        .def_readonly("temperature", &Perforation_state::temperature)
+        .def_readonly("density", &Perforation_state::density)
+        .def_readonly("pressure_drop", &Perforation_state::pressure_drop)
+        ;
+
+    module.def("injectors_data",
+        []() {
+        auto p = get_injectors_data();
+        return py::make_iterator(p, p + nb_injectors());
+    }, py::return_value_policy::reference);
+
+    module.def("producers_data",
+        []() {
+        auto p = get_producers_data();
+        return py::make_iterator(p, p + nb_producers());
+    }, py::return_value_policy::reference);
+
+    py::class_<Well_perforations>(module, "WellPerforations")
+        .def("__len__", &Well_perforations::size)
+        .def("__iter__", [](Well_perforations& self) {
+        return py::make_iterator(
+            self.perforations_begin,
+            self.perforations_begin + self.nb_perforations
+        );
+    }, py::return_value_policy::reference)
+        .def("__getitem__", [](Well_perforations& self, int i) {
+        assert(self.nb_perforations < std::numeric_limits<int>::max());
+        const auto n = static_cast<int>(self.nb_perforations);
+        if (i >= n || i < -n) {
+            py::print("wrong perforation index (", i, "out of", self.nb_perforations, ")");
+            throw pybind11::index_error{};
+        }
+        if (i < 0) return self.perforations_begin + (n + i);
+        return self.perforations_begin + i;
+    }, py::return_value_policy::reference)
+        ;
+
+    module.def("producers_perforations", []() {
+        constexpr auto well_type = Well_perforations_iterator::Well_type::Producer;
+        return py::make_iterator(
+        Well_perforations_iterator{ well_type, 0 },
+            Well_perforations_iterator{ well_type, nb_producers() }
+        );
+    });
+
+    module.def("injectors_perforations", []() {
+        constexpr auto well_type = Well_perforations_iterator::Well_type::Injector;
+        return py::make_iterator(
+        Well_perforations_iterator{ well_type, 0 },
+            Well_perforations_iterator{ well_type, nb_injectors() }
+        );
+    });
+
+    module.def("nb_producers", &nb_producers);
+    module.def("nb_injectors", &nb_injectors);
+
 
 }

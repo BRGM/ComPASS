@@ -35,9 +35,9 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
 	add_well_wrappers(module);
 	add_global_variables_wrappers(module);
     add_IncCV_wrappers(module);
-    add_Model_wrappers(module);
     add_flux_wrappers(module);
     add_time_loop_wrappers(module);
     add_debug_utils_wrappers(module);
+    add_model_wrappers(module);
 
 }

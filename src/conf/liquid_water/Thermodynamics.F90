@@ -27,8 +27,6 @@ module Thermodynamics
       f_Viscosite, & ! \mu^alpha(P,T,C,S)
       f_PermRel, & ! k_{r_alpha}(S)
       f_PressionCapillaire, & ! P_{c,alpha}(S)
-      FluidThermodynamics_Psat, &
-      FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
       f_Enthalpie
 
@@ -235,27 +233,5 @@ contains
       dSf(:) = 0.d0
 
    end subroutine f_Enthalpie
-
-   subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
-      bind(C, name="FluidThermodynamics_Psat")
-
-      real(c_double), value, intent(in) :: T
-      real(c_double), intent(out) :: Psat, dT_PSat
-
-      Psat = (T - 273.d0)**4.d0/1.0d3
-      dT_PSat = 4.d0*(T - 273.d0)**3.d0/1.0d3
-
-   end subroutine FluidThermodynamics_Psat
-
-   subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
-      bind(C, name="FluidThermodynamics_Tsat")
-
-      real(c_double), value, intent(in) :: P
-      real(c_double), intent(out) :: Tsat, dP_Tsat
-
-      Tsat = 100.d0*(P/1.d5)**0.25d0 + 273.d0
-      dP_Tsat = 0.25d0*1.d-3*(P/1.d5)**(-0.75d0)
-
-   end subroutine FluidThermodynamics_Tsat
 
 end module Thermodynamics

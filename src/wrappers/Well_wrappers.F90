@@ -124,11 +124,11 @@
     do k=1, nb_producers
         DataWellProd(k)%Radius = producers_data(k)%radius
         DataWellProd(k)%PressionMin = producers_data(k)%minimum_pressure
-        DataWellProd(k)%FlowrateImposed = producers_data(k)%imposed_flowrate
+        DataWellProd(k)%ImposedFlowrate = producers_data(k)%imposed_flowrate
         DataWellProd(k)%IndWell = producers_data(k)%operating_code
         !write(*,*) "Setting producer:", &
         !    DataWellProd(k)%Radius, &
-        !    DataWellProd(k)%PressionMin, DataWellProd(k)%FlowrateImposed, &
+        !    DataWellProd(k)%PressionMin, DataWellProd(k)%ImposedFlowrate, &
         !    DataWellProd(k)%IndWell
     end do
 
@@ -149,11 +149,11 @@
         DataWellInj(k)%CompTotal(:) = 1.d0 ! FIXME... for multi component injection
         DataWellInj(k)%Temperature = injectors_data(k)%temperature
         DataWellInj(k)%PressionMax = injectors_data(k)%maximum_pressure
-        DataWellInj(k)%FlowrateImposed = injectors_data(k)%imposed_flowrate
+        DataWellInj(k)%ImposedFlowrate = injectors_data(k)%imposed_flowrate
         DataWellInj(k)%IndWell = injectors_data(k)%operating_code
         !write(*,*) "Setting injector:", &
         !    DataWellInj(k)%Radius, DataWellInj(k)%Temperature, &
-        !    DataWellInj(k)%PressionMax, DataWellInj(k)%FlowrateImposed, &
+        !    DataWellInj(k)%PressionMax, DataWellInj(k)%ImposedFlowrate, &
         !    DataWellInj(k)%IndWell
     end do
 

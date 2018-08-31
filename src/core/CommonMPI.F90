@@ -8,47 +8,70 @@
 
 module CommonMPI
 
-  use mpi
+   use mpi
 
-  implicit none
+   implicit none
 
-  integer, public :: ComPASS_COMM_WORLD !< Communicator (all CPUs)
+   integer, public :: ComPASS_COMM_WORLD !< Communicator (all CPUs)
 
-  integer, public :: &
-       commRank, & !< Rank of the calling process
-       commSize, & !< Total number of processors (given by MPI)
-       Ncpus       !< Total number of processors
+   integer, public :: &
+      commRank, & !< Rank of the calling process
+      commSize, & !< Total number of processors (given by MPI)
+      Ncpus !< Total number of processors
 
-  public :: &
+   public :: &
       CommonMPI_init
 
 contains
-  !> \brief Initialize MPI constants:
-  !! ComPASS_COMM_WORLD, commSize = Ncpus, commRank
-  subroutine CommonMPI_init(comm)
+   !> \brief Initialize MPI constants:
+   !! ComPASS_COMM_WORLD, commSize = Ncpus, commRank
+   subroutine CommonMPI_init(comm)
 
-    integer, intent(in) :: comm ! PETSC_COMM_WORLD
-    integer :: Ierr
+      integer, intent(in) :: comm ! PETSC_COMM_WORLD
+      integer :: Ierr
 
-    ! ComPASS communicator
-    call MPI_Comm_dup(comm, ComPASS_COMM_WORLD, Ierr)
-    if(Ierr /= MPI_SUCCESS) then
-      print*, "MPI_Comm_dup error"
-    end if
+      ! ComPASS communicator
+      call MPI_Comm_dup(comm, ComPASS_COMM_WORLD, Ierr)
+      if (Ierr /= MPI_SUCCESS) then
+         print *, "MPI_Comm_dup error"
+      end if
 
-    ! Init CommonMPI: commRank, commSize,
-    call MPI_Comm_size(ComPASS_COMM_WORLD, commSize, Ierr)
-    if(Ierr /= MPI_SUCCESS) then
-      print*, "MPI_Comm_size error"
-    end if
+      ! Init CommonMPI: commRank, commSize,
+      call MPI_Comm_size(ComPASS_COMM_WORLD, commSize, Ierr)
+      if (Ierr /= MPI_SUCCESS) then
+         print *, "MPI_Comm_size error"
+      end if
 
-    call MPI_Comm_rank(ComPASS_COMM_WORLD, commRank, Ierr)
-    if(Ierr /= MPI_SUCCESS) then
-      print*, "MPI_Comm_rank error"
-    end if
+      call MPI_Comm_rank(ComPASS_COMM_WORLD, commRank, Ierr)
+      if (Ierr /= MPI_SUCCESS) then
+         print *, "MPI_Comm_rank error"
+      end if
 
-    Ncpus = commSize
+      Ncpus = commSize
 
-  end subroutine CommonMPI_init
+   end subroutine CommonMPI_init
+
+   subroutine CommonMPI_abort(reason, optional_error_code)
+
+      character(len=*), intent(in) :: reason
+      integer, intent(in), optional :: optional_error_code
+      integer :: error_code, abortion_result
+
+      if (present(optional_error_code)) then
+         error_code = optional_error_code
+      else
+         error_code = -1
+      end if
+
+      write (*, *) "***"
+      write (*, *) "*** ComPASS aborted"
+      write (*, *) "***"
+      write (*, *)
+      write (*, *) reason
+      write (*, *)
+
+      call MPI_Abort(ComPASS_COMM_WORLD, error_code, abortion_result)
+
+   end subroutine CommonMPI_abort
 
 end module CommonMPI

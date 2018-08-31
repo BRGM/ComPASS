@@ -9,6 +9,7 @@
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.utils.wells import create_vertical_well
 
 def interwell_distance(grid):
     return grid.extent[0]/3
@@ -40,19 +41,7 @@ def init_states(p, T):
         set_states(states)
 
 def make_well(xy, well_radius = None):
-    x, y, z = ComPASS.coordinates(ComPASS.global_vertices())
-    x_well = x[np.argmin(np.abs(x - xy[0]))]
-    y_well = y[np.argmin(np.abs(y - xy[1]))]
-    well_nodes = np.nonzero((x == x_well) & (y == y_well))[0]
-    # CHECKME: What is the expected order for well nodes?
-    well_nodes = well_nodes[np.argsort(z[well_nodes])]
-    well = ComPASS.Well()
-    if well_radius is None:
-        well_radius = 0.1
-    well.geometry.radius = well_radius
-    segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
-    well.geometry.add_segments(segments + 1) # Fortran indices start at 1
-    return well
+    return create_vertical_well(xy, well_radius)
 
 def make_wells_factory(grid, interwell=None):
     def make_wells(interwell=interwell):

@@ -10,6 +10,7 @@
 #include <iterator>
 #include <set>
 
+#include "common.h"
 #include "Variant_utils.h"
 
 /* TODO ?
@@ -22,7 +23,6 @@ this would make addition / mesh merging more difficult (order might change)
 namespace MeshTools
 {
 
-	typedef uint64_t ElementId;
 	typedef ElementId NodeId;
 	typedef ElementId CellId;
 	typedef ElementId FaceId;
