@@ -67,7 +67,7 @@ module DefFlashWells
       DefFlashWells_NonLinPressureUpdateWellProd
 
    private :: &
-      DefFlashWells_TimeFlashSinglePhaseWellProd!, & ! Flash after time step to compute T and rho
+      DefFlashWells_TimeFlashSinglePhaseWellProd !, & ! Flash after time step to compute T and rho
 !      DefFlashWells_TimeFlashTwoPhasesProd ! Flash after time step to compute T and rho
 
    private :: &
@@ -89,7 +89,7 @@ contains
 
    !> \brief Main surboutine, after each time iteration
    subroutine DefFlashWells_TimeFlash() &
-       bind(C, name="DefFlashWells_TimeFlash")
+      bind(C, name="DefFlashWells_TimeFlash")
 
       integer :: num_Well
 

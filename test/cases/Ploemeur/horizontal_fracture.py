@@ -155,6 +155,7 @@ def collect_production_temperatures(n, t):
     if rank==master:
         production_data = [data for data in production_data if data is not None]
         # We heavily rely on the fact that there is only one production well over the whole field
+        # production data can be duplicated has we collect both own and ghost well data
         production_temperatures.append(production_data[0])
 
 #%% First loop: injection of hot water
