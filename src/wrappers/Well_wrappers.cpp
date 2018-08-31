@@ -24,13 +24,13 @@ constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 struct Fortran_well_data
 {
     typedef std::array<double, NC> Component_vector;
-    char operating_code;
     double radius;
     double maximum_pressure;
     double minimum_pressure;
     double imposed_flowrate;
     Component_vector injection_composition;
     double injection_temperature;
+    char operating_code;
 };
 
 /** Common data structure shared by injectors and producers. */

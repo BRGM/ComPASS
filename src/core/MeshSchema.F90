@@ -300,14 +300,7 @@ contains
     integer :: blocklen(4), arraytype(4)
     integer(kind=MPI_ADDRESS_KIND) ::disp(4)
 
-    integer :: MPI_DATAWELLINJ
-    integer :: blocklen_datawellinj(6), arraytype_datawellinj(6)
-    integer(kind=MPI_ADDRESS_KIND) ::disp_datawellinj(6)
-
-    integer :: MPI_DATAWELLPROD
-    integer :: blocklen_datawellprod(4), arraytype_datawellprod(4)
-    integer(kind=MPI_ADDRESS_KIND) ::disp_datawellprod(4)
-
+    integer :: MPI_WELLDATA_ID
     
     ! ************************************* !
 
@@ -396,6 +389,9 @@ contains
        call MPI_Recv(NbWellProdOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 182, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
+    write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
+    write(*,*) 'on proc', commRank, ':', NbWellProdOwn_Ncpus, 'producers'
+    
     if(commRank==0) then
        deallocate(NbCellResS_Ncpus)
        deallocate(NbFaceResS_Ncpus)
@@ -745,96 +741,46 @@ contains
        deallocate(NodebyWellProdLocal_Ncpus)
     end if
 
-    ! send DataWellInjLocal
+    ! Well data type
+    
+    call DefWell_mpi_register_well_data_description(MPI_WELLDATA_ID)
 
-    blocklen_datawellinj(1) = 1
-    blocklen_datawellinj(2) = 1
-    blocklen_datawellinj(3) = NbComp
-    blocklen_datawellinj(4) = 1
-    blocklen_datawellinj(5) = 1
-    blocklen_datawellinj(6) = 1
-    arraytype_datawellinj(1) = MPI_DOUBLE
-    arraytype_datawellinj(2) = MPI_DOUBLE
-    arraytype_datawellinj(3) = MPI_DOUBLE
-    arraytype_datawellinj(4) = MPI_DOUBLE
-    arraytype_datawellinj(5) = MPI_DOUBLE
-    arraytype_datawellinj(6) = MPI_CHARACTER
-    disp_datawellinj(1) = 0 !   = 0
-    disp_datawellinj(2) = 8 !   + double
-    disp_datawellinj(3) = 16 !  + double
-    disp_datawellinj(4) = 8*(NbComp+2) ! + double * NbComp
-    disp_datawellinj(5) = 8*(NbComp+2) + 8 ! + double 
-    disp_datawellinj(6) = 8*(NbComp+2) +16 ! + double
-
-    ! Create and commit
-    call MPI_Type_Create_Struct(6, blocklen_datawellinj, disp_datawellinj, arraytype_datawellinj, MPI_DATAWELLINJ, Ierr)
-    call MPI_Type_commit(MPI_DATAWELLINJ, Ierr)
-
+    ! Injectors
     if (commRank==0) then
-
        ! proc >=1, send
        do i=1, Ncpus-1
           Nb = NbWellInjLocal_Ncpus(i+1)
-          call MPI_Send(DataWellInjRes_Ncpus(:,i+1), Nb, MPI_DATAWELLINJ, i, 210+i, ComPASS_COMM_WORLD, Ierr)
+          call MPI_Send(DataWellInjRes_Ncpus(:,i+1), Nb, MPI_WELLDATA_ID, i, 210+i, ComPASS_COMM_WORLD, Ierr)
        end do
-
        ! proc=0, copy
        Nb = NbWellInjLocal_Ncpus(1)
        allocate(DataWellInjLocal(Nb))
        DataWellInjLocal(:) = DataWellInjRes_Ncpus(1:Nb,1)
     else
-
        Nb = NbWellInjLocal_Ncpus(commRank+1)
        allocate(DataWellInjLocal(Nb))
-       call MPI_Recv(DataWellInjLocal, Nb, MPI_DATAWELLINJ, 0, 210+commRank, ComPASS_COMM_WORLD, stat, Ierr)
+       call MPI_Recv(DataWellInjLocal, Nb, MPI_WELLDATA_ID, 0, 210+commRank, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
-    ! Free TYPE MPI_DATAWELLINJ
-    call MPI_Type_free(MPI_DATAWELLINJ, Ierr)
-
-
-    ! send DataWellProdLocal
-    blocklen_datawellprod(1) = 1
-    blocklen_datawellprod(2) = 1
-    blocklen_datawellprod(3) = 1
-    blocklen_datawellprod(4) = 1
-    arraytype_datawellprod(1) = MPI_DOUBLE
-    arraytype_datawellprod(2) = MPI_DOUBLE
-    arraytype_datawellprod(3) = MPI_DOUBLE
-    arraytype_datawellprod(4) = MPI_CHARACTER
-    disp_datawellprod(1) = 0 !   = 0
-    disp_datawellprod(2) = 8 !   + double
-    disp_datawellprod(3) = 16 !  + double
-    disp_datawellprod(4) = 24 !  + double 
-
-    ! Create and commit
-    call MPI_Type_Create_Struct(4, blocklen_datawellprod, disp_datawellprod, arraytype_datawellprod, MPI_DATAWELLPROD, Ierr)
-    call MPI_Type_commit(MPI_DATAWELLPROD, Ierr)
-
+    ! Producers
     if (commRank==0) then
-
        ! proc >=1, send
        do i=1, Ncpus-1
           Nb = NbWellProdLocal_Ncpus(i+1)
-          call MPI_Send(DataWellProdRes_Ncpus(:,i+1), Nb, MPI_DATAWELLPROD, i, 210+i, ComPASS_COMM_WORLD, Ierr)
+          call MPI_Send(DataWellProdRes_Ncpus(:,i+1), Nb, MPI_WELLDATA_ID, i, 210+i, ComPASS_COMM_WORLD, Ierr)
        end do
-
        ! proc=0, copy
        Nb = NbWellProdLocal_Ncpus(1)
        allocate(DataWellProdLocal(Nb))
        DataWellProdLocal(:) = DataWellProdRes_Ncpus(1:Nb,1)
-
     else
-
        Nb = NbWellProdLocal_Ncpus(commRank+1)
        allocate(DataWellProdLocal(Nb))
-       call MPI_Recv(DataWellProdLocal, Nb, MPI_DATAWELLPROD, 0, 210+commRank, ComPASS_COMM_WORLD, stat, Ierr)
+       call MPI_Recv(DataWellProdLocal, Nb, MPI_WELLDATA_ID, 0, 210+commRank, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
-    ! Free TYPE MPI_DATAWELLPROD
-    call MPI_Type_free(MPI_DATAWELLPROD, Ierr)
+    call MPI_Type_free(MPI_WELLDATA_ID, Ierr)
 
-    
     ! ************************************* !
 
     ! Send IdCellLocal
@@ -1278,15 +1224,6 @@ contains
 
     ! Free TYPE MPI_DATANODEWELL
     call MPI_Type_free(MPI_DATANODEWELL, Ierr)
-
-	!do i=1, size(DataWellInjLocal)
-	!	write(*,*) "%%", "local injection data on proc", commRank
-	!	call DefWell_print_DataWellInj(DataWellInjLocal(i))
-	!end do
-	!do i=1, size(DataWellProdLocal)
-	!	write(*,*) "%%", "local production data on proc", commRank
-	!	call DefWell_print_DataWellProd(DataWellProdLocal(i))
-	!end do
     
   end subroutine MeshSchema_sendrecv
 

@@ -125,42 +125,38 @@ for states in [ComPASS.dirichlet_node_states(),
                 ComPASS.cell_states()]:
     set_states(states)
 
-final_time = 2E4
+final_time = 2E3
 output_period = 0.05 * final_time
-ComPASS.set_maximum_timestep( 0.5 * output_period )
-ComPASS.set_maximum_timestep( 250 )
+maximum_timestep = 250.
+ComPASS.set_maximum_timestep(maximum_timestep)
 
-communicator = ComPASS.mpi.communicator()
 master = ComPASS.mpi.master_proc_rank
 rank = ComPASS.mpi.proc_rank
 
-# Collect production temperature on master proc
-if rank==master:
-    production_temperatures = []
-else:
-    production_temperatures = None
+print('proc', rank, 'has', ComPASS.nb_producers(), 'producers')
+print('proc', rank, 'has', ComPASS.nb_injectors(), 'injectors')
 
-has_producer = ComPASS.nb_producers()>0
-assert ComPASS.nb_producers()<=1
-
-def collect_production_temperatures(n, t):
-    if has_producer:
-        assert ComPASS.nb_producers()==1
-        producers_perforations = list(ComPASS.producers_perforations())
-        wellhead_state = producers_perforations[0][-1]  # latest perforation corresponds to well head
-        production_data = (t, wellhead_state.temperature)
+def print_well_data(well_type, data):
+    well_data = list(data)
+    if well_data:
+        for i, wd in enumerate(well_data):
+            print(
+                'on proc %d - %s well data %d' % (rank, well_type, i),
+                'operating code            %s' % wd.operating_code,
+                'radius                %10.5f' % wd.radius,
+                'limit pressure        %10.5e' % (wd.maximum_pressure if well_type=='injection' else wd.minimum_pressure),
+                'imposed_flowrate      %10.5f' % wd.imposed_flowrate,
+                '--------------------> injection temperature %10.5f' % wd.injection_temperature,
+                sep = '\n'     
+            )
     else:
-        production_data = None
-    production_data = communicator.gather(production_data, root=master)
-    if rank==master:
-        production_data = [data for data in production_data if data is not None]
-        # We heavily rely on the fact that there is only one production well over the whole field
-        production_temperatures.append(production_data[0])
+        print('no', well_type, 'data on proc', rank)
 
-#%% First loop: injection of hot water
+print_well_data('injection', ComPASS.injectors_data())
+print_well_data('production', ComPASS.producers_data())
+
 injection_duration = final_time
 standard_loop(initial_timestep = 1E-5, final_time = injection_duration,
-              #iteration_callbacks = [collect_production_temperatures,],
               output_period = output_period)
 
-
+assert ComPASS.get_timestep() == maximum_timestep
