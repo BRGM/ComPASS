@@ -198,7 +198,7 @@ contains
 
     type(c_ptr) :: p
 
-    if(allocated(DataWellInjLocal)) then
+    if(allocated(DataWellInjLocal).and.size(DataWellInjLocal, 1)>0) then
         p = c_loc(DataWellInjLocal(1))
     else
         p = c_null_ptr
@@ -225,7 +225,7 @@ contains
 
     type(c_ptr) :: p
 
-    if(allocated(DataWellProdLocal)) then
+    if(allocated(DataWellProdLocal).and.size(DataWellProdLocal, 1)>0) then
         p = c_loc(DataWellProdLocal(1))
     else
         p = c_null_ptr
