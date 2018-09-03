@@ -84,10 +84,14 @@ ComPASS.set_fracture_thickness(fracture_thickness)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 def build_wells():
-    producer = create_vertical_well((half_interwell_distance, 0), well_radius = 0.1, zmin=-dz, zmax=dz)
+    producer = create_vertical_well((half_interwell_distance, 0),
+                                     well_radius = 0.1,
+                                     zmin=-1.5*dz, zmax=1.5*dz)
     producer.operate_on_flowrate = Qm, -1E99 # mass flow rate, pressure limit (minimum)
     producer.produce()
-    injector = create_vertical_well((-half_interwell_distance, 0), well_radius = 0.1, zmin=-dz, zmax=dz)
+    injector = create_vertical_well((-half_interwell_distance, 0),
+                                     well_radius = 0.1,
+                                     zmin=-1.5*dz, zmax=1.5*dz)
     injector.operate_on_flowrate = -Qm, 1E99 # mass flow rate, pressure limit (maximum)
     injector.inject(Tinjection)
     return (producer, injector)
