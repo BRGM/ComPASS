@@ -299,6 +299,7 @@ contains
                  num_cell, num_face, comptCell, comptFrac
       logical :: cell_edge
       double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length
+      double precision :: wi_min
       double precision, dimension(3) :: xn1, xn2, xk
       double precision, allocatable, dimension(:) :: WI_global
 
@@ -353,6 +354,21 @@ contains
             de = dsqrt(dot_product(xn1 - xn2, xn1 - xn2)) ! length of edge
             dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
             wi = de*Pi*meanPerm/log(dr0/WellRadius(i))
+            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
+            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
+            if(wi<wi_min) then
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                write(*,*) ''
+                write(*,*) 'Applying threshold on Peaceman Well Index'
+                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
+                write(*,*) 'well index', wi, 'well index limit', wi_min
+                write(*,*) ''
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                wi = wi_min
+            end if
+                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
 
             ! contribution of the edge to each nodes: node and parent
             WI_global(num_node) = WI_global(num_node) + wi
@@ -401,6 +417,22 @@ contains
 
                dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
                wi = meanThickness*2.d0*Pi*meanPerm/log(dr0/WellRadius(i))
+
+            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
+            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
+            if(wi<wi_min) then
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                write(*,*) ''
+                write(*,*) 'Applying threshold on fracture Peaceman Well Index'
+                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
+                write(*,*) 'well index', wi, 'well index limit', wi_min
+                write(*,*) ''
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                wi = wi_min
+            end if
+                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
 
                ! contribution of the fracs to the node
                WI_global(num_node) = WI_global(num_node) + wi
