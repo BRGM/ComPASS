@@ -74,6 +74,22 @@ vtkw.write_vtu(
 
 #for k, S in enumerate(mesh.surfaces()):
 #    mesh = MT.TSurf.make(*S.as_arrays())
+filename = 'rastersocle2750.txt'
+
+import Raster
+info = Raster.RasterInfo(filename)
+raw_data = np.loadtxt(filename, skiprows=6)
+#data = np.ma.array(raw_data, mask = raw_data==float(info.nodata))
+raw_data = raw_data.ravel()
+centers = info.centers()
+
+xyz = np.transpose(np.vstack([a.ravel() for a in centers] + [raw_data,]))
+
+xyz = xyz[raw_data!=float(info.nodata)]
+
+import MeshTools.CGALWrappers as CGAL
+
+dtm = CGAL.triangulate_points(xyz)
 
 
 #for k, S in enumerate(mesh.surfaces()):
