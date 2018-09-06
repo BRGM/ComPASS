@@ -590,7 +590,10 @@ subroutine NN_init_phase2(OutputDir)
 
                NewtonConv = .true.
                KspConv = .true.
+               !write(*,*) 'Newton converged with', NewtonIter, 'iterations (dt=', Delta_t, ')'
                exit
+            !else
+               !write(*,*) 'Newton did NOT converged after', NewtonIter, 'iterations (dt=', Delta_t, ')'
             end if
 
             ! Jacobian and second member

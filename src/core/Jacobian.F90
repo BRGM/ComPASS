@@ -1495,10 +1495,15 @@ contains
     integer :: k, rowk, colk, s, nums, rows, cols, m, icp, nz
     double precision :: Tws, Ps_Pws, Ts, WIDws, WIFws
     double precision :: dP_w(NbComp), dP_s(NbComp), dP_ER_w, dP_ER_s
+    logical :: something_is_injected
 
+    nz = -1
+    
     do k=1, NbWellInjLocal_Ncpus(commRank+1)
 
-       ! A_kk, k is well
+              something_is_injected = .false.
+
+              ! A_kk, k is well
        rowk = k + NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
             + NbCellLocal_Ncpus(commRank+1)
        colk = k + NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1) &
@@ -1530,6 +1535,7 @@ contains
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = -1.d0
           end if
+          something_is_injected = .true.
        end if
 
        ! Step 2.
@@ -1560,8 +1566,9 @@ contains
           end if
 
           cols = nums
-
           if(Ps_Pws < 0.d0) then ! if >0, this term is 0
+  
+              something_is_injected = .true.
 
              do icp=1, NbComp
                 dP_w(icp) = divDensitemolaireKrViscoCompWellInj(icp,s) * WIDws * Ps_Pws &
@@ -1629,6 +1636,9 @@ contains
 !           end if
 ! #endif
        end do
+
+       if(.not.something_is_injected) write(*,*) 'WARNING: nothing is injected in well', k, 'on proc', commRank+1
+          
     end do
 
   end subroutine Jacobian_JacBigA_BigSm_wellinj
@@ -1644,9 +1654,12 @@ contains
     double precision :: &
          dP_w(NbComp), dP_s(NbCompThermique,NbComp), &
          dP_ER_w, der_ER_s(NbCompThermique)
+    logical :: something_is_produced
 
+    nz = -1
+    
     do k=1, NbWellProdLocal_Ncpus(commRank+1)
-
+    something_is_produced = .false.
        ! A_kk, k is well
        rowk = k + NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
             + NbCellLocal_Ncpus(commRank+1) + NbWellInjOwn_Ncpus(commRank+1)
@@ -1673,7 +1686,7 @@ contains
 
        ! Step 1. well equation: Pw - Pwmin = 0
        if( DataWellProdLocal(k)%IndWell == 'p') then
-
+          something_is_produced = .true.
           if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = 1.d0
@@ -1696,7 +1709,7 @@ contains
 #endif
 
           if(Ps_Pws > 0.d0) then ! if Ps_Pws < 0 then this term is zero
-
+            something_is_produced = .true.
              ! derivative of
              !   sum_{Q_s \cap P_i} q_{w,s,i}
              !   sum_{Q_s \cap P_i} q_{w,s,e}
@@ -1775,6 +1788,7 @@ contains
 
           end if
        end do
+       if(.not.something_is_produced) write(*,*) 'WARNING: nothing is produced from well', k, 'on proc', commRank+1
     end do
 
   end subroutine Jacobian_JacBigA_BigSm_wellprod

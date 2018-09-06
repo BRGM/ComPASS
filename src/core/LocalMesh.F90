@@ -104,8 +104,8 @@ module LocalMesh
        WellProdbyProc   !< Local production Wells by proc in num global (CSR)
 
   !! DataWellRes_Ncpus(num_welllocal,num_proc)
-  type(TYPE_DataWellInj), allocatable, dimension(:,:), public :: DataWellInjRes_Ncpus !< Data of injection well (Radius,...) for local well
-  type(TYPE_DataWellProd), allocatable, dimension(:,:), public :: DataWellProdRes_Ncpus !< Data of production well (Radius,...) for local well
+  type(WellData_type), allocatable, dimension(:,:), public :: DataWellInjRes_Ncpus !< Data of injection well (Radius,...) for local well
+  type(WellData_type), allocatable, dimension(:,:), public :: DataWellProdRes_Ncpus !< Data of production well (Radius,...) for local well
 
 
   !! NumNode/Frac/WellbyProc_Ncpus(ip): node/frac/well num in the proc that this object is own

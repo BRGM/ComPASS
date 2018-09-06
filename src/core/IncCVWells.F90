@@ -8,6 +8,8 @@
 
 module IncCVWells
 
+    use, intrinsic :: iso_c_binding
+
    use MeshSchema
    use DefModel
    use Thermodynamics
@@ -23,7 +25,7 @@ module IncCVWells
    implicit none
 
    !> Type for the perforations, stores informations which are not constant in the well
-   TYPE TYPE_PhysPerfoWell
+   type, bind(c) :: WellPerforationState_type
       double precision :: &
          Pression, & !< Pressure at the perforation
          Temperature, & !< Temperature at the perforation
@@ -31,15 +33,20 @@ module IncCVWells
          PressureDrop !< Pressure drop at the perforation, used to construct Pressure from the head pressure
       ! FluxMolar(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
       ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}
-   end TYPE TYPE_PhysPerfoWell
+   end type WellPerforationState_type
 
-   ! well pressure for current time step
+   type, bind(c) :: WellPerforations_type
+    type(c_ptr) :: perforations_begin
+    integer(c_size_t) :: nb_perforations
+    end type WellPerforations_type
+       
+       ! well pressure for current time step
    real(c_double), allocatable, dimension(:), target, public :: &
       IncPressionWellInj, & !< Injection Well unknown: head pressure for current time step
       IncPressionWellProd !< Production Well unknown: head pressure for current time step
 
    ! like CSR format without stocking %Nb and %Pt (idem that NodebyWellLocal)
-   TYPE(TYPE_PhysPerfoWell), allocatable, dimension(:), target, public :: &
+   TYPE(WellPerforationState_type), allocatable, dimension(:), target, public :: &
       PerfoWellInj, & !< Injection Well informations at each perforation for current time step
       PerfoWellProd !< Production Well informations at each perforation for current time step
 
@@ -62,10 +69,53 @@ module IncCVWells
       IncCVWells_PressureDropWellInj_integrate, &
       IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, &
-      IncCVWells_LoadIncPreviousTimeStep
+      IncCVWells_LoadIncPreviousTimeStep, &
+      get_producing_perforations, &
+      get_injecting_perforations
 
-contains
+    contains
 
+    
+    function get_producing_perforations(well) result(perforations) &
+        bind(C, name="get_producing_perforations")
+
+        integer(c_size_t), intent(in), value :: well
+        type(WellPerforations_type) :: perforations
+
+        integer :: w 
+        
+        w = well + 1 ! Fortran index starts at 1
+        if(allocated(PerfoWellProd)) then
+            perforations%perforations_begin = c_loc(PerfoWellProd(NodebyWellProdLocal%Pt(w) + 1))
+            perforations%nb_perforations = NodebyWellProdLocal%Pt(w+1) - NodebyWellProdLocal%Pt(w)
+        else
+            perforations%perforations_begin = c_null_ptr
+            perforations%nb_perforations = 0
+        end if
+
+    end function get_producing_perforations
+
+     
+    function get_injecting_perforations(well) result(perforations) &
+        bind(C, name="get_injecting_perforations")
+
+        integer(c_size_t), intent(in), value :: well
+        type(WellPerforations_type) :: perforations
+
+        integer :: w 
+        
+        w = well + 1 ! Fortran index starts at 1
+        if(allocated(PerfoWellInj)) then
+            perforations%perforations_begin = c_loc(PerfoWellInj(NodebyWellInjLocal%Pt(w) + 1))
+            perforations%nb_perforations = NodebyWellInjLocal%Pt(w+1) - NodebyWellInjLocal%Pt(w)
+        else
+            perforations%perforations_begin = c_null_ptr
+            perforations%nb_perforations = 0
+        end if
+
+    end function get_injecting_perforations
+
+     
    ! sort the nodes of wells by z-cordinate from the smallest to the largest
    ! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
    subroutine IncCVWells_SortHeightWellInj

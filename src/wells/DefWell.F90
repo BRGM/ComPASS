@@ -8,502 +8,585 @@
 
 module DefWell
 
-  use CommonMPI
-  use DefModel
-  use Physics
-  
-  implicit none
+   use, intrinsic :: iso_c_binding
 
-  ! Data of well inj
-  type TYPE_DataWellInj
-     double precision :: &
-          Radius
-     double precision :: &
-          Temperature,   &
-          CompTotal(NbComp)
-     double precision :: &
-          PressionMax,   &
-          FlowrateImposed ! < 0, débit molaire
-     character :: &
-          IndWell  ! 'p' for pressure mode ; 'f' for flowrate mode
-  end type TYPE_DataWellInj
+   use CommonMPI
+   use DefModel
+   use Physics
 
-  ! Data of well prod
-  type TYPE_DataWellProd
-     double precision :: &
-          Radius
-     double precision :: &
-          PressionMin,   &
-          FlowrateImposed ! > 0, débit molaire
-     character :: &
-          IndWell  ! 'p' for pressure mode ; 'f' for flowrate mode
-  end type TYPE_DataWellProd
+   implicit none
 
-  !> Store data of one Node Well about parent and well index
-  type TYPE_DataNodeWell
-     integer :: Parent       !< num of parent; -1 if head node
-     integer :: PtParent     !< pt of parent; -1 if head node
-     double precision :: WID !< Well Index Darcy
-     double precision :: WIF !< Well Index Fourier
-  end type TYPE_DataNodeWell
+   type, bind(c) :: WellData_type
+      real(c_double) :: &
+         Radius, & ! both well types
+         PressionMax, & ! injector only
+         PressionMin, & ! producer only
+         ImposedFlowrate, & ! both well types (>=0 for producer <0 for injector)
+         CompTotal(NbComp), & ! injector only
+         Temperature ! injector only
+      ! WARNING: we put character at the end of the structure
+      ! because of "memory padding" when creating mpi well data structure
+      ! cf. DefWell_mpi_register_well_data_description
+      character(c_char) :: &
+         IndWell ! both well types 'p' for pressure mode ; 'f' for flowrate mode
+   end type WellData_type
 
-  !> CSR type with Pt, Num, and Val (1d DataNodeWell type)
-  type TYPE_CSRDataNodeWell
-     integer :: Nb
-     integer, allocatable, dimension (:) :: Pt
-     integer, allocatable, dimension(:) :: Num
-     type(TYPE_DataNodeWell), allocatable, dimension (:) :: Val !< Parent and Well Indexes
-  end type TYPE_CSRDataNodeWell
+   !> Store data of one Node Well about parent and well index
+   type TYPE_DataNodeWell
+      integer :: Parent !< num of parent; -1 if head node
+      integer :: PtParent !< pt of parent; -1 if head node
+      double precision :: WID !< Well Index Darcy
+      double precision :: WIF !< Well Index Fourier
+   end type TYPE_DataNodeWell
 
-  !> to allow = between two DataNodeWell_type
-  interface assignment(=)
-     module procedure assign_DataNodeWell_equal
-  end interface assignment(=)
+   !> CSR type with Pt, Num, and Val (1d DataNodeWell type)
+   type TYPE_CSRDataNodeWell
+      integer :: Nb
+      integer, allocatable, dimension(:) :: Pt
+      integer, allocatable, dimension(:) :: Num
+      type(TYPE_DataNodeWell), allocatable, dimension(:) :: Val !< Parent and Well Indexes
+   end type TYPE_CSRDataNodeWell
 
-  !> to allow = between two DataWellInj
-  interface assignment(=)
-     module procedure assign_DataWellInj_equal
-  end interface assignment(=)
+   !> to allow = between two DataNodeWell_type
+   interface assignment(=)
+      module procedure assign_DataNodeWell_equal
+   end interface assignment(=)
+      
+   !> to allow = between two DataWellInj
+   interface assignment(=)
+      module procedure assign_DataWell_equal
+   end interface assignment(=)
 
-  !> to allow = between two DataWellProd
-  interface assignment(=)
-     module procedure assign_DataWellProd_equal
-  end interface assignment(=)
+   type(WellData_type), allocatable, target, dimension(:), public :: &
+      DataWellInj, &
+      DataWellProd
 
+   TYPE(TYPE_CSRDataNodeWell), public :: &
+      NodeDatabyWellInj, & !< CSR store data about Parent and Well index of nodes of each injection Well
+      NodeDatabyWellProd !< CSR store data about Parent and Well index of nodes of each production Well
 
-  ! ! ****** Wells ****** ! !
-  TYPE(TYPE_DataWellInj), allocatable, dimension(:), public :: DataWellInj
-  TYPE(TYPE_DataWellProd), allocatable, dimension(:), public :: DataWellProd
-
-  TYPE(TYPE_CSRDataNodeWell), public :: &
-       NodeDatabyWellInj, & !< CSR store data about Parent and Well index of nodes of each injection Well
-       NodeDatabyWellProd   !< CSR store data about Parent and Well index of nodes of each production Well
-
-  public :: &
-       DefWell_SetDataWellInj,  &
-       DefWell_SetDataWellProd, &
-       DefWell_Make, &
-       DefWell_WellIndex,       &    ! Compute Well index
-       DefWell_csrdatawellcopy, &    ! copy CSRDatawell
-       DefWell_deallocCSRDataWell    ! free CSRdataWell
+   public :: &
+      DefWell_SetDataWellInj, &
+      DefWell_SetDataWellProd, &
+      DefWell_Make, &
+      DefWell_WellIndex, & ! Compute Well index
+      DefWell_csrdatawellcopy, & ! copy CSRDatawell
+      DefWell_deallocCSRDataWell, & ! free CSRdataWell
+      get_global_injectors_data, nb_global_injectors, &
+      get_global_producers_data, nb_global_producers, &
+      DefWell_mpi_register_well_data_description
 
 contains
 
-  subroutine DefWell_print_DataWellInj(datawell)
+   function get_global_injectors_data() result(p) &
+      bind(C, name="get_global_injectors_data")
 
-  type(TYPE_DataWellInj), intent(in) :: datawell
+      type(c_ptr) :: p
 
-  write(*,*) "%%", "iwd", datawell%Radius, &
-	datawell%Temperature, datawell%compTotal(:), &
-	datawell%PressionMax, datawell%FlowrateImposed, &
-	datawell%IndWell
+      if (allocated(DataWellInj)) then
+         p = c_loc(DataWellInj(1))
+      else
+         p = c_null_ptr
+      end if
 
-  end subroutine DefWell_print_DataWellInj
+   end function get_global_injectors_data
 
-  subroutine DefWell_print_DataWellProd(datawell)
+   function nb_global_injectors() result(n) &
+      bind(C, name="nb_global_injectors")
 
-  type(TYPE_DataWellProd), intent(in) :: datawell
+      integer(c_size_t) :: n
 
-  write(*,*) "%%", "pwd", datawell%Radius, &
-  datawell%PressionMin, datawell%FlowrateImposed, &
-  datawell%IndWell
+      if (allocated(DataWellInj)) then
+         n = size(DataWellInj, 1)
+      else
+         n = 0
+      end if
 
-  end subroutine DefWell_print_DataWellProd
+   end function nb_global_injectors
 
-  ! allocate DataWellInj and set Radius
-  subroutine DefWell_SetDataWellInj(NbWell)
+   function get_global_producers_data() result(p) &
+      bind(C, name="get_global_producers_data")
 
-    integer, intent(in) :: NbWell
-    integer :: k
+      type(c_ptr) :: p
 
-    allocate(DataWellInj(NbWell))
+      if (allocated(DataWellProd)) then
+         p = c_loc(DataWellProd(1))
+      else
+         p = c_null_ptr
+      end if
 
-    do k=1, NbWell
+   end function get_global_producers_data
 
-       DataWellInj(k)%Radius = 0.1d0
-       DataWellInj(k)%Temperature = 60.d0 + 273.d0
+   function nb_global_producers() result(n) &
+      bind(C, name="nb_global_producers")
 
-       DataWellInj(k)%CompTotal(:) = 1.d0 ! here NbComp=1
-       DataWellInj(k)%PressionMax = 3.d7
-       DataWellInj(k)%FlowrateImposed = - 1.d5/3600.d0
+      integer(c_size_t) :: n
 
-       DataWellInj(k)%IndWell = 'p'
-    end do
+      if (allocated(DataWellProd)) then
+         n = size(DataWellProd, 1)
+      else
+         n = 0
+      end if
 
-  end subroutine DefWell_SetDataWellInj
+   end function nb_global_producers
 
+   subroutine DefWell_print_WellData(datawell)
 
-  ! allocate DataWellProd and set Radius
-  subroutine DefWell_SetDataWellProd(NbWell)
+      type(WellData_type), intent(in) :: datawell
 
-    integer, intent(in) :: NbWell
-    integer :: k
+      write (*, *) "%%", "injector data", datawell%Radius, &
+         datawell%Temperature, datawell%compTotal(:), &
+         datawell%PressionMax, datawell%ImposedFlowrate, &
+         datawell%IndWell
 
-    allocate(DataWellProd(NbWell))
+      write (*, *) "%%", "producer data", datawell%Radius, &
+         datawell%PressionMin, datawell%ImposedFlowrate, &
+         datawell%IndWell
 
-    do k=1, NbWell
+   end subroutine DefWell_print_WellData
 
-       DataWellProd(k)%Radius = 0.1d0
-       DataWellProd(k)%PressionMin = 1.d7
-       DataWellProd(k)%FlowrateImposed = 1.d5/3600.d0
+   ! allocate DataWellInj and set Radius
+   subroutine DefWell_SetDataWellInj(NbWell)
 
-       DataWellProd(k)%IndWell = 'p'
-    end do
+      integer, intent(in) :: NbWell
+      integer :: k
 
-  end subroutine DefWell_SetDataWellProd
+      allocate (DataWellInj(NbWell))
 
+      do k = 1, NbWell
 
-  !! ----------------------------------------------------!!
+         DataWellInj(k)%Radius = 0.1d0
+         DataWellInj(k)%Temperature = 60.d0 + 273.d0
 
-  subroutine DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-    integer, intent(in) :: NbWellInj, NbWellProd
+         DataWellInj(k)%CompTotal(:) = 1.d0 ! here NbComp=1
+         DataWellInj(k)%PressionMax = 3.d7
+         DataWellInj(k)%ImposedFlowrate = -1.d5/3600.d0
 
-    call DefWell_SetDataWellInj(NbWellInj)   ! allocate DataWellInj and set Radius
-    call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
+         DataWellInj(k)%IndWell = 'p'
+      end do
 
-  end subroutine DefWell_Make_SetDataWell
+   end subroutine DefWell_SetDataWellInj
 
-  subroutine DefWell_Make_ComputeWellIndex( &
-       NbNode, XNode, CellbyNode, NodebyCell, &
-	   FracbyNode, NodebyFace, PermCell, PermFrac)
+   ! allocate DataWellProd and set Radius
+   subroutine DefWell_SetDataWellProd(NbWell)
 
-    integer, intent(in) :: NbNode
-    double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
-    !type(FractureInfoCOC), intent(in) :: FracbyNode
-    type(CSR), intent(in) :: FracbyNode
+      integer, intent(in) :: NbWell
+      integer :: k
 
-    double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
-    double precision, allocatable, dimension(:), intent(in) :: PermFrac
+      allocate (DataWellProd(NbWell))
 
-    integer :: NbWellInj, NbWellProd
-    double precision, allocatable, dimension(:) :: WellRadius
-    ! FIXME: set consistent values to error codes
-    integer :: errcode, Ierr
+      do k = 1, NbWell
 
-    if(.NOT.allocated(DataWellProd)) then
-        !CHECKME: MPI_Abort is supposed to end all MPI processes
-		write(*,*) "ERROR DataWellProd is not allocated."
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-	NbWellProd = size(DataWellProd)
-    if(.NOT.allocated(DataWellInj)) then
-        !CHECKME: MPI_Abort is supposed to end all MPI processes
-		write(*,*) "ERROR DataWellInj is not allocated."
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-	NbWellInj = size(DataWellInj)
+         DataWellProd(k)%Radius = 0.1d0
+         DataWellProd(k)%PressionMin = 1.d7
+         DataWellProd(k)%ImposedFlowrate = 1.d5/3600.d0
 
-    allocate(WellRadius(max(NbWellInj,NbWellProd)))
+         DataWellProd(k)%IndWell = 'p'
+      end do
 
-    WellRadius(:) = 0
-    WellRadius(1:NbWellInj) = DataWellInj(:)%Radius
-    call DefWell_WellIndex(NodeDatabyWellInj,NbWellInj,WellRadius, &
+   end subroutine DefWell_SetDataWellProd
+
+   !! ----------------------------------------------------!!
+
+   subroutine DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+      integer, intent(in) :: NbWellInj, NbWellProd
+
+      call DefWell_SetDataWellInj(NbWellInj) ! allocate DataWellInj and set Radius
+      call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
+
+   end subroutine DefWell_Make_SetDataWell
+
+   subroutine DefWell_Make_ComputeWellIndex( &
+      NbNode, XNode, CellbyNode, NodebyCell, &
+      FracbyNode, NodebyFace, PermCell, PermFrac)
+
+      integer, intent(in) :: NbNode
+      double precision, allocatable, dimension(:, :), intent(in) :: XNode
+      type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+      !type(FractureInfoCOC), intent(in) :: FracbyNode
+      type(CSR), intent(in) :: FracbyNode
+
+      double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
+      double precision, allocatable, dimension(:), intent(in) :: PermFrac
+
+      integer :: NbWellInj, NbWellProd
+      double precision, allocatable, dimension(:) :: WellRadius
+      ! FIXME: set consistent values to error codes
+      integer :: errcode, Ierr
+
+      if (.NOT. allocated(DataWellProd)) then
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         write (*, *) "ERROR DataWellProd is not allocated."
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+      NbWellProd = size(DataWellProd)
+      if (.NOT. allocated(DataWellInj)) then
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         write (*, *) "ERROR DataWellInj is not allocated."
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+      NbWellInj = size(DataWellInj)
+
+      allocate (WellRadius(max(NbWellInj, NbWellProd)))
+
+      WellRadius(:) = 0
+      WellRadius(1:NbWellInj) = DataWellInj(:)%Radius
+      call DefWell_WellIndex(NodeDatabyWellInj, NbWellInj, WellRadius, &
+                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+                             PermCell, PermFrac)
+
+      WellRadius(:) = 0
+      WellRadius(1:NbWellProd) = DataWellProd(:)%Radius
+      call DefWell_WellIndex(NodeDatabyWellProd, NbWellProd, WellRadius, &
+                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+                             PermCell, PermFrac)
+
+      deallocate (WellRadius)
+
+   end subroutine DefWell_Make_ComputeWellIndex
+
+   subroutine DefWell_Make(NbWellInj, NbWellProd, &
+                           NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+                           PermCell, PermFrac)
+
+      integer, intent(in) :: NbWellInj, NbWellProd, NbNode
+      double precision, allocatable, dimension(:, :), intent(in) :: XNode
+      type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+      !type(FractureInfoCOC), intent(in) :: FracbyNode
+      type(CSR), intent(in) :: FracbyNode
+
+      double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
+      double precision, allocatable, dimension(:), intent(in) :: PermFrac
+
+      double precision, allocatable, dimension(:) :: WellRadius
+
+      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
+
+      call DefWell_Make_ComputeWellIndex( &
          NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
          PermCell, PermFrac)
 
-    WellRadius(:) = 0
-    WellRadius(1:NbWellProd) = DataWellProd(:)%Radius
-    call DefWell_WellIndex(NodeDatabyWellProd,NbWellProd,WellRadius, &
-         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-         PermCell, PermFrac)
-
-    deallocate(WellRadius)
-
-	end subroutine DefWell_Make_ComputeWellIndex
-
-	subroutine DefWell_Make(NbWellInj, NbWellProd, &
-       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-       PermCell, PermFrac)
-
-    integer, intent(in) :: NbWellInj, NbWellProd, NbNode
-    double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
-    !type(FractureInfoCOC), intent(in) :: FracbyNode
-    type(CSR), intent(in) :: FracbyNode
-
-    double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
-    double precision, allocatable, dimension(:), intent(in) :: PermFrac
-
-    double precision, allocatable, dimension(:) :: WellRadius
-
-	call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-
-	call DefWell_Make_ComputeWellIndex( &
-       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-       PermCell, PermFrac)
-
-  end subroutine DefWell_Make
-
-  ! Output:
-  !  NodeDatabyWell%Val%WI
-  ! Use:
-  !  NodeDatabyWell%Val%Parent, CellbyNode, FracbyNode, PermCell, PermFrac, Thickness (of frac)
-  !  NodebyCell, NodebyFace
-  !> \brief Compute the Well Index of every injection and production well using Peaceman formula.
-  !!
-  !! This model assums that it is derived for a vertical well in a uniform Cartesian grid,
-  !! fully penetrating the grid block, with single-phase radial flow and
-  !! no interaction with boundaries or other wells.
-  !! \WARNING This computation supposes that two wells cannot share a node.
-  subroutine DefWell_WellIndex(NodeDatabyWell, NbWell, WellRadius, &
-       NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-       PermCell, PermFrac)
-
-    integer, intent(in) :: NbWell, NbNode
-    double precision, dimension(:), intent(in) :: WellRadius
-    type(TYPE_CSRDataNodeWell), intent(inout) :: NodeDatabyWell
-
-    double precision, allocatable, dimension(:,:), intent(in) :: XNode
-    type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
-    !type(FractureInfoCOC), intent(in) :: FracbyNode
-    type(CSR), intent(in) :: FracbyNode
-
-    double precision, allocatable, dimension(:,:,:), intent(in) :: PermCell
-    double precision, allocatable, dimension(:), intent(in) :: PermFrac
-
-    integer :: i, j, k, kp, m, ind, num_node, num_parent, &
-         num_cell, num_face, comptCell, comptFrac
-    logical :: cell_edge
-    double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length
-    double precision, dimension(3) :: xn1, xn2, xk
-    double precision, allocatable, dimension(:) :: WI_global
-
-    double precision, parameter :: Pi = 3.14159265359d0
-
-    allocate(WI_global(NbNode))
-    WI_global(:) = 0.d0
-
-    ! computation of Well Index Darcy
-
-    !! MATRIX
-    do i=1,NbWell
-       ! loop over the EDGES: (node,Parent(node)) for node=1,head_node-1
-       do j=NodeDatabyWell%Pt(i)+1,NodeDatabyWell%Pt(i+1)-1
-          num_node = NodeDatabyWell%Num(j)
-          num_parent = NodeDatabyWell%Val(j)%Parent
-
-          xn1(1:3) = XNode(1:3,num_node)
-          xn2(1:3) = XNode(1:3,num_parent)
-
-          comptCell = 0
-          meanDist = 0.d0
-          meanPerm = 0.d0
-          do k=CellbyNode%Pt(num_node)+1,CellbyNode%Pt(num_node+1)  ! cells containing node
-             cell_edge = .false.
-             num_cell = CellbyNode%Num(k)
-             do kp=CellbyNode%Pt(num_parent)+1,CellbyNode%Pt(num_parent+1)  ! cells containing parent
-                if(num_cell == CellbyNode%Num(kp)) then   ! cells containing Node and Parent, then containing the edge
-                   cell_edge = .true.
-                   exit
-                endif
-             enddo
-             if(cell_edge) then
-                comptCell = comptCell + 1
-
-                ! find coordinates of center of cell
-                xk(:) = 0.d0
-                do m = NodebyCell%Pt(num_cell)+1, NodebyCell%Pt(num_cell+1)
-                   xk(:) = xk(:) + XNode(:, NodebyCell%Num(m))
-                enddo
-                xk(:) = xk(:)/dble(NodebyCell%Pt(num_cell+1) - NodebyCell%Pt(num_cell))
-                call DistNodetoLine(xk, xn1, xn2, length) ! dist of cell center to the edge (num,parent)
-                meanDist = meanDist + length
+   end subroutine DefWell_Make
+
+   ! Output:
+   !  NodeDatabyWell%Val%WI
+   ! Use:
+   !  NodeDatabyWell%Val%Parent, CellbyNode, FracbyNode, PermCell, PermFrac, Thickness (of frac)
+   !  NodebyCell, NodebyFace
+   !> \brief Compute the Well Index of every injection and production well using Peaceman formula.
+   !!
+   !! This model assums that it is derived for a vertical well in a uniform Cartesian grid,
+   !! fully penetrating the grid block, with single-phase radial flow and
+   !! no interaction with boundaries or other wells.
+   !! \WARNING This computation supposes that two wells cannot share a node.
+   subroutine DefWell_WellIndex(NodeDatabyWell, NbWell, WellRadius, &
+                                NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+                                PermCell, PermFrac)
+
+      integer, intent(in) :: NbWell, NbNode
+      double precision, dimension(:), intent(in) :: WellRadius
+      type(TYPE_CSRDataNodeWell), intent(inout) :: NodeDatabyWell
+
+      double precision, allocatable, dimension(:, :), intent(in) :: XNode
+      type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
+      !type(FractureInfoCOC), intent(in) :: FracbyNode
+      type(CSR), intent(in) :: FracbyNode
+
+      double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
+      double precision, allocatable, dimension(:), intent(in) :: PermFrac
+
+      integer :: i, j, k, kp, m, ind, num_node, num_parent, &
+                 num_cell, num_face, comptCell, comptFrac
+      logical :: cell_edge
+      double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length
+      double precision :: wi_min
+      double precision, dimension(3) :: xn1, xn2, xk
+      double precision, allocatable, dimension(:) :: WI_global
+
+      double precision, parameter :: Pi = 3.14159265359d0
+
+      allocate (WI_global(NbNode))
+      WI_global(:) = 0.d0
+
+      ! computation of Well Index Darcy
+
+      !! MATRIX
+      do i = 1, NbWell
+         ! loop over the EDGES: (node,Parent(node)) for node=1,head_node-1
+         do j = NodeDatabyWell%Pt(i) + 1, NodeDatabyWell%Pt(i + 1) - 1
+            num_node = NodeDatabyWell%Num(j)
+            num_parent = NodeDatabyWell%Val(j)%Parent
+
+            xn1(1:3) = XNode(1:3, num_node)
+            xn2(1:3) = XNode(1:3, num_parent)
+
+            comptCell = 0
+            meanDist = 0.d0
+            meanPerm = 0.d0
+            do k = CellbyNode%Pt(num_node) + 1, CellbyNode%Pt(num_node + 1) ! cells containing node
+               cell_edge = .false.
+               num_cell = CellbyNode%Num(k)
+               do kp = CellbyNode%Pt(num_parent) + 1, CellbyNode%Pt(num_parent + 1) ! cells containing parent
+                  if (num_cell == CellbyNode%Num(kp)) then ! cells containing Node and Parent, then containing the edge
+                     cell_edge = .true.
+                     exit
+                  endif
+               enddo
+               if (cell_edge) then
+                  comptCell = comptCell + 1
+
+                  ! find coordinates of center of cell
+                  xk(:) = 0.d0
+                  do m = NodebyCell%Pt(num_cell) + 1, NodebyCell%Pt(num_cell + 1)
+                     xk(:) = xk(:) + XNode(:, NodebyCell%Num(m))
+                  enddo
+                  xk(:) = xk(:)/dble(NodebyCell%Pt(num_cell + 1) - NodebyCell%Pt(num_cell))
+                  call DistNodetoLine(xk, xn1, xn2, length) ! dist of cell center to the edge (num,parent)
+                  meanDist = meanDist + length
+
+                  meanPerm = meanPerm + PermCell(1, 1, num_cell) ! this formula is true if perm iso !
+               endif
+            enddo ! loop over cells
+
+            meanPerm = meanPerm/dble(comptCell)
+            meanDist = meanDist/dble(comptCell)
+
+            de = dsqrt(dot_product(xn1 - xn2, xn1 - xn2)) ! length of edge
+            dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
+            wi = de*Pi*meanPerm/log(dr0/WellRadius(i))
+            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
+            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
+            if(wi<wi_min) then
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                write(*,*) ''
+                write(*,*) 'Applying threshold on Peaceman Well Index'
+                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
+                write(*,*) 'well index', wi, 'well index limit', wi_min
+                write(*,*) ''
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                wi = wi_min
+            end if
+                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
+
+            ! contribution of the edge to each nodes: node and parent
+            WI_global(num_node) = WI_global(num_node) + wi
+            WI_global(num_parent) = WI_global(num_parent) + wi
+
+         enddo ! loop over edges
+      enddo ! loop over wells
+
+      !! FRACTURES
+      do i = 1, NbWell
+
+         ! loop over the nodes
+         do j = NodeDatabyWell%Pt(i) + 1, NodeDatabyWell%Pt(i + 1)
+
+            num_node = NodeDatabyWell%Num(j)
+            xn1(1:3) = XNode(1:3, num_node)
+
+            meanDist = 0.d0
+            meanPerm = 0.d0
+            meanThickness = 0.d0
+            comptFrac = 0
+
+            ! loop over frac of node
+            do k = FracbyNode%Pt(num_node) + 1, FracbyNode%Pt(num_node + 1)
+
+               comptFrac = comptFrac + 1
+               num_face = FracbyNode%Num(k)
+
+               ! find coordinates of center of frac
+               xk(:) = 0.d0
+               do m = NodebyFace%Pt(num_face) + 1, NodebyFace%Pt(num_face + 1)
+                  xk(:) = xk(:) + XNode(:, NodebyFace%Num(m))
+               enddo
+               xk(:) = xk(:)/dble(NodebyFace%Pt(num_face + 1) - NodebyFace%Pt(num_face))
+               length = dsqrt(dot_product(xk - xn1, xk - xn1)) ! dist of cell frac to the node
+               meanDist = meanDist + length
+
+               meanPerm = meanPerm + PermFrac(num_face) ! this formula is true if perm iso !
+               meanThickness = meanThickness + Thickness
+            enddo
+            if (comptFrac > 0) then
+               ! there is at least one frac in this node, compute wi
+               meanPerm = meanPerm/dble(comptFrac)
+               meanDist = meanDist/dble(comptFrac)
+               meanThickness = meanThickness/dble(comptFrac)
 
-                meanPerm = meanPerm + PermCell(1,1,num_cell)  ! this formula is true if perm iso !
-             endif
-          enddo ! loop over cells
-
+               dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
+               wi = meanThickness*2.d0*Pi*meanPerm/log(dr0/WellRadius(i))
 
-          meanPerm = meanPerm / dble(comptCell)
-          meanDist = meanDist / dble(comptCell)
+            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
+            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
+            if(wi<wi_min) then
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                write(*,*) ''
+                write(*,*) 'Applying threshold on fracture Peaceman Well Index'
+                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
+                write(*,*) 'well index', wi, 'well index limit', wi_min
+                write(*,*) ''
+                write(*,*) 'WARNING'
+                write(*,*) 'WARNING'
+                wi = wi_min
+            end if
+                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
 
-          de = dsqrt(dot_product( xn1-xn2 , xn1-xn2 ))   ! length of edge
-          dr0 = 0.14036d0*dsqrt(2.d0)*meanDist   ! Peaceman radius
-          wi = de * Pi * meanPerm / log(dr0/WellRadius(i))
+               ! contribution of the fracs to the node
+               WI_global(num_node) = WI_global(num_node) + wi
+            endif
+         enddo
+      enddo
 
-          ! contribution of the edge to each nodes: node and parent
-          WI_global(num_node) = WI_global(num_node) + wi
-          WI_global(num_parent) = WI_global(num_parent) + wi
+      ! fill %WIF and %WID
+      NodeDatabyWell%Val(:)%WIF = 0.d0 ! not used, negligeable compared to WID
 
-       enddo ! loop over edges
-    enddo ! loop over wells
+      ! loop over all nodes of all wells
+      do j = 1, NodeDatabyWell%Pt(NbWell + 1)
+         num_node = NodeDatabyWell%Num(j)
+         NodeDatabyWell%Val(j)%WID = WI_global(num_node)
+      enddo
 
-    !! FRACTURES
-    do i=1, NbWell
+      deallocate (WI_global)
 
-       ! loop over the nodes
-       do j=NodeDatabyWell%Pt(i)+1,NodeDatabyWell%Pt(i+1)
+   end subroutine DefWell_WellIndex
 
-          num_node = NodeDatabyWell%Num(j)
-          xn1(1:3) = XNode(1:3,num_node)
+   !> \brief Compute the distance from A to the Line (BC)
+   !! if B and C are too close ( BC<E-10) compute distance AB.
+   subroutine DistNodetoLine(NodeA, NodeB, NodeC, length)
 
-          meanDist = 0.d0
-          meanPerm = 0.d0
-          meanThickness = 0.d0
-          comptFrac = 0
+      double precision, dimension(:), intent(in) :: NodeA, NodeB, NodeC
+      double precision, intent(out) :: length
 
-          ! loop over frac of node
-          do k=FracbyNode%Pt(num_node)+1, FracbyNode%Pt(num_node+1)
+      double precision, dimension(3) :: cross_product, vectBA, vectBC
 
-             comptFrac = comptFrac + 1
-             num_face = FracbyNode%Num(k)
+      vectBA = NodeA - NodeB
+      vectBC = NodeC - NodeB
 
-             ! find coordinates of center of frac
-             xk(:) = 0.d0
-             do m = NodebyFace%Pt(num_face)+1, NodebyFace%Pt(num_face+1)
-                xk(:) = xk(:) + XNode(:, NodebyFace%Num(m))
-             enddo
-             xk(:) = xk(:)/dble(NodebyFace%Pt(num_face+1) - NodebyFace%Pt(num_face))
-             length = dsqrt( dot_product(xk-xn1, xk-xn1) ) ! dist of cell frac to the node
-             meanDist = meanDist + length
+      length = dot_product(vectBC, vectBC)
+      if (length < 1.0d-5) then
+         write (*, *) "pb with DistNodetoLine, line(BC) is not a line because B=C"
+         length = dsqrt(dot_product(vectBA, vectBA))
+         return
+      endif
 
-             meanPerm = meanPerm + PermFrac(num_face)  ! this formula is true if perm iso !
-             meanThickness = meanThickness + Thickness
-          enddo
-          if(comptFrac>0)then
-             ! there is at least one frac in this node, compute wi
-             meanPerm = meanPerm / dble(comptFrac)
-             meanDist = meanDist / dble(comptFrac)
-             meanThickness = meanThickness / dble(comptFrac)
+      ! cross product(BA, BC)
+      cross_product(1) = vectBA(2)*vectBC(3) - vectBA(3)*vectBC(2)
+      cross_product(2) = vectBA(3)*vectBC(1) - vectBA(1)*vectBC(3)
+      cross_product(3) = vectBA(1)*vectBC(2) - vectBA(2)*vectBC(1)
 
-             dr0 = 0.14036d0*dsqrt(2.d0)*meanDist   ! Peaceman radius
-             wi = meanThickness * 2.d0 * Pi * meanPerm / log(dr0/WellRadius(i))
+      ! dist(A,BC) = norm( cross product(BA, BC) ) / norm(BC)
+      length = dsqrt(dot_product(cross_product, cross_product)/length)
 
-             ! contribution of the fracs to the node
-             WI_global(num_node) = WI_global(num_node) + wi
-          endif
-       enddo
-    enddo
+   end subroutine DistNodetoLine
 
-    ! fill %WIF and %WID
-    NodeDatabyWell%Val(:)%WIF = 0.d0  ! not used, negligeable compared to WID
+   !> \brief Copy CSRDataWell1 to CSRDataWell2
+   subroutine DefWell_csrdatawellcopy(CSR1, CSR2)
 
-    ! loop over all nodes of all wells
-    do j=1,NodeDatabyWell%Pt(NbWell+1)
-       num_node = NodeDatabyWell%Num(j)
-       NodeDatabyWell%Val(j)%WID = WI_global(num_node)
-    enddo
+      type(TYPE_CSRDataNodeWell), intent(in)  :: CSR1
+      type(TYPE_CSRDataNodeWell), intent(out) :: CSR2
 
-    deallocate(WI_global)
+      integer :: Nnz, i
 
-  end subroutine DefWell_WellIndex
+      CSR2%Nb = CSR1%Nb
 
+      allocate (CSR2%Pt(CSR1%Nb + 1))
+      CSR2%Pt(:) = CSR1%Pt(:)
 
-  !> \brief Compute the distance from A to the Line (BC)
-  !! if B and C are too close ( BC<E-10) compute distance AB.
-  subroutine DistNodetoLine(NodeA, NodeB, NodeC, length)
+      Nnz = CSR1%Pt(CSR1%Nb + 1)
 
-    double precision, dimension(:), intent(in) :: NodeA, NodeB, NodeC
-    double precision, intent(out) :: length
+      allocate (CSR2%Num(Nnz))
+      do i = 1, Nnz
+         CSR2%Num(i) = CSR1%Num(i)
+      end do
 
-    double precision, dimension(3) :: cross_product, vectBA, vectBC
+      allocate (CSR2%Val(Nnz))
+      do i = 1, Nnz
+         CSR2%Val(i) = CSR1%Val(i)
+      end do
 
-    vectBA = NodeA - NodeB
-    vectBC = NodeC - NodeB
+   end subroutine DefWell_csrdatawellcopy
 
-    length = dot_product(vectBC, vectBC)
-    if(length<1.0d-5) then
-       write(*,*)"pb with DistNodetoLine, line(BC) is not a line because B=C"
-       length = dsqrt( dot_product(vectBA, vectBA) )
-       return
-    endif
+   !> \brief Deallocate CSRDataWell (\%Pt, \%Num and \%Val)
+   subroutine DefWell_deallocCSRDataWell(CSR1)
 
-    ! cross product(BA, BC)
-    cross_product(1) = vectBA(2)*vectBC(3)-vectBA(3)*vectBC(2)
-    cross_product(2) = vectBA(3)*vectBC(1)-vectBA(1)*vectBC(3)
-    cross_product(3) = vectBA(1)*vectBC(2)-vectBA(2)*vectBC(1)
+      type(TYPE_CSRDataNodeWell), intent(inout) :: CSR1
 
-    ! dist(A,BC) = norm( cross product(BA, BC) ) / norm(BC)
-    length = dsqrt( dot_product(cross_product,cross_product) / length )
+      deallocate (CSR1%Pt)
 
-  end subroutine DistNodetoLine
+      if (allocated(CSR1%Num)) then
+         deallocate (CSR1%Num)
+      end if
 
+      if (allocated(CSR1%Val)) then
+         deallocate (CSR1%Val)
+      end if
 
-  !> \brief Copy CSRDataWell1 to CSRDataWell2
-  subroutine DefWell_csrdatawellcopy(CSR1, CSR2)
+   end subroutine DefWell_deallocCSRDataWell
 
-    type(TYPE_CSRDataNodeWell), intent(in)  :: CSR1
-    type(TYPE_CSRDataNodeWell), intent(out) :: CSR2
+   !> \brief Define operator = between two DataNodeWell_type:  x2 = x1
+   subroutine assign_DataNodeWell_equal(x2, x1)
 
-    integer :: Nnz, i
+      type(TYPE_DataNodeWell), intent(in) :: x1
+      type(TYPE_DataNodeWell), intent(out) :: x2
 
-    CSR2%Nb = CSR1%Nb
+      x2%Parent = x1%Parent
+      x2%PtParent = x1%PtParent
+      x2%WID = x1%WID
+      x2%WIF = x1%WIF
 
-    allocate(CSR2%Pt(CSR1%Nb+1))
-    CSR2%Pt(:) = CSR1%Pt(:)
+   end subroutine assign_DataNodeWell_equal
 
-    Nnz = CSR1%Pt(CSR1%Nb+1)
+   !> \brief Define operator = between two DataWellInj:  x2 = x1
+   subroutine assign_DataWell_equal(x2, x1)
 
-    allocate( CSR2%Num(Nnz))
-    do i=1, Nnz
-       CSR2%Num(i) = CSR1%Num(i)
-    end do
+      TYPE(WellData_type), intent(in) :: x1
+      TYPE(WellData_type), intent(out) :: x2
 
-    allocate(CSR2%Val(Nnz))
-    do i=1, Nnz
-       CSR2%Val(i) = CSR1%Val(i)
-    end do
+      x2%IndWell = x1%IndWell
+      x2%Radius = x1%Radius
+      x2%PressionMax = x1%PressionMax
+      x2%PressionMin = x1%PressionMin
+      x2%ImposedFlowrate = x1%ImposedFlowrate
+      x2%Temperature = x1%Temperature
+      x2%CompTotal = x1%CompTotal
 
-  end subroutine DefWell_csrdatawellcopy
+   end subroutine assign_DataWell_equal
 
-  !> \brief Deallocate CSRDataWell (\%Pt, \%Num and \%Val)
-  subroutine DefWell_deallocCSRDataWell(CSR1)
+   subroutine DefWell_mpi_register_well_data_description(mpi_id)
 
-    type(TYPE_CSRDataNodeWell), intent(inout) :: CSR1
+      integer, intent(out) :: mpi_id
 
-    deallocate(CSR1%Pt)
+      integer, parameter :: count = 7
+      integer :: blocklengths(count)
+      integer(kind=MPI_ADDRESS_KIND) :: displacements(count)
+      integer :: types(count)
+      type(WellData_type) :: dummy
+      integer :: Ierr
 
-    if(allocated(CSR1%Num)) then
-       deallocate(CSR1%Num)
-    end if
+      displacements(1) = 0
+      displacements(2) = displacements(1) + sizeof(dummy%Radius)
+      displacements(3) = displacements(2) + sizeof(dummy%PressionMax)
+      displacements(4) = displacements(3) + sizeof(dummy%PressionMin)
+      displacements(5) = displacements(4) + sizeof(dummy%ImposedFlowrate)
+      displacements(6) = displacements(5) + sizeof(dummy%CompTotal)
+      if (sizeof(dummy%CompTotal) /= NbComp * sizeof(dummy%CompTotal(1))) call CommonMPI_abort('Inconsistent sizes in memory.')
+      displacements(7) = displacements(6) + sizeof(dummy%Temperature)
+      ! IndWell no displacement necessary (end of structure)
 
-    if (allocated(CSR1%Val)) then
-       deallocate(CSR1%Val)
-    end if
+      types(:) = MPI_DOUBLE
+      types(7) = MPI_CHARACTER
 
-  end subroutine DefWell_deallocCSRDataWell
+      blocklengths(:) = 1    
+      blocklengths(5) = NbComp
 
+      call MPI_Type_Create_Struct(count, blocklengths, displacements, types, mpi_id, Ierr)
+      if (Ierr /= 0) call CommonMPI_abort('Couldt not create well data MPI structure.')
+      call MPI_Type_commit(mpi_id, Ierr)
+      if (Ierr /= 0) call CommonMPI_abort('Couldt not commit well data MPI structure.')
 
-  !> \brief Define operator = between two DataNodeWell_type:  x2 = x1
-  subroutine assign_DataNodeWell_equal(x2, x1)
-
-    type(TYPE_DataNodeWell), intent(in) :: x1
-    type(TYPE_DataNodeWell), intent(out) :: x2
-
-    x2%Parent = x1%Parent
-    x2%PtParent = x1%PtParent
-    x2%WID = x1%WID
-    x2%WIF = x1%WIF
-
-  end subroutine assign_DataNodeWell_equal
-
-  !> \brief Define operator = between two DataWellInj:  x2 = x1
-  subroutine assign_DataWellInj_equal(x2, x1)
-
-    TYPE(TYPE_DataWellInj), intent(in) :: x1
-    TYPE(TYPE_DataWellInj), intent(out) :: x2
-
-    x2%Radius = x1%Radius
-    x2%Temperature = x1%Temperature
-    x2%CompTotal = x1%CompTotal
-    x2%PressionMax = x1%PressionMax
-    x2%FlowrateImposed = x1%FlowrateImposed
-    x2%IndWell = x1%IndWell
-
-  end subroutine assign_DataWellInj_equal
-
-  !> \brief Define operator = between two DataWellProd:  x2 = x1
-  subroutine assign_DataWellProd_equal(x2, x1)
-
-    TYPE(TYPE_DataWellProd), intent(in) :: x1
-    TYPE(TYPE_DataWellProd), intent(out) :: x2
-
-    x2%Radius = x1%Radius
-    x2%PressionMin = x1%PressionMin
-    x2%FlowrateImposed = x1%FlowrateImposed
-    x2%IndWell = x1%IndWell
-
-  end subroutine assign_DataWellProd_equal
+   end subroutine DefWell_mpi_register_well_data_description
 
 end module DefWell

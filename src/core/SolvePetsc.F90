@@ -671,7 +671,9 @@ contains
              idxn(1) = col
 
              ! index order of matrix JacBigA(:,:,j) is (col,row)
+            !write(*,*) 'Setting values on', commRank
              call MatSetValues(A_mpi, m, idxm, 1, idxn, JacA%Val(1,:,j), INSERT_VALUES, Ierr)
+            !write(*,*) 'Setting values done on', commRank
              CHKERRQ(Ierr)
           end if
        end do
@@ -681,7 +683,8 @@ contains
     do i=(NbNodeOwn+NbFracOwn)+1, (NbNodeOwn+NbFracOwn+NbWellInjOwn+NbWellProdOwn)
 
        do j=JacA%Pt(i)+1, JacA%Pt(i+1)
-
+          !write(*,*) 'Well jacobian at local index', j, 'size', size(JacA%Val, 1), 'x', size(JacA%Val, 2)
+          !write(*,*) JacA%Val(:,:,j)
           row = RowLToRowG(i) - 1             ! 0-based in petsc
           col = ColLToColG( JacA%Num(j) ) - 1 ! 0-based in petsc
 
