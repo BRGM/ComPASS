@@ -46,7 +46,7 @@ constexpr auto edge_constraints_map_name = "e:is_constrained";
 template <typename Surface_mesh>
 auto add_edge_constraints_map(Surface_mesh& mesh) {
     typedef typename Surface_mesh::Edge_index Edge_index;
-    auto pmap = mesh.add_property_map<
+    auto pmap = mesh.template add_property_map<
         Edge_index, bool
     >(edge_constraints_map_name, false);
     assert(pmap.second);
@@ -56,7 +56,7 @@ auto add_edge_constraints_map(Surface_mesh& mesh) {
 template <typename Surface_mesh>
 auto get_edge_constraints_map(Surface_mesh& mesh) {
     typedef typename Surface_mesh::Edge_index Edge_index;
-    auto pmap = mesh.property_map<
+    auto pmap = mesh.template property_map<
         Edge_index, bool
     >(edge_constraints_map_name);
     assert(pmap.second);
