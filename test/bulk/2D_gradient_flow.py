@@ -7,13 +7,17 @@
 #
 
 import ComPASS
-import doublet_utils
+#import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import matplotlib.pyplot as plt
-
 import numpy as np
 
+
+rhof = 1E3               # specific mass in kg/m^3
+cpf = 4200               # specific heat in J/kg/K
+rhofcpf = rhof * cpf     # volumetric heat capacity
+muf = 1E-3
 pleft, pright = 30 * MPa, 10 * MPa
 Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
@@ -22,14 +26,26 @@ K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 a=10
 
 Lx = 100.
-Ly=50
-Lz=1
+Ly = 50
+Lz = 1
 nx = 100
-ny=50
-nz=1
-
+ny = 50
+nz = 1
 onecomp = True
 exact_sol = True
+
+if onecomp:
+    if exact_sol:
+        ComPASS.load_eos('linear_water')
+    else:
+        ComPASS.load_eos('liquid_water')
+else:
+    ComPASS.load_eos('water_with_tracer')
+fluid_properties = ComPASS.get_fluid_properties()
+fluid_properties.specific_mass = rhof
+fluid_properties.volumetric_heat_capacity = rhofcpf
+fluid_properties.dynamic_viscosity = muf
+
 
 mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / mu) * (pleft - pright) / Lx)
@@ -39,10 +55,15 @@ final_time =2* Lx /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
 ## Velocity (with omega is 2.4 m / hour, good final time is 8 to 10 hours  ! Initial time step is 7e-3 seconds
 
+'''grid = ComPASS.Grid(
+    shape = (nx, ny, nz),
+    extent = (Lx, Ly, Lz),
+)'''
+
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
     extent = (Lx, Ly, Lz),
-)
+    origin = (0, 0 , 0),)
 
 on_the_left = lambda x: x <= grid.origin[0]
 on_the_left_in_the_middle = lambda x,y: (x <= grid.origin[0] ) & (grid.extent[1]/2-a <y) & (y< grid.extent[1]/2+a)
@@ -93,13 +114,7 @@ def set_initial_values():
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-if onecomp:
-    if exact_sol:
-        ComPASS.load_eos('linear_liquid_water')
-    else:
-        ComPASS.load_eos('liquid_water')
-else:
-    ComPASS.load_eos('water_with_tracer')
+
 
 ComPASS.init(
     grid = grid,
