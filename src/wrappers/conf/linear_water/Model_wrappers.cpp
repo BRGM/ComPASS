@@ -1,5 +1,7 @@
 #include "Model_wrappers.h"
 
+#include <pybind11/numpy.h>
+
 struct Fluid_properties
 {
     double specific_mass;
@@ -13,6 +15,9 @@ struct Fluid_properties
 extern "C"
 {
     Fluid_properties * get_fluid_properties();
+    void FluidThermodynamics_molar_density(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
+    void FluidThermodynamics_molar_enthalpy(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
+    void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
 }
 
 void init_model() 
@@ -26,6 +31,37 @@ void init_model()
 }
 
 void finalize_model() {}
+
+template <typename Function>
+inline double call_physical_function(Function function, double p, double T)
+{
+    constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
+    constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+    static_assert(NC == 1, "we assume there is only one component");
+    static_assert(NP == 1, "we assume there is only one phase");
+    double f, dfdp, dfdT;
+    double C[NC] = { 1 };
+    double S[NP] = { 1 };
+    double dfdC[NC] = { 0 };
+    double dfdS[NP] = { 0 };
+    function(1, f, T, C, S, f, dfdp, dfdT, dfdC, dfdS);
+    return f;
+}
+
+inline double molar_density(double p, double T)
+{
+    return call_physical_function(FluidThermodynamics_molar_density, p, T);
+}
+
+inline double molar_enthalpy(double p, double T)
+{
+    return call_physical_function(FluidThermodynamics_molar_enthalpy, p, T);
+}
+
+inline double dynamic_viscosity(double p, double T)
+{
+    return call_physical_function(FluidThermodynamics_dynamic_viscosity, p, T);
+}
 
 void add_model_wrappers(py::module& module)
 {
@@ -42,5 +78,10 @@ void add_model_wrappers(py::module& module)
         ;
 
     module.def("get_fluid_properties", &get_fluid_properties, py::return_value_policy::reference);
+
+    // provided mainly for consistency... we are filling arrays with constant scalars...
+    module.def("molar_density", py::vectorize(molar_density));
+    module.def("molar_enthalpy", py::vectorize(molar_enthalpy));
+    module.def("dynamic_viscosity", py::vectorize(dynamic_viscosity));
 
 }
