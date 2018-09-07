@@ -165,6 +165,8 @@ def collect_node_temperature(iteration, t):
     plt.clf()
 """
 
+# only sequential allowed here
+assert ComPASS.mpi.master_proc_rank == ComPASS.mpi.proc_rank
 nb_nodes = ComPASS.global_number_of_nodes()
 nb_cells = ComPASS.global_number_of_cells()
 
@@ -175,29 +177,43 @@ concentrations = [
     for i in range(nb_concentrations)
 ]
 
-# ma boucle en temps
-dt = 1e-6
-compute_all_concentrations = True
-# while loop to find suitable dt (other strategies are possible...)
-while compute_all_concentrations:
-    for i, Ci in enumerate(concentrations):
-        Ci_nodes, Ci_cells = Ci
-        ComPASS.node_states().T[:] = Ci_nodes
-        ComPASS.cell_states().T[:] = Ci_cells
-        t = ComPASS.get_current_time()
-        print("Compute concentration", i, "with dt=", dt)
-        standard_loop(final_time = 1.E99, nitermax=1, initial_timestep=dt)
-        computed_dt = ComPASS.get_current_time() - t
-        print("Computed concentration", i, "with dt=", computed_dt)
-        if computed_dt<dt:
-            if i==0: # first concentration
-                dt = computed_dt # we hope it will make it for other concentrations
-            else:            
-                dt = computed_dt
-                break
-        Ci_nodes[:] = ComPASS.node_states().T
-        Ci_cells[:] = ComPASS.cell_states().T
-    else:
-        compute_all_concentrations = False # job is done all concentrations have been computed with dt
+# the function that advects and diffuses all concentration
+def transport_concentrations(t, dt):
+    compute_all_concentrations = True
+    # while loop to find suitable dt (other strategies are possible...)
+    while compute_all_concentrations:
+        for i, Ci in enumerate(concentrations):
+            Ci_nodes, Ci_cells = Ci
+            ComPASS.node_states().T[:] = Ci_nodes
+            ComPASS.cell_states().T[:] = Ci_cells
+            ComPASS.set_current_time(t)
+            ComPASS.make_timestep(dt)
+            effective_dt = ComPASS.get_current_time() - t
+            print()
+            print()
+            print("Computed concentration", i, "with dt=", effective_dt)
+            if effective_dt<dt:
+                dt = effective_dt 
+                if i==0: # first concentration
+                    pass # we hope it will make it for other concentrations
+                else:            
+                    break
+            Ci_nodes[:] = ComPASS.node_states().T
+            Ci_cells[:] = ComPASS.cell_states().T
+        else:
+            compute_all_concentrations = False # job is done all concentrations have been computed with dt
+    return dt
+
+# The main (time) loop
+t = 0 # current time
+dt = 5e-6
+final_time = 2*dt
+
+while t<final_time:
+    dt = transport_concentrations(t, dt)    
+    #
+    # Newton Krylov.... ???
+    #
+    t = t + dt
 
 

@@ -19,6 +19,7 @@
 
        public :: &
           get_current_time, &
+          set_current_time, &
           get_delta_t, &
           get_final_time, &
           set_final_time, &
@@ -40,6 +41,12 @@
           real(c_double) :: t
           t = TimeCurrent
        end function get_current_time
+
+       subroutine set_current_time(t) &
+          bind(C, name="set_current_time")
+          real(c_double), intent(in), value :: t
+          TimeCurrent = t
+       end subroutine set_current_time
 
        function get_delta_t() result(t) &
           bind(C, name="get_delta_t")
