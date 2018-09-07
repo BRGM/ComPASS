@@ -3,8 +3,92 @@
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 
 typedef CGAL::Epick Kernel;
+
 typedef Kernel::Point_3 Point;
-typedef CGAL::Surface_mesh<Point> Mesh;
+
+//Point id
+//(surface, id)
+//constraints 
+//
+//curve_patch = 1 or 2 points if only one point is corner (you don't want to move it)
+//connected_point_id, (other_surface, id_on_other_surface)
+//
+//on deletion -> remove from connected points / test no longer connected
+
+
+template <typename T>
+struct Uid_factory
+{
+    typedef T Id_type;
+    T count;
+    Uid_factory() :
+        count{ 0 }
+    {}
+    Uid_factory(const Uid_factory&) = delete;
+    Uid_factory& operator=(const Uid_factory&) = delete;
+    T make_uid() {
+        return count++;
+    }
+    constexpr T Uid_limit() constexpr const {
+        return static_cast<T>(std::numeric_limits<T>::max());
+    }
+};
+
+// CHECKME: ? Encapsulate id_factory so that we have id{} instead of id{ id_factory.make_uid() }
+//Id{
+//    static Factory * factory; // = 0
+//}
+
+struct Point_with_index: Point
+{
+    typedef Uid_factory<std::size_t> Factory;
+    typedef Factory::Id_type Id;
+    static  Factory factory;
+    typedef int Degree;
+    typedef int Surface_index;
+    // CHECKME: ? Encapsulate id_factory so that we have id{} instead of id{ id_factory.make_uid() }
+    Id id;
+    struct Constraints
+    {
+        Degree degree; // 0 initialisation
+        std::array<Surface_index, 3> surfaces;
+        auto begin() { return surfaces.data(); }
+        auto end() { return surfaces.data() + degree; }
+        bool has_constraint(Surface_index si) {
+            return std::find(begin(), end(), si) != end();
+        }
+        void add_constraint(Surface_index si) {
+            assert(!has_constraint(si));
+            assert(degree < surfaces.size());
+            surfaces[degree] = si;
+            ++degree;
+            if (degree > 1) {
+                std::sort(begin(), end());
+            }
+        }
+    };
+    Constraints constraints;
+    Point_with_index() :
+        Point{},
+        id{ factory.make_uid() }
+    {}
+    Point_with_index(double x, double y, double z) :
+        Point{ x, y, z },
+        id{ factory.make_uid() }
+    {}
+    Point_with_index(const Point& P) :
+        Point{ P },
+        id{ factory.make_uid() }
+    {}
+    Point_with_index(Point&& P) :
+        Point{ std::forward<Point>(P) },
+        id{ factory.make_uid() }
+    {}
+};
+
+Point_with_index::Factory Point_with_index::factory;
+
+typedef CGAL::Surface_mesh<Point_with_index> Mesh;
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
