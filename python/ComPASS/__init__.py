@@ -164,6 +164,38 @@ def set_petrophysics_on_gobal_mesh(properties, fractures):
         petrophysics_statistics_on_global_mesh(fractures)
         kernel.global_mesh_set_all_rocktypes()
 
+def _process_dirichlet_flags(
+    dirichlet_flags, location1, location2
+):
+    assert ComPASS.mpi.is_on_master_proc
+    assert location1 is None or location2 is None
+    # Node information is reset first ('i' flag)
+    dirichlet_flags[:] = ord('i')
+    if location1 is not None:
+        dirichlet_flags[location1] = ord('d')
+    elif location2 is not None:
+        dirichlet_flags[location2] = ord('d')
+
+def _process_dirichlet_nodes(
+    dirichlet_nodes,
+    pressure_dirichlet_nodes,
+    temperature_dirichlet_nodes
+):
+    assert ComPASS.mpi.is_on_master_proc
+    info = np.rec.array(global_node_info(), copy=False)
+    _process_dirichlet_flags(
+        info.pressure, dirichlet_nodes, pressure_dirichlet_nodes
+    )
+    if ComPASS.has_energy_transfer_enabled():
+        _process_dirichlet_flags(
+            info.pressure, dirichlet_nodes, temperature_dirichlet_nodes
+        )
+    else:
+        if temperature_dirichlet_nodes is not None:
+            messages.error('You are setting temperature dirichlet nodes without energy transfer')        
+    kernel.global_mesh_count_dirichlet_nodes()
+
+
 
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
@@ -230,22 +262,11 @@ def init(
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
-        # Node information is reset first
-        info = np.rec.array(global_node_info(), copy=False)
-        for a in [info.pressure, info.temperature]:
-            a[:] = ord('i')
-        dirichlet = call_if_callable(set_dirichlet_nodes)
-        if dirichlet is not None:
-            for a in [info.pressure, info.temperature]:
-                a[dirichlet] = ord('d')
-        else:
-            dirichlet = call_if_callable(set_pressure_dirichlet_nodes)
-            if dirichlet is not None:
-                info.pressure[dirichlet] = ord('d')
-            dirichlet = call_if_callable(set_temperature_dirichlet_nodes)
-            if dirichlet is not None:
-                info.temperature[dirichlet] = ord('d')
-        kernel.global_mesh_count_dirichlet_nodes()
+        _process_dirichlet_nodes(
+            call_if_callable(set_dirichlet_nodes),
+            call_if_callable(set_pressure_dirichlet_nodes),
+            call_if_callable(set_temperature_dirichlet_nodes)
+        )
         kernel.global_mesh_frac_by_node()
         # The following line is necessary to allocate arrays in the fortran code
         kernel.global_mesh_allocate_rocktype()
