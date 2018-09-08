@@ -68,14 +68,31 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+#ifdef _THERMIQUE_
+   integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
+#else
+   integer, parameter :: P=1, T=0, C=2, Sg=3, Sl=4
+#endif
+   private :: P, T, C, Sg, Sl
+   
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
-                       1, 2 & ! ic=1
+#ifdef _THERMIQUE_
+                       P, T & ! only one context ic=1 
+#else
+                       P    & ! only one context ic=1
+#endif
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
+   ! Sum Salpha =1 was already eliminated
+   ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
-                       3, 4, 0 & ! ic=1
+#ifdef _THERMIQUE_
+                       C, Sg, 0 & ! only one context ic=1
+#else
+                       C, Sg, 0 & ! only one context ic=1
+#endif
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
@@ -97,8 +114,12 @@ module DefModel
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
-                        1.d0, 0.d0, & ! ic=1
-                        0.d0, 1.d0 &
+#ifdef _THERMIQUE_
+                        1.d0, 0.d0, & ! only one context ic=1
+                        0.d0, 1.d0  &
+#else
+                        1.d0 &        ! only one context ic=1
+#endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 end module DefModel
