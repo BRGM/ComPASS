@@ -6,10 +6,20 @@ typedef CGAL::Epick Kernel;
 
 typedef Kernel::Point_3 Point;
 
-//Point id
-//(surface, id)
+//Surface_point id
+//(surface, id_on_surface) = spi
 //constraints 
-//
+
+//on_curve -> curve_node -> list<pair<spi, spi>)
+
+// Curve : pair<Suface,Surface>, list<pair<pid,pid>> on_curve_constraint pair<curve, list_iterator>
+
+//on_corner_constraint -> 3 curves
+
+
+//corner -> ((S1, p1), (S2, p2), (S3, p3)) (Sk can be boundary of Sl)
+// over_constrained corner 
+
 //curve_patch = 1 or 2 points if only one point is corner (you don't want to move it)
 //connected_point_id, (other_surface, id_on_other_surface)
 //
@@ -29,7 +39,7 @@ struct Uid_factory
     T make_uid() {
         return count++;
     }
-    constexpr T Uid_limit() constexpr const {
+    constexpr T Uid_limit() const noexcept {
         return static_cast<T>(std::numeric_limits<T>::max());
     }
 };
