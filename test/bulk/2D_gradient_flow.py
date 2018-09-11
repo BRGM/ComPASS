@@ -10,7 +10,7 @@ import ComPASS
 #import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 
 rhof = 1E3               # specific mass in kg/m^3
@@ -140,8 +140,7 @@ if ComPASS.mpi.communicator().size==1:
     YY = xy[:, 1].reshape(ny, nx)
     try:
         import matplotlib
-
-        matplotlib.use('Agg')
+        #matplotlib.use('Agg')
         import matplotlib.pyplot as plt
     except ImportError:
         print('WARNING - matplotlib was not found - no graphics will be generated')
@@ -157,12 +156,12 @@ if ComPASS.mpi.communicator().size==1:
             fig.colorbar(cs)
             #plt.subplot(212)
             #plt.plot(x,c1)
-            plt.title('t='+str(t))
+            plt.title('t='+str(np.int(t)))
             plt.xlabel('x in meters')
             plt.ylabel('temperature in Celsius degrees')
             plt.draw()
             plt.pause(0.1)
-            plt.savefig(ComPASS.to_output_directory('cell_temperatures_'+str(t)),format='png')
+            plt.savefig(ComPASS.to_output_directory('cell_temperatures_'+str(np.int(t))+'.png'))
             plt.clf()
 
         #plt.contourf(XX,YY, np.reshape(cell_temperatures[18][1], [ny,nx]))
