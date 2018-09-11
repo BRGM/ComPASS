@@ -22,7 +22,7 @@ def exact_sol(x,y,t):
     return exact_sol
 
 def test():
-    nx = 500
+    nx = 100
     ny = 50
     nz = 1
     x=np.linspace(0,Lx,nx)
@@ -32,7 +32,7 @@ def test():
         t = (k+1)*dt
         print(k)
         c=exact_sol(xx,yy,t)
-        if ((k+1)%10==0):
+        if ((k+1)%1==0):
             fig = plt.figure(1)
             plt.subplot(211)
             cs = plt.contourf(x,y,c)
@@ -41,15 +41,15 @@ def test():
             plt.draw()
             plt.pause(1)
             #plt.savefig('exact_sol.png')
-            pp = PdfPages('exact_sol.pdf')
-            pp.savefig()
-            #plt.savefig(('exact_sol_'+str(t)),format='png')
+            #pp = PdfPages('exact_sol.pdf')
+            #pp.savefig()
+            plt.savefig('exact_sol_'+str(t)+'.png')
             plt.clf()
 
 
 if __name__ == '__main__':
     year = 5
-    tfinal = 100
+    tfinal = 29e+4
 
     dt = 1
     nt = math.floor(tfinal/dt)
@@ -64,10 +64,10 @@ if __name__ == '__main__':
     mu = b*rhow/Rd*U
     #mu = 1
     print(mu)
-    C0 = 60+273  #température en x=0
+    C0 = 100+273  #température en x=0
     gamma = 0 #pas sur dans l'expression de P
-    Dl = 2e+8/Rd  #conductivité thermique/Rd
-    Dt = 2e+8/Rd
+    Dl = 2e+10/Rd  #conductivité thermique/Rd
+    Dt = 2e+10/Rd
     print(Dt)
     Lx, Ly, Lz = 100., 50., 1.
     n0 = Ly

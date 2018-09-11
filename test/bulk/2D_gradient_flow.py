@@ -13,7 +13,6 @@ from ComPASS.timeloops import standard_loop
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
 rhofcpf = rhof * cpf     # volumetric heat capacity
@@ -22,7 +21,7 @@ pleft, pright = 30 * MPa, 10 * MPa
 Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
 k_reservoir = 1E-12 # reservoir permeability in m^2
-K_reservoir = 2                   # bulk thermal conductivity in W/m/K
+K_reservoir = 2     # bulk thermal conductivity in W/m/K
 a=10
 
 Lx = 100.
@@ -54,11 +53,6 @@ print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulatio
 final_time =2* Lx /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
 ## Velocity (with omega is 2.4 m / hour, good final time is 8 to 10 hours  ! Initial time step is 7e-3 seconds
-
-'''grid = ComPASS.Grid(
-    shape = (nx, ny, nz),
-    extent = (Lx, Ly, Lz),
-)'''
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -114,8 +108,6 @@ def set_initial_values():
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-
-
 ComPASS.init(
     grid = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
@@ -137,23 +129,6 @@ def collect_node_temperature(iteration, t):
     print('                           and time', t/year, 'years')
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
-"""
-    xy = ComPASS.compute_cell_centers()[:,0:2]
-    XX = xy[:, 0].reshape(ny, nx)
-    YY = xy[:, 1].reshape(ny, nx)
-    fig = plt.figure(1)
-    #plt.subplot(211)
-    cs = plt.contourf(XX,YY,np.reshape(K2degC(states.T),[ny,nx]))
-    fig.colorbar(cs)
-    #plt.subplot(212)
-    #plt.plot(x,c1)
-    plt.title('t='+str(t))
-    plt.xlabel('x in meters')
-    plt.ylabel('temperature in Celsius degrees')
-    plt.draw()
-    plt.pause(0.1)
-    plt.clf()
-"""
 
 standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e10,
               output_callbacks=(collect_node_temperature,))
@@ -163,13 +138,6 @@ if ComPASS.mpi.communicator().size==1:
     xy = ComPASS.compute_cell_centers()[:,0:2]
     XX = xy[:, 0].reshape(ny, nx)
     YY = xy[:, 1].reshape(ny, nx)
-    # with open(ComPASS.to_output_directory('cell_temperatures.csv'), 'w') as f:
-    #     s = ';'.join(['%f' %(xi) for xi in x])
-    #     print('"time (years)\\x";' + s, file=f)
-    #     for tT in cell_temperatures:
-    #         t, T = tT
-    #         T = K2degC(T)
-    #         print('%f;' %(t/year) + ';'.join(['%f' %(Ti) for Ti in T]), file=f)
     try:
         import matplotlib
 
@@ -200,6 +168,3 @@ if ComPASS.mpi.communicator().size==1:
         #plt.contourf(XX,YY, np.reshape(cell_temperatures[18][1], [ny,nx]))
             #plt.xlabel('x in meters')
             #plt.ylabel('temperature in Celsius degrees')
-
-
-#etude de convergence par calcul d'erreur
