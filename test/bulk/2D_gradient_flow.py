@@ -16,7 +16,7 @@ import numpy as np
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
 rhofcpf = rhof * cpf     # volumetric heat capacity
-muf = 1E-3
+muf = 3E-4
 pleft, pright = 30 * MPa, 10 * MPa
 Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
@@ -46,8 +46,8 @@ fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
 
 
-mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
-U = ((k_reservoir / mu) * (pleft - pright) / Lx)
+#mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
+U = ((k_reservoir / muf) * (pleft - pright) / Lx)
 print('Average Darcy velocity:', U * year, 'm/year')
 print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulation domain in one year.')
 final_time =2* Lx /(U/omega_reservoir)

@@ -32,7 +32,7 @@ def test():
         t = (k+1)*dt
         print(k)
         c=exact_sol(xx,yy,t)
-        if ((k+1)%1==0):
+        if ((k+1)%10==0):
             fig = plt.figure(1)
             plt.subplot(211)
             cs = plt.contourf(x,y,c)
@@ -49,10 +49,11 @@ def test():
 
 if __name__ == '__main__':
     year = 5
-    tfinal = 29e+4
+    tfinal = 8e+3
 
     dt = 1
     nt = math.floor(tfinal/dt)
+
     Phi = 0.2
     rhow = 1000
     b = 5e+03
