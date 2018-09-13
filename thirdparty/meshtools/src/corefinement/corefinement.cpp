@@ -275,6 +275,70 @@ auto collect_curves(const Mesh& mesh, const Constraint_map& constraints)
 
 }
 
+
+template <typename Mesh, typename Curves>
+auto associate_curves(const Mesh& mesh1, const Curves& curves1, const Mesh& mesh2, const Curves& curves2)
+{
+
+    typedef typename Curves::value_type Curve;
+    typedef typename Curve::value_type Vertex_index;
+    static_assert(std::is_same<typename Mesh::Vertex_index, Vertex_index>::value, "Inconsistent types");
+
+    assert(curves1.size() == curves2.size());
+    std::vector<const Curve *> already_associated;
+    already_associated.reserve(curves2.size());
+    std::map<Vertex_index, Vertex_index> v1tov2, v2tov1;
+
+    for (auto& curve1 : curves1) {
+        bool found_corresponding_curve = false;
+        for (auto& curve2 : curves2) {
+            auto p = &curve2; 
+            if (std::find(begin(already_associated), end(already_associated), p) == end(already_associated)) {
+                if (curve1.size() == curve2.size()) {
+                    bool all_points_associated = true;
+                    for (auto&& v1 : curve1) {
+                        if (v1tov2.count(v1) == 0) {
+                            auto P1 = Point{ mesh1.point(v1) };
+                            auto pv2 = std::find_if(begin(curve2), end(curve2), [&mesh2, &P1](const auto& v2) { return P1 == mesh2.point(v2); });
+                            if (pv2 == end(curve2)) {
+                                all_points_associated = false;
+                                break;
+                            }
+                            else {
+                                v1tov2[v1] = *pv2;
+                            }
+                        }
+                    }
+                    if (all_points_associated) {
+                        found_corresponding_curve = true;
+                        already_associated.emplace_back(&curve2);
+                        break;
+                    }
+                }
+            }
+        }
+        assert(found_corresponding_curve);
+    }
+
+    for (auto&& pair : v1tov2) {
+        v2tov1[pair.second] = pair.first;
+    }
+
+#ifndef NDEBUG
+    auto check_all_points_have_correspondances = [](const auto& curves, const auto& vmap) {
+        for (auto&& curve : curves) {
+            for (auto&& v : curve) {
+                if (vmap.count(v) == 0) return false;
+            }
+        }
+        return true;
+    };
+    assert(check_all_points_have_correspondances(curves1, v1tov2));
+    assert(check_all_points_have_correspondances(curves2, v2tov1));
+#endif
+
+}
+
 auto test()
 {
     Mesh tm1;
@@ -324,7 +388,8 @@ auto test()
             std::cout << "  " << tm2.point(v) << std::endl;
         }
     }
-    assert(curves1.size() == curves2.size());
+    
+    associate_curves(tm1, curves1, tm2, curves2);
 
     //std::ofstream os("test.off");
     //CGAL::write_off(os, tm1);
