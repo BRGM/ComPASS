@@ -17,13 +17,21 @@ from ComPASS.utils.units import year
 import MeshTools.vtkwriters as vtkw
 
 
-parser = OptionParser()
+parser = OptionParser(
+usage = """usage: %prog [options] path
+
+NB: you may also use this script as a module from the python package, i.e. typically:
+python -m ComPASS.postprocesss [options] path
+
+Parameters:
+  path           where output from a ComPASS simulation are stored (typically output-scriptname)"""
+)
 parser.add_option("-p", "--procs",
                   action="store_true", dest="collect_procs_id", default=False,
                   help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)")
 parser.add_option("-s", "--states",
                   action="store_true", dest="collect_states", default=False,
-                  help="ouput paraview files with transient states")
+                  help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory")
 parser.add_option("-C", "--Celsius",
                   action="store_true", dest="convert_temperature", default=False,
                   help="convert temperature from Kelvin to Celsius degrees")
