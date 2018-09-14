@@ -11,9 +11,9 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-import GridTools as GT
 import MeshTools as MT
-import vtkwriters as vtkw
+import MeshTools.GridTools as GT
+import MeshTools.vtkwriters as vtkw
 
 ComPASS.load_eos('diphasic')
 
