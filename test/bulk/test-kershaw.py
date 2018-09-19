@@ -16,8 +16,8 @@ from ComPASS.FVCAFile import FVCAFile
 from ComPASS.RawMesh import RawMesh
 
 # relies on Kershaw mesh from https://www.latp.univ-mrs.fr/latp_numerique/?q=node/11
-fcva = FVCAFile('dkershaw08.msh')
-mesh = RawMesh.convert(fcva)
+fvca = FVCAFile('dkershaw08.msh')
+mesh = RawMesh.convert(fvca)
 epsilon = 1e-6 # to locate faces
 
 p0 = 1. * bar              # initial reservoir pressure
