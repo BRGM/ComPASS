@@ -107,15 +107,16 @@ namespace TSurfBlobTraits
             Result operator()(const On_curve_sp& cuc1, const On_curve_sp& cuc2) const noexcept {
                 assert(cuc1 && cuc2);
                 if (cuc1->curve == cuc2->curve) {
-                    if (next(cuc1->position) == cuc2->position) {
-                        auto weak_link = Link{ *cuc1, *cuc2 };
+                    auto make_weak_link = [](auto oc1, auto oc2) {
+                        auto weak_link = Link{ oc1, oc2 };
                         assert(weak_link.is_valid() && weak_link.is_weak());
                         return weak_link;
+                    };
+                    if (next(cuc1->position) == cuc2->position) {
+                        return make_weak_link(*cuc1, *cuc2);
                     }
                     if (cuc1->position == next(cuc2->position)) {
-                        auto weak_link = Link{ *cuc2, *cuc1 };
-                        assert(weak_link.is_valid() && weak_link.is_weak());
-                        return weak_link;
+                        return make_weak_link(*cuc2, *cuc1);
                     }
                 }
                 return Result{};

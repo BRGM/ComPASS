@@ -18,16 +18,18 @@ namespace TSurfBlobTraits
             return false;
         }
         bool is_valid() const noexcept {
-            return std::all_of(begin(links), end(links),
-                [](auto l) { return l.is_valid(); });
+            if (!links[0].is_valid()) return false;
+            if (links[0].is_weak()) return false;
+            if (!links[1].is_valid()) return false;
+            if (!links[1].is_weak()) {
+                if (!links[2].is_valid()) return false;
+                if (links[2].is_weak()) return false;
+            }
+            return true;
         }
         bool has_weak_link() const {
-            assert(links[0].is_valid);
-            assert(
-                links[1].is_weak() ||
-                (links[1].is_valid() && links[2].is_weak())
-            );
-            return links[1].is_weak() || links[2].is_weak();
+            assert(is_valid());
+            return links[1].is_weak();
         }
     };
 

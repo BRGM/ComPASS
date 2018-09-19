@@ -314,8 +314,8 @@ auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, con
                 for (auto qc = next(pc); pc != end(neighboring_constraints); ++pc) {
                     if (auto weak_link = neighbors_on_same_curve(*pc, *qc)) {
                         assert(weak_link->is_weak());
-                        assert(node.point(0).constraint);
-                        assert(node.point(0).constraint.on_curve());
+                        assert(node.constraint(0));
+                        assert(node.constraint(0).on_curve());
                     }
                 }
             }

@@ -9,24 +9,36 @@ namespace TSurfBlobTraits
     struct Curves_link : std::pair<On_curve_constraint<Curve_type>, On_curve_constraint<Curve_type>>
     {
         typedef Curve_type Curve;
-        //typedef On_curve_constraint<Curve> Constraint;
+        typedef On_curve_constraint<Curve> On_curve;
         //typedef typename Constraint_type::Curve Curve;
-        bool is_weak() const {
-            assert(first.curve != nullptr);
-            assert(second.curve != nullptr);
-            return first.curve == second.curve;
+        Curves_link() = delete;
+        Curves_link(const On_curve& c1, const On_curve& c2) :
+            std::pair<On_curve, On_curve>{ c1, c2 }
+        {}
+        Curves_link(On_curve&& c1, On_curve&& c2) :
+            std::pair<On_curve, On_curve>{
+                std::forward<On_curve>(c1),
+                std::forward<On_curve>(c2)
+            } 
+        {}
+        bool is_weak() const noexcept {
+            assert(is_valid());
+            return this->first.position->is_weak_corner();
         }
-        bool is_valid() const {
-            assert(first.is_valid());
-            assert(second.is_valid());
-            assert(first.curve != nullptr);
-            assert(second.curve != nullptr);
-            if (first.curve == second.curve) { // weak edge to be cut later
-                return next(first.position) == second.position;
+        bool is_valid() const noexcept {
+            assert(this->first.curve);
+            assert(this->second.curve);
+            assert(this->first.curve!=this->second.curve);
+            if (!this->first.is_on_extremity()) return false;
+            if (!this->second.is_on_extremity()) return false;
+            if (!this->first.curve->is_valid()) return false;
+            if (!this->second.curve->is_valid()) return false;
+            if (!((*this->first.position) == (*this->second.position))) return false;
+            if (this->first.position->is_weak_corner()) {
+               if(!this->second.position->is_weak_corner()) return false;
+               return true;
             }
-            if (!first.is_on_extremity()) return false;
-            if (!second.is_on_extremity()) return false;
-            if (!((*first.position) == (*second.position))) return false;
+            if (!(this->first.position->point() == this->second.position->point())) return false;
             return true;
         }
     };

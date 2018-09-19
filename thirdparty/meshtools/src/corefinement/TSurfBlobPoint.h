@@ -8,9 +8,10 @@
 
 namespace BlobTraits = TSurfBlobTraits;
 
-template <typename Base_point>
-struct TSurfBlobPoint : Base_point
+template <typename BasePoint>
+struct TSurfBlobPoint : BasePoint
 {
+    typedef BasePoint Base_point;
     typedef CGAL::Surface_mesh<TSurfBlobPoint> TSurf;
     typedef BlobTraits::Shared_node<TSurf> Shared_node;
     typedef BlobTraits::Curve<Shared_node> Curve;
@@ -29,7 +30,7 @@ struct TSurfBlobPoint : Base_point
         /*id{},*/ constraint{}
     {}
     TSurfBlobPoint(Base_point&& P) :
-        Base_point{ std::forward<Point>(P) },
+        Base_point{ std::forward<Base_point>(P) },
         /*id{},*/ constraint{}
     {}
 };

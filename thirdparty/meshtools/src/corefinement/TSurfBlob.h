@@ -17,7 +17,7 @@ struct TSurfBlob
     public:
         Curve * new_curve() {
             pointers.emplace_back(
-                std::make_shared<Curve>(Curve::Creation_tag{})
+                std::make_shared<Curve>()
             );
             return pointers.back().get();
         }
@@ -31,7 +31,7 @@ struct TSurfBlob
 
     auto split(On_curve& on_curve)
     {
-        typedef typename On_corner_constraint<Surface>::Link Link;
+        typedef typename Constraint::On_corner::Link Link;
         assert(on_curve.is_valid());
         auto head = on_curve.curve;
         auto tail = new_empty_curve();
@@ -66,25 +66,25 @@ struct TSurfBlob
             }
         }
         else {
-            auto ocp = latest_constraint.on_curve();
-            assert(ocp);
-            assert(ocp->is_on_extremity());
-            ocp->curve = tail;
-            ocp->position = p;
+            auto ocup = latest_constraint.on_curve();
+            assert(ocup);
+            assert(ocup->is_on_extremity());
+            ocup->curve = tail;
+            ocup->position = p;
             assert(p->point(1).constraint.on_curve());
             assert(p->point(1).constraint.on_curve()->curve == tail);
             assert(p->point(1).constraint.on_curve()->position == p);
         }
-        assert(p->point(1).constraint.on_corner)
-            if (p)
-                assert(head->size() >= 1);
+        assert(p->point(1).constraint.on_corner());
+            //if (p)
+            //    assert(head->size() >= 1);
         // original constraint is deactivated
         on_curve.curve = nullptr;
         auto link = Link{
             { head, prev(head->end()) },
             { tail, tail->begin() }
         };
-        assert(result.is_valid());
+        assert(link.is_valid());
         return link;
     }
 
