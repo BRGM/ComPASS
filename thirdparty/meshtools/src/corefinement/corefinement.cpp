@@ -1,138 +1,12 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 
-#include "UIdFactory.h"
+#include "TSurfBlobPoint.h"
+#include "TSurfBlob.h"
 
-typedef CGAL::Epick Kernel;
-typedef Kernel::Point_3 Point;
-
-typedef std::size_t Id_type;
-
-template <typename Point_type>
-using Surface_type = CGAL::Surface_mesh<Point_type>;
-
-template <typename Point_type>
-struct Point_id
-{
-    typedef Surface_type<Point_type> Surface;
-    Surface * surface;
-    Id_type on_surface_id;
-};
-
-template <typename Point_type>
-using Curve_node = std::pair<Point_id<Point_type>, Point_id<Point_type>>;
-
-template <typename Point_type>
-struct Curve : std::list<Curve_node<Point_type>>
-{};
-
-template <typename Point_type>
-struct On_curve_constraint
-{
-    Curve<Point_type> * curve;
-    typename Curve<Point_type>::iterator position;
-};
-
-struct Point_on_surface : Point
-{
-    Point_id<Point> id;
-    On_curve_constraint<Point> constraints;
-    Point_on_surface() :
-        Point{}, id{}, constraints{}
-    {}
-    Point_on_surface(double x, double y, double z) :
-        Point{ x, y, z },
-        id{}, constraints{}
-    {}
-    Point_on_surface(const Point& P) :
-        Point{ P },
-        id{}, constraints{}
-    {}
-    Point_on_surface(Point&& P) :
-        Point{ std::forward<Point>(P) },
-        id{}, constraints{}
-    {}
-};
-
-
-//Surface_point id
-//(surface, id_on_surface) = spi
-//constraints 
-
-//on_curve -> curve_node -> list<pair<spi, spi>)
-
-// Curve : pair<Suface,Surface>, list<pair<pid,pid>> on_curve_constraint pair<curve, list_iterator>
-
-//on_corner_constraint -> 3 curves
-
-
-//corner -> ((S1, p1), (S2, p2), (S3, p3)) (Sk can be boundary of Sl)
-// over_constrained corner 
-
-//curve_patch = 1 or 2 points if only one point is corner (you don't want to move it)
-//connected_point_id, (other_surface, id_on_other_surface)
-//
-//on deletion -> remove from connected points / test no longer connected
-
-// split / check connected points arouns
-
-
-// CHECKME: ? Encapsulate id_factory so that we have id{} instead of id{ id_factory.make_uid() }
-//Id{
-//    static Factory * factory; // = 0
-//}
-
-//struct Point_with_index: Point
-//{
-//    typedef UIdFactory<Id_type> Id_factory;
-//    typedef typename Id_factory::Id_type Id;
-//    static  Id_factory id_factory;
-//    //typedef int Degree;
-//    //typedef int Surface_index;
-//    // CHECKME: ? Encapsulate id_factory so that we have id{} instead of id{ id_factory.make_uid() }
-//    Id id;
-//    //struct Constraints
-//    //{
-//    //    Degree degree; // 0 initialisation
-//    //    std::array<Surface_index, 3> surfaces;
-//    //    auto begin() { return surfaces.data(); }
-//    //    auto end() { return surfaces.data() + degree; }
-//    //    bool has_constraint(Surface_index si) {
-//    //        return std::find(begin(), end(), si) != end();
-//    //    }
-//    //    void add_constraint(Surface_index si) {
-//    //        assert(!has_constraint(si));
-//    //        assert(degree < surfaces.size());
-//    //        surfaces[degree] = si;
-//    //        ++degree;
-//    //        if (degree > 1) {
-//    //            std::sort(begin(), end());
-//    //        }
-//    //    }
-//    //};
-//    //Constraints constraints;
-//    Point_with_index() :
-//        Point{},
-//        id{ id_factory.make() }
-//    {}
-//    Point_with_index(double x, double y, double z) :
-//        Point{ x, y, z },
-//        id{ id_factory.make() }
-//    {}
-//    Point_with_index(const Point& P) :
-//        Point{ P },
-//        id{ id_factory.make() }
-//    {}
-//    Point_with_index(Point&& P) :
-//        Point{ std::forward<Point>(P) },
-//        id{ id_factory.make() }
-//    {}
-//};
-//
-//Point_with_index::Id_factory Point_with_index::id_factory;
-
-typedef Surface_type<Point_on_surface> Mesh;
+typedef TSurfBlobPoint<typename CGAL::Epick::Point_3> BlobPoint;
+typedef TSurfBlob<BlobPoint> Blob;
+typedef typename Blob::TSurf Mesh;
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -141,6 +15,7 @@ namespace py = pybind11;
 
 auto mesh_as_arrays(const Mesh& mesh)
 {
+    typedef typename CGAL::Epick::Point_3 Point;
     typedef std::size_t New_index;
     std::vector<New_index> reindex;
     reindex.resize(mesh.num_vertices());
@@ -173,7 +48,7 @@ auto mesh_as_arrays(const Mesh& mesh)
     return py::make_tuple(vertices, triangles);
 }
 
-template <typename Mesh, typename Constraint_map>
+template <typename Constraint_map>
 auto collect_curves(const Mesh& mesh, const Constraint_map& constraints)
 {
 
@@ -259,15 +134,15 @@ auto collect_curves(const Mesh& mesh, const Constraint_map& constraints)
         edge_left = find_free_edge()
         ) {
         auto starting_edge = *edge_left;
-        std::cerr << "#### new curve" << std::endl;
+        //std::cerr << "#### new curve" << std::endl;
         curves.emplace_back();
         auto& curve = curves.back();
         edge_in_curve[starting_edge] = true;
         curve.emplace_back(mesh.vertex(starting_edge, 0));
         curve.emplace_back(mesh.vertex(starting_edge, 1));
-        std::cerr << "#### new curve backward" << std::endl;
+        //std::cerr << "#### new curve backward" << std::endl;
         collect_vertices_until_corner(curve.back(), std::back_inserter(curve));
-        std::cerr << "#### new curve forward" << std::endl;
+        //std::cerr << "#### new curve forward" << std::endl;
         collect_vertices_until_corner(curve.front(), std::front_inserter(curve));
     }
     assert(std::all_of(begin(edge_in_curve), end(edge_in_curve), [](auto&& p) {return p.second; }));
@@ -275,31 +150,78 @@ auto collect_curves(const Mesh& mesh, const Constraint_map& constraints)
 
 }
 
+Blob blob;
 
-template <typename Mesh, typename Curves>
-auto associate_curves(const Mesh& mesh1, const Curves& curves1, const Mesh& mesh2, const Curves& curves2)
+/** check a curve does goes round a face
+ (i.e. there is no face that has two edges on the same curve)
+ otherwise this face should be triangulated */
+template <typename Curve>
+bool does_curve_round_a_face(const Curve& curve)
+{
+    auto check_adjacent_faces = [&curve](const Mesh& mesh, auto v1, auto v2) {
+        auto other_edges_on_curve = [&curve](const Mesh& mesh, auto h) {
+            assert(mesh.is_valid(h));
+            if (!mesh.is_border(h)) {
+                auto vend = mesh.source(h);
+                assert(mesh.point(vend).constraint
+                    && mesh.point(vend).constraint.has_curve(&curve));
+                assert(mesh.target(h) != vend);
+                h = mesh.next(h);
+                for (auto v = mesh.target(h); v != vend; h = mesh.next(h)) {
+                    if (mesh.point(v).constraint
+                        && mesh.point(v).constraint.has_curve(&curve)) return true;
+                    v = mesh.target(h);
+                }
+            }
+            return false;
+        };
+        auto h_on_curve = mesh.halfedge(v1, v2);
+        return !(other_edges_on_curve(mesh, h_on_curve) ||
+            other_edges_on_curve(mesh, mesh.opposite(h_on_curve)));
+    };
+    assert(!curve.empty());
+    auto pv = begin(curve);
+    for (auto qv = next(pv); qv != end(curve); ++qv) {
+        for(std::size_t i = 0; i < 2; ++i) {
+            auto pi = pv->info[i];
+            auto qi = qv->info[i];
+            assert(pi.is_on_surface() && qi.is_on_surface());
+            assert(pi.surface == qi.surface);
+            if (!check_adjacent_faces(*pi.surface, pi.index, qi.index)) return false;
+        }
+        pv = qv;
+    }
+    return true;
+}
+
+
+template <typename Vertex_lists>
+auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, const Vertex_lists& curves2)
 {
 
-    typedef typename Curves::value_type Curve;
-    typedef typename Curve::value_type Vertex_index;
+    typedef typename Vertex_lists::value_type Vertex_list;
+    typedef typename Vertex_list::value_type Vertex_index;
     static_assert(std::is_same<typename Mesh::Vertex_index, Vertex_index>::value, "Inconsistent types");
 
     assert(curves1.size() == curves2.size());
-    std::vector<const Curve *> already_associated;
+    std::vector<const Vertex_list *> already_associated;
     already_associated.reserve(curves2.size());
     std::map<Vertex_index, Vertex_index> v1tov2, v2tov1;
 
     for (auto& curve1 : curves1) {
         bool found_corresponding_curve = false;
         for (auto& curve2 : curves2) {
-            auto p = &curve2; 
+            auto p = &curve2;
             if (std::find(begin(already_associated), end(already_associated), p) == end(already_associated)) {
                 if (curve1.size() == curve2.size()) {
                     bool all_points_associated = true;
                     for (auto&& v1 : curve1) {
                         if (v1tov2.count(v1) == 0) {
-                            auto P1 = Point{ mesh1.point(v1) };
-                            auto pv2 = std::find_if(begin(curve2), end(curve2), [&mesh2, &P1](const auto& v2) { return P1 == mesh2.point(v2); });
+                            auto P1 = CGAL::Epick::Point_3{ mesh1.point(v1) };
+                            auto pv2 = std::find_if(begin(curve2), end(curve2), 
+                                [&mesh2, &P1](const auto& v2) { 
+                                return P1 == mesh2.point(v2); 
+                            });
                             if (pv2 == end(curve2)) {
                                 all_points_associated = false;
                                 break;
@@ -337,10 +259,74 @@ auto associate_curves(const Mesh& mesh1, const Curves& curves1, const Mesh& mesh
     assert(check_all_points_have_correspondances(curves2, v2tov1));
 #endif
 
+
+    typedef typename Blob::Curve Curve;
+    typedef typename Curve::Node Node;
+    typedef typename Node::Info Node_info;
+    typedef typename Blob::Constraint Constraint;
+    typedef typename Constraint::On_curve On_curve;
+
+    std::list<Curve *> curves_on_surface;
+
+    for (auto&& curve1 : curves1) {
+        auto pcurve = blob.new_empty_curve();
+        assert(pcurve != nullptr);
+        for (auto&& v1 : curve1) {
+            const auto v2 = v1tov2[v1];
+            pcurve->emplace_back(
+                Node_info{ &mesh1, v1 },
+                Node_info{ &mesh2, v2 }
+            );
+            assert(mesh1.point(v1).constraint == mesh1.point(v2).constraint);
+            if (!(mesh1.point(v1).constraint)) {
+                auto new_constraint = Constraint{
+                    std::make_shared<On_curve>(pcurve, prev(pcurve->end()))
+                };
+                mesh1.point(v1).constraint = new_constraint;
+                mesh2.point(v2).constraint = new_constraint;
+            }
+            else {
+                assert(mesh1.point(v1).constraint.on_corner());
+                assert(false);
+            }
+        }
+        curves_on_surface.emplace_back(pcurve);
+    }
+
+    assert(std::all_of(
+        begin(curves_on_surface), end(curves_on_surface),
+        [](auto p) { return does_curve_round_a_face(*p); }
+    ));
+
+    std::vector<Constraint> neighboring_constraints;
+    for (auto&& pcurve : curves_on_surface) {
+        for (auto&& node : *pcurve) {
+            auto v1 = node.info[0].index;
+            neighboring_constraints.clear();
+            for(auto h1: CGAL::halfedges_around_source(v1, mesh1)) {
+                auto neighbor = mesh1.target(h1);
+                if (auto constraint = mesh1.point(neighbor).constraint) {
+                    assert(std::find(begin(neighboring_constraints), end(neighboring_constraints), constraint) == end(neighboring_constraints));
+                    neighboring_constraints.emplace_back(constraint);
+                }
+            }
+            for (auto pc = begin(neighboring_constraints); pc != end(neighboring_constraints); ++pc) {
+                for (auto qc = next(pc); pc != end(neighboring_constraints); ++pc) {
+                    if (auto weak_link = neighbors_on_same_curve(*pc, *qc)) {
+                        assert(weak_link->is_weak());
+                        assert(node.point(0).constraint);
+                        assert(node.point(0).constraint.on_curve());
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 auto test()
 {
+    typedef typename CGAL::Epick::Point_3 Point;
     Mesh tm1;
     Mesh::Vertex_index u = tm1.add_vertex(Point(0, 1, 0));
     Mesh::Vertex_index v = tm1.add_vertex(Point(0, 0, 0.2));
