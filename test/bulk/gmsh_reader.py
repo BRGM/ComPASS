@@ -13,7 +13,7 @@
 
 import numpy as np
 import MeshTools as MT
-import vtkwriters as vtkw
+import MeshTools.vtkwriters as vtkw
 
 # conversion GMesh element code -> MeshTools object
 # cf codelist at: http://gmsh.info/doc/texinfo/gmsh.html#MSH-ASCII-file-format
