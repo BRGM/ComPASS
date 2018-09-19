@@ -18,6 +18,8 @@ namespace TSurfBlobTraits
         {}
         bool is_valid() const noexcept {
             assert(curve);
+            if (!curve->is_valid()) return false;
+            if (!position->is_valid()) return false;
             for (auto p = curve->begin(); p != curve->end(); ++p) {
                 if (p == position) return true;
             }

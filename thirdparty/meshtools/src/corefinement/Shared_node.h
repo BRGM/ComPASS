@@ -75,43 +75,78 @@ namespace TSurfBlobTraits
                 i2.surface != i3.surface
             );
         }
-        Shared_node(Shared_node cn, Info i) :
-            info{ { cn.info[0], cn.info[1], i } } {
-            assert(cn.degree() == 2);
+        Shared_node(Shared_node node, Info i) :
+            info{ { node.info[0], node.info[1], i } } {
+            assert(node.degree() == 2);
             assert(
-                i.surface != cn.info[0].surface &&
-                i.surface != cn.info[1].surface
+                i.surface != node.info[0].surface &&
+                i.surface != node.info[1].surface
             );
         }
         //bool is_corner() const { return degree == 3; }
         bool operator==(const Shared_node& other) const noexcept {
             return info == other.info;
         }
+        auto base_point() noexcept {
+            assert(is_geometrically_consistent());
+            if(info[0].is_on_surface()) return info[0].base_point();
+            return info[1].base_point();
+        }
         auto point() noexcept {
             assert(is_consistent());
-            return info[0].point();
+            if (info[0].is_on_surface()) return info[0].point();
+            return info[1].point();
         }
-        auto constraint(std::size_t i) noexcept {
-            assert(i<degree());
-            return info[i].constraint();
+        auto constraint() noexcept {
+            return point().constraint;
         }
         auto is_valid() const {
-            return info[0].is_on_surface() && info[1].is_on_surface() && (
-                !info[2].surface || // i.e. degree==2
-                info[2].index==info[2].surface->null_vertex() ||
-                info[2].is_on_surface()
-                );
+            if(!info[0].is_valid()) return false;
+            if(!info[1].is_valid()) return false;
+            if (info[2].surface) {
+                if (!info[2].is_valid()) return false;
+            }
+            if (info[0].surface == info[1].surface) return false;
+            if (info[0].surface == info[2].surface) return false;
+            if (info[1].surface == info[2].surface) return false;
+            if (!info[0].is_on_surface()) {
+                if (degree() != 3) return false;
+                if (!(info[1].is_on_surface() && info[2].is_on_surface())) return false;
+            }
+            if (!info[1].is_on_surface()) {
+                if (degree() != 3) return false;
+                if (!(info[0].is_on_surface() && info[2].is_on_surface())) return false;
+            }
+            if (degree()==3 && !info[2].is_on_surface()) {
+                if (!(info[0].is_on_surface() && info[1].is_on_surface())) return false;
+            }
+            return true;
         }
         auto is_consistent() const {
             assert(is_valid());
-            auto P = info[0].base_point();
-            return  P == info[1].base_point() && (
-                degree() == 2 || is_weak_corner() || P == info[2].base_point()
-                );
+            if (degree() == 2) return info[0].point() == info[1].point();
+            std::set<typename Info::Surface_point> pts;
+            for (auto&& i : info) {
+                if (i.is_on_surface()) pts.insert(i.point());
+            }
+            return pts.size()==1;
+        }
+        auto is_geometrically_consistent() const {
+            assert(is_valid());
+            if (degree() == 2) return info[0].base_point() == info[1].base_point();
+            std::set<typename Info::Surface_base_point> pts;
+            for (auto&& i : info) {
+                if (i.is_on_surface()) pts.insert(i.base_point());
+            }
+            return pts.size() == 1;
         }
         auto is_weak_corner() const {
             assert(is_valid());
-            return info[2].surface && info[2].index == info[2].surface->null_vertex();
+            return info[2].surface && (
+                info[0].index == info[0].surface->null_vertex() ||
+                info[1].index == info[1].surface->null_vertex() ||
+                info[2].index == info[2].surface->null_vertex()
+            );
         }
         auto degree() const {
             return info[2].surface ? 3 : 2;

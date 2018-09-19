@@ -33,6 +33,14 @@ namespace TSurfBlobTraits
                 this->front().info[1].surface
             );
         }
+        template <typename Surface>
+        auto has_incident_surface(Surface * S) const {
+            assert(is_valid());
+            return (
+                this->front().info[0].surface == S ||
+                this->front().info[1].surface == S;
+            );
+        }
         auto share_surface(const Curve& other) const {
             auto this_surfaces = incident_surfaces();
             auto other_surfaces = other.incident_surfaces();

@@ -6,16 +6,16 @@ namespace TSurfBlobTraits
 {
 
     template <typename Curve_type>
-    struct Curves_link : std::pair<On_curve_constraint<Curve_type>, On_curve_constraint<Curve_type>>
+    struct Curves_junction : std::pair<On_curve_constraint<Curve_type>, On_curve_constraint<Curve_type>>
     {
         typedef Curve_type Curve;
         typedef On_curve_constraint<Curve> On_curve;
         //typedef typename Constraint_type::Curve Curve;
-        Curves_link() = delete;
-        Curves_link(const On_curve& c1, const On_curve& c2) :
+        Curves_junction() = delete;
+        Curves_junction(const On_curve& c1, const On_curve& c2) :
             std::pair<On_curve, On_curve>{ c1, c2 }
         {}
-        Curves_link(On_curve&& c1, On_curve&& c2) :
+        Curves_junction(On_curve&& c1, On_curve&& c2) :
             std::pair<On_curve, On_curve>{
                 std::forward<On_curve>(c1),
                 std::forward<On_curve>(c2)

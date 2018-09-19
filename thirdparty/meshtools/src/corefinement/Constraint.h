@@ -3,7 +3,7 @@
 #include <boost/variant.hpp>
 
 #include "On_curve_constraint.h"
-#include "On_corner_constraint.h"
+#include "On_junction_constraint.h"
 
 namespace TSurfBlobTraits
 {
@@ -16,10 +16,10 @@ namespace TSurfBlobTraits
         typedef Curve_type Curve;
         typedef On_curve_constraint<Curve> On_curve;
         typedef std::shared_ptr<On_curve> On_curve_sp;
-        typedef On_corner_constraint<Curve> On_corner;
-        typedef std::shared_ptr<On_corner> On_corner_sp;
+        typedef On_junction_constraint<Curve> On_junction;
+        typedef std::shared_ptr<On_junction> On_junction_sp;
         boost::variant<
-            Relaxed_constraint, On_curve_sp, On_corner_sp
+            Relaxed_constraint, On_curve_sp, On_junction_sp
         > nature;
         operator bool() const {
             return boost::get<Relaxed_constraint>(&nature) == nullptr;
@@ -31,8 +31,8 @@ namespace TSurfBlobTraits
             }
             return nullptr;
         }
-        On_curve * on_corner() const {
-            if (auto p = boost::get<On_curve_sp>(&nature)) {
+        On_junction * on_junction() const {
+            if (auto p = boost::get<On_junction_sp>(&nature)) {
                 assert(p->get());
                 return p->get();
             }
@@ -47,7 +47,7 @@ namespace TSurfBlobTraits
         //        assert(sp);
         //        return sp->curve == pcurve;
         //    }
-        //    bool operator()(const On_corner_sp& sp) const {
+        //    bool operator()(const On_junction_sp& sp) const {
         //        assert(sp);
         //        return sp->has_curve(pcurve);
         //    }
@@ -61,14 +61,14 @@ namespace TSurfBlobTraits
                 assert(sp);
                 return Result{ 1, sp->curve };
             }
-            Result operator()(const On_corner_sp& sp) const {
+            Result operator()(const On_junction_sp& sp) const {
                 assert(sp);
                 auto result = Result{};
                 result.reserve(6);
-                for (auto&& link : sp->links) {
-                    assert(link.is_valid());
-                    result.emplace_back(link.first.curve);
-                    if (!link.is_weak()) result.emplace_back(link.second.curve);
+                for (auto&& junction : sp->junctions) {
+                    assert(junction.is_valid());
+                    result.emplace_back(junction.first.curve);
+                    if (!junction.is_weak()) result.emplace_back(junction.second.curve);
                 }
                 return result;
             }
@@ -86,10 +86,10 @@ namespace TSurfBlobTraits
         //        if (Has_curve_visitor{ sp->curve }(t)) return Result{ sp->curve };
         //        return Result{};
         //    }
-        //    Result operator()(const On_corner_sp& sp1, const On_curve_sp& sp2) const {
+        //    Result operator()(const On_junction_sp& sp1, const On_curve_sp& sp2) const {
         //        return this->operator()(sp2, sp1);
         //    }
-        //    Result operator()(const On_corner_sp& sp1, const On_corner_sp& sp2) const {
+        //    Result operator()(const On_junction_sp& sp1, const On_junction_sp& sp2) const {
         //        assert(sp1);
         //        for (auto&& curve : sp1->curves) {
         //            if (Has_curve_visitor{ curve }(sp2)) return Result{ curve };
@@ -98,8 +98,8 @@ namespace TSurfBlobTraits
         //    }
         //};
         struct Neighbors_on_same_curve_multivisitor {
-            typedef typename On_corner::Link Link;
-            typedef boost::optional<Link> Result;
+            typedef typename On_junction::Junction Junction;
+            typedef boost::optional<Junction> Result;
             template <typename T1, typename T2>
             Result operator()(const T1&, const T2&) const noexcept {
                 return Result{};
@@ -107,43 +107,43 @@ namespace TSurfBlobTraits
             Result operator()(const On_curve_sp& cuc1, const On_curve_sp& cuc2) const noexcept {
                 assert(cuc1 && cuc2);
                 if (cuc1->curve == cuc2->curve) {
-                    auto make_weak_link = [](auto oc1, auto oc2) {
-                        auto weak_link = Link{ oc1, oc2 };
-                        assert(weak_link.is_valid() && weak_link.is_weak());
-                        return weak_link;
+                    auto make_weak_junction = [](auto oc1, auto oc2) {
+                        auto weak_junction = Junction{ oc1, oc2 };
+                        assert(weak_junction.is_valid() && weak_junction.is_weak());
+                        return weak_junction;
                     };
                     if (next(cuc1->position) == cuc2->position) {
-                        return make_weak_link(*cuc1, *cuc2);
+                        return make_weak_junction(*cuc1, *cuc2);
                     }
                     if (cuc1->position == next(cuc2->position)) {
-                        return make_weak_link(*cuc2, *cuc1);
+                        return make_weak_junction(*cuc2, *cuc1);
                     }
                 }
                 return Result{};
             }
-            Result operator()(const On_corner_sp& coc, const On_curve_sp& cuc) const noexcept {
+            Result operator()(const On_junction_sp& coc, const On_curve_sp& cuc) const noexcept {
                 assert(coc && cuc);
-                for (auto&& link : coc->links) {
-                    if (auto weak_link = this->operator()(link.first, cuc)) {
-                        return weak_link;
+                for (auto&& junction : coc->junctions) {
+                    if (auto weak_junction = this->operator()(junction.first, cuc)) {
+                        return weak_junction;
                     }
-                    if (auto weak_link = this->operator()(link.second, cuc)) {
-                        return weak_link;
+                    if (auto weak_junction = this->operator()(junction.second, cuc)) {
+                        return weak_junction;
                     }
                 }
                 return Result{};
             }
-            Result operator()(const On_curve_sp& cuc, const On_corner_sp& coc) const noexcept {
+            Result operator()(const On_curve_sp& cuc, const On_junction_sp& coc) const noexcept {
                 return this->operator()(coc, cuc);
             }
-            Result operator()(const On_corner_sp& coc1, const On_corner_sp& coc2) const noexcept {
+            Result operator()(const On_junction_sp& coc1, const On_junction_sp& coc2) const noexcept {
                 assert(coc1 && coc2);
-                for (auto&& link : coc1->links) {
-                    if (auto weak_link = this->operator()(coc1, link.first)) {
-                        return weak_link;
+                for (auto&& junction : coc1->junctions) {
+                    if (auto weak_junction = this->operator()(coc1, junction.first)) {
+                        return weak_junction;
                     }
-                    if (auto weak_link = this->operator()(coc1, link.second)) {
-                        return weak_link;
+                    if (auto weak_junction = this->operator()(coc1, junction.second)) {
+                        return weak_junction;
                     }                }
                 return Result{};
             }

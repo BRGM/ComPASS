@@ -6,7 +6,7 @@ namespace TSurfBlobTraits
 {
 
     template <typename Curve_type>
-    struct On_corner_constraint
+    struct On_junction_constraint
     {
         typedef Curve_type Curve;
         typedef Curves_link<Curve> Link;

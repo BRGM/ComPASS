@@ -227,6 +227,8 @@ auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, con
                                 break;
                             }
                             else {
+                                assert(mesh1.is_valid(v1));
+                                assert(mesh2.is_valid(*pv2));
                                 v1tov2[v1] = *pv2;
                             }
                         }
@@ -270,14 +272,16 @@ auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, con
 
     for (auto&& curve1 : curves1) {
         auto pcurve = blob.new_empty_curve();
-        assert(pcurve != nullptr);
+        assert(pcurve);
         for (auto&& v1 : curve1) {
             const auto v2 = v1tov2[v1];
+            assert(mesh1.is_valid(v1));
+            assert(mesh2.is_valid(v2));
             pcurve->emplace_back(
                 Node_info{ &mesh1, v1 },
                 Node_info{ &mesh2, v2 }
             );
-            assert(mesh1.point(v1).constraint == mesh1.point(v2).constraint);
+            assert(mesh1.point(v1).constraint == mesh2.point(v2).constraint);
             if (!(mesh1.point(v1).constraint)) {
                 auto new_constraint = Constraint{
                     std::make_shared<On_curve>(pcurve, prev(pcurve->end()))
@@ -286,7 +290,7 @@ auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, con
                 mesh2.point(v2).constraint = new_constraint;
             }
             else {
-                assert(mesh1.point(v1).constraint.on_corner());
+                assert(mesh1.point(v1).constraint.on_junction());
                 assert(false);
             }
         }
@@ -306,22 +310,75 @@ auto associate_curves(Mesh& mesh1, const Vertex_lists& curves1, Mesh& mesh2, con
             for(auto h1: CGAL::halfedges_around_source(v1, mesh1)) {
                 auto neighbor = mesh1.target(h1);
                 if (auto constraint = mesh1.point(neighbor).constraint) {
-                    assert(std::find(begin(neighboring_constraints), end(neighboring_constraints), constraint) == end(neighboring_constraints));
-                    neighboring_constraints.emplace_back(constraint);
+                    if (auto on_curve = constraint.on_curve()) {
+                        if (on_curve->curve != pcurve) {
+                            assert(std::find(begin(neighboring_constraints), end(neighboring_constraints), constraint) == end(neighboring_constraints));
+                            neighboring_constraints.emplace_back(constraint);
+                        }
+                    }
+                    else {
+                        auto on_junction = constraint.on_junction();
+                        assert(on_junction);
+                    }
                 }
             }
-            for (auto pc = begin(neighboring_constraints); pc != end(neighboring_constraints); ++pc) {
-                for (auto qc = next(pc); pc != end(neighboring_constraints); ++pc) {
-                    if (auto weak_link = neighbors_on_same_curve(*pc, *qc)) {
-                        assert(weak_link->is_weak());
-                        assert(node.constraint(0));
-                        assert(node.constraint(0).on_curve());
+            if (neighboring_constraints.size()>1) {
+                for (auto pc = begin(neighboring_constraints); pc != end(neighboring_constraints); ++pc) {
+                    for (auto qc = next(pc); qc != end(neighboring_constraints); ++qc) {
+                        if (auto weak_link = neighbors_on_same_curve(*pc, *qc)) {
+                            assert(weak_link->is_weak());
+                            assert(node.constraint());
+                            assert(node.constraint().on_curve());
+                        }
                     }
                 }
             }
         }
     }
 
+}
+
+auto corefine_surfaces(Mesh& S1, Mesh& S2)
+{
+
+    typedef Mesh::Vertex_index Vertex_index;
+    typedef Mesh::Edge_index Edge_index;
+
+    auto add_constraint_map = [](Mesh& mesh) {
+        auto result = mesh.add_property_map<Edge_index, bool>("e:constrained", false);
+        assert(result.second);
+        return result.first;
+    };
+    auto constraints1 = add_constraint_map(S1);
+    auto constraints2 = add_constraint_map(S2);
+    namespace parameters = CGAL::Polygon_mesh_processing::parameters;
+    CGAL::Polygon_mesh_processing::corefine(
+        S1, S2,
+        parameters::edge_is_constrained_map(constraints1),
+        parameters::edge_is_constrained_map(constraints2),
+        true
+    );
+    auto curves1 = collect_curves(S1, constraints1);
+    auto curves2 = collect_curves(S2, constraints2);
+    S1.remove_property_map(constraints1);
+    S2.remove_property_map(constraints2);
+    // ------------------------------------------------------------------
+    std::cout << "curve 1 ------------------------" << std::endl;
+    for (auto&& curve : curves1) {
+        std::cout << "-- curve" << std::endl;
+        for (auto&& v : curve) {
+            std::cout << "  " << S1.point(v) << std::endl;
+        }
+    }
+    std::cout << "curve 2 ------------------------" << std::endl;
+    for (auto&& curve : curves2) {
+        std::cout << "-- curve" << std::endl;
+        for (auto&& v : curve) {
+            std::cout << "  " << S2.point(v) << std::endl;
+        }
+    }
+    associate_curves(S1, curves1, S2, curves2);
+    std::cout << "Number of blob curves: " << blob.curves_factory.already_created() << std::endl;
 }
 
 auto test()
@@ -339,48 +396,17 @@ auto test()
     Mesh::Vertex_index x = tm2.add_vertex(Point(-0.5, 0.8, 1));
     tm2.add_face(u, v, w);
     tm2.add_face(u, w, x); // beware of face orientation - otherwise face is not added
-
-    typedef Mesh::Vertex_index Vertex_index;
-    typedef Mesh::Edge_index Edge_index;
-    auto add_constraint_map = [](Mesh& mesh) {
-        auto result = mesh.add_property_map<Edge_index, bool>("e:constrained", false);
-        assert(result.second);
-        return result.first;
-    };
-    auto constraints1 = add_constraint_map(tm1);
-    auto constraints2 = add_constraint_map(tm2);
-    namespace parameters = CGAL::Polygon_mesh_processing::parameters;
-    CGAL::Polygon_mesh_processing::corefine(
-        tm1, tm2,
-        parameters::edge_is_constrained_map(constraints1),
-        parameters::edge_is_constrained_map(constraints2),
-        true
-    );
-
-
-    auto curves1 = collect_curves(tm1, constraints1);
-    auto curves2 = collect_curves(tm2, constraints2);
-    std::cout << "curve 1 ------------------------" << std::endl;
-    for (auto&& curve : curves1) {
-        std::cout << "-- curve" << std::endl;
-        for (auto&& v : curve) {
-            std::cout << "  " << tm1.point(v) << std::endl;
-        }
-    }
-    std::cout << "curve 2 ------------------------" << std::endl;
-    for (auto&& curve : curves2) {
-        std::cout << "-- curve" << std::endl;
-        for (auto&& v : curve) {
-            std::cout << "  " << tm2.point(v) << std::endl;
-        }
-    }
+    Mesh tm3;
+    u = tm3.add_vertex(Point(0.5, 0., -1));
+    v = tm3.add_vertex(Point(0.6, 0.1, -1.3));
+    w = tm3.add_vertex(Point(0.7, 0.4, 1.5));
+    tm3.add_face(u, v, w);
     
-    associate_curves(tm1, curves1, tm2, curves2);
 
     //std::ofstream os("test.off");
     //CGAL::write_off(os, tm1);
     //os.close();
-    return py::make_tuple(mesh_as_arrays(tm1), mesh_as_arrays(tm2));
+    return py::make_tuple(mesh_as_arrays(tm1), mesh_as_arrays(tm2), mesh_as_arrays(tm3));
 
 }
 
