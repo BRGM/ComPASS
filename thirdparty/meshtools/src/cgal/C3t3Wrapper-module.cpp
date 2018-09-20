@@ -9,6 +9,7 @@
 
 #include "mesh-pyutils.h"
 #include "mesh_implicit_domains.h"
+#include "implicit_functions.h"
 
 typedef CGAL::Surface_mesh<typename CGAL::Epick::Point_3> Mesh;
 
@@ -78,5 +79,8 @@ void add_c3t3_wrapper(py::module& module)
 
             module.def("mesh_implicit_domains_boundaries",
                 &mesh_implicit_domains_boundaries);
+
+            module.def("torus", &torus_function);
+            module.def("sphere", &sphere_function<3>);
 
 }

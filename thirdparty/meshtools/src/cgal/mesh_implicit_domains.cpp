@@ -1,4 +1,4 @@
-// This is directly taken from the cgal example
+// This is directly taken from CGAL examples
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Mesh_triangulation_3.h>
@@ -53,7 +53,9 @@ py::list mesh_implicit_domains_boundaries()
     Cell_criteria cell_criteria(2., 0.4); // radius-edge ratio, size
     Mesh_criteria criteria(facet_criteria, cell_criteria);
     // Mesh generation
-    C3t3 c3t3 = CGAL::make_mesh_3<C3t3>(domain, criteria, no_exude(), no_perturb());
+    C3t3 c3t3 = CGAL::make_mesh_3<C3t3>(domain, criteria, no_exude(), no_perturb()
+        //,manifold() // this one is important
+        );
     // Perturbation (maximum cpu time: 10s, targeted dihedral angle: default)
     CGAL::perturb_mesh_3(c3t3, domain, time_limit = 10);
 
