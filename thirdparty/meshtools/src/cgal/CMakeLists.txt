@@ -13,7 +13,8 @@ if (EIGEN3_FOUND)
     include( ${EIGEN3_USE_FILE} )
 endif()
 
-pybind11_add_module(CGALWrappers CGALWrappers.cpp C3t3Wrapper-module.cpp DTMWrapper.cpp)
+pybind11_add_module(CGALWrappers CGALWrappers.cpp C3t3Wrapper-module.cpp DTMWrapper.cpp
+                    implicit_functions.cpp mesh_implicit_domains.cpp)
 set_target_properties(CGALWrappers
   PROPERTIES
   CXX_STANDARD 14

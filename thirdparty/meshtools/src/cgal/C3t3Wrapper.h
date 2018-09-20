@@ -263,6 +263,9 @@ public:
     auto domain_tags_buffer() const { return BufferInfo<Domain_tag>{ domain_tags }; }
     auto facets_buffer() const { return BufferInfo<Id_type, dim>{ facets }; }
     auto facet_tags_buffer() const { return BufferInfo<Id_type, 2>{ facet_tags }; }
+    const C3t3& get() const {
+        return c3t3;
+    }
 };
 
 //template<typename Result, typename Input>
