@@ -397,11 +397,13 @@ auto test()
     tm2.add_face(u, v, w);
     tm2.add_face(u, w, x); // beware of face orientation - otherwise face is not added
     Mesh tm3;
-    u = tm3.add_vertex(Point(0.5, 0., -1));
-    v = tm3.add_vertex(Point(0.6, 0.1, -1.3));
-    w = tm3.add_vertex(Point(0.7, 0.4, 1.5));
+    u = tm3.add_vertex(Point(-1.5, 1.1, 1));
+    v = tm3.add_vertex(Point(0.8, 1.2, -1.3));
+    w = tm3.add_vertex(Point(0.7, -1., 1.5));
     tm3.add_face(u, v, w);
     
+    corefine_surfaces(tm1, tm2);
+    //corefine_surfaces(tm1, tm3);
 
     //std::ofstream os("test.off");
     //CGAL::write_off(os, tm1);
