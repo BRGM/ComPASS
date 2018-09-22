@@ -10,45 +10,10 @@ typedef typename Blob::TSurf Mesh;
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include "mesh-pyutils.h"
 #include "collect_consrained_edges_as_curves.h"
 
 namespace py = pybind11;
-
-// FIXME: use version in pymesh-utils.h
-auto mesh_as_arrays(const Mesh& mesh)
-{
-    typedef typename CGAL::Epick::Point_3 Point;
-    typedef std::size_t New_index;
-    std::vector<New_index> reindex;
-    reindex.resize(mesh.num_vertices());
-    auto nv = New_index{ 0 };
-    for (auto&& v : mesh.vertices()) {
-        reindex[v] = nv++;
-    }
-    auto vertices = py::array_t<double, py::array::c_style>{
-        { static_cast<std::size_t>(nv), static_cast<std::size_t>(Point::Ambient_dimension::value) }
-    };
-    {
-        auto p = reinterpret_cast<Point*>(vertices.request().ptr);
-        static_assert(sizeof(Point) == Point::Ambient_dimension::value * sizeof(double), "Inconsistent sizes in memory!");
-        for (auto&& v : mesh.vertices()) {
-            *(p++) = mesh.point(v);
-        }
-    }
-    auto triangles = py::array_t<New_index, py::array::c_style>{
-        { static_cast<std::size_t>(mesh.number_of_faces()), static_cast<std::size_t>(3) }
-    };
-    {
-        auto p = reinterpret_cast<New_index*>(triangles.request().ptr);
-        for (auto&& f : mesh.faces()) {
-            assert(mesh.degree(f) == 3);
-            for (auto&& v : CGAL::vertices_around_face(mesh.halfedge(f), mesh)) {
-                *(p++) = reindex[v];
-            }
-        }
-    }
-    return py::make_tuple(vertices, triangles);
-}
 
 auto corefine_surfaces(Blob& blob, Mesh& S1, Mesh& S2)
 {
@@ -74,21 +39,23 @@ auto corefine_surfaces(Blob& blob, Mesh& S1, Mesh& S2)
     //auto curves2 = collect_curves(S2, constraints2);
     S1.remove_property_map(constraints1);
     S2.remove_property_map(constraints2);
-    //// ------------------------------------------------------------------
-    //std::cout << "curve 1 ------------------------" << std::endl;
-    //for (auto&& curve : curves1) {
-    //    std::cout << "-- curve" << std::endl;
-    //    for (auto&& v : curve) {
-    //        std::cout << "  " << S1.point(v) << std::endl;
-    //    }
-    //}
-    //std::cout << "curve 2 ------------------------" << std::endl;
-    //for (auto&& curve : curves2) {
-    //    std::cout << "-- curve" << std::endl;
-    //    for (auto&& v : curve) {
-    //        std::cout << "  " << S2.point(v) << std::endl;
-    //    }
-    //}
+/**
+    // ------------------------------------------------------------------
+    std::cout << "curve 1 ------------------------" << std::endl;
+    for (auto&& curve : curves1) {
+        std::cout << "-- curve" << std::endl;
+        for (auto&& v : curve) {
+            std::cout << "  " << S1.point(v) << std::endl;
+        }
+    }
+    std::cout << "curve 2 ------------------------" << std::endl;
+    for (auto&& curve : curves2) {
+        std::cout << "-- curve" << std::endl;
+        for (auto&& v : curve) {
+            std::cout << "  " << S2.point(v) << std::endl;
+        }
+    }
+/**/
     //associate_curves(S1, curves1, S2, curves2);
     for (auto&& curve : curves1) {
         auto p = blob.new_intersection(&S1, &S2);

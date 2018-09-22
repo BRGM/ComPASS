@@ -13,6 +13,15 @@ if (EIGEN3_FOUND)
     include( ${EIGEN3_USE_FILE} )
 endif()
 
+option(ACTIVATE_CONCURRENCY "Enable concurrency" OFF)
+
+if( ACTIVATE_CONCURRENCY )
+    find_package( TBB )
+    if( NOT TBB_FOUND )
+        message( STATUS "NOTICE: Intel TBB NOT found! No parallelism activated." )
+    endif()
+endif()
+
 pybind11_add_module(CGALWrappers CGALWrappers.cpp C3t3Wrapper-module.cpp DTMWrapper.cpp
                     implicit_functions.cpp mesh_implicit_domains.cpp)
 target_compile_definitions(CGALWrappers PRIVATE BOOST_PARAMETER_MAX_ARITY=12)
@@ -26,6 +35,10 @@ set_target_properties(CGALWrappers
   LIBRARY_OUTPUT_DIRECTORY_RELEASE ${MESHTOOLS_PYTHON_MODULES_OUTPUT_DIRECTORY}
 )
 
+if(ACTIVATE_CONCURRENCY AND TBB_FOUND)
+    CGAL_target_use_TBB(CGALWrappers)
+endif()
+
 pybind11_add_module(Corefinement corefinement.cpp)
 #target_compile_definitions(Corefinement PRIVATE BOOST_PARAMETER_MAX_ARITY=12)
 set_target_properties(Corefinement
@@ -38,15 +51,3 @@ set_target_properties(Corefinement
   LIBRARY_OUTPUT_DIRECTORY_RELEASE ${MESHTOOLS_PYTHON_MODULES_OUTPUT_DIRECTORY}
 )
 
-option(ACTIVATE_CONCURRENCY "Enable concurrency" ON)
-
-if( ACTIVATE_CONCURRENCY )
-    find_package( TBB )
-    if( NOT TBB_FOUND )
-        message( STATUS "NOTICE: Intel TBB NOT found! The example is faster if TBB is linked." )
-    endif()
-endif()
-
-if(ACTIVATE_CONCURRENCY AND TBB_FOUND)
-    CGAL_target_use_TBB(CGALWrappers)
-endif()
