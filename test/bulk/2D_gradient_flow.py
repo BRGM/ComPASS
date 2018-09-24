@@ -13,16 +13,16 @@ from ComPASS.timeloops import standard_loop
 import matplotlib.pyplot as plt
 import numpy as np
 
-rhof = 1E3               # specific mass in kg/m^3
-cpf = 4200               # specific heat in J/kg/K
-rhofcpf = rhof * cpf     # volumetric heat capacity
-muf = 3E-4
-pleft, pright = 30 * MPa, 10 * MPa
-Tleft, Tright = degC2K(60), degC2K(100)
+rhow =1# 1E3
+b = 1#4.2e+3          # specific heat in J/kg/K
+rhocp =1# 2000*800   # volumetric heat capacity
+muf = 1#3E-4
+pleft, pright = 300,200#30 * MPa, 10 * MPa
+Tleft, Tright = degC2K(60), degC2K(0)
 omega_reservoir = 0.2 # reservoir porosity
-k_reservoir = 1E-12 # reservoir permeability in m^2
-K_reservoir = 2     # bulk thermal conductivity in W/m/K
-a=10
+k_reservoir =1# 1E-12 # reservoir permeability in m^2
+K_reservoir = 100#2     # bulk thermal conductivity in W/m/K
+a=8
 
 Lx = 100.
 Ly = 50
@@ -41,16 +41,17 @@ if onecomp:
 else:
     ComPASS.load_eos('water_with_tracer')
 fluid_properties = ComPASS.get_fluid_properties()
-fluid_properties.specific_mass = rhof
-fluid_properties.volumetric_heat_capacity = rhofcpf
+fluid_properties.specific_mass = rhow
+fluid_properties.volumetric_heat_capacity = b
 fluid_properties.dynamic_viscosity = muf
-
+ComPASS.set_rock_volumetric_heat_capacity(rhocp)
 
 #mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / muf) * (pleft - pright) / Lx)
+
 print('Average Darcy velocity:', U * year, 'm/year')
 print('                  i.e.: %.2f%%' % (100 * U * year/ Lx), 'of the simulation domain in one year.')
-final_time =2* Lx /(U/omega_reservoir)
+final_time =5* Lx /(U/omega_reservoir)
 print('Final time is set to: %.2f years' % (final_time/year))
 ## Velocity (with omega is 2.4 m / hour, good final time is 8 to 10 hours  ! Initial time step is 7e-3 seconds
 
@@ -130,7 +131,9 @@ def collect_node_temperature(iteration, t):
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e10,
+ComPASS.set_maximum_timestep(1.)
+
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e4,
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
@@ -155,11 +158,13 @@ if ComPASS.mpi.communicator().size==1:
             #plt.subplot(211)
             cs = plt.contourf(XX,YY,np.reshape(K2degC(T),[ny,nx]))
             fig.colorbar(cs)
+            plt.axis('scaled')
+
             #plt.subplot(212)
             #plt.plot(x,c1)
             plt.title('t='+str(t))
             plt.xlabel('x in meters')
-            plt.ylabel('temperature in Celsius degrees')
+            plt.ylabel('y in meters')
             plt.draw()
             plt.pause(0.1)
             plt.savefig(ComPASS.to_output_directory('cell_temperatures_'+str(t)),format='png')
