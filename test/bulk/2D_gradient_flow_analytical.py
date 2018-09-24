@@ -42,8 +42,8 @@ def test():
     for k in range(nt):
         t = (k+1)*dt
         print(k)
-        #c=exact_sol_bs(xx,yy,t)
-        c=exact_sol_ld(xx,yy,t)
+        #c=exact_sol_bs(xx,yy,t) + Tright
+        c=exact_sol_ld(xx,yy,t) + Tright
         if ((k+1)%10==0):
             fig = plt.figure(1)
             cs = plt.contourf(x,y,c)
@@ -71,10 +71,11 @@ if __name__ == '__main__':
     mu = b*rhow*U/Rd  #vitesse de déplacement de la thermique
     #mu = 1
     print(mu)
-    C0 = 60+273  #température en x=0
+    Tleft, Tright = 60, 100
+    C0  = Tleft-Tright  #température en x=0
     gamma = 0 #pas sur dans l'expression de P
-    Dl = 100#8e+6/Rd  #conductivité thermique/Rd
-    Dt = 100#8e+6/Rd
+    Dl = 20 #8e+6/Rd  #conductivité thermique/Rd
+    Dt = 20 #8e+6/Rd
     print(Dt)
     Lx, Ly, Lz = 100., 50., 1.
     n0 = Ly
