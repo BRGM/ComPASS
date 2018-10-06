@@ -24,6 +24,8 @@ module Thermodynamics
       real(c_double) :: thermal_expansivity
       real(c_double) :: volumetric_heat_capacity
       real(c_double) :: dynamic_viscosity
+      real(c_double) :: reference_pressure
+      real(c_double) :: reference_temperature
    end type
 
    ! OPTIMIZE: is there a loss of performance uing the target keyword?
@@ -82,9 +84,11 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      f = fluid_properties%specific_mass
-      dPf = fluid_properties%specific_mass*fluid_properties%compressibility
-      dTf = fluid_properties%specific_mass*fluid_properties%thermal_expansivity
+      f = fluid_properties%specific_mass                                                        &
+        * exp(fluid_properties%compressibility*(P - fluid_properties%reference_pressure))       &
+        * exp(fluid_properties%thermal_expansivity*(T - fluid_properties%reference_temperature))
+      dPf = f * fluid_properties%compressibility
+      dTf = f * fluid_properties%thermal_expansivity
       dCf(:) = 0.d0
       dSf(:) = 0.d0
 

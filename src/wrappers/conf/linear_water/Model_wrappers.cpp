@@ -9,6 +9,8 @@ struct Fluid_properties
     double thermal_expansivity;
     double volumetric_heat_capacity;
     double dynamic_viscosity;
+    double reference_pressure;
+    double reference_temperature;
 };
 
 // Fortran functions
@@ -28,7 +30,9 @@ void init_model()
     properties->thermal_expansivity = 0;
     properties->volumetric_heat_capacity = 1;
     properties->dynamic_viscosity = 1;
-}
+    properties->reference_pressure = 1E5 ; // 1 bar
+    properties->reference_temperature = 293.15 ; // 20°C
+    }
 
 void finalize_model() {}
 
@@ -75,6 +79,8 @@ void add_model_wrappers(py::module& module)
         .def_readwrite("thermal_expansivity", &Fluid_properties::thermal_expansivity)
         .def_readwrite("volumetric_heat_capacity", &Fluid_properties::volumetric_heat_capacity)
         .def_readwrite("dynamic_viscosity", &Fluid_properties::dynamic_viscosity)
+        .def_readwrite("reference_pressure", &Fluid_properties::dynamic_viscosity)
+        .def_readwrite("reference_temperature", &Fluid_properties::dynamic_viscosity)
         ;
 
     module.def("get_fluid_properties", &get_fluid_properties, py::return_value_policy::reference);
