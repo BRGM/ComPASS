@@ -32,10 +32,10 @@ grid = ComPASS.Grid(
 )
 
 def top_nodes():
-    return ComPASS.global_vertices()[:, 2] >= H
+    return ComPASS.global_vertices()[:, 2] >= 0
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
     cell_thermal_conductivity = K_matrix,
@@ -62,5 +62,5 @@ set_boundary_heat_flux()
 
 final_time = 1E4 * year
 output_period = 1E3 * year
-ComPASS.set_maximum_timestep(output_period)
+ComPASS.set_maximum_timestep(10 * year)
 standard_loop(initial_timestep= 30 * day, final_time = final_time, output_period = output_period)
