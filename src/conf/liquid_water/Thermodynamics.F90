@@ -234,4 +234,14 @@ contains
 
    end subroutine f_Enthalpie
 
+   subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat)
+
+      real(c_double), value, intent(in) :: T
+      real(c_double), intent(out) :: Psat, dT_PSat
+
+      Psat = (T - 273.d0)**4.d0/1.0d3
+      dT_PSat = 4.d0*(T - 273.d0)**3.d0/1.0d3
+
+   end subroutine FluidThermodynamics_Psat
+
 end module Thermodynamics
