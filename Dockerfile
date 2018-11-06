@@ -7,14 +7,18 @@ COPY ./ /source/ComPASS-develop
 
 RUN CC=mpicc cmake ../source/ComPASS-develop && make
 
-
+From registry.gitlab.inria.fr/charms/meshtools:master as meshtools
 
 From registry.gitlab.inria.fr/charms/compass/run-environment:latest
-ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
+
+WORKDIR /wheels/
+COPY --from=meshtools /wheels/MeshTools-0.0.1-cp36-cp36m-linux_x86_64.whl .
+RUN pip3 install MeshTools-0.0.1-cp36-cp36m-linux_x86_64.whl
+
+ENV PYTHONPATH=/build/compassModule
 WORKDIR /build/
 #COPY ./docker/script/docker_entrypoint.sh /
 COPY --from=builder /source/ComPASS-develop/python ./compassModule
-COPY --from=builder /source/ComPASS-develop/thirdparty/meshtools/python ./meshtoolsModule
 VOLUME [/data]
 
 WORKDIR /data
