@@ -93,6 +93,10 @@ set( CONFIGURATIONS
     water_with_tracer
 )
 
+foreach(_conf ${CONFIGURATIONS})
+    option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
+endforeach()
+
 set( CONF_SRCS
     DefFlash.F90
     DefModel.F90
@@ -154,6 +158,9 @@ set(pyComPASS_EOS_DIRECTORY "${pyComPASS_DIRECTORY}/eos")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 foreach(_conf ${CONFIGURATIONS})
+    if(NOT ${ComPASS_WITH_${_conf}_PHYSICS}) 
+        continue()
+    endif()
     set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
     set(CONF_DIR conf/${_conf})
     set(CONF_TARGETNAME ComPASSlib-${_conf})
