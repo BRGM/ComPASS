@@ -34,7 +34,7 @@ def exact_sol_ld(x,y,t):
 
 def test():
     nx = 100
-    ny = 50
+    ny = 80
     nz = 1
     x=np.linspace(0,Lx,nx)
     y=np.linspace(-Ly/2,Ly/2,ny)
@@ -42,14 +42,21 @@ def test():
     for k in range(nt):
         t = (k+1)*dt
         print(k)
-        #c=exact_sol_bs(xx,yy,t) + Tright
-        c=exact_sol_ld(xx,yy,t) + Tright
+        cbs=exact_sol_bs(xx,yy,t) + Tright
+        cld=exact_sol_ld(xx,yy,t) + Tright
         if ((k+1)%10==0):
             fig = plt.figure(1)
-            cs = plt.contourf(x,y,c)
-            fig.colorbar(cs)
+            plt.subplot(211)
+            cs1 = plt.contourf(x,y,cbs)
+            fig.colorbar(cs1)
             plt.axis('scaled')
-            plt.title('t='+str(t))
+            plt.title('Bruch Street')
+            plt.subplot(212)
+            cs2 = plt.contourf(x,y,cld)
+            fig.colorbar(cs2)
+            plt.axis('scaled')
+            plt.title('Leij Dane')
+            plt.suptitle('t='+str(t))
             plt.draw()
             plt.pause(1)
             plt.savefig('exact_sol_'+str(t)+'.png')
@@ -74,10 +81,10 @@ if __name__ == '__main__':
     Tleft, Tright = 60, 100
     C0  = Tleft-Tright  #température en x=0
     gamma = 0 #pas sur dans l'expression de P
-    Dl = 20 #8e+6/Rd  #conductivité thermique/Rd
-    Dt = 20 #8e+6/Rd
+    Dl = 10 #8e+6/Rd  #conductivité thermique/Rd
+    Dt = 10 #8e+6/Rd
     print(Dt)
-    Lx, Ly, Lz = 100., 50., 1.
+    Lx, Ly, Lz = 100., 80., 1.
     n0 = Ly
     epsilon = 8
     n = 100

@@ -18,17 +18,17 @@ b = 1#4.2e+3          # specific heat in J/kg/K
 rhocp =1# 2000*800   # volumetric heat capacity
 muf = 1#3E-4
 pleft, pright = 300,200#30 * MPa, 10 * MPa
-Tleft, Tright = degC2K(60), degC2K(0)
+Tleft, Tright = degC2K(60), degC2K(100)
 omega_reservoir = 0.2 # reservoir porosity
-k_reservoir =1# 1E-12 # reservoir permeability in m^2
-K_reservoir = 100#2     # bulk thermal conductivity in W/m/K
+k_reservoir =1 # 1E-12 # reservoir permeability in m^2
+K_reservoir = 10 #2     # bulk thermal conductivity in W/m/K
 a=8
 
 Lx = 100.
-Ly = 50
+Ly = 80
 Lz = 1
 nx = 100
-ny = 50
+ny = 80
 nz = 1
 onecomp = True
 exact_sol = True
@@ -133,7 +133,7 @@ def collect_node_temperature(iteration, t):
 
 ComPASS.set_maximum_timestep(1.)
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e4,
+standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e3,
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
