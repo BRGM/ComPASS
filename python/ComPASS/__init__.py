@@ -188,7 +188,7 @@ def _process_dirichlet_nodes(
     )
     if ComPASS.has_energy_transfer_enabled():
         _process_dirichlet_flags(
-            info.pressure, dirichlet_nodes, temperature_dirichlet_nodes
+            info.temperature, dirichlet_nodes, temperature_dirichlet_nodes
         )
     else:
         if temperature_dirichlet_nodes is not None:
