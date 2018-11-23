@@ -586,7 +586,7 @@ subroutine NN_init_phase2(OutputDir)
                end do
             end if
 
-            if (NewtonResNormRel(NewtonIter) < NewtonTol) then
+            if (NewtonIter > 1 .and. NewtonResNormRel(NewtonIter) < NewtonTol) then
 
                NewtonConv = .true.
                KspConv = .true.
