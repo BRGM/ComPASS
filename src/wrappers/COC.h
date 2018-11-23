@@ -65,6 +65,7 @@ public:
 		//          otherwise length is unvalidated
 		std::advance(container_content, container_length());
 		std::advance(container_offset, 1);
+        return *this;
 	}
 	friend class COC;
 };
