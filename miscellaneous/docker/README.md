@@ -11,6 +11,9 @@ local file system that has to be mounted on the `localfs` volume of the containe
 This container also ships `scipy` and `matplotlib` to run and exploit simulations
 efficiently.
 
+To manage permission issues we use the [trick from Deni Bertovic](https://denibertovic.com/posts/handling-permissions-with-docker-volumes/)
+ that is implemented in the *switch-user* container.
+
 ## Generation of the images
 
 Log into the ComPASS docker regisry:
@@ -22,6 +25,8 @@ docker login registry.gitlab.inria.fr
 then:
 
 ```shell
+docker build -t registry.gitlab.inria.fr/charms/compass/base-environment base
+docker push registry.gitlab.inria.fr/charms/compass/base-environment 
 docker build -t registry.gitlab.inria.fr/charms/compass/build-environment build
 docker push registry.gitlab.inria.fr/charms/compass/build-environment 
 docker build -t registry.gitlab.inria.fr/charms/compass/run-environment run 

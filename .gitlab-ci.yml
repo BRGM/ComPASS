@@ -8,6 +8,7 @@ image: docker:stable
 
 # this sequence will force to have unit tests in docker image. Making unit test before build docker image help remove unit test, but need to split dockerfile multijob build.
 stages:
+    - build_docker_environments
     - build
     - test
     - release
@@ -31,7 +32,22 @@ after_script:
   - echo "After script section"
   - echo "For example you might do some cleanup here"
 
-#not master image is named differently.
+# here we build specific docker environments (cf. miscellaneous/docker/README.md)
+build_docker_environments:
+  stage: build_docker_environments
+  only:
+    - /^docker_evt_.*$/
+  script:
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/base-environment --pull --tag $CI_REGISTRY_IMAGE/base-environment miscellaneous/docker/base
+    - docker push $CI_REGISTRY_IMAGE/base-environment
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/build-environment --pull --tag $CI_REGISTRY_IMAGE/build-environment miscellaneous/docker/build
+    - docker push $CI_REGISTRY_IMAGE/build-environment
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/run-environment --pull --tag $CI_REGISTRY_IMAGE/run-environment miscellaneous/docker/run
+    - docker push $CI_REGISTRY_IMAGE/run-environment
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/work-environment --pull --tag $CI_REGISTRY_IMAGE/work-environment miscellaneous/docker/work
+    - docker push $CI_REGISTRY_IMAGE/work-environment
+
+#note master image is named differently.
 build:
   stage: build
   script:
@@ -50,7 +66,7 @@ integration_test:
   stage: test
   script:
     - echo "unit test"
-    - docker run --rm -v $PWD/test/sanity:/data $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py 
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py 
     #- docker run --rm --entrypoint "mpirun" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG -n `nproc` python3 /build/compassModule/vertical_column.py
 #release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
 release:
