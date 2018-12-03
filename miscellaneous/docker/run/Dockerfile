@@ -5,7 +5,7 @@ ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
 RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-mpi4py \
     metis \
-    libcgal13 \
+    libcgal-dev \
     libpetsc-real3.9 \
  && apt-get clean 
 
