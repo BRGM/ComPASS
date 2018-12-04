@@ -30,7 +30,10 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
  && apt-get clean 
 
 # We need to use python3.7
-RUN ln -s /usr/bin/python3.7 /usr/bin/python
+# python3.6 is here because of unconsistency between debian buster packages
+# integers are priorities we leave it 1 empty for later install of python2.7 coming with dependencies
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.7 3
 
 # We install pip from sources as python3-pip package uses python3.6
 RUN apt-get install --yes --no-install-recommends \
