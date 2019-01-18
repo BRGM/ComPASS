@@ -1,4 +1,4 @@
-source /usr/local/sbin/set-compass-ids.sh
+source /etc/local/sbin/set-compass-ids.sh
 echo ""
 echo "This is a docker container made for ComPASS."
 if [ -z $COMPASS_UID ]
