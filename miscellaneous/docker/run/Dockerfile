@@ -1,12 +1,21 @@
+FROM registry.gitlab.inria.fr/charms/compass/build-environment:latest AS build
+
 FROM registry.gitlab.inria.fr/charms/compass/base-environment:latest
 
-ENV PYTHONPATH=/build/meshtoolsModule:/build/compassModule
+COPY --from=build /usr/local/sbin/su-exec /usr/local/sbin/su-exec
 
 RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-mpi4py \
     metis \
-    libcgal-dev \
-    libpetsc-real-dev #FIXME: it seems there is no alternative to dev version here \
+    openmpi-bin \
+    libpetsc-real3.9 \
+    libcgal13 \
  && apt-get clean 
 
 RUN mkdir -p /build
+
+COPY entrypoint.sh /etc/compass/entrypoint.sh
+COPY entrypoint.py /etc/compass/entrypoint.py
+ENTRYPOINT ["/etc/compass/entrypoint.sh"]
+CMD [""]
+

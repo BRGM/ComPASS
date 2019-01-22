@@ -1,0 +1,29 @@
+FROM registry.gitlab.inria.fr/charms/compass/base-environment:latest AS base
+
+RUN apt-get update && apt-get install --yes --no-install-recommends \
+    build-essential \
+    gcc \
+    gfortran \
+    cmake \
+    libmetis-dev \
+    libcgal-dev \
+    mpi-default-dev \
+    wget \
+#   libpetsc-real-dev \
+    python \
+    openmpi-bin \
+    libopenmpi-dev \
+ && apt-get clean
+
+RUN mkdir -p /build/thirdparties \
+ && cd /build/thirdparties \
+ && wget --no-check-certificate http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.10.3.tar.gz \
+ && tar xf petsc-lite-3.10.3.tar.gz \
+ && mkdir -p petsc/install \
+ && mv petsc-3.10.3 petsc/src \
+ && cd petsc/src \
+ && python2 ./configure --prefix=/build/thirdparties/petsc/install --with-cc=mpicc --with-cxx=mpicxx -with-fc=mpif90 --download-fblaslapack --with-fortran=1 --with-clanguage=C --download-hypre --with-debugging=0 COPTFLAGS='-O3' CXXOPTFLAGS='-O3' FOPTFLAGS='-O3' \
+ && make PETSC_DIR=/build/thirdparties/petsc/src PETSC_ARCH=arch-linux2-c-opt all \
+ && make PETSC_DIR=/build/thirdparties/petsc/src PETSC_ARCH=arch-linux2-c-opt install
+
+RUN mkdir -p /build

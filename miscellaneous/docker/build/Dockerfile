@@ -5,10 +5,12 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     gcc \
     gfortran \
     cmake \
+    libopenmpi-dev \
     libmetis-dev \
-    libcgal-dev \
-    mpi-default-dev \
-    libpetsc-real-dev \
+    libpetsc-real3.9-dev \
  && apt-get clean
 
-RUN mkdir -p /build
+COPY su-exec/su-exec.c /tmp/su-exec.c
+RUN gcc -O3 -Wall -Werror /tmp/su-exec.c -o /usr/local/sbin/su-exec \
+ && rm /tmp/su-exec.c \
+ && mkdir -p /build
