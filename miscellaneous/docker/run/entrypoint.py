@@ -1,7 +1,6 @@
 import sys
-#import glob, os, re
 import optparse
-#import numpy as np
+import multiprocessing
 
 parser = optparse.OptionParser(
 usage = """usage: [options] [path]
@@ -42,7 +41,7 @@ fi
 with open(options.process_file, 'w') as f:
     cmd = []
     if options.parallel_run:
-        cmd.append('mpirun -n `nproc`')
+        cmd.append('mpirun -n %d' % multiprocessing.cpu_count())
     cmd.append('python3')
     cmd.extend(args)
     print(' '.join(cmd), file=f)
