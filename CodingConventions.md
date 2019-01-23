@@ -47,6 +47,8 @@ All flags can be combine with question mark whenever one is not sure about the s
 
 ## Code specific conventions
 
+When possible, use the prefix `tmp_` for the files or directories you don't want to track. They won't be reported by `git status` since `.gitignore` contains the filter `tmp_*`.
+
 ### Fortran
 
 * prefer lower case fortran
