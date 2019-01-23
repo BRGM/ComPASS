@@ -43,7 +43,7 @@ inline double phase_molar_density(double p, double T)
     auto S = saturate_phase<PHASE>();
     double dxsidC[NC] = { 0 };
     auto dxsidS = std::array<double, NP>{}; // zero initialization
-    FluidThermodynamics_molar_density(2, p, T, C, S.data(), xsi, dxsidp, dxsidT, dxsidC, dxsidS.data());
+    FluidThermodynamics_molar_density(PHASE+1, p, T, C, S.data(), xsi, dxsidp, dxsidT, dxsidC, dxsidS.data());
     return xsi;
 }
 
@@ -65,7 +65,7 @@ inline double phase_molar_enthalpy(double p, double T)
     auto S = saturate_phase<PHASE>();
     double dhdC[NC] = { 0 };
     auto dhdS = std::array<double, NP>{}; // zero initialization
-    FluidThermodynamics_molar_enthalpy(2, p, T, C, S.data(), h, dhdp, dhdT, dhdC, dhdS.data());
+    FluidThermodynamics_molar_enthalpy(PHASE+1, p, T, C, S.data(), h, dhdp, dhdT, dhdC, dhdS.data());
     return h;
 }
 
@@ -87,7 +87,7 @@ inline double phase_dynamic_viscosity(double p, double T)
     auto S = saturate_phase<PHASE>();
     double dmudC[NC] = { 0 };
     auto dmudS = std::array<double, NP>{}; // zero initialization
-    FluidThermodynamics_dynamic_viscosity(2, p, T, C, S.data(), mu, dmudp, dmudT, dmudC, dmudS.data());
+    FluidThermodynamics_dynamic_viscosity(PHASE+1, p, T, C, S.data(), mu, dmudp, dmudT, dmudC, dmudS.data());
     return mu;
 }
 
