@@ -50,9 +50,12 @@ def load_eos(eosname):
     init_model()
     ComPASS.timestep.kernel = kernel
 
+# FIXME: transient... to be set elsewhere
 def default_Newton():
     assert kernel
-    return newton.Newton(1e-5, 8, newton.LinearSolver(1e-8, 150))
+    # Legacy parameters
+    # NB: you should remove 1 iteration in comparison with legacy values
+    return newton.Newton(1e-5, 8, newton.LinearSolver(1e-6, 150))
 
 def exit_eos_and_finalize():
     finalize_model()
