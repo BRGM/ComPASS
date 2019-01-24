@@ -893,6 +893,7 @@ contains
     ! CHECKME: Cf. PETSc doc
     ! Normally, it is best to use the KSPSetFromOptions() command and
     ! then set the KSP type from the options database
+    call KSPSetType(ksp_mpi, KSPGMRES, Ierr); CHKERRQ(Ierr)
     call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
     
     ! ! monitor
