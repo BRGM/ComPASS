@@ -8,6 +8,8 @@
 
     module IncCVReservoir
 
+    use iso_c_binding
+
     use MeshSchema
     use DefModel
     use Thermodynamics
@@ -16,8 +18,7 @@
     use CommonMPI
     use Physics
     use SchemeParameters
-
-    use iso_c_binding
+    use Newton
 
     implicit none
 
@@ -141,15 +142,30 @@ private :: &
 
     end subroutine IncCVReservoir_NewtonIncrement
 
-    !> \brief Compute relaxation in Newton.
+  function IncCVReservoir_NewtonRelax_C(increments_pointers) &
+     result(relaxation) &
+     bind(C, name="IncCVReservoir_NewtonRelax")
+
+    type(Newton_increments_pointers), intent(in), value :: increments_pointers
+    real(c_double) :: relaxation
+    type(Newton_increments) :: increments
+    
+    call Newton_pointers_to_values(increments_pointers, increments)
+    call IncCVReservoir_NewtonRelax( &
+       increments%nodes, increments%fractures, increments%cells, relaxation &
+    )
+
+  end function IncCVReservoir_NewtonRelax_C
+
+  !> \brief Compute relaxation in Newton.
     !!
     !! relax = min(1, IncreObj/NewtonIncreObjMax)                   <br>
     !! where IncreObj is set by the user in DefModel.F90            <br>
     !! and NewtonIncreObjMax is the maximum of the Nemton increment
     !! in current iteration
     subroutine IncCVReservoir_NewtonRelax( &
-        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax) &
-        bind(C, name="IncCVReservoir_NewtonRelax")
+        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax &
+    )
 
     real(c_double), dimension(:, :), intent(in) :: &
         NewtonIncreNode, &

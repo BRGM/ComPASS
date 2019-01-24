@@ -6,30 +6,29 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
+module StringWrapper
 
-    module StringWrapper
+   use, intrinsic :: iso_c_binding
 
-      use, intrinsic :: iso_c_binding
+   implicit none
 
-      implicit none
+   type, bind(C) :: cpp_string_wrapper
+      type(c_ptr)       :: p
+      integer(c_size_t) :: length
+   end type cpp_string_wrapper
 
-      type, bind(C) :: cpp_string_wrapper
-        type(c_ptr)       :: p
-        integer(c_size_t) :: length
-      end type cpp_string_wrapper
+   public :: &
+      fortran_string
 
-      public :: &
-        fortran_string
+contains
 
-    contains
+   function fortran_string(wrapper) result(s)
 
-      function fortran_string(wrapper) result(s)
+      type(cpp_string_wrapper), intent(in) :: wrapper
+      character(kind=c_char, len=wrapper%length), pointer :: s
 
-        type(cpp_string_wrapper), intent(in) :: wrapper
-        character(kind=c_char, len=wrapper%length), pointer :: s
+      call c_f_pointer(wrapper%p, s)
 
-        call c_f_pointer(wrapper%p, s)
+   end function fortran_string
 
-      end function fortran_string
-
-    end module StringWrapper
+end module StringWrapper

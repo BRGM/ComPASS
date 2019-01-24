@@ -1,12 +1,10 @@
-# This file is a template, and might need editing before it works on your project.
 # see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
-
-# you can delete this line if you're not using Docker
-#image: docker:latest
 
 image: docker:stable
 
-# this sequence will force to have unit tests in docker image. Making unit test before build docker image help remove unit test, but need to split dockerfile multijob build.
+services:
+ - docker:stable-dind
+
 stages:
     - build_docker_environments
     - build
@@ -16,23 +14,16 @@ stages:
 variables:
   CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
 
-  #DOCKER_DRIVER: overlay2
-
-services:
-  - docker:dind
-
-# first build epos_gui image to run in docker.
 before_script:
   - echo "Preparing build..."
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
    
-
 after_script:
-  - echo "After script section"
-  - echo "For example you might do some cleanup here"
+  - echo "You might do some cleanup here"
 
-# here we build specific docker environments (cf. miscellaneous/docker/README.md)
+# here we build specific docker environments
+# (cf. miscellaneous/docker/README.md)
 build_docker_environments:
   stage: build_docker_environments
   only:
@@ -47,28 +38,31 @@ build_docker_environments:
     - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/work-environment --pull --tag $CI_REGISTRY_IMAGE/work-environment miscellaneous/docker/work
     - docker push $CI_REGISTRY_IMAGE/work-environment
 
-#note master image is named differently.
 build:
   stage: build
   script:
-    - echo "building.."
     - docker pull $CI_REGISTRY_IMAGE:latest || true
     - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     
-    #TODO
-    #how to use docker cache ? split dockerfile to have a build image.fixed.
-    #how to prevent from rebuild all code when only test change.
-    # add gitlab runner docker in slave 2 to run dind
-    # clean mechanism for docker images ?
+#TODO
+#how to use docker cache ? split dockerfile to have a build image.fixed.
+#how to prevent from rebuild all code when only test change.
+# add gitlab runner docker in slave 2 to run dind
+# clean mechanism for docker images ?
 
 integration_test:
   stage: test
   script:
-    - echo "unit test"
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py 
-    #- docker run --rm --entrypoint "mpirun" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG -n `nproc` python3 /build/compassModule/vertical_column.py
-#release only on master and if tests passed, maybe another tag should be the number in Git Tag for master! and add in only : Tag: to release only when master is tagged.
+    - echo "Job running with id"
+    - id
+    - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    # FIXME: -t flag here is transitory (cf. issue #69)
+    - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
+
+# release only on master and if tests passed, maybe another tag should be
+# the number in Git Tag for master! and add in only : Tag: to release only
+# when master is tagged.
 release:
   stage: release
   script:

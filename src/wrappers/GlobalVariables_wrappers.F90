@@ -18,6 +18,7 @@
        implicit none
 
        public :: &
+          nb_primary_variables, &
           get_current_time, &
           set_current_time, &
           get_delta_t, &
@@ -36,7 +37,13 @@
 
     contains
 
-       function get_current_time() result(t) &
+        function nb_primary_variables() result(n) &
+        bind(C, name="nb_primary_variables")
+        integer(c_size_t) :: n
+        n = NbIncPTCSMax
+        end function nb_primary_variables
+        
+        function get_current_time() result(t) &
           bind(C, name="get_current_time")
           real(c_double) :: t
           t = TimeCurrent

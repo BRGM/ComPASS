@@ -6,8 +6,13 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
+import numpy as np
+
 import ComPASS
 from ComPASS.utils.units import day, year
+from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
+from ComPASS.simulation_context import SimulationContext
+import ComPASS.timestep as timestep
 mpi = ComPASS.mpi
 Dumper = ComPASS.dumps.Dumper
 
@@ -57,9 +62,14 @@ def standard_loop(initial_time=None, final_time=None,
                   output_period = None, output_every = None,
                   nb_output = None, nitermax = None, dumper=None,
                   iteration_callbacks = None, output_callbacks = None,
-                  specific_outputs = None
+                  specific_outputs = None,
+                  newton = None, context = None
                  ):
     assert not (final_time is None and nitermax is None)
+    if newton is None:
+        newton = ComPASS.default_Newton()
+    if context is None:
+        context = SimulationContext()
     global n
     global shooter
     if output_period is None:
@@ -70,6 +80,13 @@ def standard_loop(initial_time=None, final_time=None,
             if final_time:
                 output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
     assert not(output_period is None or output_period<=0)
+    assert initial_timestep is None or fixed_timestep is None
+    if fixed_timestep:
+        ts_manager = FixedTimeStep(fixed_timestep)
+    else:
+        ts_manager = TimeStepManager(
+                initial_timestep, max(initial_timestep, output_period),
+        )
     if iteration_callbacks is None:
         iteration_callbacks = tuple()
     if output_callbacks is None:
@@ -81,12 +98,12 @@ def standard_loop(initial_time=None, final_time=None,
         specific_outputs.sort()
     # this is necessary for well operating on pressures
     check_well_pressure()
-    t = ComPASS.get_current_time()
-    assert initial_timestep is None or fixed_timestep is None
-    timestep = initial_timestep if fixed_timestep is None else fixed_timestep
+    #FIXME: t = ComPASS.get_current_time()
+    t = initial_time if initial_time else 0
     t_output = t
-    if initial_time:
-        ComPASS.set_current_time(intial_time)
+    #if initial_time:
+    #    #FIXME: ComPASS.set_current_time(initial_time)
+    #    t = initial_time
     if shooter is None:
         shooter = Snapshooter(dumper)
     else:
@@ -94,17 +111,22 @@ def standard_loop(initial_time=None, final_time=None,
     @mpi.on_master_proc
     def print_iteration_info():
         print()
-        print('Time Step (iteration):', n)
+        print('** Time Step (iteration):', n, '*'*50)
+        time_string = lambda tin: '%10.5g s = %10.5g y' % (tin, tin / year)
         if final_time:
-            final_time_info = '-> final time: %.5g s = %.5g y' % (final_time, final_time / year)
+            final_time_info = '-> ' + time_string(final_time)
         else:
             final_time_info = '-> NO final time'
-        print('Current time: %.1f y' % (t / year), final_time_info)
-        print('Timestep: %.3g s = %.3f d = %.3f y' % (timestep, timestep / day, timestep / year))
+        print('Current time:', time_string(t), final_time_info)
+        # print('Timestep: %.3g s = %.3f d = %.3f y' % (
+            # ts_manager.current_step, ts_manager.current_step / day, ts_manager.current_step / year))
+    pcsp = np.copy(ComPASS.cell_states().p)
+    pcsT = np.copy(ComPASS.cell_states().T)
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
-        if t < t_output and specific_outputs and t + timestep > specific_outputs[0]:
+        if ( t < t_output and specific_outputs and 
+             t + ts_manager.current_step > specific_outputs[0] ):
             # CHECKME: broken if fixed time step
-            timestep = specific_outputs[0] - t
+            ts_manager.current_step = specific_outputs[0] - t
             t_output = specific_outputs[0]
             del specific_outputs[0]
         if t >= t_output or not(output_every is None or n%output_every>0):
@@ -116,13 +138,25 @@ def standard_loop(initial_time=None, final_time=None,
                 t_output = t_output + output_period
         n+= 1
         print_iteration_info()
-        ComPASS.make_timestep(timestep)
-        t = ComPASS.get_current_time()
-        if fixed_timestep is None:
-            timestep = ComPASS.get_timestep()
-        ComPASS.timestep_summary()
+        # --
+        timestep.make_one_timestep(
+                newton, ts_manager.steps(),
+                simulation_context=context,
+        )
+        t += ts_manager.current_step
+        print('max p variation', np.abs(ComPASS.cell_states().p-pcsp).max())
+        print('max T variation', np.abs(ComPASS.cell_states().T-pcsT).max())
+        # --
+        #ComPASS.make_timestep(timestep)
+        #t = ComPASS.get_current_time()
+        #if fixed_timestep is None:
+        #    timestep = ComPASS.get_timestep()
+        #ComPASS.timestep_summary()
+        # --
         for callback in iteration_callbacks:
             callback(n, t)
+        pcsp = np.copy(ComPASS.cell_states().p)
+        pcsT = np.copy(ComPASS.cell_states().T)
     # Output final time
     if shooter.latest_snapshot_time is None or shooter.latest_snapshot_time < t:
         for callback in output_callbacks:
@@ -130,7 +164,8 @@ def standard_loop(initial_time=None, final_time=None,
         shooter.shoot(t)
     if mpi.is_on_master_proc:
         if specific_outputs:
-            print('WARNING')
-            print('WARNING: Specific outputs were not reached:', specific_outputs)
-            print('WARNING')
+            mpi.master_print('WARNING')
+            mpi.master_print('WARNING: Specific outputs were not reached:', specific_outputs)
+            mpi.master_print('WARNING')
     mpi.synchronize()
+    return t

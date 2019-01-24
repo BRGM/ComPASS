@@ -57,6 +57,9 @@ module DefWell
       module procedure assign_DataWell_equal
    end interface assignment(=)
 
+   logical(c_bool) :: DefWell_has_WI_threshold = .false.
+   real(c_double) :: DefWell_WI_threshold = 0.d0
+
    type(WellData_type), allocatable, target, dimension(:), public :: &
       DataWellInj, &
       DataWellProd
@@ -74,9 +77,32 @@ module DefWell
       DefWell_deallocCSRDataWell, & ! free CSRdataWell
       get_global_injectors_data, nb_global_injectors, &
       get_global_producers_data, nb_global_producers, &
-      DefWell_mpi_register_well_data_description
+      DefWell_mpi_register_well_data_description, &
+      DefWell_set_WI_threshold, &
+      DefWell_unset_WI_threshold
 
 contains
+
+   subroutine DefWell_set_WI_threshold(threshold) &
+        bind(C, name="set_Peaceman_WI_threshold")
+        
+        real(c_double), intent(in), value :: threshold
+
+        if(threshold<=0.d0) then
+                call CommonMPI_abort("peaceaman index cannot be negative") 
+        endif 
+        DefWell_has_WI_threshold = .true.
+        DefWell_WI_threshold = threshold
+   
+   end subroutine DefWell_set_WI_threshold
+
+   subroutine DefWell_unset_WI_threshold() &
+        bind(C, name="unset_Peaceman_WI_threshold")
+   
+        DefWell_has_WI_threshold = .false.
+
+   end subroutine DefWell_unset_WI_threshold
+
 
    function get_global_injectors_data() result(p) &
       bind(C, name="get_global_injectors_data")
@@ -354,7 +380,8 @@ contains
             de = dsqrt(dot_product(xn1 - xn2, xn1 - xn2)) ! length of edge
             dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
             wi = de*Pi*meanPerm/log(dr0/WellRadius(i))
-            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
+           if(DefWell_has_WI_threshold) then
+             wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
             if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
             if(wi<wi_min) then
                 write(*,*) 'WARNING'
@@ -368,7 +395,8 @@ contains
                 write(*,*) 'WARNING'
                 wi = wi_min
             end if
-                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
+            end if
+            if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
 
             ! contribution of the edge to each nodes: node and parent
             WI_global(num_node) = WI_global(num_node) + wi

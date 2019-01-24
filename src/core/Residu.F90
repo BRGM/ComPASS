@@ -11,7 +11,7 @@ module Residu
    use DefModel
    use IncCVReservoir
    use IncCVWells
-    use NeumannContribution
+   use NeumannContribution
    use LoisThermoHydro
    use Flux
 
@@ -34,9 +34,14 @@ module Residu
       AccVolFrac_1, &
       AccVolNode_1
 
+   type, bind(C) :: CTVector
+      real(c_double) :: values(NbCompThermique)
+   end type CTVector
+
    public :: &
       Residu_allocate, &
       Residu_free, &
+      Residu_reset_history, &
       Residu_compute, &
       Residu_RelativeNorm
 
@@ -50,12 +55,38 @@ module Residu
 
 contains
 
-   ! compute Residu
-   subroutine Residu_compute(Delta_t, IterNewton)  &
-        bind(C, name="Residu_compute")
+   ! Newton is initialized with the unknown at time step n-1
+   subroutine Residu_reset_history() &
+      bind(C, name="Residu_reset_history")
+
+      integer :: i, k
+
+      call Residu_AccVol
+
+      do k = 1, NbCellLocal_Ncpus(commRank + 1) ! cell
+         do i = 1, NbCompThermique
+            AccVolCell_1(i, k) = IncCell(k)%AccVol(i)
+         end do
+      end do
+
+      do k = 1, NbFracLocal_Ncpus(commRank + 1) ! frac
+         do i = 1, NbCompThermique
+            AccVolFrac_1(i, k) = IncFrac(k)%AccVol(i)
+         end do
+      end do
+
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
+         do i = 1, NbCompThermique
+            AccVolNode_1(i, k) = IncNode(k)%AccVol(i)
+         end do
+      end do
+
+   end subroutine Residu_reset_history
+
+   subroutine Residu_compute(Delta_t) &
+      bind(C, name="Residu_compute")
 
       real(c_double), intent(in), value :: Delta_t
-      integer(c_int), intent(in), value :: IterNewton
 
       integer :: i, k
 
@@ -67,30 +98,7 @@ contains
       ResiduWellInj(:) = 0.d0
       ResiduWellProd(:) = 0.d0
 
-      ! term AccVol
       call Residu_AccVol
-
-      ! Newton is initialized with the unknown at time step n-1
-      if (IterNewton == 1) then
-
-         do k = 1, NbCellLocal_Ncpus(commRank + 1) ! cell
-            do i = 1, NbCompThermique
-               AccVolCell_1(i, k) = IncCell(k)%AccVol(i)
-            end do
-         end do
-
-         do k = 1, NbFracLocal_Ncpus(commRank + 1) ! frac
-            do i = 1, NbCompThermique
-               AccVolFrac_1(i, k) = IncFrac(k)%AccVol(i)
-            end do
-         end do
-
-         do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
-            do i = 1, NbCompThermique
-               AccVolNode_1(i, k) = IncNode(k)%AccVol(i)
-            end do
-         end do
-      end if
 
       ! Residu from terms of accumulation
       do k = 1, NbCellLocal_Ncpus(commRank + 1) ! cell
@@ -640,7 +648,7 @@ contains
          else if (DataWellInjLocal(k)%IndWell == 'f') then
             ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
          else
-            call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
+            call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
 
       end do ! end of node s in injection well k
@@ -698,62 +706,50 @@ contains
          else if (DataWellProdLocal(k)%IndWell == 'f') then
             ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
          else
-            call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")          
+            call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
 
       end do
 
    end subroutine Residu_add_flux_contributions_wells
 
-   subroutine Residu_RelativeNorm(Iter, Delta_t, &
-                                  ResNormRel, ResConvInit, ResClosInit) &
-        bind(C, name="Residu_RelativeNorm")
+   subroutine Residu_RelativeNorm_local_conservation(ResConvLocal) &
+      bind(C, name="Residu_RelativeNorm_local_conservation")
 
-      integer(c_int), intent(in), value :: Iter ! Newton iteration: Iter
-      real(c_double), intent(in), value :: Delta_t
-      real(c_double), intent(out) :: ResNormRel
-      ! Residu relative norm from first Newton iteration
-      ! used for all Newton iterations
-      real(c_double), intent(inout) :: &
-         ResConvInit(NbCompThermique), &
-         ResClosInit
+      type(CTVector), intent(out) :: ResConvLocal
+      integer :: k
 
-      integer :: k, i, ic, start, Ierr
-
-      double precision :: &
-         ResConvInitLocal(NbCompThermique), ResClosInitLocal
-
-      double precision :: &
-         ResConvRefLocal(NbCompThermique)
-
-      double precision:: &
-         ResConvLocal(NbCompThermique), ResClosLocal, &
-         ResNormRelLocal
-
-      ! residu conservation: ResConv
-      ResConvLocal(:) = 0.d0
+      ResConvLocal%values(:) = 0.d0
 
       do k = 1, NbNodeOwn_Ncpus(commRank + 1) ! node
-         ResConvLocal(:) = ResConvLocal(:) + abs(ResiduNode(:, k))
+         ResConvLocal%values(:) = ResConvLocal%values(:) + abs(ResiduNode(:, k))
       enddo
 
       do k = 1, NbFracOwn_Ncpus(commRank + 1) ! frac
-         ResConvLocal(:) = ResConvLocal(:) + abs(ResiduFrac(:, k))
+         ResConvLocal%values(:) = ResConvLocal%values(:) + abs(ResiduFrac(:, k))
       enddo
 
       do k = 1, NbCellOwn_Ncpus(commRank + 1) ! cell
-         ResConvLocal(:) = ResConvLocal(:) + abs(ResiduCell(:, k))
+         ResConvLocal%values(:) = ResConvLocal%values(:) + abs(ResiduCell(:, k))
       enddo
 
       do k = 1, NbWellInjOwn_Ncpus(commRank + 1) ! well inj
-         ResConvLocal(1) = ResConvLocal(1) + abs(ResiduWellInj(k))
+         ResConvLocal%values(1) = ResConvLocal%values(1) + abs(ResiduWellInj(k))
       enddo
 
       do k = 1, NbWellProdOwn_Ncpus(commRank + 1) ! well prod
-         ResConvLocal(1) = ResConvLocal(1) + abs(ResiduWellProd(k))
+         ResConvLocal%values(1) = ResConvLocal%values(1) + abs(ResiduWellProd(k))
       enddo
 
-      ! residu closing equations: ResClos
+   end subroutine Residu_RelativeNorm_local_conservation
+
+   function Residu_RelativeNorm_local_closure() &
+      result(ResClosLocal) &
+      bind(C, name="Residu_RelativeNorm_local_closure")
+
+      real(c_double) :: ResClosLocal
+      integer :: i, k, ic, start
+
       ResClosLocal = 0.d0
 
       do k = 1, NbNodeOwn_Ncpus(commRank + 1) ! node
@@ -783,55 +779,115 @@ contains
          enddo
       enddo
 
-      ! If the first Newton iteration(Iter==1),
-      ! compute references: ResConvInit and ResClosInit
-      if (Iter == 1) then
+   end function Residu_RelativeNorm_local_closure
 
-         ! compute a reference for relative residues
-         ResConvRefLocal(:) = 1.d0
-         ResClosInitLocal = 1.d0
+   subroutine Residu_RelativeNorm_reference_conservation(Delta_t, ResConvRefLocal) &
+      bind(C, name="Residu_RelativeNorm_reference_conservation")
 
-         do k = 1, NbNodeOwn_Ncpus(commRank + 1)
-            ResConvRefLocal(:) = ResConvRefLocal(:) + &
-                                 abs(IncNode(k)%AccVol(:))/Delta_t/1000.d0
-         end do
-         do k = 1, NbFracOwn_Ncpus(commRank + 1)
-            ResConvRefLocal(:) = ResConvRefLocal(:) + &
-                                 abs(IncFrac(k)%AccVol(:))/Delta_t/1000.d0
-         end do
-         do k = 1, NbCellOwn_Ncpus(commRank + 1)
-            ResConvRefLocal(:) = ResConvRefLocal(:) + &
-                                 abs(IncCell(k)%AccVol(:))/Delta_t/1000.d0
-         end do
+      real(c_double), intent(in), value :: Delta_t
+      type(CTVector), intent(out) :: ResConvRefLocal
+      integer :: k
 
-         do i = 1, NbCompThermique
-            ResConvInitLocal(i) = max(ResConvLocal(i), ResConvRefLocal(i))
-         end do
-         ResClosInitLocal = max(ResClosLocal, ResClosInitLocal)
+      ResConvRefLocal%values(:) = 1.d0 ! CHECKME: why ?
 
-         ! if(commRank==0) then
-         ! print*, ResConvRefLocal(:)
-         ! print*, ResConvLocal(:)
-         ! print*, ResConvInitLocal(:)
-         ! end if
+      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
+         ResConvRefLocal%values(:) = ResConvRefLocal%values(:) + &
+                                     abs(IncNode(k)%AccVol(:))/Delta_t/1000.d0 ! CHECKME: why ? magic number!
+      end do
+      do k = 1, NbFracOwn_Ncpus(commRank + 1)
+         ResConvRefLocal%values(:) = ResConvRefLocal%values(:) + &
+                                     abs(IncFrac(k)%AccVol(:))/Delta_t/1000.d0 ! CHECKME: why ? magic number!
+      end do
+      do k = 1, NbCellOwn_Ncpus(commRank + 1)
+         ResConvRefLocal%values(:) = ResConvRefLocal%values(:) + &
+                                     abs(IncCell(k)%AccVol(:))/Delta_t/1000.d0 ! CHECKME: why ? magic number!
+      end do
 
-         ! max for all mpi
-         call MPI_Allreduce(ResConvInitLocal, ResConvInit, NbCompThermique, &
-                            MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+   end subroutine Residu_RelativeNorm_reference_conservation
 
-         call MPI_Allreduce(ResClosInitLocal, ResClosInit, 1, &
-                            MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
-      end if
+   subroutine Residu_RelativeNorm_initial_conservation(Delta_t, ResConvLocal, ResConvInit) &
+      bind(C, name="Residu_RelativeNorm_initial_conservation")
 
-      ! Relative residu
-      ResNormRelLocal = ResClosLocal/ResClosInit
+      real(c_double), intent(in), value :: Delta_t
+      type(CTVector), intent(in) :: ResConvLocal
+      type(CTVector), intent(out) :: ResConvInit
+      type(CTVector) :: ResConvRefLocal
+      type(CTVector) :: ResConvInitLocal
+      integer :: i, Ierr
+
+      call Residu_RelativeNorm_reference_conservation(Delta_t, ResConvRefLocal)
       do i = 1, NbCompThermique
-         ResNormRelLocal = max(ResConvLocal(i)/ResConvInit(i), ResNormRelLocal)
-      enddo
+         ResConvInitLocal%values(i) = max(ResConvLocal%values(i), ResConvRefLocal%values(i))
+      end do
 
-      ! max for all mpi
-      call MPI_Allreduce(ResNormRelLocal, ResNormRel, 1, &
+      call MPI_Allreduce( &
+         ResConvInitLocal%values, ResConvInit%values, NbCompThermique, &
+         MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+
+   end subroutine Residu_RelativeNorm_initial_conservation
+
+   function Residu_RelativeNorm_initial_closure(ResClosLocal) &
+      result(ResClosInit) &
+      bind(C, name="Residu_RelativeNorm_initial_closure")
+
+      real(c_double), intent(in), value :: ResClosLocal
+      real(c_double) :: ResClosInit
+      integer :: Ierr
+      real(c_double) :: ResClosInitLocal
+
+      ResClosInitLocal = 1.d0
+      ResClosInitLocal = max(ResClosLocal, ResClosInitLocal)
+
+      call MPI_Allreduce(ResClosInitLocal, ResClosInit, 1, &
                          MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+
+   end function Residu_RelativeNorm_initial_closure
+
+   function Residu_compute_relative_norm( &
+      ResConvInit, ResConvLocal, ResClosInit, ResClosLocal) &
+      result(relative_norm) &
+      bind(C, name="Residu_compute_relative_norm")
+
+      type(CTVector), intent(in) :: ResConvInit, ResConvLocal
+      real(c_double), intent(in), value :: ResClosInit, ResClosLocal
+      real(c_double) :: relative_norm
+      integer :: i, Ierr
+      real(c_double) :: local
+
+      local = ResClosLocal/ResClosInit
+      do i = 1, NbCompThermique
+         local = max(ResConvLocal%values(i)/ResConvInit%values(i), local)
+      enddo
+      call MPI_Allreduce( &
+         local, relative_norm, 1, &
+         MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+
+   end function Residu_compute_relative_norm
+
+   subroutine Residu_RelativeNorm(Iter, Delta_t, &
+                                  ResNormRel, ResConvInit, ResClosInit)
+
+      integer(c_int), intent(in), value :: Iter ! Newton iteration: Iter
+      real(c_double), intent(in), value :: Delta_t
+      real(c_double), intent(out) :: ResNormRel
+      ! Residu relative norm from first Newton iteration used for all Newton iterations
+      type(CTVector), intent(inout) :: ResConvInit
+      real(c_double), intent(inout) :: ResClosInit
+
+      type(CTVector) :: ResConvLocal
+      real(c_double) :: ResClosLocal
+
+      call Residu_RelativeNorm_local_conservation(ResConvLocal)
+      if (Iter == 1) &
+         call Residu_RelativeNorm_initial_conservation( &
+         Delta_t, ResConvLocal, ResConvInit)
+
+      ResClosLocal = Residu_RelativeNorm_local_closure()
+      if (Iter == 1) &
+         ResClosInit = Residu_RelativeNorm_initial_closure(ResClosLocal)
+
+      ResNormRel = Residu_compute_relative_norm( &
+                   ResConvInit, ResConvLocal, ResClosInit, ResClosLocal)
 
    end subroutine Residu_RelativeNorm
 

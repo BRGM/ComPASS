@@ -90,9 +90,9 @@ module NN
    double precision :: NewtonRelax
    integer :: NewtonNiterTotal = 0
    integer :: NewtonNbFailure = 0
-   double precision :: & ! Residu relative norm from first Newton iteration
-      NewtonResConvInit(NbCompThermique), &
-      NewtonResClosInit
+   ! Residu relative norm from first Newton iteration
+   type(CTVector) :: NewtonResConvInit
+   real(c_double) :: NewtonResClosInit
 
    ! ksp variables
    double precision, allocatable, dimension(:) :: KspHistory
@@ -246,9 +246,11 @@ contains
       character(len=*), intent(in) :: LogFile
    
       ! initialisation petsc/MPI
-      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
-      CHKERRQ(Ierr)
+      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
    
+      ! cf. https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscInitializeFortran.html
+      call PetscInitializeFortran(Ierr); CHKERRQ(Ierr)
+
       ! init mpi, communicator/commRank/commSize
       call CommonMPI_init(PETSC_COMM_WORLD)
    
@@ -258,9 +260,10 @@ contains
    
    end subroutine NN_init_warmup
 
-subroutine NN_init_phase2(OutputDir)
+subroutine NN_init_phase2(OutputDir, activate_cpramg)
 
       character(len=*), intent(in) :: OutputDir
+      logical(c_bool), intent(in) :: activate_cpramg
       logical                      :: ok
 
       if (commRank == 0) then
@@ -416,12 +419,7 @@ subroutine NN_init_phase2(OutputDir)
       ! allocate memory of Jacobian and Sm after Schur
       call Jacobian_StrucJacA
 
-      ! init solver: allocate mat, vector, etc.
-      ! call SolvePetsc_Init(KspNiterMax, KspTol)
-      call SolvePetsc_cpramgInit(KspNiterMax, KspTol)
-
-      ! allocate KspHistory
-      allocate (KspHistory(KspNiterMax + 1))
+      call SolvePetsc_Init(KspNiterMax, KspTol, activate_cpramg)
 
       ! sync mat create and set value
       call SolvePetsc_SyncMat
@@ -499,6 +497,7 @@ subroutine NN_init_phase2(OutputDir)
    subroutine NN_main_make_timestep(initial_time_step)
 
       real(c_double), optional, intent(in) :: initial_time_step
+      KSPConvergedReason :: ksp_converged_reason
 
       if(present(initial_time_step)) Delta_t = max(0.d0, initial_time_step)
 
@@ -558,7 +557,8 @@ subroutine NN_init_phase2(OutputDir)
 #endif
 
             ! compute Residu
-            call Residu_compute(Delta_t, NewtonIter)
+            if (NewtonIter==1) call Residu_reset_history
+            call Residu_compute(Delta_t)
 
             ! test Newton converge
             call Residu_RelativeNorm(NewtonIter, Delta_t, &
@@ -571,7 +571,7 @@ subroutine NN_init_phase2(OutputDir)
                      write (j, *) ""
                      write (j, '(A)', advance='no') "     *Residu init conv:  "
                      do k = 1, NbCompThermique
-                        write (j, '(A,ES12.5)', advance='no') "  ", NewtonResConvInit(k)
+                        write (j, '(A,ES12.5)', advance='no') "  ", NewtonResConvInit%values(k)
                      end do
                      write (j, *) ""
                      write (j, '(A,ES12.5)') "     *Residu init clos:    ", NewtonResClosInit
@@ -613,34 +613,29 @@ subroutine NN_init_phase2(OutputDir)
 
             ! solve, return nb of iterations
             ! if KspNiter<0, not converge
-            call SolvePetsc_KspSolve(KspNiter, KspHistory)
+            ksp_converged_reason = SolvePetsc_KspSolve()
 
-            if (commRank == 0) then
-               do i = 1, size(fd)
-                  write (fd(i), '(A,I5)', advance="no") "    Nb of Ksp iter:  ", KspNiter
-               end do
-            end if
-
-            if (KspNiter < 0) then ! not converge
-
+            if (ksp_converged_reason < 0) then ! not converge
+               write(*,*)
+               write(*,*)
+               write(*,*) 'Iterative solver did not converge with reason', ksp_converged_reason
+               !call SolvePetsc_dump_system('ksp')
                ! call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-
                KspConv = .false. ! solver not converge
                KspNbFailure = KspNbFailure + 1
-
                ! restart a new Newton with a smaller time step
                Delta_t = Delta_t*0.5d0
-
                ! load status
                call IncCV_LoadIncPreviousTimeStep
                call IncCVWells_PressureDrop
-
                ! print residu if Ksp failure
+               KspNiter = SolvePetsc_KspSolveIterationNumber()
+               call SolvePetsc_Ksp_history(KspHistory)
                if (commRank == 0) then
                   do i = 1, size(fd)
                      j = fd(i)
                      write (j, *) ""
-                     do k = 1, KspNiterMax
+                     do k = 1, KspNiter
                         write (j, '(A,I4,A,ES18.10)') &
                            "             Ksp iter:   ", k, "    res:  ", KspHistory(k)
                      end do
@@ -653,8 +648,16 @@ subroutine NN_init_phase2(OutputDir)
                end if
 
                exit
+
             else
-               KspConv = .true.
+                KspNiter = SolvePetsc_KspSolveIterationNumber()
+                if (commRank == 0) then
+                   do i = 1, size(fd)
+                      write (fd(i), '(A,I5)', advance="no") "    Nb of Ksp iter:  ", KspNiter
+                   end do
+                end if
+
+                KspConv = .true.
                KspNiterTimeStep = KspNiterTimeStep + KspNiter
 
                call SolvePetsc_Sync ! sync for ghost
@@ -778,38 +781,38 @@ subroutine NN_init_phase2(OutputDir)
 
    subroutine NN_finalize()
 
-      ! *** Report *** !
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            j = fd(i)
-            write (j, *) ""
-            write (j, *) ""
-            write (j, *) "Final Report"
+     ! ! *** Report *** !
+     ! if (commRank == 0) then
+     !    do i = 1, size(fd)
+     !       j = fd(i)
+     !       write (j, *) ""
+     !       write (j, *) ""
+     !       write (j, *) "Final Report"
 
-            write (j, *) ""
-            write (j, *) "    *Final time:  ", TimeFinal/OneSecond
+     !       write (j, *) ""
+     !       write (j, *) "    *Final time:  ", TimeFinal/OneSecond
 
-            write (j, *) ""
-            write (j, *) "    *Mesh:"
-            write (j, '(A,I0)') "        -Nb of cells:  ", NbCell
-            write (j, '(A,I0)') "        -Nb of faces:  ", NbFace
-            write (j, '(A,I0)') "        -Nb of nodes:  ", NbNode
-            write (j, '(A,I0)') "        -Nb of fracs:  ", NbFrac
+     !       write (j, *) ""
+     !       write (j, *) "    *Mesh:"
+     !       write (j, '(A,I0)') "        -Nb of cells:  ", NbCell
+     !       write (j, '(A,I0)') "        -Nb of faces:  ", NbFace
+     !       write (j, '(A,I0)') "        -Nb of nodes:  ", NbNode
+     !       write (j, '(A,I0)') "        -Nb of fracs:  ", NbFrac
 
-            write (j, *) ""
-            write (j, *) "    *Newton/Ksp Iterations:"
-            write (j, '(A,I0)') "        -Total nb of Newton iters:  ", NewtonNiterTotal
-            write (j, '(A,I0)') "        -Total nb of Ksp iters:  ", KspNiterTotal
+     !       write (j, *) ""
+     !       write (j, *) "    *Newton/Ksp Iterations:"
+     !       write (j, '(A,I0)') "        -Total nb of Newton iters:  ", NewtonNiterTotal
+     !       write (j, '(A,I0)') "        -Total nb of Ksp iters:  ", KspNiterTotal
 
-            write (j, *) ""
-            write (j, *) "    *Newton/Ksp Failures:"
-            write (j, '(A,I0)') "        -Total nb of Newton failures:  ", NewtonNbFailure
-            write (j, '(A,I0)') "        -Total nb of Ksp failures:  ", KspNbFailure
+     !       write (j, *) ""
+     !       write (j, *) "    *Newton/Ksp Failures:"
+     !       write (j, '(A,I0)') "        -Total nb of Newton failures:  ", NewtonNbFailure
+     !       write (j, '(A,I0)') "        -Total nb of Ksp failures:  ", KspNbFailure
 
-            write (j, *) ""
-            write (j, *) "    *Total simulation time:  ", comptime_total
-         end do
-      end if
+     !       write (j, *) ""
+     !       write (j, *) "    *Total simulation time:  ", comptime_total
+     !    end do
+     ! end if
 
       ! *** Free *** !
 
@@ -818,7 +821,9 @@ subroutine NN_init_phase2(OutputDir)
       deallocate (NewtonIncreCell)
       deallocate (NewtonIncreWellInj)
       deallocate (NewtonIncreWellProd)
-      deallocate (KspHistory)
+      if (allocated(KspHistory)) then
+        deallocate (KspHistory)
+      end if
       if (allocated(fd)) then
          deallocate (fd)
       end if
@@ -839,8 +844,8 @@ subroutine NN_init_phase2(OutputDir)
 
       if (commRank == 0) then
          close (11)
-         write (*, *) ""
-         write (*, *) "NN Finalize"
+     !    write (*, *) ""
+     !    write (*, *) "NN Finalize"
       end if
       call PetscFinalize(Ierr)
 

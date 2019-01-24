@@ -31,15 +31,15 @@ extern "C"
 void add_global_variables_wrappers(py::module& module)
 {
 
-    module.def("get_current_time", &get_current_time);
-    module.def("set_current_time", &set_current_time);
-    module.def("get_timestep", &get_delta_t);
-    module.def("get_final_time", &get_final_time);
-    module.def("set_final_time", &set_final_time);
-    module.def("get_initial_timestep", &get_initial_timestep);
-    module.def("set_initial_timestep", &set_initial_timestep);
-    module.def("get_maximum_timestep", &get_maximum_timestep);
-    module.def("set_maximum_timestep", &set_maximum_timestep);
+    // module.def("get_current_time", &get_current_time);
+    // module.def("set_current_time", &set_current_time);
+    // module.def("get_timestep", &get_delta_t);
+    // module.def("get_final_time", &get_final_time);
+    // module.def("set_final_time", &set_final_time);
+    // module.def("get_initial_timestep", &get_initial_timestep);
+    // module.def("set_initial_timestep", &set_initial_timestep);
+    // module.def("get_maximum_timestep", &get_maximum_timestep);
+    // module.def("set_maximum_timestep", &set_maximum_timestep);
     module.def("get_gravity", &get_gravity);
     module.def("set_gravity", &set_gravity);
     module.def("get_rock_volumetric_heat_capacity", &get_rock_volumetric_heat_capacity);

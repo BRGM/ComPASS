@@ -37,13 +37,29 @@
     call IncCVReservoir_free
     call IncCVWells_free
 
-    end subroutine IncCV_free
+  end subroutine IncCV_free
+
+  subroutine IncCV_NewtonIncrement_C(increments_pointers, relaxation) &
+     bind(C, name="IncCV_NewtonIncrement")
+
+    type(Newton_increments_pointers), intent(in), value :: increments_pointers
+    real(c_double), intent(in), value :: relaxation
+    type(Newton_increments) :: increments
+    
+    call Newton_pointers_to_values(increments_pointers, increments)
+    call IncCV_NewtonIncrement( &
+       increments%nodes, increments%fractures, increments%cells, &
+       increments%injectors, increments%producers, relaxation &
+    )
+
+  end subroutine IncCV_NewtonIncrement_C
+
 
     !> \brief Newton increment of Nodes, Fracture Faces, Cells and Wells unknows.
     subroutine IncCV_NewtonIncrement( &
         NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
-        NewtonIncreWellInj, NewtonIncreWellProd, relax) &
-        bind(C, name="IncCV_NewtonIncrement")
+        NewtonIncreWellInj, NewtonIncreWellProd, relax &
+    )
 
     real(c_double), dimension(:, :), intent(in) :: &
         NewtonIncreNode, &

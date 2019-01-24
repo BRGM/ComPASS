@@ -32,6 +32,7 @@ module SolvePetsc
   Mat, private :: A_mpi
   Vec, private :: Sm_mpi
   Vec, private :: x_mpi
+  Vec, private :: y_mpi
 
   KSP, private :: ksp_mpi ! ksp
   PC,  private :: pc_mpi  ! pc
@@ -115,19 +116,19 @@ module SolvePetsc
 
   public :: &
        SolvePetsc_Init,           &
-       SolvePetsc_cpramgInit,    &
-
        SolvePetsc_SetUp,          &
        SolvePetsc_KspSolve,       &
-
+       SolvePetsc_check_solution, & 
        SolvePetsc_SyncMat,        &
        SolvePetsc_Sync,           &
        SolvePetsc_GetSolNodeFracWell, &
-
        SolvePetsc_Free,           &
-       SolvePetsc_cpramgFree
+       SolvePetsc_cpramgFree, &
+       SolvePetsc_Ksp_configuration, &
+       SolvePetsc_KspSolveIterations
 
   private :: &
+       SolvePetsc_Init_cpramg_specific,  &
        SolvePetsc_CreateKsp,  &
        SolvePetsc_CreateAmpi, &
        SolvePetsc_CreateSm,   &
@@ -158,10 +159,11 @@ module SolvePetsc
 contains
 
   ! create structure of mat and solver
-  subroutine SolvePetsc_Init(kspitmax_in, ksptol_in)
+  subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, activate_cpramg)
 
     integer, intent(in) :: kspitmax_in
     double precision, intent(in) :: ksptol_in
+    logical(c_bool), intent(in) :: activate_cpramg
 
     integer :: i
 
@@ -192,14 +194,15 @@ contains
     end do
     NBlockcolG = NBlockrowG
 
-    ! array contains history of convergence
-    ! must be allocated before SolvePetsc_CreateKsp
-    allocate(kspHistory(kspitmax+1))
-
     call SolvePetsc_RowColStart
     call SolvePetsc_CreateAmpi
     call SolvePetsc_CreateSm
-    call SolvePetsc_CreateKsp
+    
+    if(activate_cpramg) then
+        call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
+    else
+        call SolvePetsc_CreateKsp
+    endif
 
     ! compute RowLToRowG and ColLToColG
     call SolvePetsc_LtoG
@@ -214,49 +217,13 @@ contains
   end subroutine SolvePetsc_Init
 
 
-  ! CPR-AMG: create structure
-  subroutine SolvePetsc_cpramgInit(kspitmax_in, ksptol_in)
+  subroutine SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
 
     integer, intent(in) :: kspitmax_in
     double precision, intent(in) :: ksptol_in
 
     integer :: i
     PetscErrorCode :: Ierr
-
-    kspitmax = kspitmax_in
-    PetscKspTol = ksptol_in
-
-    ! set tmp values
-    NbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
-    NbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
-    NbFracOwn = NbFracOwn_Ncpus(commRank+1)
-    NbFracLocal = NbFracLocal_Ncpus(commRank+1)
-    NbCellLocal = NbCellLocal_Ncpus(commRank+1)
-
-    NbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
-    NbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
-    NbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
-    NbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
-
-    ! local row/col size:  node own and frac own and well own
-    NBlockrowL = NbNodeOwn + NbFracOwn + NbWellInjOwn + NbWellProdOwn ! =JacA%Nb
-    NBlockcolL = NBlockrowL
-
-    ! global row/col size: sum of all procs
-    NBlockrowG = 0
-    do i=1, Ncpus
-       NBlockrowG = NBlockrowG + NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i) &
-            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
-    end do
-    NBlockcolG = NBlockrowG
-
-    ! array contain history of convergence
-    ! must be allocated before SolvePetsc_CreateKsp
-    allocate(kspHistory(kspitmax+1))
-
-    call SolvePetsc_RowColStart
-    call SolvePetsc_CreateAmpi
-    call SolvePetsc_CreateSm
 
     call SolvePetsc_cpramgCreateApAt
     call SolvePetsc_cpramgCreateKsp
@@ -353,17 +320,7 @@ contains
 
 #endif
 
-    ! compute RowLToRowG and ColLToColG
-    call SolvePetsc_LtoG
-    call SolvePetsc_LtoGBlock
-
-    ! delete row/col start
-    deallocate(rowstart)
-    deallocate(colstart)
-    deallocate(Blockrowstart)
-    deallocate(Blockcolstart)
-
-  end subroutine SolvePetsc_cpramgInit
+  end subroutine SolvePetsc_Init_cpramg_specific
 
 
   ! compute Blockrowstart and Blockcolstart
@@ -844,7 +801,43 @@ contains
 
 #endif
 
-  ! Create ksp
+  subroutine SolvePetsc_Ksp_configuration(&
+    tolerance, maximum_nb_iterations, restart_iteration) &
+  bind(C, name="SolvePetsc_Ksp_configuration")
+
+    real(c_double), intent(in), value :: tolerance
+    integer(c_int), intent(in), value :: maximum_nb_iterations
+    integer(c_int), intent(in), value :: restart_iteration
+    PetscErrorCode :: Ierr
+
+    ! CHECKME: are there border effects in assigning these global variables?
+    PetscKspTol = tolerance
+    kspitmax = maximum_nb_iterations
+    ! CHECKME: Cf. PETSc doc
+    ! We are supposed to use a left PC ?
+    ! So the good choice would be KSP_NORM_PRECONDITIONED 
+    ! call KSPSetNormType(ksp_mpi, KSP_NORM_PRECONDITIONED, Ierr)
+    call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
+    CHKERRQ(Ierr)
+    ! CHECKME: why no atol???
+    call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
+    CHKERRQ(Ierr)
+    if(.not. allocated(kspHistory)) then
+       allocate(kspHistory(kspitmax+1))
+    else
+        if(size(kspHistory)<kspitmax+1) then
+           deallocate(kspHistory)
+           allocate(kspHistory(kspitmax+1))
+        end if
+    end if
+    call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
+    CHKERRQ(Ierr)
+    ! CHECKME: no restart!!!
+    call KSPGMRESSetRestart(ksp_mpi, restart_iteration, Ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_Ksp_configuration
+
   subroutine SolvePetsc_CreateKsp
 
     PetscErrorCode :: Ierr
@@ -854,21 +847,13 @@ contains
     CHKERRQ(Ierr)
     call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
     CHKERRQ(Ierr)
-    call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
-    CHKERRQ(Ierr)
+    ! CHECKME: Cf. PETSc doc
+    ! Normally, it is best to use the KSPSetFromOptions() command and
+    ! then set the KSP type from the options database
     call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
     CHKERRQ(Ierr)
-    call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
-    CHKERRQ(Ierr)
-    call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
-    CHKERRQ(Ierr)
-
-    if(.not. allocated(kspHistory)) then
-       allocate( kspHistory(kspitmax+1))
-    end if
-    call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
-    CHKERRQ(Ierr)
-
+    
+    call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
 
     ! ! monitor
     ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
@@ -884,6 +869,7 @@ contains
     ! CHKERRQ(Ierr)
 
     ! hypre pc
+    !call PCSetType(pc_mpi, PCLU, Ierr)
     call PCSetType(pc_mpi, PCHYPRE, Ierr)
     CHKERRQ(Ierr)
 
@@ -921,21 +907,9 @@ contains
     CHKERRQ(Ierr)
     call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
     CHKERRQ(Ierr)
-    call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
-    CHKERRQ(Ierr)
-    call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
-    CHKERRQ(Ierr)
-    call KSPGMRESSetRestart(ksp_mpi, kspitmax, Ierr)
-    CHKERRQ(Ierr)
-    call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
-    CHKERRQ(Ierr)
-
-    if(.not. allocated(kspHistory)) then
-       allocate( kspHistory(kspitmax+1))
-    end if
-    call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
-    CHKERRQ(Ierr)
-
+    
+    call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
+    
     ! ! monitor
     ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
     !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
@@ -1618,6 +1592,17 @@ contains
     call VecAssemblyEnd(x_mpi, Ierr)
     CHKERRQ(Ierr)
 
+    ! create y_mpi
+    call VecDuplicate(Sm_mpi, y_mpi, Ierr)
+    CHKERRQ(Ierr)
+
+    call VecSet(y_mpi, 0.d0, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyBegin(y_mpi, Ierr)
+    CHKERRQ(Ierr)
+    call VecAssemblyEnd(y_mpi, Ierr)
+    CHKERRQ(Ierr)
+
   end subroutine SolvePetsc_CreateSm
 
 
@@ -1739,68 +1724,122 @@ contains
 
   end subroutine SolvePetsc_CpramgCreateApAt
 
+  subroutine SolvePetsc_dump_system(basename)
+  
+    character(len=*), intent(in) :: basename
 
-  ! Solve A_mpi x = Sm_mpi
-  subroutine SolvePetsc_KspSolve(NkspIter, kspHistoryOutput) &
-        bind(C, name="SolvePetsc_KspSolve")
-
-    ! if converge: kspid>0
-    ! if not converge: kspid<0
-    integer(c_int), intent(out) :: NkspIter
-    real(c_double), dimension(:), intent(inout) :: &
-         kspHistoryOutput
-
-    integer :: i
-    !PetscViewer :: viewer
+    PetscViewer :: viewer
     PetscErrorCode :: Ierr
-    !integer :: errcode
-    KSPConvergedReason :: reason
+    integer :: errcode
 
-    ! solve
+    call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename) // '_structure.dat', viewer, ierr)
+    CHKERRQ(Ierr)
+    call KSPView(ksp_mpi, viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerFlush(viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerDestroy(viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename) // '_A.dat', viewer, ierr)
+    CHKERRQ(Ierr)
+    call MatView(A_mpi, viewer, Ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerFlush(viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerDestroy(viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename) // '_b.dat', viewer, ierr)
+    CHKERRQ(Ierr)
+    call VecView(Sm_mpi, viewer, Ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerFlush(viewer, ierr)
+    CHKERRQ(Ierr)
+    call PetscViewerDestroy(viewer, ierr)
+    CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_dump_system
+
+  function SolvePetsc_KspSolveIterationNumber() &
+    result(NkspIter) &
+    bind(C, name="SolvePetsc_KspSolveIterationNumber")
+    
+    integer(c_int) :: NkspIter
+    PetscErrorCode :: Ierr
+
+    call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr); CHKERRQ(Ierr)
+    NkspIter = NkspIter + 1 ! CHECKME: why + 1?
+       
+  end function SolvePetsc_KspSolveIterationNumber
+
+  subroutine SolvePetsc_Ksp_history(output)
+
+    real(c_double), dimension(:), intent(inout) :: output
+    integer :: i, n
+    
+    n = SolvePetsc_KspSolveIterationNumber()
+    if(.not. allocated(kspHistory)) then
+        call CommonMPI_abort("kspHistory should be allocated")
+    end if
+    if(n>size(output)) then
+        call CommonMPI_abort("inconsistent sizes")
+    end if
+    do i=1, n
+       output(i) = kspHistory(i)
+    end do
+    do i=n+1, size(output)
+       output(i) = 0.d0
+    end do
+
+  end subroutine SolvePetsc_Ksp_history
+
+  subroutine SolvePetsc_KspSolveIterations(cp, n) &
+    bind(C, name="SolvePetsc_KspSolveIterations")
+  
+    type(c_ptr), intent(in), value :: cp
+    integer(c_int), intent(in), value :: n
+    real(c_double), pointer :: residuals(:)
+    
+    call c_f_pointer(cp, residuals, [n])
+    call SolvePetsc_Ksp_history(residuals)
+    
+  end subroutine SolvePetsc_KspSolveIterations
+
+  function SolvePetsc_KspSolve() &
+    result(reason) &
+    bind(C, name="SolvePetsc_KspSolve")
+
+    integer(c_int) :: reason
+    KSPConvergedReason :: native_reason ! this wraps a C enum
+    PetscErrorCode :: Ierr
+
     call KSPSolve(ksp_mpi, Sm_mpi, x_mpi, Ierr)
     CHKERRQ(Ierr)
 
-    ! solver converge reason
-    ! <0: diverge
-    call KSPGetConvergedReason(ksp_mpi, reason, Ierr)
+    call KSPGetConvergedReason(ksp_mpi, native_reason, Ierr)
+    reason = native_reason ! FIXME: avoid conversion... use petsc4py / enums ?
     CHKERRQ(Ierr)
 
-    if(reason<0) then
-       write(*,*)
-       write(*,*)
-       write(*,*) 'Iterative solver did not converge with reason', reason
-       NkspIter = reason
-       do i=1, kspitmax
-          kspHistoryOutput(i) = kspHistory(i)
-       end do
-       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_structure.dat', viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call KSPView(ksp_mpi, viewer)
-       !call PetscViewerDestroy(viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_A.dat', viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call MatView(A_mpi, viewer, Ierr)
-       !CHKERRQ(Ierr)
-       !call PetscViewerDestroy(viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, 'ksp_b.dat', viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call VecView(Sm_mpi, viewer, Ierr)
-       !CHKERRQ(Ierr)
-       !call PetscViewerDestroy(viewer, ierr)
-       !CHKERRQ(Ierr)
-       !call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    else
-       call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr) ! get number of iterations
-       CHKERRQ(Ierr)
-       NkspIter = NkspIter + 1
-    end if
+  end function SolvePetsc_KspSolve
 
-    ! call VecView(Sm_mpi, PETSC_VIEWER_STDOUT_WORLD, Ierr)
+  subroutine SolvePetsc_check_solution() &
+    bind(C, name="SolvePetsc_check_solution")
 
-  end subroutine SolvePetsc_KspSolve
+    PetscReal :: a
+    PetscErrorCode :: Ierr
 
+    call VecCopy(Sm_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
+    call VecScale(y_mpi, -1.d0, Ierr); CHKERRQ(Ierr)
+    call MatMultAdd(A_mpi, x_mpi, y_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
+
+    write(*, *) 'linear solution check ||AX-b||' 
+    call VecNorm(y_mpi, NORM_1, a, Ierr); CHKERRQ(Ierr)
+    write(*, *) 'N1', a
+    call VecNorm(y_mpi, NORM_2, a, Ierr); CHKERRQ(Ierr)
+    write(*, *) 'N2', a
+    call VecNorm(y_mpi, NORM_INFINITY, a, Ierr); CHKERRQ(Ierr)
+    write(*, *) 'NI', a
+
+  end subroutine SolvePetsc_check_solution 
 
   subroutine SolvePetsc_SyncMat
 
@@ -1957,10 +1996,23 @@ contains
   end subroutine SolvePetsc_Sync
 
 
+  subroutine SolvePetsc_GetSolNodeFracWell_C(increments_pointers) &
+      bind(C, name="SolvePetsc_GetSolNodeFracWell")
+
+    type(Newton_increments_pointers), intent(in), value :: increments_pointers
+    type(Newton_increments) :: increments
+    
+    call Newton_pointers_to_values(increments_pointers, increments)
+    call SolvePetsc_GetSolNodeFracWell( &
+       increments%nodes, increments%fractures, &
+       increments%injectors, increments%producers &
+    )
+
+  end subroutine SolvePetsc_GetSolNodeFracWell_C
+
   subroutine SolvePetsc_GetSolNodeFracWell( &
        NewtonIncreNode, NewtonIncreFrac, &
-       NewtonIncreWellInj, NewtonIncreWellProd) &
-      bind(C, name="SolvePetsc_GetSolNodeFracWell")
+       NewtonIncreWellInj, NewtonIncreWellProd)
 
     real(c_double), dimension(:,:), intent(out) :: &
          NewtonIncreNode, &

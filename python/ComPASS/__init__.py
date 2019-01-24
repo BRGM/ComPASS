@@ -18,6 +18,7 @@ import ComPASS.runtime as runtime
 import ComPASS.utils.filenames
 import ComPASS.dumps
 import ComPASS.messages as messages
+import ComPASS.newton
 
 import numpy as np
 
@@ -32,6 +33,9 @@ initialized = False
 # CHECKME: There might be a more elegant way to do this
 kernel = None
 
+# FIXME: transient global... to be set elsewhere
+activate_cpramg = True 
+
 def load_eos(eosname):
     global kernel
     assert kernel is None
@@ -44,6 +48,11 @@ def load_eos(eosname):
         if key not in gdict:
             gdict[key] = kdict[key]
     init_model()
+    ComPASS.timestep.kernel = kernel
+
+def default_Newton():
+    assert kernel
+    return newton.Newton(1e-5, 8, newton.LinearSolver(1e-8, 150))
 
 def exit_eos_and_finalize():
     finalize_model()
@@ -277,7 +286,7 @@ def init(
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
-    kernel.init_phase2(runtime.output_directory)
+    kernel.init_phase2(runtime.output_directory, activate_cpramg)
     mpi.synchronize() # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     initialized = True

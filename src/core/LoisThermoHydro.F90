@@ -2977,12 +2977,23 @@ contains
 
   end subroutine LoisThermoHydro_free
 
+  subroutine LoisThermoHydro_PrimToSecd_C(increments_pointers) &
+      bind(C, name="LoisThermoHydro_PrimToSecd")
+
+    type(Newton_increments_pointers), intent(in), value :: increments_pointers
+    type(Newton_increments) :: increments
+
+    call Newton_pointers_to_values(increments_pointers, increments)
+    call LoisThermoHydro_PrimToSecd( &
+       increments%nodes, increments%fractures, increments%cells &
+    )
+
+  end subroutine LoisThermoHydro_PrimToSecd_C
 
   ! compute prim values using secd values
   ! secd = SmdX - dXssurdXp * prim
   subroutine LoisThermoHydro_PrimToSecd( &
-       vnode, vfrac, vcell) &
-      bind(C, name="LoisThermoHydro_PrimToSecd")
+       vnode, vfrac, vcell)
 
     real(c_double), dimension(:,:), intent(inout) :: &
          vnode, vfrac, vcell

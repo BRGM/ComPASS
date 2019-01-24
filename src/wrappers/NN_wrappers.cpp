@@ -16,7 +16,7 @@ extern "C"
 	void NN_init_warmup(const StringWrapper&);
 	//void NN_init_read_mesh(const StringWrapper&);
 	//void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
-	void NN_init_phase2(const StringWrapper&);
+	void NN_init_phase2(const StringWrapper&, bool);
 	//void NN_main(int, const StringWrapper&);
 	void NN_main_make_timestep(double);
 	//void NN_main_output_visu(int, const StringWrapper&);
@@ -58,8 +58,8 @@ void add_NN_wrappers(py::module& module)
 	//		   "Initialisation of ComPASS - build a cartesian grid. Next logical step is init_phase2.");
 
 	module.def("init_phase2",
-		[](const std::string& OutputDir) {
-		NN_init_phase2(OutputDir);
+		[](const std::string& OutputDir, bool activate_cpramg) {
+		NN_init_phase2(OutputDir, activate_cpramg);
 	},
 		"Initialisation of ComPASS phase 2 : partition and distribute.");
 

@@ -22,6 +22,10 @@ def on_master_proc(f):
             f(*args, **kwargs)
     return call
 
+def master_print(*args, **kwargs):
+    if is_on_master_proc:
+        print(*args, **kwargs)
+
 def synchronize():
     MPI.COMM_WORLD.Barrier() # wait for every process to synchronize
 

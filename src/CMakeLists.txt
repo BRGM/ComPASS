@@ -43,6 +43,7 @@ set( ComPASSCore_SRCS
     LocalMesh.F90
     LoisThermoHydro.F90
     MeshSchema.F90
+    Newton.F90
     NumbyContext.F90
     PartitionMesh.F90
     Partition.c
@@ -84,6 +85,7 @@ endforeach()
 set(ComPASSWells_SRCS ${_tmp})
 
 # Configuration to be built
+# FIXME: include file
 set( CONFIGURATIONS
     linear_water
     liquid_water
@@ -136,6 +138,7 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
+  SolvePetsc_wrappers.F90
   StringWrapper.h
   StringWrapper.F90
   TimeLoop_wrappers.h

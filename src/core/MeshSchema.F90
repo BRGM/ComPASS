@@ -213,6 +213,10 @@ contains
     integer(c_size_t) :: n
 
     if(allocated(DataWellInjLocal)) then
+        if(.not.allocated(NbWellInjLocal_Ncpus)) &
+             call CommonMPI_abort("NbWellInjLocal_Ncpus not allocated.")
+        if(NbWellInjLocal_Ncpus(commRank + 1)/=size(DataWellInjLocal, 1)) &
+             call CommonMPI_abort("NbWellInjLocal_Ncpus inconsistency")
         n = size(DataWellInjLocal, 1)
     else
         n = 0
@@ -240,6 +244,10 @@ contains
     integer(c_size_t) :: n
 
     if(allocated(DataWellProdLocal)) then
+        if(.not.allocated(NbWellProdLocal_Ncpus)) &
+             call CommonMPI_abort("NbWellProdLocal_Ncpus not allocated.")
+        if(NbWellProdLocal_Ncpus(commRank + 1)/=size(DataWellProdLocal, 1)) &
+             call CommonMPI_abort("NbWellProdLocal_Ncpus inconsistency")
         n = size(DataWellProdLocal, 1)
     else
         n = 0

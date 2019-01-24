@@ -5331,12 +5331,25 @@ contains
 
   end subroutine Jacobian_RowCol_FR
 
+  subroutine Jacobian_GetSolCell_C(increments_pointers) &
+     bind(C, name="Jacobian_GetSolCell")
+
+    type(Newton_increments_pointers), intent(in), value :: increments_pointers
+    type(Newton_increments) :: increments
+    
+    call Newton_pointers_to_values(increments_pointers, increments)
+    call Jacobian_GetSolCell( &
+       increments%nodes, increments%fractures, increments%cells &
+    )
+
+  end subroutine Jacobian_GetSolCell_C
+
   ! A3 * IncrementNodeFrac + A4 * IncrementCell = bigSm (cell part)
   ! A4 is a block diag matrix,
   ! its block element has been done LU factorization
   subroutine Jacobian_GetSolCell( &
-       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell) &
-        bind(C, name="Jacobian_GetSolCell")
+       NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell &
+    )
 
     real(c_double), dimension(:,:), intent(in) :: &
          NewtonIncreNode, &
