@@ -839,55 +839,35 @@ contains
   end subroutine SolvePetsc_Ksp_configuration
 
   subroutine SolvePetsc_CreateKsp
-
+  
     PetscErrorCode :: Ierr
 
-    ! ksp solver create
-    call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
-    CHKERRQ(Ierr)
-    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
-    CHKERRQ(Ierr)
+    call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
+    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
+    
     ! CHECKME: Cf. PETSc doc
     ! Normally, it is best to use the KSPSetFromOptions() command and
     ! then set the KSP type from the options database
-    call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
-    CHKERRQ(Ierr)
-    
+    call KSPSetType(ksp_mpi, KSPGMRES, Ierr); CHKERRQ(Ierr)
     call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
 
-    ! ! monitor
     ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
-    !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
-    ! CHKERRQ(Ierr)
+    !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr); CHKERRQ(Ierr)
 
-    ! set preconditioner
-    call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
-    CHKERRQ(Ierr)
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr); CHKERRQ(Ierr)
 
-    ! ! non preconditioner
-    ! call PCSetType(pc_mpi,PCNONE,Ierr)
-    ! CHKERRQ(Ierr)
+    ! call PCSetType(pc_mpi,PCNONE,Ierr); CHKERRQ(Ierr)
 
-    ! hypre pc
-    !call PCSetType(pc_mpi, PCLU, Ierr)
-    call PCSetType(pc_mpi, PCHYPRE, Ierr)
-    CHKERRQ(Ierr)
+    ! call PCSetType(pc_mpi, PCLU, Ierr); CHKERRQ(Ierr)
 
+    call PCSetType(pc_mpi, PCHYPRE, Ierr); CHKERRQ(Ierr)
     ! ! Euclid in hypre: ILU(k), k is level
-    ! call PCHYPRESetType(pc_mpi, "euclid", Ierr)
-    ! CHKERRQ(Ierr)
-    ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr)
-    ! CHKERRQ(Ierr)
-    ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
-    ! CHKERRQ(Ierr)
+    ! call PCHYPRESetType(pc_mpi, "euclid", Ierr); CHKERRQ(Ierr)
+    ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr); CHKERRQ(Ierr)
+    ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr); CHKERRQ(Ierr)
+    call PCHYPRESetType(pc_mpi,'boomeramg',Ierr); CHKERRQ(Ierr)
 
-    ! boomeramg preconditioner in hypre
-    call PCHYPRESetType(pc_mpi,'boomeramg',Ierr)
-    CHKERRQ(Ierr)
-
-    ! Sets KSP options from the options database
-    call KSPSetFromOptions(ksp_mpi, Ierr)
-    CHKERRQ(Ierr)
+    call KSPSetFromOptions(ksp_mpi, Ierr); CHKERRQ(Ierr)
 
   end subroutine SolvePetsc_CreateKsp
 
@@ -903,11 +883,16 @@ contains
     ! 4. PC Temperature (if thermal)
 
     ! 1. ksp solver create
-    call KSPCreate(ComPASS_COMM_WORLD,ksp_mpi,Ierr)
-    CHKERRQ(Ierr)
-    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
-    CHKERRQ(Ierr)
+
+    ! FIXME: the following lines are duplicated in SolvePetsc_CreateKsp
+ 
+    ! ksp solver create
+    call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
+    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
     
+    ! CHECKME: Cf. PETSc doc
+    ! Normally, it is best to use the KSPSetFromOptions() command and
+    ! then set the KSP type from the options database
     call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
     
     ! ! monitor
