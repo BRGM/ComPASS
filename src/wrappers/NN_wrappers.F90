@@ -49,13 +49,13 @@
        !
        !end subroutine NN_init_warmup_and_read_mesh_from_C
        
-       subroutine NN_init_phase2_from_C(OutputDir, activate_cpramg) &
+       subroutine NN_init_phase2_from_C(OutputDir, activate_cpramg, activate_direct_solver) &
           bind(C, name="NN_init_phase2")
        
           type(cpp_string_wrapper), intent(in) :: OutputDir
-          logical(c_bool), intent(in), value :: activate_cpramg
+          logical(c_bool), intent(in), value :: activate_cpramg, activate_direct_solver
        
-          call NN_init_phase2(fortran_string(OutputDir), activate_cpramg)
+          call NN_init_phase2(fortran_string(OutputDir), activate_cpramg, activate_direct_solver)
        
        end subroutine NN_init_phase2_from_C
        

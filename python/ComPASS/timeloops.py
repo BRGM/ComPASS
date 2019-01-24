@@ -144,8 +144,8 @@ def standard_loop(initial_time=None, final_time=None,
                 simulation_context=context,
         )
         t += ts_manager.current_step
-        print('max p variation', np.abs(ComPASS.cell_states().p-pcsp).max())
-        print('max T variation', np.abs(ComPASS.cell_states().T-pcsT).max())
+        mpi.master_print('max p variation', np.abs(ComPASS.cell_states().p-pcsp).max())
+        mpi.master_print('max T variation', np.abs(ComPASS.cell_states().T-pcsT).max())
         # --
         #ComPASS.make_timestep(timestep)
         #t = ComPASS.get_current_time()

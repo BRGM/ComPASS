@@ -260,11 +260,11 @@ contains
    
    end subroutine NN_init_warmup
 
-subroutine NN_init_phase2(OutputDir, activate_cpramg)
+subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
 
       character(len=*), intent(in) :: OutputDir
-      logical(c_bool), intent(in) :: activate_cpramg
-      logical                      :: ok
+      logical(c_bool), intent(in) :: activate_cpramg, activate_direct_solver
+      logical :: ok
 
       if (commRank == 0) then
          do i = 1, size(fd)
@@ -419,7 +419,7 @@ subroutine NN_init_phase2(OutputDir, activate_cpramg)
       ! allocate memory of Jacobian and Sm after Schur
       call Jacobian_StrucJacA
 
-      call SolvePetsc_Init(KspNiterMax, KspTol, activate_cpramg)
+      call SolvePetsc_Init(KspNiterMax, KspTol, activate_cpramg, activate_direct_solver)
 
       ! sync mat create and set value
       call SolvePetsc_SyncMat

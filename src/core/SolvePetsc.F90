@@ -159,11 +159,12 @@ module SolvePetsc
 contains
 
   ! create structure of mat and solver
-  subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, activate_cpramg)
+  subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
+                             activate_cpramg, activate_direct_solver)
 
     integer, intent(in) :: kspitmax_in
     double precision, intent(in) :: ksptol_in
-    logical(c_bool), intent(in) :: activate_cpramg
+    logical(c_bool), intent(in) :: activate_direct_solver, activate_cpramg
 
     integer :: i
 
@@ -198,10 +199,14 @@ contains
     call SolvePetsc_CreateAmpi
     call SolvePetsc_CreateSm
     
-    if(activate_cpramg) then
+    if(activate_cpramg.and..not.activate_direct_solver) then
         call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
     else
-        call SolvePetsc_CreateKsp
+        if(activate_direct_solver) then
+            call SolvePetsc_CreateKsp_direct_solver
+        else 
+            call SolvePetsc_CreateKsp
+        endif
     endif
 
     ! compute RowLToRowG and ColLToColG
@@ -837,6 +842,20 @@ contains
     CHKERRQ(Ierr)
 
   end subroutine SolvePetsc_Ksp_configuration
+
+  subroutine SolvePetsc_CreateKsp_direct_solver
+  
+    PetscErrorCode :: Ierr
+
+    call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
+    call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
+    call KSPSetType(ksp_mpi, KSPPREONLY, Ierr); CHKERRQ(Ierr)
+    call KSPGetPC(ksp_mpi, pc_mpi, Ierr); CHKERRQ(Ierr)
+    call PCSetType(pc_mpi, PCLU, Ierr); CHKERRQ(Ierr)
+
+    call KSPSetFromOptions(ksp_mpi, Ierr); CHKERRQ(Ierr)
+
+  end subroutine SolvePetsc_CreateKsp_direct_solver
 
   subroutine SolvePetsc_CreateKsp
   

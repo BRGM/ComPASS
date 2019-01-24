@@ -136,10 +136,9 @@ class Newton:
         conservation_residual = kernel.CTVector()
         initial_closure_residual = None
         lsolver = self.lsolver
+        nb_lsolver_iterations = 0
         total_lsolver_iterations = 0
         self.init_iteration()
-        # print('initial Newton pressure:', ComPASS.node_states().p)
-        # print('initial Newton temperature:', ComPASS.node_states().T)
         # CHECKME: does this need to be done after newton_init_iteration?
         kernel.Residu_reset_history()
         kernel.Residu_compute(dt)
@@ -149,25 +148,27 @@ class Newton:
         )
         closure_residual = kernel.Residu_RelativeNorm_local_closure()
         initial_closure_residual = kernel.Residu_RelativeNorm_initial_closure(closure_residual)
-        print('initial residuals (reference)',
+        mpi.master_print('initial residuals (reference)',
                 initial_conservation_residual.as_array(), initial_closure_residual)
-        print('                    residuals',
+        mpi.master_print('                    residuals',
                     conservation_residual.as_array(), closure_residual)
         for iteration in range(self.maximum_number_of_iterations):
             kernel.Jacobian_ComputeJacSm(dt)
             kernel.SolvePetsc_SetUp()
             ksp_status = kernel.SolvePetsc_KspSolve()
-            #mpi.master_print('KSP status', ksp_status) 
-            nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
-            # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
-            total_lsolver_iterations+= nb_lsolver_iterations
-            mpi.master_print(
-                'linear iterations:', 
-                kernel.SolvePetsc_Ksp_iterations()
-            )
+            # mpi.master_print('KSP status', ksp_status) 
+            if not ComPASS.activate_direct_solver:
+                nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
+                # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
+                total_lsolver_iterations+= nb_lsolver_iterations
+                mpi.master_print(
+                    'linear iterations:', 
+                    kernel.SolvePetsc_Ksp_iterations()
+                )
             if ksp_status<0:
                 lsolver.failures+= 1
-                lsolver.number_of_useless_iterations+= nb_lsolver_iterations
+                if not ComPASS.activate_direct_solver:
+                    lsolver.number_of_useless_iterations+= nb_lsolver_iterations
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations),
                     ksp_status,
@@ -175,10 +176,6 @@ class Newton:
             # kernel.SolvePetsc_check_solution()
             lsolver.number_of_succesful_iterations+= nb_lsolver_iterations
             self.increment()
-            # print('node pressure:', ComPASS.node_states().p)
-            # print('cell pressure:', ComPASS.cell_states().p)
-            # print('node temperature:', ComPASS.node_states().T)
-            # print('cell temperature:', ComPASS.cell_states().T)
             self.init_iteration()
             kernel.Residu_compute(dt)
             kernel.Residu_RelativeNorm_local_conservation(conservation_residual)
@@ -189,7 +186,7 @@ class Newton:
                     initial_closure_residual, closure_residual,
                 )
             )
-            print('Newton % 3d          residuals'%(iteration + 1),
+            mpi.master_print('Newton % 3d          residuals'%(iteration + 1),
                         conservation_residual.as_array(), closure_residual,
                         'rel', relative_residuals[-1])
             if relative_residuals[-1] < self.tolerance:

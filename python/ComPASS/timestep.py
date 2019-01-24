@@ -32,7 +32,7 @@ def try_timestep(
     try:
         mpi.master_print('trying newton with timestep:', deltat)
         iterations = newton.loop(deltat)
-        print(iterations)
+        mpi.master_print(iterations)
     except KspFailure as e:        
         mpi.master_print(
             'KSP failure - with reason', e.reason, 'after',
