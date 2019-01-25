@@ -54,7 +54,7 @@ extern "C"
     void SolvePetsc_dump_system(const StringWrapper&);
     void SolvePetsc_Ksp_configuration(double, int, int);
     void SolvePetsc_check_solution();
-    //void pass_and_dump_dim_array(double *, int, std::size_t*);
+
 }
 
 #include "TimeLoop_wrappers.h"
