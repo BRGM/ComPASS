@@ -79,6 +79,7 @@ contains
 
    end subroutine check_array_interop
 
+   ! FIXME #51 densite massique
    ! Densite molaire
    ! iph is an identificator for each phase:
    ! PHASE_GAS = 1; PHASE_WATER = 2

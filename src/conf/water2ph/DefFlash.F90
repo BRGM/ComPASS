@@ -6,7 +6,7 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 2 comp, context switch
+! Model: 2 phase 1 comp, context switch
 
 !> \brief Define the flash to determine the phases
 !! which are actualy present in each cell, and

@@ -6,7 +6,7 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 1 comp, thermal well
+! Model: 2 phase 2 comp, thermal well
 
 !> \brief Define the flash to determine the phases
 !! which are actualy present in each cell, and
@@ -33,102 +33,104 @@ contains
    subroutine DefFlash_Flash_cv(inc, rt, porovol)
 
       type(Type_IncCVReservoir), intent(inout) :: inc
-      INTEGER, INTENT(IN) :: rt(IndThermique + 1)
+      integer, intent(in) :: rt(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
-      integer :: i, iph, j, icp, m, mph, ic
-      double precision :: DensiteMolaire(NbComp), acc1, acc2, &
-         dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      double precision :: T, Ha
-      double precision :: RZetal
-      double precision :: Psat, dTSat
+      integer :: iph, icp, ic
+      double precision :: T, f(NbPhase)
       double precision :: S(NbPhase), Pc, DSPc(NbPhase)
-      double precision :: Cal, Cel
+      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: Cag, Cal, Cel
       double precision :: PgCag, PgCeg
-      double precision :: Pg
-      double precision :: Cag
-      double precision :: Slrk
+      double precision :: Pref,P(NbPhase)
 
       ic = inc%ic
-      Pg = inc%Pression
       T = inc%Temperature
       S = inc%Saturation
+      Pref = inc%Pression
+      do iph = 1,NbPhase
+        call f_PressionCapillaire(rt, iph, S(iph), Pc, DSPc)
+        P(iph) = Pref + Pc
+      enddo
 
-      IF (rt(1) == 1) THEN
-         Slrk = 0.4d0
-      ELSEIF (rt(1) == 2) THEN
-         Slrk = 0.01d0
-      ELSE
-         PRINT *, 'error'
-         STOP
-      ENDIF
+      if (ic == LIQUID_CONTEXT) then
+         ! air liq fugacity
+         iph = PHASE_WATER
+         call f_Fugacity(rt,iph,1,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         PgCag = inc%Comp(1, iph)*f(iph)
 
-      iph = 2
-      CALL f_PressionCapillaire(rt, iph, S, Pc, DSPc)
-
-      !   write(*,*)' S Pg Pl ',ic,S,Pg,Pg+Pc
-
-      IF (ic == 2) THEN
-        ! air fugacity
-        CALL air_henry(T, Ha)
-         PgCag = inc%Comp(1, PHASE_WATER)*Ha
-
-         RZetal = 8.314d0*1000.d0/0.018d0
-         CALL FluidThermodynamics_Psat(T, Psat, dTSat)
-
-         iph = 2
-         CALL f_PressionCapillaire(rt, iph, S, Pc, DSPc)
-         ! liquid fugacity
-         PgCeg = inc%Comp(2, PHASE_WATER)*Psat*DEXP(Pc/(T*RZetal))
+         ! water liq fugacity
+         call f_Fugacity(rt,iph,2,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         PgCeg = inc%Comp(2, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
-         IF (PgCag + PgCeg > Pg) THEN
+         if (PgCag + PgCeg > P(PHASE_GAS)) then
 
-!        write(*,*)' apparition gas ', Pg, T
+            ! write(*,*)' apparition gas ', P(PHASE_GAS), T
 
-            inc%ic = 3
-            IF (Pg < PgCeg) THEN
-               inc%Pression = PgCeg
-            ENDIF
+            inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(PHASE_GAS) = 0
             inc%Saturation(PHASE_WATER) = 1
-            inc%Comp(1, PHASE_GAS) = 0.d0
-            inc%Comp(2, PHASE_GAS) = 1.d0
+            inc%Comp(1,PHASE_GAS) = MIN(MAX(inc%Comp(1,PHASE_GAS), 0.d0), 1.d0)
+            inc%Comp(2,PHASE_GAS) = 1.d0 - inc%Comp(1,PHASE_GAS)
 
-         ENDIF
+         endif
 
-      ELSE IF (ic == 3) THEN
+      elseif (ic == DIPHASIC_CONTEXT) then
 
-         IF (S(PHASE_GAS) < 0.d0) THEN
+         if (S(PHASE_GAS) < 0.d0) then
 
-!        write(*,*)' disp du gaz ', Pg, T
+            ! write(*,*)' disapparition gas ', P(PHASE_GAS), T
 
-            inc%ic = 2
-            inc%Saturation(PHASE_GAS) = 0
-            inc%Saturation(PHASE_WATER) = 1
+            inc%ic = LIQUID_CONTEXT
+            inc%Saturation(PHASE_GAS) = 0.d0
+            inc%Saturation(PHASE_WATER) = 1.d0
 
-         ELSE IF (S(PHASE_WATER) < Slrk) THEN
+         elseif (S(PHASE_WATER) < 0.d0) then
 
-            write (*, *) ' slrk ', Pg, T
+            ! write (*, *) ' disapparition liquid ', P(PHASE_GAS), T
 
-            inc%Saturation(PHASE_GAS) = 1.d0 - 1.d-12-Slrk
-            inc%Saturation(PHASE_WATER) = Slrk + 1.d-12
-         ENDIF
+            inc%ic = GAS_CONTEXT
+            inc%Saturation(PHASE_GAS) = 1.d0
+            inc%Saturation(PHASE_WATER) = 0.d0
 
-         Cag = MIN(MAX(inc%Comp(1, PHASE_GAS), 0.d0), 1.d0)
-         inc%Comp(1, PHASE_GAS) = Cag
-         inc%Comp(2, PHASE_GAS) = 1.d0 - Cag
+         endif
 
-         Cal = MIN(MAX(inc%Comp(1, PHASE_WATER), 0.d0), 1.d0)
-         inc%Comp(1, PHASE_WATER) = Cal
-         inc%Comp(2, PHASE_WATER) = 1.d0 - Cal
+         ! force comp to be in [0,1] and sum equal to 1
+         do iph = 1, NbPhase
+            inc%Comp(1,iph) = MIN(MAX(inc%Comp(1,iph), 0.d0), 1.d0)
+            inc%Comp(2,iph) = 1.d0 - inc%Comp(1,iph)
+         enddo
 
-      ELSE
-         PRINT *, "Error in Flash: no such context"
-         PRINT *, "only gas in porous medium"
-         STOP
-      END IF
+      elseif (ic == GAS_CONTEXT) then
+         ! air
+         do iph = 1, NbPhase
+            call f_Fugacity(rt,iph,1,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         enddo
+         Cal = inc%Comp(1,PHASE_GAS)*f(PHASE_GAS)/f(PHASE_WATER)
+         ! water
+         do iph = 1, NbPhase
+            call f_Fugacity(rt,iph,2,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         enddo
+         Cel = inc%Comp(2,PHASE_GAS)*f(PHASE_GAS)/f(PHASE_WATER)
+
+         if(Cal + Cel > 1.d0) then
+
+            ! write(*,*)' apparition liquid ', P(PHASE_GAS), T
+
+            inc%ic = DIPHASIC_CONTEXT
+
+            inc%Saturation(PHASE_GAS) = 1.d0
+            inc%Saturation(PHASE_WATER) = 0.d0
+            Cal = MIN(MAX(Cal, 0.d0), 1.d0)
+            inc%Comp(1,PHASE_WATER) = Cal
+            inc%Comp(2,PHASE_WATER) = 1.d0 - Cal
+         endif
+
+      else
+         print *, "Error in Flash: unknown context"
+         stop
+      endif
 
    end subroutine DefFlash_Flash_cv
 
