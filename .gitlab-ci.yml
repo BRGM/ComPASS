@@ -60,6 +60,11 @@ integration_test:
     # FIXME: -t flag here is transitory (cf. issue #69)
     - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
 
+interoperability_test:
+  stage: test
+  script:
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test_pass_arrays.py
+  
 parallel_test:
   stage: test
   script:
