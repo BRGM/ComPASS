@@ -4,6 +4,7 @@ __pycache__
 
 tmp_*
 output-*
+build*
 
 *.log
 *.png

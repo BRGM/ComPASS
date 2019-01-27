@@ -19,6 +19,7 @@ import ComPASS.utils.filenames
 import ComPASS.dumps
 import ComPASS.messages as messages
 import ComPASS.newton
+import ComPASS.timestep
 
 import numpy as np
 

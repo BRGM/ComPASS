@@ -25,7 +25,7 @@
     !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
     TYPE TYPE_IncCVReservoir
 
-        integer(c_int) :: ic !< context (???)
+        integer(c_int) :: ic !< context: index of the set of present phase(s)
 
         real(c_double) :: & ! values of Inc
         Pression, & !< Pressure of the element
@@ -160,7 +160,7 @@ private :: &
   !> \brief Compute relaxation in Newton.
     !!
     !! relax = min(1, IncreObj/NewtonIncreObjMax)                   <br>
-    !! where IncreObj is set by the user in DefModel.F90            <br>
+    !! where IncreObj is set by the user in SchemeParameters.F90            <br>
     !! and NewtonIncreObjMax is the maximum of the Nemton increment
     !! in current iteration
     subroutine IncCVReservoir_NewtonRelax( &

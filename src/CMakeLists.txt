@@ -53,6 +53,7 @@ set( ComPASSCore_SRCS
     SolvePetsc.F90
     VAGFrac.F90
     NN.F90
+    Foo.F90
 )
 
 set( ComPASSWells_SRCS

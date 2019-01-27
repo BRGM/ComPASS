@@ -41,6 +41,10 @@ module DefModel
   !FIXME: this is used for wells which are monophasic
   integer, parameter :: LIQUID_PHASE = PHASE_WATER
 
+  integer, parameter :: GAS_CONTEXT = 1
+  integer, parameter :: LIQUID_CONTEXT = 2
+  integer, parameter :: DIPHASIC_CONTEXT = 3
+
   ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1
@@ -85,21 +89,38 @@ module DefModel
 
   integer, parameter :: pschoice = 1
 
+#ifdef _THERMIQUE_
+   integer, parameter, private :: P=1, T=2
+#else
+   integer, parameter, private :: P=1
+#endif
 
 
   ! Sum Salpha =1 was already eliminated
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
-      1, 2, 3, & ! ic=1
-      1, 2, 4, & ! ic=2
-      1, 2, 7  & ! ic=3
+#ifdef _THERMIQUE_
+      P, T, 3, & ! ic=1 GAS_CONTEXT       Cga=3, Cgw=4
+      P, T, 4, & ! ic=2 LIQUID_CONTEXT    Cla=3, Clw=4
+      P, T, 7  & ! ic=3 DIPHASIC_CONTEXT  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+#else
+      P, 2, & ! ic=1 GAS_CONTEXT        Cga=2, Cgw=3
+      P, 3, & ! ic=2 LIQUID_CONTEXT     Cla=2, Clw=3
+      P, 6  & ! ic=3 DIPHASIC_CONTEXT   Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+#endif
       /), (/ NbIncPTCSPrimMax, NbContexte /))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
-       4, 0, 0, 0, & ! ic=1
-       3, 0, 0, 0, & ! ic=2
-       3, 4, 5, 6  & ! ic=3
+#ifdef _THERMIQUE_
+       4, 0, 0, 0, & ! ic=1 GAS_CONTEXT       Cga=3, Cgw=4
+       3, 0, 0, 0, & ! ic=2 LIQUID_CONTEXT    Cla=3, Clw=4
+       3, 4, 5, 6  & ! ic=3 DIPHASIC_CONTEXT  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+#else
+       3, 0, 0, 0, & ! ic=1 GAS_CONTEXT       Cga=2, Cgw=3
+       2, 0, 0, 0, & ! ic=2 LIQUID_CONTEXT    Cla=2, Clw=3
+       2, 3, 4, 5  & ! ic=3 DIPHASIC_CONTEXT  Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+#endif
        /), (/ NbIncPTCSecondMax, NbContexte/))
 
   ! ! ****** Alignment method ****** ! !
@@ -127,13 +148,13 @@ module DefModel
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
        aligmat = RESHAPE( (/ &
-       1.d0, 1.d0, 0.d0, & ! ic=1
+       1.d0, 1.d0, 0.d0, & ! ic=1 GAS_CONTEXT
        0.d0, 0.d0, 1.d0, &
        1.d0, 0.d0, 0.d0, &
-       1.d0, 1.d0, 0.d0, & ! ic=2
+       1.d0, 1.d0, 0.d0, & ! ic=2 LIQUID_CONTEXT
        0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0, &
-       1.d0, 1.d0, 0.d0, & ! ic=3
+       1.d0, 1.d0, 0.d0, & ! ic=3 DIPHASIC_CONTEXT
        0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
