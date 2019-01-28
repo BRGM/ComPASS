@@ -58,12 +58,13 @@ n = 0 # iteration counter
 shooter = None
 
 def standard_loop(initial_time=None, final_time=None,
-                  initial_timestep=1., fixed_timestep=None,
+                  initial_timestep=None, fixed_timestep=None,
                   output_period = None, output_every = None,
                   nb_output = None, nitermax = None, dumper=None,
                   iteration_callbacks = None, output_callbacks = None,
                   specific_outputs = None,
-                  newton = None, context = None
+                  newton = None, context = None,
+                  time_step_manager = None
                  ):
     assert not (final_time is None and nitermax is None)
     if newton is None:
@@ -80,13 +81,18 @@ def standard_loop(initial_time=None, final_time=None,
             if final_time:
                 output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
     assert not(output_period is None or output_period<=0)
-    assert initial_timestep is None or fixed_timestep is None
-    if fixed_timestep:
-        ts_manager = FixedTimeStep(fixed_timestep)
+    if time_step_manager:
+        assert initial_timestep is None and fixed_timestep is None
+        ts_manager = time_step_manager
     else:
-        ts_manager = TimeStepManager(
-                initial_timestep, max(initial_timestep, output_period),
-        )
+        assert initial_timestep is None or fixed_timestep is None
+        assert initial_timestep or fixed_timestep
+        if fixed_timestep:
+            ts_manager = FixedTimeStep(fixed_timestep)
+        else:
+            ts_manager = TimeStepManager(
+                    initial_timestep, max(initial_timestep, output_period),
+            )
     if iteration_callbacks is None:
         iteration_callbacks = tuple()
     if output_callbacks is None:
