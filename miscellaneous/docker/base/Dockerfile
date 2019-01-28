@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-dev \
     python3-numpy \
     python3-setuptools \
+    python3-pytest-xdist \
     python3-pip \
  && apt-get clean
 
