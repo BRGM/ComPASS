@@ -23,7 +23,10 @@ parser.add_option("--compass-uid",
                   help="the user uid that will be given to the compass user")
 parser.add_option("-p", "--parallel",
                   action="store_true", dest="parallel_run",
-                  help="will run as parallel jobs using mpirun with `nproc` procs")
+                  help="will run as parallel job with the number of available procs using mpirun to process simulation script or pytest-xdist if --pytest is present")
+parser.add_option("--pytest",
+                  action="store_true", dest="pytest_run",
+                  help="will run pytest with `nproc` procs if --parallel option is present, this will override some options")
 options, args = parser.parse_args()
 
 #print('Writing customization file:', options.customization_file)
@@ -40,8 +43,13 @@ fi
 #print('Writing process file:', options.process_file)
 with open(options.process_file, 'w') as f:
     cmd = []
-    if options.parallel_run:
-        cmd.append('mpirun -n %d' % multiprocessing.cpu_count())
-    cmd.append('python3')
-    cmd.extend(args)
+    if options.pytest_run:
+        cmd.append('python3 -m pytest')
+        if options.parallel_run:
+            cmd.append('-n %d' % multiprocessing.cpu_count())
+    else:
+        if options.parallel_run:
+            cmd.append('mpirun -n %d' % multiprocessing.cpu_count())
+        cmd.append('python3')
+        cmd.extend(args)
     print(' '.join(cmd), file=f)
