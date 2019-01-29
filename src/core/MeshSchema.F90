@@ -256,22 +256,53 @@ contains
     end function nb_producers
 
    function number_of_nodes() result(n) &
-   bind(C, name="number_of_nodes")
-    integer(c_size_t) :: n
-    n = NbNodeLocal_Ncpus(commRank+1)
+      bind(C, name="number_of_nodes")
+      integer(c_size_t) :: n
+      n = NbNodeLocal_Ncpus(commRank + 1)
    end function number_of_nodes
-    
+
+   function number_of_own_nodes() result(n) &
+      bind(C, name="number_of_own_nodes")
+      integer(c_size_t) :: n
+      n = NbNodeOwn_Ncpus(commRank + 1)
+   end function number_of_own_nodes
+
    function number_of_cells() result(n) &
-   bind(C, name="number_of_cells")
-    integer(c_size_t) :: n
-    n = NbCellLocal_Ncpus(commRank+1)
+      bind(C, name="number_of_cells")
+      integer(c_size_t) :: n
+      n = NbCellLocal_Ncpus(commRank + 1)
    end function number_of_cells
-    
+
+   function number_of_own_cells() result(n) &
+      bind(C, name="number_of_own_cells")
+      integer(c_size_t) :: n
+      n = NbCellOwn_Ncpus(commRank + 1)
+   end function number_of_own_cells
+
    function number_of_fractures() result(n) &
-   bind(C, name="number_of_fractures")
-    integer(c_size_t) :: n
-    n = NbFracLocal_Ncpus(commRank+1)
+      bind(C, name="number_of_fractures")
+      integer(c_size_t) :: n
+      n = NbFracLocal_Ncpus(commRank + 1)
    end function number_of_fractures
+
+   function number_of_own_fractures() result(n) &
+      bind(C, name="number_of_own_fractures")
+      integer(c_size_t) :: n
+      n = NbFracOwn_Ncpus(commRank + 1)
+   end function number_of_own_fractures
+
+   function number_of_own_injectors() result(n) &
+      bind(C, name="number_of_own_injectors")
+      integer(c_size_t) :: n
+      n = NbWellInjOwn_Ncpus(commRank + 1)
+   end function number_of_own_injectors
+
+   function number_of_own_producers() result(n) &
+      bind(C, name="number_of_own_producers")
+      integer(c_size_t) :: n
+      n = NbWellProdOwn_Ncpus(commRank + 1)
+   end function number_of_own_producers
+
         
     subroutine MeshSchema_make
 

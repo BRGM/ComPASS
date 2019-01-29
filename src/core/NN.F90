@@ -408,9 +408,6 @@ subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
       ! allocate flux
       call Flux_allocate
 
-      ! allocate Residu
-      call Residu_allocate
-
       ! csr sturcture of Jacobian
       ! allocate memory of Jacobian ans Sm
       call Jacobian_StrucJacBigA
@@ -830,7 +827,6 @@ subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
 
       call SolvePetsc_free
       call Jacobian_free
-      call Residu_free
       call Flux_free
       call VAGFrac_free
       call LoisThermoHydro_free

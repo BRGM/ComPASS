@@ -127,7 +127,7 @@ class Newton:
 #        mpi.master_print('flash all volumes')
         kernel.NN_flash_all_control_volumes()
     
-    def loop(self, dt):
+    def loop(self, dt, simulation_context):
         kernel = ComPASS.kernel
         assert ComPASS.kernel
         relative_residuals = []

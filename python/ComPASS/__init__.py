@@ -37,6 +37,7 @@ kernel = None
 # FIXME: transient global... to be set elsewhere
 activate_cpramg = True
 activate_direct_solver = False
+mesh_is_local = False
 
 def load_eos(eosname):
     global kernel
@@ -230,6 +231,7 @@ def init(
     set_global_rocktype = None,
     **kwargs
 ):
+    assert not ComPASS.mesh_is_local
     # here properties will just be used as a namespace
     properties = {}
     def call_if_callable(f):
@@ -293,6 +295,7 @@ def init(
         kernel.compute_well_indices()
     kernel.init_phase2(runtime.output_directory, activate_cpramg, activate_direct_solver)
     mpi.synchronize() # wait for every process to synchronize
+    ComPASS.mesh_is_local = True
     # FUTURE: This could be managed through a context manager ?
     initialized = True
     atexit.register(exit_eos_and_finalize)

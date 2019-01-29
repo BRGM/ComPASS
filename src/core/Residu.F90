@@ -8,42 +8,44 @@
 
 module Residu
 
+   use, intrinsic :: iso_c_binding 
+
    use DefModel
    use IncCVReservoir
    use IncCVWells
    use NeumannContribution
    use LoisThermoHydro
    use Flux
+   use InteroperabilityStructures
 
    implicit none
 
    ! Residu cell, fracture face, node
-   double precision, allocatable, dimension(:, :), protected :: &
-      ResiduCell, &
-      ResiduFrac, &
-      ResiduNode
+   real(c_double), pointer :: &
+      ResiduCell(:, :), &
+      ResiduFrac(:, :), &
+      ResiduNode(:, :)
 
    ! Residu injection well and production well
-   double precision, allocatable, dimension(:), protected :: &
-      ResiduWellInj, &
-      ResiduWellProd
+   real(c_double), pointer :: &
+      ResiduWellInj(:), &
+      ResiduWellProd(:)
 
    ! AccVol of time step n-1
-   double precision, allocatable, dimension(:, :), private :: &
-      AccVolCell_1, &
-      AccVolFrac_1, &
-      AccVolNode_1
+   real(c_double), pointer :: &
+      AccVolCell_1(:, :), &
+      AccVolFrac_1(:, :), &
+      AccVolNode_1(:, :)
 
    type, bind(C) :: CTVector
       real(c_double) :: values(NbCompThermique)
    end type CTVector
 
    public :: &
-      Residu_allocate, &
-      Residu_free, &
       Residu_reset_history, &
       Residu_compute, &
-      Residu_RelativeNorm
+      Residu_RelativeNorm, &
+      Residu_associate_pointers
 
    private :: &
       Residu_AccVol, &
@@ -54,6 +56,44 @@ module Residu
       Residu_clear_absent_components_accumulation
 
 contains
+
+   subroutine Residu_associate_pointers( &
+      nodes, fractures, cells, injectors, producers, &
+      nodes_accumulation, fractures_accumulation, cells_accumulation &
+   ) &
+   bind(C, name="Residu_associate_pointers")
+   
+      type(cpp_array_wrapper), intent(in), value :: &
+         nodes, cells, fractures, injectors, producers, &
+         nodes_accumulation, cells_accumulation, fractures_accumulation
+   
+      if(nodes%n/=NbNodeLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent nodes residual size')
+      if(nodes_accumulation%n/=NbNodeLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent accumulation nodes size')
+      if(cells%n/=NbCellLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent cells residual size')
+      if(cells_accumulation%n/=NbCellLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent residual accumulation cells size')
+      if(fractures%n/=NbFracLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent residual fractures size')
+      if(fractures_accumulation%n/=NbFracLocal_Ncpus(commRank + 1) * NbCompThermique) &
+         call CommonMPI_abort('inconsistent residual accumulation fractures size')
+      if(injectors%n/=NbWellInjLocal_Ncpus(commRank + 1)) &
+         call CommonMPI_abort('inconsistent injectors residual size')
+      if(producers%n/=NbWellProdLocal_Ncpus(commRank + 1)) &
+         call CommonMPI_abort('inconsistent producers residual size')
+   
+      call c_f_pointer(nodes%p, ResiduNode, [NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(cells%p, ResiduCell, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(fractures%p, ResiduFrac, [NbCompThermique, NbFracLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(injectors%p, ResiduWellInj, [NbWellInjLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(producers%p, ResiduWellProd, [NbWellProdLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(nodes_accumulation%p, AccVolNode_1, [NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(cells_accumulation%p, AccVolCell_1, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
+      call c_f_pointer(fractures_accumulation%p, AccVolFrac_1, [NbCompThermique, NbFracLocal_Ncpus(commRank + 1)])
+   
+   end subroutine Residu_associate_pointers
 
    ! Newton is initialized with the unknown at time step n-1
    subroutine Residu_reset_history() &
@@ -181,23 +221,6 @@ contains
       end do
 
    end subroutine Residu_add_Neumann_contributions
-
-   subroutine Residu_allocate
-
-      ! For node/frac/well, both of own and ghost are computed,
-      ! however, only the own are correct and used in second member of Jacobian
-      allocate (ResiduCell(NbCompThermique, NbCellLocal_Ncpus(commRank + 1)))
-      allocate (ResiduFrac(NbCompThermique, NbFracLocal_Ncpus(commRank + 1)))
-      allocate (ResiduNode(NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)))
-
-      allocate (ResiduWellInj(NbWellInjLocal_Ncpus(commRank + 1)))
-      allocate (ResiduWellProd(NbWellProdLocal_Ncpus(commRank + 1)))
-
-      allocate (AccVolCell_1(NbCompThermique, NbCellLocal_Ncpus(commRank + 1)))
-      allocate (AccVolFrac_1(NbCompThermique, NbFracLocal_Ncpus(commRank + 1)))
-      allocate (AccVolNode_1(NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)))
-
-   end subroutine Residu_allocate
 
    ! FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1
    subroutine Residu_clear_absent_components_accumulation(ic, accumulations)
@@ -890,20 +913,5 @@ contains
                    ResConvInit, ResConvLocal, ResClosInit, ResClosLocal)
 
    end subroutine Residu_RelativeNorm
-
-   subroutine Residu_free
-
-      deallocate (ResiduCell)
-      deallocate (ResiduFrac)
-      deallocate (ResiduNode)
-
-      deallocate (ResiduWellInj)
-      deallocate (ResiduWellProd)
-
-      deallocate (AccVolCell_1)
-      deallocate (AccVolFrac_1)
-      deallocate (AccVolNode_1)
-
-   end subroutine Residu_free
 
 end module Residu

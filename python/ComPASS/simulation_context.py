@@ -1,4 +1,4 @@
-
+import ComPASS
 
 class SimulationContext:
 
@@ -6,5 +6,7 @@ class SimulationContext:
         self.abort_on_ksp_failure = False
         self.dump_system_on_ksp_failure = False
         self.abort_on_newton_failure = False
+        assert ComPASS.mesh_is_local
+        self.residuals = ComPASS.Residuals()
 
 

@@ -188,14 +188,9 @@ contains
   end subroutine Jacobian_ComputeJacSm
 
 
-  ! fill Jacobian and second member before Schur: main subroutine
-  subroutine Jacobian_JacBigA_BigSm(Delta_t)
+  subroutine Jacobian_JacBigA_BigSm_init_from_residual()
 
-    double precision, intent(in) :: Delta_t
-
-    integer :: j, start, s, i, nz
-
-    ! 1. init second membre
+    integer :: j, start
 
     !   If the node is dir, we suppose that the residu is 0,
     !     in other words, we set its second member as 0.
@@ -207,21 +202,11 @@ contains
     !     It is observed when debugging!!!
 
     do j=1, NbNodeOwn_Ncpus(commRank+1)
-
        if(IdNodeLocal(j)%P=="d") then
-          bigSm(1:NbComp,j) = 0.d0
+          bigSm(:,j) = 0.d0
        else
-          bigSm(1:NbComp,j) = - ResiduNode(1:NbComp,j)
+          bigSm(:,j) = - ResiduNode(:,j)
        end if
-
-#ifdef _THERMIQUE_
-
-       if(IdNodeLocal(j)%T=="d") then
-          bigSm(NbComp+1,j) = 0.d0
-       else
-          bigSm(NbComp+1,j) = - ResiduNode(NbComp+1,j)
-       end if
-#endif
     end do
 
     start = NbNodeOwn_Ncpus(commRank+1)
@@ -248,6 +233,18 @@ contains
        bigSm(2:NbCompThermique,j+start) = 0.d0 ! not used
     end do
 
+   end subroutine Jacobian_JacBigA_BigSm_init_from_residual
+
+  ! fill Jacobian and second member before Schur: main subroutine
+  subroutine Jacobian_JacBigA_BigSm(Delta_t)
+
+    double precision, intent(in) :: Delta_t
+
+    integer :: j, start, s, i, nz
+
+    ! 1. init second membre
+    call Jacobian_JacBigA_BigSm_init_from_residual
+    
     JacBigA%Val(:,:,:) = 0.d0
 
     ! ! 2. div prim and Sm for term n_k(X_j^n)

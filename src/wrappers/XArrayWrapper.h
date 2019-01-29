@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <functional>
 
 template <typename T>
@@ -19,6 +20,11 @@ struct XArrayWrapper
 	XArrayWrapper() :
 		pointer{ nullptr },
 		length{ 0 } {}
+	XArrayWrapper(T * p, std::size_t n) :
+		pointer{ p },
+		length{ n } {
+        assert(p);
+    }
 	static auto retrieve(std::function <void(XArrayWrapper&)> bind)
 	{
 		auto wrapper = XArrayWrapper{};

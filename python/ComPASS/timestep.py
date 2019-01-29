@@ -22,7 +22,7 @@ class AllAttemptsFailed(Exception):
 
 
 def try_timestep(
-    deltat, newton, simulation_context=None,
+    deltat, newton, simulation_context,
 ):
     # CHECKME: do we need to retrieve kernel here???
     kernel = ComPASS.kernel
@@ -31,7 +31,7 @@ def try_timestep(
     kernel.IncCVWells_PressureDrop()
     try:
         mpi.master_print('trying newton with timestep:', deltat)
-        iterations = newton.loop(deltat)
+        iterations = newton.loop(deltat, simulation_context)
         mpi.master_print(iterations)
     except KspFailure as e:        
         mpi.master_print(
@@ -54,6 +54,8 @@ def try_timestep(
 def make_one_timestep(
     newton, timesteps, simulation_context=None,
 ):
+    if not simulation_context:
+        simulation_context = SimulationContext()
     attempts = []
     for deltat in timesteps:
         if try_timestep(deltat, newton, simulation_context):

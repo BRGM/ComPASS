@@ -39,6 +39,7 @@ set( ComPASSCore_SRCS
     DirichletContribution.F90
     NeumannContribution.F90
     Flux.F90
+    InteroperabilityStructures.F90
     Jacobian.F90 
     LocalMesh.F90
     LoisThermoHydro.F90
@@ -139,6 +140,8 @@ set( WRAPPERS_SRCS
   PathUtilities.cpp
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
+  Residu_wrappers.h
+  Residu_wrappers.cpp
   SolvePetsc_wrappers.F90
   StringWrapper.h
   StringWrapper.F90

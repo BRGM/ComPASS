@@ -12,13 +12,9 @@
 
        use CommonMPI
        use CommonType
-
+       use InteroperabilityStructures
+       
        implicit none
-
-       type, bind(C) :: cpp_array_wrapper
-          type(c_ptr)       :: p
-          integer(c_size_t) :: n
-       end type cpp_array_wrapper
 
        !type, bind(C) :: cpp_narray_wrapper
        !   integer(c_int) :: dim
