@@ -321,6 +321,23 @@
 
        end subroutine retrieve_global_fracture_rocktypes
 
+       subroutine retrieve_global_cell_heat_sources(cpp_array) &
+          bind(C, name="retrieve_global_cell_heat_sources")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) &
+             call CommonMPI_abort("global values must be read by master process")
+          if (.not. allocated(CellThermalSource)) &
+             call CommonMPI_abort("cell heat sources are not allocated")
+          if (size(CellThermalSource)/=NbCell) &
+             call CommonMPI_abort("cell heat sources have inconsistent size")
+
+          cpp_array%p = c_loc(CellThermalSource)
+          cpp_array%n = size(CellThermalSource)
+
+       end subroutine retrieve_global_cell_heat_sources
+
        subroutine retrieve_global_id_faces(cpp_array) &
           bind(C, name="retrieve_global_id_faces")
 
