@@ -66,6 +66,10 @@ extern "C"
 	void retrieve_node_states(StateArray&);
 	void retrieve_fracture_states(StateArray&);
 	void retrieve_cell_states(StateArray&);
+	void retrieve_own_dirichlet_node_states(StateArray&);
+	void retrieve_own_node_states(StateArray&);
+	void retrieve_own_fracture_states(StateArray&);
+	void retrieve_own_cell_states(StateArray&);
 	void retrieve_injection_whp(XArrayWrapper<double>&);
     void retrieve_production_whp(XArrayWrapper<double>&);
     void retrieve_production_whp(XArrayWrapper<double>&);
@@ -125,6 +129,10 @@ void add_IncCV_wrappers(py::module& module)
 	module.def("node_states", []() { return StateArray::retrieve(retrieve_node_states); });
 	module.def("fracture_states", []() { return StateArray::retrieve(retrieve_fracture_states); });
 	module.def("cell_states", []() { return StateArray::retrieve(retrieve_cell_states); });
+	module.def("own_dirichlet_node_states", []() { return StateArray::retrieve(retrieve_own_dirichlet_node_states); });
+	module.def("own_node_states", []() { return StateArray::retrieve(retrieve_own_node_states); });
+	module.def("own_fracture_states", []() { return StateArray::retrieve(retrieve_own_fracture_states); });
+	module.def("own_cell_states", []() { return StateArray::retrieve(retrieve_own_cell_states); });
 
 	module.def("number_of_components", []() { return ComPASS_NUMBER_OF_COMPONENTS; });
 	module.def("number_of_phases", []() { return ComPASS_NUMBER_OF_PHASES; });

@@ -31,7 +31,7 @@ def try_timestep(
     kernel.IncCVWells_PressureDrop()
     try:
         mpi.master_print('trying newton with timestep:', deltat)
-        iterations = newton.loop(deltat, simulation_context)
+        iterations = newton.loop(deltat)
         mpi.master_print(iterations)
     except KspFailure as e:        
         mpi.master_print(
@@ -54,8 +54,6 @@ def try_timestep(
 def make_one_timestep(
     newton, timesteps, simulation_context=None,
 ):
-    if not simulation_context:
-        simulation_context = SimulationContext()
     attempts = []
     for deltat in timesteps:
         if try_timestep(deltat, newton, simulation_context):

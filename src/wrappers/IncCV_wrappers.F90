@@ -82,11 +82,33 @@
           call retrieve_state_array(IncNodeDirBC, cpp_array)
        end subroutine retrieve_dirichlet_node_states
 
+       subroutine retrieve_own_dirichlet_node_states(cpp_array) &
+          bind(C, name="retrieve_own_dirichlet_node_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: nb_owns = 0
+          call retrieve_state_array(IncNodeDirBC, cpp_array)
+          nb_owns = NbNodeOwn_Ncpus(commRank+1)
+          if(cpp_array%n<nb_owns) &
+            call CommonMPI_abort("inconsistent node sizes")
+          cpp_array%n = nb_owns
+       end subroutine retrieve_own_dirichlet_node_states
+
        subroutine retrieve_node_states(cpp_array) &
           bind(C, name="retrieve_node_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
           call retrieve_state_array(IncNode, cpp_array)
        end subroutine retrieve_node_states
+
+       subroutine retrieve_own_node_states(cpp_array) &
+          bind(C, name="retrieve_own_node_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: nb_owns = 0
+          call retrieve_state_array(IncNode, cpp_array)
+          nb_owns = NbNodeOwn_Ncpus(commRank+1)
+          if(cpp_array%n<nb_owns) &
+            call CommonMPI_abort("inconsistent node sizes")
+          cpp_array%n = nb_owns
+       end subroutine retrieve_own_node_states
 
        subroutine retrieve_fracture_states(cpp_array) &
           bind(C, name="retrieve_fracture_states")
@@ -94,11 +116,33 @@
           call retrieve_state_array(IncFrac, cpp_array)
        end subroutine retrieve_fracture_states
 
+       subroutine retrieve_own_fracture_states(cpp_array) &
+          bind(C, name="retrieve_own_fracture_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: nb_owns = 0
+          call retrieve_state_array(IncFrac, cpp_array)
+          nb_owns = NbFracOwn_Ncpus(commRank+1)
+          if(cpp_array%n<nb_owns) &
+            call CommonMPI_abort("inconsistent node sizes")
+          cpp_array%n = nb_owns
+       end subroutine retrieve_own_fracture_states
+
        subroutine retrieve_cell_states(cpp_array) &
           bind(C, name="retrieve_cell_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
           call retrieve_state_array(IncCell, cpp_array)
        end subroutine retrieve_cell_states
+
+       subroutine retrieve_own_cell_states(cpp_array) &
+          bind(C, name="retrieve_own_cell_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: nb_owns = 0
+          call retrieve_state_array(IncCell, cpp_array)
+          nb_owns = NbCellOwn_Ncpus(commRank+1)
+          if(cpp_array%n<nb_owns) &
+            call CommonMPI_abort("inconsistent node sizes")
+          cpp_array%n = nb_owns
+       end subroutine retrieve_own_cell_states
 
        subroutine retrieve_injection_whp(cpp_array) &
           bind(C, name="retrieve_injection_whp")

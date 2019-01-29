@@ -7,9 +7,11 @@
 #
 
 from collections import namedtuple
+import numpy as np
+
 import ComPASS
 import ComPASS.mpi as mpi
-
+from ComPASS.newton_convergence import Legacy as LegacyConvergence
 
 class LinearSolver:
     
@@ -73,7 +75,7 @@ def dump_start_info(iteration):
 
 class Newton:
     
-    def __init__(self, tol, maxit, lsolver):
+    def __init__(self, tol, maxit, lsolver, convergence_scheme=None):
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.lsolver = lsolver
@@ -84,6 +86,8 @@ class Newton:
         self.relative_residuals = None
         self.increments = ComPASS.kernel.NewtonIncrements()
         self.increments.init()
+        if not convergence_scheme: 
+            self.convergence_scheme = LegacyConvergence()
 
     def reset_loop(self):
         kernel = ComPASS.kernel
@@ -127,9 +131,11 @@ class Newton:
 #        mpi.master_print('flash all volumes')
         kernel.NN_flash_all_control_volumes()
     
-    def loop(self, dt, simulation_context):
+    def loop(self, dt):
         kernel = ComPASS.kernel
         assert ComPASS.kernel
+        convergence_scheme = self.convergence_scheme
+        assert convergence_scheme
         relative_residuals = []
         self.relative_residuals = relative_residuals
         initial_conservation_residual =  kernel.CTVector()
@@ -143,11 +149,22 @@ class Newton:
         kernel.Residu_reset_history()
         kernel.Residu_compute(dt)
         kernel.Residu_RelativeNorm_local_conservation(conservation_residual)
+        # CHECKME: the following assertions will fail with precision set
+        # to les than 1e-12 (we are close to machine precision...)
+        assert np.allclose(
+            conservation_residual.as_array(), convergence_scheme.norms(), 1e-12
+        )
         kernel.Residu_RelativeNorm_initial_conservation(
             dt, conservation_residual, initial_conservation_residual
         )
+        convergence_scheme.reset_references(dt)
+        assert np.allclose(
+            initial_conservation_residual.as_array(),
+            convergence_scheme.reference_conservation, 1e-12
+        )
         closure_residual = kernel.Residu_RelativeNorm_local_closure()
         initial_closure_residual = kernel.Residu_RelativeNorm_initial_closure(closure_residual)
+        assert initial_closure_residual==convergence_scheme.reference_closure
         mpi.master_print('initial residuals (reference)',
                 initial_conservation_residual.as_array(), initial_closure_residual)
         mpi.master_print('                    residuals',
@@ -163,7 +180,7 @@ class Newton:
                 total_lsolver_iterations+= nb_lsolver_iterations
                 mpi.master_print(
                     'linear iterations:', 
-                    kernel.SolvePetsc_Ksp_iterations()
+                    kernel.SolvePetsc_Ksp_iterations(),
                 )
             if ksp_status<0:
                 lsolver.failures+= 1
@@ -179,12 +196,20 @@ class Newton:
             self.init_iteration()
             kernel.Residu_compute(dt)
             kernel.Residu_RelativeNorm_local_conservation(conservation_residual)
+            assert np.allclose(
+                conservation_residual.as_array(), convergence_scheme.norms(),
+                1e-12,
+            )
             closure_residual = kernel.Residu_RelativeNorm_local_closure()
             relative_residuals.append(
                 kernel.Residu_compute_relative_norm(
                     initial_conservation_residual, conservation_residual,
                     initial_closure_residual, closure_residual,
                 )
+            )
+            assert np.allclose(
+                relative_residuals[-1], convergence_scheme.relative_norm(),
+                1e-12,
             )
             mpi.master_print('Newton % 3d          residuals'%(iteration + 1),
                         conservation_residual.as_array(), closure_residual,

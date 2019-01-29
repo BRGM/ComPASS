@@ -142,6 +142,7 @@ void add_Residu_wrappers(py::module& module)
     py::class_<Residuals>(module, "Residuals")
     .def(py::init())
     .def("reset", &Residuals::reset)
+    .def_static("npv", &Residuals::npv)
     .def_property_readonly("nodes", [](Residuals& self) {
         return py::array_t<double>{
             { self.nodes_size(), Residuals::npv() }, self.nodes_begin()
