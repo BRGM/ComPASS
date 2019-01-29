@@ -81,6 +81,16 @@ struct Residuals
         assert(number_of_own_cells()<=cells_size());
         return number_of_own_cells();
     }
+    auto own_injectors_size() const {
+        assert(number_of_own_injectors()>=0);
+        assert(number_of_own_injectors()<=injectors_size());
+        return number_of_own_injectors();
+    }
+    auto own_producers_size() const {
+        assert(number_of_own_producers()>=0);
+        assert(number_of_own_producers()<=producers_size());
+        return number_of_own_producers();
+    }
     Residuals() {
         reset();
     }
@@ -177,14 +187,14 @@ void add_Residu_wrappers(py::module& module)
             { self.cells_size(), Residuals::npv() }, self.cells_accumulation_begin()
         };
     }, py::keep_alive<0, 1>())
-    .def_property_readonly("injectors", [](Residuals& self) {
+    .def_property_readonly("own_injectors", [](Residuals& self) {
         return py::array_t<double>{
-            self.injectors_size(), self.injectors_begin()
+            self.own_injectors_size(), self.injectors_begin()
         };
     }, py::keep_alive<0, 1>())
-    .def_property_readonly("producers", [](Residuals& self) {
+    .def_property_readonly("own_producers", [](Residuals& self) {
         return py::array_t<double>{
-            self.producers_size(), self.producers_begin()
+            self.own_producers_size(), self.producers_begin()
         };
     }, py::keep_alive<0, 1>())
     ;
