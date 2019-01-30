@@ -145,7 +145,27 @@ def reshape_as_tensor_array(value, n, dim):
     assert value.shape==(n, dim, dim)
     return value
 
-def set_petrophysics_on_gobal_mesh(properties, fractures):
+def set_property_on_global_mesh(property, location, value):
+    buffer = np.array(
+        getattr(kernel, 'get_%s_%s_buffer' % (location, property))(),
+        copy = False,
+    )
+    n = buffer.shape[0]
+    dim = 3
+    if location=='fracture':
+        assert fractures is not None
+        n = np.count_nonzero(fractures)
+        dim = 2
+    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
+        value = reshape_as_tensor_array(value, n, dim)
+    else:
+        value = reshape_as_scalar_array(value, n)
+    if location=='fracture':
+        buffer[fractures] = value
+    else:
+        buffer[:] = value
+
+def set_petrophysics_on_global_mesh(properties, fractures):
     if mpi.is_on_master_proc:
         kernel.global_mesh_allocate_petrophysics()
         useful_properties =  ['porosity', 'permeability']
@@ -155,21 +175,7 @@ def set_petrophysics_on_gobal_mesh(properties, fractures):
             for property in useful_properties:
                 value = properties[location + '_' + property]()
                 if value is not None:
-                    buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
-                    n = buffer.shape[0]
-                    dim = 3
-                    if location=='fracture':
-                        assert fractures is not None
-                        n = np.count_nonzero(fractures)
-                        dim = 2
-                    if property in ['permeability', 'thermal_conductivity'] and location=='cell':
-                        value = reshape_as_tensor_array(value, n, dim)
-                    else:
-                        value = reshape_as_scalar_array(value, n)
-                    if location=='fracture':
-                        buffer[fractures] = value
-                    else:
-                        buffer[:] = value
+                    set_property_on_global_mesh(property, location, value)
                 else:
                     if location=='cell':
                         messages.error('You must define: cell_%s' % property)
@@ -289,7 +295,11 @@ def init(
         if set_global_rocktype is not None:
             assert callable(set_global_rocktype)
             set_global_rocktype()
-        set_petrophysics_on_gobal_mesh(properties, fractures)
+        set_petrophysics_on_global_mesh(properties, fractures)
+        if 'cell_heat_source' in kwargs:
+            value = call_if_callable(kwargs['cell_heat_source'])
+            assert value
+            set_property_on_global_mesh('heat_source', 'cell', value)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
@@ -311,6 +321,9 @@ def get_fracture_permeability():
 
 def get_cell_porosity():
    return np.array(kernel.get_cell_porosity_buffer(), copy = False)
+
+def get_cell_heat_source():
+   return np.array(kernel.get_cell_heat_source_buffer(), copy = False)
 
 def get_fracture_porosity():
    return np.array(kernel.get_fracture_porosity_buffer(), copy = False)

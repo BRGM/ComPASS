@@ -70,7 +70,7 @@ extern "C"
 	void retrieve_nb_faces_own(XArrayWrapper<int>&);
 	void retrieve_nb_nodes_own(XArrayWrapper<int>&);
 	void retrieve_nb_fractures_own(XArrayWrapper<int>&);
-    void retrieve_global_cell_heat_sources(XArrayWrapper<double>&);
+    void retrieve_cell_heat_source(ArrayWrapper&);
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -93,7 +93,6 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "global_faceflags", retrieve_global_faceflags);
 	add_array_wrapper(module, "global_celltypes", retrieve_global_celltypes);
 	add_array_wrapper(module, "global_facetypes", retrieve_global_facetypes);
-	add_array_wrapper(module, "global_cell_heat_sources", retrieve_global_cell_heat_sources);
 	add_array_wrapper(module, "nodeflags", retrieve_nodeflags);
 	add_array_wrapper(module, "cellflags", retrieve_cellflags);
 	add_array_wrapper(module, "faceflags", retrieve_faceflags);
@@ -128,6 +127,10 @@ void add_mesh_utilities_wrappers(py::module& module)
 
 	module.def("get_cell_porosity_buffer",
 		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_porosity); }
+	);
+
+	module.def("get_cell_heat_source_buffer",
+		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_heat_source); }
 	);
 
 	module.def("get_fracture_porosity_buffer",
