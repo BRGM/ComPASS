@@ -148,7 +148,7 @@ class Newton:
         convergence_scheme.reset_references(dt)
         mpi.master_print(
                'initial residuals (reference)',
-               convergence_scheme.reference_conservation,
+               convergence_scheme.reference_pv,
                convergence_scheme.reference_closure,
         )
         for iteration in range(self.maximum_number_of_iterations):
@@ -179,8 +179,10 @@ class Newton:
             kernel.Residu_compute(dt)
             relative_residuals.append(convergence_scheme.relative_norm())
             mpi.master_print('Newton % 3d          residuals'%(iteration + 1),
-                        convergence_scheme.norms(),
-                        'rel', relative_residuals[-1])
+                # FIXME: performs computation and synchronization between procs
+                convergence_scheme.pv_norms(),
+                'rel', relative_residuals[-1],
+            )
             if relative_residuals[-1] < self.tolerance:
                 return NewtonStatus(iteration+1, total_lsolver_iterations)
         mpi.master_print('Newton relative residuals:')

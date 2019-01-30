@@ -22,39 +22,44 @@ class Legacy:
         #        and associated with fortran code
         assert ComPASS.mesh_is_local
         self.residuals = ComPASS.Residuals()
-        self.reference_conservation = np.zeros(
+        self.reference_pv = np.zeros(
             ComPASS.Residuals.npv(), dtype=np.double
         )
         self.reference_closure = 0
 
-    def norms(self):
+    def pv_norms(self):
         residuals = self.residuals
-        res = np.linalg.norm(residuals.own_nodes, 1, axis=0)
-        res+= np.linalg.norm(residuals.own_fractures, 1, axis=0)
-        res+= np.linalg.norm(residuals.own_cells, 1, axis=0)
-        res[0]+= np.linalg.norm(residuals.own_injectors, 1)
-        res[0]+= np.linalg.norm(residuals.own_producers, 1)
-        return res
+        local = np.linalg.norm(residuals.own_nodes, 1, axis=0)
+        local+= np.linalg.norm(residuals.own_fractures, 1, axis=0)
+        local+= np.linalg.norm(residuals.own_cells, 1, axis=0)
+        local[0]+= np.linalg.norm(residuals.own_injectors, 1)
+        local[0]+= np.linalg.norm(residuals.own_producers, 1)
+        global_norms = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+        mpi.COMM_WORLD.Allreduce(local, global_norms, mpi.SUM)
+        return global_norms
+    
+    def closure_norm(self):
+        kernel = self.kernel
+        assert kernel
+        closure = kernel.Residu_RelativeNorm_local_closure()
+        return mpi.COMM_WORLD.allreduce(closure, mpi.SUM)
     
     def reset_conservation_reference(self, dt):
-        ref = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+        local = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
         for states in [
             ComPASS.own_node_states(),
             ComPASS.own_fracture_states(),
             ComPASS.own_cell_states()
         ]:
-            ref+= np.linalg.norm(states.accumulation, 1, axis=0)
-        ref/= 1000. * dt
-        ref+= 1. # FIXME: ?
-        conservation = np.maximum(self.norms(), ref)
-        mpi.COMM_WORLD.Allreduce(conservation, self.reference_conservation, mpi.MAX)
+            local+= np.linalg.norm(states.accumulation, 1, axis=0)
+        local/= 1000. * dt
+        local+= 1. # FIXME: ?
+        global_reference = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+        mpi.COMM_WORLD.Allreduce(local, global_reference, mpi.SUM)
+        self.reference_pv = np.maximum(self.pv_norms(), global_reference)
     
     def reset_closure_reference(self):
-        kernel = self.kernel
-        assert kernel
-        closure = kernel.Residu_RelativeNorm_local_closure()
-        closure = max(1., closure) # FIXME: ?
-        self.reference_closure =  mpi.COMM_WORLD.allreduce(closure, mpi.MAX)
+        self.reference_closure  = max(1., self.closure_norm()) # FIXME: ?
     
     def reset_references(self, dt):
         self.reset_conservation_reference(dt)
@@ -62,11 +67,8 @@ class Legacy:
     
     def relative_norm(self):
         assert self.reference_closure>0
-        assert np.all(self.reference_conservation>0)
-        kernel = self.kernel
-        assert kernel
-        local = max(
-            kernel.Residu_RelativeNorm_local_closure() / self.reference_closure,
-            np.max(self.norms()/self.reference_conservation)
+        assert np.all(self.reference_pv>0)
+        return max(
+            self.closure_norm() / self.reference_closure,
+            np.max(self.pv_norms() / self.reference_pv),
         )
-        return mpi.COMM_WORLD.allreduce(local, mpi.MAX)
