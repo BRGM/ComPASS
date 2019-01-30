@@ -18,7 +18,7 @@ extern "C"
 	//void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
 	void NN_init_phase2(const StringWrapper&, bool, bool);
 	//void NN_main(int, const StringWrapper&);
-	void NN_main_make_timestep(double);
+	// void NN_main_make_timestep(double);
 	//void NN_main_output_visu(int, const StringWrapper&);
 	void NN_main_summarize_timestep();
 	void NN_finalize();
@@ -66,8 +66,8 @@ void add_NN_wrappers(py::module& module)
 	//module.def("main_loop", [](int TimeIter, const std::string& OutputDir) { NN_main(TimeIter, OutputDir); },
 	//	"Main loop of ComPASS.");
 
-	module.def("make_timestep", &NN_main_make_timestep,
-		py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>());
+	// module.def("make_timestep", &NN_main_make_timestep,
+		// py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>());
 
 	// This is transitory to output visualisation files
 	//module.def("output_visu", [](int TimeIter, const std::string& OutputDir) { NN_main_output_visu(TimeIter, OutputDir); },

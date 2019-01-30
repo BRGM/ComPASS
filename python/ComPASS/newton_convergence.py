@@ -45,7 +45,7 @@ class Legacy:
         ]:
             ref+= np.linalg.norm(states.accumulation, 1, axis=0)
         ref/= 1000. * dt
-        ref+= 1.
+        ref+= 1. # FIXME: ?
         conservation = np.maximum(self.norms(), ref)
         mpi.COMM_WORLD.Allreduce(conservation, self.reference_conservation, mpi.MAX)
     
@@ -53,10 +53,8 @@ class Legacy:
         kernel = self.kernel
         assert kernel
         closure = kernel.Residu_RelativeNorm_local_closure()
-        fclosure = kernel.Residu_RelativeNorm_initial_closure(closure)
-        closure = max(1., closure)
+        closure = max(1., closure) # FIXME: ?
         self.reference_closure =  mpi.COMM_WORLD.allreduce(closure, mpi.MAX)
-        assert self.reference_closure==fclosure
     
     def reset_references(self, dt):
         self.reset_conservation_reference(dt)

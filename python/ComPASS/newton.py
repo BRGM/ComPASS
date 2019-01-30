@@ -138,9 +138,6 @@ class Newton:
         assert convergence_scheme
         relative_residuals = []
         self.relative_residuals = relative_residuals
-        initial_conservation_residual =  kernel.CTVector()
-        conservation_residual = kernel.CTVector()
-        initial_closure_residual = None
         lsolver = self.lsolver
         nb_lsolver_iterations = 0
         total_lsolver_iterations = 0
@@ -148,27 +145,12 @@ class Newton:
         # CHECKME: does this need to be done after newton_init_iteration?
         kernel.Residu_reset_history()
         kernel.Residu_compute(dt)
-        kernel.Residu_RelativeNorm_local_conservation(conservation_residual)
-        # CHECKME: the following assertions will fail with precision set
-        # to les than 1e-12 (we are close to machine precision...)
-        assert np.allclose(
-            conservation_residual.as_array(), convergence_scheme.norms(), 1e-12
-        )
-        kernel.Residu_RelativeNorm_initial_conservation(
-            dt, conservation_residual, initial_conservation_residual
-        )
         convergence_scheme.reset_references(dt)
-        assert np.allclose(
-            initial_conservation_residual.as_array(),
-            convergence_scheme.reference_conservation, 1e-12
+        mpi.master_print(
+               'initial residuals (reference)',
+               convergence_scheme.reference_conservation,
+               convergence_scheme.reference_closure,
         )
-        closure_residual = kernel.Residu_RelativeNorm_local_closure()
-        initial_closure_residual = kernel.Residu_RelativeNorm_initial_closure(closure_residual)
-        assert initial_closure_residual==convergence_scheme.reference_closure
-        mpi.master_print('initial residuals (reference)',
-                initial_conservation_residual.as_array(), initial_closure_residual)
-        mpi.master_print('                    residuals',
-                    conservation_residual.as_array(), closure_residual)
         for iteration in range(self.maximum_number_of_iterations):
             kernel.Jacobian_ComputeJacSm(dt)
             kernel.SolvePetsc_SetUp()
@@ -195,24 +177,9 @@ class Newton:
             self.increment()
             self.init_iteration()
             kernel.Residu_compute(dt)
-            kernel.Residu_RelativeNorm_local_conservation(conservation_residual)
-            assert np.allclose(
-                conservation_residual.as_array(), convergence_scheme.norms(),
-                1e-12,
-            )
-            closure_residual = kernel.Residu_RelativeNorm_local_closure()
-            relative_residuals.append(
-                kernel.Residu_compute_relative_norm(
-                    initial_conservation_residual, conservation_residual,
-                    initial_closure_residual, closure_residual,
-                )
-            )
-            assert np.allclose(
-                relative_residuals[-1], convergence_scheme.relative_norm(),
-                1e-12,
-            )
+            relative_residuals.append(convergence_scheme.relative_norm())
             mpi.master_print('Newton % 3d          residuals'%(iteration + 1),
-                        conservation_residual.as_array(), closure_residual,
+                        convergence_scheme.norms(),
                         'rel', relative_residuals[-1])
             if relative_residuals[-1] < self.tolerance:
                 return NewtonStatus(iteration+1, total_lsolver_iterations)

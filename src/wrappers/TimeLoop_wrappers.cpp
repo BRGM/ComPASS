@@ -34,11 +34,7 @@ extern "C"
     void Flux_FourierFlux_Frac();
     void Residu_reset_history();
     void Residu_compute(double);
-    void Residu_RelativeNorm_local_conservation(CTVector&);
     double Residu_RelativeNorm_local_closure();
-    void Residu_RelativeNorm_initial_conservation(const double, const CTVector&, CTVector&);
-    double Residu_RelativeNorm_initial_closure(const double);
-    double Residu_compute_relative_norm(const CTVector&, const CTVector&, const double, const double);
     void Jacobian_ComputeJacSm(double);
     void Jacobian_GetSolCell(NewtonIncrements::Pointers<double>);
     void SolvePetsc_SetUp();
@@ -74,11 +70,7 @@ void add_time_loop_wrappers(py::module& module)
     module.def("Flux_FourierFlux_Frac", &Flux_FourierFlux_Frac);
     module.def("Residu_compute", &Residu_compute);
     module.def("Residu_reset_history", &Residu_reset_history);
-    module.def("Residu_RelativeNorm_local_conservation", &Residu_RelativeNorm_local_conservation);
     module.def("Residu_RelativeNorm_local_closure", &Residu_RelativeNorm_local_closure);
-    module.def("Residu_RelativeNorm_initial_conservation", &Residu_RelativeNorm_initial_conservation);
-    module.def("Residu_RelativeNorm_initial_closure", &Residu_RelativeNorm_initial_closure);
-    module.def("Residu_compute_relative_norm", &Residu_compute_relative_norm);
     module.def("Jacobian_ComputeJacSm", &Jacobian_ComputeJacSm);
     module.def("SolvePetsc_SetUp", &SolvePetsc_SetUp);
     module.def("SolvePetsc_KspSolveIterationNumber", &SolvePetsc_KspSolveIterationNumber);

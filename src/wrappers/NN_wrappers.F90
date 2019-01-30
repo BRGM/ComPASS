@@ -24,7 +24,7 @@
           !NN_init_build_grid_from_C, &
           NN_init_phase2_from_C, &
           !NN_main_from_C, &
-          NN_main_make_timestep_from_C, &
+          ! NN_main_make_timestep_from_C, &
           !NN_main_output_visu_from_C, &
           NN_main_summarize_time_step_from_C, &
           NN_finalize_from_C
@@ -101,14 +101,14 @@
        !
        !end subroutine NN_main_from_C
        
-       subroutine NN_main_make_timestep_from_C(initial_timestep) &
-          bind(C, name="NN_main_make_timestep")
-
-          real(c_double), value, intent(in) :: initial_timestep
-
-          call NN_main_make_timestep(initial_timestep)
-
-       end subroutine NN_main_make_timestep_from_C
+       !subroutine NN_main_make_timestep_from_C(initial_timestep) &
+       !   bind(C, name="NN_main_make_timestep")
+       !
+       !   real(c_double), value, intent(in) :: initial_timestep
+       !
+       !   call NN_main_make_timestep(initial_timestep)
+       !
+       !end subroutine NN_main_make_timestep_from_C
 
        !subroutine NN_main_output_visu_from_C(TimeIter, OutputDir) &
        !   bind(C, name="NN_main_output_visu")
