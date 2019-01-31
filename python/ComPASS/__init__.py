@@ -145,7 +145,7 @@ def reshape_as_tensor_array(value, n, dim):
     assert value.shape==(n, dim, dim)
     return value
 
-def set_property_on_global_mesh(property, location, value):
+def set_property_on_global_mesh(property, location, value, fractures=None):
     buffer = np.array(
         getattr(kernel, 'get_%s_%s_buffer' % (location, property))(),
         copy = False,
@@ -153,7 +153,9 @@ def set_property_on_global_mesh(property, location, value):
     n = buffer.shape[0]
     dim = 3
     if location=='fracture':
-        assert fractures is not None
+        assert fractures is not None, (
+            "no fractures while setting %s on %s" %(property, location)
+        )            
         n = np.count_nonzero(fractures)
         dim = 2
     if property in ['permeability', 'thermal_conductivity'] and location=='cell':
@@ -175,7 +177,9 @@ def set_petrophysics_on_global_mesh(properties, fractures):
             for property in useful_properties:
                 value = properties[location + '_' + property]()
                 if value is not None:
-                    set_property_on_global_mesh(property, location, value)
+                    set_property_on_global_mesh(
+                        property, location, value, fractures
+                    )
                 else:
                     if location=='cell':
                         messages.error('You must define: cell_%s' % property)
