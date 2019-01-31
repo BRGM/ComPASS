@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import day, year
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.simulation_context import SimulationContext
+from ComPASS.utils.units import time_string
 import ComPASS.timestep as timestep
 mpi = ComPASS.mpi
 Dumper = ComPASS.dumps.Dumper
@@ -118,7 +119,6 @@ def standard_loop(initial_time=None, final_time=None,
     def print_iteration_info():
         print()
         print('** Time Step (iteration):', n, '*'*50)
-        time_string = lambda tin: '%10.5g s = %10.5g y' % (tin, tin / year)
         if final_time:
             final_time_info = '-> ' + time_string(final_time)
         else:

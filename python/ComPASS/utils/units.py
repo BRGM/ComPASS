@@ -22,3 +22,5 @@ ton = 1000 # kg
 
 degC2K = lambda T: T + 273.15
 K2degC = lambda T: T - 273.15
+
+time_string = lambda tin: '%10.5g s = %10.5g y' % (tin, tin / year)

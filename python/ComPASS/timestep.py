@@ -9,7 +9,7 @@
 import ComPASS
 import ComPASS.mpi as mpi
 from ComPASS.newton import KspFailure, IterationExhaustion, NewtonFailure
-from ComPASS.utils.units import day, year
+from ComPASS.utils.units import time_string
 
 # FIXME: computation time spent is to measured at the caller site
 # comptime_start = MPI_WTIME()
@@ -30,7 +30,7 @@ def try_timestep(
     kernel.IncCV_SaveIncPreviousTimeStep()
     kernel.IncCVWells_PressureDrop()
     try:
-        mpi.master_print('trying newton with timestep:', deltat)
+        mpi.master_print('trying newton with timestep:', time_string(deltat))
         iterations = newton.loop(deltat)
         mpi.master_print(iterations)
     except KspFailure as e:        

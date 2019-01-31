@@ -59,6 +59,7 @@ integration_test:
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     # FIXME: -t flag here is transitory (cf. issue #69)
     - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
+    - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
 
 interoperability_test:
   stage: test
