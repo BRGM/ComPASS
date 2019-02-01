@@ -302,7 +302,6 @@ def init(
         set_petrophysics_on_global_mesh(properties, fractures)
         if 'cell_heat_source' in kwargs:
             value = call_if_callable(kwargs['cell_heat_source'])
-            assert value
             set_property_on_global_mesh('heat_source', 'cell', value)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
