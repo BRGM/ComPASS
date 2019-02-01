@@ -2,17 +2,22 @@
 
 image: docker:stable
 
-services:
- - docker:stable-dind
-
-stages:
-    - build_docker_environments
-    - build
-    - test
-    - release
-    
 variables:
   CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
+  # When using dind, it's wise to use the overlayfs driver for
+  # improved performance.
+  # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
+  # and https://gitlab.inria.fr/charms/ComPASS/issues/72
+  DOCKER_DRIVER: overlay2
+
+services:
+  - docker:stable-dind
+
+stages:
+  - build_docker_environments
+  - build
+  - test
+  - release
 
 before_script:
   - echo "Preparing build..."
