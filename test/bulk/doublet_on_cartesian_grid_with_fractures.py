@@ -8,9 +8,9 @@
 
 import numpy as np
 import ComPASS
-import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
+import doublet_utils
 
 pres = 20. * MPa            # initial reservoir pressure
 Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to Kelvin degrees
@@ -61,7 +61,7 @@ grid = ComPASS.Grid(
 )
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     wells = wells_factory(grid),
     fracture_faces = fractures_factory(grid),
     cell_porosity = omega_matrix,

@@ -81,6 +81,12 @@ parallel_test:
   script:
     # FIXME: -t flag here is transitory (cf. issue #69)
     - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel vertical_column_temperature.py
+    - docker run -t --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel test_nodeflags_on_tetmesh.py
+
+time_bulk_scripts:
+  stage: test
+  script:
+    - docker run -t -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
 
 # release only on master and if tests passed, maybe another tag should be
 # the number in Git Tag for master! and add in only : Tag: to release only

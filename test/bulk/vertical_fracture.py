@@ -10,7 +10,10 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+from ComPASS.timeloops import standard_loop, TimeStepManager
+
+ComPASS.load_eos('water2ph')
+ComPASS.activate_direct_solver = True
 
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -27,7 +30,6 @@ nH = 50                    # discretization
 nx, ny, nz = 2*nH, 1, nH
 Lx, Ly, Lz = 2*H, 0.1*H, H
 
-ComPASS.load_eos('water2ph')
 ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded
@@ -82,7 +84,10 @@ def set_boundary_fluxes():
     ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
 set_boundary_fluxes()
 
-final_time = 50 * year
-output_period = 0.05 * final_time
-ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 1 * hour, final_time = final_time, output_period = output_period)
+final_time = 1 * day
+output_period = 0.1 * final_time
+standard_loop(
+    final_time = final_time,
+    time_step_manager = TimeStepManager(100, output_period),
+    output_period = output_period,
+)

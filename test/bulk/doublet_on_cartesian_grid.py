@@ -7,9 +7,9 @@
 #
 
 import ComPASS
-import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
+import doublet_utils
 
 ComPASS.load_eos('water2ph')
 
@@ -57,4 +57,7 @@ ComPASS.init(
 
 doublet_utils.init_states(pres, Tres)
 
-standard_loop(initial_timestep = 1 * day, final_time = 30 * year, output_period = year)
+standard_loop(
+    initial_timestep = 1 * day, final_time = 30 * year,
+    output_period = year,
+)

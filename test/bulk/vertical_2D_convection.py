@@ -14,6 +14,11 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
 ComPASS.load_eos('water2ph')
+# KSP failures with iterative solver
+ComPASS.activate_direct_solver = True
+final_time = 20 * year
+# maximum output period for small time step 1.5 year
+output_period = 1.5 * year
 
 Ttop = degC2K( 25. )
 Tbot = degC2K( 280. )
@@ -21,8 +26,10 @@ H = 3 * km
 Hcaprock = 0.1 * H
 ptop = 1 * bar
 pbot = ptop + 9.81 * 900. * H
-kcap = 1E-18 # permeability caprok
-kres = 1E-12 # permeability reservoir
+kcap = 1E-18         # permeability caprok
+kres = 1E-12         # permeability reservoir
+phires = 0.15        # column porosity
+Kres = 2             # bulk cell thermal conductivity W/m/K
 
 nz = 101
 grid = ComPASS.Grid(
@@ -32,9 +39,9 @@ grid = ComPASS.Grid(
 )
 
 def dirichlet_boundaries():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    on_top = (vertices.z == grid.origin[2] + grid.extent[2])
-    on_bottom = (vertices.z == grid.origin[2])
+    z = ComPASS.global_vertices()[:, 2]
+    on_top = (z == grid.origin[2] + grid.extent[2])
+    on_bottom = (z == grid.origin[2])
     return on_top | on_bottom
 
 def cell_permeability():
@@ -52,9 +59,11 @@ def cell_permeability():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     set_dirichlet_nodes = dirichlet_boundaries,
-    cells_permeability = cell_permeability
+    cell_permeability = cell_permeability,
+    cell_porosity = phires,
+    cell_thermal_conductivity = Kres,
 )
 
 def set_states(states, z):
@@ -63,8 +72,12 @@ def set_states(states, z):
     states.T[:] = Ttop - ((Tbot - Ttop) / H) * z
     states.S[:] = [0, 1]
     states.C[:] = 1.
-set_states(ComPASS.dirichlet_node_states(), np.rec.array(ComPASS.vertices()).z)
-set_states(ComPASS.node_states(), np.rec.array(ComPASS.vertices()).z)
+set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:, 2])
+set_states(ComPASS.node_states(), ComPASS.vertices()[:, 2])
 set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
 
-standard_loop(initial_timestep= 30 * day, final_time = 100 * year, output_period = 1 * year)
+standard_loop(
+    initial_timestep = 1 * year,
+    final_time = final_time,
+    output_period = output_period,
+)

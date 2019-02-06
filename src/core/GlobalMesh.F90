@@ -1342,11 +1342,11 @@ CALL GlobalMesh_SetRocktype( &
   !> \brief Build global connectivity of injection and production wells.
   subroutine GlobalMesh_WellConnectivity
 
-    write(fdGm,*) 'building injectors connectivity ...'
+    ! write(fdGm,*) 'building injectors connectivity ...'
     call BuildWellConnectivity(NbWellInj,NbEdgebyWellInj,NumNodebyEdgebyWellInj, &
       NodebyWellInj,NodeDatabyWellInj)
 
-    write(fdGm,*) 'building producers connectivity ...'
+    ! write(fdGm,*) 'building producers connectivity ...'
     call BuildWellConnectivity(NbWellProd,NbEdgebyWellProd,NumNodebyEdgebyWellProd,&
       NodebyWellProd,NodeDatabyWellProd)
 

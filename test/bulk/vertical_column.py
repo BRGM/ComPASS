@@ -10,7 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+from ComPASS.timeloops import standard_loop, TimeStepManager
 
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -62,5 +62,8 @@ set_boundary_heat_flux()
 
 final_time = 1E4 * year
 output_period = 1E3 * year
-ComPASS.set_maximum_timestep(10 * year)
-standard_loop(initial_timestep= 30 * day, final_time = final_time, output_period = output_period)
+standard_loop(
+    final_time = final_time,
+    time_step_manager = TimeStepManager(30 * day, 100 * year),
+    output_period = output_period,
+)

@@ -9,8 +9,7 @@
 import ComPASS
 #import doublet_utils
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
-import matplotlib.pyplot as plt
+from ComPASS.timeloops import standard_loop, TimeStepManager
 import numpy as np
 
 rhow =1# 1E3
@@ -110,7 +109,7 @@ def set_initial_values():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
     cell_porosity = omega_reservoir,
     cell_permeability = k_reservoir,
@@ -131,25 +130,20 @@ def collect_node_temperature(iteration, t):
     states = ComPASS.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-ComPASS.set_maximum_timestep(1.)
-
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/1e3,
-              output_callbacks=(collect_node_temperature,))
+standard_loop(
+    final_time = final_time, output_period = final_time/50,
+    time_step_manager = TimeStepManager(final_time/1e3, 1.),
+    output_callbacks=(collect_node_temperature,),
+)
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
     xy = ComPASS.compute_cell_centers()[:,0:2]
     XX = xy[:, 0].reshape(ny, nx)
     YY = xy[:, 1].reshape(ny, nx)
-    try:
-        import matplotlib
-
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print('WARNING - matplotlib was not found - no graphics will be generated')
-        plt = None
-    if plt is not None:
+    import ComPASS.utils.mpl_backends as mpl_backends
+    plt = mpl_backends.import_pyplot(False)
+    if plt:
         plt.clf()
         for tT in cell_temperatures:
             t, T = tT

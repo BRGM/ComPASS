@@ -12,17 +12,31 @@ import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
 
-ComPASS.set_output_directory_and_logfile(__file__)
+ComPASS.load_eos('water2ph')
+
+omega_reservoir = 0.15            # reservoir porosity
+k_reservoir = 1E-12               # reservoir permeability in m^2
+K_reservoir = 2                   # bulk thermal conductivity in W/m/K
+
+Lx, Ly, Lz = 3000., 2000., 100.
+Ox, Oy, Oz = -1500., -1000., -1600.
+nx, ny, nz = 30, 20, 10
+
+ComPASS.set_gravity(0)
 
 grid = ComPASS.Grid(
-    shape = (31, 21, 1),
-    extent = (3000., 2000., 100.),
-    origin = (-1500., -1000., -1600.),
+    shape = (nx, ny, nz),
+    extent = (Lx, Ly, Lz),
+    origin = (Ox, Oy, Oz),
 )
 
+ComPASS.set_output_directory_and_logfile(__file__)
+
 ComPASS.init(
-    grid = grid,
-    wells = doublet_utils.make_wells_factory(grid),
+    mesh = grid,
+    cell_porosity = omega_reservoir,
+    cell_permeability = k_reservoir,
+    cell_thermal_conductivity = K_reservoir,
 )
 
 def array_description(a):
@@ -37,13 +51,13 @@ def output_node_info(info):
     print(array_description(info.pressure.view('c')))
     print(array_description(info.temperature.view('c')))
 
-@ComPASS.on_master_proc
+@ComPASS.mpi.on_master_proc
 def output_global_node_info():
     print('Proc info (own/ghost) is not relevant at global scale.')
     info = output_node_info(ComPASS.global_node_info())
 
 def output_local_node_info():
-    print('Node info for proc:', ComPASS.proc_rank)
+    print('Node info for proc:', ComPASS.mpi.proc_rank)
     info = output_node_info(ComPASS.node_info())
 
 # The following line will crash as the mesh is distributed at the end of ComPASS.init

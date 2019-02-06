@@ -160,10 +160,10 @@ class Newton:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
                 total_lsolver_iterations+= nb_lsolver_iterations
-                mpi.master_print(
-                    'linear iterations:', 
-                    kernel.SolvePetsc_Ksp_iterations(),
-                )
+                #mpi.master_print(
+                #    'linear iterations:', 
+                #    kernel.SolvePetsc_Ksp_iterations(),
+                #)
             if ksp_status<0:
                 lsolver.failures+= 1
                 if not ComPASS.activate_direct_solver:

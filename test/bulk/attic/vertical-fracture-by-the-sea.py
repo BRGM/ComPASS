@@ -7,8 +7,6 @@
 #
 
 import numpy as np
-# WARNING: Set your python path adequately
-# e.g.: export PYTHONPATH=/home/simon/ComPASS/python
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop

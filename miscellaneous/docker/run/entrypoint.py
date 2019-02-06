@@ -27,6 +27,9 @@ parser.add_option("-p", "--parallel",
 parser.add_option("--pytest",
                   action="store_true", dest="pytest_run",
                   help="will run pytest with `nproc` procs if --parallel option is present, this will override some options")
+parser.add_option("--bash",
+                  action="store_true", dest="bash_session",
+                  help="will enter a bash session executing the given command and overriding all other options")
 options, args = parser.parse_args()
 
 #print('Writing customization file:', options.customization_file)
@@ -43,7 +46,9 @@ fi
 #print('Writing process file:', options.process_file)
 with open(options.process_file, 'w') as f:
     cmd = []
-    if options.pytest_run:
+    if options.bash_session:
+        cmd.extend(args)
+    elif options.pytest_run:
         cmd.append('python3 -m pytest')
         if options.parallel_run:
             cmd.append('-n %d' % multiprocessing.cpu_count())

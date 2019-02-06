@@ -10,11 +10,12 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+from ComPASS.timeloops import standard_loop, TimeStepManager
 
 p_right = 1. * bar              # initial reservoir pressure
 T_right = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 k_matrix = 1E-12           # column permeability in m^2 (low permeability -> bigger time steps)
+K_matrix = 2                   # bulk thermal conductivity in W/m/K
 phi_matrix = 0.15          # column porosity
 mass_flux = 1E-1
 
@@ -32,20 +33,19 @@ grid = ComPASS.Grid(
 )
 
 def left_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    return vertices.x <= 0
+    return ComPASS.global_vertices()[:, 0] <= 0
 
 def right_nodes():
-    vertices = np.rec.array(ComPASS.global_vertices())
-    return vertices.x >= Lx
+    return ComPASS.global_vertices()[:, 0] >= Lx
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
     #set_pressure_dirichlet_nodes = right_nodes,
     #set_temperature_dirichlet_nodes = lambda: left_nodes() | right_nodes(),
     set_dirichlet_nodes = right_nodes,
+    cell_thermal_conductivity = K_matrix,
 )
 
 def set_initial_states(states):
@@ -63,30 +63,27 @@ def set_boundary_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = mass_flux # one component
     Neumann.heat_flux = mass_flux * ComPASS.liquid_molar_enthalpy(p_right, T_right)
-    face_centers = np.rec.array(ComPASS.face_centers())   
-    ComPASS.set_Neumann_faces(face_centers.x <= 0, Neumann) 
+    face_centers = ComPASS.face_centers()   
+    ComPASS.set_Neumann_faces(face_centers[:, 0] <= 0, Neumann) 
 set_boundary_flux()
 
 final_time = 1E4 * year
 output_period = 0.1 * final_time
-ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 1 * year, final_time = final_time, output_period = output_period)
+standard_loop(
+    final_time = final_time,
+    time_step_manager = TimeStepManager(1 * year,output_period),
+    output_period = output_period,
+)
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
     states = ComPASS.cell_states()
     print(np.min(states.p) / bar, "bar <= pressure <=", np.max(states.p) / bar, "bar")
     print(K2degC(np.min(states.T)), "deg C <= temperature <=", K2degC(np.max(states.T)), "deg C")
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print('WARNING - matplotlib was not found - no graphics will be generated')
-        plt = None
-    else:
-        cell_centers = np.rec.array(ComPASS.cell_centers())
-        x = cell_centers.x
+    import ComPASS.utils.mpl_backends as mpl_backends
+    plt = mpl_backends.import_pyplot(False)
+    if plt:
+        x = ComPASS.cell_centers()[:, 0]
         mu = ComPASS.liquid_dynamic_viscosity(states.p, states.T)
         rho = ComPASS.liquid_molar_density(states.p, states.T)
         plt.clf()

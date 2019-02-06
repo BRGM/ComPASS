@@ -1,8 +1,17 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 import math
-from scipy.special import erf,erfc
+import numpy as np
+
+try:
+    from scipy.special import erf, erfc
+except ImportError:
+    # this is not really efficient just a workaround when scipy is missing
+    # good for government work
+    erf = np.vectorize(math.erf)
+    erfc = np.vectorize(math.erfc)
+
+import ComPASS.utils.mpl_backends as mpl_backends
+plt = mpl_backends.import_pyplot(False)
 
 #la température
 def exact_sol(x,t):
@@ -16,7 +25,7 @@ def test():
     for k in range(nt):
         t = (k+1)*dt
         c = exact_sol(x,t)
-        if ((k+1)%10 == 0):
+        if plt and ((k+1)%10 == 0):
             h = plt.plot(x,c)
             plt.title('t='+str(t))
             plt.show()

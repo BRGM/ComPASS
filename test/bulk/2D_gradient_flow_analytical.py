@@ -1,29 +1,35 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-import ComPASS
 import time
-import math
 from math import *
-from scipy import special
+import numpy as np
+import ComPASS
+import ComPASS.utils.mpl_backends as mpl_backends
+plt = mpl_backends.import_pyplot(False)
+
+try:
+    from scipy.special import erf, erfc
+except ImportError:
+    # this is not really efficient just a workaround when scipy is missing
+    # good for government work
+    erf = np.vectorize(erf)
+    erfc = np.vectorize(erfc)
 
 #Dx = 1
 #P = (U**2 + 4*Dx*Rd*(mu+gamma))**(1/2)
 
 def exact_sol_bs(x,y,t):
-    exact_sol = epsilon*C0/(2*n0)*(special.erfc((x-mu*t)/sqrt(4*Dl*t))+np.exp(mu*x/Dl)*special.erfc((x+mu*t)/sqrt(4*Dl*t)))
+    exact_sol = epsilon*C0/(2*n0)*(erfc((x-mu*t)/sqrt(4*Dl*t))+np.exp(mu*x/Dl)*erfc((x+mu*t)/sqrt(4*Dl*t)))
     for i in range(1,n):
         l1 = C0/(i*np.pi)*np.sin(i*np.pi*epsilon/n0)*np.cos(i*np.pi*y/n0)
         l2 = np.exp(x/2*(mu/Dl-sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl)))
-        l3 = special.erfc((x-Dl*t*sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl))/sqrt(4*Dl*t))
+        l3 = erfc((x-Dl*t*sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl))/sqrt(4*Dl*t))
         l4 = np.exp(x/2*(mu/Dl+sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl)))
-        l5 = special.erfc((x+Dl*t*sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl))/sqrt(4*Dl*t))
+        l5 = erfc((x+Dl*t*sqrt((mu/Dl)**2+(2*i*np.pi/n0)**2*Dt/Dl))/sqrt(4*Dl*t))
         exact_sol =(exact_sol +l1*(l2*l3+l4*l5))
     return exact_sol
 
 
 def f(tau,x,y):
-    return tau**(-3/2)*(special.erf((epsilon+y)/math.sqrt(4*Dt*tau))+special.erf((epsilon-y)/math.sqrt(4*Dt*tau)))*np.exp(-(x-tau*mu)**2/(4*Dl*tau))
+    return tau**(-3/2)*(erf((epsilon+y)/sqrt(4*Dt*tau))+erf((epsilon-y)/sqrt(4*Dt*tau)))*np.exp(-(x-tau*mu)**2/(4*Dl*tau))
 def exact_sol_ld(x,y,t):
     n=100
     s=0
@@ -44,7 +50,7 @@ def test():
         print(k)
         cbs=exact_sol_bs(xx,yy,t) + Tright
         cld=exact_sol_ld(xx,yy,t) + Tright
-        if ((k+1)%10==0):
+        if plt and ((k+1)%10==0):
             fig = plt.figure(1)
             plt.subplot(211)
             cs1 = plt.contourf(x,y,cbs)
@@ -66,7 +72,7 @@ def test():
 if __name__ == '__main__':
     tfinal = 100#2e+5
     dt = 1#1e+3
-    nt = math.floor(tfinal/dt)
+    nt = floor(tfinal/dt)
     Phi = 0.2
     rhow = 1#1000
     b = 1#4.2e+3  #5e+03

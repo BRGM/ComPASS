@@ -10,7 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+from ComPASS.timeloops import standard_loop, TimeStepManager
 
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
@@ -76,8 +76,11 @@ states.T[vertices[:, 0] <= 0] = T_left
 
 final_time = 100 * year 
 output_period = 0.1 * final_time
-ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 1E-5, final_time = final_time, output_period = output_period)
+standard_loop(
+    final_time = final_time,
+    time_step_manager = TimeStepManager(1E-5, output_period),
+    output_period = output_period,
+)
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc

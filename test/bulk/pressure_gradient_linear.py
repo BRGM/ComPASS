@@ -10,7 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+from ComPASS.timeloops import standard_loop, TimeStepManager
 
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
@@ -76,8 +76,11 @@ set_boundary_flux()
 
 final_time = 1E4 * year
 output_period = 0.1 * final_time
-ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 1E-5, final_time = final_time, output_period = output_period)
+standard_loop(
+    final_time = final_time,
+    time_step_manager = TimeStepManager(1E-5, output_period),
+    output_period = output_period,
+)
 
 x = ComPASS.cell_centers()[:, 0]
 amean = lambda a: 0.5 * (a[:-1] + a[1:])
@@ -89,14 +92,9 @@ if ComPASS.mpi.communicator().size==1:
     states = ComPASS.cell_states()
     print(np.min(states.p) / bar, "bar <= pressure <=", np.max(states.p) / bar, "bar")
     print(K2degC(np.min(states.T)), "deg C <= temperature <=", K2degC(np.max(states.T)), "deg C")
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print('WARNING - matplotlib was not found - no graphics will be generated')
-        plt = None
-    else:
+    import ComPASS.utils.mpl_backends as mpl_backends
+    plt = mpl_backends.import_pyplot(False)
+    if plt:
         plt.clf()
         plt.plot((x[0], x[-1]), (mass_flux, mass_flux), 'r')
         plt.plot(amean(x), - k_matrix * (rhof/muf) * gradx_cells(states.p), 'xk')

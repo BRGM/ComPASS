@@ -428,8 +428,8 @@ contains
        call MPI_Recv(NbWellProdOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 182, ComPASS_COMM_WORLD, stat, Ierr)
     end if
 
-    write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
-    write(*,*) 'on proc', commRank, ':', NbWellProdOwn_Ncpus, 'producers'
+    !write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
+    !write(*,*) 'on proc', commRank, ':', NbWellProdOwn_Ncpus, 'producers'
     
     if(commRank==0) then
        deallocate(NbCellResS_Ncpus)

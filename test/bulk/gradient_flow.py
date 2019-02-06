@@ -84,7 +84,7 @@ else:
     ComPASS.load_eos('water_with_tracer')
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
     cell_porosity = omega_reservoir,
     cell_permeability = k_reservoir,
@@ -118,14 +118,9 @@ if ComPASS.mpi.communicator().size==1:
             t, T = tT
             T = K2degC(T)
             print('%f;' %(t/year) + ';'.join(['%f' %(Ti) for Ti in T]), file=f)
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print('WARNING - matplotlib was not found - no graphics will be generated')
-        plt = None
-    if plt is not None:
+    import ComPASS.utils.mpl_backends as mpl_backends
+    plt = mpl_backends.import_pyplot(False)
+    if plt:
         plt.clf()
         for tT in cell_temperatures:
             t, T = tT
