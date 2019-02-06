@@ -88,10 +88,7 @@ time_bulk_scripts:
   script:
     - docker run -t -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
 
-# release only on master and if tests passed, maybe another tag should be
-# the number in Git Tag for master! and add in only : Tag: to release only
-# when master is tagged.
-release:
+master_release:
   stage: release
   script:
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
@@ -102,10 +99,7 @@ release:
     - master
   when: on_success
 
-# release only on master and if tests passed, maybe another tag should be
-# the number in Git Tag for master! and add in only : Tag: to release only
-# when master is tagged.
-release:
+tag_release:
   stage: release
   script:
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
