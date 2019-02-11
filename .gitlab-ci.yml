@@ -76,6 +76,11 @@ interoperability_test:
   script:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test_pass_arrays.py
   
+petrel_test:
+  stage: test
+  script:
+    - docker run --rm -v $PWD/test/cases/petrel:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG doublet_on_cartesian_grid_petrel.py
+  
 parallel_test:
   stage: test
   script:
