@@ -50,7 +50,7 @@ contains
   ! Fugacity coefficient
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  ! P is the pressure of the phase iph
+  ! P is the pressure of the reference phase (P=Pg)
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
@@ -66,29 +66,26 @@ contains
 
     RZetal = 8.314d0 * 1000.d0 / 0.018d0
 
+    dPf = 0.d0
+    dTf = 0.d0
+    dCf = 0.d0
+    dSf = 0.d0
+
     if(iph == PHASE_GAS)then
        f = P
 
        dPf = 1.d0
-       dTf = 0.d0
-       dCf = 0.d0
-       dSf = 0.d0
     else if(iph == PHASE_WATER)then
       if(icp==1)then ! air
         call air_henry(T,f)
-        dPf = 0.d0
         call air_henry_dT(dTf)
-        dCf = 0.d0
-        dSf = 0.d0
       else ! water
         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
         call FluidThermodynamics_Psat(T, Psat, dTSat)
 
         f = Psat * dexp(Pc/(T*RZetal))
 
-        dPf = 0.d0
         dTf = (dTSat - Psat*Pc/RZetal/(T**2))*dexp(Pc/(T*RZetal))
-        dCf = 0.d0
         dSf = DSPc * f/(T*RZetal)
       endif
     endif
@@ -288,7 +285,7 @@ contains
     if(iph==PHASE_GAS)then
       f = 0.d0
     else
-        Sg = S(PHASE_GAS)
+        Sg = 1.d0 - S(PHASE_WATER)
         Pc_cst = 2.d5
         Sg0 = 1.d0 - 1.d-2
         A = - Pc_cst * log(1.d0-Sg0) - Pc_cst/(1.d0-Sg0) * Sg0
@@ -340,7 +337,6 @@ stop
   ! Enthalpie
   ! iph is an identificator for each phase:
   ! PHASE_GAS = 1; PHASE_WATER = 2
-  ! If Enthalpide depends on the compositon C, change DefFlash.F90
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
