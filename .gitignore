@@ -15,3 +15,7 @@ build*
 *.mesh
 *.msh
 *.out
+.pytest_cache/
+*.aux
+*.pdf
+*.spl

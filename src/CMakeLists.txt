@@ -221,4 +221,8 @@ endforeach()
 
 #CHECKME: Should we install libraries/binaries?
 # install(TARGETS NN DESTINATION bin)
-    
+
+# add experimental tests to compilation
+if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
+    add_subdirectory(experimental)    
+endif(ComPASS_COMPILES_EXPERIMENTAL_PARTS)

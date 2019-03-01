@@ -69,6 +69,8 @@ message(STATUS "COMPILE_DEFINITIONS ${DirDefs}" )
 
 option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" OFF)
 
+option(ComPASS_COMPILES_EXPERIMENTAL_PARTS "Compiles experimental parts"  ON)
+
 ##################
 
 # #CHECKME ???? -> portability + test constants are compiled as double
