@@ -144,65 +144,6 @@ contains
    
    end subroutine NN_init_output_streams
 
-   !subroutine NN_init_read_mesh(MeshFile)
-   !
-   !   character(len=*), intent(in) :: MeshFile
-   !
-   !   !FIXME: This is more of an assertion for consistency, might be removed
-   !   if (.NOT. commRank == 0) then
-   !      print *, "Mesh is supposed to be read by master process."
-   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
-   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-   !   end if
-   !
-   !   inquire (FILE=MeshFile, EXIST=file_exists)
-   !   if (file_exists .eqv. .false.) then
-   !      print *, " "
-   !      print *, "Mesh does not exist   ", MeshFile
-   !      print *, " "
-   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
-   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-   !   end if
-   !   print *, "Mesh read from file: ", MeshFile
-   !
-   !   ! Read Global Mesh
-   !   call GlobalMesh_Make_read_file(MeshFile)
-   !
-   !   call GlobalMesh_Make_post_read()
-   !
-   !   call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-   !   call DefWell_Make_ComputeWellIndex( &
-   !      NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-   !      PermCell, PermFrac)
-   !
-   !end subroutine NN_init_read_mesh
-
-   !subroutine NN_init_build_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-   !
-   !   real(kind=c_double), intent(in)  :: Ox, Oy, Oz
-   !   real(kind=c_double), intent(in)  :: lx, ly, lz
-   !   integer(kind=c_int), intent(in)  :: nx, ny, nz
-   !
-   !   !FIXME: This is more of an assertion for consistency, might be removed
-   !   if (.NOT. commRank == 0) then
-   !      print *, "Mesh is supposed to be built by master process."
-   !      !CHECKME: MPI_Abort is supposed to end all MPI processes
-   !      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-   !   end if
-   !
-   !   call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-   !
-   !   call GlobalMesh_SetWellCar(nx, ny, nz)
-   !
-   !   call GlobalMesh_Make_post_read()
-   !
-   !   call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-   !   call DefWell_Make_ComputeWellIndex( &
-   !      NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-   !      PermCell, PermFrac)
-   !
-   !end subroutine NN_init_build_grid
-
    subroutine NN_partition_mesh(status)
 
       logical, intent(out) :: status
@@ -256,7 +197,7 @@ contains
    
    end subroutine NN_init_warmup
 
-subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
+   subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
 
       character(len=*), intent(in) :: OutputDir
       logical(c_bool), intent(in) :: activate_cpramg, activate_direct_solver
@@ -318,47 +259,11 @@ subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
       comptime_start = MPI_WTIME() ! total time start
       comptime_total = 0.d0
 
-      ! if(commRank==0) then
-      !    print*, sum(NbNodeOwn_Ncpus)
-      !    print*, sum(NbFaceOwn_Ncpus)
-      !    print*, sum(NbFracOwn_Ncpus)
-      !    print*, sum(NbCellOwn_Ncpus)
-      !    ! print*, NbFracLocal_Ncpus
-      !    ! print*, NbNodeLocal_Ncpus
-      !    ! print*, NbCellLocal_Ncpus
-      !    ! print*, NbWellInjOwn_Ncpus
-      !    ! print*, NbWellInjLocal_Ncpus
-      !    ! print*, NbWellProdOwn_Ncpus
-      !    ! print*, NbWellProdLocal_Ncpus
-      ! end if
-
-      ! if(commRank==1) then
-      !    print*, DataWellInjLocal(:)%Radius
-      !    print*, DataWellInjLocal(:)%Temperature
-      !    print*, DataWellInjLocal(:)%IndWell
-      !    print*, DataWellInjLocal(:)%PressionMax
-      !    print*, DataWellInjLocal(:)%Flowrate
-      !    print*, ""
-
-      !    print*, DataWellProdLocal(:)%Radius
-      !    print*, DataWellProdLocal(:)%IndWell
-      !    print*, DataWellProdLocal(:)%PressionMin
-      !    print*, DataWellProdLocal(:)%Flowrate
-      ! end if
-
-      ! if(commRank==0) then
-      !    k = 1
-      !    do s=NodebyWellInjLocal%Pt(k)+1, NodebyWellInjLocal%Pt(k+1)
-      !       print*, DataofNodebyWellInjLocal%Val(s)%WID
-      !    end do
-      ! end if
-
       ! *** Numeratation derived from model *** !
 
       call NumbyContext_make
 
       ! *** VAG Transmissivity *** !
-
 
       call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
 
@@ -506,41 +411,6 @@ subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
    end subroutine NN_main_summarize_timestep
 
    subroutine NN_finalize()
-
-     ! ! *** Report *** !
-     ! if (commRank == 0) then
-     !    do i = 1, size(fd)
-     !       j = fd(i)
-     !       write (j, *) ""
-     !       write (j, *) ""
-     !       write (j, *) "Final Report"
-
-     !       write (j, *) ""
-     !       write (j, *) "    *Final time:  ", TimeFinal/OneSecond
-
-     !       write (j, *) ""
-     !       write (j, *) "    *Mesh:"
-     !       write (j, '(A,I0)') "        -Nb of cells:  ", NbCell
-     !       write (j, '(A,I0)') "        -Nb of faces:  ", NbFace
-     !       write (j, '(A,I0)') "        -Nb of nodes:  ", NbNode
-     !       write (j, '(A,I0)') "        -Nb of fracs:  ", NbFrac
-
-     !       write (j, *) ""
-     !       write (j, *) "    *Newton/Ksp Iterations:"
-     !       write (j, '(A,I0)') "        -Total nb of Newton iters:  ", NewtonNiterTotal
-     !       write (j, '(A,I0)') "        -Total nb of Ksp iters:  ", KspNiterTotal
-
-     !       write (j, *) ""
-     !       write (j, *) "    *Newton/Ksp Failures:"
-     !       write (j, '(A,I0)') "        -Total nb of Newton failures:  ", NewtonNbFailure
-     !       write (j, '(A,I0)') "        -Total nb of Ksp failures:  ", KspNbFailure
-
-     !       write (j, *) ""
-     !       write (j, *) "    *Total simulation time:  ", comptime_total
-     !    end do
-     ! end if
-
-      ! *** Free *** !
 
       deallocate (NewtonIncreNode)
       deallocate (NewtonIncreFrac)

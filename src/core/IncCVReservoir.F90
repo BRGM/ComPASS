@@ -157,10 +157,10 @@ private :: &
 
   end function IncCVReservoir_NewtonRelax_C
 
-  !> \brief Compute relaxation in Newton.
+    !> \brief Compute relaxation in Newton.
     !!
-    !! relax = min(1, IncreObj/NewtonIncreObjMax)                   <br>
-    !! where IncreObj is set by the user in SchemeParameters.F90            <br>
+    !! relax = min(1, IncreObj/NewtonIncreObjMax) <br>
+    !! where IncreObj is set by the user in SchemeParameters.F90 <br>
     !! and NewtonIncreObjMax is the maximum of the Nemton increment
     !! in current iteration
     subroutine IncCVReservoir_NewtonRelax( &
