@@ -443,8 +443,19 @@ def add_output_subdirectory(path):
     mpi.synchronize()
     assert os.path.isdir(target)
 
+def all_fracture_edges_tagged():
+    faces = frac_face_id() - 1 # Fortran indexing...
+    face_nodes = get_connectivity().NodebyFace
+    info = np.rec.array(node_info(), copy=False)
+    for face in faces:
+        nodes = np.array(face_nodes[face], copy=False) - 1 # Fortran indexing...
+        in_fracture = info.frac[nodes] == ord('y')
+        if not all(in_fracture):
+            return False
+    return True
+
 def find_fracture_edges(faces):
-    faces = np.asarray(faces)
+    faces = np.asarray(faces) - 1 # Fortran indexing...
     if faces.dtype==np.bool:
         faces = np.nonzero(faces)[0]
     face_nodes = get_connectivity().NodebyFace

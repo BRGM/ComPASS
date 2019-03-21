@@ -202,7 +202,8 @@ module GlobalMesh
 
 contains
 
-  subroutine GlobalMesh_MeshBoundingBox
+  subroutine GlobalMesh_MeshBoundingBox() &
+  bind(C, name="GlobalMesh_mesh_bounding_box")
 
     integer :: i
 
@@ -242,19 +243,13 @@ contains
 
   end subroutine GlobalMesh_MeshBoundingBox
 
-  ! include the subroutines:
-  !   GlobalMesh_SetDirBC: set dir boundary
-  !   GlobalMesh_SetFrac: set face fracture
-  !   GlobalMesh_SetCellFlags: set cell flag
-  !   GlobalMesh_SetFaceFlags: set face flag
-  !#include "DefGeometry.F90"
-  subroutine GlobalMesh_SetFrac
+  subroutine GlobalMesh_SetFrac() &
+  bind(C, name="GlobalMesh_set_frac")
 
   integer :: i
 
   NbFrac = 0
   do i=1, NbFace
-
       if( IdFace(i) == -2 ) then
           NbFrac = NbFrac + 1
       else
@@ -262,22 +257,14 @@ contains
       end if
   end do
 
-  ! IdFace(:) = 0
-
   end subroutine GlobalMesh_SetFrac
 
-  subroutine GlobalMesh_Compute_all_connectivies()
+  subroutine GlobalMesh_Compute_all_connectivies() &
+  bind(C, name="GlobalMesh_compute_all_connectivies")
 
-    ! FacebyNode
     call GlobalMesh_FaceByNodeGlobal
-
-    ! CellbyNode
     call GlobalMesh_CellByNodeGlobal
-
-    ! CellbyCell
     call GlobalMesh_CellbyCellGlobal
-
-    ! CellbyFace
     call GlobalMesh_CellbyFaceGlobal
 
   end subroutine GlobalMesh_Compute_all_connectivies
@@ -981,11 +968,11 @@ CALL GlobalMesh_SetRocktype( &
   !! IdNode()\%Frac contains a character:                 <br>
   !! 'y': yes if node is in a fracture                    <br>
   !! 'n': no if node is not in a fracture
-  subroutine GlobalMesh_NodeOfFrac
+  subroutine GlobalMesh_NodeOfFrac() &
+  bind(C, name="GlobalMesh_node_of_frac")
 
     integer :: k, i, numi
     integer :: Ierr, errcode ! used for MPI_Abort
-
     if(allocated(IdNode)) then
         write(*,*) 'IdNode should not be allocated'
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
@@ -1077,7 +1064,8 @@ CALL GlobalMesh_SetRocktype( &
   !> \brief Make CSR FracbyNode with the number of fracture face by Node.
   !!
   !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt
-  subroutine GlobalMesh_FracbyNode
+  subroutine GlobalMesh_FracbyNode() &
+  bind(C, name="GlobalMesh_frac_by_node")
 
     integer :: i, n, num_face, num_frac, num_node, npt
     integer, allocatable, dimension(:) :: comptNode

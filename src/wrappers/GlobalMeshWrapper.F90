@@ -61,11 +61,6 @@
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
           GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C, &
-          GlobalMesh_MeshBoundingBox_from_C, &
-          GlobalMesh_Compute_all_connectivies_from_C, &
-          GlobalMesh_SetFrac_from_C, &
-          GlobalMesh_NodeOfFrac_from_C, &
-          GlobalMesh_FracbyNode_from_C, &
           DefWell_make_compute_well_index_from_C, &
           GlobalMesh_create_mesh_from_C
 
@@ -603,36 +598,6 @@
           call GlobalMesh_Make_post_read_well_connectivity_and_ip
        
        end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C
-
-       subroutine GlobalMesh_MeshBoundingBox_from_C() &
-          bind(C, name="GlobalMesh_mesh_bounding_box")
-          call GlobalMesh_MeshBoundingBox
-       end subroutine GlobalMesh_MeshBoundingBox_from_C
-
-       subroutine GlobalMesh_Compute_all_connectivies_from_C() &
-          bind(C, name="GlobalMesh_compute_all_connectivies")
-          call GlobalMesh_Compute_all_connectivies
-       end subroutine GlobalMesh_Compute_all_connectivies_from_C
-
-       subroutine GlobalMesh_SetFrac_from_C() &
-          bind(C, name="GlobalMesh_set_frac")
-          call GlobalMesh_SetFrac
-       end subroutine GlobalMesh_SetFrac_from_C
-
-       subroutine GlobalMesh_NodeOfFrac_from_C() &
-          bind(C, name="GlobalMesh_node_of_frac")
-          call GlobalMesh_NodeOfFrac
-       end subroutine GlobalMesh_NodeOfFrac_from_C
-
-       !subroutine GlobalMesh_SetDirBC_from_C() &
-       !   bind(C, name="GlobalMesh_set_dir_BC")
-       !   call GlobalMesh_SetDirBC
-       !end subroutine GlobalMesh_SetDirBC_from_C
-
-       subroutine GlobalMesh_FracbyNode_from_C() &
-          bind(C, name="GlobalMesh_frac_by_node")
-          call GlobalMesh_FracbyNode
-       end subroutine GlobalMesh_FracbyNode_from_C
 
        function check_mesh_allocation() result(status)
 
