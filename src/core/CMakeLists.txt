@@ -11,6 +11,7 @@ add_library( ComPASSCore
     Flux.F90
     Jacobian.F90 
     LocalMesh.F90
+    IncPrimSecd.F90
     LoisThermoHydro.F90
     MeshSchema.F90
     NumbyContext.F90

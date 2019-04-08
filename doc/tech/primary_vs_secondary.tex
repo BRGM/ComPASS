@@ -1,0 +1,212 @@
+
+\documentclass[final,1p,times]{elsarticle}
+
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[latin1]{inputenc}
+\usepackage{blkarray}
+\usepackage{color}
+\usepackage{array}
+\usepackage{multicol}
+\usepackage{pdfpages}
+\usepackage{multirow}
+\usepackage{threeparttable}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{lineno}
+
+\usepackage{subcaption}
+\captionsetup{compatibility=false}
+
+
+\modulolinenumbers[1]
+\journal{Journal of Computational Physics}
+
+% \oddsidemargin -1.cm \evensidemargin -1.cm  
+% \topmargin -1.5cm \topskip 0cm   
+% \headheight 1cm \headsep 1cm 
+%% \footheight 1cm \footskip 2cm
+% \textwidth 18cm \textheight 25cm
+% 
+
+\def\N{\Bbb N}
+\def\R{\Bbb R}
+\def\Po{\Bbb P}
+\def\Z{\Bbb Z}
+\def\C{\Bbb C}
+\def\Q{\Bbb Q}
+
+\def\D{\cal D}
+\def\B{\cal B}
+\def\A{\cal A}
+
+\def\vp{\varphi}
+\def\<{\langle}
+\def\>{\rangle}
+\def\t{\tilde}
+\def\e{\varepsilon}
+\def\lsim{\raisebox{-1ex}{$~\stackrel{\textstyle<}{\sim}~$}}
+\def\gsim{\raisebox{-1ex}{$~\stackrel{\textstyle>}{\sim}~$}}
+\def\sm{\setminus}
+\def\nl{\newline}
+\def\wt{\widetilde}
+\def\Chi{\raise .3ex \hbox{\large $\chi$}} 
+\def\vp{\varphi}
+\def\ov{\overline}
+\def\n{{\bf }}
+
+
+\def\k{\kappa}
+\def\[{\Bigl [}
+  \def\]{\Bigr ]}
+\def\({\Bigl (}
+\def\){\Bigr )}
+\def\[{\Bigl [}
+  \def\]{\Bigr ]}
+\def\({\Bigl (}
+\def\){\Bigr )}
+\def\l{\iota}
+\def\L{\Lambda}
+\def\div{{\mbox{\rm div}}}
+\def\dsp{\displaystyle}
+\def\K{{\bf K}}
+\def\x{{\bf x}}
+\def\y{{\bf y}}
+\def\n{{\bf n}}
+\def\s{{\bf s}}
+\def\F{{\bf F}}
+\def\g{{\bf g}}
+\def\U{{\bf U}}
+\def\V{{\bf V}}
+\def\u{{\bf q}}
+\def\q{{\bf q}}
+\def\v{{\bf r}}
+\def\G{{\Gamma}}
+
+\def\D{{\cal D}}
+\def\cells{{\cal M}}
+\def\faces{{\cal F}}
+\def\nodes{{\cal V}}
+\def\edges{{\cal E}}
+\def\T{{\cal T}}
+\def\I{{\cal I}}
+\def\FG{{{\cal F}_\Gamma}}
+
+\def\O{{\Omega}}
+
+\def\PiT{\Pi_{\cal T}}
+\def\PiT{\Pi_{\cal T}}
+\def\PiTdt{\Pi_{{\cal T},\Delta t}}
+\def\PiD{\Pi_{\cal M}}
+\def\PiDdt{\Pi_{{\cal M},\Delta t}}
+
+\def\PiG{\Pi_{\FG}}
+
+\def\Dm{ {\cells^{(m)}} }
+\def\Gm{ {\FG^{(m)}} }
+\def\Gim{ {\faces_{\G_i}^{(m)}} }
+\def\Tm{ {{\cal T}^{(m)}} }
+
+\def\Palim{{\overline u^\alpha}}
+\def\Polim{{\overline u^1}}
+\def\Pwlim{{\overline u^2}}
+
+\def\to{\rightarrow} 
+\def\weakto{\rightharpoonup} 
+\def\trace{\gamma} 
+
+\def\Y{{\Upsilon}}
+\def\YD{\Y_\D}
+\def\grad{{\nabla}}
+
+
+\def\vm {v^{(m)}}
+\def\vmi {v^{(m)}_i}
+\def\dx {{\rm d}\x}
+
+\def\utss{up to a subsequence}
+\def\Ltwo{\rL^2}
+\def\rL{ {\rm L} }
+
+\newcommand{\average}[1]{\ensuremath{\langle#1\rangle} }
+\newcommand{\jump}[1]{\ensuremath{[\![#1]\!]} }
+\newcommand{\matrices}{{\cafl M}_d(\R)}
+
+\newcommand{\degree}{\ensuremath{^{\circ}}}
+
+% 
+\newtheorem{rmk}{Remark}[section]
+% \newtheorem{definition}{Definition}[section]
+% \newtheorem{lemma}{Lemma}[section]
+% \newtheorem{proposition}{Proposition}[section]
+% \newtheorem{theorem}{Theorem}[section]
+% \newtheorem{corollaire}{Corollaire}[section]
+% \newtheorem{hyp}{Assumption}[section]
+% 
+
+\allowdisplaybreaks
+
+%\newcommand{\XF}[1]{\textcolor{red}{#1}}
+
+\begin{document}
+
+Let us denote by $R_\nu(X_\D)$ the vector $\(R_{\nu,i}, \ i \in \mathcal{C}\cup\{e\}\) $, and 
+let us rewrite the conservation equations \eqref{VAGconvcell}, \eqref{VAGconvfrac}, 
+\eqref{VAGconvnode} and the closure laws \eqref{VAG_closure} as well 
+as the boundary conditions in vector form defining the following 
+non-linear system at each time step $n=1,2,...,N_T$
+%
+\begin{eqnarray}
+\label{NonLinearSystem}
+\mathbf{0} = \mathcal{R} (X_\D) := 
+\left\{\begin{array}{llllll}
+\left(\begin{array}{c}
+R_{\s} (X_\D) \\
+L_\s (X_s)
+\end{array}\right) 
+\ \s \in \nodes, \\
+\left(\begin{array}{c}
+R_{\sigma} (X_\D) \\
+L_\sigma (X_\sigma)
+\end{array}\right) 
+\ \sigma \in \faces_\Gamma, \\
+\left(\begin{array}{c}
+R_{K} (X_\D) \\
+L_K (X_K)
+\end{array}\right) 
+\ K \in \cells,
+\end{array}\right.
+\end{eqnarray}
+%
+where the superscript $n$ is dropped to simplify the notations 
+and where the Dirichlet boundary conditions 
+have been included at each Dirichlet node $\s\in {\cal V}_D$ in order to 
+obtain a system size independent on the boundary conditions. 
+
+ 
+The elimination of the local closure laws (Step 1) is achieved 
+for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns 
+$X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with 
+$$
+N^{sd}_\nu =   1 + \# Q_\nu + \sum_{\alpha\in Q_\nu} \#{\cal C}^\alpha 
++\#\overline{\cal C}_{Q_\nu} -\#{\cal C}. 
+$$ 
+For each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}}  $, 
+the secondary unknowns are  chosen in such a way that the square matrix 
+$$
+{\partial L \over \partial X^{sd}_{Q_\nu} } \left(X^{pr}_{Q_\nu},X_{Q_\nu}^{sd}, Q_\nu\right)
+\in \mathbb{R}^{N^{sd}_\nu \times N^{sd}_\nu},  
+$$
+is non-singular. This choice can be done algebraically in the general case, 
+or defined once and for all for each set of present phases $Q_\nu$ 
+for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are 
+always chosen as primary unknowns. 
+
+
+\end{document}
+

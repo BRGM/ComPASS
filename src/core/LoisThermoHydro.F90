@@ -13,33 +13,9 @@ module LoisThermoHydro
   use NumbyContext
   use IncCVReservoir
   use IncCVWells
+  use IncPrimSecd
 
   implicit none
-
-  ! dXssurdXp and SmdXs
-  double precision, allocatable, dimension(:,:,:), protected :: &
-       dXssurdXpCell, &
-       dXssurdXpFrac, &
-       dXssurdXpNode
-
-  double precision, allocatable, dimension(:,:), protected :: &
-       SmdXsCell, &
-       SmdXsFrac, &
-       SmdXsNode
-
-  double precision, allocatable, dimension(:,:), protected :: &
-       SmFCell, &
-       SmFFrac, &
-       SmFNode
-
-  ! num inc prim secd
-  integer, allocatable, dimension(:,:), protected :: &
-       NumIncPTCSPrimCell,  &
-       NumIncPTCSPrimFrac,  &
-       NumIncPTCSPrimNode,  &
-       NumIncPTCSecondCell, &
-       NumIncPTCSecondFrac, &
-       NumIncPTCSecondNode
 
   ! densite massique
   ! Rq important: it contains values for all phases, not only phase present
@@ -190,14 +166,13 @@ module LoisThermoHydro
   private :: &
        LoisThermoHydro_divPrim_cv,             & ! main function for prim divs for each control volume (cv)
        LoisThermoHydro_init_cv,                & ! init infos according to ic (context) for each control volume (cv)
-       LoisThermoHydro_dFsurdX_cv,             & ! compute dF/dX for each cv
-       LoisThermoHydro_ps_cv,                  & ! choose first and second variables for each cv
-       LoisThermoHydro_dXssurdXp_cv,           & ! compute dFs/dXp
                                 !
+       LoisThermoHydro_fill_gradient_dfdX,     & ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
+       LoisThermoHydro_dfdX_ps,                & ! fill dfdX_prim/dfdX_secd with the derivatives w.r.t. the primary/secondary unknowns 
        LoisThermoHydro_Densitemolaire_cv,      & ! prim divs: densitemolaire
        LoisThermoHydro_Viscosite_cv,           & !            1/viscosite
        LoisThermoHydro_PermRel_cv,             & !            Permrel
-       LoisThermoHydro_Pression_cv,            & !            Pression
+       LoisThermoHydro_Inc_cv,                 & !            called with Pression and Temperature
        LoisThermoHydro_PressionCapillaire_cv,  & !            Pressioncapillaire
        LoisThermoHydro_Saturation_cv,          & !            Saturation
                                 !
@@ -210,7 +185,6 @@ module LoisThermoHydro
 #ifdef _THERMIQUE_
 
   private :: &
-       LoisThermoHydro_Temperature_cv,     &
        LoisThermoHydro_EnergieInterne_cv,  & !  Enthalpie
        LoisThermoHydro_Enthalpie_cv
 #endif
@@ -407,19 +381,20 @@ contains
     ! input
     type(TYPE_IncCVReservoir), intent(in) :: inc
 
-    integer, intent(in) :: rt(IndThermique+1)
+    integer, intent(in) :: rt (IndThermique+1)
 
-    ! output
-
-    integer, intent(out) ::  &
+    integer, intent(in) ::  &
          NumIncPTCSPrimCV (NbIncPTCSPrimMax),  &
          NumIncPTCSecondCV (NbEqFermetureMax)
 
-    double precision, intent(out) :: &
-                                !
+    double precision, intent(in) :: &
          dXssurdXp (NbIncPTCSPrimMax, NbEqFermetureMax), & ! (col,row) index order
          SmdXs (NbEqFermetureMax), &
-         SmF (NbEqFermetureMax),   &
+         SmF (NbEqFermetureMax)
+
+    ! output
+
+    double precision, intent(out) :: &
                                 !
          DensiteMassique (NbPhase), &
          divDensiteMassique (NbIncPTCSPrimMax, NbPhase), &
@@ -454,9 +429,6 @@ contains
 
     ! tmp
     double precision :: &
-         dFsurdX( NbIncPTCSMax, NbEqFermetureMax) ! (col,row) index order
-
-    double precision :: &
          DensiteMolaire(NbPhase), &
          divDensiteMolaire(NbIncPTCSPrimMax, NbPhase), &
          SmDensiteMolaire(NbPhase), &
@@ -482,18 +454,6 @@ contains
     ! init tmp values for each cv
     call LoisThermoHydro_init_cv(inc)
 
-    ! compute dF/dX
-    ! dFsurdX: (col, row) index order
-    call LoisThermoHydro_dFsurdX_cv(inc, rt, dFsurdX, SmF)
-
-    ! choose inconnues prim and secd
-    call LoisThermoHydro_ps_cv(inc, dFsurdX, pschoice, &
-         NumIncPTCSPrimCV, NumIncPTCSecondCV)
-
-    ! compute dXssurdxp
-    call LoisThermoHydro_dXssurdXp_cv(inc, dFsurdX, SmF, &
-         NumIncPTCSPrimCV, NumIncPTCSecondCV, dXssurdXp, SmdXs)
-
     ! viscosite
     call LoisThermoHydro_viscosite_cv(inc, dXssurdXp, SmdXs, &
          NumIncPTCSPrimCV, NumIncPTCSecondCV, &
@@ -512,8 +472,8 @@ contains
     ! PermRel
     call LoisThermoHydro_PermRel_cv(inc, rt, PermRel, divPermRel)
 
-    ! Pression
-    call LoisThermoHydro_Pression_cv(inc, &
+    ! Pression (unknown index is 1)
+    call LoisThermoHydro_Inc_cv(1, inc, &
          NumIncPTCSPrimCV, NumIncPTCSecondCV, &
          dXssurdXp, SmdXs,  &
          divPression, SmPression)
@@ -547,8 +507,8 @@ contains
 
 #ifdef _THERMIQUE_
 
-    ! Temperature
-    call LoisThermoHydro_Temperature_cv(inc, &
+    ! Temperature (unknown index is 2)
+    call LoisThermoHydro_Inc_cv(2, inc, &
          NumIncPTCSPrimCV, NumIncPTCSecondCV, &
          dXssurdXp, SmdXs,  &
          divTemperature, SmTemperature)
@@ -729,268 +689,64 @@ contains
 
   end subroutine LoisThermoHydro_init_cv
 
-
-  ! compute dFsurdX for each control volume
-  subroutine LoisThermoHydro_dFsurdX_cv(inc, rt, dFsurdX, SmF)
-
-    type(TYPE_IncCVReservoir), intent(in) :: inc
-    integer, intent(in) :: rt(IndThermique+1)
-    double precision, intent(out) :: &  ! (col, row) index order
-         dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
-
-    double precision, intent(out) :: &
-         SmF(NbEqFermetureMax)
-
-    integer :: i, mi, iph, iph1, iph2, icp, j, jph, numj, numc1, numc2
-    double precision :: &
-         f1, dPf1, dTf1, dCf1(NbComp), dSf1(NbPhase), &
-         f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase)
-
-    dFsurdX(:,:) = 0.d0
-    SmF(:) = 0.d0
-
-    ! 1. F = sum_icp C_icp^iph(i) - 1, for i
-
-    ! loop for rows associate with C_icp^iph(i) in dFsurdX
-
-    j = 1 + IndThermique
-
-    do i=1, NbPhasePresente  ! row is i, col is j
-       iph = NumPhasePresente(i)
-
-       do icp=1, NbComp ! loop for cols
-          if(MCP(icp,iph)==1) then
-             j = j + 1
-             dFsurdX(j,i) = 1.d0
-
-             SmF(i) = SmF(i) + inc%Comp(icp,iph)
-          end if
-       end do
-    enddo
-
-    do i=1, NbPhasePresente
-       SmF(i) = SmF(i) - 1.d0
-    end do
-
-    mi = NbPhasePresente ! row is mi+i
-
-    ! 2. F = f_i^alpha * C_i^alpha - f_i^beta * C_i^beta
-    do i=1, NbEqEquilibre !
-
-       icp = NumCompEqEquilibre(i) ! component
-
-       iph1 = Num2PhasesEqEquilibre(1,i) ! phase alpha
-       iph2 = Num2PhasesEqEquilibre(2,i) ! phase beta
-
-       numc1 = NumIncComp2NumIncPTC(icp,iph1) ! num of C_i^alpha in IncPTC
-       numc2 = NumIncComp2NumIncPTC(icp,iph2) ! num of C_i^beta in IncPTC
-
-       ! fugacity and div
-       call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
-            inc%Comp(:,iph1), inc%Saturation, &
-            f1, dPf1, dTf1, dCf1, dSf1)
-       call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
-            inc%Comp(:,iph2), inc%Saturation, &
-            f2, dPf2, dTf2, dCf2, dSf2)
-
-       ! div Pression
-       dFsurdX(1,i+mi) = dPf1*inc%Comp(icp,iph1) - dPf2*inc%Comp(icp,iph2)
-
-#ifdef _THERMIQUE_
-
-       ! div Temperature
-       dFsurdX(2,i+mi) = dTf1*inc%Comp(icp,iph1) - dTf2*inc%Comp(icp,iph2)
-#endif
-
-       ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
-       ! d (f(P,T,C)*C_i)/dC_j = df/dC_i*C_j, j!=i
-       dFsurdX(numc1, i+mi) = f1
-
-       do j=1, NbComp
-          if(MCP(j,iph1)==1) then ! phase iph1 contains component j
-
-             numj = NumIncComp2NumIncPTC(j,iph1) ! num of C_j^iph1 in Inc
-             dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-                  + inc%Comp(j,iph1)*dCf1(j)
-          end if
-       end do
-
-       dFsurdX(numc2,i+mi) = -f2
-
-       do j=1, NbComp
-          if(MCP(j,iph2)==1) then ! phase iph1 contains component j
-
-             numj = NumIncComp2NumIncPTC(j,iph2) ! num of C_j^iph2 in Inc
-             dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-                  - inc%Comp(j,iph2)*dCf2(j)
-          end if
-       end do
-
-       ! div Saturation
-       do j=1, NbPhasePresente-1 ! row is i, col is j
-         numj = j + NbIncPTC
-         jph = NumPhasePresente(j)
-
-         dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-           + dSf1(jph)*inc%Comp(icp,iph1) - dSf2(jph)*inc%Comp(icp,iph2)
-       end do
-
-       ! div Saturation secondaire
-       jph = NumPhasePresente(NbPhasePresente)
-       do j=1, NbPhasePresente-1 ! row is i, col is j
-         numj = j + NbIncPTC
-
-         dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-           - dSf1(jph)*inc%Comp(icp,iph1) + dSf2(jph)*inc%Comp(icp,iph2)
-       end do
-
-       ! SmF
-       SmF(i+mi) = f1*inc%Comp(icp,iph1) - f2*inc%Comp(icp,iph2)
-    end do
-
-  end subroutine LoisThermoHydro_dFsurdX_cv
-
-
-  ! choose primary and secondary unknowns for each CV
-  ! fill inc%Nb/NumIncPrim/Secd
-  subroutine LoisThermoHydro_ps_cv(inc, dFsurdX, pschoicecv, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
-
-    type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
-    integer, intent(in) :: pschoicecv
-    integer, intent(out) :: NumIncPTCSPrimCV( NbIncPTCSPrimMax)
-    integer, intent(out) :: NumIncPTCSecondCV( NbEqFermetureMax)
-
-    integer :: i, ic
-
-    NumIncPTCSPrimCV(:) = 0
-    NumIncPTCSecondCV(:) = 0
-
-    if(pschoicecv==1) then ! manually
-
-       ic = inc%ic
-
-       ! prim variable
-       do i=1, NbIncPTCSPrim_ctx(ic)
-          NumIncPTCSPrimCV(i) = psprim(i,ic)
-       end do
-
-       ! secd variable
-       do i=1, NbEqFermeture_ctx(ic)
-          NumIncPTCSecondCV(i) = pssecd(i,ic)
-       end do
-
-    else if(pschoicecv==2) then ! Glouton method
-       ! call LoisThermoHydro_IncSecondGluton(inc, dFsurdX, &
-       ! NumIncPTCSPrimCV, NumIncPTCSecondCV)
-
-    else if (pschoicecv==3) then ! Gauss method
-       call LoisThermoHydro_IncSecondGauss(inc, dFsurdX, &
-            NumIncPTCSPrimCV, NumIncPTCSecondCV)
-    end if
-
-  end subroutine LoisThermoHydro_ps_cv
-
-
-  ! dXssurdXp = dFsurdXs**(-1) * dFsurdXp
-  subroutine LoisThermoHydro_dXssurdXp_cv(inc, dFsurdX, SmF, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV, dXssurdXp, SmdXs)
-
-    ! inputs
-    type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) ::  & ! (col, row) index order
-         dFsurdX(NbIncPTCSMax, NbEqFermetureMax), &
-         SmF(NbEqFermetureMax)
-
-    integer, intent(in) :: &
-         NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
-         NumIncPTCSecondCV(NbEqFermetureMax)
-
-    ! output
-    double precision, intent(out) :: & ! (col, row) index order
-         dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
+  ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
+  subroutine LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+   integer, intent(in) :: iph ! num of phase
+    double precision, intent(in) :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
+    double precision, intent(out) :: dfdX(NbIncPTCSMax)
 
     ! tmp
-    double precision :: & ! (row,col) index order, lapack
-         dFsurdX_prim(NbEqFermetureMax, NbIncPTCSPrimMax), &
-         dFsurdX_secd(NbEqFermetureMax, NbEqFermetureMax)
+    integer :: j, jc
 
-    ! parameters for lapack
-    integer :: ipiv(NbEqFermetureMax), info, Ierr, errcode
-    integer :: i, j, iph
+    dfdX(:) = 0.d0
 
-    ! from dFsurdX, take out the cols of prim and secd variable
+    dfdX(1) = dPf  ! P
+
+#ifdef _THERMIQUE_
+    dfdX(2) = dTf
+#endif
+
+    do j=1, NbComp
+         if(MCP(j,iph)==1) then
+            jc = NumIncComp2NumIncPTC(j,iph)
+            dfdX(jc) = dCf(j)
+         end if
+    enddo
+    
+    do j=1, NbPhase ! S
+         jc = j + NbIncPTC
+         dfdX(jc) = dSf(j)
+    enddo
+    
+  end subroutine LoisThermoHydro_fill_gradient_dfdX
+
+  subroutine LoisThermoHydro_dfdX_ps(iph, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+       dfdX_prim, dfdX_secd)
+
+    ! input 
+    integer, intent(in) :: iph ! num of phase
+    integer, intent(in) :: &
+      NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
+      NumIncPTCSecondCV(NbEqFermetureMax)
+    double precision, intent(in) :: dfdX(NbIncPTCSMax)  ! dfdX = (df/dP, df/dT, df/dC, df/dS)
+    ! output
+    double precision, intent(out) :: &
+      dfdX_prim(NbIncPTCSPrimMax, NbPhase), &
+      dfdX_secd(NbIncPTCSecondMax, NbPhase)
+
+    ! tmp
+      integer :: j
+  
+    ! prim and secd part of dfdX
     do j=1, NbIncPTCSPrim
-       do i=1, NbEqFermeture
-          dFsurdX_prim(i,j) = dFsurdX(NumIncPTCSPrimCV(j),i)
-       enddo
-    enddo
-
-    do j=1, NbEqFermeture ! = NbIncPTCSecond
-       do i=1, NbEqFermeture
-          dFsurdX_secd(i,j) = dFsurdX(NumIncPTCSecondCV(j),i)
-       enddo
-    enddo
-
-    ! dXssurdXp = dFsurdXs**(-1) * dFsurdXp
-    call dgetrf(NbEqFermeture, NbEqFermeture, &
-         dFsurdX_secd, NbEqFermetureMax, ipiv, info)
-
-    if(info /=0) then
-       write(0,'(A,I0)') "dgetrf error in dXssurdxp, info = ", info
-
-       write(*,*)' inc ic ',inc%ic
-       write(*,*)' inc P ',inc%Pression
-       write(*,*)' inc T ',inc%Temperature
-       write(*,*)' Sat ',inc%Saturation
-       DO i=1,NbPhasePresente
-         iph = NumPhasePresente(i)
-         write(*,*)' phase  ', iph
-         write(*,*)' C_i  ',inc%Comp(:,iph)
-       ENDDO
-       write(*,*)
-
-    do i=1, NbEqFermeture ! = NbIncPTCSecond
-       do j=1, NbEqFermeture
-          write(*,*)' dFsurdXs ',i,j,dFsurdX(NumIncPTCSecondCV(j),i)
-       enddo
-       write(*,*)
-    enddo
-
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-
-    call dgetrs('N', NbEqFermeture, NbIncPTCSPrim, &
-         dFsurdX_secd, NbEqFermetureMax, &
-         ipiv, dFsurdX_prim, NbEqFermetureMax, info)
-    if(info /=0) then
-       write(0,'(A,I0)') "dgetrs error in dXssurdxp, info = ", info
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-
-    do j=1, NbIncPTCSPrim
-       do i=1, NbEqFermeture
-          dXssurdXp(j,i) = dFsurdX_prim(i,j)
-       enddo
-    enddo
-
-    ! SmdXs = dFsurdXs**(-1) * SmF
-    call dgetrs('N', NbEqFermeture, 1, &
-         dFsurdX_secd, NbEqFermetureMax, &
-         ipiv, SmF, NbEqFermetureMax, info)
-    if(info /=0) then
-       write(0,'(A,I0)') "dgetrs error in SmdXs, info = ", info
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
-
-    do i=1, NbEqFermeture
-       SmdXs(i) = SmF(i)
+      dfdX_prim(j,iph) = dfdX(NumIncPTCSPrimCV(j))
     end do
 
-  end subroutine LoisThermoHydro_dXssurdXp_cv
+    do j=1, NbIncPTCSecond ! = NbEqFermeture
+         dfdX_secd(j,iph) = dfdX(NumIncPTCSecondCV(j))
+    end do
 
+  end subroutine LoisThermoHydro_dfdX_ps
 
   subroutine LoisThermoHydro_densitemassique_cv(inc, dXssurdXp, SmdXs, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
@@ -1015,7 +771,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase) !=NbEqFermetureMax
 
-    integer :: iph, i, j, jc
+    integer :: iph, i
 
     ! 1. val
     ! 2. dval
@@ -1044,36 +800,12 @@ contains
        val(iph) = f ! val
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(1) = dPf  ! P
+       call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
 
-#ifdef _THERMIQUE_
-       dfdX(2) = dTf
-#endif
-
-       do j= 2+IndThermique, NbIncPTC ! C
-          dfdX(j) = 0.d0
-       enddo
-       do j=1, NbComp
-          if(MCP(j,iph)==1) then
-             jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j)
-          end if
-       enddo
-
-       do j=1, NbPhase ! S
-          jc = j + NbIncPTC
-          dfdX(jc) = dSf(j)
-       enddo
-
-       ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j,iph) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
-
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j,iph) = dfdX( NumIncPTCSecondCV(j))
-       end do
-
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(iph, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
@@ -1116,8 +848,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    double precision :: f2 ! =f**2
-    integer :: i, iph, j, jc
+    integer :: i, iph
 
     ! 1. val
     ! 2. dval
@@ -1137,38 +868,15 @@ contains
             f, dPf, dTf, dCf, dSf)
 
        val(i) = 1.d0/f ! val
-       f2 = f**2
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(1) = -dPf/f2  ! P
+       call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+       dfdX(:) = -dfdX(:)/f**2
 
-#ifdef _THERMIQUE_
-       dfdX(2) = -dTf/f2
-#endif
-
-       do j= 2+IndThermique, NbIncPTC ! C
-          dfdX(j) = 0.d0
-       enddo
-       do j=1, NbComp
-          if(MCP(j,iph)==1) then
-             jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = -dCf(j)/f2
-          end if
-       enddo
-
-       do j=1, NbPhase ! S
-          jc = j + NbIncPTC
-          dfdX(jc) = -dSf(j)/f2
-       enddo
-
-       ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j,i) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
-
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j,i) = dfdX( NumIncPTCSecondCV(j))
-       end do
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(i, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
 
     !print*, SmdXs
@@ -1213,7 +921,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, iph, j, jc
+    integer :: i, iph
 
     ! 1. val
     ! 2. dval
@@ -1235,36 +943,12 @@ contains
        val(i) = f ! val
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(1) = dPf  ! P
+       call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
 
-#ifdef _THERMIQUE_
-       dfdX(2) = dTf
-#endif
-
-       do j= 2+IndThermique, NbIncPTC ! C
-          dfdX(j) = 0.d0
-       enddo
-       do j=1, NbComp
-          if(MCP(j,iph)==1) then
-             jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j)
-          end if
-       enddo
-
-       do j=1, NbPhase ! S
-          jc = j + NbIncPTC
-          dfdX(jc) = dSf(j)
-       enddo
-
-       ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j,i) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
-
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j,i) = dfdX( NumIncPTCSecondCV(j))
-       end do
-
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(i, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=densitemolaire
@@ -1321,13 +1005,13 @@ contains
 
   end subroutine LoisThermoHydro_PermRel_cv
 
-
-  subroutine LoisThermoHydro_Pression_cv( inc, &
+  subroutine LoisThermoHydro_Inc_cv(index_inc, inc, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV, &
        dXssurdXp, SmdXs, &
        dval, Smval)
 
     ! input
+    integer, intent(in) :: index_inc
     type(TYPE_IncCVReservoir), intent(in)  :: inc
     integer, intent(in) :: &
          NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
@@ -1345,22 +1029,23 @@ contains
 
     dval(:) = 0.d0
 
-    IF(ANY(NumIncPTCSPrimCV == 1))THEN ! P is prim
+    IF(ANY(NumIncPTCSPrimCV == index_inc))THEN ! index_inc (P or T) is prim
       do i=1,NbIncPTCSPrimMax
-        if (NumIncPTCSPrimCV(i) == 1) then
+        if (NumIncPTCSPrimCV(i) == index_inc) then
           dval(i) = 1.d0
           Smval = 0.d0
         endif
       enddo
-    ELSE IF(ANY(NumIncPTCSecondCV == 1))THEN ! P is secd
+    ELSE IF(ANY(NumIncPTCSecondCV == index_inc))THEN ! index_inc (P or T) is secd
       do i=1,NbEqFermeture
-        if (NumIncPTCSecondCV(i) == 1) then
+        if (NumIncPTCSecondCV(i) == index_inc) then
           dval(:) = - dXssurdXp(:,i)
           Smval = - SmdXs(i)
         endif
       enddo
-    ELSE ! P not found
-      write(*,*)' pb dans derprim, P non trouvee '
+    ELSE ! index_inc (P or T) not found
+      if(index_inc == 1) write(*,*)' pb in derprim, P not found '
+      if(index_inc == 2) write(*,*)' pb in derprim, T not found '
       write(*,*)' primary unknown'
       write(*,*) NumIncPTCSPrimCV
       write(*,*)' secondary unknown'
@@ -1368,7 +1053,7 @@ contains
       stop
     ENDIF
 
-  end subroutine LoisThermoHydro_Pression_cv
+  end subroutine LoisThermoHydro_Inc_cv
 
 
 
@@ -1490,7 +1175,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, iph, j, jc
+    integer :: i, iph
 
     ! 1. val
     ! 2. dval
@@ -1512,35 +1197,12 @@ contains
        val(i) = f ! val
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(1) = dPf  ! P
+       call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
 
-#ifdef _THERMIQUE_
-       dfdX(2) = dTf
-#endif
-
-       do j= 2+IndThermique, NbIncPTC ! C
-          dfdX(j) = 0.d0
-       enddo
-       do j=1, NbComp
-          if(MCP(j,iph)==1) then
-             jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j)
-          end if
-       enddo
-
-       do j=1, NbPhase ! S
-          jc = j + NbIncPTC
-          dfdX(jc) = dSf(j)
-       enddo
-
-       ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j,i) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
-
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j,i) = dfdX( NumIncPTCSecondCV(j))
-       end do
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(i, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=energieinterne
@@ -1556,66 +1218,6 @@ contains
          SmdXs, 1, 0.d0, Smval, 1)
 
   end subroutine LoisThermoHydro_EnergieInterne_cv
-
-#endif
-
-
-#ifdef _THERMIQUE_
-
-  subroutine LoisThermoHydro_Temperature_cv( inc, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV, &
-       dXssurdXp, SmdXs, &
-       dval, Smval)
-
-    ! input
-    type(TYPE_IncCVReservoir), intent(in)  :: inc
-    integer, intent(in) :: &
-         NumIncPTCSPrimCV( NbIncPTCSPrimMax), &
-         NumIncPTCSecondCV( NbEqFermetureMax)
-
-    double precision, intent(in) :: & ! (col, row) index order
-         dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
-
-    ! output
-    double precision, intent(out) :: dval(NbIncPTCSPrimMax)
-    double precision, intent(out) :: Smval
-
-    ! tmp
-    double precision :: f, dPf
-    double precision :: dfdX(NbIncPTCSMax)
-    double precision :: dfdX_secd(NbIncPTCSecondMax)
-
-    integer :: i
-
-    dval(:) = 0.d0
-    Smval = 0.d0
-
-    IF(ANY(NumIncPTCSPrimCV == 2))THEN ! T is prim
-      do i=1,NbIncPTCSPrimMax
-        if (NumIncPTCSPrimCV(i) == 2) then
-          dval(i) = 1.d0
-          Smval = 0.d0
-        endif
-      enddo
-    ELSE IF(ANY(NumIncPTCSecondCV == 2))THEN ! T is secd
-      do i=1,NbEqFermeture
-        if (NumIncPTCSecondCV(i) == 2) then
-          dval(:) = - dXssurdXp(:,i)
-          Smval = - SmdXs(i)
-        endif
-      enddo
-    ELSE ! T not found
-      write(*,*)' pb dans derprim, T non trouvee '
-      write(*,*)' primary unknown'
-      write(*,*) NumIncPTCSPrimCV
-      write(*,*)' secondary unknown'
-      write(*,*) NumIncPTCSecondCV
-      stop
-    ENDIF
-
-  end subroutine LoisThermoHydro_Temperature_cv
-
 
   subroutine LoisThermoHydro_Enthalpie_cv(inc, dXssurdXp, SmdXs, &
        NumIncPTCSPrimCV, NumIncPTCSecondCV, val, dval, Smval)
@@ -1640,7 +1242,7 @@ contains
     double precision :: dfdX(NbIncPTCSMax)
     double precision :: dfdX_secd(NbIncPTCSecondMax, NbPhase)
 
-    integer :: i, iph, j, jc
+    integer :: i, iph
 
     ! 1. val
     ! 2. dval
@@ -1662,35 +1264,12 @@ contains
        val(i) = f ! val
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-       dfdX(1) = dPf  ! P
+       call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
 
-#ifdef _THERMIQUE_
-       dfdX(2) = dTf
-#endif
-
-       do j= 2+IndThermique, NbIncPTC ! C
-          dfdX(j) = 0.d0
-       enddo
-       do j=1, NbComp
-          if(MCP(j,iph)==1) then
-             jc = NumIncComp2NumIncPTC(j,iph)
-             dfdX(jc) = dCf(j)
-          end if
-       enddo
-
-       do j=1, NbPhase ! S
-          jc = j + NbIncPTC
-          dfdX(jc) = dSf(j)
-       enddo
-
-       ! prim and secd part of dfdX
-       do j=1, NbIncPTCSPrim
-          dval(j,i) = dfdX( NumIncPTCSPrimCV(j)) ! dval=dfdX_prim
-       end do
-
-       do j=1, NbIncPTCSecond ! = NbEqFermeture
-          dfdX_secd(j,i) = dfdX( NumIncPTCSecondCV(j))
-       end do
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(i, NumIncPTCSPrimCV, NumIncPTCSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
 
     ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
@@ -2033,7 +1612,7 @@ contains
        do icp=1, NbComp
 
           ! only {alpha | alpha \in Q_k \cap P_i} is useful
-          ! To understant better, change the order of the loop do i=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do i=.. and the loop do icp=..
           if(MCP(icp,iph)==1) then ! P_i
              val(icp,i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
                   * inc%Comp(icp,iph)
@@ -2268,369 +1847,6 @@ contains
   end subroutine LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv
 
 
-  ! Choix des inconnues primaires et secondaires
-  !  a partir de la matrice dFsurdX par algorithme glouton
-  !  minimisant les angles successifs
-  subroutine LoisThermoHydro_IncSecondGlouton(inc, dFsurdX, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
-
-    ! input
-    type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
-
-    ! output
-    integer, intent(out) :: NumIncPTCSPrimCV(NbEqFermetureMax)
-    integer, intent(out) :: NumIncPTCSecondCV(NbIncPTCSMax)
-
-    ! tmp
-    double precision :: &
-         dFsurdXnrm2(NbIncPTCSMax), &
-         ctrit(NbIncPTCSMax), ctrit_max
-
-    integer :: ctrit_maxidxs(NbIncPTCSMax)
-
-    double precision :: rnormProjVinc, ss
-
-    double precision :: &
-         BaseOrthonormale( NbEqFermetureMax, NbIncPTCSMax)
-
-    integer :: is, i, j, nj, j1
-
-    ! two steps for NumIncPTCSecondcv
-    ! 1. first
-    ! 2. others
-
-    ! dFsurdXnrm2(i): norm 2 of line i of dFsurdX
-    do j=1, NbIncPTCS
-       do i=1, NbEqFermeture
-          dFsurdXnrm2(j) = dFsurdXnrm2(j) + dFsurdX(j,i)**2
-       end do
-       dFsurdXnrm2(j) = dsqrt(dFsurdXnrm2(j))
-    end do
-
-    ! loop for choosing secd inconnues (size is NbEqFermeture), index: is
-    do is=1, NbEqFermeture
-
-       ! compute ctrit
-       if(is==1) then
-
-          ctrit(:) = dFsurdXnrm2(:)
-       else !
-
-          do j=1, NbIncPTCS ! i: loop index of P T C S
-
-             ss = 0.d0
-             do i=1, NbEqFermeture
-                ss = ss + BaseOrthonormale(i,j)*dFsurdX(j,i)
-             end do
-
-             rnormProjVinc = rnormProjVinc + ss**2
-          end do
-
-          rnormProjVinc = sqrt(rnormProjVinc)
-
-          ! maximise distance = rnormeVinc - rnormeProjVinc
-          !   where rnormVinc = dFsurdXnrm2(j)
-          ctrit(is) = dFsurdXnrm2(is) - rnormProjVinc
-       end if
-
-       ! max of ctrit
-       ctrit_max = -100.d0
-       do j=1, NbIncPTC
-          if(ctrit(j)>ctrit_max) then
-             ctrit_max = ctrit(j)
-          end if
-       end do
-
-       ! ctrit_maxidxs: all elements that takes the max value
-       nj = 0
-       do j=1, NbIncPTCS
-          if(abs(ctrit(j)-ctrit_max)<eps) then
-             ctrit_maxidxs(nj) = j
-             nj = nj + 1
-          end if
-       end do
-
-       ! which one is second ? (i1, j1)
-       NumIncPTCSecondCV(is) = j1
-
-       ! update BaseOrthonomale
-       do j=1, NbEqFermeture
-          BaseOrthonormale(j,is) = dFsurdX(is,j)
-       end do
-
-       do i=1, is-1
-
-          ss = 0.d0
-          do j=1, NbEqFermeture
-             ss = ss + BaseOrthonormale(j,i)*dFsurdX(is,j)
-          end do
-
-          BaseOrthonormale(:,is) = &
-               BaseOrthonormale(:,is) - ss*BaseOrthonormale(:,i)
-       end do
-
-       ! normalisation
-       ss = 0.d0
-       do j=1, NbEqFermeture
-          ss = ss + BaseOrthonormale(j,is)**2
-       enddo
-
-       ss = dsqrt(ss)
-       do j =1, NbEqFermeture
-          BaseOrthonormale(j,is) = BaseOrthonormale(j,is)/ss
-       enddo
-
-    end do ! end loop of is for choosing second inconnues
-
-    ! TODO
-
-  end subroutine LoisThermoHydro_IncSecondGlouton
-
-
-  !
-  subroutine LoisThermoHydro_IncSecondGauss(inc, dFsurdX, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
-
-    ! input
-    type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
-
-    ! output
-    integer, intent(out) :: NumIncPTCSPrimCV(NbIncPTCSPrimMax)
-    integer, intent(out) :: NumIncPTCSecondCV(NbEqFermetureMax)
-
-    ! tmps
-    double precision :: &
-         BB(NbIncPTCSMax, NbEqFermetureMax) ! copy of dFsurdX
-
-    double precision :: pivotmax
-    integer :: npivot, pivot(2, NbEqFermetureMax*NbIncPTCSMax) ! ??? size
-    logical :: pivot_P, pivot_T
-
-    integer :: & ! E^{eq}, E^{inc}
-         NbSetInc, &
-         NbSetEq,  &
-         NumSetInc(NbIncPTCSMax),   &
-         NumSetEq(NbEqFermetureMax)
-
-    logical :: &
-         NumIncPTCSPrim_idx(NbIncPTCSMax)
-
-    integer :: is, i, j, numi, numj, n
-    integer :: i1, j1, icp, iph, icp1, iph1, k
-
-    ! 1. NumIncPTCSecondcv
-    !    1.1 choose secd in (P,T,C), Gauss
-    !    1.2 choose secd in S, the first is secd
-    ! 2. NumIncPTCSPrimcv
-
-    ! 1.1 choose secd in (P,T,C), Gauss
-
-    ! if(commRank==0) then
-    !    do i=1, NbEqFermeture
-    !       do j=1, NbIncPTC
-    !          print*, dFsurdX(j,i)
-    !       end do
-    !       print*, ""
-    !    end do
-    ! end if
-
-    ! init set of inconnus and equations
-    NbSetInc = NbIncPTC
-    NbSetEq  = NbEqFermeture
-
-    do j=1, NbSetInc
-       NumSetInc(j) = j
-    end do
-
-    do i=1, NbSetEq
-       NumSetEq(i) = i
-    end do
-
-    BB(:,:) = dFsurdX(:,:) ! (col, row) index order
-
-    do is=1, NbEqFermeture ! = nb of secd inconnues
-
-       ! max element of abs(BB(:,:))
-       pivotmax = -1.d0
-       do numi=1, NbSetEq
-          i = NumSetEq(numi)
-
-          do numj=1, NbSetInc
-             j = NumSetInc(numj)
-
-             if(abs(BB(j,i))>pivotmax) then
-                pivotmax = abs(BB(j,i))
-             end if
-          end do
-       end do
-
-
-       ! set of element (BB) that takes the maximum value
-       npivot = 0
-       pivot_P = .false.
-       pivot_T = .false.
-
-       do numi=1, NbSetEq
-          i = NumSetEq(numi)
-
-          do numj=1, NbSetInc
-             j = NumSetInc(numj)
-
-             if(abs(abs(BB(j,i))-pivotmax)<eps) then
-
-                npivot = npivot + 1
-
-                pivot(1,npivot) = i ! num eq in BB, not in subset of BB
-                pivot(2,npivot) = j ! num inc in BB, not in subset of BB
-
-                ! check if j is P or T
-                if(j==1) then
-                   pivot_P = .true.
-                else if(j==2) then
-                   pivot_T = .true.
-                end if
-             end if
-
-          end do
-       end do
-
-       ! if(commRank==1 .and. is==2) then
-       !    print*, pivotmax, npivot
-       !    do j=1, npivot
-       !       print*, pivot(1,j), pivot(2,j)
-       !    end do
-       !    !print*, ""
-       ! end if
-
-
-       ! choose (i1,j1) is in set pivot(:,),
-       ! (i1,j1) is num of BB, not subset of BB
-
-       ! sinon on prend T si elle est dans l'ensemble des pivots max
-       if(pivot_T .eqv. .true.) then
-
-          do k=1, npivot
-             if(pivot(2,k)==2) then
-                i1 = pivot(1,k)
-                j1 = 2
-             end if
-          end do
-
-          NumIncPTCSecondCV(is) = 2 ! j1=2
-       else
-          ! sinon on prend la plus grande composition dans la phase
-          ! avec la plus petite saturation
-
-          i1 = pivot(1,1) ! num of Eq
-          j1 = pivot(2,1) ! num of Inc
-          icp1 = NumIncPTC2NumIncComp_comp(j1)
-          iph1 = NumIncPTC2NumIncComp_phase(j1)
-
-          ! if(is==2 .and. commRank==1) then
-          !    print*,"init", i1, j1
-          ! end if
-
-          do k=2, npivot
-
-             i = pivot(1,k)
-             j = pivot(2,k)
-             icp = NumIncPTC2NumIncComp_comp(j)  ! icp in C_{icp}^iph
-             iph = NumIncPTC2NumIncComp_phase(j) ! iph in C_{icp}^iph
-
-             !              if(commRank==1 .and. is==2) then
-             ! !                print*, i1,j1
-             !                 print*, & !i, j ,inc%Saturation(iph), inc%Saturation(iph1), &
-             !                      icp, iph, j!, inc%Comp(icp,iph), inc%Comp(icp1, iph1)
-             !                 print*, ""
-             !              end if
-
-             ! update (i1, j1)
-             if(inc%Saturation(iph)<inc%Saturation(iph1)) then ! if < (Saturation)
-                i1 = i
-                j1 = j
-                icp1 = icp
-                iph1 = iph
-
-             else if ( ( abs(inc%Saturation(iph)-inc%Saturation(iph1))<eps)) then ! if = (Saturation) and ...
-                if (inc%Comp(icp,iph) > inc%Comp(icp1,iph1) )  then !
-                   i1 = i
-                   j1 = j
-                   icp1 = icp
-                   iph1 = iph
-                end if
-             end if
-
-          end do
-
-          NumIncPTCSecondCV(is) = j1
-       end if ! end for choosing (i1, j1), NumIncPTCSecondcv(is)=j1
-
-       ! update sets: NumSetInc and NumSetEq, remove (i1, j1)
-       n = 0
-       do i=1, NbSetEq
-          numi = NumSetEq(i)
-
-          if(numi .ne. i1) then
-             n = n + 1
-             NumSetEq(n) = numi
-          end if
-       end do
-       NbSetEq = n
-
-       n = 0
-       do j=1, NbSetInc
-          numj = NumSetInc(j)
-
-          if(numj .ne. j1) then
-             n = n + 1
-             NumSetInc(n) = numj
-          end if
-       end do
-       NbSetInc = n
-
-       ! schur complement
-       do numi=1, NbSetEq
-          i = NumSetEq(numi)
-
-          do numj=1, NbSetInc
-             j = NumSetInc(numj)
-
-             !print*, i1, j1, numi, numj
-
-             BB(j,i) = BB(j,i) &
-                  - BB(j1,i)*BB(j,i1)/BB(j1,i1)
-          end do
-       end do
-
-    end do ! end loop of is
-
-    ! 2. NumIncPTCSPrimcv = {1,2,...,NbIncPTC}/NumIncPTCSecondcv
-    !                       + S^alpha, alpha=1:Nphase-1
-    NumIncPTCSPrim_idx(:) = .true.
-    do j=1, NbEqFermeture
-       NumIncPTCSPrim_idx( NumIncPTCSecondCV(j)) = .false. ! not prim
-    end do
-
-    n = 0
-    do j=1, NbIncPTC
-       if(NumIncPTCSPrim_idx(j) .eqv. .true.) then ! prim
-          n = n + 1
-          NumIncPTCSPrimCV(n) = j
-       end if
-    end do
-
-    ! last S is secd
-    ! if there is only one phase, phase is secd
-    do j=NbIncPTC+1, NbIncPTCS-1
-       n = n + 1
-       NumIncPTCSPrimCV(n) = j
-    end do
-
-  end subroutine LoisThermoHydro_IncSecondGauss
-
-
   subroutine LoisThermoHydro_divP_wellinj(k)
 
     integer, intent(in) :: k
@@ -2698,7 +1914,6 @@ contains
   end subroutine LoisThermoHydro_divP_wellinj
 
 
-
   ! allocate
   subroutine LoisThermoHydro_allocate
 
@@ -2710,28 +1925,7 @@ contains
     nbNodeInj = NodeByWellInjLocal%Pt(NodebyWellInjLocal%Nb+1)
     ! print*, 'LoisThermoHydro_allocate', nbCell, nbFrac, nbNode, nbNodeInj
 
-    ! dXssurdXp and SmdXs
-    allocate( dXssurdXpCell(NbIncPTCSPrimMax, NbEqFermetureMax, nbCell))
-    allocate( dXssurdXpFrac(NbIncPTCSPrimMax, NbEqFermetureMax, nbFrac))
-    allocate( dXssurdXpNode(NbIncPTCSPrimMax, NbEqFermetureMax, nbNode))
-
-    allocate( SmdXsCell(NbEqFermetureMax, nbCell))
-    allocate( SmdXsFrac(NbEqFermetureMax, nbFrac))
-    allocate( SmdXsNode(NbEqFermetureMax, nbNode))
-
-    allocate( SmFCell(NbEqFermetureMax, nbCell))
-    allocate( SmFFrac(NbEqFermetureMax, nbFrac))
-    allocate( SmFNode(NbEqFermetureMax, nbNode))
-
-    ! Num IncPTCSPrim and IncPTCSecond
-    allocate( NumIncPTCSPrimCell(NbIncPTCSPrimMax, nbCell))
-    allocate( NumIncPTCSPrimFrac(NbIncPTCSPrimMax, nbFrac))
-    allocate( NumIncPTCSPrimNode(NbIncPTCSPrimMax, nbNode))
-    allocate( NumIncPTCSecondCell(NbEqFermetureMax,nbCell ))
-    allocate( NumIncPTCSecondFrac(NbEqFermetureMax,nbFrac ))
-    allocate( NumIncPTCSecondNode(NbEqFermetureMax,nbNode ))
-
-    ! deniste massique
+    ! densite massique
     allocate( DensiteMassiqueCell(NbPhase, nbCell))
     allocate( DensiteMassiqueFrac(NbPhase, nbFrac))
     allocate( DensiteMassiqueNode(NbPhase, nbNode))
@@ -2846,31 +2040,7 @@ contains
   ! free
   subroutine LoisThermoHydro_free
 
-    ! dXssurdXp
-    deallocate( dXssurdXpCell)
-    deallocate( dXssurdXpFrac)
-    deallocate( dXssurdXpNode)
-
-    ! Smdxs
-    deallocate( SmdXsCell)
-    deallocate( SmdXsFrac)
-    deallocate( SmdXsNode)
-
-    ! SmF
-    deallocate( SmFCell)
-    deallocate( SmFFrac)
-    deallocate( SmFNode)
-
-
-    ! Num IncPTCSPrim and IncPTCSecond
-    deallocate( NumIncPTCSPrimCell)
-    deallocate( NumIncPTCSPrimFrac)
-    deallocate( NumIncPTCSPrimNode)
-    deallocate( NumIncPTCSecondCell)
-    deallocate( NumIncPTCSecondFrac)
-    deallocate( NumIncPTCSecondNode)
-
-    ! densitemassique
+   ! densite massique
     deallocate( DensiteMassiqueCell)
     deallocate( DensiteMassiqueFrac)
     deallocate( DensiteMassiqueNode)
@@ -2976,204 +2146,5 @@ contains
 #endif
 
   end subroutine LoisThermoHydro_free
-
-  subroutine LoisThermoHydro_PrimToSecd_C(increments_pointers) &
-      bind(C, name="LoisThermoHydro_PrimToSecd")
-
-    type(Newton_increments_pointers), intent(in), value :: increments_pointers
-    type(Newton_increments) :: increments
-
-    call Newton_pointers_to_values(increments_pointers, increments)
-    call LoisThermoHydro_PrimToSecd( &
-       increments%nodes, increments%fractures, increments%cells &
-    )
-
-  end subroutine LoisThermoHydro_PrimToSecd_C
-
-  ! compute prim values using secd values
-  ! secd = SmdX - dXssurdXp * prim
-  subroutine LoisThermoHydro_PrimToSecd( &
-       vnode, vfrac, vcell)
-
-    real(c_double), dimension(:,:), intent(inout) :: &
-         vnode, vfrac, vcell
-
-    double precision :: &
-         xp(NbCompThermique), &
-         xs(NbEqFermetureMax)
-
-    integer :: k, ic, i, iph
-    integer :: &
-         NbPhasePresente, NbEqFermeture, &
-         NbIncPTC, NbIncPTCS, NbIncPTCPrim, NbIncPTCSPrim
-
-    ! node
-    do k=1, NbNodeLocal_Ncpus(commRank+1)
-
-       ic = IncNode(k)%ic
-       NbPhasePresente = NbPhasePresente_ctx(ic)
-       NbEqFermeture = NbEqFermeture_ctx(ic)
-       NbIncPTC  = NbIncPTC_ctx(ic)
-       NbIncPTCS = NbIncPTC_ctx(ic) + NbPhasePresente
-       NbIncPTCSPrim = NbIncPTCSPrim_ctx(ic)
-       NbIncPTCPrim = NbIncPTC - NbEqFermeture
-
-       xp(1:NbCompThermique) = vnode(1:NbCompThermique,k)
-       xs(1:NbEqFermeture) = SmdXsNode(1:NbEqFermeture,k)
-
-       call dgemv('T', NbIncPTCSPrim, NbEqFermeture, &
-            -1.d0, dXssurdXpNode(:,:,k), NbIncPTCSPrimMax, &
-            xp(:), 1, -1.d0, xs(:), 1)
-
-       vnode(:,k) = 0.d0
-
-       ! copy prim P,T,C,S
-       do i=1, NbIncPTCSPrim
-          vnode( NumIncPTCSPrimNode(i,k),k) = xp(i)
-       end do
-
-       ! copy secd P,T,C
-       do i=1, NbEqFermeture
-          vnode( NumIncPTCSecondNode(i,k),k) = xs(i)
-       end do
-
-       ! if NbPhasePresente=1,
-       !    then this phase must be secd
-       ! else last saturation is secd, the others are prim
-       !    secd S = - sum_{S^alpha is prim} S^alpha
-       if( NbPhasePresente==1) then
-
-          ! iph is this phase in (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-          vnode(iph,k) = 0.d0
-       else
-
-          ! iph is last present phase in vector (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
-          vnode(iph,k) = 0.d0
-          do i=1, NbPhasePresente-1
-             vnode(iph,k) = vnode(iph,k) - xp(NbIncPTCPrim+i)
-          end do
-       end if
-
-       ! term prim n_k(X_j^n)
-       do i=1, NbCompCtilde_ctx(ic)
-          vnode(NbIncPTCS+i,k) = xp(NbIncPTCSPrim+i)
-       end do
-    end do
-
-    ! frac
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-
-       ic = IncFrac(k)%ic
-       NbPhasePresente = NbPhasePresente_ctx(ic)
-       NbEqFermeture = NbEqFermeture_ctx(ic)
-       NbIncPTC  = NbIncPTC_ctx(ic)
-       NbIncPTCS = NbIncPTC_ctx(ic) + NbPhasePresente
-       NbIncPTCPrim = NbIncPTC - NbEqFermeture
-       NbIncPTCSPrim = NbIncPTCSPrim_ctx(ic)
-
-       xp(1:NbCompThermique) = vfrac(1:NbCompThermique,k)
-       xs(1:NbEqFermeture) = SmdXsFrac(1:NbEqFermeture,k)
-
-       call dgemv('T', NbIncPTCSPrim, NbEqFermeture, &
-            -1.d0, dXssurdXpFrac(:,:,k), NbIncPTCSPrimMax, &
-            xp(:), 1, -1.d0, xs(:), 1)
-
-       vfrac(:,k) = 0.d0
-
-       ! copy prim P,T,C,S
-       do i=1, NbIncPTCSPrim
-          vfrac( NumIncPTCSPrimFrac(i,k),k) = xp(i)
-       end do
-
-       ! copy secd P,T,C
-       do i=1, NbEqFermeture
-          vfrac( NumIncPTCSecondFrac(i,k),k) = xs(i)
-       end do
-
-       ! if NbPhasePresente=1,
-       !    then this phase must be secd
-       ! else last saturation is secd, the others are prim
-       !    secd S = - sum_{S^alpha is prim} S^alpha
-       if( NbPhasePresente==1) then
-
-          ! iph is this phase in (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-          vfrac(iph,k) = 0.d0
-       else
-
-          ! iph is last present phase in vector (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
-          vfrac(iph,k) = 0.d0
-          do i=1, NbPhasePresente-1
-             vfrac(iph,k) = vfrac(iph,k) - xp(NbIncPTCPrim+i)
-          end do
-       end if
-
-       ! term n_k(X_j^n)
-       do i=1, NbCompCtilde_ctx(ic) ! =NbCompThermique-NbIncPTCSPrim
-          vfrac(NbIncPTCS+i,k) = xp(NbIncPTCSPrim+i)
-       end do
-    end do
-
-    ! cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-
-       ic = IncCell(k)%ic
-       NbPhasePresente = NbPhasePresente_ctx(ic)
-       NbEqFermeture = NbEqFermeture_ctx(ic)
-       NbIncPTC  = NbIncPTC_ctx(ic)
-       NbIncPTCS = NbIncPTC_ctx(ic) + NbPhasePresente
-       NbIncPTCPrim = NbIncPTC - NbEqFermeture
-       NbIncPTCSPrim = NbIncPTCSPrim_ctx(ic)
-
-       xp(1:NbCompThermique) = vcell(1:NbCompThermique,k)
-       xs(1:NbEqFermeture) = SmdXsCell(1:NbEqFermeture,k)
-
-       call dgemv('T', NbIncPTCSPrim, NbEqFermeture, &
-            -1.d0, dXssurdXpCell(:,:,k), NbIncPTCSPrimMax, &
-            xp(:), 1, -1.d0, xs(:), 1)
-
-       vcell(:,k) = 0.d0
-
-       ! copy prim P,T,C,S
-       do i=1, NbIncPTCSPrim
-          vcell( NumIncPTCSPrimCell(i,k),k) = xp(i)
-       end do
-
-       ! copy secd P,T,C
-       do i=1, NbEqFermeture
-          vcell( NumIncPTCSecondCell(i,k),k) = xs(i)
-       end do
-
-       ! if NbPhasePresente=1,
-       !    then this phase must be secd
-       ! else last saturation is secd, the others are prim
-       !    secd S = - sum_{S^alpha is prim} S^alpha
-       if( NbPhasePresente==1) then
-
-          ! iph is this phase in (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-          vcell(iph,k) = 0.d0
-
-       else
-
-          ! iph is last present phase in vector (P,T,C,S,n_i)
-          iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
-          vcell(iph,k) = 0.d0
-          do i=1, NbPhasePresente-1
-             vcell(iph,k) = vcell(iph,k) - xp(NbIncPTCPrim+i)
-          end do
-       end if
-
-       ! term n_k(X_j^n)
-       do i=1, NbCompCtilde_ctx(ic)
-          vcell(NbIncPTCS+i,k) = xp(NbIncPTCSPrim+i)
-       end do
-    end do
-
-  end subroutine LoisThermoHydro_PrimToSecd
-
 
 end module LoisThermoHydro

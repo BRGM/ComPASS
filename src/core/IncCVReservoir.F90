@@ -28,7 +28,7 @@
         integer(c_int) :: ic !< context: index of the set of present phase(s)
 
         real(c_double) :: & ! values of Inc
-        Pression, & !< Pressure of the element
+        Pression, & !< Reference Pressure of the element
         Temperature, & !< Temperature of the element
         Comp(NbComp, NbPhase), & !< Molar composition of the element
         Saturation(NbPhase), & !< Saturation of the element

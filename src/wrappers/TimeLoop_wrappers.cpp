@@ -27,6 +27,7 @@ extern "C"
     double IncCVReservoir_NewtonRelax(const NewtonIncrements::Pointers<const double>);
     void IncCV_NewtonIncrement(const NewtonIncrements::Pointers<const double>, const double);
     void DirichletContribution_update();
+    void IncPrimSecd_compute();
     void LoisThermoHydro_compute();
     void Flux_DarcyFlux_Cell();
     void Flux_DarcyFlux_Frac();
@@ -43,7 +44,7 @@ extern "C"
     int SolvePetsc_KspSolve();
     void SolvePetsc_Sync();
     void SolvePetsc_GetSolNodeFracWell(NewtonIncrements::Pointers<double>); 
-    void LoisThermoHydro_PrimToSecd(NewtonIncrements::Pointers<double>);
+    void IncPrimSecd_PrimToSecd(NewtonIncrements::Pointers<double>);
     void NN_flash_all_control_volumes();
     void DefFlashWells_TimeFlash();
     void pass_and_dump_array(double *, std::size_t*);
@@ -63,6 +64,7 @@ void add_time_loop_wrappers(py::module& module)
     module.def("IncCV_LoadIncPreviousTimeStep", &IncCV_LoadIncPreviousTimeStep);
     module.def("IncCVWells_PressureDrop", &IncCVWells_PressureDrop);
     module.def("DirichletContribution_update", &DirichletContribution_update);
+    module.def("IncPrimSecd_compute", &IncPrimSecd_compute);
     module.def("LoisThermoHydro_compute", &LoisThermoHydro_compute);
     module.def("Flux_DarcyFlux_Cell", &Flux_DarcyFlux_Cell);
     module.def("Flux_DarcyFlux_Frac", &Flux_DarcyFlux_Frac);
@@ -131,10 +133,10 @@ void add_time_loop_wrappers(py::module& module)
 	IncCV_NewtonIncrement(increments.pointers(), relaxation);
       });
     
-    module.def("LoisThermoHydro_PrimToSecd", [](NewtonIncrements& increments){
+    module.def("IncPrimSecd_PrimToSecd", [](NewtonIncrements& increments){
 //     py::print("LT P2S sizes:", nb_primary_variables(), nb_nodes(),
 //			    nb_fractures(), nb_cells(), nb_injectors(), nb_producers());
-     LoisThermoHydro_PrimToSecd(increments.pointers());
+     IncPrimSecd_PrimToSecd(increments.pointers());
       });
     
     module.def("Jacobian_GetSolCell", [](NewtonIncrements& increments){

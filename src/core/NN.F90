@@ -25,6 +25,7 @@ module NN
    use NeumannContribution
    use VAGFrac
 
+   use IncPrimSecd
    use LoisThermoHydro
    use Flux
    use Residu
@@ -303,7 +304,10 @@ contains
       call DirichletContribution_allocate
       call NeumannContribution_allocate
 
-      ! allcoate Loisthermohydro
+      ! allocate IncPrimSecd
+      call IncPrimSecd_allocate
+
+      ! allocate Loisthermohydro
       call LoisThermoHydro_allocate
 
       ! allocate flux
@@ -428,6 +432,7 @@ contains
       call Jacobian_free
       call Flux_free
       call VAGFrac_free
+      call IncPrimSecd_free
       call LoisThermoHydro_free
       call IncCV_free
       call DirichletContribution_free

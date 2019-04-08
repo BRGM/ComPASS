@@ -42,6 +42,7 @@ set( ComPASSCore_SRCS
     InteroperabilityStructures.F90
     Jacobian.F90 
     LocalMesh.F90
+    IncPrimSecd.F90
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90

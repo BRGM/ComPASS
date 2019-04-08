@@ -41,6 +41,8 @@ module DefModel
   !FIXME: this is used for wells which are monophasic
   integer, parameter :: LIQUID_PHASE = PHASE_WATER
 
+  ! The context integers are defined by calculus related to 2**(i-1)
+  ! see NumbyContext_IndPhaseDeNumContexte in file NumbyContext.F90
   integer, parameter :: GAS_CONTEXT = 1
   integer, parameter :: LIQUID_CONTEXT = 2
   integer, parameter :: DIPHASIC_CONTEXT = 3

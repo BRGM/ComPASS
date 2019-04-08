@@ -84,13 +84,18 @@ def change_surface_temperature(n, t):
 
 final_time = 5 * year
 output_period = year / 12
-standard_loop(
-    final_time = final_time,
-    time_step_manager = FixedTimeStep(5. * day),
-    output_period = output_period,
-# iteration callbacks are function of the form f(n, t) 
-# where n is the iteration number and t is time
-# they are called at the end of each successful iteration
-# you can put as many of them
-    iteration_callbacks = [change_surface_temperature],
-)
+print("WARNING")
+print("WARNING")
+print("WARNING Test is temporarily discarded")
+print("WARNING")
+print("WARNING")
+#standard_loop(
+#    final_time = final_time,
+#    time_step_manager = FixedTimeStep(5. * day),
+#    output_period = output_period,
+## iteration callbacks are function of the form f(n, t) 
+## where n is the iteration number and t is time
+## they are called at the end of each successful iteration
+## you can put as many of them
+#    iteration_callbacks = [change_surface_temperature],
+#)

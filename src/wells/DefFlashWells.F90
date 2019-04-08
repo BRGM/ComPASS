@@ -18,6 +18,7 @@ module DefFlashWells
    use Thermodynamics
    use IncCVReservoir
    use VAGFrac
+   use IncPrimSecd
    use LoisThermoHydro
 
    implicit none
@@ -692,6 +693,8 @@ contains
 
       Qw = 0.d0
 
+      ! update prim/secd arrays of all nodes
+      call IncPrimSecd_compPrim_nodes
       ! update thermo Laws of all nodes
       call LoisThermoHydro_divPrim_nodes
 
