@@ -134,9 +134,9 @@ class Newton:
     
     def loop(self, dt):
         kernel = ComPASS.kernel
-        assert ComPASS.kernel
+        assert ComPASS.kernel is not None
         convergence_scheme = self.convergence_scheme
-        assert convergence_scheme
+        assert convergence_scheme is not None
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver

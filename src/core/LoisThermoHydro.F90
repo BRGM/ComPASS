@@ -867,6 +867,12 @@ contains
             inc%Comp(:,iph), inc%Saturation, &
             f, dPf, dTf, dCf, dSf)
 
+#ifndef NDEBUG
+    if(f.leq.0) then
+        call CommonMPI_abort('inconsistent viscosity value')
+    endif
+#endif
+
        val(i) = 1.d0/f ! val
 
        ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
