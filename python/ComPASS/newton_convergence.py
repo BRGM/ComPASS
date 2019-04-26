@@ -67,7 +67,9 @@ class Legacy:
     
     def relative_norm(self):
         assert self.reference_closure>0
-        assert np.all(self.reference_pv>0)
+        assert np.all(self.reference_pv>0), (
+            'mininmum of reference value is %g' % np.min(self.reference_pv)
+        )
         return max(
             self.closure_norm() / self.reference_closure,
             np.max(self.pv_norms() / self.reference_pv),

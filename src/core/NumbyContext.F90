@@ -105,7 +105,6 @@ contains
     deallocate( NumPhasePresente_ctx)
 
     deallocate( NbCompCtilde_ctx)
-    deallocate( NumCompCtilde_ctx)
 
     deallocate( NbIncPTC_ctx)
     deallocate( NbIncPTCSPrim_ctx)

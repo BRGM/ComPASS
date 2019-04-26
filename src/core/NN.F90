@@ -438,6 +438,7 @@ contains
       call DirichletContribution_free
       call NeumannContribution_free
       ! call DefFlash_free
+      call NumbyContext_free
       call MeshSchema_free
 
       call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
