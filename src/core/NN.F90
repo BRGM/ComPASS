@@ -8,8 +8,6 @@
 
 module NN
 
-   use PathUtilities
-
    use GlobalMesh
    use PartitionMesh
    use LocalMesh
