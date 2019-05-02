@@ -289,29 +289,31 @@ contains
        dFsurdX(2,i+mi) = dTf1*inc%Comp(icp,iph1) - dTf2*inc%Comp(icp,iph2)
 #endif
 
+       ! div Components
        ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
-       ! d (f(P,T,C)*C_i)/dC_j = df/dC_i*C_j, j!=i
-       dFsurdX(numc1, i+mi) = f1
+       ! d (f(P,T,C)*C_i)/dC_j =     df/dC_j*C_i, j!=i
+       dFsurdX(numc1, i+mi) = f1   ! first part of   d (f1(P,T,C)*C_i)/dC_i
 
-       do j=1, NbComp
+       do j=1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
           if(MCP(j,iph1)==1) then ! phase iph1 contains component j
 
              numj = NumIncComp2NumIncPTC(j,iph1) ! num of C_j^iph1 in Inc
              dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-                  + inc%Comp(j,iph1)*dCf1(j)
+                  + inc%Comp(icp,iph1)*dCf1(j)
           end if
        end do
 
-       dFsurdX(numc2,i+mi) = -f2
+       dFsurdX(numc2,i+mi) = -f2   ! first part of   - d (f2(P,T,C)*C_i)/dC_i
 
-       do j=1, NbComp
-          if(MCP(j,iph2)==1) then ! phase iph1 contains component j
+       do j=1, NbComp     ! - df2/dC_j*C_i    for every j which is in iph2
+          if(MCP(j,iph2)==1) then ! phase iph2 contains component j
 
              numj = NumIncComp2NumIncPTC(j,iph2) ! num of C_j^iph2 in Inc
              dFsurdX(numj,i+mi) = dFsurdX(numj,i+mi) &
-                  - inc%Comp(j,iph2)*dCf2(j)
+                  - inc%Comp(icp,iph2)*dCf2(j)
           end if
        end do
+
 
        ! div Saturation
        do j=1, NbPhasePresente-1 ! row is i, col is j
