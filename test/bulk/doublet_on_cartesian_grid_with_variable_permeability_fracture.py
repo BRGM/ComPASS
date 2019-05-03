@@ -68,7 +68,7 @@ def face_permeability():
     return faceperm[select_fractures()]
 
 ComPASS.init(
-    grid = grid,
+    mesh = grid,
     wells = doublet_utils.make_wells_factory(grid),
     cell_porosity = omega_matrix,
     cell_permeability = k_matrix,

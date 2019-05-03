@@ -15,6 +15,7 @@ module DefFlash
 
    use Thermodynamics
    use IncCVReservoir
+   use DefModel
    use VAGFrac ! for rocktypes
 
    implicit none
@@ -36,17 +37,17 @@ contains
       INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
-      integer :: i, iph, j, icp, m, mph, ic, errcode, Ierr
+      integer :: i, iph, j, icp, m, mph, context, errcode, Ierr
       double precision :: DensiteMolaire(NbComp), acc1, acc2, &
          dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       double precision :: Tsat, dTsatdP, Psat, dPsatdT
 
-      ic = inc%ic
+      context = inc%ic
 
-      if(locked_context(ic)) return
+      if(locked_context(context)) return
 
-      if (ic == GAS_CONTEXT) then
+      if (context == GAS_CONTEXT) then
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
@@ -54,11 +55,11 @@ contains
             inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
-            inc%Saturation(1) = 1.d0
-            inc%Saturation(2) = 0.d0
+            inc%Saturation(GAS_PHASE) = 1.d0
+            inc%Saturation(LIQUID_PHASE) = 0.d0
          end if
 
-      else if (ic == LIQUID_CONTEXT) then
+      else if (context == LIQUID_CONTEXT) then
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
@@ -66,11 +67,11 @@ contains
             inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
-            inc%Saturation(1) = 0.d0
-            inc%Saturation(2) = 1.d0
+            inc%Saturation(GAS_PHASE) = 0.d0
+            inc%Saturation(LIQUID_PHASE) = 1.d0
          end if
 
-      else if (ic == DIPHASIC_CONTEXT) then
+      else if (context == DIPHASIC_CONTEXT) then
 
 #ifndef _THERMIQUE_
          write(*,*) 'ERROR: Diphasic context is meaningless without energy transfer!'
@@ -83,14 +84,14 @@ contains
          inc%Temperature = Tsat
          inc%Pression = Psat
 
-         if (inc%Saturation(1) < 0.d0) then
+         if (inc%Saturation(GAS_PHASE) < 0.d0) then
             inc%ic = LIQUID_CONTEXT
-            inc%Saturation(1) = 0.d0
-            inc%Saturation(2) = 1.d0
-         else if (inc%Saturation(2) < 0.d0) then
+            inc%Saturation(GAS_PHASE) = 0.d0
+            inc%Saturation(LIQUID_PHASE) = 1.d0
+         else if (inc%Saturation(LIQUID_PHASE) < 0.d0) then
             inc%ic = GAS_CONTEXT
-            inc%Saturation(1) = 1.d0
-            inc%Saturation(2) = 0.d0
+            inc%Saturation(GAS_PHASE) = 1.d0
+            inc%Saturation(LIQUID_PHASE) = 0.d0
          end if
 
       else

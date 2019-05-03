@@ -21,29 +21,49 @@ module DefModel
 
    ! ! ****** Model ****** ! !
 
-   integer, parameter :: &
-      NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
-      NbPhase = ComPASS_NUMBER_OF_PHASES
+   integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
 
-   integer, parameter :: &
-      NbContexte = 2**NbPhase - 1
+#ifndef NDEBUG
+  if(NbComp/=1) then
+    call CommonMPI_abort('inconsistent number of components')
+  endif
+#endif
+
+   integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
+   integer, parameter :: GAS_PHASE = 1
+   integer, parameter :: LIQUID_PHASE = 2
+
+#ifndef NDEBUG
+  if(NbPhase/=2) then
+    call CommonMPI_abort('inconsistent number of phases')
+  endif
+#endif
+
+   integer, parameter :: NbContexte = 3
+   integer, parameter :: GAS_CONTEXT = 1
+   integer, parameter :: LIQUID_CONTEXT = 2
+   integer, parameter :: DIPHASIC_CONTEXT = 3
+
+  ! Number of phases that are present in each context
+  integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
+    1, & ! GAS_CONTEXT
+    1, & ! LIQUID_CONTEXT
+    2  & ! DIPHASIC_CONTEXT
+  /)
+  ! Numero of the phase(s) which is/are present in each context
+  ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
+  integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
+    reshape((/ &
+        GAS_PHASE, 0,            & ! GAS_CONTEXT
+        LIQUID_PHASE, 0,         & ! LIQUID_CONTEXT
+        GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
+    /), (/NbPhase, NbContexte/))
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
 
-   ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-   integer, parameter :: PHASE_GAS = 1
-   integer, parameter :: PHASE_WATER = 2
-
-   !FIXME: this is used for wells which are monophasic
-   integer, parameter :: LIQUID_PHASE = PHASE_WATER
-
-   integer, parameter :: GAS_CONTEXT = 1
-   integer, parameter :: LIQUID_CONTEXT = 2
-   integer, parameter :: DIPHASIC_CONTEXT = 3
-   
    logical(c_bool) :: locked_context(NbContexte)
 
    ! Thermique
@@ -69,9 +89,7 @@ module DefModel
       NbCompThermique = NbComp + IndThermique
 
    ! ! ****** How to choose primary variables ****** ! !
-
    ! Used in module LoisthermoHydro.F90
-
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
   ! WARNING
@@ -143,16 +161,16 @@ module DefModel
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
 #ifdef _THERMIQUE_
-                        1.d0, 0.d0, & ! ic=1 GAS_CONTEXT
+                        1.d0, 0.d0, & ! GAS_CONTEXT=1
                         0.d0, 1.d0, &
-                        1.d0, 0.d0, & ! ic=2 LIQUID_CONTEXT
+                        1.d0, 0.d0, & ! LIQUID_CONTEXT=2
                         0.d0, 1.d0, &
-                        1.d0, 0.d0, & ! ic=3 DIPHASIC_CONTEXT
+                        1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3
                         0.d0, 1.d0 &
 #else
-                        1.d0, & ! ic=1 GAS_CONTEXT
-                        1.d0, & ! ic=2 LIQUID_CONTEXT
-                        0.d0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
+                        1.d0, & ! GAS_CONTEXT=1
+                        1.d0, & ! LIQUID_CONTEXT=2
+                        0.d0  & ! DIPHASIC_CONTEXT=3 is MEANINGLESS here
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 

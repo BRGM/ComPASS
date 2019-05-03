@@ -49,7 +49,7 @@ contains
 
   ! Fugacity coefficient
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE 
   ! P is the pressure of the reference phase (P=Pg)
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
@@ -71,15 +71,15 @@ contains
     dCf = 0.d0
     dSf = 0.d0
 
-    if(iph == PHASE_GAS)then
+    if(iph == GAS_PHASE)then
        f = P
 
        dPf = 1.d0
-    else if(iph == PHASE_WATER)then
-      if(icp==1)then ! air
+    else if(iph == LIQUID_PHASE)then
+      if(icp==AIR_COMP)then
         call air_henry(T,f)
         call air_henry_dT(dTf)
-      else ! water
+      else if(icp==WATER_COMP)then
         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
         call FluidThermodynamics_Psat(T, Psat, dTSat)
 
@@ -145,7 +145,7 @@ contains
 
   ! Densite molaire
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
@@ -163,14 +163,14 @@ contains
     Rgp = 8.314d0
     call H2O_MasseMolaire(H2O_m)
 
-    if(iph==PHASE_GAS)then
+    if(iph==GAS_PHASE)then
       f = P/(Rgp*T)
 
       dPf = 1/(Rgp*T)
       dTf = -P/Rgp/T**2
       dCf = 0.d0
       dSf = 0.d0
-    else
+    else if(iph==LIQUID_PHASE)then
       f = 1000.d0/H2O_m
 
       dPf = 0.d0
@@ -183,7 +183,7 @@ contains
 
   ! Densite Massique
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE
   subroutine f_DensiteMassique(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
     ! input
@@ -215,7 +215,7 @@ contains
 
   ! Viscosities
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE
   subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
@@ -230,9 +230,9 @@ contains
 
     real(c_double) :: a, ss, ds, Cs, T1
 
-    if(iph==PHASE_GAS)then
+    if(iph==GAS_PHASE)then
       f = 2.d-5
-    else
+    else if(iph == LIQUID_PHASE)then
       f = 1.d-3
     endif
 
@@ -246,7 +246,7 @@ contains
 
   ! Permeabilites = S**2
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE
   subroutine f_PermRel(rt,iph,S,f,DSf)
 
     ! input
@@ -282,10 +282,10 @@ contains
     real(c_double) :: Sg
 
     dSf = 0.d0
-    if(iph==PHASE_GAS)then
+    if(iph==GAS_PHASE)then
       f = 0.d0
-    else
-        Sg = 1.d0 - S(PHASE_WATER)
+    else if(iph == LIQUID_PHASE)then
+        Sg = 1.d0 - S(LIQUID_PHASE)
         Pc_cst = 2.d5
         Sg0 = 1.d0 - 1.d-2
         A = - Pc_cst * log(1.d0-Sg0) - Pc_cst/(1.d0-Sg0) * Sg0
@@ -319,8 +319,8 @@ stop
 
   ! EnergieInterne
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
-  subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
+  ! GAS_PHASE or LIQUID_PHASE
+subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
     ! input
     integer(c_int), intent(in) :: iph
@@ -336,7 +336,7 @@ stop
 
   ! Enthalpie
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE or LIQUID_PHASE
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
@@ -351,7 +351,7 @@ stop
     real(c_double) :: H2O_m, air_m
     real(c_double) :: a,b,cc,d,Ts,T0,ss,dTss,cp
 
-    if(iph==PHASE_GAS)then
+    if(iph==GAS_PHASE)then
       a = 1990.89d+3
       b = 190.16d+3
       cc = -1.91264d+3
@@ -367,15 +367,15 @@ stop
       call f_CpGaz(cp)
       call air_MasseMolaire(air_m)
 
-      f = C(1)*cp*air_m*T + C(2)*ss*H2O_m
+      f = C(AIR_COMP)*cp*air_m*T + C(WATER_COMP)*ss*H2O_m
 
       dPf = 0.d0
-      dTf = C(1)*cp*air_m + C(2)*H2O_m*dTss
-      dCf(1) = cp*air_m*T
-      dCf(2) = ss*H2O_m
+      dTf = C(AIR_COMP)*cp*air_m + C(WATER_COMP)*H2O_m*dTss
+      dCf(AIR_COMP) = cp*air_m*T
+      dCf(WATER_COMP) = ss*H2O_m
       dSf = 0.d0
 
-    else ! water_phase
+    else if(iph == LIQUID_PHASE)then
 
       a = -14.4319d+3
       b = +4.70915d+3

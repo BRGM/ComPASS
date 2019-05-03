@@ -12,12 +12,6 @@ module NumbyContext
 
   implicit none
 
-  ! P_Q: ensemble des phases presentes fct du contexte
-  integer, dimension(:), allocatable, protected :: &
-      NbPhasePresente_ctx
-  integer, dimension(:,:), allocatable, protected :: &
-      NumPhasePresente_ctx
-
   ! C^tilde_Q: ensembles des composants ds les phases absentes fonction du contexte
   integer, dimension(:), allocatable, protected :: &
       NbCompCtilde_ctx
@@ -64,16 +58,12 @@ module NumbyContext
       NumIncPTC2NumIncComp_comp_ctx, &
       NumIncPTC2NumIncComp_phase_ctx
 
-  ! phase is present or not
-  logical, allocatable, dimension(:,:), protected :: &
-      IndPhase_ctx
-
   public :: &
       NumbyContext_make,  &
       NumbyContext_free
 
   private :: &
-      NumbyContext_IndPhaseDeNumContexte, &
+      NumbyContext_is_phase_present, &
       NumbyContext_PhaseComp, &
       NumbyContext_Inc,   &
       NumbyContext_Eq
@@ -82,9 +72,6 @@ contains
 
   ! main subroutine of this module
   subroutine NumbyContext_make
-
-    ! IndPhase
-    call NumbyContext_IndPhaseDeNumContexte
 
     ! info phase and comp
     call NumbyContext_PhaseComp
@@ -101,9 +88,6 @@ contains
   ! free everything
   subroutine NumbyContext_Free
 
-    deallocate( NbPhasePresente_ctx)
-    deallocate( NumPhasePresente_ctx)
-
     deallocate( NbCompCtilde_ctx)
 
     deallocate( NbIncPTC_ctx)
@@ -119,10 +103,22 @@ contains
     deallocate( NbEqEquilibre_ctx)
     deallocate( NbEqFermeture_ctx)
 
-    deallocate( IndPhase_ctx)
-
   end subroutine NumbyContext_Free
 
+  function NumbyContext_is_phase_present(iph, ic) result(here)
+    integer, intent(in)  :: iph, ic
+    logical :: here
+
+    integer :: k
+    here = .false.
+    do k=1, NbPhasePresente_ctx(ic)
+        if(NumPhasePresente_ctx(k, ic)==iph) then
+          here = .true.
+          exit
+        endif
+    end do
+  
+  end function NumbyContext_is_phase_present
 
   subroutine NumbyContext_PhaseComp
 
@@ -131,27 +127,6 @@ contains
 
     integer :: ic, iph, icp, n
     logical :: IsCtidle
-
-    ! 1. Nb/Num de phases presentes fct du contexte
-
-    allocate( NbPhasePresente_ctx(NbContexte))
-    allocate( NumPhasePresente_ctx(NbPhase, NbContexte))
-    NumPhasePresente_ctx(:,:) = 0
-
-    do ic=1, NbContexte
-
-      ! from IndPh to Nb/NumPhasePresente_ctx
-      n = 0
-      do iph=1, NbPhase
-
-        if ( IndPhase_ctx(iph,ic) .eqv. .true.) then
-          n = n + 1
-          NumPhasePresente_ctx(n,ic) = iph
-        endif
-      enddo
-
-      NbPhasePresente_ctx(ic) = n
-    enddo
 
     ! 2. Ensembles Ctilde fct du contexte
 
@@ -168,7 +143,7 @@ contains
         IsCtidle = .true.
         do iph=1, NbPhase
 
-          if ((MCP(icp,iph)==1) .and. (IndPhase_ctx(iph,ic) .eqv. .true.)) then
+          if ((MCP(icp,iph)==1) .and. NumbyContext_is_phase_present(iph,ic)) then
             IsCtidle = .false.
             exit
           end if
@@ -285,7 +260,7 @@ contains
         ! PhPrComp: phase present and contains icp
         do iph=1, NbPhase
 
-          if((MCP(icp,iph)==1) .and. (IndPhase_ctx(iph,ic) .eqv. .true.)) then
+          if((MCP(icp,iph)==1) .and. NumbyContext_is_phase_present(iph,ic)) then
             nphi = nphi + 1
             PhPrComp(nphi) = iph
           end if
@@ -311,32 +286,5 @@ contains
     end do
 
   end subroutine NumbyContext_Eq
-
-
-  ! from ic to IndPh(NbPhase)
-  ! IndPh(i)=1 -> phase i is presente in this contexte ic
-  subroutine NumbyContext_IndPhaseDeNumContexte
-
-    integer :: ic, mic, i
-
-    allocate(IndPhase_ctx(NbPhase, NbContexte))
-
-    do ic = 1, NbContexte
-
-      mic = ic !
-
-      ! from decimal to binary
-      do i=NbPhase, 1, -1
-
-        if(mic >= 2**(i-1)) then
-          IndPhase_ctx(i,ic) = .true.
-          mic = mic - 2**(i-1)
-        else
-          IndPhase_ctx(i,ic) = .false.
-        end if
-      end do
-    end do
-
-  end subroutine NumbyContext_IndPhaseDeNumContexte
 
 end module NumbyContext

@@ -33,33 +33,32 @@ module Thermodynamics
 
 contains
 
-   ! Fugacity
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
    subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
       integer(c_int), intent(in) :: iph, icp
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       real(c_double) :: PSat, dTSat, Pc, DSPc(NbPhase)
 
-      if (iph == 1) then
-
+      if (iph == GAS_PHASE) then
          f = P
          dPf = 1.d0
          dTf = 0.d0
 
-      else if (iph == 2) then
-
+      else if (iph == LIQUID_PHASE) then
          call FluidThermodynamics_Psat(T, Psat, dTSat)
          f = Psat
          dPf = 0.d0
          dTf = dTSat
+
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_Fugacity')
+#endif
+
       end if
 
       dCf(:) = 0.d0
@@ -80,26 +79,18 @@ contains
    end subroutine check_array_interop
 
    ! FIXME #51 densite massique
-   ! Densite molaire
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
    subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
       real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       real(c_double) :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
       real(c_double) :: u, R, T0, d, Z, ds, ss, rs, dZ
       real(c_double) :: Psat, dT_Psat
 
-      if (iph == 1) then
-
+      if (iph == GAS_PHASE) then
          u = 0.018016d0
          R = 8.3145d0
          T0 = 273.d0
@@ -114,8 +105,7 @@ contains
          dPf = u/(R*T*Z)
          dTf = -P*u/(R*T*Z)**2*(R*T*dZ + R*Z)
 
-      else if (iph == 2) then
-
+      else if (iph == LIQUID_PHASE) then
          rs = 0.d0
 
          call FluidThermodynamics_Psat(T, Psat, dT_Psat)
@@ -144,8 +134,12 @@ contains
          f = ss*(1.d0 + cw*(P - Psat))
          dPf = ss*dcwp*(P - Psat) + ss*cw
          dTf = ds*(1.d0 + cw*(P - Psat)) + ss*dcwt*(P - Psat) - ss*cw*dT_Psat
+
+#ifndef NDEBUG
       else
-         print *, "densite molaire error: f_DensiteMolaire"
+         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
+#endif
+
       end if
 
       dCf(:) = 0.d0
@@ -153,48 +147,31 @@ contains
 
    end subroutine f_DensiteMolaire
 
-   ! Densite Massique
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
+   ! FIXME #51 densite massique
    subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
-
-      ! input
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       call f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
    end subroutine f_DensiteMassique
 
-   ! Viscosities
-   ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
       real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: &
-         f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       real(c_double) :: a, ss, ds, Cs, T1
 
-      ! outputs
-      if (iph == 1) then
-
+      if (iph == GAS_PHASE) then
          f = (0.361d0*T - 10.2d0)*1.d-7
          dPf = 0.d0
          dTf = 0.361*1.d-7
 
-      else if (iph == 2) then
-
+      else if (iph == LIQUID_PHASE) then
          T1 = 300.d0
          Cs = 0.04d0
          a = 1.d0 + Cs*1.34d0 + 6.12d0*Cs**2
@@ -203,12 +180,15 @@ contains
          ss = ss - 1.2
          ds = 0.021482d0*(1.d0 + (T - 273.d0 - 8.435d0) &
                           /sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
-
          f = 1.d-3*a/ss
          dPf = 0.d0
          dTf = -a*1.d-3*ds/ss**2
+         
+#ifndef NDEBUG
       else
-         print *, "viscosite error: f_Viscosite"
+         call CommonMPI_abort('unknow phase in f_Viscosite')
+#endif
+
       end if
 
       dCf(:) = 0.d0
@@ -218,7 +198,7 @@ contains
 
    ! Permeabilites = S**2
    ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
+   ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
@@ -229,16 +209,21 @@ contains
       ! output
       real(c_double), intent(out) :: f, DSf(NbPhase)
 
-      if (iph == 1) then
+      if (iph == GAS_PHASE) then
          f = S(1)**2
          dSf(1) = 2.d0*S(1)
          dSf(2) = 0.d0
-      else if (iph == 2) then
+
+      else if (iph == LIQUID_PHASE) then
          f = S(2)**2
          dSf(1) = 0.d0
          dSf(2) = 2.d0*S(2)
+
+#ifndef NDEBUG
       else
-         print *, "Perm Rel error"
+         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
+#endif
+
       end if
 
    end subroutine f_PermRel
@@ -261,7 +246,7 @@ contains
 
    ! EnergieInterne
    ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
+   ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -277,7 +262,7 @@ contains
 
    ! Enthalpie
    ! iph is an identificator for each phase:
-   ! PHASE_GAS = 1; PHASE_WATER = 2
+   ! GAS_PHASE = 1; LIQUID_PHASE = 2
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
@@ -292,7 +277,7 @@ contains
 
       real(c_double) :: a, b, cc, d, T0
 
-      if (iph == PHASE_GAS) then
+      if (iph == GAS_PHASE) then
          a = 1990.89d+3
          b = 190.16d+3
 
@@ -300,7 +285,7 @@ contains
          dPf = 0.d0
          dTf = b/100.d0
 
-      else if (iph == PHASE_WATER) then
+      else if (iph == LIQUID_PHASE) then
          a = -14.4319d+3
          b = 4.70915d+3
          cc = -4.87534d0
@@ -310,6 +295,12 @@ contains
          f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
          dPf = 0.d0
          dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
+
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_Enthalpie')
+#endif
+
       end if
 
       dCf(:) = 0.d0

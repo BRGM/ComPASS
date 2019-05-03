@@ -57,7 +57,7 @@ contains
   ! f * c_i
   ! P = Pg pression de reference
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
     ! input
@@ -73,14 +73,14 @@ contains
 
     RZetal = 8.314d0 * 1000.d0 / 0.018d0
 
-    IF(iph == PHASE_GAS)THEN
+    IF(iph == GAS_PHASE)THEN
        f = P
 
        dPf = 1.d0
        dTf = 0.d0
        dCf = 0.d0
        dSf = 0.d0
-    ELSE IF(iph == PHASE_WATER)THEN
+    ELSE IF(iph == LIQUID_PHASE)THEN
       IF(icp==1)THEN
         CALL CO2_henry(T,f, dTf)
         dPf = 0.d0
@@ -124,7 +124,7 @@ contains
 
   ! Densite molaire
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
@@ -140,7 +140,7 @@ contains
 
     Rgp = 8.314d0
 
-    IF(iph==PHASE_GAS)THEN
+    IF(iph==GAS_PHASE)THEN
       f = P/(Rgp*T)
 
       dPf = 1/(Rgp*T)
@@ -176,7 +176,7 @@ contains
 
   ! Densite Massique
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_DensiteMassique(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
     ! input
@@ -208,7 +208,7 @@ contains
 
   ! Viscosities
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
@@ -222,7 +222,7 @@ contains
 
     double precision :: a, ss, ds, Cs, T1
 
-    IF(iph==PHASE_GAS)THEN
+    IF(iph==GAS_PHASE)THEN
       f = 15.d-6    ! https://www.engineeringtoolbox.com/gases-absolute-dynamic-viscosity-d_1888.html
     ELSE
       f = 1.0d-3
@@ -238,7 +238,7 @@ contains
 
   ! Permeabilites = S**2
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_PermRel(rt,iph,S,f,DSf)
 
     ! input
@@ -255,10 +255,10 @@ contains
 
     dSf = 0.d0
 
-    if (iph == PHASE_GAS) then
+    if (iph == GAS_PHASE) then
        f = S(iph)**2
        dSf(iph) = 2*S(iph)
-    else if (iph == PHASE_WATER) then
+    else if (iph == LIQUID_PHASE) then
        f  = S(iph)**2
        dSf(iph) = 2* S(iph)
     else
@@ -290,7 +290,7 @@ contains
 
   ! EnergieInterne
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
     ! input
@@ -307,7 +307,7 @@ contains
 
   ! Enthalpie
   ! iph is an identificator for each phase:
-  ! PHASE_GAS = 1; PHASE_WATER = 2
+  ! GAS_PHASE = 1; LIQUID_PHASE = 2
   ! If Enthalpide depends on the compositon C, change DefFlash.F90
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")

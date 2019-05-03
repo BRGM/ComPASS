@@ -884,7 +884,7 @@ contains
 !      double precision :: sumci, E, Res, Pdrop
 !      ! not used, empty passed to f_Enthalpie
 !      double precision :: dPf, dTf, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
-!      integer :: Nnz, nWell, s, sparent, icp, i, ID_PHASE ! ID_PHASE=(-1 if diphasique, PHASE_GAS if gas, LIQUID_PHASE if liq)
+!      integer :: Nnz, nWell, s, sparent, icp, i, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
 !
 !      summolarFluxProd(:, :) = 0.d0
 !      sumnrjFluxProd(:) = 0.d0
@@ -946,7 +946,7 @@ contains
 !            !
 !            !if (liq_molarfrac < 0.d0) then ! the hypothesis that the two phases are present is wrong: only gas
 !            !   liq_molarfrac = 0.d0
-!            !   ID_PHASE = PHASE_GAS
+!            !   ID_PHASE = GAS_PHASE
 !            !else if (liq_molarfrac > 1.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
 !               liq_molarfrac = 1.d0
 !               ID_PHASE = LIQUID_PHASE
@@ -985,7 +985,7 @@ contains
 !
 !            ! we deduce the mean density
 !            ! molarFrac is not used in the computation of the massique densities
-!            !call f_DensiteMassique(PHASE_GAS, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
+!            !call f_DensiteMassique(GAS_PHASE, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
 !            call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
 !            PerfoWellProd(s)%Density = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
 !
@@ -1091,7 +1091,7 @@ contains
    !       nums1 = NodebyWellInjLocal%Num(pts1)
    !       nums2 = NodebyWellInjLocal%Num(pts2)
 
-   !       Sat(PHASE_GAS) = 0.d0
+   !       Sat(GAS_PHASE) = 0.d0
    !       Sat(LIQUID_PHASE) = 1.d0
 
    !       Ptmp = PerfoWellInj(pts1)%Pression

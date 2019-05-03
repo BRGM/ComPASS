@@ -16,17 +16,33 @@ module DefModel
 
    implicit none
 
-   ! ! ****** Model ****** ! !
+   integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
 
-   integer, parameter :: &
-      NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
-      NbPhase = ComPASS_NUMBER_OF_PHASES
+#ifndef NDEBUG
+  if(NbComp/=1) then
+    call CommonMPI_abort('inconsistent number of components')
+  endif
+#endif
+
+   integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
+
+#ifndef NDEBUG
+  if(NbPhase/=1) then
+    call CommonMPI_abort('inconsistent number of phases')
+  endif
+#endif
+
+   integer, parameter :: NbContexte = 1
+
+  ! Number of phases that are present in each context
+  integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ 1 /)
+  ! Phase(s) that is/are present in each context
+  ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
+  integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
+    transpose(reshape((/ 1 /), (/NbContexte, NbPhase/)))
 
    !FIXME: Asssume that the latest phase is the liquid phase
    integer, parameter :: LIQUID_PHASE = NbPhase
-
-   integer, parameter :: &
-      NbContexte = 2**NbPhase - 1
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
@@ -57,7 +73,7 @@ module DefModel
 
    ! ! ****** How to choose primary variables ****** ! !
 
-   ! Served in module LoisthermoHydro.F90
+   ! Used in module LoisthermoHydro.F90
 
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
@@ -96,9 +112,7 @@ module DefModel
                        /), (/NbIncPTCSecondMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
-
-   ! Served in module Jacobian.F90
-
+   ! Used in module Jacobian.F90
    ! aligmethod=1, manually
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic

@@ -15,6 +15,7 @@ module DefFlash
 
    use IncCVReservoir
    use Physics
+   use DefModel
    use VAGFrac ! to have rocktypes
 
    implicit none
@@ -40,8 +41,8 @@ contains
       double precision :: T, f(NbPhase)
       double precision :: S(NbPhase), Pc, DSPc(NbPhase)
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
-      double precision :: Cag, Cal, Cel
-      double precision :: PgCag, PgCeg
+      double precision :: Cag, Cal, Cwl
+      double precision :: PgCag, PgCwg
       double precision :: Pref,P(NbPhase)
 
       ic = inc%ic
@@ -55,76 +56,76 @@ contains
 
       if (ic == LIQUID_CONTEXT) then
          ! air liq fugacity
-         iph = PHASE_WATER
-         call f_Fugacity(rt,iph,1,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
-         PgCag = inc%Comp(1, iph)*f(iph)
+         iph = LIQUID_PHASE
+         call f_Fugacity(rt,iph,AIR_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
 
          ! water liq fugacity
-         call f_Fugacity(rt,iph,2,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
-         PgCeg = inc%Comp(2, iph)*f(iph)
+         call f_Fugacity(rt,iph,WATER_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
-         if (PgCag + PgCeg > P(PHASE_GAS)) then
+         if (PgCag + PgCwg > P(GAS_PHASE)) then
 
-            ! write(*,*)' apparition gas ', P(PHASE_GAS), T
+            ! write(*,*)' apparition gas ', P(GAS_PHASE), T
 
             inc%ic = DIPHASIC_CONTEXT
-            inc%Saturation(PHASE_GAS) = 0
-            inc%Saturation(PHASE_WATER) = 1
-            inc%Comp(1,PHASE_GAS) = MIN(MAX(inc%Comp(1,PHASE_GAS), 0.d0), 1.d0)
-            inc%Comp(2,PHASE_GAS) = 1.d0 - inc%Comp(1,PHASE_GAS)
+            inc%Saturation(GAS_PHASE) = 0
+            inc%Saturation(LIQUID_PHASE) = 1
+            inc%Comp(AIR_COMP,GAS_PHASE) = MIN(MAX(inc%Comp(AIR_COMP,GAS_PHASE), 0.d0), 1.d0)
+            inc%Comp(WATER_COMP,GAS_PHASE) = 1.d0 - inc%Comp(AIR_COMP,GAS_PHASE)
 
          endif
 
       elseif (ic == DIPHASIC_CONTEXT) then
 
-         if (S(PHASE_GAS) < 0.d0) then
+         if (S(GAS_PHASE) < 0.d0) then
 
-            ! write(*,*)' disapparition gas ', P(PHASE_GAS), T
+            ! write(*,*)' disapparition gas ', P(GAS_PHASE), T
 
             inc%ic = LIQUID_CONTEXT
-            inc%Saturation(PHASE_GAS) = 0.d0
-            inc%Saturation(PHASE_WATER) = 1.d0
+            inc%Saturation(GAS_PHASE) = 0.d0
+            inc%Saturation(LIQUID_PHASE) = 1.d0
 
-         elseif (S(PHASE_WATER) < 0.d0) then
+         elseif (S(LIQUID_PHASE) < 0.d0) then
 
-            ! write (*, *) ' disapparition liquid ', P(PHASE_GAS), T
+            ! write (*, *) ' disapparition liquid ', P(GAS_PHASE), T
 
             inc%ic = GAS_CONTEXT
-            inc%Saturation(PHASE_GAS) = 1.d0
-            inc%Saturation(PHASE_WATER) = 0.d0
+            inc%Saturation(GAS_PHASE) = 1.d0
+            inc%Saturation(LIQUID_PHASE) = 0.d0
 
          endif
 
          ! force comp to be in [0,1] and sum equal to 1
          do iph = 1, NbPhase
-            inc%Comp(1,iph) = MIN(MAX(inc%Comp(1,iph), 0.d0), 1.d0)
-            inc%Comp(2,iph) = 1.d0 - inc%Comp(1,iph)
+            inc%Comp(AIR_COMP,iph) = MIN(MAX(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
+            inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
          enddo
 
       elseif (ic == GAS_CONTEXT) then
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,1,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt,iph,AIR_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
          enddo
-         Cal = inc%Comp(1,PHASE_GAS)*f(PHASE_GAS)/f(PHASE_WATER)
+         Cal = inc%Comp(AIR_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,2,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt,iph,WATER_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
          enddo
-         Cel = inc%Comp(2,PHASE_GAS)*f(PHASE_GAS)/f(PHASE_WATER)
+         Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 
-         if(Cal + Cel > 1.d0) then
+         if(Cal + Cwl > 1.d0) then
 
-            ! write(*,*)' apparition liquid ', P(PHASE_GAS), T
+            ! write(*,*)' apparition liquid ', P(GAS_PHASE), T
 
             inc%ic = DIPHASIC_CONTEXT
 
-            inc%Saturation(PHASE_GAS) = 1.d0
-            inc%Saturation(PHASE_WATER) = 0.d0
+            inc%Saturation(GAS_PHASE) = 1.d0
+            inc%Saturation(LIQUID_PHASE) = 0.d0
             Cal = MIN(MAX(Cal, 0.d0), 1.d0)
-            inc%Comp(1,PHASE_WATER) = Cal
-            inc%Comp(2,PHASE_WATER) = 1.d0 - Cal
+            inc%Comp(AIR_COMP,LIQUID_PHASE) = Cal
+            inc%Comp(WATER_COMP,LIQUID_PHASE) = 1.d0 - Cal
          endif
 
       else

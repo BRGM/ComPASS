@@ -8,8 +8,7 @@
 
 ! Model: 2 phase 2 comp thermal, MCP=(1,1,1,1)
 !
-! 1: Gas
-! 2: Liquid
+! Gas and Liquid
 !
 ! 1: Air
 ! 2: H2O
@@ -22,30 +21,57 @@ module DefModel
 
   ! ! ****** Model ****** ! !
 
-  integer, parameter :: &
-       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
-       NbPhase = ComPASS_NUMBER_OF_PHASES
+  integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
+  integer, parameter :: AIR_COMP = 1
+  integer, parameter :: WATER_COMP = 2 ! I don't know if the water has to be at the end ?
 
-  integer, parameter :: &
-      NbContexte = 2**NbPhase - 1
+#ifndef NDEBUG
+    if(NbComp/=2) then
+      call CommonMPI_abort('inconsistent number of components')
+    endif
+#endif
+  
+     integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
+     !FIXME: Asssume that the latest phase is the liquid phase (wells)
+     integer, parameter :: LIQUID_PHASE = NbPhase
+     integer, parameter :: GAS_PHASE = 1
+   
+#ifndef NDEBUG
+    if(NbPhase/=2) then
+      call CommonMPI_abort('inconsistent number of phases')
+    endif
+#endif
+  
 
-  ! MCP
-  integer, parameter, dimension(NbComp, NbPhase) :: &
-      MCP = RESHAPE( &
-      (/ 1, 1, 1, 1 /), (/NbComp, NbPhase/))
-
-  ! Phase PHASE_WATER is Liquid; PHASE_GAS is gas
-  integer, parameter :: PHASE_GAS = 1
-  integer, parameter :: PHASE_WATER = 2
-
-  !FIXME: this is used for wells which are monophasic
-  integer, parameter :: LIQUID_PHASE = PHASE_WATER
-
-  ! The context integers are defined by calculus related to 2**(i-1)
-  ! see NumbyContext_IndPhaseDeNumContexte in file NumbyContext.F90
+  ! --------------------------------------------------------------
+  !      Definition of the contexts (sets of present phases)
   integer, parameter :: GAS_CONTEXT = 1
   integer, parameter :: LIQUID_CONTEXT = 2
   integer, parameter :: DIPHASIC_CONTEXT = 3
+
+  integer, parameter :: NbContexte = 3 ! NbContexte = 2**NbPhase - 1
+  ! Number of phases that are present in each context
+  integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
+    1, & ! GAS_CONTEXT
+    1, & ! LIQUID_CONTEXT
+    2  & ! DIPHASIC_CONTEXT
+  /)
+  ! Index of the phase(s) which is/are present in each context
+  ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
+  integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
+    reshape((/ &
+        GAS_PHASE, 0,            & ! GAS_CONTEXT
+        LIQUID_PHASE, 0,         & ! LIQUID_CONTEXT
+        GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
+    /), (/NbPhase, NbContexte/))
+
+
+  ! MCP: the components are potentially present in which phase(s) ?
+  integer, parameter, dimension(NbComp, NbPhase) :: &
+      MCP = RESHAPE((/ &
+         1, 1, & ! AIR_COMP = 1 is present in both phases
+         1, 1  & ! WATER_COMP = 2 is present in both phases
+      /), (/NbComp, NbPhase/))
 
   ! Thermique
 #ifdef _THERMIQUE_
@@ -102,26 +128,26 @@ module DefModel
   integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
 #ifdef _THERMIQUE_
-      P, T, 3, & ! ic=1 GAS_CONTEXT       Cga=3, Cgw=4
-      P, T, 4, & ! ic=2 LIQUID_CONTEXT    Cla=3, Clw=4
-      P, T, 7  & ! ic=3 DIPHASIC_CONTEXT  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+      P, T, 3, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
+      P, T, 4, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
+      P, T, 7  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
 #else
-      P, 2, & ! ic=1 GAS_CONTEXT        Cga=2, Cgw=3
-      P, 3, & ! ic=2 LIQUID_CONTEXT     Cla=2, Clw=3
-      P, 6  & ! ic=3 DIPHASIC_CONTEXT   Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+      P, 2, & ! GAS_CONTEXT=1        Cga=2, Cgw=3
+      P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
+      P, 6  & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
 #endif
       /), (/ NbIncPTCSPrimMax, NbContexte /))
 
   integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
 #ifdef _THERMIQUE_
-       4, 0, 0, 0, & ! ic=1 GAS_CONTEXT       Cga=3, Cgw=4
-       3, 0, 0, 0, & ! ic=2 LIQUID_CONTEXT    Cla=3, Clw=4
-       3, 4, 5, 6  & ! ic=3 DIPHASIC_CONTEXT  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+       4, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
+       3, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
+       3, 4, 5, 6  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
 #else
-       3, 0, 0, 0, & ! ic=1 GAS_CONTEXT       Cga=2, Cgw=3
-       2, 0, 0, 0, & ! ic=2 LIQUID_CONTEXT    Cla=2, Clw=3
-       2, 3, 4, 5  & ! ic=3 DIPHASIC_CONTEXT  Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+       3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
+       2, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
+       2, 3, 4, 5  & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
 #endif
        /), (/ NbIncPTCSecondMax, NbContexte/))
 
@@ -144,19 +170,19 @@ module DefModel
 
   integer, parameter :: aligmethod = 1
 
-    ! ic=1 ! we sum conservation equations to have non degenerate conservation equation -> pressure block in CPR-AMG
+    ! GAS_CONTEXT we sum conservation equations to have non degenerate conservation equation -> pressure block in CPR-AMG
     ! combine row corresponding to equations (must be invertible)
     ! diagonal element of the Jacobian must be non null
   double precision, parameter, &
        dimension( NbCompThermique, NbCompThermique, NbContexte) :: &
        aligmat = RESHAPE( (/ &
-       1.d0, 1.d0, 0.d0, & ! ic=1 GAS_CONTEXT
+       1.d0, 1.d0, 0.d0, & ! GAS_CONTEXT=1
        0.d0, 0.d0, 1.d0, &
        1.d0, 0.d0, 0.d0, &
-       1.d0, 1.d0, 0.d0, & ! ic=2 LIQUID_CONTEXT
+       1.d0, 1.d0, 0.d0, & ! LIQUID_CONTEXT=2
        0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0, &
-       1.d0, 1.d0, 0.d0, & ! ic=3 DIPHASIC_CONTEXT
+       1.d0, 1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3
        0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
