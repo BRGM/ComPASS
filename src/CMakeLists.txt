@@ -89,13 +89,11 @@ set(ComPASSWells_SRCS ${_tmp})
 
 # Configuration to be built
 # FIXME: include file
+# liquid_water, linear_liquid_water, water_with_tracer have been moved to attic
 set( CONFIGURATIONS
-    linear_water
-    liquid_water
-    linear_liquid_water
-    water2ph
-    diphasic
-    water_with_tracer
+   diphasic
+   linear_water
+   water2ph
 )
 
 foreach(_conf ${CONFIGURATIONS})

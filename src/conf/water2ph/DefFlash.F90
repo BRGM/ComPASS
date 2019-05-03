@@ -44,6 +44,8 @@ contains
 
       ic = inc%ic
 
+      if(locked_context(ic)) return
+
       if (ic == GAS_CONTEXT) then
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)

@@ -9,9 +9,5 @@ def test_load_linear_water():
     ComPASS.load_eos("linear_water")
 
 
-def test_load_liquid_water():
-    ComPASS.load_eos("liquid_water")
-
-
 def test_load_water2ph():
     ComPASS.load_eos("water2ph")

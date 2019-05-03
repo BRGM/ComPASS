@@ -14,6 +14,12 @@ constexpr int LIQUID_PHASE = 1;
 // Fortran functions
 extern "C"
 {
+    bool is_context_locked(int);
+    void lock_context(int);
+    void unlock_context(int);
+    int model_number_of_phases();
+    int model_number_of_components();
+    int model_number_of_contexts();
     void FluidThermodynamics_molar_density(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_molar_enthalpy(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
@@ -22,7 +28,16 @@ extern "C"
 }
 
 
-void init_model() {}
+void init_model() {
+    py::print(NP, NC);
+    py::print(model_number_of_phases(), model_number_of_components());
+    assert(model_number_of_phases()==NP);
+    assert(model_number_of_components()==NC);
+    for(int k=1; k<=model_number_of_contexts(); ++k) {
+        unlock_context(k);
+        assert(!is_context_locked(k));
+    }
+}
 
 void finalize_model() {}
 
@@ -131,5 +146,11 @@ void add_model_wrappers(py::module& module)
     module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
     module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
     module.def("liquid_dynamic_viscosity", py::vectorize(liquid_dynamic_viscosity));
+    module.def("is_context_locked", &is_context_locked);
+    module.def("lock_context", &lock_context);
+    module.def("unlock_context", &unlock_context);
+    module.def("model_number_of_phases", &model_number_of_phases);
+    module.def("model_number_of_components", &model_number_of_components);
+    module.def("model_number_of_contexts", &model_number_of_contexts);
 
 }

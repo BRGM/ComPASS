@@ -36,7 +36,8 @@ if onecomp:
     if exact_sol:
         ComPASS.load_eos('linear_water')
     else:
-        ComPASS.load_eos('liquid_water')
+        ComPASS.load_eos('water2ph')
+        ComPASS.lock_context(2)
 else:
     ComPASS.load_eos('water_with_tracer')
 fluid_properties = ComPASS.get_fluid_properties()

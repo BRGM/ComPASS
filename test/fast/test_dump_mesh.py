@@ -12,7 +12,8 @@ import ComPASS.debug_utils
 
 def test_dump_mesh():
 
-    ComPASS.load_eos('liquid_water')
+    ComPASS.load_eos('water2ph')
+    ComPASS.lock_context(2) # not useful here but just as a strict replacement of liquid_water eos
     ComPASS.set_output_directory_and_logfile(__file__)
 
     Lx, Ly, Lz = 3000., 2000., 100.

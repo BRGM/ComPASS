@@ -79,8 +79,10 @@ def set_initial_values():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if onecomp:
-    ComPASS.load_eos('liquid_water')
+    ComPASS.load_eos('water2ph')
+    ComPASS.lock_context(2)
 else:
+    assert False, 'configuration temporarily desactivated'
     ComPASS.load_eos('water_with_tracer')
 
 ComPASS.init(
