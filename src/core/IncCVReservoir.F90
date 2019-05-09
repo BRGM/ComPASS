@@ -8,17 +8,31 @@
 
     module IncCVReservoir
 
-    use iso_c_binding
+    use iso_c_binding, only: c_int, c_double
+    use mpi, only: MPI_Allreduce, MPI_DOUBLE, MPI_MIN
 
-    use MeshSchema
-    use DefModel
-    use Thermodynamics
+    use CommonMPI, only: ComPASS_COMM_WORLD, commRank
 
-    use NumbyContext
-    use CommonMPI
-    use Physics
-    use SchemeParameters
-    use Newton
+    use DefModel, only: &
+       NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
+       NbCompThermique, NbIncPTCSMax, &
+       IndThermique, MCP
+
+    use MeshSchema, only: &
+       IdNodeLocal, &
+       NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
+       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus
+
+    use NumbyContext, only: &
+       NbIncPTC_ctx, NbPhasePresente_ctx, &
+       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
+       NumPhasePresente_ctx, NbPhasePresente_ctx, &
+       NumCompCtilde_ctx, NbCompCtilde_ctx
+
+    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
+    use SchemeParameters, only: &
+       NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, &
+       eps
 
     implicit none
 

@@ -13,10 +13,11 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
-   use IncCVReservoir
-   use Physics
-   use DefModel
-   use VAGFrac ! to have rocktypes
+   use IncCVReservoir, only: Type_IncCVReservoir
+   use DefModel, only: &
+      IndThermique, NbPhase, NbComp, &
+      DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
+   use Thermodynamics, only: f_Fugacity, f_PressionCapillaire
 
    implicit none
 

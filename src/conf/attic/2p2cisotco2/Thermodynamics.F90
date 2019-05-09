@@ -13,9 +13,8 @@
 
 module Thermodynamics
  
-   use, intrinsic :: iso_c_binding
+   use DefModel, only: NbPhase, NbComp, IndThermique
 
-   use DefModel
 
    implicit none
 

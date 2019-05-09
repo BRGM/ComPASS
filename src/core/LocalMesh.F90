@@ -15,11 +15,36 @@
 !! then the informations are send in subroutine MeshSchema_make.
 module LocalMesh
 
-  use CommonType
-  use CommonMPI
-  use GlobalMesh
-  use PartitionMesh
-  use DefModel
+  use CommonType, only: &
+    CSR, Array1IdNode, &
+    ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
+    CommonType_deallocCSR
+  use CommonMPI, only: Ncpus
+
+  use GlobalMesh, only: &
+    Mesh_xmax, Mesh_xmin, Mesh_ymin, Mesh_ymax, Mesh_zmax, Mesh_zmin, &
+    CellFlags, FaceFlags, &
+    CellbyCell, FacebyCell, NodebyCell, &
+    CellbyFace, NodebyFace, &
+    CellbyNode, &
+    IdNode, IdFace, IdCell, &
+    NodebyWellInj, NodebyWellProd, &
+    NbWellInj, NbFace, NbCell, NbNode, NbWellProd, &
+    CellThermalSource, FracThermalSource, CondThermalFrac, &
+    PermFrac, PorositeCell, PorositeFrac, NodeFlags, &
+    CellTypes, FaceTypes, &
+    NodeRocktype, CellRocktype, FracRocktype, &
+    XNode, PermCell, CondThermalCell
+
+  use PartitionMesh, only: &
+    ProcbyCell
+
+  use DefModel, only: &
+    IndThermique
+
+  use DefWell, only: &
+    TYPE_CSRDataNodeWell, WellData_type, &
+    DataWellInj, DataWellProd, NodeDatabyWellProd, NodeDatabyWellInj
 
   ! 1. FacebyCellRes_Ncpus, NodebyFaceRes_Ncpus,
   !    NodebyCellRes_Ncpus, CellbyFaceRes_Ncpus

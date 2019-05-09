@@ -15,7 +15,7 @@
 
 module DefModel
 
-  use CommonType
+  use CommonType, only: CSR, type_IdNode
 
   implicit none
 
@@ -25,23 +25,11 @@ module DefModel
   integer, parameter :: AIR_COMP = 1
   integer, parameter :: WATER_COMP = 2 ! I don't know if the water has to be at the end ?
 
-#ifndef NDEBUG
-    if(NbComp/=2) then
-      call CommonMPI_abort('inconsistent number of components')
-    endif
-#endif
-  
-     integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
-     !FIXME: Asssume that the latest phase is the liquid phase (wells)
-     integer, parameter :: LIQUID_PHASE = NbPhase
-     integer, parameter :: GAS_PHASE = 1
-   
-#ifndef NDEBUG
-    if(NbPhase/=2) then
-      call CommonMPI_abort('inconsistent number of phases')
-    endif
-#endif
-  
+  integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
+  !FIXME: Asssume that the latest phase is the liquid phase (wells)
+  integer, parameter :: LIQUID_PHASE = NbPhase
+  integer, parameter :: GAS_PHASE = 1
+
 
   ! --------------------------------------------------------------
   !      Definition of the contexts (sets of present phases)

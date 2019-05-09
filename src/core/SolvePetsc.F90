@@ -12,11 +12,18 @@
 
 module SolvePetsc
 
-  use CommonMPI
-  use CommonType
-  use MeshSchema
-
-  use Jacobian
+  use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
+  use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
+  use NumbyContext, only: NbContexte
+  use DefModel, only: psprim, NbCompThermique
+  use IncCVReservoir, only: IncNode, IncFrac
+  use MeshSchema, only: &
+     NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc, &
+     NbWellInjOwn_Ncpus, NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, &
+     NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
+     NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
+     NbFracLocal_Ncpus, NbCellLocal_Ncpus
+  use Jacobian, only: JacA, Sm
 
 #ifdef COMPASS_PETSC_VERSION_LESS_3_6
 #include <finclude/petscdef.h> 

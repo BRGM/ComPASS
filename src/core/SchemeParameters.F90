@@ -8,7 +8,7 @@
 
 module SchemeParameters
 
-   use iso_c_binding
+   use iso_c_binding, only: c_double
 
    implicit none
 

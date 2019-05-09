@@ -8,30 +8,46 @@
 
 module NN
 
-   use GlobalMesh
-   use PartitionMesh
-   use LocalMesh
-   use MeshSchema
-   use SchemeParameters
+   use mpi, only: MPI_Abort, MPI_Barrier, MPI_WTIME
+   use CommonMPI, only: &
+     commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init
 
-   use DefModel
-   use NumbyContext
-   use IncCV
-   use IncCVReservoir
-   use IncCVWells
-   use DirichletContribution
-   use NeumannContribution
-   use VAGFrac
+   use SchemeParameters, only: &
+      NewtonNiterMax, KspNiterMax, KspTol, OneSecond, TimeFinal, TimeStepInit
 
-   use IncPrimSecd
-   use LoisThermoHydro
-   use Flux
-   use Residu
-   use Jacobian
-   use SolvePetsc
+   use GlobalMesh, only: &
+      GlobalMesh_free, &
+      NbDirNodeP, NbDirNodeT, NbNode, NbCell, NbFace, NbFrac, NbWellInj, NbWellProd
 
-   use DefFlash
-   use DefFlashWells
+   use DefModel, only: &
+      NbComp, NbPhase, IndThermique, NbIncPTCSMax
+
+   use IncCVReservoir, only: &
+      Type_IncCVReservoir, IncNode, IncCell, IncFrac
+   use MeshSchema, only: &
+      PermCellLocal, PermFracLocal, CondThermalCellLocal, CondThermalFracLocal, &
+      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+      NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
+      NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
+      MeshSchema_make, MeshSchema_free
+   use VAGFrac, only: &
+      PoroVolDarcyNode, PoroVolDarcyCell, PoroVolDarcyFrac, &
+      VAGFrac_TransDarcy, VAGFrac_TransFourier, &
+      VAGFrac_VolsDarcy, VAGFrac_VolsFourier, VAGFrac_free
+
+    use PartitionMesh, only: PartitionMesh_Metis
+    use LocalMesh, only: LocalMesh_Make, LocalMesh_Free
+    use NumbyContext, only: NumbyContext_make, NumbyContext_free
+    use IncCV, only: IncCV_allocate, IncCV_free
+    use DirichletContribution, only: DirichletContribution_allocate, DirichletContribution_free
+    use NeumannContribution, only: NeumannContribution_allocate, NeumannContribution_free
+    use IncPrimSecd, only: IncPrimSecd_allocate, IncPrimSecd_free
+    use Loisthermohydro, only: LoisThermoHydro_allocate, LoisThermoHydro_free
+    use Flux, only: Flux_allocate, Flux_free
+    use Jacobian, only: Jacobian_StrucJacA, Jacobian_StrucJacBigA, Jacobian_free
+    use SolvePetsc, only: SolvePetsc_Init, SolvePetsc_free, SolvePetsc_SyncMat
+    use DefFlash, only: DefFlash_Flash_cv
+    use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells
 
 #ifdef COMPASS_PETSC_VERSION_LESS_3_6
 #include <finclude/petscdef.h> 

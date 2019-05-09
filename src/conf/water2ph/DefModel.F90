@@ -14,8 +14,8 @@
 module DefModel
 
    use iso_c_binding, only: c_int, c_bool
-   use CommonType
    use CommonMPI, only: CommonMPI_abort
+   use CommonType, only: CSR, type_IdNode
 
    implicit none
 
@@ -23,21 +23,9 @@ module DefModel
 
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
 
-#ifndef NDEBUG
-  if(NbComp/=1) then
-    call CommonMPI_abort('inconsistent number of components')
-  endif
-#endif
-
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
    integer, parameter :: GAS_PHASE = 1
    integer, parameter :: LIQUID_PHASE = 2
-
-#ifndef NDEBUG
-  if(NbPhase/=2) then
-    call CommonMPI_abort('inconsistent number of phases')
-  endif
-#endif
 
    integer, parameter :: NbContexte = 3
    integer, parameter :: GAS_CONTEXT = 1

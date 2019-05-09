@@ -8,7 +8,10 @@
 
 module NumbyContext
 
-  use DefModel
+  use DefModel, only: &
+     NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
+     IndThermique, MCP, &
+     NumPhasePresente_ctx, NbPhasePresente_ctx
 
   implicit none
 

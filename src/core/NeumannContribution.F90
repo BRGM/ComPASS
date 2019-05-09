@@ -8,16 +8,17 @@
 
     module NeumannContribution
 
-       use MeshSchema
-       use DefModel
-       use Thermodynamics
+       use iso_c_binding, only: c_int, c_double
+       use mpi, only: MPI_Abort
+       use CommonMPI, only: commRank, ComPASS_COMM_WORLD
 
-       use NumbyContext
-       use CommonMPI
-       use Physics
-       use SchemeParameters
+       use DefModel, only: NbComp
+       use Physics, only: Thickness
 
-       use iso_c_binding
+       use MeshSchema, only: &
+          XNodeLocal, XFaceLocal, NodebyFaceLocal, &
+          NbNodeLocal_Ncpus, IdNodeLocal, &
+          MeshSchema_local_face_surface, MeshSchema_triangle_area
 
        implicit none
 

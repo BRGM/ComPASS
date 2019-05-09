@@ -8,14 +8,26 @@
 
 module Flux
 
-  use MeshSchema
+  use CommonMPI, only: commRank
+  use DefModel, only: NbPhase
 
-  use IncCV
-  use NumbyContext
+  use NumbyContext, only: NumPhasePresente_ctx, NbPhasePresente_ctx
+  use IncCVReservoir, only: &
+     IncNode, IncCell, IncFrac, &
+     NbCellLocal_Ncpus, NbFracLocal_Ncpus
 
-  use LoisThermoHydro
-  use VAGFrac
-  use Physics
+  use LoisThermoHydro, only: &
+     DensiteMassiqueNode, DensiteMassiqueCell, DensiteMassiqueFrac, &
+     PressionCapNode, PressionCapCell, PressionCapFrac
+
+  use VAGFrac, only: &
+     TkLocal_Darcy, TkFracLocal_Darcy, TkLocal_Fourier, TkFracLocal_Fourier
+  use Physics, only: gravity
+
+  use MeshSchema, only: &
+     NbFracCellMax, NbNodeCellMax, NbNodeFaceMax, &
+     NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, &
+     FracToFaceLocal, FaceToFracLocal, XNodeLocal, XFaceLocal, XCellLocal
 
   implicit none
 

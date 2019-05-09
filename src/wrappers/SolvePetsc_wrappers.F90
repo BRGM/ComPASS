@@ -10,8 +10,8 @@ module SolvePetscWrapper
 
    use, intrinsic :: iso_c_binding
 
-   use SolvePetsc
-   use StringWrapper
+   use SolvePetsc, only: SolvePetsc_dump_system
+   use StringWrapper, only: cpp_string_wrapper, fortran_string
 
    implicit none
 

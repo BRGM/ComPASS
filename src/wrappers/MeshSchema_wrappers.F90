@@ -10,10 +10,15 @@
     module MeshSchema_wrappers
 
        use, intrinsic :: iso_c_binding
-
-       use CommonMPI
-       use CommonTypesWrapper
-       use MeshSchema
+       use mpi, only: MPI_Abort
+       use CommonMPI, only: Ncpus, ComPASS_COMM_WORLD
+       use InteroperabilityStructures, only: cpp_array_wrapper
+       use MeshSchema, only: &
+         IdNodeLocal, &
+         FaceToFracLocal, FracToFaceLocal, &
+         NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+         NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
+         XCellLocal, XFaceLocal
 
        implicit none
 

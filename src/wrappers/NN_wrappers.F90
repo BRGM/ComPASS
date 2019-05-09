@@ -11,8 +11,9 @@
 
        use, intrinsic :: iso_c_binding
 
-       use NN
-       use StringWrapper
+       use NN, only: &
+         NN_finalize, NN_main_summarize_timestep, NN_init_warmup, NN_init_phase2
+       use StringWrapper, only: cpp_string_wrapper, fortran_string
 
        implicit none
 

@@ -9,10 +9,13 @@
 module LocalMeshWrapper
 
    use, intrinsic :: iso_c_binding
-
-   use CommonTypesWrapper
-   use CommonMPI
-   use MeshSchema
+   use mpi, only: MPI_Abort
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
+   use InteroperabilityStructures, only: cpp_array_wrapper
+   use MeshSchema, only: &
+      NodeFlagsLocal, CellFlagsLocal, FaceFlagsLocal, &
+      CellTypesLocal, FaceTypesLocal, XNodeLocal, &
+      NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus
 
    implicit none
 

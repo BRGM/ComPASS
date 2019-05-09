@@ -8,19 +8,23 @@
 
 module IncCVWells
 
-    use, intrinsic :: iso_c_binding
-
-   use MeshSchema
-   use DefModel
-   use Thermodynamics
-
-   use NumbyContext
-   use CommonMPI
-   use Physics
-   use SchemeParameters
-   use IncCVReservoir
-
+   ! use, intrinsic :: iso_c_binding
    use iso_c_binding
+   use mpi, only: MPI_Abort
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD
+
+   use DefModel, only: NbComp, NbPhase, LIQUID_PHASE
+   use Physics, only: gravity
+
+   use Thermodynamics, only: f_DensiteMolaire
+
+   use IncCVReservoir, only: IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx
+
+   use MeshSchema, only: &
+      XNodeLocal, &
+      NodebyWellProdLocal, NodebyWellInjLocal, &
+      NodeDatabyWellProdLocal, DataWellInjLocal, &
+      NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
 
    implicit none
 

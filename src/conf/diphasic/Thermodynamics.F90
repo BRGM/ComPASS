@@ -7,8 +7,11 @@
 !
 
 module Thermodynamics
+  !
+  use iso_c_binding, only: c_double, c_int
+  use DefModel, only: NbPhase, NbComp, IndThermique, &
+    GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP
 
-  use DefModel
 
   implicit none
 

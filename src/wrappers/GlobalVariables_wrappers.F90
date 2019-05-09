@@ -11,9 +11,10 @@
 
        use, intrinsic :: iso_c_binding
 
-       use DefModel
-       use Physics
-       use NN
+       use DefModel, only: NbIncPTCSMax
+       use Physics, only: Thickness, gravity, CpRoche
+       use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
+       use NN, only: Delta_t, TimeCurrent
 
        implicit none
 

@@ -9,13 +9,36 @@
     module GlobalMeshWrapper
 
        use, intrinsic :: iso_c_binding
+       use mpi, only: MPI_abort
 
-       use CommonType
-       use CommonTypesWrapper
-       use CommonMPI
-       use GlobalMesh
-       use DefWell
-       use MeshSchema
+       use CommonTypesWrapper, only: cpp_COC, cpp_array_wrapper, &
+         retrieve_coc
+       use CommonType, only: CSR
+
+       use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
+
+       use GlobalMesh, only: &
+          NbNode, NbCell, &
+          IdNode, IdFace, &
+          NodebyCell, NodebyFace, CellbyNode, FracbyNode, &
+          CellbyCell, CellbyFace, FacebyCell, FacebyNode, &
+          XNode, CellTypes, FaceTypes, NodeFlags, CellFlags, FaceFlags, &
+          NbDirNodeP, NbDirNodeT, &
+          PermCell, PermFrac, &
+          NodeRocktype, CellRocktype, FracRocktype, &
+          CondThermalCell, CondThermalFrac, &
+          PorositeCell, PorositeFrac, &
+          CellThermalSource
+
+       use MeshSchema, only: &
+          NodebyFractureLocal, FacebyCellLocal, NodebyCellLocal, NodebyFaceLocal
+
+       use GlobalMesh, only: &
+         GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype, &
+         GlobalMesh_Make_post_read_well_connectivity_and_ip, &
+         GlobalMesh_Build_cartesian_grid
+
+       use DefWell, only: DefWell_Make_ComputeWellIndex
 
        implicit none
 

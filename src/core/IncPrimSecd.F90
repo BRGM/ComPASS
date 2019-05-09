@@ -8,12 +8,36 @@
 
 module IncPrimSecd
 
-  use CommonMPI
-  use DefModel
-  use Thermodynamics
-  use NumbyContext
-  use IncCVReservoir
+  use iso_c_binding, only: c_double
+  use mpi, only: MPI_Abort
+  use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
+  use SchemeParameters, only: eps
+
+  use DefModel, only: &
+     NbComp, NbPhase, MCP, &
+     NbIncPTCSPrimMax, NbEqFermetureMax, NbIncPTCSMax, &
+     pschoice, psprim, pssecd, &
+     IndThermique, NbCompThermique
+
+  use NumbyContext, only: &
+     NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
+     NumIncComp2NumIncPTC_ctx, NbIncPTCSPrim_ctx, NbEqEquilibre_ctx, &
+     NbEqEquilibreMax, NbIncPTCMax, &
+     NumPhasePresente_ctx, NumCompCtilde_ctx, &
+     NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
+     NbPhasePresente_ctx, NbIncPTC_ctx, NbCompCtilde_ctx
+
+  use IncCVReservoir, only: &
+     TYPE_IncCVReservoir, &
+     IncCell, IncFrac, IncNode
+  use MeshSchema, only: &
+     NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
+     NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+     NodeByWellInjLocal
+
+  use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
+  use Thermodynamics, only: f_Fugacity
 
   implicit none
 

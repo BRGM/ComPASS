@@ -10,10 +10,16 @@
     module WellWrapper
 
     use, intrinsic :: iso_c_binding
-
-    use CommonTypesWrapper
-    use GlobalMesh
-    use DefWell
+    use mpi, only: MPI_Abort
+    use CommonMPI, only: ComPASS_COMM_WORLD, Ncpus
+    use CommonTypesWrapper, only: cpp_COC
+    use InteroperabilityStructures, only: cpp_array_wrapper
+    use DefModel, only: NbComp
+    use DefWell, only: DataWellProd, DataWellInj
+    use GlobalMesh, only: &
+      NbEdgebyWellInj, NbEdgebyWellProd, &
+      NbWellInj, NbWellProd, &
+      NumNodebyEdgebyWellInj, NumNodebyEdgebyWellProd
 
     implicit none
 

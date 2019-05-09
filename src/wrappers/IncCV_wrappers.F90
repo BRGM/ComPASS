@@ -10,12 +10,15 @@
     module IncCVWrapper
 
        use, intrinsic :: iso_c_binding
+       use CommonMPI, only: commRank, CommonMPI_abort
+       use DefModel, only: NbComp, NbPhase
+       use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode, IncCell, IncFrac
+       use MeshSchema, only: NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus
+       use IncCVWells, only: IncPressionWellProd, IncPressionWellInj
+       use DirichletContribution, only: IncNodeDirBC
+       use InteroperabilityStructures, only: cpp_array_wrapper
 
-       use DefModel
-       use IncCVReservoir
-       use IncCVWells
-       use DirichletContribution
-       use CommonTypesWrapper
+       use CommonTypesWrapper, only: retrieve_double_array
 
        implicit none
 

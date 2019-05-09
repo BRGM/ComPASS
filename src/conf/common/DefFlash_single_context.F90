@@ -10,7 +10,8 @@
     
 module DefFlash
 
-   use IncCVReservoir
+   use IncCVReservoir, only: TYPE_IncCVReservoir
+   use DefModel, only: IndThermique
 
    implicit none
 

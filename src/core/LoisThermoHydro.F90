@@ -8,12 +8,37 @@
 
 module LoisThermoHydro
 
-  use DefModel
-  use Thermodynamics
-  use NumbyContext
-  use IncCVReservoir
-  use IncCVWells
-  use IncPrimSecd
+  use CommonMPI, only: commRank, CommonMPI_abort
+
+  use Thermodynamics, only: &
+    f_EnergieInterne, f_Enthalpie, f_Viscosite, f_DensiteMolaire, &
+    f_PermRel, f_PressionCapillaire, f_DensiteMassique
+
+  use DefModel, only: &
+     NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
+     NbEqEquilibreMax, NbIncPTCMax, NbIncPTCSPrimMax, NbIncPTCSecondMax, &
+     NbIncPTCSMax, NbEqFermetureMax
+  use NumbyContext, only: &
+     NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, NumIncComp2NumIncPTC_ctx, &
+     NbEqEquilibre_ctx, NbEqFermeture_ctx, NumPhasePresente_ctx, NumCompCtilde_ctx, &
+     NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, NbPhasePresente_ctx, &
+     NbCompCtilde_ctx, NbIncPTC_ctx, NumPhasePresente_ctx
+  use IncCVReservoir, only: &
+     TYPE_IncCVReservoir, &
+     IncNode, IncCell, IncFrac, &
+     NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus
+  use IncCVWells, only: &
+     PerfoWellInj, DataWellInjLocal, NodeByWellInjLocal, NbWellInjLocal_Ncpus
+
+  use IncPrimSecd, only: &
+     dXssurdXpCell, dXssurdXpNode, dXssurdXpFrac, &
+     SmdXsCell, SmdXsNode, SmdXsFrac, SmFNode, SmFCell, SmFFrac, &
+     NumIncPTCSPrimCell, NumIncPTCSPrimNode, NumIncPTCSPrimFrac, &
+     NumIncPTCSecondCell, NumIncPTCSecondNode, NumIncPTCSecondFrac
+
+  use MeshSchema, only: &
+     NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
+     CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal
 
   implicit none
 

@@ -8,10 +8,15 @@
 
     module IncCV
 
-    use IncCVReservoir
-    use IncCVWells
-
-    use iso_c_binding
+    use iso_c_binding, only: c_double
+    use Newton, only: &
+      Newton_pointers_to_values, Newton_increments_pointers, Newton_increments
+    use IncCVReservoir, only: &
+      IncCVReservoir_LoadIncPreviousTimeStep, IncCVReservoir_SaveIncPreviousTimeStep, &
+      IncCVReservoir_free, IncCVReservoir_allocate, IncCVReservoir_NewtonIncrement
+    use IncCVWells, only: &
+      IncCVWells_allocate, IncCVWells_free, IncCVWells_NewtonIncrement, &
+      IncCVWells_SaveIncPreviousTimeStep, IncCVWells_LoadIncPreviousTimeStep
 
     implicit none
 

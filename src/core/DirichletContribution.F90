@@ -8,17 +8,9 @@
 
 module DirichletContribution
 
-    use MeshSchema
-    use DefModel
-    use Thermodynamics
-
-    use CommonMPI
-    use Physics
-    use SchemeParameters
-    use IncCVReservoir
-    use IncCVWells
-
-    use iso_c_binding
+    use CommonMPI, only: commRank
+    use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode
+    use MeshSchema, only: IdNodeLocal, NbNodeLocal_Ncpus
 
     implicit none
 

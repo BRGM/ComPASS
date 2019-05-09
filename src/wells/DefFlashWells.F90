@@ -13,13 +13,42 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlashWells
 
-   use DefModel
-   use Physics
-   use Thermodynamics
-   use IncCVReservoir
-   use VAGFrac
-   use IncPrimSecd
-   use LoisThermoHydro
+   use CommonType, only: CSRdble
+   use CommonMPI, only: commRank
+   use GlobalMesh, only: NodeRocktype
+   use IncCVWells, only: &
+      PerfoWellInj, &
+      PerfoWellProd, &
+      IncPressionWellProd, &
+      IncPressionWellInj, &
+      NodebyWellProdLocal, &
+      NodebyWellInjLocal
+   use IncCVReservoir, only: &
+      TYPE_IncCVReservoir, &
+      IncNode
+   use LoisThermoHydro, only: &
+      DensitemolaireKrViscoCompNode, &
+      DensitemolaireKrViscoEnthalpieNode, &
+      DensitemolaireKrViscoCompWellInj, &
+      LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
+   use Thermodynamics, only: &
+      f_DensiteMolaire, f_DensiteMassique, f_Enthalpie, f_PermRel, f_Viscosite
+   use MeshSchema, only: &
+      DataWellInjLocal, &
+      NodeDatabyWellInjLocal, &
+      DataWellProdLocal, &
+      NodeDatabyWellProdLocal, &
+      XNodeLocal, &
+      NbWellProdLocal_Ncpus, &
+      NbWellInjLocal_Ncpus
+   use NumbyContext, only: &
+      NumPhasePresente_ctx, &
+      NbPhasePresente_ctx
+   use Physics, only: gravity
+   use DefModel, only: &
+      IndThermique, NbPhase, NbComp, LIQUID_PHASE, MCP
+
+   use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
 
    implicit none
 
@@ -1001,7 +1030,7 @@ contains
    !! the corresponding node values (indexes) stored in mycsr%Num
    !! mycsr%Pt is constructed on NodebyWellInjLocal
    recursive subroutine QuickSortCSR(myCSR, left, right, mode)
-      use commontype
+      use commontype, only: CSRdble
       implicit none
       type(CSRdble), intent(inout) :: myCSR
       integer, intent(in) :: left, right

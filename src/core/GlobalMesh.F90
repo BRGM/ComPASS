@@ -23,13 +23,20 @@ module GlobalMesh
   ! 3. IdFace, Mesh Part
 
   ! This for array that are interfaced with python/C++
-  use iso_c_binding
+  use iso_c_binding, only: c_int, c_double, c_int8_t
 
-  use CommonType
-  use CommonMPI
-  use DefModel
-  use DefWell
-  use SchemeParameters ! FIXME: to be removed: for eps
+  use mpi, only: MPI_Abort
+
+  use CommonMPI, only: compass_comm_world
+  use CommonType, only: Type_IdNode, CSR, &
+    CommonType_deallocCSR
+  use DefModel, only: indthermique
+
+  use DefWell, only: &
+    TYPE_CSRDataNodeWell, NodeDatabyWellInj, NodeDatabyWellProd, &
+    DefWell_deallocCSRDataWell
+
+  ! use SchemeParameters ! FIXME: to be removed: for eps
 
   implicit none
 

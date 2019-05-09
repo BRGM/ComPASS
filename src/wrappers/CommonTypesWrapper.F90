@@ -8,11 +8,14 @@
 
     module CommonTypesWrapper
 
-       use, intrinsic :: iso_c_binding
+       use, intrinsic :: iso_c_binding, only: &
+          c_int, c_double, c_size_t, c_loc, &
+          c_ptr, c_f_pointer, C_NULL_PTR
 
-       use CommonMPI
-       use CommonType
-       use InteroperabilityStructures
+       use mpi, only: MPI_Abort
+       use CommonMPI, only: ComPASS_COMM_WORLD
+       use CommonType, only: CSR
+       use InteroperabilityStructures, only: cpp_array_wrapper
        
        implicit none
 

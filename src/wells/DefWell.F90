@@ -8,11 +8,20 @@
 
 module DefWell
 
-   use, intrinsic :: iso_c_binding
+   use, intrinsic :: iso_c_binding, only: &
+     c_ptr, c_size_t, c_null_ptr, c_loc, c_double, c_char, c_bool
 
-   use CommonMPI
-   use DefModel
-   use Physics
+   use mpi, only: &
+     MPI_CHARACTER, &
+     MPI_DOUBLE, &
+     MPI_Type_Create_Struct, &
+     MPI_ADDRESS_KIND, &
+     MPI_Abort
+
+   use CommonType, only: CSR
+   use CommonMPI, only: ComPASS_COMM_WORLD, CommonMPI_abort
+   use DefModel, only: NbComp
+   use Physics, only: thickness
 
    implicit none
 

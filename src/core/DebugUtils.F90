@@ -8,8 +8,15 @@
 
 module DebugUtils
 
-   use MeshSchema
-   use iso_c_binding
+  use CommonMPI, only: commRank
+
+   use MeshSchema, only: &
+      NbFracLocal_Ncpus, &
+      NodebyFractureLocal, NodebyCellLocal, &
+      IdNodeLocal, XNodeLocal, XFaceLocal, &
+      NodeFlagsLocal, CellFlagsLocal, FaceFlagsLocal
+
+   implicit none
 
    public :: &
       DebugUtils_is_own_frac_node, &

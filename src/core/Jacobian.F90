@@ -13,12 +13,82 @@ module Jacobian
   !   2. Jacobian -> Regularization
   !      -> Alignment -> Schur
 
-  use MeshSchema
+  use iso_c_binding, only: c_double
+  use mpi, only: MPI_Abort
+  use CommonType, only: CSRArray2dble
+  use CommonMPI, only: commRank, ComPASS_COMM_WORLD
 
-  use DefModel
-  use LoisThermoHydro
-  use Physics
-  use Residu
+  use DefModel, only: &
+     NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod
+
+  use LoisThermoHydro, only: &
+     DensitemolaireKrViscoCompWellInj, DensitemolaireKrViscoEnthalpieWellInj, &
+     DensitemolaireKrViscoCompNode, DensitemolaireKrViscoCompCell, DensitemolaireKrViscoCompFrac, &
+     DensitemolaireKrViscoEnthalpieNode, DensitemolaireKrViscoEnthalpieCell, DensitemolaireKrViscoEnthalpieFrac, &
+     DensitemolaireSatCompNode, DensitemolaireSatCompCell, DensitemolaireSatCompFrac, &
+     DensitemolaireEnergieInterneSatNode, DensitemolaireEnergieInterneSatCell, DensitemolaireEnergieInterneSatFrac, &
+     divDensitemolaireKrViscoCompNode, divDensitemolaireKrViscoCompCell, divDensitemolaireKrViscoCompFrac, &
+     divDensitemolaireKrViscoEnthalpieNode, divDensitemolaireKrViscoEnthalpieCell, divDensitemolaireKrViscoEnthalpieFrac, &
+     divTemperatureNode, divTemperatureCell, divTemperatureFrac, &
+     SmTemperatureNode, SmTemperatureCell, SmTemperatureFrac, &
+     SmDensiteMassiqueNode, SmDensiteMassiqueCell, SmDensiteMassiqueFrac, &
+     SmPressionNode, SmPressionCell, SmPressionFrac, &
+     SmDensitemolaireKrViscoCompNode, SmDensitemolaireKrViscoCompCell, SmDensitemolaireKrViscoCompFrac, &
+     SmDensitemolaireKrViscoEnthalpieNode, SmDensitemolaireKrViscoEnthalpieCell, SmDensitemolaireKrViscoEnthalpieFrac, &
+     SmDensitemolaireEnergieInterneSatNode, SmDensitemolaireEnergieInterneSatCell, SmDensitemolaireEnergieInterneSatFrac, &
+     divDensiteMassiqueNode, divDensiteMassiqueCell, divDensiteMassiqueFrac, &
+     divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
+     divDensitemolaireKrViscoEnthalpieWellInj, divDensitemolaireKrViscoCompWellInj, &
+     divDensitemolaireSatCompNode, divDensitemolaireSatCompCell, divDensitemolaireSatCompFrac, &
+     divDensitemolaireEnergieInterneSatNode, divDensitemolaireEnergieInterneSatCell, divDensitemolaireEnergieInterneSatFrac, &
+     divPressionNode, divPressionCell, divPressionFrac, &
+     divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
+     SmDensitemolaireSatCompNode, SmDensitemolaireSatCompCell, SmDensitemolaireSatCompFrac
+
+   use NumbyContext, only: &
+      NumPhasePresente_ctx, NbPhasePresente_ctx, &
+      NbCompCtilde_ctx, NumCompCtilde_ctx
+
+  use Physics, only: gravity, CpRoche
+
+  use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
+  use SchemeParameters, only: eps
+
+  use IncCVReservoir, only: &
+     IncNode, IncCell, IncFrac, IdNodeLocal
+  use IncCVWells, only: &
+     PerfoWellInj, DataWellInjLocal, &
+     PerfoWellProd, PerfoWellInj
+  use VAGFrac, only: &
+     TkLocal_Darcy, TkLocal_Fourier, TkFracLocal_Darcy, TkFracLocal_Fourier, &
+     VolDarcyNode, VolDarcyCell, VolDarcyFrac, &
+     PoroVolDarcyCell, PoroVolDarcyNode, PoroVolDarcyFrac, &
+     PoroVolFourierCell, PoroVolFourierNode, PoroVolFourierFrac, &
+     Poro_1volFourierCell, Poro_1volFourierNode, Poro_1volFourierFrac
+
+  use IncPrimSecd, only: &
+     NbIncPTCSPrim_ctx, &
+     NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
+     NumIncPTCSPrimNode, NumIncPTCSPrimCell, NumIncPTCSPrimFrac, &
+     NbIncPTCSPrimMax
+
+  use MeshSchema, only: &
+     NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, FaceToFracLocal, &
+     NodebyWellProdLocal, NodeDatabyWellProdLocal, &
+     NodebyWellInjLocal, NodeDatabyWellInjLocal, &
+     NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbNodeOwn_Ncpus, &
+     NbFracOwn_Ncpus, NbWellProdLocal_Ncpus, NbFaceOwn_Ncpus, &
+     NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, NbWellProdOwn_Ncpus, DataWellProdLocal, &
+     CellbyNodeOwn, NodebyFracOwn, NodebyNodeOwn, FracbyNodeOwn, FracbyFracOwn, &
+     WellInjbyNodeOwn, WellProdbyNodeOwn, CellbyFracOwn, &
+     NbFracCellMax, NbNodeCellMax, NbNodeFaceMax, &
+     FracToFaceLocal, XNodeLocal, XCellLocal, XFaceLocal
+
+  use Flux, only: &
+     FluxDarcyKI, FluxDarcyFI
+  use Residu, only: &
+     ResiduNode, ResiduCell, ResiduFrac, &
+     ResiduWellInj, ResiduWellProd
 
   implicit none
 

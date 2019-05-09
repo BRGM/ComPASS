@@ -12,26 +12,12 @@
 
 module DefModel
 
-   use CommonType
+   use CommonType, only: CSR, type_IdNode
 
    implicit none
 
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
-
-#ifndef NDEBUG
-  if(NbComp/=1) then
-    call CommonMPI_abort('inconsistent number of components')
-  endif
-#endif
-
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
-
-#ifndef NDEBUG
-  if(NbPhase/=1) then
-    call CommonMPI_abort('inconsistent number of phases')
-  endif
-#endif
-
    integer, parameter :: NbContexte = 1
 
   ! Number of phases that are present in each context

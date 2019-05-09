@@ -8,12 +8,45 @@
 
 module MeshSchema
 
-  use CommonType
-  use CommonMPI
-  use LocalMesh
-  use DefModel
-  use DefWell
+  use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
   use mpi
+  use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
+
+  use CommonType, only: &
+    Type_IdNode, CSR, &
+    VALSIZE_NB, VALSIZE_NNZ, VALSIZE_ZERO, &
+    CommonType_deallocCSR, CommonType_csrcopy
+  use DefModel, only: IndThermique
+  use DefWell, only: &
+     TYPE_CSRDataNodeWell, WellData_type, &
+     DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
+     DefWell_deallocCSRDataWell
+
+  use LocalMesh, only: &
+    XNodeRes_Ncpus, &
+    meshSizeS_xmin, meshSizeS_xmax, meshSizeS_ymin, meshSizeS_ymax, meshSizeS_zmin, meshSizeS_zmax, &
+    NodeFlags_Ncpus, CellFlags_Ncpus, FaceFlags_Ncpus, &
+    CellTypes_Ncpus, FaceTypes_Ncpus, &
+    NodeRocktype_Ncpus, CellRocktype_Ncpus, FracRocktype_Ncpus, &
+    NbCellResS_Ncpus, NbFaceResS_Ncpus, NbNodeResS_Ncpus, NbFracResS_Ncpus, &
+    NbCellOwnS_Ncpus, NbFaceOwnS_Ncpus, NbNodeOwnS_Ncpus, NbFracOwnS_Ncpus, &
+    NbWellInjResS_Ncpus, NbWellProdResS_Ncpus, &
+    NbWellInjOwnS_Ncpus, NbWellProdOwnS_Ncpus, &
+    DataWellInjRes_Ncpus, DataWellProdRes_Ncpus, &
+    IdCellRes_Ncpus, IdFaceRes_Ncpus, IdNodeRes_Ncpus, &
+    FracToFaceLocal_Ncpus, FaceToFracLocal_Ncpus, &
+    PorositeCell_Ncpus, PorositeFrac_Ncpus, &
+    PermCellLocal_Ncpus, PermFracLocal_Ncpus, &
+    CondThermalCellLocal_Ncpus, CondThermalFracLocal_Ncpus, &
+    CellThermalSource_Ncpus, FracThermalSource_Ncpus, &
+    NodebyNodeOwn_Ncpus, FracbyNodeOwn_Ncpus, CellbyNodeOwn_Ncpus, &
+    NodebyFracOwn_Ncpus, CellbyFracOwn_Ncpus, FracbyFracOwn_Ncpus, &
+    FacebyCellLocal_Ncpus, FracbyCellLocal_Ncpus, NodebyCellLocal_Ncpus, NodebyFaceLocal_Ncpus, &
+    WellInjbyNodeOwn_Ncpus, WellProdbyNodeOwn_Ncpus, &
+    NodebyWellInjLocal_Ncpus, NodebyWellProdLocal_Ncpus, &
+    NumNodebyProc_Ncpus, NumFracbyProc_Ncpus, &
+    NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
+    NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
 
   implicit none
 

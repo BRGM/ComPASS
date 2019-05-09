@@ -8,7 +8,12 @@
 
 module CommonMPI
 
-   use mpi
+   use mpi, only: &
+     MPI_SUCCESS, &
+     MPI_Abort, &
+     MPI_Comm_rank, &
+     MPI_Comm_size, &
+     MPI_Comm_dup
 
    implicit none
 
@@ -20,7 +25,7 @@ module CommonMPI
       Ncpus !< Total number of processors
 
    public :: &
-      CommonMPI_init
+      CommonMPI_init, CommonMPI_abort
 
 contains
    !> \brief Initialize MPI constants:

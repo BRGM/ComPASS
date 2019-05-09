@@ -8,10 +8,8 @@
 
 module PartitionMesh
 
-  use CommonType
-  use GlobalMesh
-
-  use iso_c_binding, only : C_CHAR, C_NULL_CHAR
+  use iso_c_binding, only : C_CHAR, C_NULL_CHAR, C_INT
+  use GlobalMesh, only: NbCell, CellbyCell
 
   implicit none
 

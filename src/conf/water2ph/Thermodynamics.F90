@@ -13,9 +13,11 @@
 
 module Thermodynamics
 
-   use, intrinsic :: iso_c_binding
-
-   use DefModel
+   use, intrinsic :: iso_c_binding, only: c_double, c_int
+   use CommonMPI, only: CommonMPI_abort
+   use DefModel, only: &
+     NbPhase, NbComp, IndThermique, &
+     GAS_PHASE, LIQUID_PHASE
 
    implicit none
 

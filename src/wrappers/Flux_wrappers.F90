@@ -8,11 +8,32 @@
 
 module FluxWrappers
 
-   use CommonTypesWrapper
-   use DefModel
-   use IncCVReservoir
-   use LoisThermoHydro
-   use Flux
+   use, intrinsic :: iso_c_binding, only: c_double
+
+   use mpi, only: MPI_Abort
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD
+
+   use CommonTypesWrapper, only: cpp_narray_wrapper, bind_3array
+   use InteroperabilityStructures, only: cpp_array_wrapper
+
+   use DefModel, only: NbComp, MCP
+   use NumbyContext, only: NbPhasePresente_ctx, NumPhasePresente_ctx
+
+   use IncCVReservoir, only: &
+      TYPE_IncCVReservoir, IncNode, IncCell, IncFrac
+
+   use LoisThermoHydro, only: &
+      DensitemolaireKrViscoCompNode, &
+      DensitemolaireKrViscoCompCell, &
+      DensitemolaireKrViscoCompFrac
+
+   use Flux, only: FluxDarcyKI
+
+   use MeshSchema, only: &
+      NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
+      NodebyFaceLocal, NodebyCellLocal, FracbyCellLocal, &
+      FaceToFracLocal, FracToFaceLocal, &
+      XNodeLocal, XCellLocal, XFaceLocal
 
    implicit none
 

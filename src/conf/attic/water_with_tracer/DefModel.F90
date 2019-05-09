@@ -13,7 +13,7 @@
 
 module DefModel
 
-   use CommonType
+   use CommonType, only: CSR, Type_IdNode
 
    implicit none
 

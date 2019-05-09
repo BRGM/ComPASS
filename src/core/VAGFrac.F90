@@ -17,11 +17,26 @@
 
 module VAGFrac
 
-  use CommonMPI
-  use MeshSchema
-  use DefModel
-  use SchemeParameters
-  use DebugUtils
+  use mpi, only: MPI_Abort, MPI_Barrier
+  use CommonMPI, only: ComPASS_COMM_WORLD, commRank
+  use CommonType, only: CSR
+
+  use DebugUtils, only: DebugUtils_is_own_frac_node
+
+  use MeshSchema, only: &
+     NodebyCellLocal, FracbyCellLocal, FacebyCellLocal, &
+     NodebyFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
+     CellRocktypeLocal, NodeRocktypeLocal, FracRocktypeLocal, &
+     CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
+     PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
+     NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
+     IdNodeLocal, IdFaceLocal, FracToFaceLocal
+
+  use Physics, only: Thickness
+  use SchemeParameters, only: &
+     omegaDarcyCell, omegaDarcyFrac, &
+     omegaFourierCell, omegaFourierFrac, &
+     eps
 
   implicit none
 

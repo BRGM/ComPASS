@@ -8,15 +8,61 @@
 
 module Residu
 
-   use, intrinsic :: iso_c_binding 
+   use, intrinsic :: iso_c_binding, only: c_double, c_f_pointer
 
-   use DefModel
-   use IncCVReservoir
-   use IncCVWells
-   use NeumannContribution
-   use LoisThermoHydro
-   use Flux
-   use InteroperabilityStructures
+   use CommonMPI, only: commRank, CommonMPI_abort
+   use InteroperabilityStructures, only: cpp_array_wrapper
+
+   use DefModel, only: &
+      NbPhase, NbComp, NbCompThermique, IndThermique, &
+      LIQUID_PHASE, MCP, &
+      NbEqEquilibreMax, NbIncPTCSPrimMax, NbIncPTCSecondMax, &
+      NbIncPTCMax, NbIncPTCSMax, NbEqFermetureMax
+
+   use LoisThermoHydro, only: &
+      DensitemolaireKrViscoCompWellInj, &
+      DensitemolaireKrViscoEnthalpieWellInj, &
+      DensitemolaireKrViscoCompNode, &
+      DensitemolaireKrViscoCompCell, &
+      DensitemolaireKrViscoCompFrac, &
+      DensitemolaireKrViscoEnthalpieNode, &
+      DensitemolaireKrViscoEnthalpieCell, &
+      DensitemolaireKrViscoEnthalpieFrac, &
+      DensitemolaireSatCompNode, &
+      DensitemolaireSatCompCell, &
+      DensitemolaireSatCompFrac, &
+      DensitemolaireEnergieInterneSatNode, &
+      DensitemolaireEnergieInterneSatCell, &
+      DensitemolaireEnergieInterneSatFrac
+
+   use Physics, only: CpRoche
+   use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
+   use Flux, only: FluxDarcyKI, FluxFourierKI, FluxDarcyFI, FluxFourierFI
+
+   use NeumannContribution, only: NodeNeumannBC
+
+   use NumbyContext, only: &
+      NbEqEquilibre_ctx, NumPhasePresente_ctx, NumCompCtilde_ctx, &
+      NbPhasePresente_ctx, &
+      NbCompCtilde_ctx
+   use IncCVReservoir, only: &
+      NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
+      IncNode, IncCell, IncFrac
+   use IncCVWells, only: &
+      PerfoWellInj, DataWellInjLocal, &
+      NbWellInjLocal_Ncpus, &
+      NodebyWellProdLocal, PerfoWellProd, IncPressionWellInj, &
+      IncPressionWellProd, NodeDatabyWellProdLocal
+   use VAGFrac, only: &
+      CellThermalSourceVol, NodeThermalSourceVol, FracThermalSourceVol, &
+      PoroVolDarcyCell, PoroVolDarcyNode, PoroVolDarcyFrac, &
+      PoroVolFourierCell, PoroVolFourierNode, PoroVolFourierFrac, &
+      Poro_1volFourierCell, Poro_1volFourierNode, Poro_1volFourierFrac
+   use MeshSchema, only: &
+      DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
+      FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
+      IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
+      NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus
 
    implicit none
 

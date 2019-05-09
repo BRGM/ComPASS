@@ -8,9 +8,15 @@
 
 module Newton
 
-   use, intrinsic :: iso_c_binding
-   
-   use MeshSchema
+   use, intrinsic :: iso_c_binding, only: c_double, c_ptr, c_f_pointer
+   use CommonMPI, only: commRank
+
+   use DefModel, only: NbIncPTCSMax
+   use MeshSchema, only: &
+      NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
+      NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
+
+   implicit none
    
    type, bind(C) :: Newton_increments_pointers
       type(c_ptr) :: nodes
