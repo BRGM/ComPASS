@@ -1,0 +1,141 @@
+
+Setup
+=====
+
+>>> import numpy as np
+>>> from index_zoning import ZoneManager
+>>> from distribute import ZoneManager_bis as ZoneManager
+
+>>> from properties import ArrayProperty, Vector, Tensor
+
+
+Des zones et des données dessus
+-------------------------------
+
+>>> n = 10
+>>> mng = ZoneManager(n)
+>>> za = mng.build_from_indices(range(0, n, 2))
+>>> zb = mng.build_from_indices(range(0, n//2))
+
+>>> x = np.arange(n)
+>>> xa = np.arange(0, n, 2)
+>>> xb = np.arange(0, n//2)
+
+
+ArrayProperty sur des scalaires
+===============================
+
+constantes sur zone
+-------------------
+
+>>> p = ArrayProperty(np.float64)
+>>> p.everywhere = -1
+>>> p[za] = 10
+>>> p[zb] = 20
+>>> p[mng]
+array([20., 20., 20., 20., 20., -1., 10., -1., 10., -1.])
+
+tableaux sur zones
+------------------
+
+>>> p = ArrayProperty(np.float64)
+>>> p.everywhere = -1
+>>> p[za] = 10 + xa
+>>> p[zb] = 20 + xb
+>>> p[mng]
+array([20., 21., 22., 23., 24.,  -1., 16.,  -1., 18.,  -1.])
+
+on peut récupérer seulement une zone plutôt que tout le domaine
+
+>>> p[za&zb]
+array([20., 22., 24.])
+>>> p[za|zb]
+array([20., 21., 22., 23., 24., 16., 18.])
+
+si l'info n'est pas disponible sur une partie de la zone requise, erreur
+
+>>> p = ArrayProperty(np.float64)
+>>> p[za] = 10 + xa
+>>> p[zb] = 20 + xb
+>>> p[za&zb]
+array([20., 22., 24.])
+>>> p[za|zb]
+array([20., 21., 22., 23., 24., 16., 18.])
+>>> p[zb.complement()]
+Traceback (most recent call last):
+...
+KeyError: ...
+
+constantes et tableaux sur zones
+--------------------------------
+
+>>> p = ArrayProperty(np.float64)
+>>> p.everywhere = -1
+>>> p[za] = 10 + xa
+>>> p[zb] = 20
+>>> p[mng]
+array([20., 20., 20., 20., 20.,  -1., 16.,  -1., 18.,  -1.])
+
+>>> p = ArrayProperty(np.float64)
+>>> p.everywhere = -1
+>>> p[za] = 10
+>>> p[zb] = 20 + xb
+>>> p[mng]
+array([20., 21., 22., 23., 24.,  -1., 10.,  -1., 10.,  -1.])
+
+
+>>> za._block_ids
+frozenset({0, 1})
+>>> zb._block_ids
+frozenset({0, 2})
+
+>>> mng._partition
+(array([0, 2, 4]), array([6, 8]), array([1, 3]), array([5, 7, 9], dtype=uint8))
+
+
+>>> new_domain = za
+>>> new_content = ArrayProperty(np.int32)
+>>> new_content[new_domain] = np.arange(len(new_domain))[::-1]
+>>> list(new_content._data.values())[0]._data[0][1].zone.content()
+array([0, 2, 4, 6, 8])
+
+>>> [(z.content(), zz.content(), v) for z, (zz, v) in list(p._data.values())[0].items()]
+[(array([0, 1, 2, 3, 4]), array([0, 1, 2, 3, 4]), array([20., 21., 22., 23., 24.])), (array([6, 8]), array([0, 2, 4, 6, 8]), 10.0), (array([5, 7, 9], dtype=uint8), array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), -1.0)]
+
+>>> za.content()
+array([0, 2, 4, 6, 8])
+>>> zb.content()
+array([0, 1, 2, 3, 4])
+
+>>> mng._reduce_domain(za.content()[::-1])
+
+# >>> [z.content() for z in mng._zones.values()]
+
+>>> print(mng['whole'].content())
+[0 1 2 3 4]
+
+>>> za.content()
+array([0, 1, 2, 3, 4])
+>>> zb.content()
+array([2, 3, 4])
+
+# >>> 1/0
+# >>> [(z.content(), zz.content(), v) for z, (zz, v) in list(p._data.values())[0].items()]
+
+>>> p[mng]
+array([10., 10., 24., 22., 20.])
+
+# >>> p[mng]
+# array([20., 22., 24.,  10.,  10.])
+
+
+# >>> list(new_content._data.values())[0]._data[0][1].array
+
+>>> za._block_ids
+frozenset({0, 1})
+>>> zb._block_ids
+frozenset({0})
+
+>>> mng._partition
+(array([4, 3, 2]), array([1, 0]))
+

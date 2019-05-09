@@ -1,0 +1,156 @@
+
+Setup
+=====
+
+>>> import numpy as np
+>>> from index_zoning import ZoneManager
+
+>>> from properties import ArrayProperty, Vector, Tensor
+
+classes avec des attributs Property
+-----------------------------------
+
+>>> class A():
+...     x = ArrayProperty(np.float64, doc="the x value [scalar]")
+
+>>> class B(A):
+...     y = ArrayProperty(Vector(2), doc="the y value [vector]")
+
+
+Des zones et des données dessus
+-------------------------------
+
+>>> n = 10
+>>> mng = ZoneManager(n)
+>>> za = mng.build_from_indices(range(0, n, 2))
+>>> zb = mng.build_from_indices(range(0, n//2))
+
+>>> x = np.arange(n)
+>>> xa = np.arange(0, n, 2)
+>>> xb = np.arange(0, n//2)
+
+
+docmentation de la classe
+=========================
+
+>>> help(A)
+Help on class A in module __main__:
+<BLANKLINE>
+class A(builtins.object)
+ |  Data descriptors defined here:
+ |
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+ |
+ |  x
+ |      the x value [scalar]
+
+
+>>> help(B)
+Help on class B in module __main__:
+<BLANKLINE>
+class B(A)
+ |  Method resolution order:
+ |      B
+ |      A
+ |      builtins.object
+ |
+ |  Data descriptors defined here:
+ |
+ |  y
+ |      the y value [vector]
+ |
+ |  ----------------------------------------------------------------------
+ |  Data descriptors inherited from A:
+ |
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+ |
+ |  x
+ |      the x value [scalar]
+
+
+affecter directement à l'attribut est equivalent à everywhere
+=============================================================
+
+>>> a = A()
+>>> a.x.everywhere = 1
+>>> a.x[mng]
+array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
+>>> a = A()
+>>> a.x = 1
+>>> a.x[mng]
+array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
+
+plusieurs instances d'une même classe
+=====================================
+
+>>> a1 = A()
+>>> a2 = A()
+
+>>> a1.x = -1
+>>> a1.x[za] = 10
+>>> a1.x[zb] = 20
+
+>>> a2.x = -2
+>>> a2.x[za] = 100
+>>> a2.x[zb] = 200
+
+>>> a1.x[mng]
+array([20., 20., 20., 20., 20., -1., 10., -1., 10., -1.])
+>>> a2.x[mng]
+array([200., 200., 200., 200., 200.,  -2., 100.,  -2., 100.,  -2.])
+
+
+héritage
+========
+
+>>> b1 = B()
+>>> b2 = B()
+
+>>> b1.x = -1
+>>> b1.x[za] = 10
+>>> b1.x[zb] = 20
+>>> b1.y = [3, 6]
+
+>>> b2.x = -2
+>>> b2.x[za] = 100
+>>> b2.x[zb] = 200
+>>> b2.y = [30, 60]
+
+>>> b1.x[mng]
+array([20., 20., 20., 20., 20., -1., 10., -1., 10., -1.])
+>>> b2.x[mng]
+array([200., 200., 200., 200., 200., -2., 100., -2., 100., -2.])
+
+
+>>> b1.y[mng]
+array([[3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.],
+       [3., 6.]])
+>>> b2.y[mng]
+array([[30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.],
+       [30., 60.]])

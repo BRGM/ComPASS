@@ -1,0 +1,323 @@
+Zict
+====
+
+>>> from index_zoning import Zict, ZoneManager
+
+On se donne quelques zones
+>>> manager = ZoneManager(9, True)
+>>> bfi = manager.build_from_indices
+>>> ga, gb, gc = [0, 1, 2], [3, 4, 5], [6, 7, 8]
+>>> za, zb, zc = [bfi(g) for g in (ga, gb, gc)]
+>>> zab, zbc, zac = [bfi(g) for g in (ga + gb, gb + gc, ga + gc)]
+>>> zabc = manager['whole']
+
+
+Cas simple
+----------
+
+>>> x = Zict()
+
+>>> x[za] = 1
+>>> x[zb] = 2
+
+>>> x[za]
+1
+>>> x[zb]
+2
+
+>>> x[zb] = 1
+>>> x[zb]
+1
+
+Définir le grand pour avoir le petit
+------------------------------------
+
+premier niveau
+''''''''''''''
+
+>>> x = Zict()
+>>> x[zab] = 12
+
+la clé est bien là
+
+>>> x[zab]
+12
+
+mais d'autres clés sont possibles :
+les sous zones incluses dans la zone de base
+
+>>> x[za]
+12
+>>> x[zb]
+12
+
+second niveau
+'''''''''''''
+
+>>> x = Zict()
+>>> x[zabc] = 123
+>>> x[zabc]
+123
+
+les zones à 1 sdID
+
+>>> x[za]
+123
+>>> x[zb]
+123
+>>> x[zc]
+123
+
+mais aussi les zones à plusieurs sdID
+
+>>> x[zab]
+123
+>>> x[zbc]
+123
+>>> x[zac]
+123
+
+
+Le grand écrase le petit
+------------------------
+
+premier niveau
+''''''''''''''
+
+>>> x = Zict()
+>>> x[za] = 1
+>>> x[za]
+1
+
+Ici, za est inclu dans zab
+
+>>> x[zab] = 12
+
+On retrouve la valeur pour les zones nouvellement affectées
+
+>>> x[zab]
+12
+>>> x[zb]
+12
+
+Et la valeur en za a changé
+
+>>> x[za]
+12
+
+second niveau
+'''''''''''''
+
+>>> x = Zict()
+>>> x[zab] = 12
+>>> x[zc] = 3
+>>> x[zabc] = 123
+
+zabc englobe toutes les anciennes clés
+
+>>> list(x.keys()) == [zabc]
+True
+
+ce qui se voit dans les réponses lors de l'accès au contenu
+
+>>> x[zabc]
+123
+>>> x[za]
+123
+>>> x[zb]
+123
+>>> x[zc]
+123
+>>> x[zab]
+123
+>>> x[zbc]
+123
+>>> x[zac]
+123
+
+
+Le petit écrase le grand
+------------------------
+
+>>> x = Zict()
+>>> x[zabc] = 123
+
+zab est inclu dans zabc
+
+>>> x[zab] = 12
+
+la définition sur zabc est réduite à zc
+
+>>> x[za]
+12
+>>> x[zb]
+12
+>>> x[zab]
+12
+>>> x[zc]
+123
+>>> x[zabc] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+>>> x[zbc] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+
+en fait x est équivalent au y suivant
+
+.. >>> y = Zict()
+.. >>> y[zab], y[zc] = 12, 123
+.. >>> x == y
+.. True
+
+
+Ecrasement sur une intersection
+-------------------------------
+
+>>> x = Zict()
+>>> x[zbc] = 23
+>>> x[zab] = 12
+
+zab et zbc partage le sdID 2
+
+>>> x[za]
+12
+>>> x[zb]
+12
+>>> x[zab]
+12
+>>> x[zc]
+23
+>>> x[zbc] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+
+en fait x est équivalent au y suivant
+
+.. >>> y = Zict()
+.. >>> y[zab], y[zc] = 12, 23
+.. >>> x == y
+.. True
+
+
+Intersections multiples et écrasement
+-------------------------------------
+
+>>> z123 = bfi([0, 1, 2])
+>>> z456 = bfi([3, 4, 5])
+>>> z789 = bfi([6, 7, 8])
+>>> z258 = bfi([1, 4, 7])
+
+>>> x = Zict()
+>>> x[z123] = 123
+>>> x[z456] = 456
+>>> x[z789] = 789
+
+on tape un peu partout
+
+>>> x[z258] = 258
+
+les anciennes zones ne sont plus là
+
+>>> x[z123] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+>>> x[z456] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+>>> x[z789] # doctest: +ELLIPSIS
+Traceback (most recent call last):
+KeyError:...
+
+mais il en reste des morceaux
+
+>>> z13 = bfi([0, 2])
+>>> z46 = bfi([3, 5])
+>>> z79 = bfi([6, 8])
+
+>>> x[z13]
+123
+>>> x[z46]
+456
+>>> x[z79]
+789
+
+et bien sûr la nouvelle zone
+
+>>> x[z258]
+258
+
+
+Fusion des zones à valeurs identiques
+-------------------------------------
+
+>>> x = Zict()
+>>> x[za], x[zb] = 1, 1
+
+Comme "``x[za] is x[zb] == True``" les deux clés sont fusionnées pour
+ne faire qu'une
+
+>>> x[zab]
+1
+
+
+Suppression de clé + suivi du manager
+-------------------------------------
+
+>>> x = Zict()
+>>> x.manager is None
+True
+>>> x[zab] = 1
+>>> x.manager is zab.manager
+True
+>>> del x[zab]
+>>> x.manager is None and not x
+True
+
+>>> x[zab] = 1
+>>> del x[za]
+>>> x.manager is zab.manager
+True
+>>> del x[zb]
+>>> x.manager is None and not x
+True
+
+>>> x[zab] = 1
+>>> x.clear()
+>>> x.manager is None and not x
+True
+
+On peut effacer les clés du Zict qui sont dans un sur-ensemble quelconque.
+>>> x[za] = 'zone a'
+>>> x[zc] = 'zone c'
+>>> x.clear(zab)
+>>> za in x
+False
+>>> zc in x
+True
+>>> x[zc]
+'zone c'
+
+>>> x.clear()
+>>> x[zab] = 1
+>>> x.pop(zb)
+1
+>>> x.pop(za)
+1
+>>> x.manager is None and not x
+True
+
+>>> x[zab] = 1
+>>> x.popitem() == (zab, 1)
+True
+>>> x.manager is None and not x
+True
+
+
+Quid d'une zone vide ?
+----------------------
+
+>>> void = zab.manager['whole'].complement()
+>>> x[zab] = 1
+>>> x[void] is None
+True
