@@ -1,0 +1,126 @@
+%% LyX 2.2.3 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{amsmath}
+\usepackage{babel}
+\begin{document}
+\global\long\def\Neumann{\mathcal{N}}
+\global\long\def\Neumannfaces{\Neumann}
+\global\long\def\Neumannfractures{\Gamma_{\Neumann}}
+\global\long\def\faces{\mathcal{F}}
+\global\long\def\nodes{\mathcal{V}}
+\global\long\def\edges{\mathcal{E}}
+\global\long\def\x{x}
+\global\long\def\s{s}
+
+\global\long\def\nodeNcontr#1{G_{#1}}
+\global\long\def\facenodeNcontr#1{G_{#1}^{\partial\Omega}}
+\global\long\def\fracnodeNcontr#1{G_{#1}^{\partial\Gamma}}
+
+Let $\faces_{s}$ be the set of faces that share a given vertex $s$
+
+The faces are not necessarily planar. It is just assumed that for
+each face $\sigma\in\faces$, there exists a so-called ``centre''
+of the face ${\bf x}_{\sigma}\in\sigma\setminus\bigcup_{e\in\edges_{\sigma}}e$
+such that $\x_{\sigma}=\sum_{\s\in\nodes_{\sigma}}\beta_{\sigma,\s}~\x_{\s},\mbox{ with }\sum_{\s\in\nodes_{\sigma}}\beta_{\sigma,\s}=1,$
+and $\beta_{\sigma,\s}\geq0$ for all $\s\in\nodes_{\sigma}$; moreover
+the face $\sigma$ is assumed to be defined by the union of the triangles
+$T_{\sigma,e}$ defined by the face centre $\x_{\sigma}$ and each
+edge $e\in\edges_{\sigma}$. Note that in practice, the coefficients $\beta_{\sigma,\s}$ are all
+set to ${1\over \#\nodes_\sigma}$/ 
+
+\subsection*{Neumann contribution on faces}
+
+Let $\Neumannfaces$ be the subset of boundary faces with a surfacic Neumann
+contribution $g$
+
+Then, for a vertex $s$ the Neumann contribution is given by :
+
+\begin{equation}
+\facenodeNcontr{\s}=\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}\int_{\sigma}g\left(\x\right)\varphi_{\s}\left(\x\right)d\mu\left(\x\right)\label{eq:node_neumann_contribution}
+\end{equation}
+
+where $\varphi_{s}$ is a basis function linear on each subtriangle $T_{\sigma,e}$, $e\in\edges_\sigma$ such
+that :
+\[
+\varphi_{\s}\left(\s'\right)=\delta_{\s\s'}\quad\forall\left(\s,\s'\right)\in\nodes^{2}
+\]
+\[
+\varphi_{\s}\left(x_{\sigma}\right)=\begin{cases}
+\frac{1}{\#\nodes_{\sigma}} & \forall\sigma\in\faces_{s}\\
+0 & \forall\sigma\notin\faces_{s}
+\end{cases}
+\]
+
+Assuming that $g$ is constant on each triangle $T_{\sigma,e}$ with
+the value $g_{\sigma,e}$ equation \eqref{eq:node_neumann_contribution}
+becomes:
+
+\begin{equation}
+\facenodeNcontr{\s}=\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}\left(\sum_{e\in\edges_{\sigma}}g_{\sigma,e}\int_{T_{\sigma,e}}\varphi_{\s}\left(\x\right)d\mu\left(\x\right)\right)\label{eq:node_neumann_contribution_subtriangle}
+\end{equation}
+
+As $\varphi_{\s}\left(\x\right)$ is affine on $T_{\sigma,e}$, it
+comes :
+\[
+\int_{T_{\sigma,e}}\varphi_{\s}\left(\x\right)d\sigma\left(\x\right)=\frac{\left|T_{\sigma,e}\right|}{3}\left(\frac{1}{\#\nodes_{\sigma}}+\delta_{e}\left(\s\right)\right)
+\]
+
+And finally if $g$ is constant on each face $\sigma$ with value
+$g\left(\x_{\sigma}\right)=g_{\sigma}$, \ref{eq:node_neumann_contribution_subtriangle}
+gives:
+
+\[
+\facenodeNcontr{\s}=\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}g_{\sigma}\left(\sum_{e\in\edges_{\sigma}}\frac{\left|T_{\sigma,e}\right|}{3}\left(\frac{1}{\#\nodes_{\sigma}}+\delta_{e}\left(\s\right)\right)\right)
+\]
+
+\[
+\facenodeNcontr{\s}=\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}\frac{g_{\sigma}}{3}\left(\frac{1}{\#\nodes_{\sigma}}\sum_{e\in\edges_{\sigma}}\left|T_{\sigma,e}\right|+\sum_{e\in\edges_{\sigma}}\left|T_{\sigma,e}\right|\delta_{e}\left(\s\right)\right)
+\]
+
+\begin{equation}
+\facenodeNcontr{\s}=\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}\frac{g_{\sigma}}{3}\left(\frac{\left|\sigma\right|}{\#\nodes_{\sigma}}+\sum_{e\in\edges_{s}\cap\edges_{\sigma}}\left|T_{\sigma,e}\right|\right)\label{eq:node_Neumann_contribution_discrete}
+\end{equation}
+
+Ne devrait-il pas y avoir une ponderation par les fractions de volumes
+affectées à chaque noeud ici ? A priori non, de meme que le calcul des flux ne depend pas du choix des volumes. 
+
+\subsection*{Neumann contribution on fractures}
+
+Let $g_{f}$ be a lineic Neumann contribution on each fracture edge
+that is on the boundary of the simulation domain $\partial\Neumannfractures$.
+Each fracture node $\s\in\partial\Neumannfractures$ has an additional
+neuman contribution such that :
+
+\begin{equation}
+\fracnodeNcontr{\s}=\sum_{e\in\edges_{\s}\cap\partial\Neumannfractures}\int_{e}g^{f}\left(\x\right)\varphi_{\s}\left(\x\right)d\mu\left(\x\right)\label{eq:fracture_node_neumann_contribution}
+\end{equation}
+
+and assuming that $g^{f}$ is constant on $e$ with value $g_{e}^{f}$
+it comes:
+\begin{equation}
+\fracnodeNcontr{\s}=\sum_{e\in\edges_{\s}\cap\partial\Neumannfractures}\frac{g_{e}^{f}}{2}\left|e\right|\label{eq:fracture_node_neumann_contribution_discrete}
+\end{equation}
+
+\subsection*{Total Neumann contribution}
+
+Finally, summing \ref{eq:node_Neumann_contribution_discrete} and
+\ref{eq:fracture_node_neumann_contribution_discrete}, the discrete
+version of the total Neumann contribution for each node $\s\in\partial\Omega$
+writes :
+\[
+\nodeNcontr{\s}=\facenodeNcontr{\s}+\fracnodeNcontr{\s}=\frac{1}{3}\sum_{\sigma\in\faces_{\s}\cap\Neumannfaces}g_{\sigma}\left(\frac{\left|\sigma\right|}{\#\nodes_{\sigma}}+\sum_{e\in\edges_{s}\cap\edges_{\sigma}}\left|T_{\sigma,e}\right|\right)+\frac{1}{2}\sum_{e\in\edges_{\s}\cap\partial\Neumannfractures}g_{e}^{f}\left|e\right|
+\]
+
+\subsection*{Interference between dirichlet and neumann contribution}
+
+Nodes located on $\overline{\partial\Omega_{D}}\cap\overline{\partial\Omega_{N}}$
+may have both a Dirichlet contribution (some of the physical values
+are fixed) and a Neumann (face) contribution that will vanish at convergence
+(when $\left|T_{\sigma,e}\right|\rightarrow0$ ). The same holds for
+nodes located at $\overline{\partial\Gamma_{D}}\cap\overline{\partial\Gamma_{N}}$
+for fracture Neumman contributions that will vanish at convergence
+(when $\left|e\right|\rightarrow0$).
+\end{document}

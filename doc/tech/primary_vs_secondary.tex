@@ -1,212 +1,254 @@
 
-\documentclass[final,1p,times]{elsarticle}
+\documentclass{article}
 
-\usepackage{amsthm}
-\usepackage{mathrsfs}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage[latin1]{inputenc}
-\usepackage{blkarray}
-\usepackage{color}
-\usepackage{array}
-\usepackage{multicol}
-\usepackage{pdfpages}
-\usepackage{multirow}
-\usepackage{threeparttable}
-\usepackage{enumitem}
-\usepackage{url}
-\usepackage{lineno}
-
-\usepackage{subcaption}
-\captionsetup{compatibility=false}
-
-
-\modulolinenumbers[1]
-\journal{Journal of Computational Physics}
-
-% \oddsidemargin -1.cm \evensidemargin -1.cm  
-% \topmargin -1.5cm \topskip 0cm   
-% \headheight 1cm \headsep 1cm 
-%% \footheight 1cm \footskip 2cm
-% \textwidth 18cm \textheight 25cm
-% 
-
-\def\N{\Bbb N}
-\def\R{\Bbb R}
-\def\Po{\Bbb P}
-\def\Z{\Bbb Z}
-\def\C{\Bbb C}
-\def\Q{\Bbb Q}
-
-\def\D{\cal D}
-\def\B{\cal B}
-\def\A{\cal A}
-
-\def\vp{\varphi}
-\def\<{\langle}
-\def\>{\rangle}
-\def\t{\tilde}
-\def\e{\varepsilon}
-\def\lsim{\raisebox{-1ex}{$~\stackrel{\textstyle<}{\sim}~$}}
-\def\gsim{\raisebox{-1ex}{$~\stackrel{\textstyle>}{\sim}~$}}
-\def\sm{\setminus}
-\def\nl{\newline}
-\def\wt{\widetilde}
-\def\Chi{\raise .3ex \hbox{\large $\chi$}} 
-\def\vp{\varphi}
-\def\ov{\overline}
-\def\n{{\bf }}
-
-
-\def\k{\kappa}
-\def\[{\Bigl [}
-  \def\]{\Bigr ]}
-\def\({\Bigl (}
-\def\){\Bigr )}
-\def\[{\Bigl [}
-  \def\]{\Bigr ]}
-\def\({\Bigl (}
-\def\){\Bigr )}
-\def\l{\iota}
-\def\L{\Lambda}
-\def\div{{\mbox{\rm div}}}
-\def\dsp{\displaystyle}
-\def\K{{\bf K}}
-\def\x{{\bf x}}
-\def\y{{\bf y}}
-\def\n{{\bf n}}
-\def\s{{\bf s}}
-\def\F{{\bf F}}
-\def\g{{\bf g}}
-\def\U{{\bf U}}
-\def\V{{\bf V}}
-\def\u{{\bf q}}
-\def\q{{\bf q}}
-\def\v{{\bf r}}
-\def\G{{\Gamma}}
-
-\def\D{{\cal D}}
-\def\cells{{\cal M}}
-\def\faces{{\cal F}}
-\def\nodes{{\cal V}}
-\def\edges{{\cal E}}
-\def\T{{\cal T}}
-\def\I{{\cal I}}
-\def\FG{{{\cal F}_\Gamma}}
-
-\def\O{{\Omega}}
-
-\def\PiT{\Pi_{\cal T}}
-\def\PiT{\Pi_{\cal T}}
-\def\PiTdt{\Pi_{{\cal T},\Delta t}}
-\def\PiD{\Pi_{\cal M}}
-\def\PiDdt{\Pi_{{\cal M},\Delta t}}
-
-\def\PiG{\Pi_{\FG}}
-
-\def\Dm{ {\cells^{(m)}} }
-\def\Gm{ {\FG^{(m)}} }
-\def\Gim{ {\faces_{\G_i}^{(m)}} }
-\def\Tm{ {{\cal T}^{(m)}} }
-
-\def\Palim{{\overline u^\alpha}}
-\def\Polim{{\overline u^1}}
-\def\Pwlim{{\overline u^2}}
-
-\def\to{\rightarrow} 
-\def\weakto{\rightharpoonup} 
-\def\trace{\gamma} 
-
-\def\Y{{\Upsilon}}
-\def\YD{\Y_\D}
-\def\grad{{\nabla}}
-
-
-\def\vm {v^{(m)}}
-\def\vmi {v^{(m)}_i}
-\def\dx {{\rm d}\x}
-
-\def\utss{up to a subsequence}
-\def\Ltwo{\rL^2}
-\def\rL{ {\rm L} }
-
-\newcommand{\average}[1]{\ensuremath{\langle#1\rangle} }
-\newcommand{\jump}[1]{\ensuremath{[\![#1]\!]} }
-\newcommand{\matrices}{{\cafl M}_d(\R)}
-
-\newcommand{\degree}{\ensuremath{^{\circ}}}
-
-% 
-\newtheorem{rmk}{Remark}[section]
-% \newtheorem{definition}{Definition}[section]
-% \newtheorem{lemma}{Lemma}[section]
-% \newtheorem{proposition}{Proposition}[section]
-% \newtheorem{theorem}{Theorem}[section]
-% \newtheorem{corollaire}{Corollaire}[section]
-% \newtheorem{hyp}{Assumption}[section]
-% 
-
-\allowdisplaybreaks
-
-%\newcommand{\XF}[1]{\textcolor{red}{#1}}
+\usepackage{ComPASS_notations}
 
 \begin{document}
 
-Let us denote by $R_\nu(X_\D)$ the vector $\(R_{\nu,i}, \ i \in \mathcal{C}\cup\{e\}\) $, and 
-let us rewrite the conservation equations \eqref{VAGconvcell}, \eqref{VAGconvfrac}, 
-\eqref{VAGconvnode} and the closure laws \eqref{VAG_closure} as well 
-as the boundary conditions in vector form defining the following 
-non-linear system at each time step $n=1,2,...,N_T$
+We are solving for the non linear system of equations $\mathcal{R} (X_\D) = 0$.
+For each control volume $\nu \in \CV$, $\mathcal{R_\nu}$ is made of
+conservation equations $R_\nu \(X_\D\)=0$ that involve adjacent degrees of
+freedom and local closure laws $L_\nu \(X_\D\)=0$ that only depends on $X_\nu$,
+local meaning that $\nabla_X_\D$ is block diagonal.
+
+Let us write the equation in vector form:
+
 %
 \begin{eqnarray}
 \label{NonLinearSystem}
 \mathbf{0} = \mathcal{R} (X_\D) := 
-\left\{\begin{array}{llllll}
+\left\{\begin{array}{ll}
 \left(\begin{array}{c}
-R_{\s} (X_\D) \\
-L_\s (X_s)
+R_\nu (X_\D) \\
+L_\nu (X_\D)
 \end{array}\right) 
-\ \s \in \nodes, \\
-\left(\begin{array}{c}
-R_{\sigma} (X_\D) \\
-L_\sigma (X_\sigma)
-\end{array}\right) 
-\ \sigma \in \faces_\Gamma, \\
-\left(\begin{array}{c}
-R_{K} (X_\D) \\
-L_K (X_K)
-\end{array}\right) 
-\ K \in \cells,
+\ \nu \in \CV, \\
 \end{array}\right.
 \end{eqnarray}
 %
-where the superscript $n$ is dropped to simplify the notations 
-and where the Dirichlet boundary conditions 
-have been included at each Dirichlet node $\s\in {\cal V}_D$ in order to 
-obtain a system size independent on the boundary conditions. 
+
+Let us denote:
+\begin{itemize}
+\item $X^{\nat}=\(X^{\nat}_{\nu}\)$ the {\em physical / natural} unknowns 
+\item $X^{\sol}=\(X^{\sol}_{\nu}\)$ the unkwowns used to solve the problem.
+\end{itemize}
+
+such that: $X^{\sol} = \cG \(X^{\nat}\)$
+and $X^{\sol}_{\nu} = \cG_\nu \( X^{\nat}_{\nu} \)$
+
+
+We assume that $X^{\sol}_{\nu}$ writes in vector form :
+$$
+X^{\sol}_{\nu}=\(
+\begin{array}{cc}
+X^{\primu}_{\nu} \\
+X^{\secdu}_{\nu}
+\end{array}
+\)
+$$
+and is such that the square matrix 
+$\nabla_{X^{\secdu}_{\nu}} L_\nu$ is non-singular
+for all $\nu \in \CV$.
+
+Most of the time $\cG$ is a mere permutation matrix.
+
+When solving \eqref{NonLinearSystem} with respect to $X^{\sol}$ with a Newton
+algorithm, we are seeking increments such that:
+
+$$
+\nabla_{X^{\sol}}\mathcal{R} \Delta_X = - \mathcal{R} \( X \)
+$$
+
+where the diagonal of the Jacobian $\nabla_{X^{\sol}}\mathcal{R}$ is made
+of blocks of the form:
+
+$$
+\(\begin{array}{cc}
+\nabla_{X^{\primu}_{\nu}} R_{\nu} &
+\nabla_{X^{\secdu}_{\nu}} R_{\nu} \\
+\nabla_{X^{\primu}_{\nu}} L_{\nu} &
+\nabla_{X^{\secdu}_{\nu}} L_{\nu}
+\end{array}\)
+$$
+
+As the rows involving $L^{\sol}_{\nu}$ are null except in this block (local
+nature of the closure laws) we can eliminate these equations (which can be seen
+as a Schur complement without fill-in):
+
+Indeed:
+
+$$
+\nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}} +
+\nabla_{X^{\secdu}_{\nu}} L_{\nu} \Delta_{X^{\secdu}_{\nu}}
+= L_{\nu}
+$$
+
+gives:
+
+$$
+\Delta_{X^{\secdu}_{\nu}}
+=  \(\nabla_{X^{\secdu}_{\nu}} L_{\nu} \)^{-1} \(
+L^{\sol}_{\nu} - 
+\nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}} 
+\)
+$$
+
+At each step of the Newton algorithm we can choose 
+$( X^{\sol}_{\nu} )_{\nu\in\CV}$ that 
+$ L^{\sol}_{\nu} = 0 $ (projection onto the closure laws ? is this the role
+of the {\em flash}?).
+
+Then for each degree of freedom $\nu'$ the rows involving $R^{\sol}_{\nu}$
+rewrite:
+$$
+\sum_{\nu'}
+\(
+\nabla_{X^{\primu}_{\nu'}} R_{\nu} \Delta_{X^{\primu}_{\nu'}}+
+\nabla_{X^{\secdu}_{\nu'}} R_{\nu} \Delta_{X^{\secdu}_{\nu'}}
+\)
+= R_{\nu}
+$$
+ 
+$$
+\sum_{\nu'}
+\[
+\nabla_{X^{\primu}_{\nu'}} R_{\nu} \Delta_{X^{\primu}_{\nu'}}+
+\nabla_{X^{\secdu}_{\nu'}} R_{\nu} \(
+\(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} \(
+L_{\nu'} - 
+\nabla_{X^{\primu}_{\nu'}} L_{\nu'} \Delta_{X^{\primu}_{\nu'}} 
+\)
+\)
+\]
+= R_{\nu}
+$$
+ 
+\begin{eqnarray}
+\label{eq:newtonjacobian}
+\left.\begin{array}{lr}
+\sum_{\nu'}
+\[
+\nabla_{X^{\primu}_{\nu'}} R_{\nu} 
+- \nabla_{X^{\secdu}_{\nu'}} R_{\nu}
+\( \nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1}
+\nabla_{X^{\primu}_{\nu'}} L_{\nu'}
+\] \Delta_{X^{\primu}_{\nu'}}
+= \\
+R_{\nu} - \sum_{\nu'} \[
+\nabla_{X^{\secdu}_{\nu'}} R_{\nu} 
+\(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} L_{\nu'}
+\]
+\end{array}\right.
+\end{eqnarray}
+ 
+We also have:
+$$
+\nabla_{X^{\sol}_{\nu}} F
+= \nabla_{X^{\nat}_{\nu}} F \nabla_{X^{\sol}_{\nu}} X^{\nat}_{\nu}
+$$
+and:
+$$
+\nabla_{X^{\sol}_{\nu}} X^{\nat}_{\nu}
+= \nabla_{X^{\sol}_{\nu}} \( \cG_{\nu}^{-1}\)
+= \( \nabla_{X^{\sol}_{\nu}} \cG_{\nu} \) ^{-1}
+$$
+
+Let us note : 
+$$
+\G_\nu := \nabla_{X^{\sol}_{\nu}} \cG_{\nu}
+$$
+
+And:
+$$
+\nabla_{X^{\sol}_{\nu}} F
+= \nabla_{X^{\nat}_{\nu}} F {\G_{\nu}}^{-1} 
+$$
+
+with the notations:
+
+$$
+{\G_{\nu}}^{-1} = \[\,
+\iGcol^{\primu}_{\nu} \, \iGcol^{\secdu}_{\nu} 
+\,\]
+$$
+$$
+J^{R}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} R_{\nu} 
+$$
+$$
+J^{L}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} L_{\nu} 
+$$
+
+(note that when $\nu\neq\nu'$ we have $J^{L}_{\nu,\nu'}=0$).
+
+Finally, \eqref{eq:newtonjacobian} becomes:
+
+\begin{eqnarray}
+\label{eq:newtonjacobian2}
+\left.\begin{array}{lr}
+\sum_{\nu'}
+\[
+ J^{R}_{\nu,\nu'}
+-  J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
+\(  J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1} 
+ J^{L}_{\nu',\nu'}
+\] \iGcol^{\primu}_{\nu'} \Delta_{X^{\primu}_{\nu'}}
+\\ =
+R_{\nu} - \sum_{\nu'} \[
+J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'} 
+\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
+L_{\nu'} 
+\]
+\end{array}\right.
+\end{eqnarray}
+
+\begin{rmk}
+When $\cG$ is a permutation matrix the effect of  the $\iGcol^{\cdot}_{\nu}$
+terms is just to extract columns/rows and is implemented manually in the code.
+\end{rmk}
+
+\begin{rmk}
+The terms $A_{\nu,\nu'}=J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'} 
+\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}$ may be stored as they 
+appear twice, so that \eqref{eq:newtonjacobian2} would become:
+\begin{eqnarray}
+\sum_{\nu'}
+\[
+ J^{R}_{\nu,\nu'}
+-  A_{\nu,\nu'} 
+ J^{L}_{\nu',\nu'} 
+\] \iGcol^{\primu}_{\nu'} \Delta_{X^{\primu}_{\nu'}}
+=
+R_{\nu} - \sum_{\nu'}%\(
+A_{\nu,\nu'} L_{\nu'} 
+%\)
+\end{eqnarray}
+\end{rmk}
+
+\begin{rmk}
+When $X^{\sol}_{\nu'}$ are chosen such that $L_{\nu'}=0$ the term
+$\sum_{\nu'} A_{\nu,\nu'} L_{\nu'}$
+may vanish from the right hand side.
+\end{rmk}
+
+% The elimination of the local closure laws (Step 1) is achieved 
+% for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns 
+% $X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with 
+% $$
+% N^{sd}_\nu =   1 + \# Q_\nu + \sum_{\alpha\in Q_\nu} \#{\cal C}^\alpha 
+% +\#\overline{\cal C}_{Q_\nu} -\#{\cal C}. 
+% $$ 
+% For each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}}  $, 
+% the secondary unknowns are  chosen in such a way that the square matrix 
+% $$
+% {\partial L \over \partial X^{sd}_{Q_\nu} } \left(X^{pr}_{Q_\nu},X_{Q_\nu}^{sd}, Q_\nu\right)
+% \in \mathbb{R}^{N^{sd}_\nu \times N^{sd}_\nu},  
+% $$
+% is non-singular. This choice can be done algebraically in the general case, 
+% or defined once and for all for each set of present phases $Q_\nu$ 
+% for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are 
+% always chosen as primary unknowns. 
+
 
  
-The elimination of the local closure laws (Step 1) is achieved 
-for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns 
-$X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with 
-$$
-N^{sd}_\nu =   1 + \# Q_\nu + \sum_{\alpha\in Q_\nu} \#{\cal C}^\alpha 
-+\#\overline{\cal C}_{Q_\nu} -\#{\cal C}. 
-$$ 
-For each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}}  $, 
-the secondary unknowns are  chosen in such a way that the square matrix 
-$$
-{\partial L \over \partial X^{sd}_{Q_\nu} } \left(X^{pr}_{Q_\nu},X_{Q_\nu}^{sd}, Q_\nu\right)
-\in \mathbb{R}^{N^{sd}_\nu \times N^{sd}_\nu},  
-$$
-is non-singular. This choice can be done algebraically in the general case, 
-or defined once and for all for each set of present phases $Q_\nu$ 
-for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are 
-always chosen as primary unknowns. 
-
-
 \end{document}
 

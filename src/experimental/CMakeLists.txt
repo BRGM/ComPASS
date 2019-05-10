@@ -11,6 +11,5 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-foreach(file Pack Template_utils)
-    add_executable(test-${file} test-${file}.cpp)
-endforeach()
+add_subdirectory(pack)
+add_subdirectory(templates)

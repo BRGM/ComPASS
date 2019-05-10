@@ -9,6 +9,38 @@
 namespace ComPASS
 {
 
+    // Cf. FIXME Pack::subpack_type_footprint below: limitations with constexpr array before C++17
+    
+    template <typename Dof, typename word_type>
+    constexpr std::size_t dof_footprint() {
+        typedef typename Dof::type Dof_type;
+        static_assert(sizeof(Dof_type) >= sizeof(word_type), "inconsistent word size");
+        static_assert(sizeof(Dof_type) % sizeof(word_type) == 0, "inconsistent word size");
+        return sizeof(Dof_type) / sizeof(word_type);
+    }
+
+    template <typename word_type, std::size_t k, typename ... Dofs>
+    struct Pack_offsets {
+        static void compute(
+            const std::array<std::size_t, sizeof...(Dofs)>& pack_sizes,
+            std::array<std::size_t, sizeof...(Dofs) + 1>& offsets
+            ) {
+            Pack_offsets<word_type, k - 1, Dofs...>::compute(pack_sizes, offsets);
+            typedef typename std::tuple_element<k-1, std::tuple<Dofs...>>::type Dof;
+            offsets[k] = offsets[k - 1] + pack_sizes[k - 1] * dof_footprint<Dof, word_type>();
+        }
+    };
+
+    template <typename word_type, typename ... Dofs>
+    struct Pack_offsets<word_type, 0, Dofs...> {
+        static void compute(
+            const std::array<std::size_t, sizeof...(Dofs)>& pack_sizes,
+            std::array<std::size_t, sizeof...(Dofs) + 1>& offsets
+        ) {
+            offsets.fill(0);
+        }
+    };
+
     template <typename ... Dofs>
     struct Pack
     {
@@ -27,10 +59,20 @@ namespace ComPASS
 #endif
             "inconsistent sizes in memory"
             );
-        static constexpr Size_array subpack_type_footprint{ sizeof(typename Dofs::type) / sizeof(word_type)... };
+        /* FIXME
+        // It is valid in C++17 to have the following
+        // It works with MSVC 17 but fails with gcc 8.2 because of the need for compile time definitions
+        // cf. https://stackoverflow.com/questions/40690260/undefined-reference-error-for-static-constexpr-member?noredirect=1&lq=1
+        static constexpr Size_array subpack_type_footprint{
+            sizeof(typename Dofs::type) / sizeof(word_type)...
+        };
+        // this is replaced by the preceding tedious meta programming workaround
+        // cf. Pack_offsets struct above
+        */
         std::array<std::size_t, nb_subpacks + 1> subpack_offset; // !!! offsets in words !!!
         Size_array subpack_size; // pack sizes (nb of subpack elements)
         void rebuild() {
+            /* // C++ 17 implementation cf FIXME above
             std::size_t offset = 0;
             for (std::size_t k = 0; k < nb_subpacks; ++k) {
                 subpack_offset[k] = offset;
@@ -38,6 +80,9 @@ namespace ComPASS
             }
             subpack_offset[nb_subpacks] = offset;
             raw_data.resize(offset);
+            */
+            Pack_offsets<word_type, nb_subpacks, Dofs...>::compute(subpack_size, subpack_offset);
+            raw_data.resize(subpack_offset.back());
             raw_data.shrink_to_fit();
         }
         template <typename Dof_type, typename Self>
