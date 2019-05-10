@@ -29,11 +29,12 @@ def select_boundary_factory(grid):
 
 def init_states(p, T):
     def set_states(states):
-        states.context[:] = 2
+        states.context[:] = ComPASS.Context.liquid
         states.p[:] = p
         states.T[:] = T
-        states.S[:] = [0, 1]
-        states.C[:] = 1.
+        states.S[:, ComPASS.phase_index(ComPASS.Phase.gas)] = 0
+        states.S[:, ComPASS.phase_index(ComPASS.Phase.liquid)] = 1
+        states.C[:] = 1
     for states in [ComPASS.dirichlet_node_states(),
                   ComPASS.node_states(),
                   ComPASS.fracture_states(),

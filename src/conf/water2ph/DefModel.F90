@@ -24,13 +24,13 @@ module DefModel
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
 
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
-   integer, parameter :: GAS_PHASE = 1
-   integer, parameter :: LIQUID_PHASE = 2
+   integer, parameter :: GAS_PHASE = ComPASS_GAS_PHASE
+   integer, parameter :: LIQUID_PHASE = ComPASS_LIQUID_PHASE
 
-   integer, parameter :: NbContexte = 3
-   integer, parameter :: GAS_CONTEXT = 1
-   integer, parameter :: LIQUID_CONTEXT = 2
-   integer, parameter :: DIPHASIC_CONTEXT = 3
+   integer, parameter :: NbContexte = ComPASS_NUMBER_OF_CONTEXTS
+   integer, parameter :: GAS_CONTEXT = ComPASS_GAS_CONTEXT
+   integer, parameter :: LIQUID_CONTEXT = ComPASS_LIQUID_CONTEXT
+   integer, parameter :: DIPHASIC_CONTEXT = ComPASS_DIPHASIC_CONTEXT
 
   ! Number of phases that are present in each context
   integer, parameter, dimension(NbContexte) :: &

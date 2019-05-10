@@ -7,19 +7,26 @@
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 static_assert(NP == 2, "Wrong numpber of phases.");
+static_assert(NC == 1, "Wrong numpber of components.");
+static_assert(ComPASS_NUMBER_OF_CONTEXTS==3, "Wrong number of contexts.");
 // FIXME: assuming liquid phase is the latest phase
 constexpr int GAS_PHASE = 0;
 constexpr int LIQUID_PHASE = 1;
 
+enum struct Phase {
+    gas = ComPASS_GAS_PHASE,
+    liquid = ComPASS_LIQUID_PHASE
+};
+
+enum struct Context {
+    gas = ComPASS_GAS_CONTEXT,
+    liquid = ComPASS_LIQUID_CONTEXT,
+    diphasic = ComPASS_DIPHASIC_CONTEXT
+};
+
 // Fortran functions
 extern "C"
 {
-    bool is_context_locked(int);
-    void lock_context(int);
-    void unlock_context(int);
-    int model_number_of_phases();
-    int model_number_of_components();
-    int model_number_of_contexts();
     void FluidThermodynamics_molar_density(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_molar_enthalpy(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
     void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *, const double *, double&, double&, double&, double *, double *);
@@ -28,16 +35,7 @@ extern "C"
 }
 
 
-void init_model() {
-    py::print(NP, NC);
-    py::print(model_number_of_phases(), model_number_of_components());
-    assert(model_number_of_phases()==NP);
-    assert(model_number_of_components()==NC);
-    for(int k=1; k<=model_number_of_contexts(); ++k) {
-        unlock_context(k);
-        assert(!is_context_locked(k));
-    }
-}
+void init_model() {}
 
 void finalize_model() {}
 
@@ -133,11 +131,9 @@ inline double Tsat(double p)
     return result;
 }
 
-void add_model_wrappers(py::module& module)
+void add_specific_model_wrappers(py::module& module)
 {
 
-    module.def("init_model", &init_model);
-    module.def("finalize_model", &finalize_model);
     module.def("Psat", py::vectorize(Psat));
     module.def("Tsat", py::vectorize(Tsat));
     module.def("gas_molar_density", py::vectorize(gas_molar_density));
@@ -146,11 +142,18 @@ void add_model_wrappers(py::module& module)
     module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
     module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
     module.def("liquid_dynamic_viscosity", py::vectorize(liquid_dynamic_viscosity));
-    module.def("is_context_locked", &is_context_locked);
-    module.def("lock_context", &lock_context);
-    module.def("unlock_context", &unlock_context);
-    module.def("model_number_of_phases", &model_number_of_phases);
-    module.def("model_number_of_components", &model_number_of_components);
-    module.def("model_number_of_contexts", &model_number_of_contexts);
+    
+    py::enum_<Context>(module, "Context")
+        .value("gas", Context::gas)
+        .value("liquid", Context::liquid)
+        .value("diphasic", Context::diphasic)
+    ;
+
+    py::enum_<Phase>(module, "Phase")
+        .value("gas", Phase::gas)
+        .value("liquid", Phase::liquid)
+    ;
+
+    use_context_locker(module);
 
 }

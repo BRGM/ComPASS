@@ -63,11 +63,12 @@ ComPASS.init(
 )
 
 def set_initial_states(states):
-    states.context[:] = 2
+    states.context[:] = ComPASS.Context.liquid
     states.p[:] = p0
     states.T[:] = T0
-    states.S[:] = [0, 1]
-    states.C[:] = 1.
+    states.S[:, ComPASS.phase_index(ComPASS.Phase.gas)] = 0
+    states.S[:, ComPASS.phase_index(ComPASS.Phase.liquid)] = 1
+    states.C[:] = 1
 for states in [ComPASS.dirichlet_node_states(),
                ComPASS.node_states(),
                ComPASS.cell_states(),

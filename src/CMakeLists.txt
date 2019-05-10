@@ -178,6 +178,7 @@ set( WRAPPERS_SRCS
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   Model_wrappers.h
+  Model_common_wrappers.cpp
   MeshSchema_wrappers.F90
   NN_wrappers.h
   NN_wrappers.cpp
@@ -219,7 +220,7 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${CONF_SRCS})
         list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
     endforeach()
-    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS} ${WRAPPERS_SRCS} wrappers/conf/${_conf}/Model_wrappers.cpp)
+    add_library(${CONF_TARGETNAME} STATIC ${CONF_ALL_SRCS} ${WRAPPERS_SRCS} wrappers/conf/${_conf}/Model_specific_wrappers.cpp)
     set_target_properties(${CONF_TARGETNAME}
         PROPERTIES
     CXX_STANDARD 14

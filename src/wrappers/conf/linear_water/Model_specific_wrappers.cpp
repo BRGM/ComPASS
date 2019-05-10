@@ -67,11 +67,8 @@ inline double dynamic_viscosity(double p, double T)
     return call_physical_function(FluidThermodynamics_dynamic_viscosity, p, T);
 }
 
-void add_model_wrappers(py::module& module)
+void add_specific_model_wrappers(py::module& module)
 {
-
-    module.def("init_model", &init_model);
-    module.def("finalize_model", &finalize_model);
 
     py::class_<Fluid_properties>(module, "FluidProperties")
         .def_readwrite("specific_mass", &Fluid_properties::specific_mass)

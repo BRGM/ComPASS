@@ -111,11 +111,9 @@ inline double Tsat(double p)
     return result;
 }
 
-void add_model_wrappers(py::module& module)
+void add_specific_model_wrappers(py::module& module)
 {
 
-    module.def("init_model", &init_model);
-    module.def("finalize_model", &finalize_model);
     module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
     module.def("gas_molar_enthalpy", py::vectorize(gas_molar_enthalpy));
     module.def("liquid_molar_density", py::vectorize(liquid_molar_density));

@@ -15,3 +15,6 @@ namespace py = pybind11;
 void init_model();
 void finalize_model();
 void add_model_wrappers(py::module& module);
+void add_common_model_wrappers(py::module& module);
+void add_specific_model_wrappers(py::module& module);
+void use_context_locker(py::module& module);

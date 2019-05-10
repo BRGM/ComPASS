@@ -455,7 +455,6 @@ def all_fracture_edges_tagged():
     return True
 
 def find_fracture_edges(faces):
-    faces = np.asarray(faces) - 1 # Fortran indexing...
     if faces.dtype==np.bool:
         faces = np.nonzero(faces)[0]
     face_nodes = get_connectivity().NodebyFace
@@ -488,3 +487,11 @@ def set_Neumann_fracture_edges(edges, Neumann):
 def coordinates(a):
     assert len(a.shape)==2 and a.shape[1]==3
     return (a[:, j] for j in range(a.shape[1]))
+
+def phase_index(phase):
+    assert type(phase) is ComPASS.Phase
+    return int(phase)-1 # Fortran indexing
+
+def context_index(context):
+    assert type(context) is ComPASS.Context
+    return int(context)-1 # Fortran indexing
