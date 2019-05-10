@@ -71,11 +71,6 @@ pytest_run:
   script:
     - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --pytest
 
-interoperability_test:
-  stage: test
-  script:
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test_pass_arrays.py
-  
 petrel_test:
   stage: test
   script:
