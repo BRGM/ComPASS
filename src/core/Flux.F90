@@ -9,9 +9,8 @@
 module Flux
 
   use CommonMPI, only: commRank
-  use DefModel, only: NbPhase
+  use DefModel, only: NbPhase, NumPhasePresente_ctx, NbPhasePresente_ctx
 
-  use NumbyContext, only: NumPhasePresente_ctx, NbPhasePresente_ctx
   use IncCVReservoir, only: &
      IncNode, IncCell, IncFrac, &
      NbCellLocal_Ncpus, NbFracLocal_Ncpus

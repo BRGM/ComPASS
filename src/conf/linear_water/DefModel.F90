@@ -12,7 +12,9 @@
 
 module DefModel
 
-   use CommonType, only: CSR, type_IdNode
+   use iso_c_binding, only: c_int, c_bool
+   use CommonType, only: CSR, type_IdNode, ModelConfiguration
+   use CommonMPI, only: CommonMPI_abort
 
    implicit none
 
@@ -42,20 +44,7 @@ module DefModel
    integer, parameter :: IndThermique = 0
 #endif
 
-   ! ! ****** Constants derived from model (do not edit) ****** ! !
-
-   ! Nombre Max d'eq d'equilibre
-   !               d'eq de fermeture thermodynamique
-   !               d'inc P (T) C
-   !               d'inc P (T) C primaires
-   integer, parameter :: &
-      NbEqEquilibreMax = NbComp*(NbPhase - 1), & !< Max number of balance equations
-      NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
-      NbIncPTCMax = 1 + IndThermique + sum(MCP), &
-      NbIncPTCSecondMax = NbEqFermetureMax, &
-      NbIncPTCSMax = NbIncPTCMax + NbPhase, &
-      NbIncPTCSPrimMax = NbComp + IndThermique, &
-      NbCompThermique = NbComp + IndThermique
+   include '../common/DefModel_constants.F90'
 
    ! ! ****** How to choose primary variables ****** ! !
 
@@ -121,5 +110,7 @@ module DefModel
                         1.d0 &        ! only one context ic=1
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
+
+    include '../common/DefModel_common.F90'
 
 end module DefModel

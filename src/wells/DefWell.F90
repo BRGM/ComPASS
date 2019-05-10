@@ -293,7 +293,7 @@ contains
       double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
       double precision, allocatable, dimension(:), intent(in) :: PermFrac
 
-      double precision, allocatable, dimension(:) :: WellRadius
+      !double precision, allocatable, dimension(:) :: WellRadius
 
       call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
 
@@ -330,7 +330,7 @@ contains
       double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
       double precision, allocatable, dimension(:), intent(in) :: PermFrac
 
-      integer :: i, j, k, kp, m, ind, num_node, num_parent, &
+      integer :: i, j, k, kp, m, num_node, num_parent, &
                  num_cell, num_face, comptCell, comptFrac
       logical :: cell_edge
       double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length

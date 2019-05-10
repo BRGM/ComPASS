@@ -16,8 +16,7 @@ module FluxWrappers
    use CommonTypesWrapper, only: cpp_narray_wrapper, bind_3array
    use InteroperabilityStructures, only: cpp_array_wrapper
 
-   use DefModel, only: NbComp, MCP
-   use NumbyContext, only: NbPhasePresente_ctx, NumPhasePresente_ctx
+   use DefModel, only: NbComp, MCP, NbPhasePresente_ctx, NumPhasePresente_ctx
 
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, IncNode, IncCell, IncFrac

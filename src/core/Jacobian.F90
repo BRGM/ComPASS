@@ -19,6 +19,7 @@ module Jacobian
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD
 
   use DefModel, only: &
+     NumPhasePresente_ctx, NbPhasePresente_ctx, &
      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod
 
   use LoisThermoHydro, only: &
@@ -46,7 +47,6 @@ module Jacobian
      SmDensitemolaireSatCompNode, SmDensitemolaireSatCompCell, SmDensitemolaireSatCompFrac
 
    use NumbyContext, only: &
-      NumPhasePresente_ctx, NbPhasePresente_ctx, &
       NbCompCtilde_ctx, NumCompCtilde_ctx
 
   use Physics, only: gravity, CpRoche

@@ -14,8 +14,7 @@ module SolvePetsc
 
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
-  use NumbyContext, only: NbContexte
-  use DefModel, only: psprim, NbCompThermique
+  use DefModel, only: psprim, NbCompThermique, NbContexte
   use IncCVReservoir, only: IncNode, IncFrac
   use MeshSchema, only: &
      NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc, &

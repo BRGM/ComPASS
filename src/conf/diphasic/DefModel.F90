@@ -15,29 +15,32 @@
 
 module DefModel
 
-  use CommonType, only: CSR, type_IdNode
+  use iso_c_binding, only: c_int, c_bool
+  use CommonType, only: CSR, type_IdNode, ModelConfiguration
+  use CommonMPI, only: CommonMPI_abort
 
   implicit none
 
-  ! ! ****** Model ****** ! !
-
+  ! --------------------------------------------------------------
+  !      Definition of the components
   integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
   integer, parameter :: AIR_COMP = 1
   integer, parameter :: WATER_COMP = 2 ! I don't know if the water has to be at the end ?
 
+  ! --------------------------------------------------------------
+  !      Definition of the phases
   integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
+  integer, parameter :: GAS_PHASE = 1
   !FIXME: Asssume that the latest phase is the liquid phase (wells)
   integer, parameter :: LIQUID_PHASE = NbPhase
-  integer, parameter :: GAS_PHASE = 1
-
 
   ! --------------------------------------------------------------
   !      Definition of the contexts (sets of present phases)
+  integer, parameter :: NbContexte = 3
   integer, parameter :: GAS_CONTEXT = 1
   integer, parameter :: LIQUID_CONTEXT = 2
   integer, parameter :: DIPHASIC_CONTEXT = 3
 
-  integer, parameter :: NbContexte = 3 ! NbContexte = 2**NbPhase - 1
   ! Number of phases that are present in each context
   integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
     1, & ! GAS_CONTEXT
@@ -53,7 +56,6 @@ module DefModel
         GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
     /), (/NbPhase, NbContexte/))
 
-
   ! MCP: the components are potentially present in which phase(s) ?
   integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = RESHAPE((/ &
@@ -61,29 +63,30 @@ module DefModel
          1, 1  & ! WATER_COMP = 2 is present in both phases
       /), (/NbComp, NbPhase/))
 
-  ! Thermique
 #ifdef _THERMIQUE_
   integer, parameter :: IndThermique = 1
 #else
   integer, parameter :: IndThermique = 0
 #endif
 
+  include '../common/DefModel_constants.F90'
 
-  ! ! ****** Constants derived from model (do not edit) ****** ! !
+  ! ! ! ****** Constants derived from model (do not edit) ****** ! !
 
-  ! Nombre Max d'eq d'equilibre
-  !	       d'eq de fermeture thermodynamique
-  !	       d'inc P (T) C
-  !	       d'inc P (T) C primaires
-  integer, parameter :: &
-       NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
-       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-       NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
-       NbIncPTCSecondMax = NbEqFermetureMax,             &
-       NbIncPTCSMax      = NbIncPTCMax + NbPhase,        &
-       NbIncPTCSPrimMax  = NbComp + IndThermique,        &
-       NbCompThermique   = NbComp + IndThermique
+  ! ! Nombre Max d'eq d'equilibre
+  ! !	       d'eq de fermeture thermodynamique
+  ! !	       d'inc P (T) C
+  ! !	       d'inc P (T) C primaires
+  ! integer, parameter :: &
+       ! NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
+       ! NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
+       ! NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
+       ! NbIncPTCSecondMax = NbEqFermetureMax,             &
+       ! NbIncPTCSMax      = NbIncPTCMax + NbPhase,        &
+       ! NbIncPTCSPrimMax  = NbComp + IndThermique,        &
+       ! NbCompThermique   = NbComp + IndThermique
 
+   ! logical(c_bool) :: locked_context(NbContexte)
 
   ! ! ****** How to choose primary variables ****** ! !
 
@@ -174,5 +177,7 @@ module DefModel
        0.d0, 0.d0, 1.d0, &
        0.d0, 1.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
+
+  include '../common/DefModel_common.F90'
 
 end module DefModel

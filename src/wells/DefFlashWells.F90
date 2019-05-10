@@ -41,12 +41,10 @@ module DefFlashWells
       XNodeLocal, &
       NbWellProdLocal_Ncpus, &
       NbWellInjLocal_Ncpus
-   use NumbyContext, only: &
-      NumPhasePresente_ctx, &
-      NbPhasePresente_ctx
    use Physics, only: gravity
    use DefModel, only: &
-      IndThermique, NbPhase, NbComp, LIQUID_PHASE, MCP
+      IndThermique, NbPhase, NbComp, LIQUID_PHASE, MCP, &
+      NumPhasePresente_ctx, NbPhasePresente_ctx
 
    use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
 

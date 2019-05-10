@@ -18,15 +18,14 @@ module IncPrimSecd
      NbComp, NbPhase, MCP, &
      NbIncPTCSPrimMax, NbEqFermetureMax, NbIncPTCSMax, &
      pschoice, psprim, pssecd, &
-     IndThermique, NbCompThermique
+     NumPhasePresente_ctx, NbPhasePresente_ctx, &
+     NbIncPTCMax, IndThermique, NbCompThermique, NbEqEquilibreMax
 
   use NumbyContext, only: &
      NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
-     NumIncComp2NumIncPTC_ctx, NbIncPTCSPrim_ctx, NbEqEquilibre_ctx, &
-     NbEqEquilibreMax, NbIncPTCMax, &
-     NumPhasePresente_ctx, NumCompCtilde_ctx, &
+     NumIncComp2NumIncPTC_ctx, NbIncPTCSPrim_ctx, NumCompCtilde_ctx, &
      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-     NbPhasePresente_ctx, NbIncPTC_ctx, NbCompCtilde_ctx
+     NbEqEquilibre_ctx, NbIncPTC_ctx, NbCompCtilde_ctx
 
   use IncCVReservoir, only: &
      TYPE_IncCVReservoir, &

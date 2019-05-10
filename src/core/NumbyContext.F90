@@ -8,10 +8,8 @@
 
 module NumbyContext
 
-  use DefModel, only: &
-     NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
-     IndThermique, MCP, &
-     NumPhasePresente_ctx, NbPhasePresente_ctx
+  use iso_c_binding, only: c_bool
+  use CommonType, only: ModelConfiguration
 
   implicit none
 
@@ -40,9 +38,6 @@ module NumbyContext
 
 
   ! ***** Inc ***** !
-
-  ! Inc (P, T, C_i^alpha): IncPTC
-  ! Inc C_i^alpha:         IncComp
 
   ! nb of IncPTC
   integer, dimension(:), allocatable, protected :: &
@@ -74,16 +69,17 @@ module NumbyContext
 contains
 
   ! main subroutine of this module
-  subroutine NumbyContext_make
+  subroutine NumbyContext_make(configuration)
+    type(ModelConfiguration), intent(in) :: configuration
 
     ! info phase and comp
-    call NumbyContext_PhaseComp
+    call NumbyContext_PhaseComp(configuration)
 
     ! info equation
-    call NumbyContext_Eq
+    call NumbyContext_Eq(configuration)
 
     ! Inc
-    call NumbyContext_Inc
+    call NumbyContext_Inc(configuration)
 
   end subroutine NumbyContext_make
 
@@ -108,14 +104,14 @@ contains
 
   end subroutine NumbyContext_Free
 
-  function NumbyContext_is_phase_present(iph, ic) result(here)
+  logical(c_bool) function NumbyContext_is_phase_present(configuration, iph, ic) result(here)
+    type(ModelConfiguration), intent(in) :: configuration
     integer, intent(in)  :: iph, ic
-    logical :: here
-
     integer :: k
+
     here = .false.
-    do k=1, NbPhasePresente_ctx(ic)
-        if(NumPhasePresente_ctx(k, ic)==iph) then
+    do k=1, configuration%NbPhasePresente_ctx(ic)
+        if(configuration%NumPhasePresente_ctx(k, ic)==iph) then
           here = .true.
           exit
         endif
@@ -123,13 +119,15 @@ contains
   
   end function NumbyContext_is_phase_present
 
-  subroutine NumbyContext_PhaseComp
-
-    ! 1. Nb/Num de phases presentes fct du contexte
-    ! 2. Ensembles Ctilde fct du contexte
-
+  subroutine NumbyContext_PhaseComp(configuration)
+    type(ModelConfiguration), intent(in) :: configuration
+    integer :: NbPhase, NbComp, NbContexte
     integer :: ic, iph, icp, n
     logical :: IsCtidle
+
+    NbPhase = configuration%nb_phases
+    NbComp = configuration%nb_components
+    NbContexte = configuration%nb_contexts
 
     ! 2. Ensembles Ctilde fct du contexte
 
@@ -146,7 +144,8 @@ contains
         IsCtidle = .true.
         do iph=1, NbPhase
 
-          if ((MCP(icp,iph)==1) .and. NumbyContext_is_phase_present(iph,ic)) then
+          if ( configuration%MCP(icp,iph)==1 .and. &
+          NumbyContext_is_phase_present(configuration,iph,ic)) then
             IsCtidle = .false.
             exit
           end if
@@ -164,9 +163,16 @@ contains
   end subroutine NumbyContext_PhaseComp
 
 
-  subroutine NumbyContext_Inc
-
+  subroutine NumbyContext_Inc(configuration)
+    type(ModelConfiguration), intent(in) :: configuration
+    integer :: NbPhase, NbComp, NbContexte
     integer :: i, ic, iph, icp, n
+    integer :: NbIncPTCMax
+
+    NbPhase = configuration%nb_phases
+    NbComp = configuration%nb_components
+    NbContexte = configuration%nb_contexts
+    NbIncPTCMax = configuration%NbIncPTCMax
 
     ! 1. Nb d'inconnues P (T) et C fct du contexte
     allocate( NbIncPTC_ctx(NbContexte))
@@ -175,19 +181,19 @@ contains
 
       n = 1 ! P
 
-      do i=1, NbPhasePresente_ctx(ic)
-        iph = NumPhasePresente_ctx(i,ic) ! phase
+      do i=1, configuration%NbPhasePresente_ctx(ic)
+        iph = configuration%NumPhasePresente_ctx(i,ic) ! phase
 
         ! nb of components in iph, using MCP
         do icp=1, NbComp
 
-          if(MCP(icp,iph)==1) then ! if component in phase iph
+          if(configuration%MCP(icp,iph)==1) then ! if component in phase iph
             n = n + 1
           end if
         end do
       enddo
 
-      NbIncPTC_ctx(ic) = n + IndThermique ! if thermique
+      NbIncPTC_ctx(ic) = n + configuration%IndThermique ! if thermique
     end do
 
     ! 2. Nb d'inconnues P (T) et C S Prim fct du contexte
@@ -195,7 +201,7 @@ contains
 
     do ic=1, NbContexte
       NbIncPTCSPrim_ctx(ic) = NbIncPTC_ctx(ic) &
-          + NbPhasePresente_ctx(ic) - NbEqFermeture_ctx(ic) - 1
+          + configuration%NbPhasePresente_ctx(ic) - NbEqFermeture_ctx(ic) - 1
     end do
 
     ! 3.1  from IncComp to IncPTC (num)
@@ -211,16 +217,16 @@ contains
 
     do ic=1, NbContexte
 
-      n = 1 + IndThermique ! P and T
+      n = 1 + configuration%IndThermique ! P and T
 
       ! loop of phase
-      do i=1,NbPhasePresente_ctx(ic)
-        iph = NumPhasePresente_ctx(i,ic)
+      do i=1,configuration%NbPhasePresente_ctx(ic)
+        iph = configuration%NumPhasePresente_ctx(i,ic)
 
         ! loop of component in phase iph
         do icp=1, NbComp
 
-          if(MCP(icp,iph)==1) then ! if component in phase iph
+          if(configuration%MCP(icp,iph)==1) then ! if component in phase iph
 
             n = n + 1
 
@@ -240,13 +246,18 @@ contains
   end subroutine NumbyContext_Inc
 
 
-  subroutine NumbyContext_Eq
-
+  subroutine NumbyContext_Eq(configuration)
+    type(ModelConfiguration), intent(in) :: configuration
+    integer :: NbPhase, NbComp, NbContexte
     integer :: ic, iph, icp, nphi, n, i
-    integer :: PhPrComp(NbPhase)
+    integer :: PhPrComp(configuration%nb_phases)
 
-    allocate( NumCompEqEquilibre_ctx(NbEqEquilibreMax, NbContexte))
-    allocate( Num2PhasesEqEquilibre_ctx(2, NbEqEquilibreMax, NbContexte))
+    NbPhase = configuration%nb_phases
+    NbComp = configuration%nb_components
+    NbContexte = configuration%nb_contexts
+
+    allocate( NumCompEqEquilibre_ctx(configuration%NbEqEquilibreMax, NbContexte))
+    allocate( Num2PhasesEqEquilibre_ctx(2, configuration%NbEqEquilibreMax, NbContexte))
 
     allocate( NbEqEquilibre_ctx(NbContexte))
     allocate( NbEqFermeture_ctx(NbContexte))
@@ -263,7 +274,8 @@ contains
         ! PhPrComp: phase present and contains icp
         do iph=1, NbPhase
 
-          if((MCP(icp,iph)==1) .and. NumbyContext_is_phase_present(iph,ic)) then
+          if( configuration%MCP(icp,iph)==1 .and. &
+            NumbyContext_is_phase_present(configuration,iph,ic)) then
             nphi = nphi + 1
             PhPrComp(nphi) = iph
           end if
@@ -284,7 +296,7 @@ contains
       end do ! end of loop icp
 
       NbEqEquilibre_ctx(ic) = n
-      NbEqFermeture_ctx(ic) = NbPhasePresente_ctx(ic) + n
+      NbEqFermeture_ctx(ic) = configuration%NbPhasePresente_ctx(ic) + n
       ! NbIncPTCPrim(ic) = NbIncPTC(ic) - NbEqFermeture_ctx(ic)
     end do
 

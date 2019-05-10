@@ -1600,8 +1600,8 @@ contains
   real(c_double) :: surface
 
   integer :: i, nbnodes
-  double precision, dimension(3) :: x1, x2, xt ! coordinates
-  double precision :: contribution12f
+  double precision, dimension(3) :: x1, x2 !, xt ! coordinates
+  !double precision :: contribution12f
 
   surface = 0.d0
   ! loop on face edges
@@ -1654,7 +1654,7 @@ contains
 
   subroutine MeshSchema_collect_fracture_nodes
   
-    integer :: k, frac, face, node, pnode, nbfractures, nbnodes
+    integer :: k, frac, face, pnode, nbfractures, nbnodes
     integer :: Ierr, errcode ! FIXME: used for MPI_Abort but not assigned
 
     nbfractures = NbFracLocal_Ncpus(commRank+1)

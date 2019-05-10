@@ -16,6 +16,7 @@
     use DefModel, only: &
        NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
        NbCompThermique, NbIncPTCSMax, &
+       NumPhasePresente_ctx, NbPhasePresente_ctx, &
        IndThermique, MCP
 
     use MeshSchema, only: &
@@ -24,9 +25,8 @@
        NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus
 
     use NumbyContext, only: &
-       NbIncPTC_ctx, NbPhasePresente_ctx, &
+       NbIncPTC_ctx, &
        NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-       NumPhasePresente_ctx, NbPhasePresente_ctx, &
        NumCompCtilde_ctx, NbCompCtilde_ctx
 
     use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values

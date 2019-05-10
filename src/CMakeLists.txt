@@ -28,9 +28,49 @@ if(DEF_SCOREP_INSTRUMENTATION)
 endif(DEF_SCOREP_INSTRUMENTATION)
 
 
-set( ComPASSCore_SRCS
+set( ComPASSCommonCore_SRCS
     CommonMPI.F90
     CommonType.F90
+    InteroperabilityStructures.F90
+    NumbyContext.F90
+    PartitionMesh.F90
+    Partition.c
+    Physics.F90
+    SchemeParameters.F90
+)
+
+unset(_tmp)
+foreach(_src ${ComPASSCommonCore_SRCS})
+    list(APPEND _tmp core/${_src})
+endforeach()
+set(ComPASSCommonCore_SRCS ${_tmp})
+
+add_library(ComPASSCommonCore STATIC ${ComPASSCommonCore_SRCS})
+set_target_properties(ComPASSCommonCore
+    PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
+    Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/common
+    # CXX_STANDARD 14
+        # CXX_STANDARD_REQUIRED YES
+        # CXX_EXTENSIONS NO
+        # RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+# target_include_directories(ComPASSCommonCore PUBLIC ${CONF_DIR})
+target_include_directories(ComPASSCommonCore PUBLIC wrappers)
+# target_include_directories(ComPASSCommonCore PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
+# target_include_directories(ComPASSCommonCore PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_include_directories(ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH})
+# target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
+target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
+# target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
+target_include_directories(ComPASSCommonCore PUBLIC ${PETSC_INCLUDES})
+# FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
+# target_link_libraries(ComPASSCommonCore ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
+
+set( ComPASSCore_SRCS
+    # CommonMPI.F90
+    # CommonType.F90
     DebugUtils.F90
     GlobalMesh.F90
     IncCV.F90
@@ -39,19 +79,19 @@ set( ComPASSCore_SRCS
     DirichletContribution.F90
     NeumannContribution.F90
     Flux.F90
-    InteroperabilityStructures.F90
+    # InteroperabilityStructures.F90
     Jacobian.F90 
     LocalMesh.F90
     IncPrimSecd.F90
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90
-    NumbyContext.F90
-    PartitionMesh.F90
-    Partition.c
-    Physics.F90
+    # NumbyContext.F90
+    # PartitionMesh.F90
+    # Partition.c
+    # Physics.F90
     Residu.F90
-    SchemeParameters.F90
+    # SchemeParameters.F90
     SolvePetsc.F90
     VAGFrac.F90
     NN.F90
@@ -105,6 +145,13 @@ set( CONF_SRCS
     DefModel.F90
     Thermodynamics.F90
 )
+
+# set( WRAPPERS_CORE_SRCS
+  # MeshSchema_wrappers.F90
+  # MeshUtilities_wrappers.cpp
+  # NN_wrappers.cpp
+  # NN_wrappers.F90
+# )
 
 set( WRAPPERS_SRCS
   ArrayWrapper.h
@@ -182,6 +229,7 @@ foreach(_conf ${CONFIGURATIONS})
     )
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
     target_include_directories(${CONF_TARGETNAME} PUBLIC wrappers)
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/common)
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH})
@@ -189,6 +237,7 @@ foreach(_conf ${CONFIGURATIONS})
         PROPERTIES
         COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
     )
+    target_link_libraries(${CONF_TARGETNAME} ComPASSCommonCore)
     target_link_libraries(${CONF_TARGETNAME} ${PYTHON_LIBRARIES})
     target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})

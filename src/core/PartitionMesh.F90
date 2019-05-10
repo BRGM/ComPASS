@@ -8,18 +8,16 @@
 
 module PartitionMesh
 
-  use iso_c_binding, only : C_CHAR, C_NULL_CHAR, C_INT
-  use GlobalMesh, only: NbCell, CellbyCell
+  use iso_c_binding, only : c_char, c_null_char, c_int
+  use CommonType, only: CSR
+  use CommonMPI, only: CommonMPI_abort
 
   implicit none
-
-  ! Output
-  integer, allocatable, dimension(:) :: ProcbyCell
 
   interface
 
     subroutine Metis_C ( nMaille, ptMaillebyMaille, numMaillebyMaille, npart, objval, procbyMaille ) bind ( C, name = "Metis_C" )
-      use iso_c_binding, only : C_INT
+      use iso_c_binding, only : c_int
       integer ( c_int ) :: ptMaillebyMaille(*), numMaillebyMaille(*)
       integer ( c_int ) :: procbyMaille(*)
       integer ( c_int ), value :: nMaille, npart, objval
@@ -27,20 +25,23 @@ module PartitionMesh
 
   end interface
 
-  public :: PartitionMesh_Metis, PartitionMesh_Dealloc
+  public :: PartitionMesh_Metis
 
 contains
 
-  ! ------------------------------------------------------------------ !
-
-  subroutine PartitionMesh_Metis(Ncpus)
+  subroutine PartitionMesh_Metis(Ncpus, CellbyCell, ProcbyCell)
 
     integer, intent(in) :: Ncpus
-    integer :: objval
+    type(CSR), intent(in) :: CellbyCell
+    integer, allocatable, dimension(:), intent(inout) :: ProcbyCell
+    integer :: NbCell, objval
 
+    NbCell = CellbyCell%Nb
     objval = 0
+    
+    if(.not.allocated(ProcbyCell)) call CommonMPI_abort('ProcbyCell should be allocated')
+    if(size(ProcbyCell)/=NbCell) call CommonMPI_abort('inconsistent numer of cells')
 
-    allocate(ProcbyCell(NbCell)) ! deallocation ds deallocate global mesh
     ProcbyCell(:) = 0
 
     if (Ncpus==1) then
@@ -50,12 +51,5 @@ contains
     endif
 
   end subroutine PartitionMesh_Metis
-
-
-  subroutine PartitionMesh_Dealloc
-
-    deallocate(ProcbyCell)
-
-  end subroutine PartitionMesh_Dealloc
 
 end module PartitionMesh

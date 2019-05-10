@@ -17,12 +17,13 @@ module LoisThermoHydro
   use DefModel, only: &
      NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
      NbEqEquilibreMax, NbIncPTCMax, NbIncPTCSPrimMax, NbIncPTCSecondMax, &
-     NbIncPTCSMax, NbEqFermetureMax
+     NbIncPTCSMax, NbEqFermetureMax, &
+     NbPhasePresente_ctx, NumPhasePresente_ctx
   use NumbyContext, only: &
      NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, NumIncComp2NumIncPTC_ctx, &
-     NbEqEquilibre_ctx, NbEqFermeture_ctx, NumPhasePresente_ctx, NumCompCtilde_ctx, &
-     NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, NbPhasePresente_ctx, &
-     NbCompCtilde_ctx, NbIncPTC_ctx, NumPhasePresente_ctx
+     NbEqEquilibre_ctx, NbEqFermeture_ctx, NumCompCtilde_ctx, &
+     NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
+     NbCompCtilde_ctx, NbIncPTC_ctx
   use IncCVReservoir, only: &
      TYPE_IncCVReservoir, &
      IncNode, IncCell, IncFrac, &

@@ -17,7 +17,8 @@ module Residu
       NbPhase, NbComp, NbCompThermique, IndThermique, &
       LIQUID_PHASE, MCP, &
       NbEqEquilibreMax, NbIncPTCSPrimMax, NbIncPTCSecondMax, &
-      NbIncPTCMax, NbIncPTCSMax, NbEqFermetureMax
+      NbIncPTCMax, NbIncPTCSMax, NbEqFermetureMax, &
+      NbPhasePresente_ctx, NumPhasePresente_ctx
 
    use LoisThermoHydro, only: &
       DensitemolaireKrViscoCompWellInj, &
@@ -42,9 +43,7 @@ module Residu
    use NeumannContribution, only: NodeNeumannBC
 
    use NumbyContext, only: &
-      NbEqEquilibre_ctx, NumPhasePresente_ctx, NumCompCtilde_ctx, &
-      NbPhasePresente_ctx, &
-      NbCompCtilde_ctx
+      NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
       IncNode, IncCell, IncFrac

@@ -10,17 +10,18 @@ module NN
 
    use mpi, only: MPI_Abort, MPI_Barrier, MPI_WTIME
    use CommonMPI, only: &
-     commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init
-
+     commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init, CommonMPI_abort
+   
    use SchemeParameters, only: &
       NewtonNiterMax, KspNiterMax, KspTol, OneSecond, TimeFinal, TimeStepInit
 
    use GlobalMesh, only: &
-      GlobalMesh_free, &
+      GlobalMesh_free, CellbyCell, &
       NbDirNodeP, NbDirNodeT, NbNode, NbCell, NbFace, NbFrac, NbWellInj, NbWellProd
 
+   use CommonType, only: ModelConfiguration
    use DefModel, only: &
-      NbComp, NbPhase, IndThermique, NbIncPTCSMax
+      NbComp, NbPhase, IndThermique, NbIncPTCSMax, get_model_configuration
 
    use IncCVReservoir, only: &
       Type_IncCVReservoir, IncNode, IncCell, IncFrac
@@ -125,6 +126,9 @@ module NN
       NewtonIncreWellInj, &
       NewtonIncreWellProd
 
+  ! Partition
+    integer, allocatable, dimension(:), private :: ProcbyCell
+
    !  ! Perm
    !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
    !  double precision, dimension(:), allocatable :: PermFracLocal
@@ -159,37 +163,20 @@ contains
    
    end subroutine NN_init_output_streams
 
-   subroutine NN_partition_mesh(status)
+   subroutine NN_partition_mesh
 
-      logical, intent(out) :: status
-
-      status = .true.
-
-      !FIXME: This is more of an assertion for consistency, might be removed
+#ifndef NDEBUG
       if (.NOT. commRank == 0) then
-         print *, "Mesh is supposed to be partitioned by master process."
-         status = .false.
-         return
+         call CommonMPI_abort("Mesh is supposed to be partitioned by master process.")
       end if
+#endif
 
-      ! ****
-      ! Partition Global Mesh
-      ! Output:
-      !        ProcbyCell
-      call PartitionMesh_Metis(Ncpus)
-
-      ! make local mesh
-      call LocalMesh_Make
-
-      ! free global mesh
+      if(allocated(ProcbyCell)) deallocate(ProcbyCell)
+      allocate(ProcbyCell(NbCell))
+      call PartitionMesh_Metis(Ncpus, CellbyCell, ProcbyCell)
+      call LocalMesh_Make(ProcbyCell)
+      deallocate(ProcbyCell)
       call GlobalMesh_free
-
-      !comptime_meshmake = MPI_WTIME() - comptime_meshmake
-
-      !do i=1,size(fd)
-      !    write(fd(i),'(A,F16.3)') "Computation time of making mesh:  ", &
-      !        comptime_meshmake
-      !end do
 
    end subroutine NN_partition_mesh
 
@@ -212,11 +199,9 @@ contains
    
    end subroutine NN_init_warmup
 
-   subroutine NN_init_phase2(OutputDir, activate_cpramg, activate_direct_solver)
+   subroutine NN_init_phase2(activate_cpramg, activate_direct_solver)
 
-      character(len=*), intent(in) :: OutputDir
       logical(c_bool), intent(in) :: activate_cpramg, activate_direct_solver
-      logical :: ok
 
       if (commRank == 0) then
          do i = 1, size(fd)
@@ -247,11 +232,7 @@ contains
       !comptime_meshmake = MPI_WTIME()
 
       if (commRank == 0) then
-         call NN_partition_mesh(ok)
-         if (.NOT. ok) then
-            !CHECKME: MPI_Abort is supposed to end all MPI processes
-            call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-         end if
+         call NN_partition_mesh
       end if
       call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
@@ -276,7 +257,7 @@ contains
 
       ! *** Numeratation derived from model *** !
 
-      call NumbyContext_make
+      call NumbyContext_make(get_model_configuration())
 
       ! *** VAG Transmissivity *** !
 

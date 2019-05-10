@@ -13,6 +13,15 @@ module CommonType
 
   implicit none
 
+  ! Type to be used to pass model configuration when no performance is needed
+  type ModelConfiguration
+    integer(c_int) :: nb_phases, nb_components, nb_contexts
+    integer(c_int) :: IndThermique, NbEqEquilibreMax, NbIncPTCMax
+    integer(c_int), allocatable :: NbPhasePresente_ctx(:)
+    integer(c_int), allocatable :: NumPhasePresente_ctx(:,:)
+    integer(c_int), allocatable :: MCP(:,:)
+  end type ModelConfiguration
+
   !> Array 1d integer
   type ARRAY1Int
     integer(c_int), allocatable, dimension(:) :: Val

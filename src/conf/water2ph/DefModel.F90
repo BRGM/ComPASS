@@ -14,8 +14,8 @@
 module DefModel
 
    use iso_c_binding, only: c_int, c_bool
+   use CommonType, only: CSR, type_IdNode, ModelConfiguration
    use CommonMPI, only: CommonMPI_abort
-   use CommonType, only: CSR, type_IdNode
 
    implicit none
 
@@ -33,26 +33,26 @@ module DefModel
    integer, parameter :: DIPHASIC_CONTEXT = 3
 
   ! Number of phases that are present in each context
-  integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
-    1, & ! GAS_CONTEXT
-    1, & ! LIQUID_CONTEXT
-    2  & ! DIPHASIC_CONTEXT
-  /)
+  integer, parameter, dimension(NbContexte) :: &
+      NbPhasePresente_ctx = (/ &
+        1, & ! GAS_CONTEXT
+        1, & ! LIQUID_CONTEXT
+        2  & ! DIPHASIC_CONTEXT
+      /)
   ! Numero of the phase(s) which is/are present in each context
   ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
-  integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
-    reshape((/ &
-        GAS_PHASE, 0,            & ! GAS_CONTEXT
-        LIQUID_PHASE, 0,         & ! LIQUID_CONTEXT
-        GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
-    /), (/NbPhase, NbContexte/))
+  integer, parameter, dimension(NbPhase, NbContexte) :: &
+      NumPhasePresente_ctx = &
+        reshape((/ &
+            GAS_PHASE, 0,            & ! GAS_CONTEXT
+            LIQUID_PHASE, 0,         & ! LIQUID_CONTEXT
+            GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
+        /), (/NbPhase, NbContexte/))
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
-
-   logical(c_bool) :: locked_context(NbContexte)
 
    ! Thermique
 #ifdef _THERMIQUE_
@@ -61,20 +61,7 @@ module DefModel
    integer, parameter :: IndThermique = 0
 #endif
 
-   ! ! ****** Constants derived from model (do not edit) ****** ! !
-
-   ! Nombre Max d'eq d'equilibre
-   !               d'eq de fermeture thermodynamique
-   !               d'inc P (T) C
-   !               d'inc P (T) C primaires
-   integer, parameter :: &
-      NbEqEquilibreMax = NbComp*(NbPhase - 1), & !< Max number of balance equations
-      NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
-      NbIncPTCMax = 1 + IndThermique + sum(MCP), &
-      NbIncPTCSecondMax = NbEqFermetureMax, &
-      NbIncPTCSMax = NbIncPTCMax + NbPhase, &
-      NbIncPTCSPrimMax = NbComp + IndThermique, &
-      NbCompThermique = NbComp + IndThermique
+   include '../common/DefModel_constants.F90'
 
    ! ! ****** How to choose primary variables ****** ! !
    ! Used in module LoisthermoHydro.F90
@@ -162,60 +149,6 @@ module DefModel
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
-public :: &
-    is_context_locked, &
-    lock_context, &
-    unlock_context, &
-! FIXME: this is to be moved elsewhere in an include file that is shared by all physics
-    model_number_of_phases, &
-    model_number_of_components, &
-    model_number_of_contexts
-
-private :: &
-    check_context_id
-
-contains
-
-    subroutine check_context_id(context)
-        integer(c_int), intent(in) :: context
-        if(context<1 .or. context>NbContexte) &
-            call CommonMPI_abort('Wrong context identifier.')
-    end subroutine check_context_id
-
-    logical(c_bool) function is_context_locked(context) result(lock_status) &
-        bind(C, name="is_context_locked")
-        integer(c_int), value, intent(in) :: context
-        call check_context_id(context)
-        lock_status = locked_context(context)
-    end function is_context_locked
-
-    subroutine lock_context(context) &
-        bind(C, name="lock_context")
-        integer(c_int), value, intent(in) :: context
-        call check_context_id(context)
-        locked_context(context) = .true.
-    end subroutine lock_context
-
-    subroutine unlock_context(context) &
-        bind(C, name="unlock_context")
-        integer(c_int), value, intent(in) :: context
-        call check_context_id(context)
-        locked_context(context) = .false.
-    end subroutine unlock_context
-
-    integer(c_int) function model_number_of_phases() result(n) &
-        bind(C, name="model_number_of_phases")
-        n = NbPhase
-    end function model_number_of_phases
-
-    integer(c_int) function model_number_of_components() result(n) &
-        bind(C, name="model_number_of_components")
-        n = NbComp
-    end function model_number_of_components
-
-    integer(c_int) function model_number_of_contexts() result(n) &
-        bind(C, name="model_number_of_contexts")
-        n = NbContexte
-    end function model_number_of_contexts
+   include '../common/DefModel_common.F90'
 
 end module DefModel

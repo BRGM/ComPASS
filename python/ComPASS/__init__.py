@@ -306,7 +306,7 @@ def init(
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
-    kernel.init_phase2(runtime.output_directory, activate_cpramg, activate_direct_solver)
+    kernel.init_phase2(activate_cpramg, activate_direct_solver)
     mpi.synchronize() # wait for every process to synchronize
     ComPASS.mesh_is_local = True
     # FUTURE: This could be managed through a context manager ?

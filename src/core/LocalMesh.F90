@@ -15,6 +15,7 @@
 !! then the informations are send in subroutine MeshSchema_make.
 module LocalMesh
 
+! <<<<<<< HEAD
   use CommonType, only: &
     CSR, Array1IdNode, &
     ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
@@ -36,8 +37,8 @@ module LocalMesh
     NodeRocktype, CellRocktype, FracRocktype, &
     XNode, PermCell, CondThermalCell
 
-  use PartitionMesh, only: &
-    ProcbyCell
+  ! use PartitionMesh, only: &
+    ! ProcbyCell
 
   use DefModel, only: &
     IndThermique
@@ -45,6 +46,11 @@ module LocalMesh
   use DefWell, only: &
     TYPE_CSRDataNodeWell, WellData_type, &
     DataWellInj, DataWellProd, NodeDatabyWellProd, NodeDatabyWellInj
+! =======
+  ! use CommonType
+  ! use CommonMPI
+  ! use GlobalMesh
+! >>>>>>> 103-simon-factorize-code-in-order-to-speed-up-compilation
 
   ! 1. FacebyCellRes_Ncpus, NodebyFaceRes_Ncpus,
   !    NodebyCellRes_Ncpus, CellbyFaceRes_Ncpus
@@ -314,7 +320,9 @@ module LocalMesh
 
 contains
 
-  subroutine LocalMesh_Make
+  subroutine LocalMesh_Make(ProcbyCell) 
+
+    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
 
     ! tmp value
     integer :: i
@@ -431,11 +439,11 @@ contains
     do i=0, Ncpus-1
 
        ! Mesh and connectivities in num (global)
-       call LocalMesh_CellbyProc(i)       ! CellbyProc(ip1)
+       call LocalMesh_CellbyProc(i, ProcbyCell) ! CellbyProc(ip1)
        call LocalMesh_FacebyCellRes(i)    ! FacebyCellRes_Ncpus(ip1)
-       call LocalMesh_FacebyProc(i)       ! FacebyProc(ip1)
+       call LocalMesh_FacebyProc(i, ProcbyCell) ! FacebyProc(ip1)
        call LocalMesh_NodebyCellRes(i)    ! NodebyCellRes_Ncpus(ip1)
-       call LocalMesh_NodebyProc(i)       ! NodebyProc(ip1)
+       call LocalMesh_NodebyProc(i, ProcbyCell) ! NodebyProc(ip1)
        call LocalMesh_NodebyFaceRes(i)    ! NodebyFaceRes_Ncpus(ip1)
        call LocalMesh_CellbyFaceRes(i)    ! CellbyFaceRes_Ncpus(ip1)
 
@@ -599,7 +607,9 @@ contains
   !   CellbyCell, ProcbyCell
   ! Stores own+ghost cells of proc ip in order:
   !   | own cells | ghost cells (own for proc i) | ghost cells (own for proc j) | ...
-  subroutine LocalMesh_CellbyProc(ip)
+  subroutine LocalMesh_CellbyProc(ip, ProcbyCell) 
+
+    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
 
     ! input
     integer, intent(in) :: ip
@@ -818,9 +828,10 @@ contains
   !  CellbyProc(ip1),FacebyCellRes_Ncpus(ip), ProcbyCell
   ! Stores own+ghost faces of proc ip in order:
   !   | own faces | ghost faces (own for proc i) | ghost faces (own for proc j>i) | ...
-  subroutine LocalMesh_FacebyProc(ip)
+  subroutine LocalMesh_FacebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
+    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
     integer :: ip1 ! ip1 = ip + 1 ip=0,1,..., ip1 used for array
 
     ! tmp
@@ -1045,9 +1056,10 @@ contains
   !                                       PLUS the ghost cells concerning the wells
   ! if one node of the well is contained by the proc (node own or ghost) then
   ! every node of the well must be own or ghost for this proc
-  subroutine LocalMesh_NodebyProc(ip)
+  subroutine LocalMesh_NodebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
+    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
     integer :: ip1
 
     ! tmp

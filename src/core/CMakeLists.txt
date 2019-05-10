@@ -5,7 +5,7 @@ add_library( ComPASSCore
     CommonMPI.F90
     CommonType.F90
     ComPASS.F90
-	  GlobalMesh.F90
+    GlobalMesh.F90
     IncCV.F90
     IncCVWells.F90
     Flux.F90
