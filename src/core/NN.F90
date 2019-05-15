@@ -8,6 +8,8 @@
 
 module NN
 
+   use iso_c_binding, only: c_bool, c_double
+
    use mpi, only: MPI_Abort, MPI_Barrier, MPI_WTIME
    use CommonMPI, only: &
      commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init, CommonMPI_abort

@@ -9,7 +9,8 @@
     module IncCVReservoir
 
     use iso_c_binding, only: c_int, c_double
-    use mpi, only: MPI_Allreduce, MPI_DOUBLE, MPI_MIN
+    use mpi, only: MPI_DOUBLE, MPI_MIN
+    use mpi !, only: MPI_Allreduce ! FIXME: otherwise MPI_Allreduce not found on some platform
 
     use CommonMPI, only: ComPASS_COMM_WORLD, commRank
 
