@@ -12,7 +12,7 @@
 
 module SolvePetsc
 
-  use iso_c_binding, only: c_bool, c_int, c_double, c_ptr
+  use iso_c_binding, only: c_bool, c_int, c_double, c_ptr, c_f_pointer
 
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
