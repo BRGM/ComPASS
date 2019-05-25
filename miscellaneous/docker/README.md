@@ -14,6 +14,10 @@ efficientlyi.
 Cf. the gitlab wiki for more explanations on on to use docker:
 https://gitlab.inria.fr/charms/ComPASS/wikis/how-to-run-compass-using-docker
 
+Docker tends to use a lot of disk space.
+You can recover disk space by running the `clean.sh` script which is from
+[Maciej Łebkowski's blog](https://lebkowski.name/docker-volumes/).
+
 ## Generation of the images
 
 Log into the ComPASS docker regisry:
