@@ -16,12 +16,18 @@ module LocalMeshWrapper
       NodeFlagsLocal, CellFlagsLocal, FaceFlagsLocal, &
       CellTypesLocal, FaceTypesLocal, XNodeLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus
+   use VAGFrac, only: &
+        NodeThermalSourceVol, CellThermalSourceVol
 
    implicit none
 
    integer :: Ierr, errcode
 
    public :: &
+#ifdef _THERMIQUE_
+       retrieve_cellthermalsource, &
+       retrieve_nodethermalsource, &
+#endif
       retrieve_vertices, &
       retrieve_nodeflags, &
       retrieve_cellflags, &
@@ -45,7 +51,7 @@ contains
       cpp_array%p = c_loc(XNodeLocal(1, 1))
       cpp_array%n = size(XNodeLocal, 2)
 
-   end subroutine retrieve_vertices
+    end subroutine retrieve_vertices
 
    subroutine retrieve_nodeflags(cpp_array) &
       bind(C, name="retrieve_nodeflags")
@@ -125,7 +131,42 @@ contains
       cpp_array%p = c_loc(FaceTypesLocal(1))
       cpp_array%n = size(FaceTypesLocal)
 
-   end subroutine retrieve_facetypes
+    end subroutine retrieve_facetypes
+
+#ifdef _THERMIQUE_
+    subroutine retrieve_cellthermalsource(cpp_array) &
+         bind (C, name = "retrieve_cellthermalsource")
+      
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+      
+      if (.not. allocated(CellThermalSourceVol)) then
+         print *, "Local cell thermal source are not allocated."
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+
+      cpp_array%p = c_loc(CellThermalSourceVol(1))
+      cpp_array%n = size(CellThermalSourceVol)
+
+    end subroutine retrieve_cellthermalsource
+
+    subroutine retrieve_nodethermalsource(cpp_array) &
+         bind (C, name = "retrieve_nodethermalsource")
+      
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+      
+      if (.not. allocated(NodeThermalSourceVol)) then
+         print *, "Local node thermal source are not allocated."
+         !CHECKME: MPI_Abort is supposed to end all MPI processes
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
+
+      cpp_array%p = c_loc(NodeThermalSourceVol(1))
+      cpp_array%n = size(NodeThermalSourceVol)
+      
+    end subroutine retrieve_nodethermalsource
+
+#endif
 
    subroutine retrieve_size_if_allocated(n, array, array_name)
       integer(c_size_t), intent(out) :: n

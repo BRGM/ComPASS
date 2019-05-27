@@ -80,7 +80,7 @@ module VAGFrac
       Poro_1volFourierFrac, &
       Poro_1volFourierNode
 
-  double precision, allocatable, dimension(:), protected :: &
+  double precision, allocatable, dimension(:), protected, target :: &
       CellThermalSourceVol, &
       FracThermalSourceVol, &
       NodeThermalSourceVol

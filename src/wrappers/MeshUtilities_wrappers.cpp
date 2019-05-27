@@ -61,6 +61,8 @@ extern "C"
 #ifdef _THERMIQUE_
     void retrieve_cell_thermal_conductivity(ArrayWrapper&);
     void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
+    void retrieve_cellthermalsource(XArrayWrapper<double>&);
+    void retrieve_nodethermalsource(XArrayWrapper<double>&);
 #endif
     void retrieve_global_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_id_node(XArrayWrapper<NodeInfo>&);
@@ -104,6 +106,10 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "nb_faces_own", retrieve_nb_faces_own);
 	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
 	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
+ #ifdef _THERMIQUE_
+	add_array_wrapper(module, "cellthermalsource", retrieve_cellthermalsource);
+	add_array_wrapper(module, "nodethermalsource", retrieve_nodethermalsource);
+#endif
 
 	module.def("global_number_of_nodes",
 		[]() {
