@@ -16,16 +16,16 @@ module IncPrimSecd
 
   use DefModel, only: &
      NbComp, NbPhase, MCP, &
-     NbIncPTCSPrimMax, NbEqFermetureMax, NbIncPTCSMax, &
+     NbIncTotalPrimMax, NbEqFermetureMax, NbIncTotalMax, &
      pschoice, psprim, pssecd, &
      NumPhasePresente_ctx, NbPhasePresente_ctx, &
      NbIncPTCMax, IndThermique, NbCompThermique, NbEqEquilibreMax
 
   use NumbyContext, only: &
      NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
-     NumIncComp2NumIncPTC_ctx, NbIncPTCSPrim_ctx, NumCompCtilde_ctx, &
+     NumIncComp2NumIncPTC_ctx, NbIncTotalPrim_ctx, NumCompCtilde_ctx, &
      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-     NbEqEquilibre_ctx, NbIncPTC_ctx, NbCompCtilde_ctx
+     NbEqEquilibre_ctx, NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
 
   use IncCVReservoir, only: &
      TYPE_IncCVReservoir, &
@@ -56,14 +56,14 @@ module IncPrimSecd
        SmFFrac, &
        SmFNode
 
-  ! num inc prim secd
+  ! num inc prim secd 
   integer, allocatable, dimension(:,:), protected :: &
-       NumIncPTCSPrimCell,  &
-       NumIncPTCSPrimFrac,  &
-       NumIncPTCSPrimNode,  &
-       NumIncPTCSecondCell, &
-       NumIncPTCSecondFrac, &
-       NumIncPTCSecondNode
+       NumIncTotalPrimCell,  &
+       NumIncTotalPrimFrac,  &
+       NumIncTotalPrimNode,  &
+       NumIncTotalSecondCell, &
+       NumIncTotalSecondFrac, &
+       NumIncTotalSecondNode
 
 
   ! tmp values to simpfy notations of numerotation
@@ -71,8 +71,8 @@ module IncPrimSecd
   integer, private :: &
        NbPhasePresente, NbCompCtilde, &
        NbEqFermeture, NbEqEquilibre,  & ! NbEqEquilibre -> Nombre d'Equation d'Equilibre thermodynamique fct du contexte (i.e. égalité des fugacités)
-       NbIncPTC, NbIncPTCPrim, NbIncPTCS, &
-       NbIncPTCSPrim, NbIncPTCSecond, &
+       NbIncPTC, NbIncPTCPrim, NbIncTotal, &
+       NbIncTotalPrim, &
                                 !
        NumPhasePresente(NbPhase),               & ! Num -> identifiants de la phase présente
        NumCompCtilde(NbComp),                   & ! Num -> identifiants des composants absents
@@ -100,7 +100,7 @@ module IncPrimSecd
 contains
 
   ! main subroutine of this module
-  ! compute dXssurdXp, SmdXs, NumIncPTCSPrim, NumIncPTCSecond
+  ! compute dXssurdXp, SmdXs, NumIncTotalPrim, NumIncTotalSecond
   ! loop of cell/frac/node
   subroutine IncPrimSecd_compute() &
         bind(C, name="IncPrimSecd_compute")
@@ -114,7 +114,7 @@ contains
          dXssurdXpCell, SmdXsCell, &
          SmFCell,   &
                                 !
-         NumIncPTCSPrimCell, NumIncPTCSecondCell)
+         NumIncTotalPrimCell, NumIncTotalSecondCell)
 
     ! frac
     call IncPrimSecd_compute_cv( &
@@ -123,7 +123,7 @@ contains
          dXssurdXpFrac, SmdXsFrac, &
          SmFFrac,   &
                                 !
-         NumIncPTCSPrimFrac, NumIncPTCSecondFrac)
+         NumIncTotalPrimFrac, NumIncTotalSecondFrac)
 
     ! node
     call IncPrimSecd_compute_cv( &
@@ -132,7 +132,7 @@ contains
          dXssurdXpNode, SmdXsNode, &
          SmFNode,   &
                                 !
-         NumIncPTCSPrimNode, NumIncPTCSecondNode)
+         NumIncTotalPrimNode, NumIncTotalSecondNode)
 
 
   end subroutine IncPrimSecd_compute
@@ -143,7 +143,7 @@ contains
        NbIncLocal, &
        inc, rt, &
        dXssurdXp, SmdXs, SmF, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
+       NumIncTotalPrimCV, NumIncTotalSecondCV)
 
     ! input
     integer, intent(in) :: NbIncLocal
@@ -154,18 +154,18 @@ contains
 
     ! output
     integer, intent(out) ::  &
-         NumIncPTCSPrimCV (NbIncPTCSPrimMax, NbIncLocal),  &
-         NumIncPTCSecondCV (NbEqFermetureMax, NbIncLocal)
+         NumIncTotalPrimCV (NbIncTotalPrimMax, NbIncLocal),  &
+         NumIncTotalSecondCV (NbEqFermetureMax, NbIncLocal)
 
     double precision, intent(out) :: &
-         dXssurdXp (NbIncPTCSPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
+         dXssurdXp (NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs (NbEqFermetureMax, NbIncLocal), &
          SmF (NbEqFermetureMax, NbIncLocal)
                       
     ! tmp
     integer :: k
     double precision :: &
-         dFsurdX (NbIncPTCSMax, NbEqFermetureMax) ! (col,row) index order
+         dFsurdX (NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
 
     do k=1,NbIncLocal
 
@@ -178,11 +178,11 @@ contains
 
          ! choose inconnues prim and secd
          call IncPrimSecd_ps_cv(inc(k), dFsurdX, pschoice, &
-            NumIncPTCSPrimCV(:,k), NumIncPTCSecondCV(:,k))
+            NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k))
 
          ! compute dXssurdxp
          call IncPrimSecd_dXssurdXp_cv(inc(k), dFsurdX, SmF(:,k), &
-            NumIncPTCSPrimCV(:,k), NumIncPTCSecondCV(:,k), &
+            NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
             dXssurdXp(:,:,k), SmdXs(:,k))
 
     enddo
@@ -201,7 +201,7 @@ contains
          dXssurdXpNode, SmdXsNode, &
          SmFNode,   &
                                 !
-         NumIncPTCSPrimNode, NumIncPTCSecondNode)
+         NumIncTotalPrimNode, NumIncTotalSecondNode)
 
   end subroutine IncPrimSecd_compPrim_nodes
 
@@ -217,13 +217,12 @@ contains
     NbEqEquilibre = NbEqEquilibre_ctx(inc%ic)
 
     NbIncPTC = NbIncPTC_ctx(inc%ic)
-    NbIncPTCS = NbIncPTC + NbPhasePresente
-
     NbIncPTCPrim  = NbIncPTC - NbEqFermeture
+    NbIncTotal = NbIncTotal_ctx(inc%ic)
 
-    ! ps. if there is only one phase, phase is secd
-    NbIncPTCSPrim = NbIncPTCS - NbEqFermeture - 1
-    NbIncPTCSecond = NbEqFermeture
+
+    ! ps. if there is only one phase, phase is secd  ! FIXME: we assume too much info about physic
+    NbIncTotalPrim = NbIncTotalPrim_ctx(inc%ic)
 
     NumPhasePresente(:) = NumPhasePresente_ctx(:,inc%ic)
     NumCompCtilde(:) = NumCompCtilde_ctx(:,inc%ic)
@@ -246,7 +245,7 @@ contains
     type(TYPE_IncCVReservoir), intent(in) :: inc
     integer, intent(in) :: rt(IndThermique+1)
     double precision, intent(out) :: &  ! (col, row) index order
-         dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
+         dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
     double precision, intent(out) :: &
          SmF(NbEqFermetureMax)
@@ -366,43 +365,43 @@ contains
   ! choose primary and secondary unknowns for each CV
   ! fill inc%Nb/NumIncPrim/Secd
   subroutine IncPrimSecd_ps_cv(inc, dFsurdX, pschoicecv, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
+       NumIncTotalPrimCV, NumIncTotalSecondCV)
 
     type(TYPE_IncCVReservoir), intent(in) :: inc
     ! dFsurdX may be used depending on choice method
     ! (e.g. projection on closure equations)
     ! ??? pourrait-on faire mieux qu'une extraction des composantes ???
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
+    double precision, intent(in) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
     integer, intent(in) :: pschoicecv
-    integer, intent(out) :: NumIncPTCSPrimCV( NbIncPTCSPrimMax)
-    integer, intent(out) :: NumIncPTCSecondCV( NbEqFermetureMax)
+    integer, intent(out) :: NumIncTotalPrimCV( NbIncTotalPrimMax)
+    integer, intent(out) :: NumIncTotalSecondCV( NbEqFermetureMax)
 
     integer :: i, ic
 
-    NumIncPTCSPrimCV(:) = 0
-    NumIncPTCSecondCV(:) = 0
+    NumIncTotalPrimCV(:) = 0
+    NumIncTotalSecondCV(:) = 0
 
     if(pschoicecv==1) then ! manually
 
        ic = inc%ic
 
        ! prim variable
-       do i=1, NbIncPTCSPrim_ctx(ic)
-          NumIncPTCSPrimCV(i) = psprim(i,ic)
+       do i=1, NbIncTotalPrim_ctx(ic)
+          NumIncTotalPrimCV(i) = psprim(i,ic)
        end do
 
        ! secd variable
        do i=1, NbEqFermeture_ctx(ic)
-          NumIncPTCSecondCV(i) = pssecd(i,ic)
+          NumIncTotalSecondCV(i) = pssecd(i,ic)
        end do
 
     else if(pschoicecv==2) then ! Glouton method
        ! call IncPrimSecd_IncSecondGluton(inc, dFsurdX, &
-       ! NumIncPTCSPrimCV, NumIncPTCSecondCV)
+       ! NumIncTotalPrimCV, NumIncTotalSecondCV)
        call CommonMPI_abort("Glouton method is not implemented in IncPrimSecd")
     else if (pschoicecv==3) then ! Gauss method
        call IncPrimSecd_IncSecondGauss(inc, dFsurdX, &
-            NumIncPTCSPrimCV, NumIncPTCSecondCV)
+            NumIncTotalPrimCV, NumIncTotalSecondCV)
     end if
 
   end subroutine IncPrimSecd_ps_cv
@@ -410,26 +409,26 @@ contains
 
   ! dXssurdXp = dFsurdXs**(-1) * dFsurdXp
   subroutine IncPrimSecd_dXssurdXp_cv(inc, dFsurdX, SmF, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV, dXssurdXp, SmdXs)
+       NumIncTotalPrimCV, NumIncTotalSecondCV, dXssurdXp, SmdXs)
 
     ! inputs
     type(TYPE_IncCVReservoir), intent(in) :: inc
     double precision, intent(in) ::  & ! (col, row) index order
-         dFsurdX(NbIncPTCSMax, NbEqFermetureMax), &
+         dFsurdX(NbIncTotalMax, NbEqFermetureMax), &
          SmF(NbEqFermetureMax)
 
     integer, intent(in) :: &
-         NumIncPTCSPrimCV(NbIncPTCSPrimMax), &
-         NumIncPTCSecondCV(NbEqFermetureMax)
+         NumIncTotalPrimCV(NbIncTotalPrimMax), &
+         NumIncTotalSecondCV(NbEqFermetureMax)
 
     ! output
     double precision, intent(out) :: & ! (col, row) index order
-         dXssurdXp(NbIncPTCSPrimMax, NbEqFermetureMax), &
+         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
 
     ! tmp
     double precision :: & ! (row,col) index order, lapack
-         dFsurdX_prim(NbEqFermetureMax, NbIncPTCSPrimMax), &
+         dFsurdX_prim(NbEqFermetureMax, NbIncTotalPrimMax), &
          dFsurdX_secd(NbEqFermetureMax, NbEqFermetureMax)
 
     ! parameters for lapack
@@ -437,15 +436,15 @@ contains
     integer :: i, j, iph
 
     ! from dFsurdX, take out the cols of prim and secd variable
-    do j=1, NbIncPTCSPrim
+    do j=1, NbIncTotalPrim
        do i=1, NbEqFermeture
-          dFsurdX_prim(i,j) = dFsurdX(NumIncPTCSPrimCV(j),i)
+          dFsurdX_prim(i,j) = dFsurdX(NumIncTotalPrimCV(j),i)
        enddo
     enddo
 
-    do j=1, NbEqFermeture ! = NbIncPTCSecond
+    do j=1, NbEqFermeture ! = Nb of secd unknowns
        do i=1, NbEqFermeture
-          dFsurdX_secd(i,j) = dFsurdX(NumIncPTCSecondCV(j),i)
+          dFsurdX_secd(i,j) = dFsurdX(NumIncTotalSecondCV(j),i)
        enddo
     enddo
 
@@ -467,9 +466,9 @@ contains
        ENDDO
        write(*,*)
 
-    do i=1, NbEqFermeture ! = NbIncPTCSecond
+    do i=1, NbEqFermeture ! = Nb of secd unknowns
        do j=1, NbEqFermeture
-          write(*,*)' dFsurdXs ',i,j,dFsurdX(NumIncPTCSecondCV(j),i)
+          write(*,*)' dFsurdXs ',i,j,dFsurdX(NumIncTotalSecondCV(j),i)
        enddo
        write(*,*)
     enddo
@@ -477,7 +476,7 @@ contains
        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 
-    call dgetrs('N', NbEqFermeture, NbIncPTCSPrim, &
+    call dgetrs('N', NbEqFermeture, NbIncTotalPrim, &
          dFsurdX_secd, NbEqFermetureMax, &
          ipiv, dFsurdX_prim, NbEqFermetureMax, info)
     if(info /=0) then
@@ -485,7 +484,7 @@ contains
        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
     end if
 
-    do j=1, NbIncPTCSPrim
+    do j=1, NbIncTotalPrim
        do i=1, NbEqFermeture
           dXssurdXp(j,i) = dFsurdX_prim(i,j)
        enddo
@@ -510,36 +509,36 @@ contains
   !  a partir de la matrice dFsurdX par algorithme glouton
   !  minimisant les angles successifs
   subroutine IncPrimSecd_IncSecondGlouton(inc, dFsurdX, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
+       NumIncTotalPrimCV, NumIncTotalSecondCV)
 
     ! input
     type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
+    double precision, intent(in) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
     ! output
-    integer, intent(out) :: NumIncPTCSPrimCV(NbEqFermetureMax)
-    integer, intent(out) :: NumIncPTCSecondCV(NbIncPTCSMax)
+    integer, intent(out) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+    integer, intent(out) :: NumIncTotalSecondCV(NbEqFermetureMax)
 
     ! tmp
     double precision :: &
-         dFsurdXnrm2(NbIncPTCSMax), &
-         ctrit(NbIncPTCSMax), ctrit_max
+         dFsurdXnrm2(NbIncTotalMax), &
+         ctrit(NbIncTotalMax), ctrit_max
 
-    integer :: ctrit_maxidxs(NbIncPTCSMax)
+    integer :: ctrit_maxidxs(NbIncTotalMax)
 
     double precision :: rnormProjVinc, ss
 
     double precision :: &
-         BaseOrthonormale( NbEqFermetureMax, NbIncPTCSMax)
+         BaseOrthonormale( NbEqFermetureMax, NbIncTotalMax)
 
     integer :: is, i, j, nj, j1
 
-    ! two steps for NumIncPTCSecondcv
+    ! two steps for NumIncTotalSecondcv
     ! 1. first
     ! 2. others
 
     ! dFsurdXnrm2(i): norm 2 of line i of dFsurdX
-    do j=1, NbIncPTCS
+    do j=1, NbIncTotal
        do i=1, NbEqFermeture
           dFsurdXnrm2(j) = dFsurdXnrm2(j) + dFsurdX(j,i)**2
        end do
@@ -555,7 +554,7 @@ contains
           ctrit(:) = dFsurdXnrm2(:)
        else !
 
-          do j=1, NbIncPTCS ! i: loop index of P T C S
+          do j=1, NbIncTotal ! i: loop index of P T C S
 
              ss = 0.d0
              do i=1, NbEqFermeture
@@ -582,7 +581,7 @@ contains
 
        ! ctrit_maxidxs: all elements that takes the max value
        nj = 0
-       do j=1, NbIncPTCS
+       do j=1, NbIncTotal
           if(abs(ctrit(j)-ctrit_max)<eps) then
              ctrit_maxidxs(nj) = j
              nj = nj + 1
@@ -590,7 +589,7 @@ contains
        end do
 
        ! which one is second ? (i1, j1)
-       NumIncPTCSecondCV(is) = j1
+       NumIncTotalSecondCV(is) = j1
 
        ! update BaseOrthonomale
        do j=1, NbEqFermeture
@@ -628,40 +627,40 @@ contains
 
   !
   subroutine IncPrimSecd_IncSecondGauss(inc, dFsurdX, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV)
+       NumIncTotalPrimCV, NumIncTotalSecondCV)
 
     ! input
     type(TYPE_IncCVReservoir), intent(in) :: inc
-    double precision, intent(in) :: dFsurdX(NbIncPTCSMax, NbEqFermetureMax)
+    double precision, intent(in) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
     ! output
-    integer, intent(out) :: NumIncPTCSPrimCV(NbIncPTCSPrimMax)
-    integer, intent(out) :: NumIncPTCSecondCV(NbEqFermetureMax)
+    integer, intent(out) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+    integer, intent(out) :: NumIncTotalSecondCV(NbEqFermetureMax)
 
     ! tmps
     double precision :: &
-         BB(NbIncPTCSMax, NbEqFermetureMax) ! copy of dFsurdX
+         BB(NbIncTotalMax, NbEqFermetureMax) ! copy of dFsurdX
 
     double precision :: pivotmax
-    integer :: npivot, pivot(2, NbEqFermetureMax*NbIncPTCSMax) ! ??? size
+    integer :: npivot, pivot(2, NbEqFermetureMax*NbIncTotalMax) ! FIXME: ??? size
     logical :: pivot_P, pivot_T
 
     integer :: & ! E^{eq}, E^{inc}
          NbSetInc, &
          NbSetEq,  &
-         NumSetInc(NbIncPTCSMax),   &
+         NumSetInc(NbIncTotalMax),   &
          NumSetEq(NbEqFermetureMax)
 
     logical :: &
-         NumIncPTCSPrim_idx(NbIncPTCSMax)
+         NumIncTotalPrim_idx(NbIncTotalMax)
 
     integer :: is, i, j, numi, numj, n
     integer :: i1, j1, icp, iph, icp1, iph1, k
 
-    ! 1. NumIncPTCSecondcv
+    ! 1. NumIncTotalSecondcv
     !    1.1 choose secd in (P,T,C), Gauss
     !    1.2 choose secd in S, the first is secd
-    ! 2. NumIncPTCSPrimcv
+    ! 2. NumIncTotalPrimcv
 
     ! 1.1 choose secd in (P,T,C), Gauss
 
@@ -756,7 +755,7 @@ contains
              end if
           end do
 
-          NumIncPTCSecondCV(is) = 2 ! j1=2
+          NumIncTotalSecondCV(is) = 2 ! j1=2
        else
           ! sinon on prend la plus grande composition dans la phase
           ! avec la plus petite saturation
@@ -802,8 +801,8 @@ contains
 
           end do
 
-          NumIncPTCSecondCV(is) = j1
-       end if ! end for choosing (i1, j1), NumIncPTCSecondcv(is)=j1
+          NumIncTotalSecondCV(is) = j1
+       end if ! end for choosing (i1, j1), NumIncTotalSecondcv(is)=j1
 
        ! update sets: NumSetInc and NumSetEq, remove (i1, j1)
        n = 0
@@ -844,26 +843,26 @@ contains
 
     end do ! end loop of is
 
-    ! 2. NumIncPTCSPrimcv = {1,2,...,NbIncPTC}/NumIncPTCSecondcv
+    ! 2. NumIncTotalPrimcv = {1,2,...,NbIncPTC}/NumIncTotalSecondcv
     !                       + S^alpha, alpha=1:Nphase-1
-    NumIncPTCSPrim_idx(:) = .true.
+    NumIncTotalPrim_idx(:) = .true.
     do j=1, NbEqFermeture
-       NumIncPTCSPrim_idx( NumIncPTCSecondCV(j)) = .false. ! not prim
+       NumIncTotalPrim_idx( NumIncTotalSecondCV(j)) = .false. ! not prim
     end do
 
     n = 0
     do j=1, NbIncPTC
-       if(NumIncPTCSPrim_idx(j) .eqv. .true.) then ! prim
+       if(NumIncTotalPrim_idx(j) .eqv. .true.) then ! prim
           n = n + 1
-          NumIncPTCSPrimCV(n) = j
+          NumIncTotalPrimCV(n) = j
        end if
     end do
 
     ! last S is secd
     ! if there is only one phase, phase is secd
-    do j=NbIncPTC+1, NbIncPTCS-1
+    do j=NbIncPTC+1, NbIncTotal-1
        n = n + 1
-       NumIncPTCSPrimCV(n) = j
+       NumIncTotalPrimCV(n) = j
     end do
 
   end subroutine IncPrimSecd_IncSecondGauss
@@ -891,34 +890,25 @@ contains
     real(c_double), dimension(:,:), intent(inout) :: &
          vnode, vfrac, vcell
 
-    double precision :: &
-         xp(NbCompThermique), &
-         xs(NbEqFermetureMax)
-
-    integer :: k, ic, i, iph
-    integer :: &
-         NbPhasePresente, NbEqFermeture, &
-         NbIncPTC, NbIncPTCS, NbIncPTCPrim, NbIncPTCSPrim
-
     ! node
     call IncPrimSecd_PrimToSecd_cv( &
          IncNode, NbNodeLocal_Ncpus(commRank+1), &
          dXssurdXpNode, SmdXsNode, &
-         NumIncPTCSPrimNode, NumIncPTCSecondNode, &
+         NumIncTotalPrimNode, NumIncTotalSecondNode, &
          vnode)
 
     ! frac
     call IncPrimSecd_PrimToSecd_cv( &
          IncFrac, NbFracLocal_Ncpus(commRank+1), &
          dXssurdXpFrac, SmdXsFrac, &
-         NumIncPTCSPrimFrac, NumIncPTCSecondFrac, &
+         NumIncTotalPrimFrac, NumIncTotalSecondFrac, &
          vfrac)
 
     ! cell
     call IncPrimSecd_PrimToSecd_cv( &
          IncCell, NbCellLocal_Ncpus(commRank+1), &
          dXssurdXpCell, SmdXsCell, &
-         NumIncPTCSPrimCell, NumIncPTCSecondCell, &
+         NumIncTotalPrimCell, NumIncTotalSecondCell, &
          vcell)
 
   end subroutine IncPrimSecd_PrimToSecd
@@ -927,7 +917,7 @@ contains
   subroutine IncPrimSecd_PrimToSecd_cv( &
        inc, NbIncLocal, &
        dXssurdXp, SmdXs, &
-       NumIncPTCSPrimCV, NumIncPTCSecondCV, &
+       NumIncTotalPrimCV, NumIncTotalSecondCV, &
        var_inc)
 
     ! input
@@ -936,12 +926,12 @@ contains
     integer, intent(in) :: NbIncLocal
 
     double precision, intent(in) :: &
-         dXssurdXp (NbIncPTCSPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
+         dXssurdXp (NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs (NbEqFermetureMax, NbIncLocal)
 
     integer, intent(in) ::  &
-         NumIncPTCSPrimCV (NbIncPTCSPrimMax, NbIncLocal),  &
-         NumIncPTCSecondCV (NbEqFermetureMax, NbIncLocal)
+         NumIncTotalPrimCV (NbIncTotalPrimMax, NbIncLocal),  &
+         NumIncTotalSecondCV (NbEqFermetureMax, NbIncLocal)
 
     ! inout: need dvar_prim to fill dvar (both prim and secd)
     real(c_double), dimension(:,:), intent(inout) :: var_inc
@@ -949,7 +939,7 @@ contains
     integer :: k, ic, i, iph
     integer :: &
          NbPhasePresente, NbEqFermeture, &
-         NbIncPTC, NbIncPTCS, NbIncPTCPrim, NbIncPTCSPrim
+         NbIncPTC, NbIncTotal, NbIncPTCPrim, NbIncTotalPrim
 
     double precision :: &
          xp(NbCompThermique), &
@@ -961,8 +951,8 @@ contains
          NbPhasePresente = NbPhasePresente_ctx(ic)
          NbEqFermeture = NbEqFermeture_ctx(ic)
          NbIncPTC  = NbIncPTC_ctx(ic)
-         NbIncPTCS = NbIncPTC_ctx(ic) + NbPhasePresente
-         NbIncPTCSPrim = NbIncPTCSPrim_ctx(ic)
+         NbIncTotal = NbIncTotal_ctx(ic)
+         NbIncTotalPrim = NbIncTotalPrim_ctx(ic)
          NbIncPTCPrim = NbIncPTC - NbEqFermeture
 
          xp(1:NbCompThermique) = var_inc(1:NbCompThermique,k)
@@ -971,8 +961,8 @@ contains
          ! http://www.netlib.org/lapack/explore-html/d7/d15/group__double__blas__level2_gadd421a107a488d524859b4a64c1901a9.html#gadd421a107a488d524859b4a64c1901a9
          ! y := alpha*A*x + beta*y
          ! Compute xs = xs - dXssurdXp * xp, where xs=SmdXs and xp=var_prim
-         call dgemv('T', NbIncPTCSPrim, NbEqFermeture, &
-         -1.d0, dXssurdXp(:,:,k), NbIncPTCSPrimMax, &
+         call dgemv('T', NbIncTotalPrim, NbEqFermeture, &
+         -1.d0, dXssurdXp(:,:,k), NbIncTotalPrimMax, &
          xp(:), 1, -1.d0, xs(:), 1)
 
          !-----------------------------------------------------
@@ -982,13 +972,13 @@ contains
          var_inc(:,k) = 0.d0
 
          ! copy prim P,T,C,S
-         do i=1, NbIncPTCSPrim
-            var_inc(NumIncPTCSPrimCV(i,k),k) = xp(i)
+         do i=1, NbIncTotalPrim
+            var_inc(NumIncTotalPrimCV(i,k),k) = xp(i)
          end do
 
          ! copy secd P,T,C
          do i=1, NbEqFermeture
-            var_inc(NumIncPTCSecondCV(i,k),k) = xs(i)
+            var_inc(NumIncTotalSecondCV(i,k),k) = xs(i)
          end do
 
          ! fill secd S
@@ -1011,10 +1001,11 @@ contains
             end do
          end if
 
-         ! term prim n_k(X_j^n) ????
+         ! term prim n_k(X_j^n), components which are present only in absent phase(s)
+         ! n_k(X_j^n) are not part of NbIncTotal
          ! copy prim n_i
-         do i=1, NbCompCtilde_ctx(ic) ! =NbCompThermique-NbIncPTCSPrim
-            var_inc(NbIncPTCS+i,k) = xp(NbIncPTCSPrim+i)
+         do i=1, NbCompCtilde_ctx(ic) ! =NbCompThermique-NbIncTotalPrim
+            var_inc(NbIncTotal+i,k) = xp(NbIncTotalPrim+i)
          end do
 
     end do ! loop over local inc
@@ -1035,9 +1026,9 @@ contains
     ! print*, 'IncPrimSecd_allocate', nbCell, nbFrac, nbNode, nbNodeInj
 
     ! dXssurdXp and SmdXs
-    allocate( dXssurdXpCell(NbIncPTCSPrimMax, NbEqFermetureMax, nbCell))
-    allocate( dXssurdXpFrac(NbIncPTCSPrimMax, NbEqFermetureMax, nbFrac))
-    allocate( dXssurdXpNode(NbIncPTCSPrimMax, NbEqFermetureMax, nbNode))
+    allocate( dXssurdXpCell(NbIncTotalPrimMax, NbEqFermetureMax, nbCell))
+    allocate( dXssurdXpFrac(NbIncTotalPrimMax, NbEqFermetureMax, nbFrac))
+    allocate( dXssurdXpNode(NbIncTotalPrimMax, NbEqFermetureMax, nbNode))
 
     allocate( SmdXsCell(NbEqFermetureMax, nbCell))
     allocate( SmdXsFrac(NbEqFermetureMax, nbFrac))
@@ -1047,13 +1038,13 @@ contains
     allocate( SmFFrac(NbEqFermetureMax, nbFrac))
     allocate( SmFNode(NbEqFermetureMax, nbNode))
 
-    ! Num IncPTCSPrim and IncPTCSecond
-    allocate( NumIncPTCSPrimCell(NbIncPTCSPrimMax, nbCell))
-    allocate( NumIncPTCSPrimFrac(NbIncPTCSPrimMax, nbFrac))
-    allocate( NumIncPTCSPrimNode(NbIncPTCSPrimMax, nbNode))
-    allocate( NumIncPTCSecondCell(NbEqFermetureMax,nbCell ))
-    allocate( NumIncPTCSecondFrac(NbEqFermetureMax,nbFrac ))
-    allocate( NumIncPTCSecondNode(NbEqFermetureMax,nbNode ))
+    ! Num IncTotalPrim and IncTotalSecond
+    allocate( NumIncTotalPrimCell(NbIncTotalPrimMax, nbCell))
+    allocate( NumIncTotalPrimFrac(NbIncTotalPrimMax, nbFrac))
+    allocate( NumIncTotalPrimNode(NbIncTotalPrimMax, nbNode))
+    allocate( NumIncTotalSecondCell(NbEqFermetureMax,nbCell ))
+    allocate( NumIncTotalSecondFrac(NbEqFermetureMax,nbFrac ))
+    allocate( NumIncTotalSecondNode(NbEqFermetureMax,nbNode ))
 
   end subroutine IncPrimSecd_allocate
 
@@ -1077,13 +1068,13 @@ contains
     deallocate( SmFNode)
 
 
-    ! Num IncPTCSPrim and IncPTCSecond
-    deallocate( NumIncPTCSPrimCell)
-    deallocate( NumIncPTCSPrimFrac)
-    deallocate( NumIncPTCSPrimNode)
-    deallocate( NumIncPTCSecondCell)
-    deallocate( NumIncPTCSecondFrac)
-    deallocate( NumIncPTCSecondNode)
+    ! Num IncTotalPrim and IncTotalSecond
+    deallocate( NumIncTotalPrimCell)
+    deallocate( NumIncTotalPrimFrac)
+    deallocate( NumIncTotalPrimNode)
+    deallocate( NumIncTotalSecondCell)
+    deallocate( NumIncTotalSecondFrac)
+    deallocate( NumIncTotalSecondNode)
 
   end subroutine IncPrimSecd_free
 

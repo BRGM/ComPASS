@@ -16,8 +16,8 @@ module Residu
    use DefModel, only: &
       NbPhase, NbComp, NbCompThermique, IndThermique, &
       LIQUID_PHASE, MCP, &
-      NbEqEquilibreMax, NbIncPTCSPrimMax, NbIncPTCSecondMax, &
-      NbIncPTCMax, NbIncPTCSMax, NbEqFermetureMax, &
+      NbEqEquilibreMax, NbIncTotalPrimMax, &
+      NbIncPTCMax, NbIncTotalMax, NbEqFermetureMax, &
       NbPhasePresente_ctx, NumPhasePresente_ctx
 
    use LoisThermoHydro, only: &

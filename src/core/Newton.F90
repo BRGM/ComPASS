@@ -11,7 +11,7 @@ module Newton
    use, intrinsic :: iso_c_binding, only: c_double, c_ptr, c_f_pointer
    use CommonMPI, only: commRank
 
-   use DefModel, only: NbIncPTCSMax
+   use DefModel, only: NbIncTotalMax
    use MeshSchema, only: &
       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
@@ -46,15 +46,15 @@ contains
 
       call c_f_pointer( &
          increment_pointers%nodes, increment_values%nodes, &
-         shape=[NbIncPTCSMax, NbNodeLocal_Ncpus(commRank + 1)] &
+         shape=[NbIncTotalMax, NbNodeLocal_Ncpus(commRank + 1)] &
          )
       call c_f_pointer( &
          increment_pointers%fractures, increment_values%fractures, &
-         shape=[NbIncPTCSMax, NbFracLocal_Ncpus(commRank + 1)] &
+         shape=[NbIncTotalMax, NbFracLocal_Ncpus(commRank + 1)] &
          )
       call c_f_pointer( &
          increment_pointers%cells, increment_values%cells, &
-         shape=[NbIncPTCSMax, NbCellLocal_Ncpus(commRank + 1)] &
+         shape=[NbIncTotalMax, NbCellLocal_Ncpus(commRank + 1)] &
          )
       call c_f_pointer( &
          increment_pointers%injectors, increment_values%injectors, &

@@ -16,7 +16,7 @@
 
     use DefModel, only: &
        NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
-       NbCompThermique, NbIncPTCSMax, &
+       NbCompThermique, NbIncTotalMax, &
        NumPhasePresente_ctx, NbPhasePresente_ctx, &
        IndThermique, MCP
 
@@ -26,7 +26,7 @@
        NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus
 
     use NumbyContext, only: &
-       NbIncPTC_ctx, &
+       NbIncPTC_ctx, NbIncTotal_ctx, &
        NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
        NumCompCtilde_ctx, NbCompCtilde_ctx
 
@@ -336,15 +336,15 @@ private :: &
     subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax)
 
     type(TYPE_IncCVReservoir), intent(inout) :: inc
-    double precision, intent(in) :: incre(NbIncPTCSMax), relax
+    double precision, intent(in) :: incre(NbIncTotalMax), relax
 
     integer :: i, icp, iph
-    integer :: NbIncPTC, NbIncPTCS
+    integer :: NbIncPTC, NbIncTotal
     integer :: ic
 
     ic = inc%ic
     NbIncPTC = NbIncPTC_ctx(ic)
-    NbIncPTCS = NbIncPTC_ctx(ic) + NbPhasePresente_ctx(ic)
+    NbIncTotal = NbIncTotal_ctx(ic)
 
     ! increment Pressure
     inc%Pression = inc%Pression + relax*incre(1)
@@ -375,7 +375,7 @@ private :: &
     ! AccVol
     do i = 1, NbCompCtilde_ctx(ic)
         icp = NumCompCtilde_ctx(i, ic)
-        inc%AccVol(icp) = incre(NbIncPTCS + i)
+        inc%AccVol(icp) = incre(NbIncTotal + i)
     end do
 
     end subroutine IncCVReservoir_NewtonIncrement_reservoir

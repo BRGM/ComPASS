@@ -66,25 +66,25 @@ module DefModel
 #endif
    private :: P, T, C, Sg, Sl
    
-   integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
+   integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
                        P, T & ! only one context ic=1 
 #else
                        P    & ! only one context ic=1
 #endif
-                       /), (/NbIncPTCSPrimMax, NbContexte/))
+                       /), (/NbIncTotalPrimMax, NbContexte/))
 
    ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
-   integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
+   integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
                        C, Sg, 0 & ! only one context ic=1
 #else
                        C, Sg, 0 & ! only one context ic=1
 #endif
-                       /), (/NbIncPTCSecondMax, NbContexte/))
+                       /), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
    ! Used in module Jacobian.F90

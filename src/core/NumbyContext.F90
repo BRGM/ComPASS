@@ -43,9 +43,13 @@ module NumbyContext
   integer, dimension(:), allocatable, protected :: &
       NbIncPTC_ctx
 
-  ! nb of IncPTCSPrim
+  ! nb of total unknowns P (T) C S ... (whithout Ctilde)
   integer, dimension(:), allocatable, protected :: &
-      NbIncPTCSPrim_ctx
+      NbIncTotal_ctx
+
+  ! nb of primary unknowns (whithout Ctilde) (= NbComp + IndThermique - NbCompCtilde_ctx)
+  integer, dimension(:), allocatable, protected :: &
+      NbIncTotalPrim_ctx
 
   ! from IncComp to IncPTC (num)
   integer, dimension(:,:,:), allocatable, protected :: &
@@ -90,7 +94,8 @@ contains
     deallocate( NbCompCtilde_ctx)
 
     deallocate( NbIncPTC_ctx)
-    deallocate( NbIncPTCSPrim_ctx)
+    deallocate( NbIncTotal_ctx)
+    deallocate( NbIncTotalPrim_ctx)
 
     deallocate( NumIncComp2NumIncPTC_ctx)
     deallocate( NumIncPTC2NumIncComp_comp_ctx)
@@ -174,12 +179,13 @@ contains
     NbContexte = configuration%nb_contexts
     NbIncPTCMax = configuration%NbIncPTCMax
 
-    ! 1. Nb d'inconnues P (T) et C fct du contexte
-    allocate( NbIncPTC_ctx(NbContexte))
+    ! 1. Nb of unknowns
+    allocate( NbIncPTC_ctx(NbContexte))    ! P (T) C depending on the context
+    allocate( NbIncTotal_ctx(NbContexte))  ! total nb: P (T) C S_Principal ...
 
     do ic = 1, NbContexte
 
-      n = 1 ! P
+      n = 1 + configuration%IndThermique ! P (and T)
 
       do i=1, configuration%NbPhasePresente_ctx(ic)
         iph = configuration%NumPhasePresente_ctx(i,ic) ! phase
@@ -193,15 +199,15 @@ contains
         end do
       enddo
 
-      NbIncPTC_ctx(ic) = n + configuration%IndThermique ! if thermique
+      NbIncPTC_ctx(ic) = n
+      NbIncTotal_ctx(ic) = NbIncPTC_ctx(ic) + configuration%NbPhasePresente_ctx(ic) ! Warning: NbIncTotal_ctx=NbIncTotalPrim_ctx+NbEqFermeture + 1 because 1 saturation eliminated in hard
     end do
 
-    ! 2. Nb d'inconnues P (T) et C S Prim fct du contexte
-    allocate( NbIncPTCSPrim_ctx(NbContexte))
+    ! 2. Nb of primary unknowns
+    allocate( NbIncTotalPrim_ctx(NbContexte))
 
     do ic=1, NbContexte
-      NbIncPTCSPrim_ctx(ic) = NbIncPTC_ctx(ic) &
-          + configuration%NbPhasePresente_ctx(ic) - NbEqFermeture_ctx(ic) - 1
+      NbIncTotalPrim_ctx(ic) = NbComp + configuration%IndThermique - NbCompCtilde_ctx(ic)
     end do
 
     ! 3.1  from IncComp to IncPTC (num)

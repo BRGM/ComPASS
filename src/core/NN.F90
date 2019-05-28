@@ -23,7 +23,7 @@ module NN
 
    use CommonType, only: ModelConfiguration
    use DefModel, only: &
-      NbComp, NbPhase, IndThermique, NbIncPTCSMax, get_model_configuration
+      NbComp, NbPhase, IndThermique, NbIncTotalMax, get_model_configuration
 
    use IncCVReservoir, only: &
       Type_IncCVReservoir, IncNode, IncCell, IncFrac
@@ -325,11 +325,11 @@ contains
 
       ! allocate increment
       allocate (NewtonIncreNode &
-                (NbIncPTCSMax, NbNodeLocal_Ncpus(commRank + 1)))
+                (NbIncTotalMax, NbNodeLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreFrac &
-                (NbIncPTCSMax, NbFracLocal_Ncpus(commRank + 1)))
+                (NbIncTotalMax, NbFracLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreCell &
-                (NbIncPTCSMax, NbCellLocal_Ncpus(commRank + 1)))
+                (NbIncTotalMax, NbCellLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreWellInj &
                 (NbWellInjLocal_Ncpus(commRank + 1)))
       allocate (NewtonIncreWellProd &

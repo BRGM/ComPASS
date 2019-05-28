@@ -11,7 +11,7 @@
 
        use, intrinsic :: iso_c_binding
 
-       use DefModel, only: NbIncPTCSMax
+       use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax
        use Physics, only: Thickness, gravity, CpRoche
        use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
        use NN, only: Delta_t, TimeCurrent
@@ -41,7 +41,7 @@
         function nb_primary_variables() result(n) &
         bind(C, name="nb_primary_variables")
         integer(c_size_t) :: n
-        n = NbIncPTCSMax
+        n = NbIncTotalPrimMax ! NbIncTotalMax
         end function nb_primary_variables
         
         function get_current_time() result(t) &

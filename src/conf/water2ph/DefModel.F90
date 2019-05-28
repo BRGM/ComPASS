@@ -85,7 +85,7 @@ module DefModel
 #endif
    private :: P, T, C, Sg, Sl
    
-   integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
+   integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
                        P, T, & ! ic=1 GAS_CONTEXT
@@ -96,11 +96,11 @@ module DefModel
                        P, & ! ic=2 LIQUID_CONTEXT
                        Sl & ! ic=3 DIPHASIC_CONTEXT
 #endif
-                       /), (/NbIncPTCSPrimMax, NbContexte/))
+                       /), (/NbIncTotalPrimMax, NbContexte/))
 
   ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
-   integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
+   integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
                        C, Sg, 0, & ! ic=1 GAS_CONTEXT
@@ -111,7 +111,7 @@ module DefModel
                        C, Sg, 0, & ! ic=2 LIQUID_CONTEXT
                        0,  0, 0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
 #endif
-                       /), (/NbIncPTCSecondMax, NbContexte/))
+                       /), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
 

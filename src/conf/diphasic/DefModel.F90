@@ -116,7 +116,7 @@ module DefModel
 
 
   ! Sum Salpha =1 was already eliminated
-  integer, parameter, dimension( NbIncPTCSPrimMax, NbContexte) :: &
+  integer, parameter, dimension( NbIncTotalPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
 #ifdef _THERMIQUE_
       P, T, 3, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
@@ -127,9 +127,9 @@ module DefModel
       P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
       P, 6  & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
 #endif
-      /), (/ NbIncPTCSPrimMax, NbContexte /))
+      /), (/ NbIncTotalPrimMax, NbContexte /))
 
-  integer, parameter, dimension( NbIncPTCSecondMax, NbContexte) :: &
+  integer, parameter, dimension( NbEqFermetureMax, NbContexte) :: &
        pssecd = RESHAPE( (/ &
 #ifdef _THERMIQUE_
        4, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
@@ -140,7 +140,7 @@ module DefModel
        2, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
        2, 3, 4, 5  & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
 #endif
-       /), (/ NbIncPTCSecondMax, NbContexte/))
+       /), (/ NbEqFermetureMax, NbContexte/))
 
   ! ! ****** Alignment method ****** ! !
 

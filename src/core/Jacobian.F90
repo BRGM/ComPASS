@@ -67,10 +67,10 @@ module Jacobian
      Poro_1volFourierCell, Poro_1volFourierNode, Poro_1volFourierFrac
 
   use IncPrimSecd, only: &
-     NbIncPTCSPrim_ctx, &
+     NbIncTotalPrim_ctx, &
      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-     NumIncPTCSPrimNode, NumIncPTCSPrimCell, NumIncPTCSPrimFrac, &
-     NbIncPTCSPrimMax
+     NumIncTotalPrimNode, NumIncTotalPrimCell, NumIncTotalPrimFrac, &
+     NbIncTotalPrimMax
 
   use MeshSchema, only: &
      NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, FaceToFracLocal, &
@@ -404,7 +404,7 @@ contains
 
     !          if(s==8 .and. JacBigA%Num(nz)==19) then
     !             do i=1, NbCompThermique
-    !                do j=1, NbIncPTCSPrim_ctx(1)
+    !                do j=1, NbIncTotalPrim_ctx(1)
     !                   write(*,'(ES22.13)') JacBigA%Val(j,i,nz)
     !                   write(11,'(ES22.13)') JacBigA%Val(j,i,nz)
     !                end do
@@ -455,7 +455,7 @@ contains
           do i=1, NbCompCtilde_ctx(IncNode(k)%ic)
              icp = NumCompCtilde_ctx(i, IncNode(k)%ic)
 
-             j = NbIncPTCSPrim_ctx(IncNode(k)%ic) + i
+             j = NbIncTotalPrim_ctx(IncNode(k)%ic) + i
              JacBigA%val(j,icp,nz) = VolDarcyNode(k) / Delta_t
           end do
 
@@ -466,7 +466,7 @@ contains
              do icp=1, NbComp
                 if( MCP(icp,mph)==1) then ! Q_k \cap P_i
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(k)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(k)%ic)
                       JacBigA%Val(j,icp,nz) = JacBigA%Val(j,icp,nz) &
                            + divDensitemolaireSatCompNode(j,icp,m,k) * PoroVolDarcyNode(k) / Delta_t
                    end do
@@ -487,7 +487,7 @@ contains
           do m=1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k, k is node
              mph = NumPhasePresente_ctx(m,IncNode(k)%ic)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(k)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(k)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + PoroVolFourierNode(k) * divDensitemolaireEnergieInterneSatNode(j,m,k) / Delta_t
              end do
@@ -496,7 +496,7 @@ contains
                   - PoroVolFourierNode(k) * SmDensitemolaireEnergieInterneSatNode(m,k) / Delta_t
           end do
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                   + Poro_1volFourierNode(k) * CpRoche * divTemperatureNode(j,k) / Delta_t
           end do
@@ -526,7 +526,7 @@ contains
        do i=1, NbCompCtilde_ctx(IncFrac(k)%ic)
           icp = NumCompCtilde_ctx(i, IncFrac(k)%ic)
 
-          j = NbIncPTCSPrim_ctx(IncFrac(k)%ic) + i
+          j = NbIncTotalPrim_ctx(IncFrac(k)%ic) + i
           JacBigA%Val(j,icp,nz) = VolDarcyFrac(k) / Delta_t
        end do
 
@@ -537,7 +537,7 @@ contains
           do icp=1, NbComp
              if( MCP(icp,mph)==1) then ! Q_k \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                    JacBigA%Val(j,icp,nz) = JacBigA%Val(j,icp,nz) &
                         + divDensitemolaireSatCompFrac(j,icp,m,k) * PoroVolDarcyFrac(k) / Delta_t
                 end do
@@ -554,7 +554,7 @@ contains
        do m=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k, k is frac
           mph = NumPhasePresente_ctx(m,IncFrac(k)%ic)
 
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                   + PoroVolFourierFrac(k) * divDensitemolaireEnergieInterneSatFrac(j,m,k) / Delta_t
           end do
@@ -563,7 +563,7 @@ contains
                - PoroVolFourierFrac(k) * SmDensitemolaireEnergieInterneSatFrac(m,k) / Delta_t
        end do
 
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
           JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                + Poro_1volFourierFrac(k) * CpRoche * divTemperatureFrac(j,k) / Delta_t
        end do
@@ -591,7 +591,7 @@ contains
        do i=1, NbCompCtilde_ctx(IncCell(k)%ic)
           icp = NumCompCtilde_ctx(i, IncCell(k)%ic)
 
-          j = NbIncPTCSPrim_ctx(IncCell(k)%ic) + i
+          j = NbIncTotalPrim_ctx(IncCell(k)%ic) + i
           JacBigA%Val(j,icp,nz) = VolDarcyCell(k) / Delta_t
        end do
 
@@ -602,7 +602,7 @@ contains
           do icp=1, NbComp
              if( MCP(icp,mph)==1) then ! Q_k \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                    JacBigA%Val(j,icp,nz) = JacBigA%Val(j,icp,nz) &
                         + divDensitemolaireSatCompCell(j,icp,m,k) * PoroVolDarcyCell(k) / Delta_t
                 end do
@@ -624,7 +624,7 @@ contains
        do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k, k is cell
           mph = NumPhasePresente_ctx(m,IncCell(k)%ic)
 
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                   + PoroVolFourierCell(k) * divDensitemolaireEnergieInterneSatCell(j,m,k) / Delta_t
           end do
@@ -637,7 +637,7 @@ contains
           ! end if
        end do
 
-       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                + Poro_1volFourierCell(k) * CpRoche * divTemperatureCell(j,k) / Delta_t
        end do
@@ -674,39 +674,39 @@ contains
 
     ! div prims and Sm from term div(Densitemolaire*Kr/Visco*Comp)*FluxDarcy
     double precision :: &
-         divK1( NbIncPTCSPrimMax, NbComp), & ! k for cell, represent k in paper
-         divS1( NbIncPTCSPrimMax, NbComp), & ! s for node/frac, represent s in paper
+         divK1( NbIncTotalPrimMax, NbComp), & ! k for cell, represent k in paper
+         divS1( NbIncTotalPrimMax, NbComp), & ! s for node/frac, represent s in paper
          Sm1( NbComp)
 
     ! div prims and Sm from term Densitemolaire*Kr/Visco*Comp*div(FluxDarcy)
     ! three contributions from this item
     double precision :: &
-         divK2( NbIncPTCSPrimMax, NbComp), & ! A_kr, k is row cell, r is col cell k
-         divS2( NbIncPTCSPrimMax, NbComp), & ! A_kr, k is row cell, r is col col node s
-         divR2( NbIncPTCSPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), & ! A_kr, k is row cell, r is nodes/fracs in cell k
+         divK2( NbIncTotalPrimMax, NbComp), & ! A_kr, k is row cell, r is col cell k
+         divS2( NbIncTotalPrimMax, NbComp), & ! A_kr, k is row cell, r is col col node s
+         divR2( NbIncTotalPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), & ! A_kr, k is row cell, r is nodes/fracs in cell k
          Sm2( NbComp)
 
     ! div prim of Darcy flux
     double precision :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), & !
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), &
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), & !
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), &
          SmDarcyFlux( NbPhase)
 
 #ifdef _THERMIQUE_
 
     ! div prim of Fourier flux
     double precision :: &
-         divFourierFlux_k( NbIncPTCSPrimMax), &
-         divFourierFlux_s( NbIncPTCSPrimMax), &
-         divFourierFlux_r( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
+         divFourierFlux_k( NbIncTotalPrimMax), &
+         divFourierFlux_s( NbIncTotalPrimMax), &
+         divFourierFlux_r( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
 
     ! div prims and Sm from term div(Densitemolaire*Kr*Enthalpie/Visco*FluxDarcy)
     double precision :: &
-         divEgK( NbIncPTCSPrimMax), & ! K for cell, represent k in paper
-         divEgS( NbIncPTCSPrimMax), & ! S for node/frac, represent s in paper
-         divEgR( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), & ! R for node/frac, represent s' in paper
+         divEgK( NbIncTotalPrimMax), & ! K for cell, represent k in paper
+         divEgS( NbIncTotalPrimMax), & ! S for node/frac, represent s in paper
+         divEgR( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! R for node/frac, represent s' in paper
          SmEg
 
 #endif
@@ -784,14 +784,14 @@ contains
           ! A_kk
           nz = JacBigA%Pt(rowk) + csrK(colk)
           do i=1, NbComp
-             do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                 JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divK1(j,i) + divK2(j,i)
              end do
           end do
 
 #ifdef _THERMIQUE_
 
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                   + divEgK(j) + divFourierFlux_k(j)
           end do
@@ -801,7 +801,7 @@ contains
           cols = colSR(s)
           nz = JacBigA%Pt(rowk) + csrK(cols)
           do i=1, NbComp
-             do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                 JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divS1(j,i) + divS2(j,i)
              end do
           end do
@@ -809,7 +809,7 @@ contains
 #ifdef _THERMIQUE_
 
           ! ps. divFourierFlux_s = 0
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) + divEgS(j)
           end do
 #endif
@@ -821,14 +821,14 @@ contains
              colr = colSR(r) ! col
              nz = JacBigA%Pt(rowk) + csrK(colr) ! nnz
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divR2(j,i,r)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + divEgR(j,r) + divFourierFlux_r(j,r)
              end do
@@ -843,14 +843,14 @@ contains
              colr = colSR(rf)
              nz = JacBigA%Pt(rowk) + csrK(colr)
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divR2(j,i,rf)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + divEgR(j,rf) + divFourierFlux_r(j,rf)
              end do
@@ -880,7 +880,7 @@ contains
                 ! A_sk, s is node, k is cell
                 nz = JacBigA%Pt(rows) + csrSR(colk)
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divK1(j,i) - divK2(j,i)
                    end do
                 end do
@@ -890,7 +890,7 @@ contains
 
              if( IdNodeLocal(nums)%T /= "d" ) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgK(j) - divFourierFlux_k(j)
                 end do
@@ -903,7 +903,7 @@ contains
 
              if( IdNodeLocal(nums)%P /= "d" ) then
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS1(j,i) - divS2(j,i)
                    end do
                 end do
@@ -914,7 +914,7 @@ contains
              if( IdNodeLocal(nums)%T /= "d" ) then
 
                 ! ps. divFourierFlux_s=0
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgS(j)
                 end do
@@ -931,7 +931,7 @@ contains
                 if( IdNodeLocal(nums)%P /= "d" ) then
 
                    do i=1, NbComp
-                      do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                      do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                          JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divR2(j,i,r)
                       end do
                    end do
@@ -941,7 +941,7 @@ contains
 
                 if( IdNodeLocal(nums)%T /= "d" ) then
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                            - divEgR(j,r) - divFourierFlux_r(j,r)
                    end do
@@ -960,7 +960,7 @@ contains
                 if( IdNodeLocal(nums)%P /= "d" ) then
 
                    do i=1, NbComp
-                      do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                      do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                          JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divR2(j,i,rf)
                       end do
                    end do
@@ -970,7 +970,7 @@ contains
 
                 if( IdNodeLocal(nums)%T /= "d" ) then
 
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                            - divEgR(j,rf) - divFourierFlux_r(j,rf)
                    end do
@@ -998,7 +998,7 @@ contains
 
        ! if(k==1 .and. commRank==0) then
        !    do icp=1, NbComp
-       !       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       !       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
        !          write(*,'(ES22.14)') JacBigA%Val(j,icp,nz)
        !       end do
        !       print*, ""
@@ -1043,14 +1043,14 @@ contains
           ! A_kk
           nz = JacBigA%Pt(rowk) + csrK(colk)
           do i=1, NbComp
-             do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                 JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divK1(j,i) + divK2(j,i)
              end do
           end do
 
 #ifdef _THERMIQUE_
 
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                   + divEgK(j) + divFourierFlux_k(j)
           end do
@@ -1060,7 +1060,7 @@ contains
           cols = colSR(sf)
           nz = JacBigA%Pt(rowk) + csrK(cols)
           do i=1, NbComp
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                 JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divS1(j,i) + divS2(j,i)
              end do
           end do
@@ -1068,7 +1068,7 @@ contains
 #ifdef _THERMIQUE_
 
           ! ps. divFourierFlux_s = 0
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) + divEgS(j)
           end do
 #endif
@@ -1080,14 +1080,14 @@ contains
              colr = colSR(r) ! col
              nz = JacBigA%Pt(rowk) + csrK(colr) ! nnz
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divR2(j,i,r)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + divEgR(j,r) + divFourierFlux_r(j,r)
              end do
@@ -1102,14 +1102,14 @@ contains
              colr = colSR(rf)
              nz = JacBigA%Pt(rowk) + csrK(colr)
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divR2(j,i,rf)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + divEgR(j,rf) + divFourierFlux_r(j,rf)
              end do
@@ -1138,14 +1138,14 @@ contains
              ! A_sk, s is frac (own), k is cell
              nz = JacBigA%Pt(rows) + csrSR(colk)
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divK1(j,i) - divK2(j,i)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      - divEgK(j) - divFourierFlux_k(j)
              end do
@@ -1156,7 +1156,7 @@ contains
              nz = JacBigA%Pt(rows) + csrSR(cols)
 
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS1(j,i) - divS2(j,i)
                 end do
              end do
@@ -1164,7 +1164,7 @@ contains
 #ifdef _THERMIQUE_
 
              ! ps. divFourierFlux_s=0
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      - divEgS(j)
              end do
@@ -1178,13 +1178,13 @@ contains
                 nz = JacBigA%Pt(rows) + csrSR(colr)
 
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divR2(j,i,r)
                    end do
                 end do
 
 #ifdef _THERMIQUE_
-                do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgR(j,r) - divFourierFlux_r(j,r)
                 end do
@@ -1200,14 +1200,14 @@ contains
                 nz = JacBigA%Pt(rows) + csrSR(colr)
 
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divR2(j,i,rf)
                    end do
                 end do
 
 #ifdef _THERMIQUE_
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgR(j,rf) - divFourierFlux_r(j,rf)
                 end do
@@ -1289,37 +1289,37 @@ contains
 
     ! div prims and Sm from term div(Densitemolaire*Kr/Visco*Comp)*FluxDarcy
     double precision :: &
-         divK1( NbIncPTCSPrimMax, NbComp), & ! K for frac, represent k in paper
-         divS1( NbIncPTCSPrimMax, NbComp), & ! S for node, represent s in paper
+         divK1( NbIncTotalPrimMax, NbComp), & ! K for frac, represent k in paper
+         divS1( NbIncTotalPrimMax, NbComp), & ! S for node, represent s in paper
          Sm1( NbComp)
 
     ! div prims and Sm from term Densitemolaire*Kr/Visco*Comp*div(FluxDarcy)
     double precision :: &
-         divK2( NbIncPTCSPrimMax, NbComp), &
-         divS2( NbIncPTCSPrimMax, NbComp), &
-         divR2( NbIncPTCSPrimMax, NbComp, NbNodeFaceMax), & ! R for node/frac, represent s' in paper
+         divK2( NbIncTotalPrimMax, NbComp), &
+         divS2( NbIncTotalPrimMax, NbComp), &
+         divR2( NbIncTotalPrimMax, NbComp, NbNodeFaceMax), & ! R for node/frac, represent s' in paper
          Sm2( NbComp)
 
     double precision :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeFaceMax), & ! r represen
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeFaceMax), & ! r represen
          SmDarcyFlux( NbPhase)
 
 #ifdef _THERMIQUE_
 
     ! div FluxFourier
     double precision :: &
-         divFourierFlux_k( NbIncPTCSPrimMax), &
-         divFourierFlux_s( NbIncPTCSPrimMax), &
-         divFourierFlux_r( NbIncPTCSPrimMax, NbNodeFaceMax), & ! r represent s' in paper
+         divFourierFlux_k( NbIncTotalPrimMax), &
+         divFourierFlux_s( NbIncTotalPrimMax), &
+         divFourierFlux_r( NbIncTotalPrimMax, NbNodeFaceMax), & ! r represent s' in paper
          SmFourierFlux
 
     ! div prims and Sm from term div(Densitemolaire*Kr*Enthalpie/Visco*FluxDarcy)
     double precision :: &
-         divEgK( NbIncPTCSPrimMax), & ! K for frac, represent k in paper
-         divEgS( NbIncPTCSPrimMax), & ! S for node, represent s in paper
-         divEgR( NbIncPTCSPrimMax, NbNodeFaceMax), & ! R for node/frac, represent s' in paper
+         divEgK( NbIncTotalPrimMax), & ! K for frac, represent k in paper
+         divEgS( NbIncTotalPrimMax), & ! S for node, represent s in paper
+         divEgR( NbIncTotalPrimMax, NbNodeFaceMax), & ! R for node/frac, represent s' in paper
          SmEg
 #endif
 
@@ -1387,14 +1387,14 @@ contains
              ! A_kk
              nz = JacBigA%Pt(rowk) + csrK(colk)
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divK1(j,i) + divK2(j,i)
                 end do
              end do
 
 #ifdef _THERMIQUE_
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                      + divEgK(j) + divFourierFlux_k(j)
              end do
@@ -1404,7 +1404,7 @@ contains
              cols = colSR(s)
              nz = JacBigA%Pt(rowk) + csrK(cols)
              do i=1, NbComp
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                    JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divS1(j,i) + divS2(j,i)
                 end do
              end do
@@ -1412,7 +1412,7 @@ contains
 #ifdef _THERMIQUE_
 
              ! ps. divFourierFlux_s = 0
-             do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                 JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) + divEgS(j)
              end do
 #endif
@@ -1425,14 +1425,14 @@ contains
                 colr = colSR(r) ! col
                 nz = JacBigA%Pt(rowk) + csrK(colr) ! nnz
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) + divR2(j,i,r)
                    end do
                 end do
 
 #ifdef _THERMIQUE_
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         + divEgR(j,r) + divFourierFlux_r(j,r)
                 end do
@@ -1464,7 +1464,7 @@ contains
                 ! A_sk
                 nz = JacBigA%Pt(rows) + csrSR(colk)
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divK1(j,i) - divK2(j,i)
                    end do
                 end do
@@ -1474,7 +1474,7 @@ contains
 
              if( IdNodeLocal(nums)%T /= "d" ) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgK(j) - divFourierFlux_k(j)
                 end do
@@ -1488,7 +1488,7 @@ contains
              if( IdNodeLocal(nums)%P /= "d" ) then
 
                 do i=1, NbComp
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS1(j,i) - divS2(j,i)
                    end do
                 end do
@@ -1500,7 +1500,7 @@ contains
              if( IdNodeLocal(nums)%T /= "d" ) then
 
                 ! ps. divFourierFlux_s=0
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                    JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                         - divEgS(j)
                 end do
@@ -1516,7 +1516,7 @@ contains
 
                 if( IdNodeLocal(nums)%P /= "d" ) then
                    do i=1, NbComp
-                      do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                      do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                          JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divR2(j,i,r)
                       end do
                    end do
@@ -1525,7 +1525,7 @@ contains
 #ifdef _THERMIQUE_
 
                 if( IdNodeLocal(nums)%T /= "d" ) then
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
                            - divEgR(j,r) - divFourierFlux_r(j,r)
                    end do
@@ -1883,8 +1883,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
          Sm0 ( NbComp)
 
     ! tmp
@@ -1910,7 +1910,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                    divK(j,icp) = divK(j,icp) + &
                         divDensitemolaireKrViscoCompCell(j,icp,m,k) * FluxDarcyKI(mph,s,k)
 
@@ -1935,7 +1935,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                    divS(j,icp) = divS(j,icp) + &
                         divDensitemolaireKrViscoCompNode(j,icp,m,nums) * FluxDarcyKI(mph,s,k)
                 end do
@@ -1979,8 +1979,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
          Sm0( NbComp)
 
     ! tmp
@@ -2003,7 +2003,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                    divK(j,icp) = divK(j,icp) + &
                         divDensitemolaireKrViscoCompCell(j,icp,m,k) * FluxDarcyKI(mph,sf,k)
 
@@ -2028,7 +2028,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                    divS(j,icp) = divS(j,icp) + &
                         divDensitemolaireKrViscoCompFrac(j,icp,m,nums) * FluxDarcyKI(mph,sf,k)
                 end do
@@ -2067,8 +2067,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
          Sm0( NbComp)
 
     ! tmp
@@ -2088,7 +2088,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                    divK(j,icp) = divK(j,icp) + &
                         divDensitemolaireKrViscoCompFrac(j,icp,m,k) * FluxDarcyFI(mph,s,k)
 
@@ -2113,7 +2113,7 @@ contains
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                    divS(j,icp) = divS(j,icp) + &
                         divDensitemolaireKrViscoCompNode(j,icp,m,nums) * FluxDarcyFI(mph,s,k)
                 end do
@@ -2149,15 +2149,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
-         divR( NbIncPTCSPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
+         divR( NbIncTotalPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), &
          Sm0 ( NbComp)
 
     ! tmp
@@ -2181,12 +2181,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
@@ -2194,7 +2194,7 @@ contains
                 do r=1, NbNodeCell ! divR for r is node in dof(k)
                    numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) =  divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompCell(icp,m,k)
                    end do
@@ -2204,7 +2204,7 @@ contains
                    numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r))
                    rf = r + NbNodeCell
 
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       divR(j,icp,rf) =  divR(j,icp,rf) &
                            + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoCompCell(icp,m,k)
                    end do
@@ -2228,12 +2228,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompNode(icp,m,nums)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompNode(icp,m,nums)
                 end do
@@ -2242,7 +2242,7 @@ contains
                 do r=1, NbNodeCell
                    numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) = divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompNode(icp,m,nums)
                    end do
@@ -2253,7 +2253,7 @@ contains
                    numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r))
                    rf = r + NbNodeCell
 
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       divR(j,icp,rf) = divR(j,icp,rf) &
                            + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoCompNode(icp,m,nums)
                    end do
@@ -2290,15 +2290,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
-         divR( NbIncPTCSPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
+         divR( NbIncTotalPrimMax, NbComp, NbNodeCellMax+NbFracCellMax), &
          Sm0 ( NbComp)
 
     ! tmp
@@ -2324,12 +2324,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompCell(icp,m,k)
                 end do
@@ -2337,7 +2337,7 @@ contains
                 do r=1, NbNodeCell ! divR for r is node in dof(k)
                    numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) =  divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompCell(icp,m,k)
                    end do
@@ -2348,7 +2348,7 @@ contains
 
                    rf = r + NbNodeCell
 
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       divR(j,icp,rf) =  divR(j,icp,rf) &
                            + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoCompCell(icp,m,k)
                    end do
@@ -2372,12 +2372,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompFrac(icp,m,nums)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompFrac(icp,m,nums)
                 end do
@@ -2386,7 +2386,7 @@ contains
                 do r=1, NbNodeCell
                    numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) = divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompFrac(icp,m,nums)
                    end do
@@ -2398,7 +2398,7 @@ contains
 
                    rf = r + NbNodeCell
 
-                   do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                       divR(j,icp,rf) = divR(j,icp,rf) &
                            + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoCompFrac(icp,m,nums)
                    end do
@@ -2424,15 +2424,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeFaceMax), & ! r represen
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeFaceMax), & ! r represen
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divK( NbIncPTCSPrimMax, NbComp), &
-         divS( NbIncPTCSPrimMax, NbComp), &
-         divR( NbIncPTCSPrimMax, NbComp, NbNodeFaceMax), &
+         divK( NbIncTotalPrimMax, NbComp), &
+         divS( NbIncTotalPrimMax, NbComp), &
+         divR( NbIncTotalPrimMax, NbComp, NbNodeFaceMax), &
          Sm0 ( NbComp)
 
     ! tmp
@@ -2456,12 +2456,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompFrac(icp,m,k)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompFrac(icp,m,k)
                 end do
@@ -2469,7 +2469,7 @@ contains
                 do r=1, NbNodeFrac ! divR for r is node in dof(k)
                    numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) =  divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompFrac(icp,m,k)
                    end do
@@ -2493,12 +2493,12 @@ contains
           do icp=1, NbComp ! P_i
              if(MCP(icp,mph)==1) then
 
-                do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divK
+                do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
                    divK(j,icp) = divK(j,icp) &
                         + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoCompNode(icp,m,nums)
                 end do
 
-                do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+                do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                    divS(j,icp) = divS(j,icp) &
                         + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoCompNode(icp,m,nums)
                 end do
@@ -2507,7 +2507,7 @@ contains
                 do r=1, NbNodeFrac
                    numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-                   do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+                   do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                       divR(j,icp,r) = divR(j,icp,r) &
                            + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoCompNode(icp,m,nums)
                    end do
@@ -2536,15 +2536,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represen
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divEgK( NbIncPTCSPrimMax), &
-         divEgS( NbIncPTCSPrimMax), &
-         divEgR( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), &
+         divEgK( NbIncTotalPrimMax), &
+         divEgS( NbIncTotalPrimMax), &
+         divEgR( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), &
          SmEg
 
     ! tmp
@@ -2567,14 +2567,14 @@ contains
        if(FluxDarcyKI(mph,s,k)>=0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              divEgK(j) = divEgK(j) &
                   + divDensitemolaireKrViscoEnthalpieCell(j,m,k) * FluxDarcyKI(mph,s,k) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
              divEgS(j) = divEgS(j) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
           end do
@@ -2583,7 +2583,7 @@ contains
           do r=1, NbNodeCell ! divR for r is node in dof(k)
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) =  divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieCell(m,k)
              end do
@@ -2594,7 +2594,7 @@ contains
              numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divEgR(j,rf) =  divEgR(j,rf) &
                      + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoEnthalpieCell(m,k)
              end do
@@ -2614,13 +2614,13 @@ contains
        if(FluxDarcyKI(mph,s,k)<0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
              divEgK(j) = divEgK(j) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieNode(m,nums)
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
              divEgS(j) = divEgS(j) &
                   + divDensitemolaireKrViscoEnthalpieNode(j,m,nums) * FluxDarcyKI(mph,s,k) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieNode(m,nums)
@@ -2630,7 +2630,7 @@ contains
           do r=1, NbNodeCell
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) = divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieNode(m,nums)
              end do
@@ -2641,7 +2641,7 @@ contains
              numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divEgR(j,rf) = divEgR(j,rf) &
                      + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoEnthalpieNode(m,nums)
              end do
@@ -2672,15 +2672,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), &
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), &
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divEgK( NbIncPTCSPrimMax), &
-         divEgS( NbIncPTCSPrimMax), &
-         divEgR( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), &
+         divEgK( NbIncTotalPrimMax), &
+         divEgS( NbIncTotalPrimMax), &
+         divEgR( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), &
          SmEg
 
     ! tmp
@@ -2705,7 +2705,7 @@ contains
        if(FluxDarcyKI(mph,sf,k)>=0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              divEgK(j) = divEgK(j) &
                   + divDensitemolaireKrViscoEnthalpieCell(j,m,k) * FluxDarcyKI(mph,sf,k) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
@@ -2717,7 +2717,7 @@ contains
           ! end if
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divS
+          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
              divEgS(j) = divEgS(j) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieCell(m,k)
           end do
@@ -2726,7 +2726,7 @@ contains
           do r=1, NbNodeCell ! divR for r is node in dof(k)
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) =  divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieCell(m,k)
              end do
@@ -2737,7 +2737,7 @@ contains
              numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divEgR(j,rf) =  divEgR(j,rf) &
                      + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoEnthalpieCell(m,k)
              end do
@@ -2757,13 +2757,13 @@ contains
        if(FluxDarcyKI(mph,sf,k)<0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divK
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
              divEgK(j) = divEgK(j) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
              divEgS(j) = divEgS(j) &
                   + divDensitemolaireKrViscoEnthalpieFrac(j,m,nums) * FluxDarcyKI(mph,sf,k) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
@@ -2773,7 +2773,7 @@ contains
           do r=1, NbNodeCell
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) = divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
              end do
@@ -2784,7 +2784,7 @@ contains
              numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divEgR(j,rf) = divEgR(j,rf) &
                      + divDarcyFlux_r(j,mph,rf) * DensitemolaireKrViscoEnthalpieFrac(m,nums)
              end do
@@ -2808,15 +2808,15 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(in) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeFaceMax), & ! r represent nodes of dof(k), k is frac
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeFaceMax), & ! r represent nodes of dof(k), k is frac
          SmDarcyFlux( NbPhase)
 
     double precision, intent(out) :: &
-         divEgK( NbIncPTCSPrimMax), &
-         divEgS( NbIncPTCSPrimMax), &
-         divEgR( NbIncPTCSPrimMax, NbNodeFaceMax), &
+         divEgK( NbIncTotalPrimMax), &
+         divEgS( NbIncTotalPrimMax), &
+         divEgR( NbIncTotalPrimMax, NbNodeFaceMax), &
          SmEg
 
     ! tmp
@@ -2841,14 +2841,14 @@ contains
        if(FluxDarcyFI(mph,s,k)>=0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
              divEgK(j) = divEgK(j) &
                   + divDensitemolaireKrViscoEnthalpieFrac(j,m,k) * FluxDarcyFI(mph,s,k) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,k)
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divS
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
              divEgS(j) = divEgS(j) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieFrac(m,k)
           end do
@@ -2857,7 +2857,7 @@ contains
           do r=1, NbNodeFrac ! divR for r is node in dof(k)
              numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) =  divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieFrac(m,k)
              end do
@@ -2877,13 +2877,13 @@ contains
        if(FluxDarcyFI(mph,s,k)<0.d0) then
 
           ! divEgK
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divK
+          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
              divEgK(j) = divEgK(j) &
                   + divDarcyFlux_k(j,mph) * DensitemolaireKrViscoEnthalpieNode(m,nums)
           end do
 
           ! divEgS
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
              divEgS(j) = divEgS(j) &
                   + divDensitemolaireKrViscoEnthalpieNode(j,m,nums) * FluxDarcyFI(mph,s,k) &
                   + divDarcyFlux_s(j,mph) * DensitemolaireKrViscoEnthalpieNode(m,nums)
@@ -2893,7 +2893,7 @@ contains
           do r=1, NbNodeFrac
              numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divEgR(j,r) = divEgR(j,r) &
                      + divDarcyFlux_r(j,mph,r) * DensitemolaireKrViscoEnthalpieNode(m,nums)
              end do
@@ -2929,14 +2929,14 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
          SmDarcyFlux( NbPhase)
 
     double precision :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -2983,7 +2983,7 @@ contains
     Id_Qks(:) = .false.
 
     ! if( k==1 .and. s==1 .and. commRank==1) then
-    !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+    !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
 
     !       print*, sum_aksgz/20.d0, divrho_k(j,1), divrho_k(j,2)
 
@@ -3005,7 +3005,7 @@ contains
        Id_Qks(mph) = .true.
 
        ! divDarcyFlux_k
-       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           divDarcyFlux_k(j,mph) = &
                sum_aks * divPressionCell(j,k) &        ! \sum a_{ks}^{s'} P_k
                + sum_aks * divPressionCapCell(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3018,7 +3018,7 @@ contains
             + sum_aksgz * Smrho_k(mph)    ! SmPressionCap=0
 
        ! divDarcyFlux_s
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
           divDarcyFlux_s(j,mph) = &
                sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
        end do
@@ -3031,7 +3031,7 @@ contains
        do r=1, NbNodeCell
           numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
              divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                   - TkLocal_Darcy(k)%pt(s,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                   - TkLocal_Darcy(k)%pt(s,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3049,7 +3049,7 @@ contains
 
           rf = r + NbNodeCell
 
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
              divDarcyFlux_r(j,mph,rf) = divDarcyFlux_r(j,mph,rf) &
                   - TkLocal_Darcy(k)%pt(s,rf) * divPressionFrac(j,numr) &        ! a_{ks}^{s'} -P_s'
                   - TkLocal_Darcy(k)%pt(s,rf) * divPressionCapFrac(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3068,7 +3068,7 @@ contains
        if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              divDarcyFlux_k(j,mph) = &
                   sum_aks * divPressionCell(j,k) &        ! \sum a_{ks}^{s'} P_k
                   + sum_aks * divPressionCapCell(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3081,7 +3081,7 @@ contains
                + sum_aksgz * Smrho_k(mph)   ! SmPressionCap=0
 
           ! divDarcyFlux_s
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
              divDarcyFlux_s(j,mph) = &
                   sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
           end do
@@ -3094,7 +3094,7 @@ contains
           do r=1, NbNodeCell
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r) ! numr is frac num here
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                      - TkLocal_Darcy(k)%pt(s,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                      - TkLocal_Darcy(k)%pt(s,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3112,7 +3112,7 @@ contains
 
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divDarcyFlux_r(j,mph,rf) = divDarcyFlux_r(j,mph,rf) &
                      - TkLocal_Darcy(k)%pt(s,rf) * divPressionFrac(j,numr) &        ! a_{ks}^{s'} -P_s'
                      - TkLocal_Darcy(k)%pt(s,rf) * divPressionCapFrac(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3128,7 +3128,7 @@ contains
     end do ! end of Q_s
 
     ! if( k==1 .and. s==1 .and. commRank==1) then
-    !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+    !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
     !       print*, sum_aksgz, divDarcyFlux_k(j,1), divDarcyFlux_k(j,2)
     !    end do
     ! end if
@@ -3153,14 +3153,14 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
          SmDarcyFlux( NbPhase)
 
     double precision :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -3214,7 +3214,7 @@ contains
        Id_Qks(mph) = .true.
 
        ! divDarcyFlux_k
-       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           divDarcyFlux_k(j,mph) = &
                sum_aks * divPressionCell(j,k) &        ! \sum a_{ks}^{s'} P_k
                + sum_aks * divPressionCapCell(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3227,7 +3227,7 @@ contains
             + sum_aksgz * Smrho_k(mph)    ! SmPressionCap=0
 
        ! divDarcyFlux_s
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
           divDarcyFlux_s(j,mph) = &
                sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
        end do
@@ -3240,7 +3240,7 @@ contains
        do r=1, NbNodeCell
           numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
              divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                   - TkLocal_Darcy(k)%pt(sf,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                   - TkLocal_Darcy(k)%pt(sf,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3258,7 +3258,7 @@ contains
 
           rf = r + NbNodeCell
 
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
              divDarcyFlux_r(j,mph,rf) = divDarcyFlux_r(j,mph,rf) &
                   - TkLocal_Darcy(k)%pt(sf,rf) * divPressionFrac(j,numr) &        ! a_{ks}^{s'} -P_s'
                   - TkLocal_Darcy(k)%pt(sf,rf) * divPressionCapFrac(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3278,7 +3278,7 @@ contains
        if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
              divDarcyFlux_k(j,mph) = &
                   sum_aks * divPressionCell(j,k) &        ! \sum a_{ks}^{s'} P_k
                   + sum_aks * divPressionCapCell(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3291,7 +3291,7 @@ contains
                + sum_aksgz * Smrho_k(mph)   ! SmPressionCap=0
 
           ! divDarcyFlux_s
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
              divDarcyFlux_s(j,mph) = &
                   sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
           end do
@@ -3304,7 +3304,7 @@ contains
           do r=1, NbNodeCell
              numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r) ! numr is frac num here
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                      - TkLocal_Darcy(k)%pt(sf,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                      - TkLocal_Darcy(k)%pt(sf,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3322,7 +3322,7 @@ contains
 
              rf = r + NbNodeCell
 
-             do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                 divDarcyFlux_r(j,mph,rf) = divDarcyFlux_r(j,mph,rf) &
                      - TkLocal_Darcy(k)%pt(sf,rf) * divPressionFrac(j,numr) &        ! a_{ks}^{s'} -P_s'
                      - TkLocal_Darcy(k)%pt(sf,rf) * divPressionCapFrac(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3338,7 +3338,7 @@ contains
     end do ! end of Q_s
 
     ! if( k==1 .and. s==1 .and. commRank==1) then
-    !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+    !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
     !       print*, sum_aks, divDarcyFlux_k(j,1), divDarcyFlux_k(j,2)
     !    end do
     ! end if
@@ -3363,14 +3363,14 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divDarcyFlux_k( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_s( NbIncPTCSPrimMax, NbPhase), &
-         divDarcyFlux_r( NbIncPTCSPrimMax, NbPhase, NbNodeFaceMax), & ! r represent s' in paper                                !
+         divDarcyFlux_k( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_s( NbIncTotalPrimMax, NbPhase), &
+         divDarcyFlux_r( NbIncTotalPrimMax, NbPhase, NbNodeFaceMax), & ! r represent s' in paper                                !
          SmDarcyFlux( NbPhase)
 
     double precision :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -3415,7 +3415,7 @@ contains
        Id_Qks(mph) = .true.
 
        ! divDarcyFlux_k
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
           divDarcyFlux_k(j,mph) = &
                sum_aks * divPressionFrac(j,k) &        ! \sum a_{ks}^{s'} P_k
                + sum_aks * divPressionCapFrac(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3428,7 +3428,7 @@ contains
             + sum_aksgz * Smrho_k(mph)    ! SmPressionCap=0
 
        ! divDarcyFlux_s
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
           divDarcyFlux_s(j,mph) = &
                sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
        end do
@@ -3441,7 +3441,7 @@ contains
        do r=1, NbNodeFrac
           numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
              divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                   - TkFracLocal_Darcy(k)%pt(s,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                   - TkFracLocal_Darcy(k)%pt(s,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3461,7 +3461,7 @@ contains
        if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
              divDarcyFlux_k(j,mph) = &
                   sum_aks * divPressionFrac(j,k) &        ! \sum a_{ks}^{s'} P_k
                   + sum_aks * divPressionCapFrac(j,mph,k) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -3474,7 +3474,7 @@ contains
                + sum_aksgz * Smrho_k(mph)   ! SmPressionCap=0
 
           ! divDarcyFlux_s
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
              divDarcyFlux_s(j,mph) = &
                   sum_aksgz * divrho_s(j,mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
           end do
@@ -3487,7 +3487,7 @@ contains
           do r=1, NbNodeFrac
              numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r) ! numr is frac num here
 
-             do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+             do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                 divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                      - TkFracLocal_Darcy(k)%pt(s,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'
                      - TkFracLocal_Darcy(k)%pt(s,r) * divPressionCapNode(j,mph,numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -3516,8 +3516,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -3537,13 +3537,13 @@ contains
 
        Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
           divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
        end do
 
        Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
           divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
        end do
 
@@ -3551,13 +3551,13 @@ contains
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+       !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
        !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
        !    end do
 
        !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+       !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
        !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
        !    end do
 
@@ -3565,7 +3565,7 @@ contains
 
        ! else
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
        !       divrho_k(j,mph) = &
        !            divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
        !            - divSaturationCell(j,m,k) / (Satki**2) &
@@ -3579,7 +3579,7 @@ contains
        !    Smrho_k(mph) = &
        !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k) ! SmSaturation=0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
        !       divrho_s(j,mph) = &
        !            - divSaturationNode(j,m,nums) / (Satki**2) &
        !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
@@ -3604,13 +3604,13 @@ contains
 
           Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
              divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
           end do
 
           Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
              divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
           end do
 
@@ -3618,13 +3618,13 @@ contains
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+          !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
           !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
           !    end do
 
           !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
           !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
           !    end do
 
@@ -3632,7 +3632,7 @@ contains
 
           ! else
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           !       divrho_k(j,mph) = &
           !            + divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
           !            - divSaturationCell(j,m,k) / (Satki**2) &
@@ -3646,7 +3646,7 @@ contains
           !    Smrho_k(mph) = &
           !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
           !       divrho_s(j,mph) = &
           !            - divSaturationNode(j,m,nums) / (Satki**2) &
           !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
@@ -3686,8 +3686,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -3707,13 +3707,13 @@ contains
 
        Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-       do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
           divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
        end do
 
        Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
           divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
        end do
 
@@ -3721,13 +3721,13 @@ contains
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+       !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
        !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
        !    end do
 
        !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+       !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
        !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
        !    end do
 
@@ -3735,7 +3735,7 @@ contains
 
        ! else
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
        !       divrho_k(j,mph) = &
        !            divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
        !            - divSaturationCell(j,m,k) / (Satki**2) &
@@ -3749,7 +3749,7 @@ contains
        !    Smrho_k(mph) = &
        !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k) ! SmSaturation=0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
        !       divrho_s(j,mph) = &
        !            - divSaturationFrac(j,m,nums) / (Satki**2) &
        !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
@@ -3774,13 +3774,13 @@ contains
 
           Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-          do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
              divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
           end do
 
           Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
              divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
           end do
 
@@ -3788,13 +3788,13 @@ contains
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic) ! divrho_k
+          !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
           !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
           !    end do
 
           !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+          !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
           !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
           !    end do
 
@@ -3802,7 +3802,7 @@ contains
 
           ! else
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           !       divrho_k(j,mph) = &
           !            + divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
           !            - divSaturationCell(j,m,k) / (Satki**2) &
@@ -3816,7 +3816,7 @@ contains
           !    Smrho_k(mph) = &
           !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncFrac(nums)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
           !       divrho_s(j,mph) = &
           !            - divSaturationFrac(j,m,nums) / (Satki**2) &
           !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
@@ -3853,8 +3853,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divrho_k( NbIncPTCSPrimMax, NbPhase), &
-         divrho_s( NbIncPTCSPrimMax, NbPhase), &
+         divrho_k( NbIncTotalPrimMax, NbPhase), &
+         divrho_s( NbIncTotalPrimMax, NbPhase), &
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
@@ -3874,13 +3874,13 @@ contains
 
        Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divrho_k
+       do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
           divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
        end do
 
        Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
 
-       do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
           divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
        end do
 
@@ -3888,13 +3888,13 @@ contains
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divrho_k
+       !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
        !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
        !    end do
 
        !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+       !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
        !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
        !    end do
 
@@ -3902,7 +3902,7 @@ contains
 
        ! else
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
        !       divrho_k(j,mph) = &
        !            divSaturationFrac(j,m,k) / Satki * DensiteMassiqueFrac(mph,k) &
        !            - divSaturationFrac(j,m,k) / (Satki**2) &
@@ -3916,7 +3916,7 @@ contains
        !    Smrho_k(mph) = &
        !         IncFrac(k)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,k) ! SmSaturation=0
 
-       !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+       !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
        !       divrho_s(j,mph) = &
        !            - divSaturationNode(j,m,nums) / (Satki**2) &
        !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
@@ -3942,13 +3942,13 @@ contains
 
           Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-          do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divrho_k
+          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
              divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
           end do
 
           Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
 
-          do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
              divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
           end do
 
@@ -3956,13 +3956,13 @@ contains
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic) ! divrho_k
+          !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
           !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
           !    end do
 
           !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
           !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
           !    end do
 
@@ -3970,7 +3970,7 @@ contains
 
           ! else
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
           !       divrho_k(j,mph) = &
           !            + divSaturationFrac(j,m,k) / Satki * DensiteMassiqueFrac(mph,k) &
           !            - divSaturationFrac(j,m,k) / (Satki**2) &
@@ -3984,7 +3984,7 @@ contains
           !    Smrho_k(mph) = &
           !         IncFrac(k)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,k)
 
-          !    do j=1, NbIncPTCSPrim_ctx(IncNode(nums)%ic)
+          !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
           !       divrho_s(j,mph) = &
           !            - divSaturationNode(j,m,nums) / (Satki**2) &
           !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
@@ -4021,8 +4021,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divFourierFlux_k( NbIncPTCSPrimMax), &
-         divFourierFlux_r( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
+         divFourierFlux_k( NbIncTotalPrimMax), &
+         divFourierFlux_r( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
 
     ! tmp
@@ -4042,7 +4042,7 @@ contains
     end do
 
     ! divFourierfFlux_k
-    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
        divFourierFlux_k(j) = sum_aks * divTemperatureCell(j,k)
     end do
 
@@ -4052,7 +4052,7 @@ contains
     do r=1, NbNodeCell
        numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-       do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
           divFourierFlux_r(j,r) = - TkLocal_Fourier(k)%pt(s,r) * divTemperatureNode(j,numr)
        end do
 
@@ -4065,7 +4065,7 @@ contains
        numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num here
        rf = r + NbNodeCell
 
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
           divFourierFlux_r(j,rf) = - TkLocal_Fourier(k)%pt(s,rf) * divTemperatureFrac(j,numr)
        end do
 
@@ -4085,8 +4085,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divFourierFlux_k( NbIncPTCSPrimMax), &
-         divFourierFlux_r( NbIncPTCSPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper, dof(k)
+         divFourierFlux_k( NbIncTotalPrimMax), &
+         divFourierFlux_r( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! r represent s' in paper, dof(k)
          SmFourierFlux
 
     ! tmp
@@ -4108,7 +4108,7 @@ contains
     end do
 
     ! divFourierfFlux_k
-    do j=1, NbIncPTCSPrim_ctx(IncCell(k)%ic)
+    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
        divFourierFlux_k(j) = sum_aks * divTemperatureCell(j,k)
     end do
 
@@ -4118,7 +4118,7 @@ contains
     do r=1, NbNodeCell
        numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
-       do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
           divFourierFlux_r(j,r) = - TkLocal_Fourier(k)%pt(sf,r) * divTemperatureNode(j,numr)
        end do
 
@@ -4131,7 +4131,7 @@ contains
        numr = FaceToFracLocal( FracbyCellLocal%Num(FracbyCellLocal%Pt(k)+r)) ! numr is frac num here
        rf = r + NbNodeCell
 
-       do j=1, NbIncPTCSPrim_ctx(IncFrac(numr)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
           divFourierFlux_r(j,rf) = - TkLocal_Fourier(k)%pt(sf,rf) * divTemperatureFrac(j,numr)
        end do
 
@@ -4151,8 +4151,8 @@ contains
     integer, intent(in) :: k, s, nums
 
     double precision, intent(out) :: &
-         divFourierFlux_k( NbIncPTCSPrimMax), &
-         divFourierFlux_r( NbIncPTCSPrimMax, NbNodeFaceMax), & ! r represent s' in paper
+         divFourierFlux_k( NbIncTotalPrimMax), &
+         divFourierFlux_r( NbIncTotalPrimMax, NbNodeFaceMax), & ! r represent s' in paper
          SmFourierFlux
 
     ! tmp
@@ -4173,7 +4173,7 @@ contains
     end do
 
     ! divFourierfFlux_k
-    do j=1, NbIncPTCSPrim_ctx(IncFrac(k)%ic)
+    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
        divFourierFlux_k(j) = sum_aks * divTemperatureFrac(j,k)
     end do
 
@@ -4183,7 +4183,7 @@ contains
     do r=1, NbNodeFrac
        numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+r)
 
-       do j=1, NbIncPTCSPrim_ctx(IncNode(numr)%ic)
+       do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
           divFourierFlux_r(j,r) = - TkFracLocal_Fourier(k)%pt(s,r) * divTemperatureNode(j,numr)
        end do
 
@@ -4275,15 +4275,15 @@ contains
           ! look for component C_{i}^alpha corresponding to the col i
 
           if(cv .eq.'n') then ! node
-             j = NumIncPTCSPrimNode(i,k)
+             j = NumIncTotalPrimNode(i,k)
              icp = NumIncPTC2NumIncComp_comp_ctx(j,IncNode(k)%ic)
              iph = NumIncPTC2NumIncComp_phase_ctx(j,IncNode(k)%ic)
           else if(cv .eq. 'f') then ! fracs
-             j = NumIncPTCSPrimFrac(i,k)
+             j = NumIncTotalPrimFrac(i,k)
              icp = NumIncPTC2NumIncComp_comp_ctx(j,IncFrac(k)%ic)
              iph = NumIncPTC2NumIncComp_phase_ctx(j,IncFrac(k)%ic)
           else if(cv .eq. 'c') then ! cell
-             j = NumIncPTCSPrimCell(i,k)
+             j = NumIncTotalPrimCell(i,k)
              icp = NumIncPTC2NumIncComp_comp_ctx(j,IncCell(k)%ic)
              iph = NumIncPTC2NumIncComp_phase_ctx(j,IncCell(k)%ic)
           else
@@ -5500,17 +5500,17 @@ end module Jacobian
 ! nz = JacBigA%Pt(rowk) + csrK(cols)
 ! if(k==1 .and. s==1 .and. commRank==0) then
 
-!    ! print*, NumIncPTCSPrimCell(:,1)
-!    ! print*, NumIncPTCSPrimNode(:,1)
+!    ! print*, NumIncTotalPrimCell(:,1)
+!    ! print*, NumIncTotalPrimNode(:,1)
 
 !    ! do i=1, NbComp
-!    !    do j=1, NbIncPTCSPrim_ctx(3)
+!    !    do j=1, NbIncTotalPrim_ctx(3)
 !    !       print*, JacBigA%Val(j,i,nz)+divS1(j,i) + divS2(j,i) + divR2(j,i,s)
 !    !    end do
 !    !    print*, ""
 !    ! end do
 
-!    do j=1, NbIncPTCSPrim_ctx(3)
+!    do j=1, NbIncTotalPrim_ctx(3)
 !       ! print*, JacBigA%Val(j,NbComp+1,nz) + divFourierFlux_k(j)+ divEgK(j)
 !       print*, JacBigA%Val(j,NbComp+1,nz) + divEgR(j,s) + divFourierFlux_r(j,s) + divEgS(j)
 !    end do

@@ -8,7 +8,6 @@
        NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
        NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
        NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
-       NbIncPTCSecondMax = NbEqFermetureMax,             &
-       NbIncPTCSMax      = NbIncPTCMax + NbPhase,        &
-       NbIncPTCSPrimMax  = NbComp + IndThermique,        &
+       NbIncTotalMax     = NbIncPTCMax + NbPhase,        &
+       NbIncTotalPrimMax = NbComp + IndThermique,        &
        NbCompThermique   = NbComp + IndThermique
