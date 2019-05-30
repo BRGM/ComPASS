@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-mpi4py \
     metis \
     openmpi-bin \
-    libpetsc-real3.9 \
+    libpetsc-real3.10 \
     libcgal13 \
  && apt-get clean 
 
