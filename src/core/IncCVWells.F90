@@ -30,7 +30,7 @@ module IncCVWells
 
    !> Type for the perforations, stores informations which are not constant in the well
    type, bind(c) :: WellPerforationState_type
-      double precision :: &
+      real(c_double) :: &
          Pression, & !< Pressure at the perforation
          Temperature, & !< Temperature at the perforation
          Density, & !< Density at the perforation: constant per edge, stored at node parent
@@ -224,7 +224,7 @@ module IncCVWells
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
       double precision :: Ptmp, Stmp(NbPhase), &
-         z1, z2, dz, Pdrop, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+         z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 #ifndef NDEBUG
       integer :: Ierr, errcode ! used for MPI_Abort
 #endif

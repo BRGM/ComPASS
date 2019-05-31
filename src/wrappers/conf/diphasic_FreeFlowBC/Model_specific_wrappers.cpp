@@ -6,7 +6,7 @@ constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 2, "Wrong numpber of components.");
-static_assert(ComPASS_NUMBER_OF_CONTEXTS==3, "Wrong number of contexts.");
+static_assert(ComPASS_NUMBER_OF_CONTEXTS==6, "Wrong number of contexts.");
 
 enum struct Component {
     air = ComPASS_AIR_COMP,
@@ -21,7 +21,10 @@ enum struct Phase {
 enum struct Context {
     gas = ComPASS_GAS_CONTEXT,
     liquid = ComPASS_LIQUID_CONTEXT,
-    diphasic = ComPASS_DIPHASIC_CONTEXT
+    diphasic = ComPASS_DIPHASIC_CONTEXT,
+    gas_FF_no_liq_outflow = ComPASS_GAS_FF_NO_LIQ_OUTFLOW_CONTEXT,
+    diphasic_FF_no_liq_outflow = ComPASS_DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT,
+    diphasic_FF_liq_outflow = ComPASS_DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
 };
 
 // FIXME: assuming liquid phase is the latest phase
@@ -146,11 +149,14 @@ void add_specific_model_wrappers(py::module& module)
         .value("air", Component::air)
         .value("water", Component::water)
     ;
-    
+
     py::enum_<Context>(module, "Context")
         .value("gas", Context::gas)
         .value("liquid", Context::liquid)
         .value("diphasic", Context::diphasic)
+        .value("gas_FF_no_liq_outflow", Context::gas_FF_no_liq_outflow)
+        .value("diphasic_FF_no_liq_outflow", Context::diphasic_FF_no_liq_outflow)
+        .value("diphasic_FF_liq_outflow", Context::diphasic_FF_liq_outflow)
     ;
 
     py::enum_<Phase>(module, "Phase")

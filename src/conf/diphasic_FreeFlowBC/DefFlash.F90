@@ -18,7 +18,6 @@ module DefFlash
    use DefModel, only: &
       IndThermique, NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity, f_PressionCapillaire
 
    implicit none
 

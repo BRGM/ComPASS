@@ -114,16 +114,16 @@ contains
          do s = 1, NbNodeCell
             nums = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + s)
             call ks_mass_fluxes( &
-               k, Xk, IncCell(k), DensitemolaireKrViscoCompCell(:, :, k), &
-               s, XNodeLocal(:, nums), IncNode(nums), DensitemolaireKrViscoCompNode(:, :, nums), &
+               k, Xk, IncCell(k), DensiteMolaireKrViscoCompCell(:, :, k), &
+               s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoCompNode(:, :, nums), &
                mass_fluxes(:, :, k))
          end do
          do s = 1, NbFracCell
             fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! fs is face number
             nums = FaceToFracLocal(fs) ! nums is frac number
             call ks_mass_fluxes( &
-               k, Xk, IncCell(k), DensitemolaireKrViscoCompCell(:, :, k), &
-               s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensitemolaireKrViscoCompFrac(:, :, nums), &
+               k, Xk, IncCell(k), DensiteMolaireKrViscoCompCell(:, :, k), &
+               s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensiteMolaireKrViscoCompFrac(:, :, nums), &
                mass_fluxes(:, :, k))
          end do
       end do
@@ -154,8 +154,8 @@ contains
          do s = 1, NbNodeFrac
             nums = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + s)
             call ks_mass_fluxes( &
-               k, XFaceLocal(:, fk), IncFrac(k), DensitemolaireKrViscoCompFrac(:, :, k), &
-               s, XNodeLocal(:, nums), IncNode(nums), DensitemolaireKrViscoCompNode(:, :, nums), &
+               k, XFaceLocal(:, fk), IncFrac(k), DensiteMolaireKrViscoCompFrac(:, :, k), &
+               s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoCompNode(:, :, nums), &
                mass_fluxes(:, :, k))
          end do
       end do

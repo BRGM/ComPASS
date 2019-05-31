@@ -10,7 +10,7 @@ static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 1, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS==3, "Wrong number of contexts.");
 // FIXME: assuming liquid phase is the latest phase
-constexpr int GAS_PHASE = 0;
+constexpr int GAS_PHASE = 0;   // FIXME: cpp starts at 0 where fortran at 1
 constexpr int LIQUID_PHASE = 1;
 
 enum struct Phase {

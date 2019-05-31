@@ -31,11 +31,12 @@ module DefModel
 
    !FIXME: Asssume that the latest phase is the liquid phase
    integer, parameter :: LIQUID_PHASE = NbPhase
+   integer, parameter :: GAS_PHASE = -1 ! FIXME: dummy value for IncPrimSecdFreeFlow
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
-                      (/1, 1/), (/NbPhase, NbComp/)))
+                      (/1/), (/NbPhase, NbComp/)))
 
    ! Thermique
 #ifdef _THERMIQUE_
@@ -44,7 +45,11 @@ module DefModel
    integer, parameter :: IndThermique = 0
 #endif
 
-   include '../common/DefModel_constants.F90'
+#include "../common/DefModel_constants.F90"
+    ! FIXME: NbIncTotalMax is duplicated l.46 in src/wrappers/NewtonIncrements.h
+  integer, parameter :: &
+       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
+       NbIncTotalMax     = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
 
    ! ! ****** How to choose primary variables ****** ! !
 
@@ -59,12 +64,13 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+   ! it is generaly not possible to define flags for the index because the numbering depends on the context (here only one context).
 #ifdef _THERMIQUE_
-   integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
+   integer, parameter :: P=1, T=2, C=3, S=4
 #else
-   integer, parameter :: P=1, T=0, C=2, Sg=3, Sl=4
+   integer, parameter :: P=1, T=0, C=2, S=3
 #endif
-   private :: P, T, C, Sg, Sl
+   private :: P, T, C, S
    
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
@@ -75,42 +81,46 @@ module DefModel
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
-   ! Sum Salpha =1 was already eliminated
-   ! Sl is deduced from Sg: Sl=1-Sg
+   ! Sum Salpha =1 was already eliminated (only one phase in this physic)
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
-                       C, Sg, 0 & ! only one context ic=1
+                       C  & ! only one context ic=1
 #else
-                       C, Sg, 0 & ! only one context ic=1
+                       C  & ! only one context ic=1
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
    ! Used in module Jacobian.F90
-   ! aligmethod=1, manually
+   !
+   ! aligmethod=1, manually using aligmat
+   ! The idea is to have postive diagonal using linear combinations
+   ! (alternative is to used inverse of block = LC of)
+   ! good for LU O (not good for amg)
+   ! not used if not preconditionner (but avoid pivoting)
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic
    !     the index order of aligmat(:,:,ic) is (col,row), it allows us
    !     to define aligmat(:,:,ic) without considering that the matrix
    !     in Fortran is column-major
    !
-   ! aligmethod=2, inverse diagnal
+   ! aligmethod=2, inverse diagonal
    !     it is necessary to define aligmat formally for compile
 
    integer, parameter :: aligmethod = 2
 
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
-      aligmat = reshape((/ &
+      aligmat = reshape((/ & ! NOT USED because aligmethod = 2
 #ifdef _THERMIQUE_
-                        1.d0, 0.d0, & ! only one context ic=1
-                        0.d0, 1.d0  &
+                        1.d0, 0.d0, & ! only one context ic=1    P: sum(component conservation)
+                        0.d0, 1.d0  & !                          T: energy conservation
 #else
-                        1.d0 &        ! only one context ic=1
+                        1.d0 &        ! only one context ic=1    P: sum(component conservation)
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
-    include '../common/DefModel_common.F90'
+#include "../common/DefModel_common.F90"
 
 end module DefModel

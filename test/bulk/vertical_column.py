@@ -43,7 +43,7 @@ ComPASS.init(
 )
 
 def set_initial_states(states):
-    states.context[:] = 2
+    states.context[:] = ComPASS.Context.liquid
     states.p[:] = p0
     states.T[:] = T0
     states.S[:] = [0, 1]

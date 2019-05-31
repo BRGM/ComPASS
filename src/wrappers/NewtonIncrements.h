@@ -42,8 +42,13 @@ struct NewtonIncrements
     NewtonIncrements(NewtonIncrements&&) = default;
     static constexpr std::size_t npv() {
 // FIXME: should take into account the presence of components in phases (boolean table)
+// FIXME: should coincide with DefModel
 #ifdef _THERMIQUE_
+#ifndef _WIP_FREEFLOW_STRUCTURES_
         constexpr std::size_t n = 2 + (1 + ComPASS_NUMBER_OF_COMPONENTS) * ComPASS_NUMBER_OF_PHASES;
+#else
+        constexpr std::size_t n = 2 + (2 + ComPASS_NUMBER_OF_COMPONENTS) * ComPASS_NUMBER_OF_PHASES;
+#endif
 #else // _THERMIQUE_
         constexpr std::size_t n = 1 + (1 + ComPASS_NUMBER_OF_COMPONENTS) * ComPASS_NUMBER_OF_PHASES;
 #endif // _THERMIQUE_

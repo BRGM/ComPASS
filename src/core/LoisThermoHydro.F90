@@ -9,11 +9,9 @@
 module LoisThermoHydro
 
   use CommonMPI, only: commRank, CommonMPI_abort
-
   use Thermodynamics, only: &
     f_EnergieInterne, f_Enthalpie, f_Viscosite, f_DensiteMolaire, &
     f_PermRel, f_PressionCapillaire, f_DensiteMassique
-
   use DefModel, only: &
      NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
      NbEqEquilibreMax, NbIncPTCMax, NbIncTotalPrimMax, &
@@ -30,13 +28,11 @@ module LoisThermoHydro
      NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus
   use IncCVWells, only: &
      PerfoWellInj, DataWellInjLocal, NodeByWellInjLocal, NbWellInjLocal_Ncpus
-
   use IncPrimSecd, only: &
      dXssurdXpCell, dXssurdXpNode, dXssurdXpFrac, &
      SmdXsCell, SmdXsNode, SmdXsFrac, SmFNode, SmFCell, SmFFrac, &
      NumIncTotalPrimCell, NumIncTotalPrimNode, NumIncTotalPrimFrac, &
      NumIncTotalSecondCell, NumIncTotalSecondNode, NumIncTotalSecondFrac
-
   use MeshSchema, only: &
      NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
      CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal
@@ -84,25 +80,31 @@ module LoisThermoHydro
        divSaturationFrac, &
        divSaturationNode
 
+  ! Freeflow phase molar flowrates
+  double precision, allocatable, dimension(:,:,:), protected :: &
+       divFreeFlowMolarFlowrateNode
+  double precision, allocatable, dimension(:,:), protected :: &
+       SmFreeFlowMolarFlowrateNode
+
   ! DensiteMolaire*Kr/Viscosite*Comp
   double precision, allocatable, dimension(:,:,:), protected :: &
-       DensitemolaireKrViscoCompCell, &
-       DensitemolaireKrViscoCompFrac, &
-       DensitemolaireKrViscoCompNode
+       DensiteMolaireKrViscoCompCell, &
+       DensiteMolaireKrViscoCompFrac, &
+       DensiteMolaireKrViscoCompNode
   double precision, allocatable, dimension(:,:,:,:), protected :: &
-       divDensitemolaireKrViscoCompCell, &
-       divDensitemolaireKrViscoCompFrac, &
-       divDensitemolaireKrViscoCompNode
+       divDensiteMolaireKrViscoCompCell, &
+       divDensiteMolaireKrViscoCompFrac, &
+       divDensiteMolaireKrViscoCompNode
   double precision, allocatable, dimension(:,:,:), protected :: &
-       SmDensitemolaireKrViscoCompCell, &
-       SmDensitemolaireKrViscoCompFrac, &
-       SmDensitemolaireKrViscoCompNode
+       SmDensiteMolaireKrViscoCompCell, &
+       SmDensiteMolaireKrViscoCompFrac, &
+       SmDensiteMolaireKrViscoCompNode
 
   ! DensiteMolaire*Kr/Viscosite*Comp for wells (injection and production)
   double precision, allocatable, dimension(:,:), protected :: &
-       DensitemolaireKrViscoCompWellInj
+       DensiteMolaireKrViscoCompWellInj
   double precision, allocatable, dimension(:,:), protected :: &
-       divDensitemolaireKrViscoCompWellInj
+       divDensiteMolaireKrViscoCompWellInj
 
   ! DensiteMolaire * Sat * Comp
   double precision, allocatable, dimension(:,:,:), protected :: &
@@ -130,38 +132,38 @@ module LoisThermoHydro
 
   ! DensiteMolaire * PermRel / Viscosite * Enthalpie
   double precision, allocatable, dimension(:,:), protected :: &
-       DensitemolaireKrViscoEnthalpieCell, &
-       DensitemolaireKrViscoEnthalpieFrac, &
-       DensitemolaireKrViscoEnthalpieNode
+       DensiteMolaireKrViscoEnthalpieCell, &
+       DensiteMolaireKrViscoEnthalpieFrac, &
+       DensiteMolaireKrViscoEnthalpieNode
   double precision, allocatable, dimension(:,:,:), protected :: &
-       divDensitemolaireKrViscoEnthalpieCell, &
-       divDensitemolaireKrViscoEnthalpieFrac, &
-       divDensitemolaireKrViscoEnthalpieNode
+       divDensiteMolaireKrViscoEnthalpieCell, &
+       divDensiteMolaireKrViscoEnthalpieFrac, &
+       divDensiteMolaireKrViscoEnthalpieNode
   double precision, allocatable, dimension(:,:), protected :: &
-       SmDensitemolaireKrViscoEnthalpieCell, &
-       SmDensitemolaireKrViscoEnthalpieFrac, &
-       SmDensitemolaireKrViscoEnthalpieNode
+       SmDensiteMolaireKrViscoEnthalpieCell, &
+       SmDensiteMolaireKrViscoEnthalpieFrac, &
+       SmDensiteMolaireKrViscoEnthalpieNode
 
   ! DensiteMolaire * PermRel / Viscosite * Enthalpie for injection wells
   double precision, allocatable, dimension(:), protected :: &
-       DensitemolaireKrViscoEnthalpieWellInj
+       DensiteMolaireKrViscoEnthalpieWellInj
   double precision, allocatable, dimension(:), protected :: &
-       divDensitemolaireKrViscoEnthalpieWellInj
+       divDensiteMolaireKrViscoEnthalpieWellInj
 
 
   ! densitemolaire * energieinterne * Saturation
   double precision, allocatable, dimension(:,:), protected :: &
-       DensitemolaireEnergieInterneSatCell, &
-       DensitemolaireEnergieInterneSatFrac, &
-       DensitemolaireEnergieInterneSatNode
+       DensiteMolaireEnergieInterneSatCell, &
+       DensiteMolaireEnergieInterneSatFrac, &
+       DensiteMolaireEnergieInterneSatNode
   double precision, allocatable, dimension(:,:,:), protected :: &
-       divDensitemolaireEnergieInterneSatCell, &
-       divDensitemolaireEnergieInterneSatFrac, &
-       divDensitemolaireEnergieInterneSatNode
+       divDensiteMolaireEnergieInterneSatCell, &
+       divDensiteMolaireEnergieInterneSatFrac, &
+       divDensiteMolaireEnergieInterneSatNode
   double precision, allocatable, dimension(:,:), protected :: &
-       SmDensitemolaireEnergieInterneSatCell, &
-       SmDensitemolaireEnergieInterneSatFrac, &
-       SmDensitemolaireEnergieInterneSatNode
+       SmDensiteMolaireEnergieInterneSatCell, &
+       SmDensiteMolaireEnergieInterneSatFrac, &
+       SmDensiteMolaireEnergieInterneSatNode
 
 
   ! tmp values to simpfy notations of numerotation
@@ -191,22 +193,23 @@ module LoisThermoHydro
 
   private :: &
        LoisThermoHydro_divPrim_cv,             & ! main function for prim divs for each control volume (cv)
+       LoisThermoHydro_divPrim_FreeFlow_cv, & ! prim divs for Molar flowrates in Freeflow dof
        LoisThermoHydro_init_cv,                & ! init infos according to ic (context) for each control volume (cv)
                                 !
        LoisThermoHydro_fill_gradient_dfdX,     & ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
        LoisThermoHydro_dfdX_ps,                & ! fill dfdX_prim/dfdX_secd with the derivatives w.r.t. the primary/secondary unknowns 
-       LoisThermoHydro_Densitemolaire_cv,      & ! prim divs: densitemolaire
+       LoisThermoHydro_DensiteMolaire_cv,      & ! prim divs: densitemolaire
        LoisThermoHydro_Viscosite_cv,           & !            1/viscosite
        LoisThermoHydro_PermRel_cv,             & !            Permrel
        LoisThermoHydro_Inc_cv,                 & !            called with Pression and Temperature
        LoisThermoHydro_PressionCapillaire_cv,  & !            Pressioncapillaire
        LoisThermoHydro_Saturation_cv,          & !            Saturation
                                 !
-       LoisThermoHydro_Densitemassique_cv,       & !          densitemassique
-       LoisThermoHydro_DensitemolaireKrViscoComp_cv,     & !  densitemolaire * Permrel / viscosite * Comp
-       LoisThermoHydro_DensitemolaireSatComp_cv,         & !  densitemolaire * Saturation * Comp
-       LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv, & !  densitemolaire * Permrel / viscosite * Enthalpie
-       LoisThermoHydro_DensitemolaireEnergieInterneSat_cv  !  densitemolaire * energieinterne * Saturation
+       LoisThermoHydro_DensiteMassique_cv,       & !          densitemassique
+       LoisThermoHydro_DensiteMolaireKrViscoComp_cv,     & !  densitemolaire * Permrel / viscosite * Comp
+       LoisThermoHydro_DensiteMolaireSatComp_cv,         & !  densitemolaire * Saturation * Comp
+       LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv, & !  densitemolaire * Permrel / viscosite * Enthalpie
+       LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv  !  densitemolaire * energieinterne * Saturation
 
 #ifdef _THERMIQUE_
 
@@ -224,234 +227,238 @@ contains
   subroutine LoisThermoHydro_compute() &
         bind(C, name="LoisThermoHydro_compute")
 
-    integer :: k
-
     ! cell
-    do k=1, NbCellLocal_Ncpus(commRank+1)
-
-       call LoisThermoHydro_divPrim_cv(IncCell(k), CellRocktypeLocal(:,k), &
+     call LoisThermoHydro_divPrim_cv(NbCellLocal_Ncpus(commRank+1), IncCell,&
+          CellRocktypeLocal, &
                                 !
-            dXssurdXpCell(:,:,k), &
-            SmdXsCell(:,k), &
-            SmFCell(:,k),   &
+          dXssurdXpCell, &
+          SmdXsCell, &
+          SmFCell,   &
                                 !
-            NumIncTotalPrimCell(:,k),  &
-            NumIncTotalSecondCell(:,k), &
+          NumIncTotalPrimCell,  &
+          NumIncTotalSecondCell, &
                                 !
-            DensitemassiqueCell(:,k),       &
-            divDensitemassiqueCell(:,:,k),  &
-            SmDensitemassiqueCell(:,k),     &
+          DensiteMassiqueCell,       &
+          divDensiteMassiqueCell,  &
+          SmDensiteMassiqueCell,     &
                                 !
-            divPressionCell(:,k),         &
-            SmPressionCell(k),            &
+          divPressionCell,         &
+          SmPressionCell,            &
                                 !
-            divTemperatureCell(:,k),         &
-            SmTemperatureCell(k),            &
+          divTemperatureCell,         &
+          SmTemperatureCell,            &
                                 !
-            divSaturationCell(:,:,k),       &
+          divSaturationCell,       &
                                 !
-            PressionCapCell(:,k),           &
-            divPressionCapCell(:,:,k),      &
+          PressionCapCell,           &
+          divPressionCapCell,      &
                                 !
-            DensitemolaireSatCompCell(:,:,k),      &
-            divDensitemolaireSatCompCell(:,:,:,k), &
-            SmDensitemolaireSatCompCell(:,:,k),    &
+          DensiteMolaireSatCompCell,      &
+          divDensiteMolaireSatCompCell, &
+          SmDensiteMolaireSatCompCell,    &
                                 !
-            DensitemolaireKrViscoCompCell(:,:,k),      &
-            divDensitemolaireKrViscoCompCell(:,:,:,k), &
-            SmDensitemolaireKrViscoCompCell(:,:,k),    &
+          DensiteMolaireKrViscoCompCell,      &
+          divDensiteMolaireKrViscoCompCell, &
+          SmDensiteMolaireKrViscoCompCell,    &
                                 !
-            DensitemolaireEnergieInterneSatCell(:,k),      &
-            divDensitemolaireEnergieInterneSatCell(:,:,k), &
-            SmDensitemolaireEnergieInterneSatCell(:,k),    &
+          DensiteMolaireEnergieInterneSatCell,      &
+          divDensiteMolaireEnergieInterneSatCell, &
+          SmDensiteMolaireEnergieInterneSatCell,    &
                                 !
-            DensitemolaireKrViscoEnthalpieCell(:,k),      &
-            divDensitemolaireKrViscoEnthalpieCell(:,:,k), &
-            SmDensitemolaireKrViscoEnthalpieCell(:,k) )
-    end do
+          DensiteMolaireKrViscoEnthalpieCell,      &
+          divDensiteMolaireKrViscoEnthalpieCell, &
+          SmDensiteMolaireKrViscoEnthalpieCell )
 
     ! frac
-    do k=1, NbFracLocal_Ncpus(commRank+1)
-
-       call LoisThermoHydro_divPrim_cv(IncFrac(k), FracRocktypeLocal(:,k), &
+     call LoisThermoHydro_divPrim_cv(NbFracLocal_Ncpus(commRank+1), IncFrac,&
+          FracRocktypeLocal, &
                                 !
-            dXssurdXpFrac(:,:,k), &
-            SmdXsFrac(:,k), &
-            SmFFrac(:,k),   &
+          dXssurdXpFrac, &
+          SmdXsFrac, &
+          SmFFrac,   &
                                 !
-            NumIncTotalPrimFrac(:,k),  &
-            NumIncTotalSecondFrac(:,k), &
+          NumIncTotalPrimFrac,  &
+          NumIncTotalSecondFrac, &
                                 !
-            DensitemassiqueFrac(:,k),       &
-            divDensitemassiqueFrac(:,:,k),  &
-            SmDensitemassiqueFrac(:,k),     &
+          DensiteMassiqueFrac,       &
+          divDensiteMassiqueFrac,  &
+          SmDensiteMassiqueFrac,     &
                                 !
-            divPressionFrac(:,k),         &
-            SmPressionFrac(k),            &
+          divPressionFrac,         &
+          SmPressionFrac,            &
                                 !
-            divTemperatureFrac(:,k),         &
-            SmTemperatureFrac(k),            &
+          divTemperatureFrac,         &
+          SmTemperatureFrac,            &
                                 !
-            divSaturationFrac(:,:,k),       &
+          divSaturationFrac,       &
                                 !
-            PressionCapFrac(:,k),           &
-            divPressionCapFrac(:,:,k),      &
+          PressionCapFrac,           &
+          divPressionCapFrac,      &
                                 !
-            DensitemolaireSatCompFrac(:,:,k),      &
-            divDensitemolaireSatCompFrac(:,:,:,k), &
-            SmDensitemolaireSatCompFrac(:,:,k),    &
+          DensiteMolaireSatCompFrac,      &
+          divDensiteMolaireSatCompFrac, &
+          SmDensiteMolaireSatCompFrac,    &
                                 !
-            DensitemolaireKrViscoCompFrac(:,:,k),      &
-            divDensitemolaireKrViscoCompFrac(:,:,:,k), &
-            SmDensitemolaireKrViscoCompFrac(:,:,k),    &
+          DensiteMolaireKrViscoCompFrac,      &
+          divDensiteMolaireKrViscoCompFrac, &
+          SmDensiteMolaireKrViscoCompFrac,    &
                                 !
-            DensitemolaireEnergieInterneSatFrac(:,k),      &
-            divDensitemolaireEnergieInterneSatFrac(:,:,k), &
-            SmDensitemolaireEnergieInterneSatFrac(:,k),    &
+          DensiteMolaireEnergieInterneSatFrac,      &
+          divDensiteMolaireEnergieInterneSatFrac, &
+          SmDensiteMolaireEnergieInterneSatFrac,    &
                                 !
-            DensitemolaireKrViscoEnthalpieFrac(:,k),      &
-            divDensitemolaireKrViscoEnthalpieFrac(:,:,k), &
-            SmDensitemolaireKrViscoEnthalpieFrac(:,k) )
-    end do
+          DensiteMolaireKrViscoEnthalpieFrac,      &
+          divDensiteMolaireKrViscoEnthalpieFrac, &
+          SmDensiteMolaireKrViscoEnthalpieFrac )
 
     ! node
-    do k=1, NbNodeLocal_Ncpus(commRank+1)
+     call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank+1), IncNode,&
+          NodeRocktypeLocal, &
+                                !
+          dXssurdXpNode, &
+          SmdXsNode, &
+          SmFNode,   &
+                                !
+          NumIncTotalPrimNode,  &
+          NumIncTotalSecondNode, &
+                                !
+          DensiteMassiqueNode,       &
+          divDensiteMassiqueNode,  &
+          SmDensiteMassiqueNode,     &
+                                !
+          divPressionNode,         &
+          SmPressionNode,            &
+                                !
+          divTemperatureNode,         &
+          SmTemperatureNode,            &
+                                !
+          divSaturationNode,       &
+                                !
+          PressionCapNode,           &
+          divPressionCapNode,      &
+                                !
+          DensiteMolaireSatCompNode,      &
+          divDensiteMolaireSatCompNode, &
+          SmDensiteMolaireSatCompNode,    &
+                                !
+          DensiteMolaireKrViscoCompNode,      &
+          divDensiteMolaireKrViscoCompNode, &
+          SmDensiteMolaireKrViscoCompNode,    &
+                                !
+          DensiteMolaireEnergieInterneSatNode,      &
+          divDensiteMolaireEnergieInterneSatNode, &
+          SmDensiteMolaireEnergieInterneSatNode,    &
+                                !
+          DensiteMolaireKrViscoEnthalpieNode,      &
+          divDensiteMolaireKrViscoEnthalpieNode, &
+          SmDensiteMolaireKrViscoEnthalpieNode )
 
-
-
-       call LoisThermoHydro_divPrim_cv(IncNode(k), NodeRocktypeLocal(:,k), &
+     ! FreeFlow nodes
+     call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank+1), IncNode,&
+          NodeRocktypeLocal, &
                                 !
-            dXssurdXpNode(:,:,k), &
-            SmdXsNode(:,k), &
-            SmFNode(:,k),   &
+          dXssurdXpNode, &
+          SmdXsNode, &
+          SmFNode,   &
                                 !
-            NumIncTotalPrimNode(:,k),  &
-            NumIncTotalSecondNode(:,k), &
+          NumIncTotalPrimNode,  &
+          NumIncTotalSecondNode, &
                                 !
-            DensitemassiqueNode(:,k),       &
-            divDensitemassiqueNode(:,:,k),  &
-            SmDensitemassiqueNode(:,k),     &
-                                !
-            divPressionNode(:,k),         &
-            SmPressionNode(k),            &
-                                !
-            divTemperatureNode(:,k),         &
-            SmTemperatureNode(k),            &
-                                !
-            divSaturationNode(:,:,k),       &
-                                !
-            PressionCapNode(:,k),           &
-            divPressionCapNode(:,:,k),      &
-                                !
-            DensitemolaireSatCompNode(:,:,k),      &
-            divDensitemolaireSatCompNode(:,:,:,k), &
-            SmDensitemolaireSatCompNode(:,:,k),    &
-                                !
-            DensitemolaireKrViscoCompNode(:,:,k),      &
-            divDensitemolaireKrViscoCompNode(:,:,:,k), &
-            SmDensitemolaireKrViscoCompNode(:,:,k),    &
-                                !
-            DensitemolaireEnergieInterneSatNode(:,k),      &
-            divDensitemolaireEnergieInterneSatNode(:,:,k), &
-            SmDensitemolaireEnergieInterneSatNode(:,k),    &
-                                !
-            DensitemolaireKrViscoEnthalpieNode(:,k),      &
-            divDensitemolaireKrViscoEnthalpieNode(:,:,k), &
-            SmDensitemolaireKrViscoEnthalpieNode(:,k) )
-    end do
-
+          divFreeFlowMolarFlowrateNode, &
+          SmFreeFlowMolarFlowrateNode )
 
     ! well injection
     !   compute q_{w,s,i} (and directive of pression)
-    !   for well k and all nodes of well k
-    do k=1, NbWellInjLocal_Ncpus(commRank+1)
-       call LoisThermoHydro_divP_wellinj(k)
-    end do
+    !   for each local well and its nodes
+     call LoisThermoHydro_divP_wellinj(NbWellInjLocal_Ncpus(commRank+1))
 
-    ! SmDensitemolaireKrViscoEnthalpieNode(:,:) = 0.d0
-    ! SmDensitemolaireEnergieInterneSatNode(:,:) = 0.d0
-    ! SmDensitemolaireKrViscoCompNode(:,:,:) = 0.d0
-    ! SmDensitemolaireSatCompNode(:,:,:) = 0.d0
+    ! SmDensiteMolaireKrViscoEnthalpieNode = 0.d0
+    ! SmDensiteMolaireEnergieInterneSatNode = 0.d0
+    ! SmDensiteMolaireKrViscoCompNode = 0.d0
+    ! SmDensiteMolaireSatCompNode = 0.d0
 
-    ! SmDensitemolaireKrViscoEnthalpieFrac(:,:) = 0.d0
-    ! SmDensitemolaireEnergieInterneSatFrac(:,:) = 0.d0
-    ! SmDensitemolaireKrViscoCompFrac(:,:,:) = 0.d0
-    ! SmDensitemolaireSatCompFrac(:,:,:) = 0.d0
+    ! SmDensiteMolaireKrViscoEnthalpieFrac = 0.d0
+    ! SmDensiteMolaireEnergieInterneSatFrac = 0.d0
+    ! SmDensiteMolaireKrViscoCompFrac = 0.d0
+    ! SmDensiteMolaireSatCompFrac = 0.d0
 
-    ! SmDensitemolaireKrViscoEnthalpieCell(:,:) = 0.d0
-    ! SmDensitemolaireEnergieInterneSatCell(:,:) = 0.d0
-    ! SmDensitemolaireKrViscoCompCell(:,:,:) = 0.d0
-    ! SmDensitemolaireSatCompCell(:,:,:) = 0.d0
+    ! SmDensiteMolaireKrViscoEnthalpieCell = 0.d0
+    ! SmDensiteMolaireEnergieInterneSatCell = 0.d0
+    ! SmDensiteMolaireKrViscoCompCell = 0.d0
+    ! SmDensiteMolaireSatCompCell = 0.d0
 
-    ! SmDensitemassiqueCell(:,:) = 0.d0
-    ! SmDensitemassiqueNode(:,:) = 0.d0
-    ! SmDensitemassiqueFrac(:,:) = 0.d0
+    ! SmDensiteMassiqueCell = 0.d0
+    ! SmDensiteMassiqueNode = 0.d0
+    ! SmDensiteMassiqueFrac = 0.d0
 
   end subroutine LoisThermoHydro_compute
 
 
   ! all operations for one cv
-  subroutine LoisThermoHydro_divPrim_cv(inc, rt, &
+  subroutine LoisThermoHydro_divPrim_cv(NbIncLocal, inc,&
+       rt, &
        dXssurdXp, SmdXs, SmF, &
        NumIncTotalPrimCV, NumIncTotalSecondCV, &
-       Densitemassique, divDensitemassique, SmDensitemassique, &
+       DensiteMassique, divDensiteMassique, SmDensiteMassique, &
        divPression, SmPression, &
        divTemperature, SmTemperature, &
        divSaturation, &
        PressionCap, divPressionCap, &
-       DensitemolaireSatComp, divDensitemolaireSatComp, SmDensitemolaireSatComp, &
-       DensitemolaireKrViscoComp, divDensitemolaireKrViscoComp, SmDensitemolaireKrViscoComp, &
-       DensitemolaireEnergieInterneSat, divDensitemolaireEnergieInterneSat, SmDensitemolaireEnergieInterneSat, &
-       DensitemolaireKrViscoEnthalpie,  divDensitemolaireKrViscoEnthalpie,  SmDensitemolaireKrViscoEnthalpie)
+       DensiteMolaireSatComp, divDensiteMolaireSatComp, SmDensiteMolaireSatComp, &
+       DensiteMolaireKrViscoComp, divDensiteMolaireKrViscoComp, SmDensiteMolaireKrViscoComp, &
+       DensiteMolaireEnergieInterneSat, divDensiteMolaireEnergieInterneSat, SmDensiteMolaireEnergieInterneSat, &
+       DensiteMolaireKrViscoEnthalpie,  divDensiteMolaireKrViscoEnthalpie,  SmDensiteMolaireKrViscoEnthalpie)
 
     ! input
-    type(TYPE_IncCVReservoir), intent(in) :: inc
+    integer, intent(in) :: NbIncLocal
 
-    integer, intent(in) :: rt (IndThermique+1)
+    type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
+
+    integer, intent(in) :: rt (IndThermique+1, NbIncLocal)
 
     integer, intent(in) ::  &
-         NumIncTotalPrimCV (NbIncTotalPrimMax),  &
-         NumIncTotalSecondCV (NbEqFermetureMax)
+         NumIncTotalPrimCV (NbIncTotalPrimMax, NbIncLocal),  &
+         NumIncTotalSecondCV (NbEqFermetureMax, NbIncLocal)
 
     double precision, intent(in) :: &
-         dXssurdXp (NbIncTotalPrimMax, NbEqFermetureMax), & ! (col,row) index order
-         SmdXs (NbEqFermetureMax), &
-         SmF (NbEqFermetureMax)
+         dXssurdXp (NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
+         SmdXs (NbEqFermetureMax, NbIncLocal), &
+         SmF (NbEqFermetureMax, NbIncLocal)
 
     ! output
 
     double precision, intent(out) :: &
                                 !
-         DensiteMassique (NbPhase), &
-         divDensiteMassique (NbIncTotalPrimMax, NbPhase), &
-         SmDensiteMassique (NbPhase), &
+         DensiteMassique (NbPhase, NbIncLocal), &
+         divDensiteMassique (NbIncTotalPrimMax, NbPhase, NbIncLocal), &
+         SmDensiteMassique (NbPhase, NbIncLocal), &
                                 !
-         divPression( NbIncTotalPrimMax), &
-         SmPression, &
+         divPression( NbIncTotalPrimMax, NbIncLocal), &
+         SmPression(NbIncLocal), &
                                 !
-         divTemperature( NbIncTotalPrimMax), &
-         SmTemperature, &
+         divTemperature( NbIncTotalPrimMax, NbIncLocal), &
+         SmTemperature(NbIncLocal), &
                                 !
-         divSaturation ( NbIncTotalPrimMax, NbPhase), &
+         divSaturation ( NbIncTotalPrimMax, NbPhase, NbIncLocal), &
                                 !
-         PressionCap (NbPhase), &
-         divPressionCap (NbIncTotalPrimMax, NbPhase),&
+         PressionCap (NbPhase, NbIncLocal), &
+         divPressionCap (NbIncTotalPrimMax, NbPhase, NbIncLocal),&
                                 !
-         DensiteMolaireSatComp (NbComp, NbPhase), &
-         divDensiteMolaireSatComp (NbIncTotalPrimMax, NbComp, NbPhase), &
-         SmDensiteMolaireSatComp (NbComp, NbPhase), &
+         DensiteMolaireSatComp (NbComp, NbPhase, NbIncLocal), &
+         divDensiteMolaireSatComp (NbIncTotalPrimMax, NbComp, NbPhase, NbIncLocal), &
+         SmDensiteMolaireSatComp (NbComp, NbPhase, NbIncLocal), &
                                 !
-         DensitemolaireKrViscoComp (NbComp, NbPhase), &
-         divDensitemolaireKrViscoComp (NbIncTotalPrimMax, NbComp, NbPhase), &
-         SmDensitemolaireKrViscoComp (NbComp, NbPhase), &
+         DensiteMolaireKrViscoComp (NbComp, NbPhase, NbIncLocal), &
+         divDensiteMolaireKrViscoComp (NbIncTotalPrimMax, NbComp, NbPhase, NbIncLocal), &
+         SmDensiteMolaireKrViscoComp (NbComp, NbPhase, NbIncLocal), &
                                 !
-         DensitemolaireEnergieInterneSat (NbPhase), &
-         divDensitemolaireEnergieInterneSat (NbIncTotalPrimMax, NbPhase), &
-         SmDensitemolaireEnergieInterneSat (NbPhase), &
+         DensiteMolaireEnergieInterneSat (NbPhase, NbIncLocal), &
+         divDensiteMolaireEnergieInterneSat (NbIncTotalPrimMax, NbPhase, NbIncLocal), &
+         SmDensiteMolaireEnergieInterneSat (NbPhase, NbIncLocal), &
                                 !
-         DensitemolaireKrViscoEnthalpie (NbPhase), &
-         divDensitemolaireKrViscoEnthalpie (NbIncTotalPrimMax, NbPhase), &
-         SmDensitemolaireKrViscoEnthalpie (NbPhase)
+         DensiteMolaireKrViscoEnthalpie (NbPhase, NbIncLocal), &
+         divDensiteMolaireKrViscoEnthalpie (NbIncTotalPrimMax, NbPhase, NbIncLocal), &
+         SmDensiteMolaireKrViscoEnthalpie (NbPhase, NbIncLocal)
 
     ! tmp
     double precision :: &
@@ -476,211 +483,274 @@ contains
          divEnthalpie(NbIncTotalPrimMax, NbPhase), &
          SmEnthalpie(NbPhase)
 
+    integer :: k
+
+  ! loop over each local element
+  do k=1, NbIncLocal
 
     ! init tmp values for each cv
-    call LoisThermoHydro_init_cv(inc)
+    call LoisThermoHydro_init_cv(inc(k))
 
     ! viscosite
-    call LoisThermoHydro_viscosite_cv(inc, dXssurdXp, SmdXs, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
+    call LoisThermoHydro_viscosite_cv(inc(k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          UnsurViscosite, divUnsurViscosite, SmUnSurViscosite)
 
     ! densite massique
-    call LoisThermoHydro_densitemassique_cv(inc, dXssurdXp, SmdXs, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
-         DensiteMassique, divDensiteMassique, SmDensiteMassique)
+    call LoisThermoHydro_densitemassique_cv(inc(k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+         DensiteMassique(:,k), divDensiteMassique(:,:,k), SmDensiteMassique(:,k))
 
     ! deniste molaire
-    call LoisThermoHydro_densitemolaire_cv(inc, dXssurdXp, SmdXs, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
+    call LoisThermoHydro_densitemolaire_cv(inc(k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire)
 
     ! PermRel
-    call LoisThermoHydro_PermRel_cv(inc, rt, PermRel, divPermRel)
+    call LoisThermoHydro_PermRel_cv(inc(k), rt(:,k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+         PermRel, divPermRel)
 
     ! Pression (unknown index is 1)
-    call LoisThermoHydro_Inc_cv(1, inc, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
-         dXssurdXp, SmdXs,  &
-         divPression, SmPression)
+    call LoisThermoHydro_Inc_cv(1, inc(k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+         dXssurdXp(:,:,k), SmdXs(:,k),  &
+         divPression(:,k), SmPression(k))
 
     ! Pression Capillaire
-    call LoisThermoHydro_PressionCapillaire_cv(rt, inc, PressionCap, divPressionCap)
+    call LoisThermoHydro_PressionCapillaire_cv(rt(:,k), inc(k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+         dXssurdXp(:,:,k), &
+         PressionCap(:,k), divPressionCap(:,:,k))
 
     ! Saturation div
-    call LoisThermoHydro_Saturation_cv(inc, &
-      NumIncTotalPrimCV, NumIncTotalSecondCV, &
-      dXssurdXp, &
-      divSaturation)
+    call LoisThermoHydro_Saturation_cv(inc(k), &
+      NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+      dXssurdXp(:,:,k), &
+      divSaturation(:,:,k))
 
     ! term: DensiteMolaire * PermRel / Viscosite * Comp
-    call LoisThermoHydro_DensitemolaireKrViscoComp_cv( inc, &
-         Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+    call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( inc(k), &
+         DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
          PermRel, divPermRel, &
          UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV,  &
-         dXssurdXp, SmdXs, &
-         DensitemolaireKrViscoComp, divDensitemolaireKrViscoComp, SmDensitemolaireKrViscoComp)
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k),  &
+         dXssurdXp(:,:,k), SmdXs(:,k), &
+         DensiteMolaireKrViscoComp(:,:,k), divDensiteMolaireKrViscoComp(:,:,:,k), SmDensiteMolaireKrViscoComp(:,:,k))
 
     ! term: DensiteMolaire * Saturation * Comp
-    call LoisThermoHydro_DensitemolaireSatComp_cv( &
-         inc, divSaturation, &
-         Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV,  &
-         dXssurdXp, SmdXs, &
-         DensitemolaireSatComp, divDensiteMolaireSatComp, SmDensiteMolaireSatComp)
+    call LoisThermoHydro_DensiteMolaireSatComp_cv( &
+         inc(k), divSaturation(:,:,k), &
+         DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k),  &
+         dXssurdXp(:,:,k), SmdXs(:,k), &
+         DensiteMolaireSatComp(:,:,k), divDensiteMolaireSatComp(:,:,:,k), SmDensiteMolaireSatComp(:,:,k))
 
 
 #ifdef _THERMIQUE_
 
-    ! Temperature (unknown index is 2)
-    call LoisThermoHydro_Inc_cv(2, inc, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
-         dXssurdXp, SmdXs,  &
-         divTemperature, SmTemperature)
+    ! FIXME: Temperature (unknown index is 2)
+    call LoisThermoHydro_Inc_cv(2, inc(k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+         dXssurdXp(:,:,k), SmdXs(:,k),  &
+         divTemperature(:,k), SmTemperature(k))
 
     ! energie interne
-    call LoisThermoHydro_EnergieInterne_cv(inc, dXssurdXp, SmdXs, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
+    call LoisThermoHydro_EnergieInterne_cv(inc(k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          EnergieInterne, divEnergieInterne, SmEnergieInterne)
 
     ! Enthalpie
-    call LoisThermoHydro_Enthalpie_cv(inc, dXssurdXp, SmdXs, &
-         NumIncTotalPrimCV, NumIncTotalSecondCV, &
+    call LoisThermoHydro_Enthalpie_cv(inc(k), dXssurdXp(:,:,k), SmdXs(:,k), &
+         NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          Enthalpie, divEnthalpie, SmEnthalpie)
 
     ! term: DensiteMolaire * Energieinterne * Saturation
-    call LoisThermoHydro_DensitemolaireEnergieInterneSat_cv(  &
-         inc, divSaturation, &
+    call LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv(  &
+         inc(k), divSaturation(:,:,k), &
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
          EnergieInterne, divEnergieInterne, SmEnergieInterne, &
-         DensitemolaireEnergieInterneSat, divDensiteMolaireEnergieInterneSat, SmDensitemolaireEnergieInterneSat)
+         DensiteMolaireEnergieInterneSat(:,k), divDensiteMolaireEnergieInterneSat(:,:,k), SmDensiteMolaireEnergieInterneSat(:,k))
 
     ! term: DensiteMolaire * PermRel / Viscosite * Enthalpie
-    call LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv( &
-         Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+    call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
+         DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
          PermRel, divPermRel, &
          UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
          Enthalpie, divEnthalpie, SmEnthalpie, &
-         DensitemolaireKrViscoEnthalpie, divDensitemolaireKrViscoEnthalpie, SmDensitemolaireKrViscoEnthalpie)
+         DensiteMolaireKrViscoEnthalpie(:,k), divDensiteMolaireKrViscoEnthalpie(:,:,k), SmDensiteMolaireKrViscoEnthalpie(:,k))
 #endif
 
-    ! if(commRank==1) then
-    !    do i=1, NbPhase
-
-    ! print*, Densitemolaire(i)
-    ! print*, ""
-
-    ! do j=1, NbIncTotalPrim
-    !    print*, i, j, divDensitemolaire(j,i)
-    ! end do
-    ! print*, ""
-    ! print*, SmDensitemolaire(i)
-    ! print*, ""
-
-    ! print*, 1.d0/UnsurViscosite(i)
-
-    ! print*, Enthalpie(i)
-    ! print*, divEnthalpie(:,i)
-    ! print*, ""
-
-    ! print*, PermRel(i)
-    ! do j=1, NbIncTotalPrim
-    !    print*, i, j, divPermRel(j,i)
-    ! end do
-    ! print*, ""
-    ! print*, SmDensitemolaire(i)
-    ! print*, ""
-
-    ! print*, DensitemolaireKrViscoComp(i,1)
-    ! print*, ""
-
-    ! do j=1, NbIncTotalPrim
-    !    print*, divDensitemolaireKrViscoComp(j,i,1)
-    !    ! print*, divDensitemolaire
-    ! end do
-    ! print*, ""
-    ! print*, SmDensitemolaireKrViscoComp(:,i)
-    ! print*, ""
-
-    ! do j=1, NbIncTotalPrim
-    !    write(*,'(ES22.14)'), divDensitemolaireKrViscoEnthalpie(j,i)
-    !    ! print*, divDensitemolaire
-    ! end do
-    ! print*, ""
-    ! write(*,*), SmDensitemolaireKrViscoEnthalpie(i)
-    ! print*, ""
-
-    ! do j=1, NbIncTotalPrim
-    !    write(*,'(ES22.14)'), divDensitemolaireEnergieInterneSat(j,i)
-    ! end do
-    ! print*, ""
-    ! write(*,'(ES22.14)'), SmDensitemolaireEnergieInterneSat(i)
-    ! print*, ""
-
-    ! do j=1, NbIncTotalPrim
-    !    write(*,'(ES22.14)'), divSaturation(j,i)
-    ! end do
-
-    ! do j=1, NbIncTotalPrim
-    !    write(*,'(ES22.14)'), divTemperature(j)
-    ! end do
-    ! print*, ""
-    ! print*, SmTemperature
-    ! print*, ""
-
-    !    end do
-    ! end if
+ !       do i=1, NbPhasePresente_ctx(inc(k)%ic)
+ !    write(*,*)"---------------------------------------------------------------------------------"
+ !    write(*,*)"print laws for top k which context is ",inc(k)%ic
+ !    write(*,*)"---------------------------------------------------------------------------------"
+ !    write(*,*)"phase",NumPhasePresente(i)
+ !    write(*,*)"---------------------------------------------------------------------------------"
+ !    print*,"DensiteMolaire"
+ !    print*, DensiteMolaire(i)
+ !    print*, ""
+!
+ !    do j=1, NbIncTotalPrim
+ !       print*, i, j, divDensiteMolaire(j,i)
+ !    end do
+ !    print*, ""
+ !    print*, SmDensiteMolaire(i)
+ !    print*, ""
+!
+ !    print*,"1.d0/UnsurViscosite(i)"
+ !    print*, 1.d0/UnsurViscosite(i)
+!
+ !    print*, "Enthalpie"
+ !    print*, Enthalpie(i)
+ !    do j=1, NbIncTotalPrim
+ !         print*, i, j, divEnthalpie(j,i)
+ !    end do
+ !    print*, ""
+!
+ !    print*, "PermRel"
+ !    print*, PermRel(i)
+ !    do j=1, NbIncTotalPrim
+ !       print*, i, j, divPermRel(j,i)
+ !    end do
+ !    print*, ""
+!
+ !    print*, "DensiteMolaireKrViscoComp"
+ !    print*, "all comp",DensiteMolaireKrViscoComp(:,i,k)
+ !    print*, ""
+!
+ !    do j=1, NbIncTotalPrim
+ !       print*, "all comp",i,j,divDensiteMolaireKrViscoComp(j,:,i,k)
+ !       ! print*, divDensiteMolaire
+ !    end do
+ !    print*, ""
+ !    print*, SmDensiteMolaireKrViscoComp(:,i,k)
+ !    print*, ""
+!
+ !    write(*,*), "DensiteMolaireKrViscoEnthalpie"
+ !    do j=1, NbIncTotalPrim
+ !       write(*,*), i,j,divDensiteMolaireKrViscoEnthalpie(j,i,k)
+ !       ! print*, divDensiteMolaire
+ !    end do
+ !    print*, ""
+ !    write(*,*), SmDensiteMolaireKrViscoEnthalpie(i,k)
+ !    print*, ""
+!
+ !    write(*,*), "DensiteMolaireEnergieInterneSat"
+ !    do j=1, NbIncTotalPrim
+ !       write(*,*), i,j,divDensiteMolaireEnergieInterneSat(j,i,k)
+ !    end do
+ !    print*, ""
+ !    write(*,*), SmDensiteMolaireEnergieInterneSat(i,k)
+ !    print*, ""
+ !  end do
+!
+ !    write(*,*), "Temperature"
+ !    do j=1, NbIncTotalPrim
+ !       write(*,*), "same for all phase",j,divTemperature(j,k)
+ !    end do
+ !    print*, ""
+ !    print*, SmTemperature(k)
+ !    print*, ""
+!
+  end do
 
   end subroutine LoisThermoHydro_divPrim_cv
+
+  ! Compute derivative of phase molar flowrates in the Freeflow dof
+  subroutine LoisThermoHydro_divPrim_FreeFlow_cv(NbIncLocal, inc,&
+       rt, &
+       dXssurdXp, SmdXs, SmF, &
+       NumIncTotalPrimCV, NumIncTotalSecondCV, &
+       divFreeFlowMolarFlowrate, SmFreeFlowMolarFlowrate)
+
+    ! input
+    integer, intent(in) :: NbIncLocal
+
+    type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
+
+    integer, intent(in) :: rt (IndThermique+1, NbIncLocal)
+
+    integer, intent(in) ::  &
+         NumIncTotalPrimCV (NbIncTotalPrimMax, NbIncLocal),  &
+         NumIncTotalSecondCV (NbEqFermetureMax, NbIncLocal)
+
+    double precision, intent(in) :: &
+         dXssurdXp (NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
+         SmdXs (NbEqFermetureMax, NbIncLocal), &
+         SmF (NbEqFermetureMax, NbIncLocal)
+
+    ! output
+    double precision, intent(out) :: & 
+       divFreeFlowMolarFlowrate(NbIncTotalPrimMax, NbPhase, NbIncLocal), &
+       SmFreeFlowMolarFlowrate(NbPhase, NbIncLocal)
+
+    integer :: k, i
+
+  ! loop over each local element
+  do k=1, NbIncLocal
+     
+     if(inc(k)%ic<2**NbPhase) cycle ! FIXME: loop over Freeflow dof only, avoid reservoir context
+
+    ! init tmp values for each cv
+     call LoisThermoHydro_init_cv(inc(k))
+
+    do i=1, NbPhasePresente
+       ! phase molar flowrate (unknown index is NbIncPTC+NbPhasePresente-1+i) (FIXME: -1 because one saturation is eliminated)
+       call LoisThermoHydro_Inc_cv(NbIncPTC+NbPhasePresente-1+i, inc(k), &
+            NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
+            dXssurdXp(:,:,k), SmdXs(:,k),  &
+            divFreeFlowMolarFlowrate(:,i,k), SmFreeFlowMolarFlowrate(i,k))
+    enddo
+
+  end do
+
+  end subroutine LoisThermoHydro_divPrim_FreeFlow_cv
+
 
   !> Update thermo Laws of nodes
   subroutine LoisThermoHydro_divPrim_nodes
 
-    integer :: k
-
-    do k=1, NbNodeLocal_Ncpus(commRank+1)
-
-       call LoisThermoHydro_divPrim_cv(IncNode(k), NodeRocktypeLocal(:,k), &
+     call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank+1), IncNode,&
+          NodeRocktypeLocal, &
                                 !
-            dXssurdXpNode(:,:,k), &
-            SmdXsNode(:,k), &
-            SmFNode(:,k),   &
+          dXssurdXpNode, &
+          SmdXsNode, &
+          SmFNode,   &
                                 !
-            NumIncTotalPrimNode(:,k),  &
-            NumIncTotalSecondNode(:,k), &
+          NumIncTotalPrimNode,  &
+          NumIncTotalSecondNode, &
                                 !
-            DensitemassiqueNode(:,k),       &
-            divDensitemassiqueNode(:,:,k),  &
-            SmDensitemassiqueNode(:,k),     &
+          DensiteMassiqueNode,       &
+          divDensiteMassiqueNode,  &
+          SmDensiteMassiqueNode,     &
                                 !
-            divPressionNode(:,k),         &
-            SmPressionNode(k),            &
+          divPressionNode,         &
+          SmPressionNode,            &
                                 !
-            divTemperatureNode(:,k),         &
-            SmTemperatureNode(k),            &
+          divTemperatureNode,         &
+          SmTemperatureNode,            &
                                 !
-            divSaturationNode(:,:,k),       &
+          divSaturationNode,       &
                                 !
-            PressionCapNode(:,k),           &
-            divPressionCapNode(:,:,k),      &
+          PressionCapNode,           &
+          divPressionCapNode,      &
                                 !
-            DensitemolaireSatCompNode(:,:,k),      &
-            divDensitemolaireSatCompNode(:,:,:,k), &
-            SmDensitemolaireSatCompNode(:,:,k),    &
+          DensiteMolaireSatCompNode,      &
+          divDensiteMolaireSatCompNode, &
+          SmDensiteMolaireSatCompNode,    &
                                 !
-            DensitemolaireKrViscoCompNode(:,:,k),      &
-            divDensitemolaireKrViscoCompNode(:,:,:,k), &
-            SmDensitemolaireKrViscoCompNode(:,:,k),    &
+          DensiteMolaireKrViscoCompNode,      &
+          divDensiteMolaireKrViscoCompNode, &
+          SmDensiteMolaireKrViscoCompNode,    &
                                 !
-            DensitemolaireEnergieInterneSatNode(:,k),      &
-            divDensitemolaireEnergieInterneSatNode(:,:,k), &
-            SmDensitemolaireEnergieInterneSatNode(:,k),    &
+          DensiteMolaireEnergieInterneSatNode,      &
+          divDensiteMolaireEnergieInterneSatNode, &
+          SmDensiteMolaireEnergieInterneSatNode,    &
                                 !
-            DensitemolaireKrViscoEnthalpieNode(:,k),      &
-            divDensitemolaireKrViscoEnthalpieNode(:,:,k), &
-            SmDensitemolaireKrViscoEnthalpieNode(:,k) )
-    end do
+          DensiteMolaireKrViscoEnthalpieNode,      &
+          divDensiteMolaireKrViscoEnthalpieNode, &
+          SmDensiteMolaireKrViscoEnthalpieNode )
 
   end subroutine LoisThermoHydro_divPrim_nodes
 
@@ -720,7 +790,8 @@ contains
     double precision, intent(out) :: dfdX(NbIncTotalMax)
 
     ! tmp
-    integer :: j, jc
+    integer :: j, jc, jph
+    double precision :: dfS_elim
 
     dfdX(:) = 0.d0
 
@@ -737,9 +808,17 @@ contains
          end if
     enddo
     
-    do j=1, NbPhase ! S
+!    Previous implementation:
+!    do j=1, NbPhase ! S
+!         jc = j + NbIncPTC
+!         dfdX(jc) = dSf(j)
+!    enddo
+    dfS_elim = dSf(NumPhasePresente(NbPhasePresente))
+    do j=1, NbPhasePresente-1
+         jph = NumPhasePresente(j)
+
          jc = j + NbIncPTC
-         dfdX(jc) = dSf(j)
+         dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
     enddo
     
   end subroutine LoisThermoHydro_fill_gradient_dfdX
@@ -841,7 +920,6 @@ contains
          dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
     ! - dv/dXs*SmdXs
-    Smval(:) = 0.d0
     call dgemv('T', NbEqFermeture, NbPhase,  &
          -1.d0, dfdX_secd, NbEqFermetureMax, &
          SmdXs, 1, 0.d0, Smval, 1)
@@ -893,7 +971,7 @@ contains
             f, dPf, dTf, dCf, dSf)
 
 #ifndef NDEBUG
-    if(f<=0) call CommonMPI_abort('inconsistent viscosity value')
+    if(f.le.0) call CommonMPI_abort('inconsistent viscosity value')
 #endif
 
        val(i) = 1.d0/f ! val
@@ -996,41 +1074,89 @@ contains
 
 
 
-  subroutine LoisThermoHydro_PermRel_cv(inc, rt, val, dval)
+  subroutine LoisThermoHydro_PermRel_cv(inc, rt, dXssurdXp, SmdXs, &
+          NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
 
     ! input
     type(TYPE_IncCVReservoir), intent(in)  :: inc
     INTEGER, INTENT(IN) :: rt(IndThermique+1)
+
+    double precision, intent(in) :: & ! (col, row) index order
+         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
+         SmdXs(NbEqFermetureMax)
+
+    integer, intent(in) :: &
+         NumIncTotalPrimCV(NbIncTotalPrimMax), &
+         NumIncTotalSecondCV(NbEqFermetureMax)
 
     ! output
     double precision, intent(out) :: val(NbPhase)
     double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
     ! tmp
-    double precision :: f, dSf(NbPhase), dfS_secd
-    integer :: i, iph, j, jph
+    double precision :: f, dSf(NbPhase), dCf(NbComp)
+    double precision :: dfdX(NbIncTotalMax)
+    double precision :: dfdX_secd(NbEqFermetureMax, NbPhase) !=NbEqFermetureMax
+    integer :: i, iph
+
+! previous implementation
+ !  val(:) = 0.d0
+ !  dval(:,:) = 0.d0
+!
+ !  ! if there is only one presente phase,
+ !  ! this Saturation must be secd --> dval=0, Sm=0
+ !  do i=1, NbPhasePresente
+ !     iph = NumPhasePresente(i)
+!
+ !     call f_PermRel(rt, iph, inc%Saturation, f, dSf)
+!
+ !     val(i) = f
+ !     dfS_secd = dSf( NumPhasePresente(NbPhasePresente)) ! the last is secd, FIXME: sum S=1 in hard, last saturation is eliminated
+!
+ !     ! alpha=1,2,...,NbPhasepresente-1
+ !     ! Ps. NbIncPTCPrim+NbPhasePresente-1=NbIncTotalPrim
+ !     do j=1, NbPhasePresente - 1
+ !        jph = NumPhasePresente(j)
+!
+ !        dval(j+NbIncPTCPrim,i) = dSf(jph) - dfS_secd
+ !     end do
+ !  end do
 
     val(:) = 0.d0
     dval(:,:) = 0.d0
+    dfdX_secd(:,:) = 0.d0
 
-    ! if there is only one presente phase,
-    ! this Saturation mush be secd --> dval=0, Sm=0
+    dCf = 0.d0
+
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
        call f_PermRel(rt, iph, inc%Saturation, f, dSf)
 
        val(i) = f
-       dfS_secd = dSf( NumPhasePresente(NbPhasePresente)) ! the last is secd
 
-       ! alpha=1,2,...,NbPhasepresente-1
-       ! Ps. NbIncPTCPrim+NbPhasePresente-1=NbIncTotalPrim
-       do j=1, NbPhasePresente - 1
-          jph = NumPhasePresente(j)
+       ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
+       call LoisThermoHydro_fill_gradient_dfdX(iph, 0.d0, 0.d0, dCf, dSf, dfdX)
 
-          dval(j+NbIncPTCPrim,i) = dSf(jph) - dfS_secd
-       end do
+       ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+       ! and dfdX_secd w.r.t. the secondary unknowns 
+       call LoisThermoHydro_dfdX_ps(iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+            dval, dfdX_secd)
     end do
+
+    ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
+    ! dval = dfdX_prim - dXssurdXp*dfdX_secd
+    ! all the mats is in (col, row) index order, only need to consider as transpose
+    call dgemm('N','N', NbIncTotalPrim, NbPhase, NbEqFermeture, &
+         -1.d0, dXssurdXp, NbIncTotalPrimMax, &
+         dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
+
+!
+!    ! - dv/dXs*SmdXs  ! FIXME: add Sm ?
+!    Smval(:) = 0.d0
+!    call dgemv('T', NbEqFermeture, NbPhase,  &
+!         -1.d0, dfdX_secd, NbEqFermetureMax, &
+!         SmdXs, 1, 0.d0, Smval, 1)
 
   end subroutine LoisThermoHydro_PermRel_cv
 
@@ -1044,7 +1170,7 @@ contains
     type(TYPE_IncCVReservoir), intent(in)  :: inc
     integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV( NbEqFermetureMax)
+         NumIncTotalSecondCV(NbEqFermetureMax)
 
     double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
@@ -1057,12 +1183,12 @@ contains
     integer :: i
 
     dval(:) = 0.d0
+    Smval = 0.d0
 
     IF(ANY(NumIncTotalPrimCV == index_inc))THEN ! index_inc (P or T) is prim
       do i=1,NbIncTotalPrimMax
         if (NumIncTotalPrimCV(i) == index_inc) then
           dval(i) = 1.d0
-          Smval = 0.d0
         endif
       enddo
     ELSE IF(ANY(NumIncTotalSecondCV == index_inc))THEN ! index_inc (P or T) is secd
@@ -1073,13 +1199,8 @@ contains
         endif
       enddo
     ELSE ! index_inc (P or T) not found
-      if(index_inc == 1) write(*,*)' pb in derprim, P not found '
-      if(index_inc == 2) write(*,*)' pb in derprim, T not found '
-      write(*,*)' primary unknown'
-      write(*,*) NumIncTotalPrimCV
-      write(*,*)' secondary unknown'
-      write(*,*) NumIncTotalSecondCV
-      stop
+      if(index_inc == 1) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, P not found ')
+      if(index_inc == 2) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
     ENDIF
 
   end subroutine LoisThermoHydro_Inc_cv
@@ -1103,13 +1224,12 @@ contains
     double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
     ! tmp
-    integer :: i, iph, k
+    integer :: i, k
 
     dval(:,:) = 0.d0
 
-    ! secondary staturation is the first non present phase
+    ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
     DO i=1, NbPhasePresente - 1
-      iph = NumPhasePresente(i)
 
       IF(ANY(NumIncTotalPrimCV == i+NbIncPTC))THEN ! S is prim
         do k=1,NbIncTotalPrimMax
@@ -1127,15 +1247,8 @@ contains
             dval(:,NbPhasePresente) = dXssurdXp(:,k)
           endif
         enddo
-      ELSE ! S not found
-        write(*,*)' pb dans derprim, S non trouvee '
-        write(*,*)' primary unknown'
-        write(*,*) NumIncTotalPrimCV
-        write(*,*)' secondary unknown'
-        write(*,*) NumIncTotalSecondCV
-        write(*,*)' saturation'
-        write(*,*) i
-        stop
+      ELSE IF(inc%ic<2**NbPhase)THEN! S not found for a reservoir dof
+        call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
       ENDIF
     ENDDO
 
@@ -1143,11 +1256,19 @@ contains
 
 
 
-  subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, val, dval)
+  subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, &
+          NumIncTotalPrimCV, NumIncTotalSecondCV, &
+          dXssurdXp, &
+          val, dval)
 
     ! input
     integer, intent(in) :: rt(IndThermique+1)
     type(TYPE_IncCVReservoir), intent(in)  :: inc
+    integer, intent(in) :: &
+         NumIncTotalPrimCV(NbIncTotalPrimMax), &
+         NumIncTotalSecondCV(NbEqFermetureMax)
+    double precision, intent(in) :: & ! (col, row) index order
+         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
 
     ! output
     double precision, intent(out) :: val(NbPhase)
@@ -1155,7 +1276,7 @@ contains
 
     ! tmp
     double precision :: f, dSf(NbPhase), dfS_secd
-    integer :: i, iph, j, jph
+    integer :: iph, j, jph, k
 
     val(:) = 0.d0
     dval(:,:) = 0.d0
@@ -1166,15 +1287,32 @@ contains
 
        val(iph) = f
 
-       dfS_secd = dSf( NumPhasePresente( NbPhasePresente))
+       dfS_secd = dSf(NumPhasePresente(NbPhasePresente))
 
        do j=1, NbPhasePresente - 1
-          jph = NumPhasePresente(j)
+          ! Look for S, is it primary or secondary unknowns ?
+          ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
+          IF(ANY(NumIncTotalPrimCV == j+NbIncPTC))THEN ! S is prim
+               jph = NumPhasePresente(j)
+               do k=1,NbIncTotalPrimMax
+                 if (NumIncTotalPrimCV(k) == j+NbIncPTC) then
+                   dval(k,iph) = dSf(jph) - dfS_secd
+                 endif
+               enddo
+          ELSE IF(ANY(NumIncTotalSecondCV == j+NbIncPTC))THEN ! S is secd
+               do k=1,NbEqFermeture
+                 if (NumIncTotalSecondCV(k) == j+NbIncPTC) then
+                    dval(:,iph) = - dXssurdXp(:,k)
+call CommonMPI_abort("je ne sais pas ce qui se passe quand S secondaire")
+                 endif
+               enddo
+          ELSE IF(inc%ic<2**NbPhase)THEN! S not found for a reservoir dof
+               call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
+          ENDIF
+       enddo
 
-          dval(j+NbIncPTCPrim,iph) = dSf(jph) - dfS_secd
-       end do
-
-    end do
+          
+    end do ! iph
 
   end subroutine LoisThermoHydro_PressionCapillaire_cv
 
@@ -1319,9 +1457,9 @@ contains
 
 
   ! term: desitemolaire * Saturation
-  subroutine LoisThermoHydro_DensitemolaireSat_cv( &
+  subroutine LoisThermoHydro_DensiteMolaireSat_cv( &
        inc, divSaturation, &
-       Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        val, dval, Smval)
 
     ! input
@@ -1358,7 +1496,7 @@ contains
        do k=1, NbIncTotalPrim
 
           dval(k,i) = &
-               divDensitemolaire(k,i)*inc%Saturation(iph) &
+               divDensiteMolaire(k,i)*inc%Saturation(iph) &
                + divSaturation(k,i)*DensiteMolaire(i)
        end do
     end do
@@ -1367,16 +1505,16 @@ contains
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
-       Smval(i) = SmDensitemolaire(i)*inc%Saturation(iph)
+       Smval(i) = SmDensiteMolaire(i)*inc%Saturation(iph)
     end do
 
-  end subroutine LoisThermoHydro_DensitemolaireSat_cv
+  end subroutine LoisThermoHydro_DensiteMolaireSat_cv
 
 
   ! term: desitemolaire * Saturation * Comp
-  subroutine LoisThermoHydro_DensitemolaireSatComp_cv( &
+  subroutine LoisThermoHydro_DensiteMolaireSatComp_cv( &
        inc, divSaturation, &
-       Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        NumIncTotalPrimCV, NumIncTotalSecondCV,  &
        dXssurdXp, SmdXs, &
        val, dval, Smval)
@@ -1437,7 +1575,7 @@ contains
        do k=1, NbIncTotalPrim
 
           dvi(k) = &
-               divDensitemolaire(k,i)*inc%Saturation(iph) &
+               divDensiteMolaire(k,i)*inc%Saturation(iph) &
                + divSaturation(k,i)*DensiteMolaire(i)
        end do
 
@@ -1458,7 +1596,7 @@ contains
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
-       dv = SmDensitemolaire(i)*inc%Saturation(iph)
+       dv = SmDensiteMolaire(i)*inc%Saturation(iph)
 
        do icp=1, NbComp ! P_i
           if(MCP(icp,iph)==1) then
@@ -1476,7 +1614,7 @@ contains
        numj = NumIncTotalPrimCV(j)
 
        ! numi is C_i^alpha in (P,T,C,S)
-       if( (numj>=(1+IndThermique)) .and. (numj<=NbIncPTC)) then
+       if( (numj>(1+IndThermique)) .and. (numj<=NbIncPTC)) then
 
           ! for j, only div(C_jcp^jph) is not zero
           jcp = NumIncPTC2NumIncComp_comp(numj)
@@ -1500,7 +1638,7 @@ contains
        numj = NumIncTotalSecondCV(j)
 
        ! numi is C in (P,T,C)
-       if( (numj>=(1+IndThermique)) .and. (numj<=NbIncPTC)) then
+       if( (numj>(1+IndThermique)) .and. (numj<=NbIncPTC)) then
 
           jcp = NumIncPTC2NumIncComp_comp(numj)
           jph = NumIncPTC2NumIncComp_phase(numj)
@@ -1524,12 +1662,12 @@ contains
        end if
     end do ! end of inc secd
 
-  end subroutine LoisThermoHydro_DensitemolaireSatComp_cv
+  end subroutine LoisThermoHydro_DensiteMolaireSatComp_cv
 
 
   ! div and Sm of term: DensiteMolaire*Kr/Viscosite
-  subroutine LoisThermoHydro_DensitemolaireKrVisco_cv( &
-       Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+  subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv( &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        PermRel, divPermRel,             &
        UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
        val, dval, Smval)
@@ -1583,12 +1721,12 @@ contains
             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
     end do
 
-  end subroutine LoisThermoHydro_DensitemolaireKrVisco_cv
+  end subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv
 
 
   ! div and Sm of term: DensiteMolaire*Kr/Viscosite*Comp
-  subroutine LoisThermoHydro_DensitemolaireKrViscoComp_cv(inc, &
-       Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+  subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv(inc, &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        PermRel, divPermRel,             &
        UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
        NumIncTotalPrimCV, NumIncTotalSecondCV,  &
@@ -1698,7 +1836,7 @@ contains
        numj = NumIncTotalPrimCV(j)
 
        ! numi is C_i^alpha in (P,T,C,S)
-       if( (numj>=(1+IndThermique)) .and. (numj<=NbIncPTC)) then
+       if( (numj>(1+IndThermique)) .and. (numj<=NbIncPTC)) then
 
           ! for j, only div(C_jcp^jph) is not zero
           jcp = NumIncPTC2NumIncComp_comp(numj)
@@ -1722,7 +1860,7 @@ contains
        numj = NumIncTotalSecondCV(j)
 
        ! numi is C in (P,T,C)
-       if( (numj>=(1+IndThermique)) .and. (numj<=NbIncPTC)) then
+       if( (numj>(1+IndThermique)) .and. (numj<=NbIncPTC)) then
 
           jcp = NumIncPTC2NumIncComp_comp(numj)
           jph = NumIncPTC2NumIncComp_phase(numj)
@@ -1746,12 +1884,12 @@ contains
        end if
     end do ! end of inc secd
 
-  end subroutine LoisThermoHydro_DensitemolaireKrViscoComp_cv
+  end subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv
 
 
-  subroutine LoisThermoHydro_DensitemolaireEnergieInterneSat_cv( &
+  subroutine LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv( &
        inc, divSaturation, &
-       Densitemolaire, divDensitemolaire, SmDensitemolaire, &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        EnergieInterne, divEnergieInterne, SmEnergieInterne, &
        val, dval, Smval)
 
@@ -1784,7 +1922,7 @@ contains
     do i=1, NbPhasePresente
        iph = NumPhasePresente(i)
 
-       val(i) = Densitemolaire(i)*EnergieInterne(i)*inc%Saturation(iph)
+       val(i) = DensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph)
     end do
 
     ! 2. dval
@@ -1794,7 +1932,7 @@ contains
        do k=1, NbIncTotalPrim
 
           dval(k,i) = &
-               divDensitemolaire(k,i)*EnergieInterne(i)*inc%Saturation(iph) &
+               divDensiteMolaire(k,i)*EnergieInterne(i)*inc%Saturation(iph) &
                + divEnergieInterne(k,i)*DensiteMolaire(i)*inc%Saturation(iph) &
                + divSaturation(k,i)*DensiteMolaire(i)*EnergieInterne(i)
        end do
@@ -1805,15 +1943,15 @@ contains
        iph = NumPhasePresente(i)
 
        Smval(i) = &
-            SmDensitemolaire(i)*EnergieInterne(i)*inc%Saturation(iph) &
+            SmDensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph) &
             + SmEnergieInterne(i)*DensiteMolaire(i)*inc%Saturation(iph)
     end do
 
-  end subroutine LoisThermoHydro_DensitemolaireEnergieInterneSat_cv
+  end subroutine LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv
 
 
-  subroutine LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv( &
-       Densitemolaire, divDensiteMolaire, SmDensiteMolaire, &
+  subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
+       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
        PermRel, divPermRel, &
        UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
        Enthalpie, divEnthalpie, SmEnthalpie, &
@@ -1873,12 +2011,12 @@ contains
             + SmEnthalpie(i)*DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
     end do
 
-  end subroutine LoisThermoHydro_DensitemolaireKrViscoEnthalpie_cv
+  end subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv
 
 
-  subroutine LoisThermoHydro_divP_wellinj(k)
+  subroutine LoisThermoHydro_divP_wellinj(NbIncLocal)
 
-    integer, intent(in) :: k
+    integer, intent(in) :: NbIncLocal
 
     double precision :: Pws, Tw, Sw(NbPhase), Cw(NbComp)
     double precision :: &
@@ -1888,8 +2026,9 @@ contains
 
     double precision :: dSf(NbPhase), dTf, dCf(NbComp), PermRel
     integer :: rt(IndThermique+1)
-    integer :: s, i
+    integer :: s, i, k
 
+do k=1, NbIncLocal
     Sw(:) = 0.d0
     Sw(LIQUID_PHASE) = 1.d0
 
@@ -1923,22 +2062,23 @@ contains
        do i=1, NbComp
 
           ! value
-          DensitemolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel * DensiteMolaire / Viscosite
+          DensiteMolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel * DensiteMolaire / Viscosite
 
           ! div of pression
-          divDensitemolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel  &
+          divDensiteMolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel  &
                * (dP_DensiteMolaire / Viscosite - DensiteMolaire * dP_Viscosite / (Viscosite**2) )
        end do
 
 #ifdef _THERMIQUE_
-       DensitemolaireKrViscoEnthalpieWellInj(s) = Enthalpie * PermRel * DensiteMolaire / Viscosite
+       DensiteMolaireKrViscoEnthalpieWellInj(s) = Enthalpie * PermRel * DensiteMolaire / Viscosite
 
-       divDensitemolaireKrViscoEnthalpieWellInj(s) = &
+       divDensiteMolaireKrViscoEnthalpieWellInj(s) = &
             + dP_DensiteMolaire / Viscosite * Enthalpie &
             + dP_Enthalpie * DensiteMolaire / Viscosite &
             - dP_Viscosite / (Viscosite**2) * DensiteMolaire * Enthalpie
 #endif
-    end do
+    end do ! nodes of well k
+end do ! wells
 
   end subroutine LoisThermoHydro_divP_wellinj
 
@@ -1989,39 +2129,43 @@ contains
     allocate( divSaturationCell(NbIncTotalPrimMax, NbPhase, nbCell))
     allocate( divSaturationFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
     allocate( divSaturationNode(NbIncTotalPrimMax, NbPhase, nbNode))
-
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    ! Freeflow phase molar flowrates
+    allocate( divFreeFlowMolarFlowrateNode(NbIncTotalPrimMax, NbPhase, nbNode))
+    allocate( SmFreeFlowMolarFlowrateNode(NbPhase, nbNode))
+#endif
     ! DensiteMolaire*Kr/Viscosite * Comp
-    allocate( DensitemolaireKrViscoCompCell(NbComp, NbPhase, nbCell))
-    allocate( DensitemolaireKrViscoCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( DensitemolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
+    allocate( DensiteMolaireKrViscoCompCell(NbComp, NbPhase, nbCell))
+    allocate( DensiteMolaireKrViscoCompFrac(NbComp, NbPhase, nbFrac))
+    allocate( DensiteMolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
 
-    allocate( divDensitemolaireKrViscoCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
-    allocate( divDensitemolaireKrViscoCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
-    allocate( divDensitemolaireKrViscoCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
+    allocate( divDensiteMolaireKrViscoCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
+    allocate( divDensiteMolaireKrViscoCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
+    allocate( divDensiteMolaireKrViscoCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
 
-    allocate( SmDensitemolaireKrViscoCompCell(NbComp, NbPhase, nbCell))
-    allocate( SmDensitemolaireKrViscoCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( SmDensitemolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
+    allocate( SmDensiteMolaireKrViscoCompCell(NbComp, NbPhase, nbCell))
+    allocate( SmDensiteMolaireKrViscoCompFrac(NbComp, NbPhase, nbFrac))
+    allocate( SmDensiteMolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
 
     ! DensiteMolaire * Saturation * Comp
-    allocate( DensitemolaireSatCompCell(NbComp, NbPhase, nbCell))
-    allocate( DensitemolaireSatCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( DensitemolaireSatCompNode(NbComp, NbPhase, nbNode))
+    allocate( DensiteMolaireSatCompCell(NbComp, NbPhase, nbCell))
+    allocate( DensiteMolaireSatCompFrac(NbComp, NbPhase, nbFrac))
+    allocate( DensiteMolaireSatCompNode(NbComp, NbPhase, nbNode))
 
-    allocate( divDensitemolaireSatCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
-    allocate( divDensitemolaireSatCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
-    allocate( divDensitemolaireSatCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
+    allocate( divDensiteMolaireSatCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
+    allocate( divDensiteMolaireSatCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
+    allocate( divDensiteMolaireSatCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
 
-    allocate( SmDensitemolaireSatCompCell(NbComp, NbPhase, nbCell))
-    allocate( SmDensitemolaireSatCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( SmDensitemolaireSatCompNode(NbComp, NbPhase, nbNode))
+    allocate( SmDensiteMolaireSatCompCell(NbComp, NbPhase, nbCell))
+    allocate( SmDensiteMolaireSatCompFrac(NbComp, NbPhase, nbFrac))
+    allocate( SmDensiteMolaireSatCompNode(NbComp, NbPhase, nbNode))
 
     ! well inj
-    allocate(DensitemolaireKrViscoCompWellInj(NbComp, nbNodeInj))
-    allocate(divDensitemolaireKrViscoCompWellInj(NbComp, nbNodeInj))
+    allocate(DensiteMolaireKrViscoCompWellInj(NbComp, nbNodeInj))
+    allocate(divDensiteMolaireKrViscoCompWellInj(NbComp, nbNodeInj))
 
-    allocate(DensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
-    allocate(divDensitemolaireKrViscoEnthalpieWellInj(nbNodeInj))
+    allocate(DensiteMolaireKrViscoEnthalpieWellInj(nbNodeInj))
+    allocate(divDensiteMolaireKrViscoEnthalpieWellInj(nbNodeInj))
 
     ! the following arrays must be allocated even if there is no energy transfer
     allocate( SmTemperatureCell( nbCell))
@@ -2036,30 +2180,30 @@ contains
     allocate( divTemperatureNode(NbIncTotalPrimMax, nbNode) )
 
     ! DensiteMolaire * PermRel / Viscosite * Enthalpie
-    allocate( DensitemolaireKrViscoEnthalpieCell(NbPhase, nbCell))
-    allocate( DensitemolaireKrViscoEnthalpieFrac(NbPhase, nbFrac))
-    allocate( DensitemolaireKrViscoEnthalpieNode(NbPhase, nbNode))
+    allocate( DensiteMolaireKrViscoEnthalpieCell(NbPhase, nbCell))
+    allocate( DensiteMolaireKrViscoEnthalpieFrac(NbPhase, nbFrac))
+    allocate( DensiteMolaireKrViscoEnthalpieNode(NbPhase, nbNode))
 
-    allocate( divDensitemolaireKrViscoEnthalpieCell(NbIncTotalPrimMax, NbPhase, nbCell))
-    allocate( divDensitemolaireKrViscoEnthalpieFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
-    allocate( divDensitemolaireKrViscoEnthalpieNode(NbIncTotalPrimMax, NbPhase, nbNode))
+    allocate( divDensiteMolaireKrViscoEnthalpieCell(NbIncTotalPrimMax, NbPhase, nbCell))
+    allocate( divDensiteMolaireKrViscoEnthalpieFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
+    allocate( divDensiteMolaireKrViscoEnthalpieNode(NbIncTotalPrimMax, NbPhase, nbNode))
 
-    allocate( SmDensitemolaireKrViscoEnthalpieCell(NbPhase, nbCell))
-    allocate( SmDensitemolaireKrViscoEnthalpieFrac(NbPhase, nbFrac))
-    allocate( SmDensitemolaireKrViscoEnthalpieNode(NbPhase, nbNode))
+    allocate( SmDensiteMolaireKrViscoEnthalpieCell(NbPhase, nbCell))
+    allocate( SmDensiteMolaireKrViscoEnthalpieFrac(NbPhase, nbFrac))
+    allocate( SmDensiteMolaireKrViscoEnthalpieNode(NbPhase, nbNode))
 
     ! densitemolaire * energieinterne * Saturation
-    allocate( DensitemolaireEnergieInterneSatCell(NbPhase, nbCell))
-    allocate( DensitemolaireEnergieInterneSatFrac(NbPhase, nbFrac))
-    allocate( DensitemolaireEnergieInterneSatNode(NbPhase, nbNode))
+    allocate( DensiteMolaireEnergieInterneSatCell(NbPhase, nbCell))
+    allocate( DensiteMolaireEnergieInterneSatFrac(NbPhase, nbFrac))
+    allocate( DensiteMolaireEnergieInterneSatNode(NbPhase, nbNode))
 
-    allocate( divDensitemolaireEnergieInterneSatCell(NbIncTotalPrimMax, NbPhase, nbCell))
-    allocate( divDensitemolaireEnergieInterneSatFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
-    allocate( divDensitemolaireEnergieInterneSatNode(NbIncTotalPrimMax, NbPhase, nbNode))
+    allocate( divDensiteMolaireEnergieInterneSatCell(NbIncTotalPrimMax, NbPhase, nbCell))
+    allocate( divDensiteMolaireEnergieInterneSatFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
+    allocate( divDensiteMolaireEnergieInterneSatNode(NbIncTotalPrimMax, NbPhase, nbNode))
 
-    allocate( SmDensitemolaireEnergieInterneSatCell(NbPhase, nbCell))
-    allocate( SmDensitemolaireEnergieInterneSatFrac(NbPhase, nbFrac))
-    allocate( SmDensitemolaireEnergieInterneSatNode(NbPhase, nbNode))
+    allocate( SmDensiteMolaireEnergieInterneSatCell(NbPhase, nbCell))
+    allocate( SmDensiteMolaireEnergieInterneSatFrac(NbPhase, nbFrac))
+    allocate( SmDensiteMolaireEnergieInterneSatNode(NbPhase, nbNode))
 
 #endif
 
@@ -2101,34 +2245,40 @@ contains
     deallocate( divSaturationFrac)
     deallocate( divSaturationNode)
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    ! Freeflow phase molar flowrates
+    deallocate( divFreeFlowMolarFlowrateNode)
+    deallocate( SmFreeFlowMolarFlowrateNode)
+#endif
+
     ! densitemolaire * Permrel / viscosite * Comp
-    deallocate( DensitemolaireKrViscoCompCell)
-    deallocate( DensitemolaireKrViscoCompFrac)
-    deallocate( DensitemolaireKrViscoCompNode)
-    deallocate( divDensitemolaireKrViscoCompCell)
-    deallocate( divDensitemolaireKrViscoCompFrac)
-    deallocate( divDensitemolaireKrViscoCompNode)
-    deallocate( SmDensitemolaireKrViscoCompCell)
-    deallocate( SmDensitemolaireKrViscoCompFrac)
-    deallocate( SmDensitemolaireKrViscoCompNode)
+    deallocate( DensiteMolaireKrViscoCompCell)
+    deallocate( DensiteMolaireKrViscoCompFrac)
+    deallocate( DensiteMolaireKrViscoCompNode)
+    deallocate( divDensiteMolaireKrViscoCompCell)
+    deallocate( divDensiteMolaireKrViscoCompFrac)
+    deallocate( divDensiteMolaireKrViscoCompNode)
+    deallocate( SmDensiteMolaireKrViscoCompCell)
+    deallocate( SmDensiteMolaireKrViscoCompFrac)
+    deallocate( SmDensiteMolaireKrViscoCompNode)
 
     ! densitemolaire * Sat * Comp
-    deallocate( DensitemolaireSatCompCell)
-    deallocate( DensitemolaireSatCompFrac)
-    deallocate( DensitemolaireSatCompNode)
-    deallocate( divDensitemolaireSatCompCell)
-    deallocate( divDensitemolaireSatCompFrac)
-    deallocate( divDensitemolaireSatCompNode)
-    deallocate( SmDensitemolaireSatCompCell)
-    deallocate( SmDensitemolaireSatCompFrac)
-    deallocate( SmDensitemolaireSatCompNode)
+    deallocate( DensiteMolaireSatCompCell)
+    deallocate( DensiteMolaireSatCompFrac)
+    deallocate( DensiteMolaireSatCompNode)
+    deallocate( divDensiteMolaireSatCompCell)
+    deallocate( divDensiteMolaireSatCompFrac)
+    deallocate( divDensiteMolaireSatCompNode)
+    deallocate( SmDensiteMolaireSatCompCell)
+    deallocate( SmDensiteMolaireSatCompFrac)
+    deallocate( SmDensiteMolaireSatCompNode)
 
     ! well inj
-    deallocate(DensitemolaireKrViscoCompWellInj)
-    deallocate(divDensitemolaireKrViscoCompWellInj)
+    deallocate(DensiteMolaireKrViscoCompWellInj)
+    deallocate(divDensiteMolaireKrViscoCompWellInj)
 
-    deallocate(DensitemolaireKrViscoEnthalpieWellInj)
-    deallocate(divDensitemolaireKrViscoEnthalpieWellInj)
+    deallocate(DensiteMolaireKrViscoEnthalpieWellInj)
+    deallocate(divDensiteMolaireKrViscoEnthalpieWellInj)
 
     deallocate( SmTemperatureCell)
     deallocate( SmTemperatureFrac)
@@ -2141,37 +2291,37 @@ contains
     deallocate( divTemperatureNode)
 
     ! densitemolaire * Permrel / viscosite * Enthalpie
-    deallocate( DensitemolaireKrViscoEnthalpieCell)
-    deallocate( DensitemolaireKrViscoEnthalpieFrac)
-    deallocate( DensitemolaireKrViscoEnthalpieNode)
-    deallocate( divDensitemolaireKrViscoEnthalpieCell)
-    deallocate( divDensitemolaireKrViscoEnthalpieFrac)
-    deallocate( divDensitemolaireKrViscoEnthalpieNode)
-    deallocate( SmDensitemolaireKrViscoEnthalpieCell)
-    deallocate( SmDensitemolaireKrViscoEnthalpieFrac)
-    deallocate( SmDensitemolaireKrViscoEnthalpieNode)
+    deallocate( DensiteMolaireKrViscoEnthalpieCell)
+    deallocate( DensiteMolaireKrViscoEnthalpieFrac)
+    deallocate( DensiteMolaireKrViscoEnthalpieNode)
+    deallocate( divDensiteMolaireKrViscoEnthalpieCell)
+    deallocate( divDensiteMolaireKrViscoEnthalpieFrac)
+    deallocate( divDensiteMolaireKrViscoEnthalpieNode)
+    deallocate( SmDensiteMolaireKrViscoEnthalpieCell)
+    deallocate( SmDensiteMolaireKrViscoEnthalpieFrac)
+    deallocate( SmDensiteMolaireKrViscoEnthalpieNode)
 
     ! densitemolaire * energieinterne * Saturation
-    deallocate( DensitemolaireEnergieInterneSatCell)
-    deallocate( DensitemolaireEnergieInterneSatFrac)
-    deallocate( DensitemolaireEnergieInterneSatNode)
-    deallocate( divDensitemolaireEnergieInterneSatCell)
-    deallocate( divDensitemolaireEnergieInterneSatFrac)
-    deallocate( divDensitemolaireEnergieInterneSatNode)
-    deallocate( SmDensitemolaireEnergieInterneSatCell)
-    deallocate( SmDensitemolaireEnergieInterneSatFrac)
-    deallocate( SmDensitemolaireEnergieInterneSatNode)
+    deallocate( DensiteMolaireEnergieInterneSatCell)
+    deallocate( DensiteMolaireEnergieInterneSatFrac)
+    deallocate( DensiteMolaireEnergieInterneSatNode)
+    deallocate( divDensiteMolaireEnergieInterneSatCell)
+    deallocate( divDensiteMolaireEnergieInterneSatFrac)
+    deallocate( divDensiteMolaireEnergieInterneSatNode)
+    deallocate( SmDensiteMolaireEnergieInterneSatCell)
+    deallocate( SmDensiteMolaireEnergieInterneSatFrac)
+    deallocate( SmDensiteMolaireEnergieInterneSatNode)
 
     ! ! densitemolaire * energieinterne
-    ! deallocate( DensitemolaireEnergieInterneCell)
-    ! deallocate( DensitemolaireEnergieInterneFrac)
-    ! deallocate( DensitemolaireEnergieInterneNode)
-    ! deallocate( divDensitemolaireEnergieInterneCell)
-    ! deallocate( divDensitemolaireEnergieInterneFrac)
-    ! deallocate( divDensitemolaireEnergieInterneNode)
-    ! deallocate( SmDensitemolaireEnergieInterneCell)
-    ! deallocate( SmDensitemolaireEnergieInterneFrac)
-    ! deallocate( SmDensitemolaireEnergieInterneNode)
+    ! deallocate( DensiteMolaireEnergieInterneCell)
+    ! deallocate( DensiteMolaireEnergieInterneFrac)
+    ! deallocate( DensiteMolaireEnergieInterneNode)
+    ! deallocate( divDensiteMolaireEnergieInterneCell)
+    ! deallocate( divDensiteMolaireEnergieInterneFrac)
+    ! deallocate( divDensiteMolaireEnergieInterneNode)
+    ! deallocate( SmDensiteMolaireEnergieInterneCell)
+    ! deallocate( SmDensiteMolaireEnergieInterneFrac)
+    ! deallocate( SmDensiteMolaireEnergieInterneNode)
 #endif
 
   end subroutine LoisThermoHydro_free

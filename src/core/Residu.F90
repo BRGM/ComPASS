@@ -291,8 +291,7 @@ contains
 
    subroutine Residu_AccVol
 
-      integer :: k, m, mph, i, ic, icp
-      real(c_double) :: tmpAccVol(NbComp)
+      integer :: k, m, mph, ic, icp
 
       ! Cells
       do k = 1, NbCellLocal_Ncpus(commRank + 1)
@@ -308,14 +307,14 @@ contains
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
 
                   IncCell(k)%AccVol(icp) = IncCell(k)%AccVol(icp) &
-                                           + PoroVolDarcyCell(k)*DensitemolaireSatCompCell(icp, m, k)
+                                           + PoroVolDarcyCell(k)*DensiteMolaireSatCompCell(icp, m, k)
                end if
             end do
 
 #ifdef _THERMIQUE_
 
             IncCell(k)%AccVol(NbComp + 1) = IncCell(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierCell(k)*DensitemolaireEnergieInterneSatCell(m, k)
+                                            + PoroVolFourierCell(k)*DensiteMolaireEnergieInterneSatCell(m, k)
 #endif
          end do ! end of phase m
 
@@ -341,14 +340,14 @@ contains
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
 
                   IncFrac(k)%AccVol(icp) = IncFrac(k)%AccVol(icp) &
-                                           + PoroVolDarcyFrac(k)*DensitemolaireSatCompFrac(icp, m, k)
+                                           + PoroVolDarcyFrac(k)*DensiteMolaireSatCompFrac(icp, m, k)
                end if
             end do
 
 #ifdef _THERMIQUE_
 
             IncFrac(k)%AccVol(NbComp + 1) = IncFrac(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierFrac(k)*DensitemolaireEnergieInterneSatFrac(m, k)
+                                            + PoroVolFourierFrac(k)*DensiteMolaireEnergieInterneSatFrac(m, k)
 #endif
 
          end do ! end of phase m
@@ -375,14 +374,14 @@ contains
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
 
                   IncNode(k)%AccVol(icp) = IncNode(k)%AccVol(icp) &
-                                           + PoroVolDarcyNode(k)*DensitemolaireSatCompNode(icp, m, k)
+                                           + PoroVolDarcyNode(k)*DensiteMolaireSatCompNode(icp, m, k)
                end if
             end do
 
 #ifdef _THERMIQUE_
 
             IncNode(k)%AccVol(NbComp + 1) = IncNode(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierNode(k)*DensitemolaireEnergieInterneSatNode(m, k)
+                                            + PoroVolFourierNode(k)*DensiteMolaireEnergieInterneSatNode(m, k)
 
 #endif
 
@@ -405,7 +404,6 @@ contains
       integer :: NbNodeCell, NbFracCell, NbNodeFrac
 
       double precision :: Flux_ks(NbComp), FluxT_ks, DarcyFlux
-      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
 
       do k = 1, NbCellLocal_Ncpus(commRank + 1)
 
@@ -435,14 +433,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompCell(icp, m, k)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompCell(icp, m, k)*DarcyFlux
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieCell(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(m, k) &
                              *DarcyFlux
 
 #endif
@@ -461,14 +459,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompNode(icp, m, nums)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompNode(icp, m, nums)*DarcyFlux
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums) &
                              *DarcyFlux
 
 #endif
@@ -515,14 +513,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompCell(icp, m, k)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompCell(icp, m, k)*DarcyFlux
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieCell(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(m, k) &
                              *DarcyFlux
 #endif
 
@@ -540,14 +538,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompFrac(icp, m, nums)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompFrac(icp, m, nums)*DarcyFlux
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieFrac(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(m, nums) &
                              *DarcyFlux
 #endif
 
@@ -597,14 +595,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompFrac(icp, m, k)*FluxDarcyFI(mph, s, k)
+                                       + DensiteMolaireKrViscoCompFrac(icp, m, k)*FluxDarcyFI(mph, s, k)
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieFrac(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(m, k) &
                              *FluxDarcyFI(mph, s, k)
 #endif
                end if
@@ -619,14 +617,14 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensitemolaireKrViscoCompNode(icp, m, nums)*FluxDarcyFI(mph, s, k)
+                                       + DensiteMolaireKrViscoCompNode(icp, m, nums)*FluxDarcyFI(mph, s, k)
 
                      end if
                   end do
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums) &
                              *FluxDarcyFI(mph, s, k)
 #endif
                end if
@@ -656,7 +654,7 @@ contains
 
    subroutine Residu_add_flux_contributions_wells
 
-      integer :: k, s, fs, fk, nums, m, mph, icp
+      integer :: k, s, nums, m, mph, icp
 
       double precision :: Flux_ks(NbComp), FluxT_ks
       double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
@@ -690,10 +688,10 @@ contains
             if (Ps_Pws < 0.d0) then ! < 0
 
                do icp = 1, NbComp
-                  Flux_ks(icp) = DensitemolaireKrViscoCompWellInj(icp, s)*WIDws*Ps_Pws
+                  Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*Ps_Pws
                end do
 #ifdef _THERMIQUE_
-               FluxT_ks = DensitemolaireKrViscoEnthalpieWellInj(s)*WIDws*Ps_Pws
+               FluxT_ks = DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws*Ps_Pws
 #endif
             end if
 
@@ -746,12 +744,12 @@ contains
 
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
-                        Flux_ks(icp) = Flux_ks(icp) + DensitemolaireKrViscoCompNode(icp, m, nums)*WIDws*Ps_Pws
+                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*Ps_Pws
                      end if
                   end do
 
 #ifdef _THERMIQUE_
-                  FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m, nums)*WIDws*Ps_Pws
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*Ps_Pws
 #endif
                end if
             end do

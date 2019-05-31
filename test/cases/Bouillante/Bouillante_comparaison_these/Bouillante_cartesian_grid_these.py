@@ -45,17 +45,22 @@ liq_molar_fraction_qbin = np.array([liq_molar_fraction_qbin_air,1. - liq_molar_f
 
 geotherm = (Tbot-Ttop)/Lz
 
-gas_context = 1
-liquid_context = 2
-diphasic_context = 3
 bot_flag = 4
 top_flag = 5
-
 
 ComPASS.load_eos('diphasic')
 ComPASS.set_gravity(gravity)
 ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
+
+gas_context = ComPASS.Context.gas
+liquid_context = ComPASS.Context.liquid
+diphasic_context = ComPASS.Context.diphasic
+
+#assert ComPASS.Phase.gas==1
+#assert ComPASS.Phase.liquid==2
+#assert ComPASS.Component.air==1
+#assert ComPASS.Component.water==2
 
 if ComPASS.mpi.is_on_master_proc:
     

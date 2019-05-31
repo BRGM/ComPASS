@@ -26,8 +26,6 @@ module DirichletContribution
 
     subroutine DirichletContribution_allocate
 
-        integer :: Nb, Nnz
-
         allocate (IncNodeDirBC(NbNodeLocal_Ncpus(commRank + 1)))
 
     end subroutine DirichletContribution_allocate
@@ -45,18 +43,20 @@ module DirichletContribution
 
         do k = 1, NbNodeLocal_Ncpus(commRank + 1)
 
+            ! Can not use "=" of the two structures
+            ! because Dirichlet can be on Pressure only or Temperature only
             if (IdNodeLocal(k)%P == "d") then
-            IncNode(k)%ic = IncNodeDirBC(k)%ic
-            IncNode(k)%Pression = IncNodeDirBC(k)%Pression
-            IncNode(k)%Saturation(:) = IncNodeDirBC(k)%Saturation(:)
-            IncNode(k)%Comp(:, :) = IncNodeDirBC(k)%Comp(:, :)
+                IncNode(k)%ic = IncNodeDirBC(k)%ic
+                IncNode(k)%Pression = IncNodeDirBC(k)%Pression
+                IncNode(k)%Saturation(:) = IncNodeDirBC(k)%Saturation(:)
+                IncNode(k)%Comp(:, :) = IncNodeDirBC(k)%Comp(:, :)
             end if
 
 #ifdef _THERMIQUE_
 
             if (IdNodeLocal(k)%T == "d") then
-            IncNode(k)%ic = IncNodeDirBC(k)%ic
-            IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
+                IncNode(k)%ic = IncNodeDirBC(k)%ic
+                IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
             end if
 
 #endif

@@ -24,24 +24,24 @@ module DefModel
   ! --------------------------------------------------------------
   !      Definition of the components
   integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
-  integer, parameter :: AIR_COMP = 1
-  integer, parameter :: WATER_COMP = 2 ! I don't know if the water has to be at the end ?
-
-  ! --------------------------------------------------------------
-  !      Definition of the phases
+  integer, parameter :: AIR_COMP = ComPASS_AIR_COMP ! =1 (defined in cmake.conf)
+  integer, parameter :: WATER_COMP = ComPASS_WATER_COMP ! =2 (defined in cmake.conf) I don't know if the water has to be at the end ?
+  
   integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
-  integer, parameter :: GAS_PHASE = 1
   !FIXME: Asssume that the latest phase is the liquid phase (wells)
-  integer, parameter :: LIQUID_PHASE = NbPhase
+  integer, parameter :: LIQUID_PHASE = ComPASS_LIQUID_PHASE
+  integer, parameter :: GAS_PHASE = ComPASS_GAS_PHASE
 
   ! --------------------------------------------------------------
   !      Definition of the contexts (sets of present phases)
-  integer, parameter :: NbContexte = 3
-  integer, parameter :: GAS_CONTEXT = 1
-  integer, parameter :: LIQUID_CONTEXT = 2
-  integer, parameter :: DIPHASIC_CONTEXT = 3
+  integer, parameter :: NbContexte = ComPASS_NUMBER_OF_CONTEXTS ! NbContexte = 2**NbPhase - 1
 
+  integer, parameter :: GAS_CONTEXT = ComPASS_GAS_CONTEXT
+  integer, parameter :: LIQUID_CONTEXT = ComPASS_LIQUID_CONTEXT
+  integer, parameter :: DIPHASIC_CONTEXT = ComPASS_DIPHASIC_CONTEXT
+  
   ! Number of phases that are present in each context
+! careful, the lignes must coincide with index defined in cmake.conf
   integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
     1, & ! GAS_CONTEXT
     1, & ! LIQUID_CONTEXT
@@ -69,7 +69,11 @@ module DefModel
   integer, parameter :: IndThermique = 0
 #endif
 
-  include '../common/DefModel_constants.F90'
+#include "../common/DefModel_constants.F90"
+    ! FIXME: NbIncTotalMax is duplicated l.46 in src/wrappers/NewtonIncrements.h
+  integer, parameter :: &
+       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
+       NbIncTotalMax     = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
 
   ! ! ! ****** Constants derived from model (do not edit) ****** ! !
 
@@ -107,7 +111,11 @@ module DefModel
   !     the matrix psprim and pssecd are defined formally for compile
 
   integer, parameter :: pschoice = 1
-
+! Global unknowns depending on the context (in the thermal case)
+! ic=1 GAS_CONTEXT:       P=1, T=2, Cga=3, Cgw=4
+! ic=2 LIQUID_CONTEXT:    P=1, T=2, Cla=3, Clw=4
+! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
+!
 #ifdef _THERMIQUE_
    integer, parameter, private :: P=1, T=2
 #else
@@ -116,16 +124,17 @@ module DefModel
 
 
   ! Sum Salpha =1 was already eliminated
+  ! (Sg+Sl=1 is not a closure law, it is forced in the implementation)
   integer, parameter, dimension( NbIncTotalPrimMax, NbContexte) :: &
     psprim = RESHAPE( (/ &
 #ifdef _THERMIQUE_
       P, T, 3, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
       P, T, 4, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-      P, T, 7  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+      P, T, 7  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
 #else
       P, 2, & ! GAS_CONTEXT=1        Cga=2, Cgw=3
       P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
-      P, 6  & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+      P, 6  & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
 #endif
       /), (/ NbIncTotalPrimMax, NbContexte /))
 
@@ -134,11 +143,11 @@ module DefModel
 #ifdef _THERMIQUE_
        4, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
        3, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-       3, 4, 5, 6  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sg=7, Sl=8
+       3, 4, 5, 6  & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
 #else
        3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
        2, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
-       2, 3, 4, 5  & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sg=6, Sl=7
+       2, 3, 4, 5  & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
 #endif
        /), (/ NbEqFermetureMax, NbContexte/))
 
@@ -178,6 +187,6 @@ module DefModel
        0.d0, 1.d0, 0.d0  &
        /), (/ NbCompThermique, NbCompThermique, NbContexte /) )
 
-  include '../common/DefModel_common.F90'
+#include "../common/DefModel_common.F90"
 
 end module DefModel

@@ -28,6 +28,7 @@ extern "C"
     void IncCV_NewtonIncrement(const NewtonIncrements::Pointers<const double>, const double);
     void DirichletContribution_update();
     void IncPrimSecd_compute();
+    void IncPrimSecdFreeFlow_compute();
     void LoisThermoHydro_compute();
     void Flux_DarcyFlux_Cell();
     void Flux_DarcyFlux_Frac();
@@ -64,7 +65,13 @@ void add_time_loop_wrappers(py::module& module)
     module.def("IncCV_LoadIncPreviousTimeStep", &IncCV_LoadIncPreviousTimeStep);
     module.def("IncCVWells_PressureDrop", &IncCVWells_PressureDrop);
     module.def("DirichletContribution_update", &DirichletContribution_update);
-    module.def("IncPrimSecd_compute", &IncPrimSecd_compute);
+    module.def("IncPrimSecd_update_secondary_dependencies", [](){ 
+        IncPrimSecd_compute();
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+        IncPrimSecdFreeFlow_compute();
+#endif // _WIP_FREEFLOW_STRUCTURES_
+        }
+    );
     module.def("LoisThermoHydro_compute", &LoisThermoHydro_compute);
     module.def("Flux_DarcyFlux_Cell", &Flux_DarcyFlux_Cell);
     module.def("Flux_DarcyFlux_Frac", &Flux_DarcyFlux_Frac);

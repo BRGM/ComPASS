@@ -39,6 +39,9 @@ struct IncCV {
     Phase_component_matrix C;
     Phase_vector S;
     Accumulation_vector accumulation;
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    Phase_vector FreeFlow_phase_flowrate; // molar flowrate in the freeflow (atmosphere) at the interface
+#endif // _WIP_FREEFLOW_STRUCTURES_
 };
 
 template <typename Model_type, typename Real_type = double>
@@ -119,6 +122,9 @@ void add_IncCV_wrappers(py::module& module)
 	add_attribute_array<typename X::Real>(PyStateArray, "C", offsetof(X, C), { X::np, X::nc }, { X::nc * sizeof(X::Real), sizeof(X::Real) });
 	add_attribute_array<typename X::Real>(PyStateArray, "S", offsetof(X, S), { X::np }, { sizeof(X::Real) });
 	add_attribute_array<typename X::Real>(PyStateArray, "accumulation", offsetof(X, accumulation), { X::nbdof }, { sizeof(X::Real) });
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    add_attribute_array<typename X::Real>(PyStateArray, "FreeFlow_phase_flowrate", offsetof(X, FreeFlow_phase_flowrate), { X::np }, { sizeof(X::Real) });
+#endif // _WIP_FREEFLOW_STRUCTURES_
     //auto PyNeumannArray = py::class_<NeumannArray>(module, "NeumannContributions")
     //    .def("size", [](const NeumannArray& self) { return self.length; })
     //    .def_property_readonly("shape", [](const NeumannArray& self) { return py::make_tuple(self.length); });

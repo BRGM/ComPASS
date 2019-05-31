@@ -38,17 +38,22 @@
     implicit none
 
     !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
+    ! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
+    ! to have the same structures in C++ and Python.
     TYPE TYPE_IncCVReservoir
 
         integer(c_int) :: ic !< context: index of the set of present phase(s)
 
-        real(c_double) :: & ! values of Inc
+        real(c_double) :: & !< values of Inc
         Pression, & !< Reference Pressure of the element
         Temperature, & !< Temperature of the element
         Comp(NbComp, NbPhase), & !< Molar composition of the element
         Saturation(NbPhase), & !< Saturation of the element
-        AccVol(NbCompThermique) !< ??? of the element
-
+        AccVol(NbCompThermique) !< Accumulation term integrated over volume
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+        ! values of Inc for the soil-atmosphere boundary coundition
+        real(c_double) :: FreeFlow_flowrate(NbPhase) !< molar flowrate in the freeflow (atmosphere) at the interface
+#endif
     end TYPE TYPE_IncCVReservoir
 
     !> to allow = between two TYPE_IncCVReservoir
@@ -96,12 +101,12 @@ private :: &
     inc2%Comp(:, :) = inc1%Comp(:, :)
     inc2%Saturation(:) = inc1%Saturation(:)
     inc2%AccVol(:) = inc1%AccVol(:)
-
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    inc2%FreeFlow_flowrate(:) = inc1%FreeFlow_flowrate(:)
+#endif
     end subroutine assign_type_inccv
 
     subroutine IncCVReservoir_allocate
-
-    integer :: Nb, Nnz
 
     allocate (IncCell(NbCellLocal_Ncpus(commRank + 1)))
     allocate (IncFrac(NbFracLocal_Ncpus(commRank + 1)))

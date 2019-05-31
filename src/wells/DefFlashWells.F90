@@ -133,7 +133,7 @@ contains
 
    !> Allocate global vectors used only in this file
    subroutine DefFlashWells_allocate
-      integer :: k, Nnz
+      integer :: Nnz
       character(len=300) :: fn, pid
 
       ! put debugging magic here, open a file descriptor per processor
@@ -409,7 +409,7 @@ contains
    !! is set as Pressure max.
    subroutine DefFlashWells_NewtonFlashNonLinWellProd
 
-      integer :: nWell, s, j, nums
+      integer :: nWell
       double precision :: Flowrate_head
 
       do nWell = 1, NodebyWellProdLocal%Nb
@@ -672,12 +672,12 @@ contains
             if ((Ps - Pws) > 0.d0) then
                do icp = 1, NbComp
                   if (MCP(icp, mph) == 1) then ! \cap P_i
-                     Flux_ks(icp) = Flux_ks(icp) + DensitemolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
+                     Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
                   end if
                end do
 
 #ifdef _THERMIQUE_
-               FluxT_ks = FluxT_ks + DensitemolaireKrViscoEnthalpieNode(m, nums)*WIDws*(Ps - Pws)
+               FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*(Ps - Pws)
 #endif
             end if
          end do
@@ -714,7 +714,7 @@ contains
       integer, intent(in) :: num_Well
       double precision, intent(out) :: Qw
 
-      integer :: s, k, nums, icp, m, mph
+      integer :: s, nums, icp, m, mph
       double precision :: Pws, Ps, WIDws
       double precision:: Flux_ks(NbComp)
 
@@ -742,7 +742,7 @@ contains
             if ((Ps - Pws) > 0.d0) then
                do icp = 1, NbComp
                   if (MCP(icp, mph) == 1) then ! \cap P_i
-                     Flux_ks(icp) = Flux_ks(icp) + DensitemolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
+                     Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
                   end if
                end do
             end if
@@ -788,7 +788,7 @@ contains
 
             if ((Ps - Pws) < 0.d0) then ! < 0
                do icp = 1, NbComp
-                  Flux_ks(icp) = DensitemolaireKrViscoCompWellInj(icp, s)*WIDws*(Ps - Pws)
+                  Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*(Ps - Pws)
                end do
             end if
          end do
@@ -811,9 +811,9 @@ contains
    subroutine DefFlashWells_TimeFlashSinglePhaseWellProd
 
       double precision :: T, RT, Pws, Ci(NbComp), sumci, E, zp, zs
-      double precision :: H, rhoMean, dP_Tsat, Pdrop
+      double precision :: H, rhoMean, Pdrop
       double precision :: dPf, dTf, Sat(NbPhase), dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_Enthalpie
-      integer :: k, s, icp, sparent, Nnz, i
+      integer :: k, s, icp, sparent, i
       logical :: converged
 
       Sat(:) = 0.d0

@@ -22,7 +22,6 @@ module DefModel
    ! ! ****** Model ****** ! !
 
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
-
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
    integer, parameter :: GAS_PHASE = ComPASS_GAS_PHASE
    integer, parameter :: LIQUID_PHASE = ComPASS_LIQUID_PHASE
@@ -49,6 +48,7 @@ module DefModel
             GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
         /), (/NbPhase, NbContexte/))
 
+
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = transpose(reshape( &
@@ -61,7 +61,10 @@ module DefModel
    integer, parameter :: IndThermique = 0
 #endif
 
-   include '../common/DefModel_constants.F90'
+#include "../common/DefModel_constants.F90"
+  integer, parameter :: &
+       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
+       NbIncTotalMax     = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
 
    ! ! ****** How to choose primary variables ****** ! !
    ! Used in module LoisthermoHydro.F90
@@ -78,23 +81,27 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 
+! Global unknowns depending on the context (in the thermal case)
+! Careful: the index of unknowns must coincide with the lines of there derivatives in IncPrimSecd.F90
+! ic=1 GAS_CONTEXT:       P=1, T=2, Cg=3
+! ic=2 LIQUID_CONTEXT:    P=1, T=2, Cl=3
+! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cg=3, Cl=4, Sprincipal=5        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
 #ifdef _THERMIQUE_
-   integer, parameter :: P=1, T=2, C=3, Sg=4, Sl=5
+   integer, parameter, private :: P=1, T=2
 #else
-   integer, parameter :: P=1, T=0, C=2, Sg=3, Sl=4
+   integer, parameter, private :: P=1
 #endif
-   private :: P, T, C, Sg, Sl
    
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
                        P, T, & ! ic=1 GAS_CONTEXT
                        P, T, & ! ic=2 LIQUID_CONTEXT
-                       P, Sl & ! ic=3 DIPHASIC_CONTEXT
+                       P, 5  & ! ic=3 DIPHASIC_CONTEXT     P=1, T=2, Cg=3, Cl=4, Sprincipal=5
 #else
                        P, & ! ic=1 GAS_CONTEXT
                        P, & ! ic=2 LIQUID_CONTEXT
-                       Sl & ! ic=3 DIPHASIC_CONTEXT
+                       4  & ! ic=3 DIPHASIC_CONTEXT        P=1, Cg=2, Cl=3, Sprincipal=4
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
@@ -103,24 +110,24 @@ module DefModel
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
-                       C, Sg, 0, & ! ic=1 GAS_CONTEXT
-                       C, Sg, 0, & ! ic=2 LIQUID_CONTEXT
-                       T, C, Sg  & ! ic=3 DIPHASIC_CONTEXT
+                       3, 0, 0, & ! ic=1 GAS_CONTEXT           P=1, T=2, Cg=3
+                       3, 0, 0, & ! ic=2 LIQUID_CONTEXT        P=1, T=2, Cl=3
+                       T, 3, 4  & ! ic=3 DIPHASIC_CONTEXT      P=1, T=2, Cg=3, Cl=4, Sprincipal=5
 #else
-                       C, Sg, 0, & ! ic=1 GAS_CONTEXT
-                       C, Sg, 0, & ! ic=2 LIQUID_CONTEXT
-                       0,  0, 0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
+                       2, 0, 0, & ! ic=1 GAS_CONTEXT        P=1, Cg=2
+                       2, 0, 0, & ! ic=2 LIQUID_CONTEXT     P=1, Cl=2
+                       0, 0, 0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
 
   ! Used in module Jacobian.F90
-  ! The idea is to have postive diagonal using linear combinations
-  ! (alternative is to used inverse of block = LC of)
-  ! good for LU O (pas bonne pour amg)
-  ! not used if not preconditionner (but avoid pivoting)
    ! aligmethod=1, manually
+   ! The idea is to have postive diagonal using linear combinations
+   ! (alternative is to used inverse of block = LC of)
+   ! good for LU O (not good for amg)
+   ! not used if not preconditionner (but avoid pivoting)
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic
    !     the index order of aligmat(:,:,ic) is (col,row), it allows us
@@ -134,7 +141,7 @@ module DefModel
 
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
-      aligmat = reshape((/ &
+      aligmat = reshape((/ &   ! NOT USED because aligmethod = 2
 #ifdef _THERMIQUE_
                         1.d0, 0.d0, & ! GAS_CONTEXT=1
                         0.d0, 1.d0, &
@@ -149,6 +156,6 @@ module DefModel
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
-   include '../common/DefModel_common.F90'
+#include "../common/DefModel_common.F90"
 
 end module DefModel

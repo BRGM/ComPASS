@@ -67,7 +67,9 @@ contains
       allocate(configuration%NbPhasePresente_ctx(NbContexte))
       allocate(configuration%NumPhasePresente_ctx(NbPhase, NbContexte))
       allocate(configuration%MCP(NbComp, NbPhase))
+      allocate(configuration%pssecd(NbEqFermetureMax, NbContexte))
       configuration%NbPhasePresente_ctx = NbPhasePresente_ctx
       configuration%NumPhasePresente_ctx = NumPhasePresente_ctx
       configuration%MCP = MCP
+      configuration%pssecd = pssecd
     end function get_model_configuration

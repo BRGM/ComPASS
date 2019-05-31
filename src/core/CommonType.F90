@@ -20,6 +20,7 @@ module CommonType
     integer(c_int), allocatable :: NbPhasePresente_ctx(:)
     integer(c_int), allocatable :: NumPhasePresente_ctx(:,:)
     integer(c_int), allocatable :: MCP(:,:)
+    integer(c_int), allocatable :: pssecd(:,:)
   end type ModelConfiguration
 
   !> Array 1d integer

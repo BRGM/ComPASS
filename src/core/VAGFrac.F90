@@ -579,11 +579,7 @@ contains
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
-    integer :: k, i, ifrac, numi, ptnumi
-    integer :: NbVolume, NbInternalVolume
     !integer :: Ierr
-
-    double precision :: s1, s2
 
     ! VolDarcy
     allocate(VolDarcyCell(NbCellLocal_Ncpus(commRank+1)) )
@@ -662,11 +658,8 @@ contains
   ! compute porosite fourier
   subroutine VAGFrac_VolsFourier
 
-    integer :: k, i, j, ifrac, numj, numi
+    integer :: k
     integer :: Ierr, errcode
-    integer :: NbNodeCell
-
-    double precision :: s
 
     allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)))
     allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)))

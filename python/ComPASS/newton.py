@@ -101,7 +101,7 @@ class Newton:
         kernel.DirichletContribution_update()
         kernel.IncCVWells_PressureDrop()
 #        mpi.master_print('init iteration - compute thermo')
-        kernel.IncPrimSecd_compute()
+        kernel.IncPrimSecd_update_secondary_dependencies()
         kernel.LoisThermoHydro_compute()
 #        mpi.master_print('init iteration - compute fluxes')
         kernel.Flux_DarcyFlux_Cell()

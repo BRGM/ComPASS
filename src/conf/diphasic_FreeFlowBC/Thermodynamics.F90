@@ -8,11 +8,10 @@
 
 module Thermodynamics
 
-  use CommonMPI, only: CommonMPI_abort
   use iso_c_binding, only: c_double, c_int
   use DefModel, only: NbPhase, NbComp, IndThermique, &
     GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP
-
+  use CommonMPI, only: CommonMPI_abort
 
   implicit none
 
@@ -53,7 +52,7 @@ contains
 
   ! Fugacity coefficient
   ! iph is an identificator for each phase:
-  ! GAS_PHASE or LIQUID_PHASE 
+  ! GAS_PHASE or LIQUID_PHASE
   ! P is the pressure of the reference phase (P=Pg)
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
@@ -84,8 +83,8 @@ contains
         call air_henry(T,f)
         call air_henry_dT(dTf)
       else if(icp==WATER_COMP)then
-        call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-        call FluidThermodynamics_Psat(T, Psat, dTSat)
+        call f_PressionCapillaire(rt,iph,S,Pc,DSPc)  ! Pl=Pref + Pc, then Pc = - capillary pressure ! 
+        call FluidThermodynamics_Psat(T, Psat, dTSat) 
 
         f = Psat * dexp(Pc/(T*RZetal))
 
@@ -173,7 +172,7 @@ contains
       dTf = -P/Rgp/T**2
       dCf = 0.d0
       dSf = 0.d0
-    else if(iph==LIQUID_PHASE)then
+    else if(iph == LIQUID_PHASE)then
       f = 1000.d0/H2O_m
 
       dPf = 0.d0
@@ -203,14 +202,14 @@ contains
     call air_MasseMolaire(air_m)
     call H2O_MasseMolaire(H2O_m)
 
-    m = C(1)*air_m + C(2)*H2O_m
+    m = C(AIR_COMP)*air_m + C(WATER_COMP)*H2O_m
 
     f = zeta * m
 
     dPf = dPf * m
     dTf = dTf * m
-    dCf(1) = dCf(1) * m + zeta * air_m
-    dCf(2) = dCf(2) * m + zeta * H2O_m
+    dCf(AIR_COMP) = dCf(AIR_COMP) * m + zeta * air_m
+    dCf(WATER_COMP) = dCf(WATER_COMP) * m + zeta * H2O_m
     dSf = dSf * m
 
   end subroutine f_DensiteMassique
@@ -297,7 +296,7 @@ contains
             f = Pc_cst * Sg / ( 1.d0 - Sg0 ) + A
             dSf(iph) = Pc_cst / ( 1.d0 - Sg0 )  ! wrt Sg
         endif
-        dSf(iph) = -dSf(iph) ! wrt Sl
+        dSf(iph) = -dSf(iph) ! wrt Sl = 1 - Sg
     endif
 
 
@@ -312,7 +311,6 @@ contains
     real(c_double), INTENT(OUT) :: Sl
 
     call CommonMPI_abort('entered in f_Sl, but Pc=0')
-    Sl = -1.d0
 
   end subroutine
 

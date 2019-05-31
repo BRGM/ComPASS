@@ -12,7 +12,7 @@
        use, intrinsic :: iso_c_binding
 
        use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax
-       use Physics, only: Thickness, gravity, CpRoche
+       use Physics, only: Thickness, gravity, CpRoche, atm_pressure
        use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
        use NN, only: Delta_t, TimeCurrent
 
@@ -27,6 +27,8 @@
           set_final_time, &
           get_gravity, &
           set_gravity, &
+          get_atm_pressure, &
+          set_atm_pressure, &
           get_volumetric_heat_capacity, &
           set_volumetric_heat_capacity, &
           get_fracture_thickness, &
@@ -85,6 +87,18 @@
           real(c_double), value, intent(in) :: g
           gravity = g
        end subroutine set_gravity
+
+       function get_atm_pressure() result(p) &
+         bind(C, name="get_atm_pressure")
+         real(c_double) :: p
+         p = atm_pressure
+      end function get_atm_pressure
+
+       subroutine set_atm_pressure(p) &
+          bind(C, name="set_atm_pressure")
+          real(c_double), value, intent(in) :: p
+          atm_pressure = p
+       end subroutine set_atm_pressure
 
        function get_volumetric_heat_capacity() result(cp) &
           bind(C, name="get_rock_volumetric_heat_capacity")

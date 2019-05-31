@@ -28,13 +28,13 @@ module NumbyContext
 
   ! f_i^alpha * C_i^alpha = f_i^beta * C_i^beta, for Q
   integer, dimension(:), allocatable, protected :: &
-      NbEqEquilibre_ctx ! Nombre d'Equation d'Equilibre thermodynamique fct du contexte
+      NbEqEquilibre_ctx ! Number of equillibrium eq fonction of the context
 
   integer, dimension(:,:), allocatable, protected :: &
-      NumCompEqEquilibre_ctx     ! Numero comp
+      NumCompEqEquilibre_ctx     ! Index of comp involved in equillibrium eq
 
   integer, dimension(:,:,:), allocatable, protected :: &
-      Num2PhasesEqEquilibre_ctx  ! Numero du couple de phases
+      Num2PhasesEqEquilibre_ctx  ! Index of phases involved in equillibrium eq
 
 
   ! ***** Inc ***** !
@@ -101,7 +101,6 @@ contains
     deallocate( NumIncPTC2NumIncComp_comp_ctx)
     deallocate( NumIncPTC2NumIncComp_phase_ctx)
 
-    deallocate( NumCompCtilde_ctx)
     deallocate( Num2PhasesEqEquilibre_ctx)
 
     deallocate( NbEqEquilibre_ctx)
@@ -201,6 +200,12 @@ contains
 
       NbIncPTC_ctx(ic) = n
       NbIncTotal_ctx(ic) = NbIncPTC_ctx(ic) + configuration%NbPhasePresente_ctx(ic) ! Warning: NbIncTotal_ctx=NbIncTotalPrim_ctx+NbEqFermeture + 1 because 1 saturation eliminated in hard
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      ! FIXME: Laurence triche pour avoir les molar flowrates comme inconnues supplémentaires
+      if(ic>3) then
+        NbIncTotal_ctx(ic) = NbIncTotal_ctx(ic) + configuration%NbPhasePresente_ctx(ic)
+      endif
+#endif
     end do
 
     ! 2. Nb of primary unknowns
@@ -302,8 +307,16 @@ contains
       end do ! end of loop icp
 
       NbEqEquilibre_ctx(ic) = n
+#ifndef _WIP_FREEFLOW_STRUCTURES_
       NbEqFermeture_ctx(ic) = configuration%NbPhasePresente_ctx(ic) + n
-      ! NbIncPTCPrim(ic) = NbIncPTC(ic) - NbEqFermeture_ctx(ic)
+#else
+      ! count the number of secd unknowns (=nb of closure laws), pssecd is filled in DefModel
+      n=0
+      do i=1,size(configuration%pssecd,1)
+        if (configuration%pssecd(i,ic)>0) n=n+1
+      end do
+      NbEqFermeture_ctx(ic) = n
+#endif
     end do
 
   end subroutine NumbyContext_Eq

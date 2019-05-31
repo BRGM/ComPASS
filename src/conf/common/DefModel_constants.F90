@@ -6,8 +6,6 @@
   !	       d'inc P (T) C primaires
   integer, parameter :: &
        NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
-       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-       NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
-       NbIncTotalMax     = NbIncPTCMax + NbPhase,        &
-       NbIncTotalPrimMax = NbComp + IndThermique,        &
-       NbCompThermique   = NbComp + IndThermique
+       NbIncPTCMax       = 1 + IndThermique + sum(MCP),  & !< Max number of unknowns P (T) C
+       NbIncTotalPrimMax = NbComp + IndThermique,        & !< Max number of primary unknowns
+       NbCompThermique   = NbComp + IndThermique           !< Number of balance equations (components) + thermique

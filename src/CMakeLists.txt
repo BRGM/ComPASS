@@ -102,6 +102,10 @@ set( ComPASSWells_SRCS
     DefFlashWells.F90
 )
 
+if(DEF_FREEFLOW_STRUCTURES)
+  list(APPEND ComPASSCore_SRCS IncPrimSecdFreeFlow.F90)
+endif(DEF_FREEFLOW_STRUCTURES)
+
 # FIXME: DISPMODULE from Thibault branch ?
 if(NOT MPI_Fortran_FOUND)
   message(FATAL_ERROR "MPI is required.")
@@ -138,6 +142,11 @@ set( CONFIGURATIONS
 foreach(_conf ${CONFIGURATIONS})
     option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
 endforeach()
+
+if(DEF_FREEFLOW_STRUCTURES)
+   list(APPEND CONFIGURATIONS diphasic_FreeFlowBC)
+endif(DEF_FREEFLOW_STRUCTURES)
+cmake_dependent_option(ComPASS_WITH_diphasic_FreeFlowBC "Build diphasic_FreeFlowBC module" ON "DEF_FREEFLOW_STRUCTURES" OFF)
 
 set( CONF_SRCS
     DefFlash.F90

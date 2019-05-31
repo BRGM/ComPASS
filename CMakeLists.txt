@@ -12,6 +12,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 include(ComPASSCMakeUtils)
+include(CMakeDependentOption)
 
 message(STATUS "%% PETSC:" ${PETSC_DIR})
 
@@ -59,6 +60,11 @@ option(DEF_DISPMODULE "Third Party debug using displaymodule" OFF)
 if(DEF_DISPMODULE)
   add_definitions(-D_DISPMODULE_)
 endif(DEF_DISPMODULE)
+
+option(DEF_FREEFLOW_STRUCTURES "Use FreeFlow Structures" OFF)
+if(DEF_FREEFLOW_STRUCTURES)
+  add_definitions(-D_WIP_FREEFLOW_STRUCTURES_)
+endif(DEF_FREEFLOW_STRUCTURES)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG_)
