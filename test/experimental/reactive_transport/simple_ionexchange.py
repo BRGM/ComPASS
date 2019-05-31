@@ -20,7 +20,6 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 import ComPASS.timestep as timestep
 from ComPASS.simulation_context import SimulationContext
-import fixed_point as fp
 from scipy.optimize import newton_krylov
 import numpy as np
 

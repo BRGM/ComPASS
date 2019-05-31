@@ -62,9 +62,8 @@ sanity_check:
     - echo "Job running with id"
     - id
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    # FIXME: -t flag here is transitory (cf. issue #69)
-    - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
-    - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
 
 pytest_run:
   stage: test
@@ -79,14 +78,19 @@ petrel_test:
 parallel_test:
   stage: test
   script:
-    # FIXME: -t flag here is transitory (cf. issue #69)
-    - docker run -t --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel vertical_column_temperature.py
-    - docker run -t --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel test_nodeflags_on_tetmesh.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel vertical_column_temperature.py
+    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel test_nodeflags_on_tetmesh.py
 
 time_bulk_scripts:
   stage: test
   script:
-    - docker run -t -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
+    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
+
+# # CHECKME: the following test relies on scipy which is not present on the run container
+# reactive_transport_test:
+  # stage: test
+  # script:
+    # - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
 
 master_release:
   stage: release
