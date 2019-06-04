@@ -11,7 +11,7 @@
 
     use, intrinsic :: iso_c_binding
     use mpi, only: MPI_Abort
-    use CommonMPI, only: ComPASS_COMM_WORLD, Ncpus
+    use CommonMPI, only: ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
     use CommonTypesWrapper, only: cpp_COC
     use InteroperabilityStructures, only: cpp_array_wrapper
     use DefModel, only: NbComp
@@ -55,8 +55,6 @@
     integer, allocatable, dimension(:,:,:), intent(inout) :: NumNodebyEdgebyWell
     integer(c_int), pointer :: offsets(:), edges(:)
     integer i, j, k, nb_wells, nb_nodes, nb_edges
-    ! FIXME: set consistent values to error codes
-    integer :: errcode, Ierr
 
     ! FIXME: Memory management should not be here
     if(allocated(NbEdgebyWell)) then
@@ -72,10 +70,8 @@
     call c_f_pointer(geometries%container_offset, offsets, shape=[nb_wells + 1])
     do i=1, nb_wells
         nb_nodes = offsets(i+1) - offsets(i)
-        if(mod(nb_nodes, 2)/=0) then
-            !CHECKME: MPI_Abort is supposed to end all MPI processes
-            call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-        end if
+        if(mod(nb_nodes, 2)/=0) &
+            call CommonMPI_abort('inconsistent well geometry')
         nb_edges = nb_nodes / 2
         NbEdgebyWell(i) = nb_edges
     end do
@@ -88,10 +84,8 @@
             k = k + 2
         end do
     end do
-    if(k/=offsets(nb_wells + 1)+1) then
-        !CHECKME: MPI_Abort is supposed to end all MPI processes
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
+    if(k/=offsets(nb_wells + 1)+1) &
+        call CommonMPI_abort('inconsistent well geometry')
 
     end subroutine Well_allocate_specific_well_geometries
 

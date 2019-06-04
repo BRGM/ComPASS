@@ -17,6 +17,8 @@
 
 #include "Well_wrappers.h"
 
+#include <pybind11/numpy.h>
+
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 
@@ -237,16 +239,29 @@ void add_well_wrappers(py::module& module)
 	py::class_<Well_geometry>(module, "WellGeometry")
 		.def(py::init<>())
 		.def_readwrite("radius", &Well_geometry::radius)
-		.def("add_segments", [](Well_geometry& instance, py::iterable& segments) {
-		auto to_segment = [](py::sequence& s) {
-			return Well_geometry::Segment_type{ { s[0].cast<Well_geometry::Node_id_type>(), s[1].cast<Well_geometry::Node_id_type>() } };
-		};
-		for (auto&& S : segments) {
-			auto seq = S.cast<py::sequence>();
-			instance.segments.push_back(to_segment(seq));
-		}
-	})
-		.def("clear_segments", [](Well_geometry& instance) { instance.segments.clear(); });
+		.def("add_segments", [](Well_geometry& self, py::iterable& segments) {
+            auto to_segment = [](py::sequence& s) {
+                return Well_geometry::Segment_type{ { 
+                    s[0].cast<Well_geometry::Node_id_type>(), 
+                    s[1].cast<Well_geometry::Node_id_type>() 
+                } };
+            };
+            for (auto&& S : segments) {
+                auto seq = S.cast<py::sequence>();
+                self.segments.push_back(to_segment(seq));
+            }
+        })
+        .def("clear_segments", [](Well_geometry& self) { 
+            self.segments.clear(); 
+         })
+        .def_property_readonly("segments", [](const Well_geometry& self) {
+            const auto& segments = self.segments;
+            return py::array_t<Well_geometry::Node_id_type, py::array::c_style>{
+                {segments.size(), static_cast<std::size_t>(2)},
+                reinterpret_cast<const Well_geometry::Node_id_type*>(segments.data())
+            }; 
+         })
+    ;
 
 	py::class_<Well>(module, "Well")
 		.def(py::init<>())

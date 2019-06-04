@@ -75,6 +75,7 @@ contains
       write (*, *) reason
       write (*, *)
 
+      !CHECKME: MPI_Abort is supposed to end all MPI processes
       call MPI_Abort(ComPASS_COMM_WORLD, error_code, abortion_result)
 
    end subroutine CommonMPI_abort

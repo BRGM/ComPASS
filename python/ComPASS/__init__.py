@@ -69,6 +69,40 @@ def set_output_directory_and_logfile(case_name):
 
 Grid = GT.GridInfo
 
+def collect_all_edges():
+    assert not mesh_is_local, 'mesh is assumed to be global'
+    face_nodes = get_global_connectivity().NodebyFace
+    edges = []
+    for face in face_nodes:
+        nodes = np.array(face, copy=False)
+        for i in range(nodes.shape[0]):
+            edges.append((nodes[i-1], nodes[i]))
+    edges = np.array(edges)
+    assert edges.ndim==2 and edges.shape[1]==2
+    edges = np.sort(edges, axis=1)
+    return np.unique(edges, axis=0)
+
+def check_well_geometry(wells):
+    if len(wells)==0:
+        return
+    def to_edge_array(raw_edges):
+        assert raw_edges.ndim==2 and raw_edges.shape[1]==2
+        edge_type = np.dtype([('v1', np.uint64), ('v2', np.uint64)])
+        edges = np.empty(raw_edges.shape[0], dtype=edge_type)
+        for i, edge in enumerate(raw_edges):
+            edges[i] = tuple(edge)
+        return edges
+    edges = to_edge_array(collect_all_edges())
+    for wi, well in enumerate(wells):
+        well_segments = well.geometry.segments
+        well_edges = np.unique(np.sort(well_segments, axis=1), axis=0)
+        assert well_edges.shape==well_segments.shape, 'duplicate well edge'
+        well_edges = to_edge_array(well_edges)
+        if not np.all(np.isin(well_edges, edges)):
+            message = 'Well %d has edges that are not in mesh edges' % wi
+            explanation = 'Well %d edges:\n' % wi + str(well_segments) + '\n'
+            messages.error(message, explanation=explanation)
+
 def init_and_load_mesh(mesh):
     kernel.init_warmup(runtime.logfile)
     if mpi.is_on_master_proc:
@@ -284,6 +318,7 @@ def init(
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
+        check_well_geometry(well_list)
         fractures = call_if_callable(fracture_faces)
         if fractures is not None:
             set_fractures(fractures)

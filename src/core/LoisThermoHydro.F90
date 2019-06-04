@@ -353,6 +353,7 @@ contains
           divDensiteMolaireKrViscoEnthalpieNode, &
           SmDensiteMolaireKrViscoEnthalpieNode )
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
      ! FreeFlow nodes
      call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank+1), IncNode,&
           NodeRocktypeLocal, &
@@ -366,6 +367,7 @@ contains
                                 !
           divFreeFlowMolarFlowrateNode, &
           SmFreeFlowMolarFlowrateNode )
+#endif
 
     ! well injection
     !   compute q_{w,s,i} (and directive of pression)
