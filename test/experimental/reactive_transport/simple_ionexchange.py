@@ -160,9 +160,9 @@ def make_one_timestep(t, dt, cTold, c1old):
         ComPASS.node_states().T[:] = c1old[nbCells:]
 
         cellheatsource = ComPASS.cellthermalsource()
-        cellheatsource[:] =  - volcell * (freac(cprev[:nbCells], cTnew[:nbCells]) - fc1oldc) / dt
+        cellheatsource[:] =  - 1/omega_reservoir * (freac(cprev[:nbCells], cTnew[:nbCells]) - fc1oldc) / dt
         nodeheatsource = ComPASS.nodethermalsource()
-        nodeheatsource[:] =  - volcell * (freac(cprev[nbCells:], cTnew[nbCells:]) - fc1oldn) / dt
+        nodeheatsource[:] =  - 1/omega_reservoir * (freac(cprev[nbCells:], cTnew[nbCells:]) - fc1oldn) / dt
         #np.set_printoptions(precision=8,linewidth=150)
         #print(heatsource)
 

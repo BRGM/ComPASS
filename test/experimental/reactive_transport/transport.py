@@ -203,10 +203,12 @@ class Transport (object) :
 		    
 		    	if mpi.is_on_master_proc:
 	    		
-		    		buffer1 = np.array(getattr(ComPASS.kernel, 'get_node_heat_source_buffer')(), copy = False)
+		    		#buffer1 = np.array(getattr(ComPASS.kernel, 'get_node_heat_source_buffer')(), copy = False)
+		    		buffer1 = ComPASS.nodethermalsource()
 		    		buffer1[:] = Src_nodes/ts_manager.current_step 
 
-		    		buffer2 = np.array(getattr(ComPASS.kernel, 'get_cell_heat_source_buffer')(), copy = False)
+		    		#buffer2 = np.array(getattr(ComPASS.kernel, 'get_cell_heat_source_buffer')(), copy = False)
+		    		buffer2 = ComPASS.cellthermalsource()
 		    		buffer2[:] = Src_cells/ts_manager.current_step
 
 		    	ComPASS.node_states().T[:] = Cold[i][0:self.nb_nodes]
