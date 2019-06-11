@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     openmpi-bin \
     libpetsc-real3.10 \
     libcgal13 \
+    python3-scipy \
  && apt-get clean 
 
 RUN mkdir -p /build
