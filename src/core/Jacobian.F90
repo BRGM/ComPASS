@@ -4784,8 +4784,8 @@ contains
 
     nbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
     nbFracOwn = NbFracOwn_Ncpus(commRank+1)
-    nbWellInjOwn = NbWellInjLocal_Ncpus(commRank+1)
-    nbWellProdOwn = NbWellProdLocal_Ncpus(commRank+1)
+    nbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
+    nbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
 
     nbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
     nbFracLocal = NbFracLocal_Ncpus(commRank+1)
@@ -5066,8 +5066,8 @@ contains
 
     nbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
     nbFracOwn = NbFracOwn_Ncpus(commRank+1)
-    nbWellInjOwn = NbWellInjLocal_Ncpus(commRank+1)
-    nbWellProdOwn = NbWellProdLocal_Ncpus(commRank+1)
+    nbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
+    nbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
 
     nbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
     nbFracLocal = NbFracLocal_Ncpus(commRank+1)
