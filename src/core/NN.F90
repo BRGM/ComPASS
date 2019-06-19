@@ -9,11 +9,12 @@
 module NN
 
    use iso_c_binding, only: c_bool, c_double
+   use StringWrapper, only: cpp_string_wrapper, fortran_string
 
    use mpi, only: MPI_Abort, MPI_Barrier, MPI_WTIME
    use CommonMPI, only: &
      commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init, CommonMPI_abort
-   
+   use InteroperabilityStructures, only: cpp_array_wrapper
    use SchemeParameters, only: &
       NewtonNiterMax, KspNiterMax, KspTol, OneSecond, TimeFinal, TimeStepInit
 
@@ -38,7 +39,6 @@ module NN
       VAGFrac_TransDarcy, VAGFrac_TransFourier, &
       VAGFrac_VolsDarcy, VAGFrac_VolsFourier, VAGFrac_free
 
-    use PartitionMesh, only: PartitionMesh_Metis
     use LocalMesh, only: LocalMesh_Make, LocalMesh_Free
     use NumbyContext, only: NumbyContext_make, NumbyContext_free
     use IncCV, only: IncCV_allocate, IncCV_free
@@ -128,9 +128,6 @@ module NN
       NewtonIncreWellInj, &
       NewtonIncreWellProd
 
-  ! Partition
-    integer, allocatable, dimension(:), private :: ProcbyCell
-
    !  ! Perm
    !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
    !  double precision, dimension(:), allocatable :: PermFracLocal
@@ -165,26 +162,21 @@ contains
    
    end subroutine NN_init_output_streams
 
-   subroutine NN_partition_mesh
-
-#ifndef NDEBUG
-      if (.NOT. commRank == 0) then
+   subroutine NN_partition_mesh(ProcbyCell)
+      integer(c_int), dimension(:), intent(in) :: ProcbyCell
+    
+      if (.NOT. commRank == 0) &
          call CommonMPI_abort("Mesh is supposed to be partitioned by master process.")
-      end if
-#endif
 
-      if(allocated(ProcbyCell)) deallocate(ProcbyCell)
-      allocate(ProcbyCell(NbCell))
-      call PartitionMesh_Metis(Ncpus, CellbyCell, ProcbyCell)
       call LocalMesh_Make(ProcbyCell)
-      deallocate(ProcbyCell)
       call GlobalMesh_free
 
    end subroutine NN_partition_mesh
 
-   subroutine NN_init_warmup(LogFile)
+   subroutine NN_init_warmup(LogFile) &
+      bind(C, name="NN_init_warmup")
    
-      character(len=*), intent(in) :: LogFile
+      type(cpp_string_wrapper), intent(in) :: Logfile
    
       ! initialisation petsc/MPI
       call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
@@ -195,15 +187,14 @@ contains
       ! init mpi, communicator/commRank/commSize
       call CommonMPI_init(PETSC_COMM_WORLD)
    
-      call NN_init_output_streams(Logfile)
+      call NN_init_output_streams(fortran_string(Logfile))
    
       comptime_readmesh = MPI_WTIME()
    
    end subroutine NN_init_warmup
 
-   subroutine NN_init_phase2(activate_cpramg, activate_direct_solver)
-
-      logical(c_bool), intent(in) :: activate_cpramg, activate_direct_solver
+   subroutine NN_init_phase2_summary() &
+      bind(C, name="NN_init_phase2_summary")
 
       if (commRank == 0) then
          do i = 1, size(fd)
@@ -224,19 +215,35 @@ contains
             write (j, *) ""
          end do
 
-         comptime_readmesh = MPI_WTIME() - comptime_readmesh
-         do i = 1, size(fd)
-            write (fd(i), '(A,F16.3)') "Computation time warm up and reading mesh: ", &
-               comptime_readmesh
-         end do
+         ! comptime_readmesh = MPI_WTIME() - comptime_readmesh
+         ! do i = 1, size(fd)
+            ! write (fd(i), '(A,F16.3)') "Computation time warm up and reading mesh: ", &
+               ! comptime_readmesh
+         ! end do
+
       end if
 
-      !comptime_meshmake = MPI_WTIME()
+   end subroutine NN_init_phase2_summary
 
-      if (commRank == 0) then
-         call NN_partition_mesh
-      end if
-      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
+   subroutine NN_init_phase2_partition(colors) &
+      bind(C, name="NN_init_phase2_partition")
+      type(cpp_array_wrapper), intent(in) :: colors
+      integer(c_int), pointer :: cell_colors(:)
+
+      if (.NOT. commRank == 0) &
+         call CommonMPI_abort("Mesh is supposed to be partitioned by master process.")
+     if(colors%n/=NbCell) &
+        call CommonMPI_abort("wrong number of cells")
+        
+     call c_f_pointer(colors%p, cell_colors, [colors%n])
+     call NN_partition_mesh(cell_colors)
+          
+    end subroutine NN_init_phase2_partition
+
+   subroutine NN_init_phase2(activate_cpramg, activate_direct_solver) &
+      bind(C, name="NN_init_phase2")
+       
+      logical(c_bool), intent(in), value :: activate_cpramg, activate_direct_solver
 
       ! *** Global Mesh -> Local Mesh *** !
 
@@ -393,7 +400,8 @@ contains
 
    end subroutine NN_flash_all_control_volumes
 
-   subroutine NN_main_summarize_timestep()
+   subroutine NN_main_summarize_timestep() &
+      bind(C, name="NN_main_summarize_timestep")
 
       do i = 1, size(fd)
          j = fd(i)
@@ -411,7 +419,8 @@ contains
 
    end subroutine NN_main_summarize_timestep
 
-   subroutine NN_finalize()
+   subroutine NN_finalize() &
+      bind(C, name="NN_finalize")
 
       deallocate (NewtonIncreNode)
       deallocate (NewtonIncreFrac)

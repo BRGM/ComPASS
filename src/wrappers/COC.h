@@ -127,7 +127,9 @@ public:
 	}
 	auto number_of_containers() const { return nb_containers; }
 	const offset_type * offset_data() const { return container_offset; }
+	offset_type * mutable_offset_data() { return container_offset; }
 	const value_type * content_data() const { return container_content; }
+	value_type * mutable_content_data() { return container_content; }
 	std::size_t size() const {
 		if (nb_containers == 0) return 0;
 		assert(container_offset);

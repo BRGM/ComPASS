@@ -47,7 +47,8 @@ class MeshDistribution:
             'nb_procs': lambda s: int(s),
             'nb_own_cells': extract_integer_list,
             'nb_own_nodes': extract_integer_list,
-            'nb_own_faces': extract_integer_list
+            'nb_own_faces': extract_integer_list,
+            'nb_own_fractures': extract_integer_list,
         }
         for name in vars:
             setattr(self, name, None)
@@ -61,13 +62,14 @@ class MeshDistribution:
                             setattr(self, name, extract(match.group(1)))
                             break
     def __str__(self):
-        return r'''
-nb_procs = %d
-nb_own_cells = %s
-nb_own_nodes = %s
-nb_own_faces = %s
-''' % (self.nb_procs, self.nb_own_cells, self.nb_own_nodes, self.nb_own_faces)
-        
+        return '\n'.join(
+            [
+                '%s = %d'%(s, getattr(self, s)) for s in (
+                    nb_procs, nb_own_cells, nb_own_nodes,
+                    nb_own_faces, nb_own_fractures
+                )
+            ]
+        )
 
 class PostProcessor:
 
@@ -98,18 +100,18 @@ class PostProcessor:
         return self.dumper.states_filename(proc, tag)
         
     def write_mesh_vtu(self, proc, basename,
-                       own_only=False, dump_procid=False,
+                       own_only=True, dump_procid=False,
                        nodedata=None, celldata=None, fracdata=None):
         assert proc < self.distribution.nb_procs
         nb_own_cells = self.distribution.nb_own_cells[proc]
-        nb_own_faces = self.distribution.nb_own_faces[proc]
+        nb_own_fractures = self.distribution.nb_own_fractures[proc]
         if dump_procid:
             own_only = True
             assert nodedata is None and celldata is None and fracdata is None
             celldata = {'proc': np.array(np.tile(proc, nb_own_cells),
                                          dtype=self.proc_id_type)}
-            if nb_own_faces>0:
-                fracdata = {'proc': np.array(np.tile(proc, nb_own_faces),
+            if nb_own_fractures>0:
+                fracdata = {'proc': np.array(np.tile(proc, nb_own_fractures),
                                              dtype=self.proc_id_type)}
         if nodedata is None:
             nodedata = {}
@@ -147,9 +149,9 @@ class PostProcessor:
                 cell_nodes = mesh['fracturenodes_values']
                 cell_types = mesh['fracture_types']
                 if own_only:
-                    cell_nodes_offsets = cell_nodes_offsets[:nb_own_faces]
+                    cell_nodes_offsets = cell_nodes_offsets[:nb_own_fractures]
                     cell_nodes = cell_nodes[:cell_nodes_offsets[-1]]
-                    cell_types = cell_types[:nb_own_faces]
+                    cell_types = cell_types[:nb_own_fractures]
                 vtkw.write_vtu(
                     vtkw.vtu_doc_from_COC(
                         mesh['vertices'], cell_nodes_offsets, cell_nodes, cell_types, 

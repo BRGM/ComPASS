@@ -440,7 +440,7 @@ contains
 
         Id_Qki(:) = .false.
 
-        do nph_k=1, NbPhasePresente_ctx( IncFrac(k)%ic) ! phases present: Q_k
+        do nph_k=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! phases present: Q_k
           numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
 
           Id_Qki(numph_k) = .true.

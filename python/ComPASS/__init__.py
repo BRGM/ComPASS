@@ -254,8 +254,17 @@ def _process_dirichlet_nodes(
             messages.error('You are setting temperature dirichlet nodes without energy transfer')        
     kernel.global_mesh_count_dirichlet_nodes()
 
-
-
+def part_mesh():
+    nparts = mpi.communicator().size
+    if nparts>1:
+        cell_colors = kernel.metis_part_graph(
+            get_global_connectivity().CellbyCell, nparts,
+        )
+        cell_colors-= 1 # Fortran indexing
+    else:
+        cell_colors = np.zeros(global_number_of_cells(), dtype=np.int32)
+    return cell_colors
+    
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -273,6 +282,7 @@ def init(
     set_temperature_dirichlet_nodes = lambda: None,
     set_global_flags = None,
     set_global_rocktype = None,
+    mesh_parts = None,
     **kwargs
 ):
     assert not ComPASS.mesh_is_local
@@ -341,9 +351,18 @@ def init(
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
+        kernel.init_phase2_summary()
+        if mesh_parts is None:
+            mesh_parts = part_mesh()
+        else:
+            ucolors = np.unique(mesh_parts)
+            assert ucolors.min()>=0
+            assert ucolors.max()<mpi.communicator().size
+        kernel.init_phase2_partition(mesh_parts)
+    ComPASS.mesh_is_local = True
+    mpi.synchronize()
     kernel.init_phase2(activate_cpramg, activate_direct_solver)
     mpi.synchronize() # wait for every process to synchronize
-    ComPASS.mesh_is_local = True
     # FUTURE: This could be managed through a context manager ?
     initialized = True
     atexit.register(exit_eos_and_finalize)

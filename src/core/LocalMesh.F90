@@ -15,7 +15,6 @@
 !! then the informations are send in subroutine MeshSchema_make.
 module LocalMesh
 
-! <<<<<<< HEAD
   use CommonType, only: &
     CSR, Array1IdNode, &
     ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
@@ -46,11 +45,6 @@ module LocalMesh
   use DefWell, only: &
     TYPE_CSRDataNodeWell, WellData_type, &
     DataWellInj, DataWellProd, NodeDatabyWellProd, NodeDatabyWellInj
-! =======
-  ! use CommonType
-  ! use CommonMPI
-  ! use GlobalMesh
-! >>>>>>> 103-simon-factorize-code-in-order-to-speed-up-compilation
 
   ! 1. FacebyCellRes_Ncpus, NodebyFaceRes_Ncpus,
   !    NodebyCellRes_Ncpus, CellbyFaceRes_Ncpus
@@ -322,7 +316,7 @@ contains
 
   subroutine LocalMesh_Make(ProcbyCell) 
 
-    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
+    integer, dimension(:), intent(in) :: ProcbyCell
 
     ! tmp value
     integer :: i
@@ -609,7 +603,7 @@ contains
   !   | own cells | ghost cells (own for proc i) | ghost cells (own for proc j) | ...
   subroutine LocalMesh_CellbyProc(ip, ProcbyCell) 
 
-    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
+    integer, dimension(:), intent(in) :: ProcbyCell
 
     ! input
     integer, intent(in) :: ip
@@ -831,7 +825,7 @@ contains
   subroutine LocalMesh_FacebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
-    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
+    integer, dimension(:), intent(in) :: ProcbyCell
     integer :: ip1 ! ip1 = ip + 1 ip=0,1,..., ip1 used for array
 
     ! tmp
@@ -1059,7 +1053,7 @@ contains
   subroutine LocalMesh_NodebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
-    integer, allocatable, dimension(:), intent(in) :: ProcbyCell
+    integer, dimension(:), intent(in) :: ProcbyCell
     integer :: ip1
 
     ! tmp

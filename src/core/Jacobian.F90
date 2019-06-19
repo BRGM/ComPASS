@@ -4793,18 +4793,13 @@ contains
     nbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
     nbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
-    ! JacBigA%Nb
-    JacBigA%Nb = NbNodeOwn_Ncpus(commRank+1) &
-         + NbFracOwn_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate(nbNnzbyLine( JacBigA%Nb))
-
-    ! JacBigA%Pt
-    allocate( JacBigA%Pt(JacbigA%Nb+1) )
+    JacBigA%Nb = nbNodeOwn + nbFracOwn + nbCellLocal + nbWellInjOwn + nbWellProdOwn
+    allocate(nbNnzbyLine(JacBigA%Nb))
+    allocate(JacBigA%Pt(JacBigA%Nb+1))
+    allocate(BigSm(NbCompThermique,JacBigA%Nb))
 
     ! a1* in JacbigA
-    do i=1,NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy dir and T dir
        ! only in this case, one non-zero (block) this row, it is Id
@@ -4828,31 +4823,33 @@ contains
     ! end if
 
     ! a2* in JacbigA, rq: frac is not dir face
-    do i=1,NbFracOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
+    start = nbNodeOwn
+    do i=1, nbFracOwn
+       nbNnzbyLine(start+i) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
             + FracbyFracOwn%Pt(i+1) - FracbyFracOwn%Pt(i) &
             + CellbyFracOwn%Pt(i+1) - CellbyFracOwn%Pt(i)
     end do
 
     ! a3* in JacbigA
-    do i=1,NbCellLocal_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn+nbFracOwn) = &
+    start = start + nbFracOwn
+    do i=1, nbCellLocal
+       nbNnzbyLine(start+i) = &
             NodebyCellLocal%Pt(i+1) - NodebyCellLocal%Pt(i)  &
             + FracbyCellLocal%Pt(i+1) - FracbyCellLocal%Pt(i) + 1
     end do
 
     ! a4* in JacbigA
-    start = nbNodeOwn + nbFracOwn + nbCellLocal
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbCellLocal
+    do i=1, nbWellInjOwn
+        nbNnzbyLine(start+i) = &
             NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i) + 1 ! a14 and a44, (+1 sicne a44 is diag)
     end do
 
     ! a5* in JacbigA
-    start = nbNodeOwn + nbFracOwn + nbCellLocal + nbWellInjOwn
+    start = start + nbWellInjOwn
     ! print*, 'DEBUG HERE', NbWellProdOwn_Ncpus(commRank+1)
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    do i=1, nbWellProdOwn
+        nbNnzbyLine(start+i) = &
             NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i) + 1 ! a55 is diag
     end do
 
@@ -4871,11 +4868,12 @@ contains
     !   jf=Fracby*(jf) is face number, not frac number,
     !   FaceToFrac(jf) is frac number
 
-    allocate( JacBigA%Num(Nz) )
+    allocate(JacBigA%Num(Nz))
+    allocate(JacBigA%Val(NbCompThermique, NbCompThermique, Nz))
 
     start = 0
 
-    do i=1, NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! dir Darcy and dir T
 #ifdef _THERMIQUE_
@@ -4923,7 +4921,7 @@ contains
        end if
     end do
 
-    do i=1, NbFracOwn_Ncpus(commRank+1)
+    do i=1, nbFracOwn
 
        ! a21(i,:)
        do j=1, NodebyFracOwn%Pt(i+1)-NodebyFracOwn%Pt(i)
@@ -4947,7 +4945,7 @@ contains
        ! a24 = a25 = 0
     end do
 
-    do i=1, NbCellLocal_Ncpus(commRank+1)
+    do i=1, nbCellLocal
 
        ! a31(i,:)
        do j=1, NodebyCellLocal%Pt(i+1)-NodebyCellLocal%Pt(i)
@@ -4969,7 +4967,7 @@ contains
        ! a34 = a35 = 0
     end do
 
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
+    do i=1, nbWellInjOwn
 
        ! a41(i,:)
        do j=1, NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i)
@@ -4982,7 +4980,7 @@ contains
        start = start + 1
     end do
 
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
+    do i=1, nbWellProdOwn
 
        ! a51(i,:)
        do j=1, NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i)
@@ -5010,16 +5008,6 @@ contains
           end do
        end do
     end do
-
-    ! allocate JacBigA%Val
-    allocate( JacBigA%Val (NbCompThermique, NbCompThermique, Nz)) ! number of non zero
-
-    ! allocate bigSm
-    Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate( BigSm( NbCompThermique, Nz))
 
   end subroutine Jacobian_StrucJacBigA
 
@@ -5075,18 +5063,19 @@ contains
     nbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
     nbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
-
     ! JacA%Nb
-    JacA%Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
+    JacA%Nb = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn
 
     allocate(nbNnzbyLine(JacA%Nb))
-
-    ! JacA%Pt
-    allocate( JacA%Pt(JacA%Nb+1) )
+    allocate(JacA%Pt(JacA%Nb+1))
+    allocate(Sm(NbCompThermique, JacA%Nb))
+    allocate(csrK(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
+    csrK(:) = 0
+    allocate(csrSR(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
+    csrSR(:) = 0
 
     ! A1* in JacA
-    do i=1,NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy dir and T dir
 #ifdef _THERMIQUE_
@@ -5104,22 +5093,23 @@ contains
     end do
 
     ! A2* in JacA, rq: frac is not dir face
-    do i=1,NbFracOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
+    start = nbNodeOwn
+    do i=1,nbFracOwn
+       nbNnzbyLine(start+i) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
             + FracbyFracOwn%Pt(i+1) - FracbyFracOwn%Pt(i)
     end do
 
     ! A3* in JacA
-    start = nbNodeOwn + nbFracOwn
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbFracOwn
+    do i=1, nbWellInjOwn
+       nbNnzbyLine(start+i) = &
             NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i) + 1 ! A44 is di
     end do
 
     ! A4* in JacA
-    start = nbNodeOwn + nbFracOwn + nbWellInjOwn
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbWellInjOwn
+    do i=1, nbWellProdOwn
+       nbNnzbyLine(start+i) = &
             NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i) + 1 ! A55 is diag
     end do
 
@@ -5144,7 +5134,7 @@ contains
 
     start = 0
 
-    do i=1, NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy and T are both dir
 #ifdef _THERMIQUE_
@@ -5186,7 +5176,7 @@ contains
        end if
     end do
 
-    do i=1, NbFracOwn_Ncpus(commRank+1)
+    do i=1, nbFracOwn
 
        ! A21(i,:)
        do j=1, NodebyFracOwn%Pt(i+1)-NodebyFracOwn%Pt(i)
@@ -5202,7 +5192,7 @@ contains
        start = start + FracbyFracOwn%Pt(i+1)-FracbyFracOwn%Pt(i)
     end do
 
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
+    do i=1, nbWellInjOwn
 
        ! A31(i,:)
        do j=1, NodebyWellInjLocal%Pt(i+1)-NodebyWellInjLocal%Pt(i)
@@ -5215,7 +5205,7 @@ contains
        start = start + 1
     end do
 
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
+    do i=1, nbWellProdOwn
 
        ! A41(i,:)
        do j=1, NodebyWellProdLocal%Pt(i+1)-NodebyWellProdLocal%Pt(i)
@@ -5248,24 +5238,6 @@ contains
     ! allocate JacA%Val
     allocate( JacA%Val( NbCompThermique, NbCompThermique, Nz)) ! number of non zero
 !    JacA%Val(:,:,:) = 0.d0
-
-    ! allocate csrK csrSR
-    allocate( csrK ( NbNodeLocal_Ncpus(commRank+1) &
-         + NbFracLocal_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1) ))
-
-    allocate( csrSR ( NbNodeLocal_Ncpus(commRank+1) &
-         + NbFracLocal_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1)))
-
-    csrK(:) = 0
-    csrSR(:) = 0
-
-    ! allocate Sm
-    Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate( Sm(NbCompThermique, Nz))
 
   end subroutine Jacobian_StrucJacA
 

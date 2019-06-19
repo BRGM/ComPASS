@@ -52,7 +52,7 @@ contains
       real(c_double), intent(in) :: Xk(3), Xs(3)
       type(TYPE_IncCVReservoir), intent(in) :: Inck, Incs
       real(c_double), intent(in) :: Mk(:, :), Ms(:, :)
-      real(c_double), intent(out) :: Fks(3, NbComp)
+      real(c_double), intent(inout) :: Fks(3, NbComp)
 
       integer :: m, mph, icp
 

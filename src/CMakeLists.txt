@@ -33,8 +33,6 @@ set( ComPASSCommonCore_SRCS
     CommonType.F90
     InteroperabilityStructures.F90
     NumbyContext.F90
-    PartitionMesh.F90
-    Partition.c
     Physics.F90
     SchemeParameters.F90
 )
@@ -185,12 +183,13 @@ set( WRAPPERS_SRCS
   MeshUtilities.h
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
+  Metis_wrapper.h
+  Metis_wrapper.cpp
   Model_wrappers.h
   Model_common_wrappers.cpp
   MeshSchema_wrappers.F90
   NN_wrappers.h
   NN_wrappers.cpp
-  NN_wrappers.F90
   PyBuffer_wrappers.h
   PyBuffer_wrappers.cpp
   Residu_wrappers.h
