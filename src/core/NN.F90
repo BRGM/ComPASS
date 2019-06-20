@@ -141,10 +141,14 @@ module NN
    public :: &
       NN_main_summarize_timestep, &
       NN_flash_all_control_volumes, &
+      NN_init_warmup, &
+      NN_init_phase2, &
       NN_finalize
    
    private :: &
-       NN_flash_control_volumes
+       NN_flash_control_volumes, &
+       NN_init_output_streams, &
+       NN_partition_mesh
 
 contains
 

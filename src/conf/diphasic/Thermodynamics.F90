@@ -28,10 +28,10 @@ module Thermodynamics
       liquid_pressure
 
 #ifdef _THERMIQUE_
-
   public :: &
       f_EnergieInterne,     &
       f_Enthalpie, &
+      f_SpecificEnthalpy, &
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat
 #endif
@@ -136,7 +136,7 @@ contains
 
     real(c_double), intent(out) :: m
 
-    m = 29d-3
+    m = 29.d-3
   end subroutine air_MasseMolaire
 
 
@@ -144,7 +144,7 @@ contains
 
     real(c_double), intent(out)  :: m
 
-    m = 18d-3
+    m = 18.d-3
   end subroutine H2O_MasseMolaire
 
   ! Densite molaire
@@ -399,6 +399,73 @@ subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
     endif
 
   end subroutine f_Enthalpie
+
+  ! Specific Enthalpy (used in FreeFlow)
+  ! iph is an identificator for each phase:
+  ! GAS_PHASE or LIQUID_PHASE
+  subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
+
+    ! input
+    integer(c_int), value, intent(in) :: iph
+    real(c_double), value, intent(in) :: P, T
+    real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+
+    ! output
+    real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
+                                  dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+
+    real(c_double) :: H2O_m, air_m
+    real(c_double) :: a,b,cc,d,Ts,T0,ss,dTss,cp
+
+    if(iph == GAS_PHASE)then
+      a = 1990.89d+3
+      b = 190.16d+3
+      cc = -1.91264d+3
+      d = 0.2997d+3
+
+      Ts = T/100.d0
+
+      ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
+      dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
+
+
+      call H2O_MasseMolaire(H2O_m)
+
+      call f_CpGaz(cp)
+      call air_MasseMolaire(air_m)
+
+      f(AIR_COMP) = cp*air_m*T
+      f(WATER_COMP) = ss*H2O_m
+
+      dPf = 0.d0
+      dTf(AIR_COMP) = cp*air_m
+      dTf(WATER_COMP) = H2O_m*dTss
+      dCf = 0.d0
+      dSf = 0.d0
+
+    else if(iph == LIQUID_PHASE)then
+
+      a = -14.4319d+3
+      b = +4.70915d+3
+      cc = -4.87534
+      d = 1.45008d-2
+      T0 = 273.d0
+
+      ss = a + b*(T-T0) + cc*(T-T0)**2.d0 + d*(T-T0)**3.d0
+      dTss = b + 2.d0*cc*(T-T0) + 3.d0*d*(T-T0)**2.d0
+
+      call H2O_MasseMolaire(H2O_m)
+
+      f(:) = ss * H2O_m
+
+      dPf = 0.d0
+      dTf(:) = dTss * H2O_m
+      dCf = 0.d0
+      dSf = 0.d0
+    endif
+
+  end subroutine f_SpecificEnthalpy
 
 
   subroutine f_CpGaz(c)

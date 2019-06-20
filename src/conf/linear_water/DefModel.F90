@@ -19,6 +19,7 @@ module DefModel
    implicit none
 
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
+   integer, parameter :: WATER_COMP = ComPASS_WATER_COMP
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
    integer, parameter :: NbContexte = 1
 

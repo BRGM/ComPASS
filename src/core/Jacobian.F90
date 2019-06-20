@@ -23,33 +23,41 @@ module Jacobian
      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod
 
   use LoisThermoHydro, only: &
-     DensitemolaireKrViscoCompWellInj, DensitemolaireKrViscoEnthalpieWellInj, &
-     DensitemolaireKrViscoCompNode, DensitemolaireKrViscoCompCell, DensitemolaireKrViscoCompFrac, &
-     DensitemolaireKrViscoEnthalpieNode, DensitemolaireKrViscoEnthalpieCell, DensitemolaireKrViscoEnthalpieFrac, &
-     DensitemolaireSatCompNode, DensitemolaireSatCompCell, DensitemolaireSatCompFrac, &
-     DensitemolaireEnergieInterneSatNode, DensitemolaireEnergieInterneSatCell, DensitemolaireEnergieInterneSatFrac, &
-     divDensitemolaireKrViscoCompNode, divDensitemolaireKrViscoCompCell, divDensitemolaireKrViscoCompFrac, &
-     divDensitemolaireKrViscoEnthalpieNode, divDensitemolaireKrViscoEnthalpieCell, divDensitemolaireKrViscoEnthalpieFrac, &
+     DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
+     DensiteMolaireKrViscoCompNode, DensiteMolaireKrViscoCompCell, DensiteMolaireKrViscoCompFrac, &
+     DensiteMolaireKrViscoEnthalpieNode, DensiteMolaireKrViscoEnthalpieCell, DensiteMolaireKrViscoEnthalpieFrac, &
+     DensiteMolaireSatCompNode, DensiteMolaireSatCompCell, DensiteMolaireSatCompFrac, &
+     DensiteMolaireEnergieInterneSatNode, DensiteMolaireEnergieInterneSatCell, DensiteMolaireEnergieInterneSatFrac, &
+     divDensiteMolaireKrViscoCompNode, divDensiteMolaireKrViscoCompCell, divDensiteMolaireKrViscoCompFrac, &
+     divDensiteMolaireKrViscoEnthalpieNode, divDensiteMolaireKrViscoEnthalpieCell, divDensiteMolaireKrViscoEnthalpieFrac, &
      divTemperatureNode, divTemperatureCell, divTemperatureFrac, &
      SmTemperatureNode, SmTemperatureCell, SmTemperatureFrac, &
      SmDensiteMassiqueNode, SmDensiteMassiqueCell, SmDensiteMassiqueFrac, &
      SmPressionNode, SmPressionCell, SmPressionFrac, &
-     SmDensitemolaireKrViscoCompNode, SmDensitemolaireKrViscoCompCell, SmDensitemolaireKrViscoCompFrac, &
-     SmDensitemolaireKrViscoEnthalpieNode, SmDensitemolaireKrViscoEnthalpieCell, SmDensitemolaireKrViscoEnthalpieFrac, &
-     SmDensitemolaireEnergieInterneSatNode, SmDensitemolaireEnergieInterneSatCell, SmDensitemolaireEnergieInterneSatFrac, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     divFreeFlowMolarFlowrateNode, SmFreeFlowMolarFlowrateNode, &
+     FreeFlowMolarFlowrateCompNode, divFreeFlowMolarFlowrateCompNode, SmFreeFlowMolarFlowrateCompNode, &
+     FreeFlowHmCompNode, divFreeFlowHmCompNode, SmFreeFlowHmCompNode, &
+     FreeFlowHTTemperatureNetRadiationNode, divFreeFlowHTTemperatureNetRadiationNode, SmFreeFlowHTTemperatureNetRadiationNode, &
+     FreeFlowMolarFlowrateEnthalpieNode, divFreeFlowMolarFlowrateEnthalpieNode, SmFreeFlowMolarFlowrateEnthalpieNode, &
+     AtmEnthalpieNode, &
+#endif
+     SmDensiteMolaireKrViscoCompNode, SmDensiteMolaireKrViscoCompCell, SmDensiteMolaireKrViscoCompFrac, &
+     SmDensiteMolaireKrViscoEnthalpieNode, SmDensiteMolaireKrViscoEnthalpieCell, SmDensiteMolaireKrViscoEnthalpieFrac, &
+     SmDensiteMolaireEnergieInterneSatNode, SmDensiteMolaireEnergieInterneSatCell, SmDensiteMolaireEnergieInterneSatFrac, &
      divDensiteMassiqueNode, divDensiteMassiqueCell, divDensiteMassiqueFrac, &
      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
-     divDensitemolaireKrViscoEnthalpieWellInj, divDensitemolaireKrViscoCompWellInj, &
-     divDensitemolaireSatCompNode, divDensitemolaireSatCompCell, divDensitemolaireSatCompFrac, &
-     divDensitemolaireEnergieInterneSatNode, divDensitemolaireEnergieInterneSatCell, divDensitemolaireEnergieInterneSatFrac, &
+     divDensiteMolaireKrViscoEnthalpieWellInj, divDensiteMolaireKrViscoCompWellInj, &
+     divDensiteMolaireSatCompNode, divDensiteMolaireSatCompCell, divDensiteMolaireSatCompFrac, &
+     divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
      divPressionNode, divPressionCell, divPressionFrac, &
      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
-     SmDensitemolaireSatCompNode, SmDensitemolaireSatCompCell, SmDensitemolaireSatCompFrac
+     SmDensiteMolaireSatCompNode, SmDensiteMolaireSatCompCell, SmDensiteMolaireSatCompFrac
 
    use NumbyContext, only: &
       NbCompCtilde_ctx, NumCompCtilde_ctx
 
-  use Physics, only: gravity, CpRoche
+  use Physics, only: gravity, CpRoche, atm_comp
 
   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
   use SchemeParameters, only: eps
@@ -180,6 +188,13 @@ module Jacobian
        Jacobian_divFourierFlux_cellnode, &
        Jacobian_divFourierFlux_cellfrac, &
        Jacobian_divFourierFlux_fracnode, &
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       ! div(FreeFlow)
+       Jacobian_JacBigA_BigSm_FF_node, &
+       Jacobian_divFreeFlow_node, &  ! k is cell, s is node
+       Jacobian_divThermalFreeFlow_node, &
+#endif
 
        Jacobian_RowCol_KSR, &
        Jacobian_RowCol_FR,  &
@@ -332,6 +347,10 @@ contains
     ! ! 3.4 loop of well prod
     call Jacobian_JacBigA_BigSm_wellprod
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    ! ! 3.5 loop of FreeFlow Nodes
+    call Jacobian_JacBigA_BigSm_FF_node
+#endif
 
     ! 4. Dirichlet in Jacobian
     do s=1, NbNodeOwn_Ncpus(commRank+1)
@@ -694,7 +713,6 @@ contains
          SmDarcyFlux( NbPhase)
 
 #ifdef _THERMIQUE_
-
     ! div prim of Fourier flux
     double precision :: &
          divFourierFlux_k( NbIncTotalPrimMax), &
@@ -708,7 +726,6 @@ contains
          divEgS( NbIncTotalPrimMax), & ! S for node/frac, represent s in paper
          divEgR( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! R for node/frac, represent s' in paper
          SmEg
-
 #endif
 
     integer :: k, s, nums, sf, r, numr, rf, i, j
@@ -904,7 +921,8 @@ contains
              if( IdNodeLocal(nums)%P /= "d" ) then
                 do i=1, NbComp
                    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                      JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS1(j,i) - divS2(j,i)
+                      JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) &
+                                             - divS1(j,i) - divS2(j,i)
                    end do
                 end do
              end if
@@ -1860,7 +1878,173 @@ contains
 
   end subroutine Jacobian_JacBigA_BigSm_wellprod
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+  ! loop of node, index is nums
+  ! 1.1 div 
+  subroutine Jacobian_JacBigA_BigSm_FF_node
+    ! div prims and Sm from FreeFlow term 
+    double precision :: &
+         divS3( NbIncTotalPrimMax, NbComp), & ! s for node, represent s in paper
+         Sm3( NbComp), &
+         divTFF( NbIncTotalPrimMax), &
+         SmTFF
+    integer :: nums, i, j, nz
+   
+    do nums=1, NbNodeOwn_Ncpus(commRank+1)
 
+      if(IncNode(nums)%ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+
+         ! compute the contribution of the freeflow
+         call Jacobian_divFreeFlow_node(nums,divS3,Sm3)
+#ifdef _THERMIQUE_
+         ! compute the thermal contribution of the freeflow
+         call Jacobian_divThermalFreeFlow_node(nums,divTFF,SmTFF)
+#endif
+
+         ! the diagonal element (s,s) is JacBigA(nz)
+         do i=JacBigA%Pt(nums)+1, JacBigA%Pt(nums+1)
+            if( JacBigA%Num(i)==nums) then
+               nz = i
+               exit
+            end if
+         end do
+
+         if( IdNodeLocal(nums)%P /= "d" ) then
+            ! JacBigA%Val(:,:,nz) 
+            do i=1, NbComp
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS3(j,i)
+               end do
+            end do
+            ! Sm
+            bigSm(1:NbComp,nums) = bigSm(1:NbComp,nums) + Sm3(1:NbComp)
+         end if ! Dirichlet node
+
+#ifdef _THERMIQUE_
+         if( IdNodeLocal(nums)%T /= "d" ) then
+            ! ps. divFourierFlux_s=0
+            do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+               JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) - divTFF(j)
+            end do
+            ! Sm
+            bigSm(NbComp+1,nums) = bigSm(NbComp+1,nums) + SmTFF
+         end if ! Dirichlet node
+#endif
+
+      endif ! FreeFlow node
+
+    enddo ! node nums
+
+
+  end subroutine Jacobian_JacBigA_BigSm_FF_node
+
+
+  ! Derivatives of the FreeFlow terms in the molar balance equations
+  subroutine Jacobian_divFreeFlow_node(nums, divS, Sm0)
+
+    integer, intent(in) :: nums
+
+    double precision, intent(out) :: &
+         divS( NbIncTotalPrimMax, NbComp), &
+         Sm0 ( NbComp)
+
+    ! tmp
+    integer :: m, mph, icp, j
+
+    divS(:,:) = 0.d0
+    Sm0(:) = 0.d0
+
+    ! -> divS, node
+    do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+      mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+
+      if(IncNode(nums)%FreeFlow_flowrate(mph)>=0.d0) then
+
+         ! To understand better, change the order of the loop do m=.. and the loop do icp=..
+         do icp=1, NbComp
+            if(MCP(icp,mph)==1) then ! \cap P_i
+
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  divS(j,icp) = divS(j,icp) + &
+                        divFreeFlowMolarFlowrateCompNode(j,icp,m,nums) + &
+                        divFreeFlowHmCompNode(j,icp,m,nums)
+               end do
+
+               ! Sm0
+               Sm0(icp) = Sm0(icp) + &
+                     SmFreeFlowMolarFlowrateCompNode(icp,m,nums) + &
+                     SmFreeFlowHmCompNode(icp,m,nums)
+            end if
+         end do ! end of icp
+
+      else ! IncNode(nums)%FreeFlow_flowrate(mph)<0.d0
+      ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+
+         ! To understand better, change the order of the loop do m=.. and the loop do icp=..
+         do icp=1, NbComp
+            if(MCP(icp,mph)==1) then ! \cap P_i
+
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  divS(j,icp) = divS(j,icp) + & ! only gas phase because FreeFlow_flowrate(liq)>=0.d0
+                        divFreeFlowMolarFlowrateNode(j,m,nums) * atm_comp(icp,mph) + &
+                        divFreeFlowHmCompNode(j,icp,m,nums)
+               end do
+
+               ! Sm0
+               Sm0(icp) = Sm0(icp) + &
+                     SmFreeFlowMolarFlowrateNode(m,nums) * atm_comp(icp,mph) + &
+                     SmFreeFlowHmCompNode(icp,m,nums)
+               end if
+         end do ! end of icp
+      endif
+
+    enddo
+
+  end subroutine Jacobian_divFreeFlow_node
+
+  ! Derivatives of the FreeFlow terms in the energy balance equation
+  subroutine Jacobian_divThermalFreeFlow_node(nums, divS, Sm0)
+
+    integer, intent(in) :: nums
+
+    double precision, intent(out) :: &
+         divS( NbIncTotalPrimMax), &
+         Sm0
+
+    !  tmp
+    integer :: m, mph, j
+
+    divS = 0.d0
+    Sm0 = 0.d0
+
+    ! -> divS, node
+    do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+      mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+
+      if(IncNode(nums)%FreeFlow_flowrate(mph)>=0.d0) then
+
+         do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+            divS(j) = divS(j) + divFreeFlowMolarFlowrateEnthalpieNode(j,m,nums)
+         enddo
+         Sm0 = Sm0 + SmFreeFlowMolarFlowrateEnthalpieNode(m,nums)
+         
+      else ! IncNode(nums)%FreeFlow_flowrate(mph)<0.d0
+      ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+         do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+            divS(j) = divS(j) + divFreeFlowMolarFlowrateNode(j,m,nums) * AtmEnthalpieNode(m,nums)
+         enddo
+         Sm0 = Sm0 + SmFreeFlowMolarFlowrateNode(m,nums) * AtmEnthalpieNode(m,nums)
+
+      endif ! sign of flux
+    enddo
+
+    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+      divS(j) = divS(j) + divFreeFlowHTTemperatureNetRadiationNode(j,nums)
+    enddo
+    Sm0 = Sm0 + SmFreeFlowHTTemperatureNetRadiationNode(nums)
+
+  end subroutine Jacobian_divThermalFreeFlow_node
+#endif
 
   ! term: \sum{P_i \cap Q_{k or s} } &
   !          (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI)
@@ -1931,7 +2115,7 @@ contains
 
        if(FluxDarcyKI(mph,s,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -1999,7 +2183,7 @@ contains
 
        if(FluxDarcyKI(mph,sf,k)>=0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2024,7 +2208,7 @@ contains
 
        if(FluxDarcyKI(mph,sf,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2084,7 +2268,7 @@ contains
 
        if(FluxDarcyFI(mph,s,k)>=0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2109,7 +2293,7 @@ contains
 
        if(FluxDarcyFI(mph,s,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -5396,7 +5580,7 @@ contains
           nz = JacBigA%Pt(rowk+1) ! A4
 
           ! cols is in part node
-          if(cols<=NbNodeLocal_Ncpus(commRank+1)) then
+          if(cols<=NbNodeLocal) then
 
              do i=1, NbCompThermique
                 do j=1, NbCompThermique
