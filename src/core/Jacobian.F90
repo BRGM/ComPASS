@@ -3521,33 +3521,26 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
-
-    Id_Qks(:) = .false.
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt(:) = 0.d0
 
     do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncCell(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueCell(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueCell(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3600,21 +3593,15 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+          ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-          end do
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueNode(j,mph,nums)
+       end do
 
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueNode(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3661,8 +3648,15 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+       divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+       divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+       Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+       Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
+
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
@@ -3691,33 +3685,26 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
-
-    Id_Qks(:) = .false.
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt = 0.d0
 
     do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncCell(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       !Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueCell(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueCell(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3770,21 +3757,14 @@ contains
     do m=1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       ! Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueFrac(j,mph,nums)
+       end do
 
-          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-          end do
-
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueFrac(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3831,8 +3811,14 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+      divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+      divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+      Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+      Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
@@ -3858,33 +3844,27 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt(:) = 0.d0
 
-    Id_Qks(:) = .false.
 
     do m=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncFrac(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueFrac(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueFrac(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3938,21 +3918,14 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueNode(j,mph,nums)
+       end do
 
-          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
-          end do
-
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueNode(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -4000,8 +3973,14 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+      divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+      divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+      Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+      Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
