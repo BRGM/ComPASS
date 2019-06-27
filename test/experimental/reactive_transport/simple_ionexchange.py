@@ -195,17 +195,21 @@ def plot_1D_concentrations(t, cT, c1):
         plt.plot(xc, cT[:nbCells])
         plt.subplot(222)
         plt.plot(xn[:nbCells], cT[nbCells:2*nbCells])
+        plt.xticks(np.arange(0,Lx+.01,step=5))
         plt.title('t='+str(t))
         plt.ylabel('Total conc')
         plt.subplot(223)
         plt.plot(xc, c1[:nbCells])
+        plt.xticks(np.arange(0,Lx+.01,step=5))
         plt.subplot(224)
         plt.plot(xn[:nbCells], c1[nbCells:2*nbCells])
+        plt.xticks(np.arange(0,Lx+.01,step=5))
         plt.xlabel('x in meters')
         plt.ylabel('C1 conc')
         plt.draw()
         plt.pause(0.1)
- 
+
+        plt.savefig(ComPASS.to_output_directory('conc_'+str(t)), format='png')
 
 t=0
 final_time = 55 # hrs
