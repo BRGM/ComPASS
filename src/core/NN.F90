@@ -8,7 +8,7 @@
 
 module NN
 
-   use iso_c_binding, only: c_bool, c_double
+   use iso_c_binding, only: c_bool, c_int, c_double
    use StringWrapper, only: cpp_string_wrapper, fortran_string
 
    use mpi, only: MPI_Abort, MPI_Barrier, MPI_WTIME
