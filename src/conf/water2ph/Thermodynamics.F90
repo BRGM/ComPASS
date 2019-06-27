@@ -31,7 +31,8 @@ module Thermodynamics
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
-      f_Enthalpie
+      f_Enthalpie, &
+      f_SpecificEnthalpy
 
 contains
 
@@ -284,7 +285,6 @@ contains
          b = 190.16d+3
 
          f = a + T*b/100.d0
-         dPf = 0.d0
          dTf = b/100.d0
 
       else if (iph == LIQUID_PHASE) then
@@ -295,7 +295,6 @@ contains
          T0 = 273.d0
 
          f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
-         dPf = 0.d0
          dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
 
 #ifndef NDEBUG
@@ -305,10 +304,53 @@ contains
 
       end if
 
+      dPf = 0.d0
       dCf(:) = 0.d0
       dSf(:) = 0.d0
 
    end subroutine f_Enthalpie
+
+  ! Specific Enthalpy (used in FreeFlow)
+  ! iph is an identificator for each phase:
+  ! GAS_PHASE or LIQUID_PHASE
+  subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
+
+    ! input
+    integer(c_int), value, intent(in) :: iph
+    real(c_double), value, intent(in) :: P, T
+    real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+
+    ! output
+    real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
+                                  dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+
+      real(c_double) :: a, b, cc, d, T0
+
+    if(iph == GAS_PHASE)then
+      a = 1990.89d+3
+      b = 190.16d+3
+
+      f(:) = a + T*b/100.d0
+      dTf(:) = b/100.d0
+
+    else if(iph == LIQUID_PHASE)then
+      a = -14.4319d+3
+      b = 4.70915d+3
+      cc = -4.87534d0
+      d = 1.45008d-2
+      T0 = 273.d0
+
+      f(:) = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
+      dTf(:) = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
+    endif
+
+    dPf = 0.d0
+    dCf = 0.d0
+    dSf = 0.d0
+
+  end subroutine f_SpecificEnthalpy
+
 
    subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")

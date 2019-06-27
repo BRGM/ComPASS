@@ -40,7 +40,8 @@ module Thermodynamics
       f_PermRel, & ! k_{r_alpha}(S)
       f_PressionCapillaire, & ! P_{c,alpha}(S)
       f_EnergieInterne, &
-      f_Enthalpie
+      f_Enthalpie, &
+      f_SpecificEnthalpy
 
 contains
 
@@ -180,7 +181,7 @@ contains
 
    ! Enthalpie
    ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+   ! here only one phase : liquid
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
@@ -200,5 +201,28 @@ contains
       dSf(:) = 0.d0
 
    end subroutine f_Enthalpie
+
+  ! Specific Enthalpy (used in FreeFlow)
+  ! iph is an identificator for each phase:
+  ! here only one phase : liquid
+  subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
+
+    ! input
+    integer(c_int), value, intent(in) :: iph
+    real(c_double), value, intent(in) :: P, T
+    real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+
+    ! output
+    real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
+                                  dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+
+    f(:) = fluid_properties%volumetric_heat_capacity * T
+    dPf = 0.d0
+    dTf(:) = fluid_properties%volumetric_heat_capacity
+    dCf = 0.d0
+    dSf = 0.d0
+
+  end subroutine f_SpecificEnthalpy
 
 end module Thermodynamics

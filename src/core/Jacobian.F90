@@ -23,33 +23,41 @@ module Jacobian
      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod
 
   use LoisThermoHydro, only: &
-     DensitemolaireKrViscoCompWellInj, DensitemolaireKrViscoEnthalpieWellInj, &
-     DensitemolaireKrViscoCompNode, DensitemolaireKrViscoCompCell, DensitemolaireKrViscoCompFrac, &
-     DensitemolaireKrViscoEnthalpieNode, DensitemolaireKrViscoEnthalpieCell, DensitemolaireKrViscoEnthalpieFrac, &
-     DensitemolaireSatCompNode, DensitemolaireSatCompCell, DensitemolaireSatCompFrac, &
-     DensitemolaireEnergieInterneSatNode, DensitemolaireEnergieInterneSatCell, DensitemolaireEnergieInterneSatFrac, &
-     divDensitemolaireKrViscoCompNode, divDensitemolaireKrViscoCompCell, divDensitemolaireKrViscoCompFrac, &
-     divDensitemolaireKrViscoEnthalpieNode, divDensitemolaireKrViscoEnthalpieCell, divDensitemolaireKrViscoEnthalpieFrac, &
+     DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
+     DensiteMolaireKrViscoCompNode, DensiteMolaireKrViscoCompCell, DensiteMolaireKrViscoCompFrac, &
+     DensiteMolaireKrViscoEnthalpieNode, DensiteMolaireKrViscoEnthalpieCell, DensiteMolaireKrViscoEnthalpieFrac, &
+     DensiteMolaireSatCompNode, DensiteMolaireSatCompCell, DensiteMolaireSatCompFrac, &
+     DensiteMolaireEnergieInterneSatNode, DensiteMolaireEnergieInterneSatCell, DensiteMolaireEnergieInterneSatFrac, &
+     divDensiteMolaireKrViscoCompNode, divDensiteMolaireKrViscoCompCell, divDensiteMolaireKrViscoCompFrac, &
+     divDensiteMolaireKrViscoEnthalpieNode, divDensiteMolaireKrViscoEnthalpieCell, divDensiteMolaireKrViscoEnthalpieFrac, &
      divTemperatureNode, divTemperatureCell, divTemperatureFrac, &
      SmTemperatureNode, SmTemperatureCell, SmTemperatureFrac, &
      SmDensiteMassiqueNode, SmDensiteMassiqueCell, SmDensiteMassiqueFrac, &
      SmPressionNode, SmPressionCell, SmPressionFrac, &
-     SmDensitemolaireKrViscoCompNode, SmDensitemolaireKrViscoCompCell, SmDensitemolaireKrViscoCompFrac, &
-     SmDensitemolaireKrViscoEnthalpieNode, SmDensitemolaireKrViscoEnthalpieCell, SmDensitemolaireKrViscoEnthalpieFrac, &
-     SmDensitemolaireEnergieInterneSatNode, SmDensitemolaireEnergieInterneSatCell, SmDensitemolaireEnergieInterneSatFrac, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     divFreeFlowMolarFlowrateNode, SmFreeFlowMolarFlowrateNode, &
+     FreeFlowMolarFlowrateCompNode, divFreeFlowMolarFlowrateCompNode, SmFreeFlowMolarFlowrateCompNode, &
+     FreeFlowHmCompNode, divFreeFlowHmCompNode, SmFreeFlowHmCompNode, &
+     FreeFlowHTTemperatureNetRadiationNode, divFreeFlowHTTemperatureNetRadiationNode, SmFreeFlowHTTemperatureNetRadiationNode, &
+     FreeFlowMolarFlowrateEnthalpieNode, divFreeFlowMolarFlowrateEnthalpieNode, SmFreeFlowMolarFlowrateEnthalpieNode, &
+     AtmEnthalpieNode, &
+#endif
+     SmDensiteMolaireKrViscoCompNode, SmDensiteMolaireKrViscoCompCell, SmDensiteMolaireKrViscoCompFrac, &
+     SmDensiteMolaireKrViscoEnthalpieNode, SmDensiteMolaireKrViscoEnthalpieCell, SmDensiteMolaireKrViscoEnthalpieFrac, &
+     SmDensiteMolaireEnergieInterneSatNode, SmDensiteMolaireEnergieInterneSatCell, SmDensiteMolaireEnergieInterneSatFrac, &
      divDensiteMassiqueNode, divDensiteMassiqueCell, divDensiteMassiqueFrac, &
      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
-     divDensitemolaireKrViscoEnthalpieWellInj, divDensitemolaireKrViscoCompWellInj, &
-     divDensitemolaireSatCompNode, divDensitemolaireSatCompCell, divDensitemolaireSatCompFrac, &
-     divDensitemolaireEnergieInterneSatNode, divDensitemolaireEnergieInterneSatCell, divDensitemolaireEnergieInterneSatFrac, &
+     divDensiteMolaireKrViscoEnthalpieWellInj, divDensiteMolaireKrViscoCompWellInj, &
+     divDensiteMolaireSatCompNode, divDensiteMolaireSatCompCell, divDensiteMolaireSatCompFrac, &
+     divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
      divPressionNode, divPressionCell, divPressionFrac, &
      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
-     SmDensitemolaireSatCompNode, SmDensitemolaireSatCompCell, SmDensitemolaireSatCompFrac
+     SmDensiteMolaireSatCompNode, SmDensiteMolaireSatCompCell, SmDensiteMolaireSatCompFrac
 
    use NumbyContext, only: &
       NbCompCtilde_ctx, NumCompCtilde_ctx
 
-  use Physics, only: gravity, CpRoche
+  use Physics, only: gravity, CpRoche, atm_comp
 
   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
   use SchemeParameters, only: eps
@@ -180,6 +188,13 @@ module Jacobian
        Jacobian_divFourierFlux_cellnode, &
        Jacobian_divFourierFlux_cellfrac, &
        Jacobian_divFourierFlux_fracnode, &
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       ! div(FreeFlow)
+       Jacobian_JacBigA_BigSm_FF_node, &
+       Jacobian_divFreeFlow_node, &  ! k is cell, s is node
+       Jacobian_divThermalFreeFlow_node, &
+#endif
 
        Jacobian_RowCol_KSR, &
        Jacobian_RowCol_FR,  &
@@ -332,6 +347,10 @@ contains
     ! ! 3.4 loop of well prod
     call Jacobian_JacBigA_BigSm_wellprod
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    ! ! 3.5 loop of FreeFlow Nodes
+    call Jacobian_JacBigA_BigSm_FF_node
+#endif
 
     ! 4. Dirichlet in Jacobian
     do s=1, NbNodeOwn_Ncpus(commRank+1)
@@ -694,7 +713,6 @@ contains
          SmDarcyFlux( NbPhase)
 
 #ifdef _THERMIQUE_
-
     ! div prim of Fourier flux
     double precision :: &
          divFourierFlux_k( NbIncTotalPrimMax), &
@@ -708,7 +726,6 @@ contains
          divEgS( NbIncTotalPrimMax), & ! S for node/frac, represent s in paper
          divEgR( NbIncTotalPrimMax, NbNodeCellMax+NbFracCellMax), & ! R for node/frac, represent s' in paper
          SmEg
-
 #endif
 
     integer :: k, s, nums, sf, r, numr, rf, i, j
@@ -904,7 +921,8 @@ contains
              if( IdNodeLocal(nums)%P /= "d" ) then
                 do i=1, NbComp
                    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                      JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS1(j,i) - divS2(j,i)
+                      JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) &
+                                             - divS1(j,i) - divS2(j,i)
                    end do
                 end do
              end if
@@ -1860,7 +1878,173 @@ contains
 
   end subroutine Jacobian_JacBigA_BigSm_wellprod
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+  ! loop of node, index is nums
+  ! 1.1 div 
+  subroutine Jacobian_JacBigA_BigSm_FF_node
+    ! div prims and Sm from FreeFlow term 
+    double precision :: &
+         divS3( NbIncTotalPrimMax, NbComp), & ! s for node, represent s in paper
+         Sm3( NbComp), &
+         divTFF( NbIncTotalPrimMax), &
+         SmTFF
+    integer :: nums, i, j, nz
+   
+    do nums=1, NbNodeOwn_Ncpus(commRank+1)
 
+      if(IncNode(nums)%ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+
+         ! compute the contribution of the freeflow
+         call Jacobian_divFreeFlow_node(nums,divS3,Sm3)
+#ifdef _THERMIQUE_
+         ! compute the thermal contribution of the freeflow
+         call Jacobian_divThermalFreeFlow_node(nums,divTFF,SmTFF)
+#endif
+
+         ! the diagonal element (s,s) is JacBigA(nz)
+         do i=JacBigA%Pt(nums)+1, JacBigA%Pt(nums+1)
+            if( JacBigA%Num(i)==nums) then
+               nz = i
+               exit
+            end if
+         end do
+
+         if( IdNodeLocal(nums)%P /= "d" ) then
+            ! JacBigA%Val(:,:,nz) 
+            do i=1, NbComp
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divS3(j,i)
+               end do
+            end do
+            ! Sm
+            bigSm(1:NbComp,nums) = bigSm(1:NbComp,nums) + Sm3(1:NbComp)
+         end if ! Dirichlet node
+
+#ifdef _THERMIQUE_
+         if( IdNodeLocal(nums)%T /= "d" ) then
+            ! ps. divFourierFlux_s=0
+            do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+               JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) - divTFF(j)
+            end do
+            ! Sm
+            bigSm(NbComp+1,nums) = bigSm(NbComp+1,nums) + SmTFF
+         end if ! Dirichlet node
+#endif
+
+      endif ! FreeFlow node
+
+    enddo ! node nums
+
+
+  end subroutine Jacobian_JacBigA_BigSm_FF_node
+
+
+  ! Derivatives of the FreeFlow terms in the molar balance equations
+  subroutine Jacobian_divFreeFlow_node(nums, divS, Sm0)
+
+    integer, intent(in) :: nums
+
+    double precision, intent(out) :: &
+         divS( NbIncTotalPrimMax, NbComp), &
+         Sm0 ( NbComp)
+
+    ! tmp
+    integer :: m, mph, icp, j
+
+    divS(:,:) = 0.d0
+    Sm0(:) = 0.d0
+
+    ! -> divS, node
+    do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+      mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+
+      if(IncNode(nums)%FreeFlow_flowrate(mph)>=0.d0) then
+
+         ! To understand better, change the order of the loop do m=.. and the loop do icp=..
+         do icp=1, NbComp
+            if(MCP(icp,mph)==1) then ! \cap P_i
+
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  divS(j,icp) = divS(j,icp) + &
+                        divFreeFlowMolarFlowrateCompNode(j,icp,m,nums) + &
+                        divFreeFlowHmCompNode(j,icp,m,nums)
+               end do
+
+               ! Sm0
+               Sm0(icp) = Sm0(icp) + &
+                     SmFreeFlowMolarFlowrateCompNode(icp,m,nums) + &
+                     SmFreeFlowHmCompNode(icp,m,nums)
+            end if
+         end do ! end of icp
+
+      else ! IncNode(nums)%FreeFlow_flowrate(mph)<0.d0
+      ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+
+         ! To understand better, change the order of the loop do m=.. and the loop do icp=..
+         do icp=1, NbComp
+            if(MCP(icp,mph)==1) then ! \cap P_i
+
+               do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  divS(j,icp) = divS(j,icp) + & ! only gas phase because FreeFlow_flowrate(liq)>=0.d0
+                        divFreeFlowMolarFlowrateNode(j,m,nums) * atm_comp(icp,mph) + &
+                        divFreeFlowHmCompNode(j,icp,m,nums)
+               end do
+
+               ! Sm0
+               Sm0(icp) = Sm0(icp) + &
+                     SmFreeFlowMolarFlowrateNode(m,nums) * atm_comp(icp,mph) + &
+                     SmFreeFlowHmCompNode(icp,m,nums)
+               end if
+         end do ! end of icp
+      endif
+
+    enddo
+
+  end subroutine Jacobian_divFreeFlow_node
+
+  ! Derivatives of the FreeFlow terms in the energy balance equation
+  subroutine Jacobian_divThermalFreeFlow_node(nums, divS, Sm0)
+
+    integer, intent(in) :: nums
+
+    double precision, intent(out) :: &
+         divS( NbIncTotalPrimMax), &
+         Sm0
+
+    !  tmp
+    integer :: m, mph, j
+
+    divS = 0.d0
+    Sm0 = 0.d0
+
+    ! -> divS, node
+    do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+      mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+
+      if(IncNode(nums)%FreeFlow_flowrate(mph)>=0.d0) then
+
+         do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+            divS(j) = divS(j) + divFreeFlowMolarFlowrateEnthalpieNode(j,m,nums)
+         enddo
+         Sm0 = Sm0 + SmFreeFlowMolarFlowrateEnthalpieNode(m,nums)
+         
+      else ! IncNode(nums)%FreeFlow_flowrate(mph)<0.d0
+      ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+         do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+            divS(j) = divS(j) + divFreeFlowMolarFlowrateNode(j,m,nums) * AtmEnthalpieNode(m,nums)
+         enddo
+         Sm0 = Sm0 + SmFreeFlowMolarFlowrateNode(m,nums) * AtmEnthalpieNode(m,nums)
+
+      endif ! sign of flux
+    enddo
+
+    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+      divS(j) = divS(j) + divFreeFlowHTTemperatureNetRadiationNode(j,nums)
+    enddo
+    Sm0 = Sm0 + SmFreeFlowHTTemperatureNetRadiationNode(nums)
+
+  end subroutine Jacobian_divThermalFreeFlow_node
+#endif
 
   ! term: \sum{P_i \cap Q_{k or s} } &
   !          (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI)
@@ -1931,7 +2115,7 @@ contains
 
        if(FluxDarcyKI(mph,s,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -1999,7 +2183,7 @@ contains
 
        if(FluxDarcyKI(mph,sf,k)>=0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2024,7 +2208,7 @@ contains
 
        if(FluxDarcyKI(mph,sf,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2084,7 +2268,7 @@ contains
 
        if(FluxDarcyFI(mph,s,k)>=0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -2109,7 +2293,7 @@ contains
 
        if(FluxDarcyFI(mph,s,k)<0.d0) then
 
-          ! To understant better, change the order of the loop do m=.. and the loop do icp=..
+          ! To understand better, change the order of the loop do m=.. and the loop do icp=..
           do icp=1, NbComp
              if(MCP(icp,mph)==1) then ! \cap P_i
 
@@ -3521,33 +3705,26 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
-
-    Id_Qks(:) = .false.
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt(:) = 0.d0
 
     do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncCell(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueCell(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueCell(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3600,21 +3777,15 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+          ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
 
-          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-          end do
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueNode(j,mph,nums)
+       end do
 
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueNode(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3661,8 +3832,15 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+       divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+       divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+       Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+       Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
+
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
@@ -3691,33 +3869,26 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
-
-    Id_Qks(:) = .false.
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt = 0.d0
 
     do m=1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncCell(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       !Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueCell(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueCell(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3770,21 +3941,14 @@ contains
     do m=1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       ! Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueFrac(j,mph,nums)
+       end do
 
-          do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-          end do
-
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueFrac(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3831,8 +3995,14 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+      divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+      divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+      Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+      Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
@@ -3858,33 +4028,27 @@ contains
          Smrho_k( NbPhase), &
          Smrho_s( NbPhase)
 
-    double precision :: Satki
-    integer :: j, m, mph
-    logical :: Id_Qks(NbPhase)
+    ! double precision :: Satki
+    integer :: j, m, mph, tmp_compt(NbPhase)
 
     divrho_k(:,:) = 0.d0
     divrho_s(:,:) = 0.d0
+    Smrho_k(:) = 0.d0
+    Smrho_s(:) = 0.d0
+    tmp_compt(:) = 0.d0
 
-    Id_Qks(:) = .false.
 
     do m=1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
        mph = NumPhasePresente_ctx(m,IncFrac(k)%ic)
 
-       Id_Qks(mph) = .true.
-
-       Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
        do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-          divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
+          divrho_k(j,mph) = divDensiteMassiqueFrac(j,mph,k)
        end do
 
-       Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-          divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-       end do
-
-       Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_k(mph) = SmDensiteMassiqueFrac(mph,k)
 
        ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -3938,21 +4102,14 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       tmp_compt(mph) = tmp_compt(mph) + 1
 
-          Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
+       do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
+          divrho_s(j,mph) = divDensiteMassiqueNode(j,mph,nums)
+       end do
 
-          do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-             divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
-          end do
-
-          Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-          do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-             divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-          end do
-
-          Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
+       Smrho_s(mph) = SmDensiteMassiqueNode(mph,nums)
 
           ! if( abs(Satki)<eps) then ! Satki == 0
 
@@ -4000,8 +4157,14 @@ contains
 
           ! end if ! end of Id_Qks(mph)
 
-       end if
     end do
+
+    do m=1, NbPhase
+      divrho_k(:,m) = divrho_k(:,m) / max(tmp_compt(m), 1)
+      divrho_s(:,m) = divrho_s(:,m) / max(tmp_compt(m), 1)
+      Smrho_k(m) = Smrho_k(m) / max(tmp_compt(m), 1)
+      Smrho_s(m) = Smrho_s(m) / max(tmp_compt(m), 1)
+    enddo
 
     ! if(k==1 .and. s==1 .and. commRank==0) then
     !    print*, "ph 1", divrho_s(:,1)
@@ -4784,8 +4947,8 @@ contains
 
     nbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
     nbFracOwn = NbFracOwn_Ncpus(commRank+1)
-    nbWellInjOwn = NbWellInjLocal_Ncpus(commRank+1)
-    nbWellProdOwn = NbWellProdLocal_Ncpus(commRank+1)
+    nbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
+    nbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
 
     nbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
     nbFracLocal = NbFracLocal_Ncpus(commRank+1)
@@ -4793,18 +4956,13 @@ contains
     nbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
     nbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
-    ! JacBigA%Nb
-    JacBigA%Nb = NbNodeOwn_Ncpus(commRank+1) &
-         + NbFracOwn_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate(nbNnzbyLine( JacBigA%Nb))
-
-    ! JacBigA%Pt
-    allocate( JacBigA%Pt(JacbigA%Nb+1) )
+    JacBigA%Nb = nbNodeOwn + nbFracOwn + nbCellLocal + nbWellInjOwn + nbWellProdOwn
+    allocate(nbNnzbyLine(JacBigA%Nb))
+    allocate(JacBigA%Pt(JacBigA%Nb+1))
+    allocate(BigSm(NbCompThermique,JacBigA%Nb))
 
     ! a1* in JacbigA
-    do i=1,NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy dir and T dir
        ! only in this case, one non-zero (block) this row, it is Id
@@ -4828,31 +4986,33 @@ contains
     ! end if
 
     ! a2* in JacbigA, rq: frac is not dir face
-    do i=1,NbFracOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
+    start = nbNodeOwn
+    do i=1, nbFracOwn
+       nbNnzbyLine(start+i) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
             + FracbyFracOwn%Pt(i+1) - FracbyFracOwn%Pt(i) &
             + CellbyFracOwn%Pt(i+1) - CellbyFracOwn%Pt(i)
     end do
 
     ! a3* in JacbigA
-    do i=1,NbCellLocal_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn+nbFracOwn) = &
+    start = start + nbFracOwn
+    do i=1, nbCellLocal
+       nbNnzbyLine(start+i) = &
             NodebyCellLocal%Pt(i+1) - NodebyCellLocal%Pt(i)  &
             + FracbyCellLocal%Pt(i+1) - FracbyCellLocal%Pt(i) + 1
     end do
 
     ! a4* in JacbigA
-    start = nbNodeOwn + nbFracOwn + nbCellLocal
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbCellLocal
+    do i=1, nbWellInjOwn
+        nbNnzbyLine(start+i) = &
             NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i) + 1 ! a14 and a44, (+1 sicne a44 is diag)
     end do
 
     ! a5* in JacbigA
-    start = nbNodeOwn + nbFracOwn + nbCellLocal + nbWellInjOwn
+    start = start + nbWellInjOwn
     ! print*, 'DEBUG HERE', NbWellProdOwn_Ncpus(commRank+1)
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    do i=1, nbWellProdOwn
+        nbNnzbyLine(start+i) = &
             NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i) + 1 ! a55 is diag
     end do
 
@@ -4871,11 +5031,12 @@ contains
     !   jf=Fracby*(jf) is face number, not frac number,
     !   FaceToFrac(jf) is frac number
 
-    allocate( JacBigA%Num(Nz) )
+    allocate(JacBigA%Num(Nz))
+    allocate(JacBigA%Val(NbCompThermique, NbCompThermique, Nz))
 
     start = 0
 
-    do i=1, NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! dir Darcy and dir T
 #ifdef _THERMIQUE_
@@ -4923,7 +5084,7 @@ contains
        end if
     end do
 
-    do i=1, NbFracOwn_Ncpus(commRank+1)
+    do i=1, nbFracOwn
 
        ! a21(i,:)
        do j=1, NodebyFracOwn%Pt(i+1)-NodebyFracOwn%Pt(i)
@@ -4947,7 +5108,7 @@ contains
        ! a24 = a25 = 0
     end do
 
-    do i=1, NbCellLocal_Ncpus(commRank+1)
+    do i=1, nbCellLocal
 
        ! a31(i,:)
        do j=1, NodebyCellLocal%Pt(i+1)-NodebyCellLocal%Pt(i)
@@ -4969,7 +5130,7 @@ contains
        ! a34 = a35 = 0
     end do
 
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
+    do i=1, nbWellInjOwn
 
        ! a41(i,:)
        do j=1, NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i)
@@ -4982,7 +5143,7 @@ contains
        start = start + 1
     end do
 
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
+    do i=1, nbWellProdOwn
 
        ! a51(i,:)
        do j=1, NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i)
@@ -5010,16 +5171,6 @@ contains
           end do
        end do
     end do
-
-    ! allocate JacBigA%Val
-    allocate( JacBigA%Val (NbCompThermique, NbCompThermique, Nz)) ! number of non zero
-
-    ! allocate bigSm
-    Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate( BigSm( NbCompThermique, Nz))
 
   end subroutine Jacobian_StrucJacBigA
 
@@ -5066,8 +5217,8 @@ contains
 
     nbNodeOwn = NbNodeOwn_Ncpus(commRank+1)
     nbFracOwn = NbFracOwn_Ncpus(commRank+1)
-    nbWellInjOwn = NbWellInjLocal_Ncpus(commRank+1)
-    nbWellProdOwn = NbWellProdLocal_Ncpus(commRank+1)
+    nbWellInjOwn = NbWellInjOwn_Ncpus(commRank+1)
+    nbWellProdOwn = NbWellProdOwn_Ncpus(commRank+1)
 
     nbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
     nbFracLocal = NbFracLocal_Ncpus(commRank+1)
@@ -5075,18 +5226,19 @@ contains
     nbWellInjLocal = NbWellInjLocal_Ncpus(commRank+1)
     nbWellProdLocal = NbWellProdLocal_Ncpus(commRank+1)
 
-
     ! JacA%Nb
-    JacA%Nb = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
+    JacA%Nb = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn
 
     allocate(nbNnzbyLine(JacA%Nb))
-
-    ! JacA%Pt
-    allocate( JacA%Pt(JacA%Nb+1) )
+    allocate(JacA%Pt(JacA%Nb+1))
+    allocate(Sm(NbCompThermique, JacA%Nb))
+    allocate(csrK(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
+    csrK(:) = 0
+    allocate(csrSR(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
+    csrSR(:) = 0
 
     ! A1* in JacA
-    do i=1,NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy dir and T dir
 #ifdef _THERMIQUE_
@@ -5104,22 +5256,23 @@ contains
     end do
 
     ! A2* in JacA, rq: frac is not dir face
-    do i=1,NbFracOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+nbNodeOwn) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
+    start = nbNodeOwn
+    do i=1,nbFracOwn
+       nbNnzbyLine(start+i) = NodebyFracOwn%Pt(i+1) - NodebyFracOwn%Pt(i) &
             + FracbyFracOwn%Pt(i+1) - FracbyFracOwn%Pt(i)
     end do
 
     ! A3* in JacA
-    start = nbNodeOwn + nbFracOwn
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbFracOwn
+    do i=1, nbWellInjOwn
+       nbNnzbyLine(start+i) = &
             NodebyWellInjLocal%Pt(i+1) - NodebyWellInjLocal%Pt(i) + 1 ! A44 is di
     end do
 
     ! A4* in JacA
-    start = nbNodeOwn + nbFracOwn + nbWellInjOwn
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
-       nbNnzbyLine(i+start) = &
+    start = start + nbWellInjOwn
+    do i=1, nbWellProdOwn
+       nbNnzbyLine(start+i) = &
             NodebyWellProdLocal%Pt(i+1) - NodebyWellProdLocal%Pt(i) + 1 ! A55 is diag
     end do
 
@@ -5144,7 +5297,7 @@ contains
 
     start = 0
 
-    do i=1, NbNodeOwn_Ncpus(commRank+1)
+    do i=1, nbNodeOwn
 
        ! Darcy and T are both dir
 #ifdef _THERMIQUE_
@@ -5186,7 +5339,7 @@ contains
        end if
     end do
 
-    do i=1, NbFracOwn_Ncpus(commRank+1)
+    do i=1, nbFracOwn
 
        ! A21(i,:)
        do j=1, NodebyFracOwn%Pt(i+1)-NodebyFracOwn%Pt(i)
@@ -5202,7 +5355,7 @@ contains
        start = start + FracbyFracOwn%Pt(i+1)-FracbyFracOwn%Pt(i)
     end do
 
-    do i=1, NbWellInjOwn_Ncpus(commRank+1)
+    do i=1, nbWellInjOwn
 
        ! A31(i,:)
        do j=1, NodebyWellInjLocal%Pt(i+1)-NodebyWellInjLocal%Pt(i)
@@ -5215,7 +5368,7 @@ contains
        start = start + 1
     end do
 
-    do i=1, NbWellProdOwn_Ncpus(commRank+1)
+    do i=1, nbWellProdOwn
 
        ! A41(i,:)
        do j=1, NodebyWellProdLocal%Pt(i+1)-NodebyWellProdLocal%Pt(i)
@@ -5248,24 +5401,6 @@ contains
     ! allocate JacA%Val
     allocate( JacA%Val( NbCompThermique, NbCompThermique, Nz)) ! number of non zero
 !    JacA%Val(:,:,:) = 0.d0
-
-    ! allocate csrK csrSR
-    allocate( csrK ( NbNodeLocal_Ncpus(commRank+1) &
-         + NbFracLocal_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1) ))
-
-    allocate( csrSR ( NbNodeLocal_Ncpus(commRank+1) &
-         + NbFracLocal_Ncpus(commRank+1) + NbCellLocal_Ncpus(commRank+1) &
-         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1)))
-
-    csrK(:) = 0
-    csrSR(:) = 0
-
-    ! allocate Sm
-    Nz = NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    allocate( Sm(NbCompThermique, Nz))
 
   end subroutine Jacobian_StrucJacA
 
@@ -5445,7 +5580,7 @@ contains
           nz = JacBigA%Pt(rowk+1) ! A4
 
           ! cols is in part node
-          if(cols<=NbNodeLocal_Ncpus(commRank+1)) then
+          if(cols<=NbNodeLocal) then
 
              do i=1, NbCompThermique
                 do j=1, NbCompThermique

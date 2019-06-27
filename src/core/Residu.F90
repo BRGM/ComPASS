@@ -21,6 +21,13 @@ module Residu
       NbPhasePresente_ctx, NumPhasePresente_ctx
 
    use LoisThermoHydro, only: &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      FreeFlowMolarFlowrateCompNode, &
+      FreeFlowHmCompNode, &
+      FreeFlowHTTemperatureNetRadiationNode, &
+      FreeFlowMolarFlowrateEnthalpieNode, &
+      AtmEnthalpieNode, &
+#endif
       DensitemolaireKrViscoCompWellInj, &
       DensitemolaireKrViscoEnthalpieWellInj, &
       DensitemolaireKrViscoCompNode, &
@@ -36,7 +43,7 @@ module Residu
       DensitemolaireEnergieInterneSatCell, &
       DensitemolaireEnergieInterneSatFrac
 
-   use Physics, only: CpRoche
+   use Physics, only: CpRoche, atm_comp, rain_flux
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
    use Flux, only: FluxDarcyKI, FluxFourierKI, FluxDarcyFI, FluxFourierFI
 
@@ -650,6 +657,10 @@ contains
 
       call Residu_add_flux_contributions_wells
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      call Residu_add_flux_contributions_FF_node
+#endif
+
    end subroutine Residu_add_flux_contributions
 
    subroutine Residu_add_flux_contributions_wells
@@ -777,6 +788,76 @@ contains
       end do
 
    end subroutine Residu_add_flux_contributions_wells
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+   subroutine Residu_add_flux_contributions_FF_node
+
+    integer :: nums, m, mph, icp
+    double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate
+
+    do nums=1, NbNodeOwn_Ncpus(commRank+1)
+
+      if(IncNode(nums)%ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+
+         Flux_FreeFlow(:) = 0.d0
+         FluxT_FreeFlow = 0.d0
+
+         do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
+            mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+
+            FreeFlowMolarFlowrate = IncNode(nums)%FreeFlow_flowrate(mph)
+
+            if(FreeFlowMolarFlowrate>=0.d0) then
+
+               do icp=1, NbComp
+                  if(MCP(icp,mph)==1) then ! \cap P_i
+
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) &
+                           + FreeFlowMolarFlowrateCompNode(icp,m,nums) &
+                           + FreeFlowHmCompNode(icp,m,nums) &
+                           + atm_comp(icp,mph) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+                  end if
+               end do ! end of icp
+#ifdef _THERMIQUE_
+               FluxT_FreeFlow = FluxT_FreeFlow &
+                     + FreeFlowMolarFlowrateEnthalpieNode(m,nums) &
+                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+#endif
+
+            else ! FreeFlowMolarFlowrate<0.d0
+            ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+         
+               do icp=1, NbComp
+                  if(MCP(icp,mph)==1) then ! \cap P_i
+         
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) &
+                              + FreeFlowMolarFlowrate * atm_comp(icp,mph) &
+                              + FreeFlowHmCompNode(icp,m,nums) &
+                              + atm_comp(icp,mph) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+                  end if
+               end do ! end of icp
+#ifdef _THERMIQUE_
+               FluxT_FreeFlow = FluxT_FreeFlow &
+                     + FreeFlowMolarFlowrate * AtmEnthalpieNode(m,nums) &
+                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+#endif
+            endif ! sign of FreeFlowMolarFlowrate
+         enddo ! m
+
+#ifdef _THERMIQUE_
+         FluxT_FreeFlow = FluxT_FreeFlow &
+               + FreeFlowHTTemperatureNetRadiationNode(nums)
+         ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) - FluxT_FreeFlow
+#endif
+
+         ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) - Flux_FreeFlow(1:NbComp)
+
+      endif ! avoid resevroir node
+
+   enddo ! node nums
+
+   end subroutine Residu_add_flux_contributions_FF_node
+#endif
 
    function Residu_RelativeNorm_local_closure() &
       result(ResClosLocal) &

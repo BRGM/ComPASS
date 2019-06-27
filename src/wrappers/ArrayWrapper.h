@@ -21,11 +21,15 @@ protected:
 public:
 	static auto make_empty() { return ArrayWrapper(); }
 	template <typename T>
-	static auto wrap(std::vector<T>& v) {
+    static auto wrap(T *p, std::size_t n) {
 		ArrayWrapper wrapper;
-		wrapper.pointer = static_cast<void *>(v.data());
-		wrapper.length = v.size();
+		wrapper.pointer = static_cast<void *>(p);
+		wrapper.length = n;
 		return wrapper;
+    }
+    template <typename T>
+	static auto wrap(std::vector<T>& v) {
+		return wrap(v.data(), v.size());
 	}
 	template <typename T, std::size_t ...extend>
 	friend class PyBufferWrapper;

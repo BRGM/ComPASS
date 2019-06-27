@@ -65,6 +65,7 @@ class Dumper:
             print('nb_own_cells =', ComPASS.nb_cells_own(), file=f)
             print('nb_own_nodes =', ComPASS.nb_nodes_own(), file=f)
             print('nb_own_faces =', ComPASS.nb_faces_own(), file=f)
+            print('nb_own_fractures =', ComPASS.nb_fractures_own(), file=f)
         np.set_printoptions(linewidth=np_linewidth_backup)
 
     def dump_mesh(self):
@@ -114,7 +115,7 @@ class Dumper:
             cell_fluxes, fracture_fluxes = ComPASS.mass_fluxes()
             dumped_states['cell_total_mass_flux'] = cell_fluxes.sum(axis=1)
             dumped_states['fracture_total_mass_flux'] = fracture_fluxes.sum(axis=1)
-            if nbcomponents>1:
+            if True or nbcomponents>1:
                 for comp in range(nbcomponents):
                     dumped_states['cell_mass_flux_comp%d'%(comp+1)] = cell_fluxes[:, comp, :]
                     dumped_states['fracture_mass_flux_comp%d'%(comp+1)] = fracture_fluxes[:, comp, :]

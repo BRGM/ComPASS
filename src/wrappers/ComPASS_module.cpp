@@ -22,6 +22,7 @@
 #include "Flux_wrappers.h"
 #include "Residu_wrappers.h"
 #include "Well_wrappers.h"
+#include "Metis_wrapper.h"
 
 PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
 {
@@ -41,5 +42,6 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
     add_debug_utils_wrappers(module);
     add_model_wrappers(module);
     add_Residu_wrappers(module);
+    add_Metis_wrapper(module);
 
 }
