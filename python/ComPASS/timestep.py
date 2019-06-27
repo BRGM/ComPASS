@@ -57,8 +57,10 @@ def make_one_timestep(
     attempts = []
     for deltat in timesteps:
         if try_timestep(deltat, newton, simulation_context):
+            mpi.master_print('Success with timestep: ', time_string(deltat))
             break
         attempts.append(deltat)
+        mpi.master_print('Failure with timestep: ', time_string(deltat))
         newton.failures+= 1   
         newton.reset_loop()
     else:
