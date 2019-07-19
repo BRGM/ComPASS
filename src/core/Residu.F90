@@ -84,6 +84,7 @@ module Residu
       ResiduWellProd(:)
 
    ! AccVol of time step n-1
+   ! FIXME: explicit name like AccVolCell_previous or AccVolCell_0 would be better
    real(c_double), pointer :: &
       AccVolCell_1(:, :), &
       AccVolFrac_1(:, :), &
@@ -146,6 +147,17 @@ contains
    
    end subroutine Residu_associate_pointers
 
+   subroutine Residu_clear_residuals()
+
+      ResiduCell(:, :) = 0.d0
+      ResiduFrac(:, :) = 0.d0
+      ResiduNode(:, :) = 0.d0
+      ResiduWellInj(:) = 0.d0
+      ResiduWellProd(:) = 0.d0
+
+   end subroutine Residu_clear_residuals
+
+
    ! Newton is initialized with the unknown at time step n-1
    subroutine Residu_reset_history() &
       bind(C, name="Residu_reset_history")
@@ -181,13 +193,7 @@ contains
 
       integer :: i, k
 
-      ! init Residu as zero
-      ResiduCell(:, :) = 0.d0
-      ResiduFrac(:, :) = 0.d0
-      ResiduNode(:, :) = 0.d0
-
-      ResiduWellInj(:) = 0.d0
-      ResiduWellProd(:) = 0.d0
+	  call Residu_clear_residuals
 
       call Residu_AccVol
 
@@ -224,7 +230,6 @@ contains
       ! We do not consider dirichlet nodes during computing the residu such that
       ! the code is clearer
 
-      ! Residu from conservation composants
       call Residu_add_flux_contributions
 
       call Residu_reset_Dirichlet_nodes
