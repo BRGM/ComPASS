@@ -122,6 +122,27 @@ ComPASS.init(
 set_initial_values()
 set_boundary_conditions()
 
+def retrieve_concentrations(): 
+    # should work, no copy needed because of hstack
+    return np.hstack((ComPASS.cell_states().T, ComPASS.node_states().T))
+
+def set_concentrations(C):
+    ComPASS.cell_states().T[:] = C[:nbCells]
+    ComPASS.node_states().T[:] = C[nbCells:]
+
+def set_source_term(S):
+    cellVAGvolume = ComPASS.porovolfouriercell()
+    nodeVAGvolume = ComPASS.porovolfouriernode()
+    
+    cellheatsource = ComPASS.cellthermalsource()
+    cellheatsource[:] =  - cellVAGvolume /omega_reservoir * S[:nbCells]
+    nodeheatsource = ComPASS.nodethermalsource()
+    nodeheatsource[:] =  - nodeVAGvolume /omega_reservoir * S[nbCells:]
+
+def clear_source_term():
+    ComPASS.cellthermalsource()[:] = 0
+    ComPASS.nodethermalsource()[:] = 0
+    
 
 def make_one_timestep(t, dt, cTold, c1old):
 
@@ -131,20 +152,16 @@ def make_one_timestep(t, dt, cTold, c1old):
     context = SimulationContext()
 	
     # do cT first (linear)
-    ComPASS.cell_states().T[:] = cTold[:nbCells]
-    ComPASS.node_states().T[:] = cTold[nbCells:]
+    set_concentrations(cTold)
     set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], 'cT')
-
-    cellheatsource = ComPASS.cellthermalsource()
-    cellheatsource[:] = 0
-    nodeheatsource = ComPASS.nodethermalsource()
-    nodeheatsource[:] = 0
+    clear_source_term()
 
     timestep.make_one_timestep(
         newton, ts_manager.steps(),
         simulation_context=context,
     )
-    cTnew =np.hstack((copy(ComPASS.cell_states().T[:]), copy(ComPASS.node_states().T[:])) )
+
+    cTnew = retrieve_concentrations()
 
     print('---------- cT --> c1 ------------------')
     # Next do c1, solve non-linear system with Newton Krylov
@@ -152,26 +169,22 @@ def make_one_timestep(t, dt, cTold, c1old):
         return Keq * rhos *cTbar *(c1 / (cT +(Keq-1)*c1))
 
     fc1old = freac(c1old, cTold)
-    fc1oldc = fc1old[:nbCells]
-    fc1oldn = fc1old[nbCells:]
+    #fc1oldc = fc1old[:nbCells]
+    #fc1oldn = fc1old[nbCells:]
 
     def fchim(cprev):
-        ComPASS.cell_states().T[:] = c1old[:nbCells]
-        ComPASS.node_states().T[:] = c1old[nbCells:]
-
-        cellheatsource = ComPASS.cellthermalsource()
-        cellheatsource[:] =  - 1/omega_reservoir * (freac(cprev[:nbCells], cTnew[:nbCells]) - fc1oldc) / dt
-        nodeheatsource = ComPASS.nodethermalsource()
-        nodeheatsource[:] =  - 1/omega_reservoir * (freac(cprev[nbCells:], cTnew[nbCells:]) - fc1oldn) / dt
+        set_concentrations(c1old)
+        set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], 'c1')
+        set_source_term((freac(cprev, cTnew) - fc1old) / dt)
+        
         #np.set_printoptions(precision=8,linewidth=150)
         #print(heatsource)
-
-        set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], 'c1')
+        
         timestep.make_one_timestep(
             newton, ts_manager.steps(),
             simulation_context=context,
         )
-        return np.hstack( (copy(ComPASS.cell_states().T[:]), copy(ComPASS.node_states().T[:])) )
+        return retrieve_concentrations()
         
     cinit = c1old  #  np.random.rand(nx) 
     c1new = newton_krylov(lambda c: c-fchim(c), cinit, method='lgmres', verbose=1)
@@ -217,23 +230,11 @@ dt = 0.2
 
 nbNodes = ComPASS.global_number_of_nodes()
 nbCells = ComPASS.global_number_of_cells()
+nbDofs = nbNodes + nbCells
 
-node_states = ComPASS.node_states()
-cell_states = ComPASS.cell_states()
-cTold = np.hstack((np.zeros_like(cell_states.p), np.zeros_like(node_states.p)))
-cTold[:] = ctot_init
+cTold = np.tile(ctot_init, nbDofs)
+c1old = np.tile(c1_init, nbDofs)
 
-c1old = np.hstack( (np.zeros_like(cell_states.p), np.zeros_like(node_states.p)) )
-c1old[:]= c1_init
-
-
-"""
-standard_loop(
-    final_time = final_time, output_period = final_time/50,
-    time_step_manager = TimeStepManager(final_time/1e3, 1.),
-    output_callbacks=(plot_1D_concentrations,),
-)
-"""
 
 #midcurve= []
 while t<final_time :

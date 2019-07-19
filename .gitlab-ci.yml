@@ -102,12 +102,12 @@ time_bulk_scripts:
   script:
     - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
 
-#reactive_transport_test:
-#  stage: test
-#  tags:
-#    - test
-#  script:
-#    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
+reactive_transport_test:
+  stage: test
+  tags:
+    - test
+  script:
+    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
 
 master_release:
   stage: release
