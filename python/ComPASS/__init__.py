@@ -450,16 +450,20 @@ def compute_global_face_normals():
     normals /= norms
     return normals
 
-def get_boundary_faces():
-    connectivity = get_connectivity()
+def _get_boundary_faces(connectivity):
     return np.array([
         np.array(face_cells, copy=False).shape[0]==1
         for face_cells in connectivity.CellbyFace
       ])
 
-def get_boundary_vertices():
-    connectivity = get_connectivity()
-    boundary_faces = get_boundary_faces()
+def get_global_boundary_faces():
+    return _get_boundary_faces(get_global_connectivity())
+
+def get_boundary_faces():
+    return _get_boundary_faces(get_connectivity())
+
+def _get_boundary_vertices(connectivity):
+    boundary_faces = _get_boundary_faces(connectivity)
     vertices_id = np.unique(
             np.hstack([
                 np.array(face_nodes, copy=False)
@@ -471,6 +475,12 @@ def get_boundary_vertices():
     res = np.zeros(nbnodes, dtype=np.bool)
     res[vertices_id] = True
     return res
+
+def get_global_boundary_vertices():
+    return _get_boundary_vertices(get_global_connectivity())
+
+def get_boundary_vertices():
+    return _get_boundary_vertices(get_connectivity())
 
 def set_fractures(faces):
     idfaces = get_global_id_faces()

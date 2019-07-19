@@ -63,6 +63,10 @@ extern "C"
     void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
     void retrieve_cellthermalsource(XArrayWrapper<double>&);
     void retrieve_nodethermalsource(XArrayWrapper<double>&);
+	void retrieve_fracthermalsourcevol(XArrayWrapper<double>&);
+    void retrieve_cell_heat_source(ArrayWrapper&);
+	void retrieve_porovolfouriercell(XArrayWrapper<double>&);
+	void retrieve_porovolfouriernode(XArrayWrapper<double>&);
 #endif
     void retrieve_global_id_node(XArrayWrapper<NodeInfo>&);
 	void retrieve_id_node(XArrayWrapper<NodeInfo>&);
@@ -72,7 +76,15 @@ extern "C"
 	void retrieve_nb_faces_own(XArrayWrapper<int>&);
 	void retrieve_nb_nodes_own(XArrayWrapper<int>&);
 	void retrieve_nb_fractures_own(XArrayWrapper<int>&);
-    void retrieve_cell_heat_source(ArrayWrapper&);
+	std::size_t number_of_nodes();
+	std::size_t number_of_own_nodes();
+	std::size_t number_of_cells();
+	std::size_t number_of_own_cells();
+	std::size_t number_of_fractures();
+	std::size_t number_of_own_fractures();
+	std::size_t number_of_own_injectors();
+	std::size_t number_of_own_producers();
+
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -106,9 +118,12 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "nb_faces_own", retrieve_nb_faces_own);
 	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
 	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
- #ifdef _THERMIQUE_
+#ifdef _THERMIQUE_
 	add_array_wrapper(module, "cellthermalsource", retrieve_cellthermalsource);
 	add_array_wrapper(module, "nodethermalsource", retrieve_nodethermalsource);
+	add_array_wrapper(module, "fracturethermalsource", retrieve_fracthermalsourcevol);
+	add_array_wrapper(module, "porovolfouriercell", retrieve_porovolfouriercell);
+	add_array_wrapper(module, "porovolfouriernode", retrieve_porovolfouriernode);
 #endif
 
 	module.def("global_number_of_nodes",
@@ -198,5 +213,14 @@ void add_mesh_utilities_wrappers(py::module& module)
 
 	add_array_wrapper(module, "global_node_info", retrieve_global_id_node);
 	add_array_wrapper(module, "node_info", retrieve_id_node);
+	
+	module.def("number_of_nodes", &number_of_nodes);
+	module.def("number_of_own_nodes", &number_of_own_nodes);
+	module.def("number_of_cells", &number_of_cells);
+	module.def("number_of_own_cells", &number_of_own_cells);
+	module.def("number_of_fractures", &number_of_fractures);
+	module.def("number_of_own_fractures", &number_of_own_fractures);
+	module.def("number_of_own_injectors", &number_of_own_injectors);
+	module.def("number_of_own_producers", &number_of_own_producers);
 
 }

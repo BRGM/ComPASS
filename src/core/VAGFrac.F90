@@ -17,6 +17,7 @@
 
 module VAGFrac
 
+  use iso_c_binding, only: c_double
   use mpi, only: MPI_Abort, MPI_Barrier
   use CommonMPI, only: ComPASS_COMM_WORLD, commRank
   use CommonType, only: CSR
@@ -70,17 +71,17 @@ module VAGFrac
   ! Two porous volume Fourier
   ! = sum_{M_s} alpha_{k,s} phi * vol_K ...
   ! = sum_{M_s} alpha_{k,s} (1-phi) * vol_K ...
-  double precision, allocatable, dimension(:), protected :: &
+  real(c_double), allocatable, dimension(:), protected, target :: &
       PoroVolFourierCell, &
       PoroVolFourierFrac, &
       PoroVolFourierNode
 
-  double precision, allocatable, dimension(:), protected :: &
-      Poro_1volFourierCell, &
-      Poro_1volFourierFrac, &
-      Poro_1volFourierNode
+  real(c_double), allocatable, dimension(:), protected, target :: &
+      Poro_1VolFourierCell, &
+      Poro_1VolFourierFrac, &
+      Poro_1VolFourierNode
 
-  double precision, allocatable, dimension(:), protected, target :: &
+  real(c_double), allocatable, dimension(:), protected, target :: &
       CellThermalSourceVol, &
       FracThermalSourceVol, &
       NodeThermalSourceVol
