@@ -215,9 +215,9 @@ contains
 
 #ifdef _THERMIQUE_
       ! Thermal source
-      ResiduCell(NbComp + 1, :) = ResiduCell(NbComp + 1, :) - PoroVolFourierCell * CellThermalSourceVol
+      ResiduCell(NbComp + 1, :) = ResiduCell(NbComp + 1, :) - CellThermalSourceVol
       ResiduFrac(NbComp + 1, :) = ResiduFrac(NbComp + 1, :) - FracThermalSourceVol
-      ResiduNode(NbComp + 1, :) = ResiduNode(NbComp + 1, :) - PoroVolFourierNode * NodeThermalSourceVol
+      ResiduNode(NbComp + 1, :) = ResiduNode(NbComp + 1, :) - NodeThermalSourceVol
 #endif
 
       ! Residu for dir node will be reset as 0 in the end of this subroutine

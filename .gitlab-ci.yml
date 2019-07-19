@@ -68,6 +68,8 @@ sanity_check:
     - echo "Job running with id"
     - id
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG heat_source_analytical_1D.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG heat_source_analytical.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
 
@@ -100,12 +102,12 @@ time_bulk_scripts:
   script:
     - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
 
-reactive_transport_test:
-  stage: test
-  tags:
-    - test
-  script:
-    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
+#reactive_transport_test:
+#  stage: test
+#  tags:
+#    - test
+#  script:
+#    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
 
 master_release:
   stage: release
