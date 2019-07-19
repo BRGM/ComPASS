@@ -72,7 +72,7 @@ module Jacobian
      VolDarcyNode, VolDarcyCell, VolDarcyFrac, &
      PoroVolDarcyCell, PoroVolDarcyNode, PoroVolDarcyFrac, &
      PoroVolFourierCell, PoroVolFourierNode, PoroVolFourierFrac, &
-     Poro_1volFourierCell, Poro_1volFourierNode, Poro_1volFourierFrac
+     Poro_1VolFourierCell, Poro_1VolFourierNode, Poro_1VolFourierFrac
 
   use IncPrimSecd, only: &
      NbIncTotalPrim_ctx, &
@@ -517,11 +517,11 @@ contains
 
           do j=1, NbIncTotalPrim_ctx(IncNode(k)%ic)
              JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
-                  + Poro_1volFourierNode(k) * CpRoche * divTemperatureNode(j,k) / Delta_t
+                  + Poro_1VolFourierNode(k) * CpRoche * divTemperatureNode(j,k) / Delta_t
           end do
 
           bigSm(NbComp+1,rowk) = bigSm(NbComp+1,rowk) &
-               - Poro_1volFourierNode(k) * CpRoche * SmTemperatureNode(k) / Delta_t
+               - Poro_1VolFourierNode(k) * CpRoche * SmTemperatureNode(k) / Delta_t
        end if
 
 #endif
@@ -584,11 +584,11 @@ contains
 
        do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
           JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
-               + Poro_1volFourierFrac(k) * CpRoche * divTemperatureFrac(j,k) / Delta_t
+               + Poro_1VolFourierFrac(k) * CpRoche * divTemperatureFrac(j,k) / Delta_t
        end do
 
        bigSm(NbComp+1,rowk) = bigSm(NbComp+1,rowk) &
-            - Poro_1volFourierFrac(k) * CpRoche * SmTemperatureFrac(k) / Delta_t
+            - Poro_1VolFourierFrac(k) * CpRoche * SmTemperatureFrac(k) / Delta_t
 #endif
 
     end do ! end of div prim n_k, frac
@@ -658,11 +658,11 @@ contains
 
        do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
           JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
-               + Poro_1volFourierCell(k) * CpRoche * divTemperatureCell(j,k) / Delta_t
+               + Poro_1VolFourierCell(k) * CpRoche * divTemperatureCell(j,k) / Delta_t
        end do
 
        bigSm(NbComp+1,rowk) = bigSm(NbComp+1,rowk) &
-            - Poro_1volFourierCell(k) * CpRoche * SmTemperatureCell(k) / Delta_t
+            - Poro_1VolFourierCell(k) * CpRoche * SmTemperatureCell(k) / Delta_t
 #endif
 
     end do ! end of div prim n_k, cell

@@ -63,7 +63,7 @@ module Residu
       CellThermalSourceVol, NodeThermalSourceVol, FracThermalSourceVol, &
       PoroVolDarcyCell, PoroVolDarcyNode, PoroVolDarcyFrac, &
       PoroVolFourierCell, PoroVolFourierNode, PoroVolFourierFrac, &
-      Poro_1volFourierCell, Poro_1volFourierNode, Poro_1volFourierFrac
+      Poro_1VolFourierCell, Poro_1VolFourierNode, Poro_1VolFourierFrac
    use MeshSchema, only: &
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
@@ -333,7 +333,7 @@ contains
 #ifdef _THERMIQUE_
 
          IncCell(k)%AccVol(NbComp + 1) = IncCell(k)%AccVol(NbComp + 1) &
-                                         + Poro_1volFourierCell(k)*CpRoche*IncCell(k)%Temperature
+                                         + Poro_1VolFourierCell(k)*CpRoche*IncCell(k)%Temperature
 #endif
 
       end do ! end of cell k
@@ -367,7 +367,7 @@ contains
 #ifdef _THERMIQUE_
 
          IncFrac(k)%AccVol(NbComp + 1) = IncFrac(k)%AccVol(NbComp + 1) &
-                                         + Poro_1volFourierFrac(k)*CpRoche*IncFrac(k)%Temperature
+                                         + Poro_1VolFourierFrac(k)*CpRoche*IncFrac(k)%Temperature
 #endif
 
       end do ! end of frac k
@@ -402,7 +402,7 @@ contains
 #ifdef _THERMIQUE_
 
          IncNode(k)%AccVol(NbComp + 1) = IncNode(k)%AccVol(NbComp + 1) &
-                                         + Poro_1volFourierNode(k)*CpRoche*IncNode(k)%Temperature
+                                         + Poro_1VolFourierNode(k)*CpRoche*IncNode(k)%Temperature
 
 #endif
 
