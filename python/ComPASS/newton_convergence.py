@@ -53,9 +53,9 @@ class Legacy:
         ]:
             local+= np.linalg.norm(states.accumulation, 1, axis=0)
         local/= 1000. * dt
-        local+= 1. # FIXME: ?
         global_reference = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
         mpi.COMM_WORLD.Allreduce(local, global_reference, mpi.SUM)
+        global_reference+= 1.
         self.reference_pv = np.maximum(self.pv_norms(), global_reference)
     
     def reset_closure_reference(self):
