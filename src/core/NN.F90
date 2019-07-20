@@ -35,7 +35,7 @@ module NN
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
       MeshSchema_make, MeshSchema_free
    use VAGFrac, only: &
-      PoroVolDarcyNode, PoroVolDarcyCell, PoroVolDarcyFrac, &
+      PoroVolDarcy, &
       VAGFrac_TransDarcy, VAGFrac_TransFourier, &
       VAGFrac_VolsDarcy, VAGFrac_VolsFourier, VAGFrac_free
 
@@ -394,9 +394,9 @@ contains
    subroutine NN_flash_all_control_volumes() &
        bind(C, name="NN_flash_all_control_volumes")
 
-   call NN_flash_control_volumes(NbNodeLocal_Ncpus(commRank + 1), IncNode, NodeRocktypeLocal, PoroVolDarcyNode)
-   call NN_flash_control_volumes(NbFracLocal_Ncpus(commRank + 1), IncFrac, FracRocktypeLocal, PoroVolDarcyFrac)
-   call NN_flash_control_volumes(NbCellLocal_Ncpus(commRank + 1), IncCell, CellRocktypeLocal, PoroVolDarcyCell)
+   call NN_flash_control_volumes(NbNodeLocal_Ncpus(commRank + 1), IncNode, NodeRocktypeLocal, PoroVolDarcy%nodes)
+   call NN_flash_control_volumes(NbFracLocal_Ncpus(commRank + 1), IncFrac, FracRocktypeLocal, PoroVolDarcy%fractures)
+   call NN_flash_control_volumes(NbCellLocal_Ncpus(commRank + 1), IncCell, CellRocktypeLocal, PoroVolDarcy%cells)
 
    ! choose between linear or non-linear update of the Newton unknown Pw
    ! The next subroutines also compute the mode of the wells ('pressure' or 'flowrate')

@@ -56,7 +56,7 @@
 
        subroutine retrieve_state_array(states, cpp_array)
 
-          TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, intent(inout) :: states
+          type(TYPE_IncCVReservoir), allocatable, dimension(:), target, intent(inout) :: states
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: n
 
@@ -79,6 +79,31 @@
 
        end subroutine retrieve_state_array
 
+       subroutine retrieve_pointed_state_array(states, cpp_array)
+
+          type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: states
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: n
+
+          if (.not. associated(states)) then
+              cpp_array%p = C_NULL_PTR
+              cpp_array%n = 0
+          else
+              n = size(states)
+              cpp_array%n = n
+              if (n==0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+                  ! FIXME: Remove comment
+                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+                  cpp_array%p = C_NULL_PTR
+              else
+                  cpp_array%p = c_loc(states(1))
+              end if
+          end if
+
+       end subroutine retrieve_pointed_state_array
+
        subroutine retrieve_dirichlet_node_states(cpp_array) &
           bind(C, name="retrieve_dirichlet_node_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
@@ -99,14 +124,14 @@
        subroutine retrieve_node_states(cpp_array) &
           bind(C, name="retrieve_node_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
-          call retrieve_state_array(IncNode, cpp_array)
+          call retrieve_pointed_state_array(IncNode, cpp_array)
        end subroutine retrieve_node_states
 
        subroutine retrieve_own_node_states(cpp_array) &
           bind(C, name="retrieve_own_node_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
-          call retrieve_state_array(IncNode, cpp_array)
+          call retrieve_pointed_state_array(IncNode, cpp_array)
           nb_owns = NbNodeOwn_Ncpus(commRank+1)
           if(cpp_array%n<nb_owns) &
             call CommonMPI_abort("inconsistent node sizes")
@@ -116,14 +141,14 @@
        subroutine retrieve_fracture_states(cpp_array) &
           bind(C, name="retrieve_fracture_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
-          call retrieve_state_array(IncFrac, cpp_array)
+          call retrieve_pointed_state_array(IncFrac, cpp_array)
        end subroutine retrieve_fracture_states
 
        subroutine retrieve_own_fracture_states(cpp_array) &
           bind(C, name="retrieve_own_fracture_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
-          call retrieve_state_array(IncFrac, cpp_array)
+          call retrieve_pointed_state_array(IncFrac, cpp_array)
           nb_owns = NbFracOwn_Ncpus(commRank+1)
           if(cpp_array%n<nb_owns) &
             call CommonMPI_abort("inconsistent node sizes")
@@ -133,14 +158,14 @@
        subroutine retrieve_cell_states(cpp_array) &
           bind(C, name="retrieve_cell_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
-          call retrieve_state_array(IncCell, cpp_array)
+          call retrieve_pointed_state_array(IncCell, cpp_array)
        end subroutine retrieve_cell_states
 
        subroutine retrieve_own_cell_states(cpp_array) &
           bind(C, name="retrieve_own_cell_states")
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
-          call retrieve_state_array(IncCell, cpp_array)
+          call retrieve_pointed_state_array(IncCell, cpp_array)
           nb_owns = NbCellOwn_Ncpus(commRank+1)
           if(cpp_array%n<nb_owns) &
             call CommonMPI_abort("inconsistent node sizes")

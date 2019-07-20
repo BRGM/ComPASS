@@ -40,7 +40,9 @@ module LoisThermoHydro
      NumIncTotalSecondCell, NumIncTotalSecondNode, NumIncTotalSecondFrac
   use MeshSchema, only: &
      NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
-     CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal
+     CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal, &
+	 PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
+	 CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WIP_FREEFLOW_STRUCTURES_
   use Physics, only: atm_comp, Hm, HT, atm_temperature, atm_flux_radiation, &
                      soil_emissivity, Stephan_Boltzmann_cst, atm_pressure
@@ -136,18 +138,12 @@ module LoisThermoHydro
        divDensiteMolaireKrViscoCompWellInj
 
   ! DensiteMolaire * Sat * Comp
-  double precision, allocatable, dimension(:,:,:), protected :: &
-       DensiteMolaireSatCompCell, &
-       DensiteMolaireSatCompFrac, &
-       DensiteMolaireSatCompNode
+  type(CompPhaseDOFFamilyArray), target, protected :: DensiteMolaireSatComp
   double precision, allocatable, dimension(:,:,:,:), protected :: &
        divDensiteMolaireSatCompCell, &
        divDensiteMolaireSatCompFrac, &
        divDensiteMolaireSatCompNode
-  double precision, allocatable, dimension(:,:,:), protected :: &
-       SmDensiteMolaireSatCompCell, &
-       SmDensiteMolaireSatCompFrac, &
-       SmDensiteMolaireSatCompNode
+   type(CompPhaseDOFFamilyArray), target, protected :: SmDensiteMolaireSatComp
 
   ! temperature
   double precision, allocatable, dimension(:,:), protected :: &
@@ -181,10 +177,7 @@ module LoisThermoHydro
 
 
   ! densitemolaire * energieinterne * Saturation
-  double precision, allocatable, dimension(:,:), protected :: &
-       DensiteMolaireEnergieInterneSatCell, &
-       DensiteMolaireEnergieInterneSatFrac, &
-       DensiteMolaireEnergieInterneSatNode
+  type(PhaseDOFFamilyArray), target, protected :: DensiteMolaireEnergieInterneSat
   double precision, allocatable, dimension(:,:,:), protected :: &
        divDensiteMolaireEnergieInterneSatCell, &
        divDensiteMolaireEnergieInterneSatFrac, &
@@ -292,15 +285,15 @@ contains
           PressionCapCell,           &
           divPressionCapCell,      &
                                 !
-          DensiteMolaireSatCompCell,      &
+          DensiteMolaireSatComp%cells,      &
           divDensiteMolaireSatCompCell, &
-          SmDensiteMolaireSatCompCell,    &
+          SmDensiteMolaireSatComp%cells,    &
                                 !
           DensiteMolaireKrViscoCompCell,      &
           divDensiteMolaireKrViscoCompCell, &
           SmDensiteMolaireKrViscoCompCell,    &
                                 !
-          DensiteMolaireEnergieInterneSatCell,      &
+          DensiteMolaireEnergieInterneSat%cells,      &
           divDensiteMolaireEnergieInterneSatCell, &
           SmDensiteMolaireEnergieInterneSatCell,    &
                                 !
@@ -334,15 +327,15 @@ contains
           PressionCapFrac,           &
           divPressionCapFrac,      &
                                 !
-          DensiteMolaireSatCompFrac,      &
+          DensiteMolaireSatComp%fractures,      &
           divDensiteMolaireSatCompFrac, &
-          SmDensiteMolaireSatCompFrac,    &
+          SmDensiteMolaireSatComp%fractures,    &
                                 !
           DensiteMolaireKrViscoCompFrac,      &
           divDensiteMolaireKrViscoCompFrac, &
           SmDensiteMolaireKrViscoCompFrac,    &
                                 !
-          DensiteMolaireEnergieInterneSatFrac,      &
+          DensiteMolaireEnergieInterneSat%fractures,      &
           divDensiteMolaireEnergieInterneSatFrac, &
           SmDensiteMolaireEnergieInterneSatFrac,    &
                                 !
@@ -376,15 +369,15 @@ contains
           PressionCapNode,           &
           divPressionCapNode,      &
                                 !
-          DensiteMolaireSatCompNode,      &
+          DensiteMolaireSatComp%nodes,      &
           divDensiteMolaireSatCompNode, &
-          SmDensiteMolaireSatCompNode,    &
+          SmDensiteMolaireSatComp%nodes,    &
                                 !
           DensiteMolaireKrViscoCompNode,      &
           divDensiteMolaireKrViscoCompNode, &
           SmDensiteMolaireKrViscoCompNode,    &
                                 !
-          DensiteMolaireEnergieInterneSatNode,      &
+          DensiteMolaireEnergieInterneSat%nodes,      &
           divDensiteMolaireEnergieInterneSatNode, &
           SmDensiteMolaireEnergieInterneSatNode,    &
                                 !
@@ -437,17 +430,17 @@ contains
     ! SmDensiteMolaireKrViscoEnthalpieNode = 0.d0
     ! SmDensiteMolaireEnergieInterneSatNode = 0.d0
     ! SmDensiteMolaireKrViscoCompNode = 0.d0
-    ! SmDensiteMolaireSatCompNode = 0.d0
+    ! SmDensiteMolaireSatComp%nodes = 0.d0
 
     ! SmDensiteMolaireKrViscoEnthalpieFrac = 0.d0
     ! SmDensiteMolaireEnergieInterneSatFrac = 0.d0
     ! SmDensiteMolaireKrViscoCompFrac = 0.d0
-    ! SmDensiteMolaireSatCompFrac = 0.d0
+    ! SmDensiteMolaireSatComp%fractures = 0.d0
 
     ! SmDensiteMolaireKrViscoEnthalpieCell = 0.d0
     ! SmDensiteMolaireEnergieInterneSatCell = 0.d0
     ! SmDensiteMolaireKrViscoCompCell = 0.d0
-    ! SmDensiteMolaireSatCompCell = 0.d0
+    ! SmDensiteMolaireSatComp%cells = 0.d0
 
     ! SmDensiteMassiqueCell = 0.d0
     ! SmDensiteMassiqueNode = 0.d0
@@ -624,7 +617,6 @@ contains
 
 
 #ifdef _THERMIQUE_
-
     ! FIXME: Temperature (unknown index is 2)
     call LoisThermoHydro_Inc_cv(2, inc(k), &
          NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
@@ -1193,15 +1185,15 @@ contains
           PressionCapNode,           &
           divPressionCapNode,      &
                                 !
-          DensiteMolaireSatCompNode,      &
+          DensiteMolaireSatComp%nodes,      &
           divDensiteMolaireSatCompNode, &
-          SmDensiteMolaireSatCompNode,    &
+          SmDensiteMolaireSatComp%nodes,    &
                                 !
           DensiteMolaireKrViscoCompNode,      &
           divDensiteMolaireKrViscoCompNode, &
           SmDensiteMolaireKrViscoCompNode,    &
                                 !
-          DensiteMolaireEnergieInterneSatNode,      &
+          DensiteMolaireEnergieInterneSat%nodes,      &
           divDensiteMolaireEnergieInterneSatNode, &
           SmDensiteMolaireEnergieInterneSatNode,    &
                                 !
@@ -2594,17 +2586,12 @@ end do ! wells
     allocate( SmDensiteMolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
 
     ! DensiteMolaire * Saturation * Comp
-    allocate( DensiteMolaireSatCompCell(NbComp, NbPhase, nbCell))
-    allocate( DensiteMolaireSatCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( DensiteMolaireSatCompNode(NbComp, NbPhase, nbNode))
+	call MeshSchema_allocate_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
+	call MeshSchema_allocate_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
 
     allocate( divDensiteMolaireSatCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
     allocate( divDensiteMolaireSatCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
     allocate( divDensiteMolaireSatCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
-
-    allocate( SmDensiteMolaireSatCompCell(NbComp, NbPhase, nbCell))
-    allocate( SmDensiteMolaireSatCompFrac(NbComp, NbPhase, nbFrac))
-    allocate( SmDensiteMolaireSatCompNode(NbComp, NbPhase, nbNode))
 
     ! well inj
     allocate(DensiteMolaireKrViscoCompWellInj(NbComp, nbNodeInj))
@@ -2639,9 +2626,7 @@ end do ! wells
     allocate( SmDensiteMolaireKrViscoEnthalpieNode(NbPhase, nbNode))
 
     ! densitemolaire * energieinterne * Saturation
-    allocate( DensiteMolaireEnergieInterneSatCell(NbPhase, nbCell))
-    allocate( DensiteMolaireEnergieInterneSatFrac(NbPhase, nbFrac))
-    allocate( DensiteMolaireEnergieInterneSatNode(NbPhase, nbNode))
+	call MeshSchema_allocate_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
 
     allocate( divDensiteMolaireEnergieInterneSatCell(NbIncTotalPrimMax, NbPhase, nbCell))
     allocate( divDensiteMolaireEnergieInterneSatFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
@@ -2656,7 +2641,6 @@ end do ! wells
   end subroutine LoisThermoHydro_allocate
 
 
-  ! free
   subroutine LoisThermoHydro_free
 
    ! densite massique
@@ -2728,15 +2712,11 @@ end do ! wells
     deallocate( SmDensiteMolaireKrViscoCompNode)
 
     ! densitemolaire * Sat * Comp
-    deallocate( DensiteMolaireSatCompCell)
-    deallocate( DensiteMolaireSatCompFrac)
-    deallocate( DensiteMolaireSatCompNode)
+	call MeshSchema_free_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
     deallocate( divDensiteMolaireSatCompCell)
     deallocate( divDensiteMolaireSatCompFrac)
     deallocate( divDensiteMolaireSatCompNode)
-    deallocate( SmDensiteMolaireSatCompCell)
-    deallocate( SmDensiteMolaireSatCompFrac)
-    deallocate( SmDensiteMolaireSatCompNode)
+	call MeshSchema_free_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
 
     ! well inj
     deallocate(DensiteMolaireKrViscoCompWellInj)
@@ -2767,9 +2747,7 @@ end do ! wells
     deallocate( SmDensiteMolaireKrViscoEnthalpieNode)
 
     ! densitemolaire * energieinterne * Saturation
-    deallocate( DensiteMolaireEnergieInterneSatCell)
-    deallocate( DensiteMolaireEnergieInterneSatFrac)
-    deallocate( DensiteMolaireEnergieInterneSatNode)
+	call MeshSchema_free_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
     deallocate( divDensiteMolaireEnergieInterneSatCell)
     deallocate( divDensiteMolaireEnergieInterneSatFrac)
     deallocate( divDensiteMolaireEnergieInterneSatNode)

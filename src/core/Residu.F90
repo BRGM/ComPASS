@@ -36,12 +36,8 @@ module Residu
       DensitemolaireKrViscoEnthalpieNode, &
       DensitemolaireKrViscoEnthalpieCell, &
       DensitemolaireKrViscoEnthalpieFrac, &
-      DensitemolaireSatCompNode, &
-      DensitemolaireSatCompCell, &
-      DensitemolaireSatCompFrac, &
-      DensitemolaireEnergieInterneSatNode, &
-      DensitemolaireEnergieInterneSatCell, &
-      DensitemolaireEnergieInterneSatFrac
+      DensitemolaireSatComp, &
+      DensitemolaireEnergieInterneSat
 
    use Physics, only: CpRoche, atm_comp, rain_flux
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
@@ -53,17 +49,17 @@ module Residu
       NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
-      IncNode, IncCell, IncFrac
+      IncAll, IncNode, IncCell, IncFrac
    use IncCVWells, only: &
       PerfoWellInj, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, &
       NodebyWellProdLocal, PerfoWellProd, IncPressionWellInj, &
       IncPressionWellProd, NodeDatabyWellProdLocal
    use VAGFrac, only: &
-      CellThermalSourceVol, NodeThermalSourceVol, FracThermalSourceVol, &
-      PoroVolDarcyCell, PoroVolDarcyNode, PoroVolDarcyFrac, &
-      PoroVolFourierCell, PoroVolFourierNode, PoroVolFourierFrac, &
-      Poro_1VolFourierCell, Poro_1VolFourierNode, Poro_1VolFourierFrac
+      ThermalSourceVol, &
+      PoroVolDarcy, &
+      PoroVolFourier, &
+      Poro_1VolFourier
    use MeshSchema, only: &
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
@@ -72,6 +68,7 @@ module Residu
 
    implicit none
 
+   ! Define a residual for all values (DOFFamily array)
    ! Residu cell, fracture face, node
    real(c_double), pointer :: &
       ResiduCell(:, :), &
@@ -221,9 +218,9 @@ contains
 
 #ifdef _THERMIQUE_
       ! Thermal source
-      ResiduCell(NbComp + 1, :) = ResiduCell(NbComp + 1, :) - CellThermalSourceVol
-      ResiduFrac(NbComp + 1, :) = ResiduFrac(NbComp + 1, :) - FracThermalSourceVol
-      ResiduNode(NbComp + 1, :) = ResiduNode(NbComp + 1, :) - NodeThermalSourceVol
+      ResiduCell(NbComp + 1, :) = ResiduCell(NbComp + 1, :) - ThermalSourceVol%cells
+      ResiduFrac(NbComp + 1, :) = ResiduFrac(NbComp + 1, :) - ThermalSourceVol%fractures
+      ResiduNode(NbComp + 1, :) = ResiduNode(NbComp + 1, :) - ThermalSourceVol%nodes
 #endif
 
       ! Residu for dir node will be reset as 0 in the end of this subroutine
@@ -305,108 +302,28 @@ contains
 
       integer :: k, m, mph, ic, icp
 
-      ! Cells
-      do k = 1, NbCellLocal_Ncpus(commRank + 1)
-
-         ic = IncCell(k)%ic
-
-         call Residu_clear_absent_components_accumulation(ic, IncCell(k)%AccVol)
-
+	  ! Loop over all degrees of freedom (nodes, fractures, cells)
+      do k = 1, size(IncAll)
+         ic = IncAll(k)%ic
+         call Residu_clear_absent_components_accumulation(ic, IncAll(k)%AccVol)
          do m = 1, NbPhasePresente_ctx(ic) ! Q_k
             mph = NumPhasePresente_ctx(m, ic)
-
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
-
-                  IncCell(k)%AccVol(icp) = IncCell(k)%AccVol(icp) &
-                                           + PoroVolDarcyCell(k)*DensiteMolaireSatCompCell(icp, m, k)
+                  IncAll(k)%AccVol(icp) = IncAll(k)%AccVol(icp) &
+                                           + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, m, k)
                end if
             end do
-
 #ifdef _THERMIQUE_
-
-            IncCell(k)%AccVol(NbComp + 1) = IncCell(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierCell(k)*DensiteMolaireEnergieInterneSatCell(m, k)
+            IncAll(k)%AccVol(NbComp + 1) = IncAll(k)%AccVol(NbComp + 1) &
+                                            + PoroVolFourier%values(k)*DensiteMolaireEnergieInterneSat%values(m, k)
 #endif
          end do ! end of phase m
-
 #ifdef _THERMIQUE_
-
-         IncCell(k)%AccVol(NbComp + 1) = IncCell(k)%AccVol(NbComp + 1) &
-                                         + Poro_1VolFourierCell(k)*CpRoche*IncCell(k)%Temperature
+         IncAll(k)%AccVol(NbComp + 1) = IncAll(k)%AccVol(NbComp + 1) &
+                                         + Poro_1VolFourier%values(k)*CpRoche*IncAll(k)%Temperature
 #endif
-
-      end do ! end of cell k
-
-      ! Fractures
-      do k = 1, NbFracLocal_Ncpus(commRank + 1)
-
-         ic = IncFrac(k)%ic
-
-         call Residu_clear_absent_components_accumulation(ic, IncFrac(k)%AccVol)
-
-         do m = 1, NbPhasePresente_ctx(ic) ! Q_k
-            mph = NumPhasePresente_ctx(m, ic)
-
-            do icp = 1, NbComp
-               if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
-
-                  IncFrac(k)%AccVol(icp) = IncFrac(k)%AccVol(icp) &
-                                           + PoroVolDarcyFrac(k)*DensiteMolaireSatCompFrac(icp, m, k)
-               end if
-            end do
-
-#ifdef _THERMIQUE_
-
-            IncFrac(k)%AccVol(NbComp + 1) = IncFrac(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierFrac(k)*DensiteMolaireEnergieInterneSatFrac(m, k)
-#endif
-
-         end do ! end of phase m
-
-#ifdef _THERMIQUE_
-
-         IncFrac(k)%AccVol(NbComp + 1) = IncFrac(k)%AccVol(NbComp + 1) &
-                                         + Poro_1VolFourierFrac(k)*CpRoche*IncFrac(k)%Temperature
-#endif
-
-      end do ! end of frac k
-
-      ! Nodes
-      do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-
-         ic = IncNode(k)%ic
-
-         call Residu_clear_absent_components_accumulation(ic, IncNode(k)%AccVol)
-
-         do m = 1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k
-            mph = NumPhasePresente_ctx(m, IncNode(k)%ic)
-
-            do icp = 1, NbComp
-               if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
-
-                  IncNode(k)%AccVol(icp) = IncNode(k)%AccVol(icp) &
-                                           + PoroVolDarcyNode(k)*DensiteMolaireSatCompNode(icp, m, k)
-               end if
-            end do
-
-#ifdef _THERMIQUE_
-
-            IncNode(k)%AccVol(NbComp + 1) = IncNode(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourierNode(k)*DensiteMolaireEnergieInterneSatNode(m, k)
-
-#endif
-
-         end do ! end of phase m
-
-#ifdef _THERMIQUE_
-
-         IncNode(k)%AccVol(NbComp + 1) = IncNode(k)%AccVol(NbComp + 1) &
-                                         + Poro_1VolFourierNode(k)*CpRoche*IncNode(k)%Temperature
-
-#endif
-
-      end do ! end of node k
+      end do
 
    end subroutine Residu_AccVol
 

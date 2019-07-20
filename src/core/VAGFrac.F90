@@ -19,7 +19,7 @@ module VAGFrac
 
   use iso_c_binding, only: c_double
   use mpi, only: MPI_Abort, MPI_Barrier
-  use CommonMPI, only: ComPASS_COMM_WORLD, commRank
+  use CommonMPI, only: ComPASS_COMM_WORLD, commRank, CommonMPI_abort
   use CommonType, only: CSR
 
   use DebugUtils, only: DebugUtils_is_own_frac_node
@@ -31,7 +31,9 @@ module VAGFrac
      CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
      PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
      NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
-     IdNodeLocal, IdFaceLocal, FracToFaceLocal
+     IdNodeLocal, IdFaceLocal, FracToFaceLocal, &
+	 SubArrayView, MeshSchema_subarrays_views, &
+	 DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray
 
   use Physics, only: Thickness
   use SchemeParameters, only: &
@@ -54,39 +56,21 @@ module VAGFrac
 
   ! Volume
   ! = sum_{M_s} alpha_{k,s} vol_K ...
-  real(c_double), allocatable, dimension(:), protected :: &
-      VolDarcyCell, &
-      VolDarcyFrac, &
-      VolDarcyNode
+  type(DOFFamilyArray), target, protected :: VolDarcy
 
   ! Porous volume Darcy
   ! = sum_{M_s} alpha_{k,s} phi * vol_K ...
-  real(c_double), allocatable, dimension(:), protected :: &
-      PoroVolDarcyCell, &
-      PoroVolDarcyFrac, &
-      PoroVolDarcyNode
+  type(DOFFamilyArray), target, protected :: PoroVolDarcy
 
 #ifdef _THERMIQUE_
 
   ! Two porous volume Fourier
   ! = sum_{M_s} alpha_{k,s} phi * vol_K ...
   ! = sum_{M_s} alpha_{k,s} (1-phi) * vol_K ...
-  real(c_double), allocatable, dimension(:), protected, target :: &
-      PoroVolFourierCell, &
-      PoroVolFourierFrac, &
-      PoroVolFourierNode
-
-  real(c_double), allocatable, dimension(:), protected, target :: &
-      Poro_1VolFourierCell, &
-      Poro_1VolFourierFrac, &
-      Poro_1VolFourierNode
-
-  real(c_double), allocatable, dimension(:), protected, target :: &
-      CellThermalSourceVol, &
-      FracThermalSourceVol, &
-      NodeThermalSourceVol
+  type(DOFFamilyArray), target, protected :: PoroVolFourier
+  type(DOFFamilyArray), target, protected :: Poro_1VolFourier
+  type(DOFFamilyArray), target, protected :: ThermalSourceVol
 #endif
-
 
   integer, allocatable, dimension(:), private :: &
       UnkFaceToUnkCell ! from node in num (face) to node in num (cell)
@@ -535,36 +519,42 @@ contains
 
     enddo
 
-      end subroutine VAGFrac_SplitCellVolume
+    end subroutine VAGFrac_SplitCellVolume
 
-      
-      subroutine VAGFrac_check_volumes()
+  subroutine VAGFrac_allocate_Darcy_volumes()
+	
+	call MeshSchema_allocate_DOFFamilyArray(VolDarcy)
+	call MeshSchema_allocate_DOFFamilyArray(PoroVolDarcy)
+  
+  end subroutine VAGFrac_allocate_Darcy_volumes
+  
+  subroutine VAGFrac_check_volumes()
 
     integer :: k
     integer :: Ierr=-1, errcode=666
     logical :: everything_ok = .true.
 
     do k=1, NbCellLocal_Ncpus(commRank+1)
-      if(VolDarcyCell(k)<eps) then
+      if(VolDarcy%cells(k)<eps) then
         print*, "vol darcy cell < 0: "
-        print*, "cell", k, "has volume", VolDarcyCell(k)
+        print*, "cell", k, "has volume", VolDarcy%cells(k)
         everything_ok = .false.
       end if
     end do
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
-        if(IdNodeLocal(k)%P /= "d" .and. VolDarcyNode(k)<eps) then
+        if(IdNodeLocal(k)%P /= "d" .and. VolDarcy%nodes(k)<eps) then
             if(DebugUtils_is_own_frac_node(k).or.IdNodeLocal(k)%Proc/='g') then
                 print*, "vol non dirichlet node < 0"
-                print*, "node", k, "at", XNodeLocal(:,k), "has volume", VolDarcyNode(k)
+                print*, "node", k, "at", XNodeLocal(:,k), "has volume", VolDarcy%nodes(k)
             end if
         end if
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-      if(VolDarcyFrac(k)<eps) then
+      if(VolDarcy%fractures(k)<eps) then
         print*, "vol darcy frac < 0: "
-        print*, "fracture", k, "has volume", VolDarcyFrac(k)
+        print*, "fracture", k, "has volume", VolDarcy%fractures(k)
         everything_ok = .false.
       end if
     end do
@@ -576,26 +566,28 @@ contains
     
     end subroutine VAGFrac_check_volumes
     
+  subroutine VAGFrac_distribute_Darcy_quantities(cell_quantity, fracture_quantity, node_quantity)
+
+	! FIXME: use DOFFamilyArray instead
+	real(c_double), intent(inout) :: cell_quantity(:)
+	real(c_double), intent(inout) :: fracture_quantity(:)
+	real(c_double), intent(inout) :: node_quantity(:)
+
+	! FIXME
+	call CommonMPI_abort('VAGFrac_distribute_Darcy_quantities: to be implemented as VAGFrac_distribute_fourier_quantities')
+
+  end subroutine VAGFrac_distribute_Darcy_quantities
+
     ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
   subroutine VAGFrac_VolsDarcy
 
-    !integer :: Ierr
-
-    ! VolDarcy
-    allocate(VolDarcyCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(VolDarcyFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(VolDarcyNode(NbNodeLocal_Ncpus(commRank+1)) )
-
-    ! PoroVolDarcy
-    allocate(PoroVolDarcyCell(NbCellLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolDarcyFrac(NbFracLocal_Ncpus(commRank+1)) )
-    allocate(PoroVolDarcyNode(NbNodeLocal_Ncpus(commRank+1)) )
+    call VAGFrac_allocate_Darcy_volumes
 
     ! Darcy volume
-    VolDarcyCell = VolCellLocal
-    VolDarcyFrac = Thickness * SurfFracLocal
-    VolDarcyNode = 0.d0
+    VolDarcy%cells = VolCellLocal
+    VolDarcy%fractures = Thickness * SurfFracLocal
+    VolDarcy%nodes = 0.d0
 
     !call DebugUtils_dump_mesh_info()
     !call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
@@ -608,8 +600,8 @@ contains
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
       omegaDarcyCell, &
       NodebyCellLocal, &
-      VolDarcyCell, &
-      VolDarcyNode)
+      VolDarcy%cells, &
+      VolDarcy%nodes)
 
     CALL VAGFrac_SplitCellVolume( &
       NbFracLocal_Ncpus(commRank+1), &
@@ -619,13 +611,13 @@ contains
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y", &
       omegaDarcyFrac, &
       NodebyFractureLocal, &
-      VolDarcyFrac, &
-      VolDarcyNode)
+      VolDarcy%fractures, &
+      VolDarcy%nodes)
 
     ! Porosity
-    PoroVolDarcyCell = PorositeCellLocal * VolCellLocal
-    PoroVolDarcyFrac = PorositeFracLocal * Thickness * SurfFracLocal
-    PoroVolDarcyNode = 0.d0
+    PoroVolDarcy%cells = PorositeCellLocal * VolCellLocal
+    PoroVolDarcy%fractures = PorositeFracLocal * Thickness * SurfFracLocal
+    PoroVolDarcy%nodes = 0.d0
 
     CALL VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
@@ -635,8 +627,8 @@ contains
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
       omegaDarcyCell, &
       NodebyCellLocal, &
-      PoroVolDarcyCell, &
-      PoroVolDarcyNode)
+      PoroVolDarcy%cells, &
+      PoroVolDarcy%nodes)
 
     CALL VAGFrac_SplitCellVolume( &
       NbFracLocal_Ncpus(commRank+1), &
@@ -646,8 +638,8 @@ contains
       IdNodeLocal(:)%P /= "d", &
       omegaDarcyFrac, &
       NodebyFractureLocal, &
-      PoroVolDarcyFrac, &
-      PoroVolDarcyNode)
+      PoroVolDarcy%fractures, &
+      PoroVolDarcy%nodes)
     
     call VAGFrac_check_volumes()
 
@@ -656,13 +648,11 @@ contains
 
 #ifdef _THERMIQUE_
 
-  subroutine VAGFrac_distribute_fourier_quantities(cell_quantity, fracture_quantity, node_quantity)
+  subroutine VAGFrac_distribute_fourier_quantities(quantities)
 
-	real(c_double), intent(inout) :: cell_quantity(:)
-	real(c_double), intent(inout) :: fracture_quantity(:)
-	real(c_double), intent(inout) :: node_quantity(:)
+	type(DOFFamilyArray), intent(inout) :: quantities
 
-	node_quantity = 0.d0
+	quantities%nodes = 0.d0
     call VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
       CellRocktypeLocal(2,:), &
@@ -671,7 +661,7 @@ contains
       IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
       omegaFourierCell, &
       NodebyCellLocal, &
-      cell_quantity, node_quantity & 
+      quantities%cells, quantities%nodes & 
 	)
     call VAGFrac_SplitCellVolume( &
       NbFracLocal_Ncpus(commRank+1), &
@@ -681,7 +671,7 @@ contains
       IdNodeLocal(:)%T /= "d", &
       omegaFourierFrac, &
       NodebyFractureLocal, &
-      fracture_quantity, node_quantity &
+      quantities%fractures, quantities%nodes &
     )
 
   end subroutine VAGFrac_distribute_fourier_quantities
@@ -694,53 +684,51 @@ contains
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
-      if(PoroVolFourierCell(k)<eps) then
-        print*, "vol fourier cell <= 0: ", k, PoroVolFourierCell(k)
+      if(PoroVolFourier%cells(k)<eps) then
+        print*, "vol fourier cell <= 0: ", k, PoroVolFourier%cells(k)
 
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-      if(PoroVolFourierFrac(k)<eps) then
+      if(PoroVolFourier%fractures(k)<eps) then
 
-        print*, "vol fourier frac <= 0: ", k, PoroVolFourierFrac(k)
+        print*, "vol fourier frac <= 0: ", k, PoroVolFourier%fractures(k)
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
     end do
 
     ! check if vol is positive
     do k=1, NbCellLocal_Ncpus(commRank+1)
-      if(Poro_1VolFourierCell(k)<eps) then
-        print*, "vol poro 1-phi fourier cell <= 0: ", k, Poro_1VolFourierCell(k)
+      if(Poro_1VolFourier%cells(k)<eps) then
+        print*, "vol poro 1-phi fourier cell <= 0: ", k, Poro_1VolFourier%cells(k)
 
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
     end do
 
     do k=1, NbFracLocal_Ncpus(commRank+1)
-      if(Poro_1VolFourierFrac(k)<eps) then
+      if(Poro_1VolFourier%fractures(k)<eps) then
 
-        print*, "vol poro 1-phi fourier frac <= 0: ", k, Poro_1VolFourierFrac(k)
+        print*, "vol poro 1-phi fourier frac <= 0: ", k, Poro_1VolFourier%fractures(k)
         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
     end do
 
   end subroutine VAGFrac_check_fourier_volumes
 
+  subroutine VAGFrac_allocate_Fourier_volumes()
+	
+	call MeshSchema_allocate_DOFFamilyArray(PoroVolFourier)
+	call MeshSchema_allocate_DOFFamilyArray(Poro_1VolFourier)
+	call MeshSchema_allocate_DOFFamilyArray(ThermalSourceVol)
+  
+  end subroutine VAGFrac_allocate_Fourier_volumes
+
   subroutine VAGFrac_VolsFourier
 
-    allocate(PoroVolFourierCell(NbCellLocal_Ncpus(commRank+1)))
-    allocate(PoroVolFourierFrac(NbFracLocal_Ncpus(commRank+1)))
-    allocate(PoroVolFourierNode(NbNodeLocal_Ncpus(commRank+1)))
-
-    allocate(Poro_1VolFourierCell(NbCellLocal_Ncpus(commRank+1)))
-    allocate(Poro_1VolFourierFrac(NbFracLocal_Ncpus(commRank+1)))
-    allocate(Poro_1VolFourierNode(NbNodeLocal_Ncpus(commRank+1)))
-
-    allocate(CellThermalSourceVol(NbCellLocal_Ncpus(commRank+1)))
-    allocate(FracThermalSourceVol(NbFracLocal_Ncpus(commRank+1)))
-    allocate(NodeThermalSourceVol(NbNodeLocal_Ncpus(commRank+1)))
+    call VAGFrac_allocate_Fourier_volumes
 
 #ifndef NDEBUG
     write(*,*) "Splitting volumes statistics:"
@@ -751,18 +739,17 @@ contains
     write(*,*) minval(PorositeFracLocal), "< fracture porosity <", maxval(PorositeFracLocal)
 #endif
 
-    PoroVolFourierCell = PorositeCellLocal * VolCellLocal
-    PoroVolFourierFrac = PorositeFracLocal * Thickness * SurfFracLocal
+    PoroVolFourier%cells = PorositeCellLocal * VolCellLocal
+    PoroVolFourier%fractures = PorositeFracLocal * Thickness * SurfFracLocal
+	call VAGFrac_distribute_fourier_quantities(PoroVolFourier)
 
-    Poro_1VolFourierCell = (1 - PorositeCellLocal) * VolCellLocal
-    Poro_1VolFourierFrac = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
+    Poro_1VolFourier%cells = (1 - PorositeCellLocal) * VolCellLocal
+    Poro_1VolFourier%fractures = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
+	call VAGFrac_distribute_fourier_quantities(Poro_1VolFourier)
 
-    CellThermalSourceVol = CellThermalSourceLocal * VolCellLocal
-    FracThermalSourceVol = FracThermalSourceLocal * Thickness * SurfFracLocal
-
-	call VAGFrac_distribute_fourier_quantities(PoroVolFourierCell, PoroVolFourierFrac, PoroVolFourierNode)
-	call VAGFrac_distribute_fourier_quantities(Poro_1VolFourierCell, Poro_1VolFourierFrac, Poro_1VolFourierNode)
-	call VAGFrac_distribute_fourier_quantities(CellThermalSourceVol, FracThermalSourceVol, NodeThermalSourceVol)
+    ThermalSourceVol%cells = CellThermalSourceLocal * VolCellLocal
+    ThermalSourceVol%fractures = FracThermalSourceLocal * Thickness * SurfFracLocal
+	call VAGFrac_distribute_fourier_quantities(ThermalSourceVol)
 
 	call VAGFrac_check_fourier_volumes()
 
@@ -770,7 +757,6 @@ contains
 
 #endif
 
-  ! Free
   subroutine VAGFrac_Free
 
     integer :: k
@@ -812,28 +798,12 @@ contains
     end if
 #endif
 
-    ! darcy porous vol
-    deallocate(PoroVolDarcyCell)
-    deallocate(PoroVolDarcyFrac)
-    deallocate(PoroVolDarcyNode)
-
-    ! darcy vol
-    deallocate(VolDarcyCell)
-    deallocate(VolDarcyFrac)
-    deallocate(VolDarcyNode)
-
-    ! fourier porous vol
+    call MeshSchema_free_DOFFamilyArray(VolDarcy)
+    call MeshSchema_free_DOFFamilyArray(PoroVolDarcy)
 #ifdef _THERMIQUE_
-
-    deallocate(PoroVolFourierCell)
-    deallocate(PoroVolFourierFrac)
-    deallocate(PoroVolFourierNode)
-    deallocate(Poro_1VolFourierCell)
-    deallocate(Poro_1VolFourierFrac)
-    deallocate(Poro_1VolFourierNode)
-    deallocate(CellThermalSourceVol)
-    deallocate(FracThermalSourceVol)
-    deallocate(NodeThermalSourceVol)
+	call MeshSchema_free_DOFFamilyArray(PoroVolFourier)
+	call MeshSchema_free_DOFFamilyArray(Poro_1VolFourier)
+	call MeshSchema_free_DOFFamilyArray(ThermalSourceVol)
 #endif
 
   end subroutine VAGFrac_Free

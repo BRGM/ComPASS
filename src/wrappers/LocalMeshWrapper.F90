@@ -17,9 +17,8 @@ module LocalMeshWrapper
       CellTypesLocal, FaceTypesLocal, XNodeLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus
    use VAGFrac, only: &
-        NodeThermalSourceVol, CellThermalSourceVol, &
-		PoroVolFourierCell, PoroVolFourierNode, &
-		FracThermalSourceVol
+        ThermalSourceVol, &
+		PoroVolFourier
 
    implicit none
 
@@ -135,85 +134,70 @@ contains
 
     end subroutine retrieve_facetypes
 
+   subroutine retrieve_pointed_array(array, cpp_array)
+
+	  real(c_double), dimension(:), pointer, intent(in) :: array
+	  type(cpp_array_wrapper), intent(out) :: cpp_array
+	  integer(c_size_t) :: n
+
+	  if (.not. associated(array)) then
+		  cpp_array%p = C_NULL_PTR
+		  cpp_array%n = 0
+	  else
+		  n = size(array)
+		  cpp_array%n = n
+		  if (n==0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+			  ! FIXME: Remove comment
+			  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+			  cpp_array%p = C_NULL_PTR
+		  else
+			  cpp_array%p = c_loc(array(1))
+		  end if
+	  end if
+
+   end subroutine retrieve_pointed_array
+
 #ifdef _THERMIQUE_
 
     subroutine retrieve_cellthermalsource(cpp_array) &
          bind (C, name = "retrieve_cellthermalsource")
-      
       type(cpp_array_wrapper), intent(inout):: cpp_array
-      
-      if (.not. allocated(CellThermalSourceVol)) then
-         print *, "Local cell thermal source are not allocated."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
 
-      cpp_array%p = c_loc(CellThermalSourceVol(1))
-      cpp_array%n = size(CellThermalSourceVol)
+		call retrieve_pointed_array(ThermalSourceVol%cells, cpp_array)
 
     end subroutine retrieve_cellthermalsource
 
     subroutine retrieve_nodethermalsource(cpp_array) &
          bind (C, name = "retrieve_nodethermalsource")
-      
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-      if (.not. allocated(NodeThermalSourceVol)) then
-         print *, "Local node thermal source are not allocated."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      cpp_array%p = c_loc(NodeThermalSourceVol(1))
-      cpp_array%n = size(NodeThermalSourceVol)
+		call retrieve_pointed_array(ThermalSourceVol%nodes, cpp_array)
       
     end subroutine retrieve_nodethermalsource
 
     subroutine retrieve_fracthermalsourcevol(cpp_array) &
          bind (C, name = "retrieve_fracthermalsourcevol")
-      
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-      if (.not. allocated(FracThermalSourceVol)) then
-         print *, "Local fracture thermal source are not allocated."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      cpp_array%p = c_loc(FracThermalSourceVol(1))
-      cpp_array%n = size(FracThermalSourceVol)
+		call retrieve_pointed_array(ThermalSourceVol%fractures, cpp_array)
       
     end subroutine retrieve_fracthermalsourcevol
 
     subroutine retrieve_porovolfouriercell(cpp_array) &
-         bind (C, name = "retrieve_porovolfouriercell")
-      
+         bind (C, name = "retrieve_porovolfouriercell")   
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-      if (.not. allocated(PoroVolFourierCell)) then
-         print *, "Local cell Fourier volumes are not allocated."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      cpp_array%p = c_loc(PoroVolFourierCell(1))
-      cpp_array%n = size(PoroVolFourierCell)
+		call retrieve_pointed_array(PoroVolFourier%cells, cpp_array)
 
     end subroutine retrieve_porovolfouriercell
 
     subroutine retrieve_porovolfouriernode(cpp_array) &
          bind (C, name = "retrieve_porovolfouriernode")
+    type(cpp_array_wrapper), intent(inout):: cpp_array
       
-      type(cpp_array_wrapper), intent(inout):: cpp_array
-      
-      if (.not. allocated(PoroVolFourierNode)) then
-         print *, "Local node Fourier volumes are not allocated."
-         !CHECKME: MPI_Abort is supposed to end all MPI processes
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-      cpp_array%p = c_loc(PoroVolFourierNode(1))
-      cpp_array%n = size(PoroVolFourierNode)
+		call retrieve_pointed_array(PoroVolFourier%nodes, cpp_array)
 
     end subroutine retrieve_porovolfouriernode
 

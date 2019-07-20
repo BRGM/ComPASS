@@ -23,7 +23,8 @@
     use MeshSchema, only: &
        IdNodeLocal, &
        NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
-       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus
+       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
+	   SubArrayInfo, MeshSchema_subarrays_info
 
     use NumbyContext, only: &
        NbIncPTC_ctx, NbIncTotal_ctx, &
@@ -62,10 +63,11 @@
     end interface assignment(=)
 
     ! Inc for current time step: cell, fracture faces and nodes
-    TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: &
+    type(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: IncAll
+    type(TYPE_IncCVReservoir), dimension(:), pointer, public :: &
         IncCell, & !< Cell unknowns for current time step
-    IncFrac, & !< Fracture Face unknowns for current time step
-    IncNode !< Node unknowns for current time step
+        IncFrac, & !< Fracture Face unknowns for current time step
+        IncNode !< Node unknowns for current time step
 
     ! Inc for previous time step: current time step - 1
     TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), public :: &
@@ -107,27 +109,31 @@ private :: &
     end subroutine assign_type_inccv
 
     subroutine IncCVReservoir_allocate
+	
+		type(SubArrayInfo) :: info
+		
+		call MeshSchema_subarrays_info(info)
+			
+		allocate(IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
+		IncNode => IncAll(info%offset%nodes:info%offset%nodes-1+info%nb%nodes)
+		IncFrac => IncAll(info%offset%fractures:info%offset%fractures-1+info%nb%fractures)
+		IncCell => IncAll(info%offset%cells:info%offset%cells-1+info%nb%cells)
 
-    allocate (IncCell(NbCellLocal_Ncpus(commRank + 1)))
-    allocate (IncFrac(NbFracLocal_Ncpus(commRank + 1)))
-    allocate (IncNode(NbNodeLocal_Ncpus(commRank + 1)))
-
-    allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
-    allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
-    allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
+		allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
+		allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
+		allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
 
     end subroutine IncCVReservoir_allocate
 
     !> \brief Deallocate unknowns vectors
     subroutine IncCVReservoir_free
 
-    deallocate (IncCell)
-    deallocate (IncFrac)
-    deallocate (IncNode)
+		nullify(IncNode, IncFrac, IncCell)
+		deallocate(IncAll)
 
-    deallocate (IncCellPreviousTimeStep)
-    deallocate (IncFracPreviousTimeStep)
-    deallocate (IncNodePreviousTimeStep)
+		deallocate (IncCellPreviousTimeStep)
+		deallocate (IncFracPreviousTimeStep)
+		deallocate (IncNodePreviousTimeStep)
 
     end subroutine IncCVReservoir_free
 
