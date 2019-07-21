@@ -997,7 +997,7 @@ contains
     call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
     CHKERRQ(Ierr)    
 #else
-    call PCSetType(pcilu0, PCBJACOBI, Ierr)	
+    call PCSetType(pcilu0, PCBJACOBI, Ierr) 
     CHKERRQ(Ierr)
 #endif
 

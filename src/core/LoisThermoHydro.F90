@@ -41,8 +41,8 @@ module LoisThermoHydro
   use MeshSchema, only: &
      NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
      CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal, &
-	 PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
-	 CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
+     PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
+     CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WIP_FREEFLOW_STRUCTURES_
   use Physics, only: atm_comp, Hm, HT, atm_temperature, atm_flux_radiation, &
                      soil_emissivity, Stephan_Boltzmann_cst, atm_pressure
@@ -2586,8 +2586,8 @@ end do ! wells
     allocate( SmDensiteMolaireKrViscoCompNode(NbComp, NbPhase, nbNode))
 
     ! DensiteMolaire * Saturation * Comp
-	call MeshSchema_allocate_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
-	call MeshSchema_allocate_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
+    call MeshSchema_allocate_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
+    call MeshSchema_allocate_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
 
     allocate( divDensiteMolaireSatCompCell(NbIncTotalPrimMax, NbComp, NbPhase, nbCell))
     allocate( divDensiteMolaireSatCompFrac(NbIncTotalPrimMax, NbComp, NbPhase, nbFrac))
@@ -2626,7 +2626,7 @@ end do ! wells
     allocate( SmDensiteMolaireKrViscoEnthalpieNode(NbPhase, nbNode))
 
     ! densitemolaire * energieinterne * Saturation
-	call MeshSchema_allocate_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
+    call MeshSchema_allocate_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
 
     allocate( divDensiteMolaireEnergieInterneSatCell(NbIncTotalPrimMax, NbPhase, nbCell))
     allocate( divDensiteMolaireEnergieInterneSatFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
@@ -2712,11 +2712,11 @@ end do ! wells
     deallocate( SmDensiteMolaireKrViscoCompNode)
 
     ! densitemolaire * Sat * Comp
-	call MeshSchema_free_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
+    call MeshSchema_free_CompPhaseDOFFamilyArray(DensiteMolaireSatComp)
     deallocate( divDensiteMolaireSatCompCell)
     deallocate( divDensiteMolaireSatCompFrac)
     deallocate( divDensiteMolaireSatCompNode)
-	call MeshSchema_free_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
+    call MeshSchema_free_CompPhaseDOFFamilyArray(SmDensiteMolaireSatComp)
 
     ! well inj
     deallocate(DensiteMolaireKrViscoCompWellInj)
@@ -2747,7 +2747,7 @@ end do ! wells
     deallocate( SmDensiteMolaireKrViscoEnthalpieNode)
 
     ! densitemolaire * energieinterne * Saturation
-	call MeshSchema_free_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
+    call MeshSchema_free_PhaseDOFFamilyArray(DensiteMolaireEnergieInterneSat)
     deallocate( divDensiteMolaireEnergieInterneSatCell)
     deallocate( divDensiteMolaireEnergieInterneSatFrac)
     deallocate( divDensiteMolaireEnergieInterneSatNode)

@@ -190,7 +190,7 @@ contains
 
       integer :: i, k
 
-	  call Residu_clear_residuals
+      call Residu_clear_residuals
 
       call Residu_AccVol
 
@@ -302,7 +302,7 @@ contains
 
       integer :: k, m, mph, ic, icp
 
-	  ! Loop over all degrees of freedom (nodes, fractures, cells)
+      ! Loop over all degrees of freedom (nodes, fractures, cells)
       do k = 1, size(IncAll)
          ic = IncAll(k)%ic
          call Residu_clear_absent_components_accumulation(ic, IncAll(k)%AccVol)

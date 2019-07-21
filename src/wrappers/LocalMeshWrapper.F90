@@ -18,7 +18,7 @@ module LocalMeshWrapper
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus
    use VAGFrac, only: &
         ThermalSourceVol, &
-		PoroVolFourier
+        PoroVolFourier
 
    implicit none
 
@@ -136,26 +136,26 @@ contains
 
    subroutine retrieve_pointed_array(array, cpp_array)
 
-	  real(c_double), dimension(:), pointer, intent(in) :: array
-	  type(cpp_array_wrapper), intent(out) :: cpp_array
-	  integer(c_size_t) :: n
+      real(c_double), dimension(:), pointer, intent(in) :: array
+      type(cpp_array_wrapper), intent(out) :: cpp_array
+      integer(c_size_t) :: n
 
-	  if (.not. associated(array)) then
-		  cpp_array%p = C_NULL_PTR
-		  cpp_array%n = 0
-	  else
-		  n = size(array)
-		  cpp_array%n = n
-		  if (n==0) then
+      if (.not. associated(array)) then
+          cpp_array%p = C_NULL_PTR
+          cpp_array%n = 0
+      else
+          n = size(array)
+          cpp_array%n = n
+          if (n==0) then
 #ifdef TRACK_ZERO_SIZE_ARRAY
-			  ! FIXME: Remove comment
-			  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+              ! FIXME: Remove comment
+              write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
-			  cpp_array%p = C_NULL_PTR
-		  else
-			  cpp_array%p = c_loc(array(1))
-		  end if
-	  end if
+              cpp_array%p = C_NULL_PTR
+          else
+              cpp_array%p = c_loc(array(1))
+          end if
+      end if
 
    end subroutine retrieve_pointed_array
 
@@ -165,7 +165,7 @@ contains
          bind (C, name = "retrieve_cellthermalsource")
       type(cpp_array_wrapper), intent(inout):: cpp_array
 
-		call retrieve_pointed_array(ThermalSourceVol%cells, cpp_array)
+        call retrieve_pointed_array(ThermalSourceVol%cells, cpp_array)
 
     end subroutine retrieve_cellthermalsource
 
@@ -173,7 +173,7 @@ contains
          bind (C, name = "retrieve_nodethermalsource")
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-		call retrieve_pointed_array(ThermalSourceVol%nodes, cpp_array)
+        call retrieve_pointed_array(ThermalSourceVol%nodes, cpp_array)
       
     end subroutine retrieve_nodethermalsource
 
@@ -181,7 +181,7 @@ contains
          bind (C, name = "retrieve_fracthermalsourcevol")
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-		call retrieve_pointed_array(ThermalSourceVol%fractures, cpp_array)
+        call retrieve_pointed_array(ThermalSourceVol%fractures, cpp_array)
       
     end subroutine retrieve_fracthermalsourcevol
 
@@ -189,7 +189,7 @@ contains
          bind (C, name = "retrieve_porovolfouriercell")   
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
-		call retrieve_pointed_array(PoroVolFourier%cells, cpp_array)
+        call retrieve_pointed_array(PoroVolFourier%cells, cpp_array)
 
     end subroutine retrieve_porovolfouriercell
 
@@ -197,7 +197,7 @@ contains
          bind (C, name = "retrieve_porovolfouriernode")
     type(cpp_array_wrapper), intent(inout):: cpp_array
       
-		call retrieve_pointed_array(PoroVolFourier%nodes, cpp_array)
+        call retrieve_pointed_array(PoroVolFourier%nodes, cpp_array)
 
     end subroutine retrieve_porovolfouriernode
 

@@ -24,7 +24,7 @@
        IdNodeLocal, &
        NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
        NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
-	   SubArrayInfo, MeshSchema_subarrays_info
+       SubArrayInfo, MeshSchema_subarrays_info
 
     use NumbyContext, only: &
        NbIncPTC_ctx, NbIncTotal_ctx, &
@@ -109,31 +109,31 @@ private :: &
     end subroutine assign_type_inccv
 
     subroutine IncCVReservoir_allocate
-	
-		type(SubArrayInfo) :: info
-		
-		call MeshSchema_subarrays_info(info)
-			
-		allocate(IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
-		IncNode => IncAll(info%offset%nodes:info%offset%nodes-1+info%nb%nodes)
-		IncFrac => IncAll(info%offset%fractures:info%offset%fractures-1+info%nb%fractures)
-		IncCell => IncAll(info%offset%cells:info%offset%cells-1+info%nb%cells)
+    
+        type(SubArrayInfo) :: info
+        
+        call MeshSchema_subarrays_info(info)
+            
+        allocate(IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
+        IncNode => IncAll(info%offset%nodes:info%offset%nodes-1+info%nb%nodes)
+        IncFrac => IncAll(info%offset%fractures:info%offset%fractures-1+info%nb%fractures)
+        IncCell => IncAll(info%offset%cells:info%offset%cells-1+info%nb%cells)
 
-		allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
-		allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
-		allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
+        allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
+        allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
+        allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
 
     end subroutine IncCVReservoir_allocate
 
     !> \brief Deallocate unknowns vectors
     subroutine IncCVReservoir_free
 
-		nullify(IncNode, IncFrac, IncCell)
-		deallocate(IncAll)
+        nullify(IncNode, IncFrac, IncCell)
+        deallocate(IncAll)
 
-		deallocate (IncCellPreviousTimeStep)
-		deallocate (IncFracPreviousTimeStep)
-		deallocate (IncNodePreviousTimeStep)
+        deallocate (IncCellPreviousTimeStep)
+        deallocate (IncFracPreviousTimeStep)
+        deallocate (IncNodePreviousTimeStep)
 
     end subroutine IncCVReservoir_free
 

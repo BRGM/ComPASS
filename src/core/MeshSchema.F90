@@ -201,39 +201,39 @@ module MeshSchema
   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
   integer, private :: MPI_DATANODEWELL
 
-	type SubArraySizes		
-		integer(c_size_t) :: nodes, fractures, cells
-	end type SubArraySizes
+    type SubArraySizes      
+        integer(c_size_t) :: nodes, fractures, cells
+    end type SubArraySizes
 
-	type SubArrayOffsets		
-		integer(c_size_t) :: nodes, fractures, cells
-	end type SubArrayOffsets
+    type SubArrayOffsets        
+        integer(c_size_t) :: nodes, fractures, cells
+    end type SubArrayOffsets
 
-	type SubArrayInfo
-		type(SubArraySizes) :: nb
-		type(SubArrayOffsets) :: offset
-	end type SubArrayInfo
-	
-	type SubArrayView
-		real(c_double), pointer, dimension(:) :: nodes, fractures, cells
-	end type SubArrayView
-	
-	type DOFFamilyArray
-		real(c_double), allocatable, dimension(:) :: values
-		real(c_double), pointer, dimension(:) :: nodes, fractures, cells
-	end type DOFFamilyArray
-	
-	! FIXME: use parametrized types
-	type PhaseDOFFamilyArray
-		real(c_double), allocatable, dimension(:, :) :: values
-		real(c_double), pointer, dimension(:, :) :: nodes, fractures, cells
-	end type PhaseDOFFamilyArray
+    type SubArrayInfo
+        type(SubArraySizes) :: nb
+        type(SubArrayOffsets) :: offset
+    end type SubArrayInfo
+    
+    type SubArrayView
+        real(c_double), pointer, dimension(:) :: nodes, fractures, cells
+    end type SubArrayView
+    
+    type DOFFamilyArray
+        real(c_double), allocatable, dimension(:) :: values
+        real(c_double), pointer, dimension(:) :: nodes, fractures, cells
+    end type DOFFamilyArray
+    
+    ! FIXME: use parametrized types
+    type PhaseDOFFamilyArray
+        real(c_double), allocatable, dimension(:, :) :: values
+        real(c_double), pointer, dimension(:, :) :: nodes, fractures, cells
+    end type PhaseDOFFamilyArray
 
-	! FIXME: use parametrized types
-	type CompPhaseDOFFamilyArray
-		real(c_double), allocatable, dimension(:, :, :) :: values
-		real(c_double), pointer, dimension(:, :, :) :: nodes, fractures, cells
-	end type CompPhaseDOFFamilyArray
+    ! FIXME: use parametrized types
+    type CompPhaseDOFFamilyArray
+        real(c_double), allocatable, dimension(:, :, :) :: values
+        real(c_double), pointer, dimension(:, :, :) :: nodes, fractures, cells
+    end type CompPhaseDOFFamilyArray
 
   private :: &
        MeshSchema_csrsend, &   ! send csr
@@ -258,151 +258,151 @@ module MeshSchema
        MeshSchema_local_face_surface, &  
        get_injectors_data, nb_injectors, &
        get_producers_data, nb_producers, &
-	   MeshSchema_subarrays_sizes, &
-	   MeshSchema_subarrays_offsets, &
-	   MeshSchema_subarrays_info, &
-	   MeshSchema_subarrays_views, &
-	   MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
-	   MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
-	   MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
+       MeshSchema_subarrays_sizes, &
+       MeshSchema_subarrays_offsets, &
+       MeshSchema_subarrays_info, &
+       MeshSchema_subarrays_views, &
+       MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
+       MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
+       MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 
 contains
 
-	subroutine MeshSchema_subarrays_sizes(sizes)
-		type(SubArraySizes), intent(out) :: sizes
-		
-		sizes%nodes = NbNodeLocal_Ncpus(commRank + 1)
+    subroutine MeshSchema_subarrays_sizes(sizes)
+        type(SubArraySizes), intent(out) :: sizes
+        
+        sizes%nodes = NbNodeLocal_Ncpus(commRank + 1)
         sizes%fractures = NbFracLocal_Ncpus(commRank + 1)
-		sizes%cells = NbCellLocal_Ncpus(commRank + 1)
+        sizes%cells = NbCellLocal_Ncpus(commRank + 1)
 
-	end subroutine MeshSchema_subarrays_sizes
+    end subroutine MeshSchema_subarrays_sizes
 
-	subroutine MeshSchema_subarrays_offsets(offsets)
-		type(SubArrayOffsets), intent(out) :: offsets
-		type(SubArraySizes) :: nb
-		
-		call MeshSchema_subarrays_compute_info(nb, offsets)
+    subroutine MeshSchema_subarrays_offsets(offsets)
+        type(SubArrayOffsets), intent(out) :: offsets
+        type(SubArraySizes) :: nb
+        
+        call MeshSchema_subarrays_compute_info(nb, offsets)
 
-	end subroutine MeshSchema_subarrays_offsets
-	
-	subroutine MeshSchema_subarrays_compute_info(nb, offsets)
-		type(SubArraySizes), intent(out) :: nb
-		type(SubArrayOffsets), intent(out) :: offsets
-		
-		call MeshSchema_subarrays_sizes(nb)
-		offsets%nodes = 1
-		offsets%fractures = offsets%nodes + nb%nodes
-		offsets%cells = offsets%fractures + nb%fractures
+    end subroutine MeshSchema_subarrays_offsets
+    
+    subroutine MeshSchema_subarrays_compute_info(nb, offsets)
+        type(SubArraySizes), intent(out) :: nb
+        type(SubArrayOffsets), intent(out) :: offsets
+        
+        call MeshSchema_subarrays_sizes(nb)
+        offsets%nodes = 1
+        offsets%fractures = offsets%nodes + nb%nodes
+        offsets%cells = offsets%fractures + nb%fractures
 
-	end subroutine MeshSchema_subarrays_compute_info
-	
-	subroutine MeshSchema_subarrays_info(info)
-		type(SubArrayInfo), intent(out) :: info
-		
-		call MeshSchema_subarrays_compute_info(info%nb, info%offset)
+    end subroutine MeshSchema_subarrays_compute_info
+    
+    subroutine MeshSchema_subarrays_info(info)
+        type(SubArrayInfo), intent(out) :: info
+        
+        call MeshSchema_subarrays_compute_info(info%nb, info%offset)
 
-	end subroutine MeshSchema_subarrays_info
+    end subroutine MeshSchema_subarrays_info
 
-	subroutine MeshSchema_subarrays_views(a, views)
-		real(c_double), allocatable, dimension(:), target, intent(in) :: a
-		type(SubArrayView), intent(out) :: views
-		
-		type(SubArraySizes) :: nb
-		type(SubArrayOffsets) :: offset
-		
-		call MeshSchema_subarrays_compute_info(nb, offset)
+    subroutine MeshSchema_subarrays_views(a, views)
+        real(c_double), allocatable, dimension(:), target, intent(in) :: a
+        type(SubArrayView), intent(out) :: views
+        
+        type(SubArraySizes) :: nb
+        type(SubArrayOffsets) :: offset
+        
+        call MeshSchema_subarrays_compute_info(nb, offset)
 
-		if(.not.allocated(a)) &
-			call CommonMPI_abort('MeshSchema_subarrays_views: unallocated array')
-		if(size(a)/=nb%nodes+nb%fractures+nb%cells) &
-			call CommonMPI_abort('MeshSchema_subarrays_views: unconsistent sizes')
-			
-		views%nodes => a(offset%nodes:offset%nodes-1+nb%nodes)
-		views%fractures => a(offset%fractures:offset%fractures-1+nb%fractures)
-		views%cells => a(offset%cells:offset%cells-1+nb%cells)
+        if(.not.allocated(a)) &
+            call CommonMPI_abort('MeshSchema_subarrays_views: unallocated array')
+        if(size(a)/=nb%nodes+nb%fractures+nb%cells) &
+            call CommonMPI_abort('MeshSchema_subarrays_views: unconsistent sizes')
+            
+        views%nodes => a(offset%nodes:offset%nodes-1+nb%nodes)
+        views%fractures => a(offset%fractures:offset%fractures-1+nb%fractures)
+        views%cells => a(offset%cells:offset%cells-1+nb%cells)
 
-	end subroutine MeshSchema_subarrays_views
+    end subroutine MeshSchema_subarrays_views
 
-	subroutine MeshSchema_allocate_DOFFamilyArray(a)
-		type(DOFFamilyArray), target, intent(inout) :: a
-		
-		type(SubArraySizes) :: nb
-		type(SubArrayOffsets) :: offset
-		
-		if(allocated(a%values)) &
-			call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-	
-		call MeshSchema_subarrays_compute_info(nb, offset)
+    subroutine MeshSchema_allocate_DOFFamilyArray(a)
+        type(DOFFamilyArray), target, intent(inout) :: a
+        
+        type(SubArraySizes) :: nb
+        type(SubArrayOffsets) :: offset
+        
+        if(allocated(a%values)) &
+            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
+    
+        call MeshSchema_subarrays_compute_info(nb, offset)
 
-		allocate(a%values(nb%nodes+nb%fractures+nb%cells))
-		nullify(a%nodes, a%fractures, a%cells)
-		a%nodes => a%values(offset%nodes:offset%nodes-1+nb%nodes)
-		a%fractures => a%values(offset%fractures:offset%fractures-1+nb%fractures)
-		a%cells => a%values(offset%cells:offset%cells-1+nb%cells)
-	
-	end subroutine MeshSchema_allocate_DOFFamilyArray
+        allocate(a%values(nb%nodes+nb%fractures+nb%cells))
+        nullify(a%nodes, a%fractures, a%cells)
+        a%nodes => a%values(offset%nodes:offset%nodes-1+nb%nodes)
+        a%fractures => a%values(offset%fractures:offset%fractures-1+nb%fractures)
+        a%cells => a%values(offset%cells:offset%cells-1+nb%cells)
+    
+    end subroutine MeshSchema_allocate_DOFFamilyArray
 
-	subroutine MeshSchema_free_DOFFamilyArray(a)
-		type(DOFFamilyArray), intent(inout) :: a
-		
-		if(allocated(a%values)) deallocate(a%values)
-		nullify(a%nodes, a%fractures, a%cells)
-	
-	end subroutine MeshSchema_free_DOFFamilyArray
+    subroutine MeshSchema_free_DOFFamilyArray(a)
+        type(DOFFamilyArray), intent(inout) :: a
+        
+        if(allocated(a%values)) deallocate(a%values)
+        nullify(a%nodes, a%fractures, a%cells)
+    
+    end subroutine MeshSchema_free_DOFFamilyArray
 
-	subroutine MeshSchema_allocate_PhaseDOFFamilyArray(a)
-		type(PhaseDOFFamilyArray), target, intent(inout) :: a
-		
-		type(SubArraySizes) :: nb
-		type(SubArrayOffsets) :: offset
-		
-		if(allocated(a%values)) &
-			call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-	
-		call MeshSchema_subarrays_compute_info(nb, offset)
+    subroutine MeshSchema_allocate_PhaseDOFFamilyArray(a)
+        type(PhaseDOFFamilyArray), target, intent(inout) :: a
+        
+        type(SubArraySizes) :: nb
+        type(SubArrayOffsets) :: offset
+        
+        if(allocated(a%values)) &
+            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
+    
+        call MeshSchema_subarrays_compute_info(nb, offset)
 
-		allocate(a%values(NbPhase, nb%nodes+nb%fractures+nb%cells))
-		nullify(a%nodes, a%fractures, a%cells)
-		a%nodes => a%values(:, offset%nodes:offset%nodes-1+nb%nodes)
-		a%fractures => a%values(:, offset%fractures:offset%fractures-1+nb%fractures)
-		a%cells => a%values(:, offset%cells:offset%cells-1+nb%cells)
-	
-	end subroutine MeshSchema_allocate_PhaseDOFFamilyArray
+        allocate(a%values(NbPhase, nb%nodes+nb%fractures+nb%cells))
+        nullify(a%nodes, a%fractures, a%cells)
+        a%nodes => a%values(:, offset%nodes:offset%nodes-1+nb%nodes)
+        a%fractures => a%values(:, offset%fractures:offset%fractures-1+nb%fractures)
+        a%cells => a%values(:, offset%cells:offset%cells-1+nb%cells)
+    
+    end subroutine MeshSchema_allocate_PhaseDOFFamilyArray
 
-	subroutine MeshSchema_free_PhaseDOFFamilyArray(a)
-		type(PhaseDOFFamilyArray), intent(inout) :: a
-		
-		if(allocated(a%values)) deallocate(a%values)
-		nullify(a%nodes, a%fractures, a%cells)
-	
-	end subroutine MeshSchema_free_PhaseDOFFamilyArray
+    subroutine MeshSchema_free_PhaseDOFFamilyArray(a)
+        type(PhaseDOFFamilyArray), intent(inout) :: a
+        
+        if(allocated(a%values)) deallocate(a%values)
+        nullify(a%nodes, a%fractures, a%cells)
+    
+    end subroutine MeshSchema_free_PhaseDOFFamilyArray
 
-	subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray(a)
-		type(CompPhaseDOFFamilyArray), target, intent(inout) :: a
-		
-		type(SubArraySizes) :: nb
-		type(SubArrayOffsets) :: offset
-		
-		if(allocated(a%values)) &
-			call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-	
-		call MeshSchema_subarrays_compute_info(nb, offset)
+    subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray(a)
+        type(CompPhaseDOFFamilyArray), target, intent(inout) :: a
+        
+        type(SubArraySizes) :: nb
+        type(SubArrayOffsets) :: offset
+        
+        if(allocated(a%values)) &
+            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
+    
+        call MeshSchema_subarrays_compute_info(nb, offset)
 
-		allocate(a%values(NbComp, NbPhase, nb%nodes+nb%fractures+nb%cells))
-		nullify(a%nodes, a%fractures, a%cells)
-		a%nodes => a%values(:, :, offset%nodes:offset%nodes-1+nb%nodes)
-		a%fractures => a%values(:, :, offset%fractures:offset%fractures-1+nb%fractures)
-		a%cells => a%values(:, :, offset%cells:offset%cells-1+nb%cells)
-	
-	end subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray
+        allocate(a%values(NbComp, NbPhase, nb%nodes+nb%fractures+nb%cells))
+        nullify(a%nodes, a%fractures, a%cells)
+        a%nodes => a%values(:, :, offset%nodes:offset%nodes-1+nb%nodes)
+        a%fractures => a%values(:, :, offset%fractures:offset%fractures-1+nb%fractures)
+        a%cells => a%values(:, :, offset%cells:offset%cells-1+nb%cells)
+    
+    end subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray
 
-	subroutine MeshSchema_free_CompPhaseDOFFamilyArray(a)
-		type(CompPhaseDOFFamilyArray), intent(inout) :: a
-		
-		if(allocated(a%values)) deallocate(a%values)
-		nullify(a%nodes, a%fractures, a%cells)
-	
-	end subroutine MeshSchema_free_CompPhaseDOFFamilyArray
+    subroutine MeshSchema_free_CompPhaseDOFFamilyArray(a)
+        type(CompPhaseDOFFamilyArray), intent(inout) :: a
+        
+        if(allocated(a%values)) deallocate(a%values)
+        nullify(a%nodes, a%fractures, a%cells)
+    
+    end subroutine MeshSchema_free_CompPhaseDOFFamilyArray
 
     function get_injectors_data() result(p) &
         bind(C, name="get_injectors_data")

@@ -32,8 +32,8 @@ module VAGFrac
      PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
      NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
      IdNodeLocal, IdFaceLocal, FracToFaceLocal, &
-	 SubArrayView, MeshSchema_subarrays_views, &
-	 DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray
+     SubArrayView, MeshSchema_subarrays_views, &
+     DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray
 
   use Physics, only: Thickness
   use SchemeParameters, only: &
@@ -522,9 +522,9 @@ contains
     end subroutine VAGFrac_SplitCellVolume
 
   subroutine VAGFrac_allocate_Darcy_volumes()
-	
-	call MeshSchema_allocate_DOFFamilyArray(VolDarcy)
-	call MeshSchema_allocate_DOFFamilyArray(PoroVolDarcy)
+    
+    call MeshSchema_allocate_DOFFamilyArray(VolDarcy)
+    call MeshSchema_allocate_DOFFamilyArray(PoroVolDarcy)
   
   end subroutine VAGFrac_allocate_Darcy_volumes
   
@@ -568,13 +568,13 @@ contains
     
   subroutine VAGFrac_distribute_Darcy_quantities(cell_quantity, fracture_quantity, node_quantity)
 
-	! FIXME: use DOFFamilyArray instead
-	real(c_double), intent(inout) :: cell_quantity(:)
-	real(c_double), intent(inout) :: fracture_quantity(:)
-	real(c_double), intent(inout) :: node_quantity(:)
+    ! FIXME: use DOFFamilyArray instead
+    real(c_double), intent(inout) :: cell_quantity(:)
+    real(c_double), intent(inout) :: fracture_quantity(:)
+    real(c_double), intent(inout) :: node_quantity(:)
 
-	! FIXME
-	call CommonMPI_abort('VAGFrac_distribute_Darcy_quantities: to be implemented as VAGFrac_distribute_fourier_quantities')
+    ! FIXME
+    call CommonMPI_abort('VAGFrac_distribute_Darcy_quantities: to be implemented as VAGFrac_distribute_fourier_quantities')
 
   end subroutine VAGFrac_distribute_Darcy_quantities
 
@@ -650,9 +650,9 @@ contains
 
   subroutine VAGFrac_distribute_fourier_quantities(quantities)
 
-	type(DOFFamilyArray), intent(inout) :: quantities
+    type(DOFFamilyArray), intent(inout) :: quantities
 
-	quantities%nodes = 0.d0
+    quantities%nodes = 0.d0
     call VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
       CellRocktypeLocal(2,:), &
@@ -662,7 +662,7 @@ contains
       omegaFourierCell, &
       NodebyCellLocal, &
       quantities%cells, quantities%nodes & 
-	)
+    )
     call VAGFrac_SplitCellVolume( &
       NbFracLocal_Ncpus(commRank+1), &
       FracRocktypeLocal(2,:), &
@@ -719,10 +719,10 @@ contains
   end subroutine VAGFrac_check_fourier_volumes
 
   subroutine VAGFrac_allocate_Fourier_volumes()
-	
-	call MeshSchema_allocate_DOFFamilyArray(PoroVolFourier)
-	call MeshSchema_allocate_DOFFamilyArray(Poro_1VolFourier)
-	call MeshSchema_allocate_DOFFamilyArray(ThermalSourceVol)
+    
+    call MeshSchema_allocate_DOFFamilyArray(PoroVolFourier)
+    call MeshSchema_allocate_DOFFamilyArray(Poro_1VolFourier)
+    call MeshSchema_allocate_DOFFamilyArray(ThermalSourceVol)
   
   end subroutine VAGFrac_allocate_Fourier_volumes
 
@@ -741,17 +741,17 @@ contains
 
     PoroVolFourier%cells = PorositeCellLocal * VolCellLocal
     PoroVolFourier%fractures = PorositeFracLocal * Thickness * SurfFracLocal
-	call VAGFrac_distribute_fourier_quantities(PoroVolFourier)
+    call VAGFrac_distribute_fourier_quantities(PoroVolFourier)
 
     Poro_1VolFourier%cells = (1 - PorositeCellLocal) * VolCellLocal
     Poro_1VolFourier%fractures = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
-	call VAGFrac_distribute_fourier_quantities(Poro_1VolFourier)
+    call VAGFrac_distribute_fourier_quantities(Poro_1VolFourier)
 
     ThermalSourceVol%cells = CellThermalSourceLocal * VolCellLocal
     ThermalSourceVol%fractures = FracThermalSourceLocal * Thickness * SurfFracLocal
-	call VAGFrac_distribute_fourier_quantities(ThermalSourceVol)
+    call VAGFrac_distribute_fourier_quantities(ThermalSourceVol)
 
-	call VAGFrac_check_fourier_volumes()
+    call VAGFrac_check_fourier_volumes()
 
   end subroutine VAGFrac_VolsFourier
 
@@ -801,9 +801,9 @@ contains
     call MeshSchema_free_DOFFamilyArray(VolDarcy)
     call MeshSchema_free_DOFFamilyArray(PoroVolDarcy)
 #ifdef _THERMIQUE_
-	call MeshSchema_free_DOFFamilyArray(PoroVolFourier)
-	call MeshSchema_free_DOFFamilyArray(Poro_1VolFourier)
-	call MeshSchema_free_DOFFamilyArray(ThermalSourceVol)
+    call MeshSchema_free_DOFFamilyArray(PoroVolFourier)
+    call MeshSchema_free_DOFFamilyArray(Poro_1VolFourier)
+    call MeshSchema_free_DOFFamilyArray(ThermalSourceVol)
 #endif
 
   end subroutine VAGFrac_Free
