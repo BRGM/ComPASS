@@ -9,7 +9,11 @@
 module CommonType
 
   ! This for arrays that are interfaced with python/C++
-  use iso_c_binding, only: c_int, c_int8_t, c_char, c_double
+  use iso_c_binding, only: &
+     c_int, c_int8_t, c_char, c_double
+
+  use CommonMPI, only: &
+     CommonMPI_abort
 
   implicit none
 
@@ -127,6 +131,18 @@ module CommonType
   interface assignment(=)
      module procedure assign_IdNode_equal
   end interface assignment(=)
+
+    interface first_of_all
+      module procedure CSR_first_of_all
+    end interface first_of_all
+
+    interface last_of_all
+      module procedure CSR_last_of_all
+    end interface last_of_all
+
+    interface row_view
+      module procedure CSR_row_view
+    end interface row_view
 
 contains
 
@@ -311,5 +327,49 @@ contains
     x2%T = x1%T
 
   end subroutine assign_IdNode_equal
+
+
+  function CSR_first_of_all(obj) result(j)
+    type(CSR), intent(in) :: obj
+    integer(c_int) :: j
+
+#ifndef NDEBUG
+    if(obj%Pt(1)/=0) &
+        call CommonMPI_abort('inconsistent CSR')
+#endif
+
+    j = obj%Pt(1) + 1
+  
+  end function CSR_first_of_all
+
+  function CSR_last_of_all(obj) result(j)
+    type(CSR), intent(in) :: obj
+    integer(c_int) :: j
+
+#ifndef NDEBUG
+    if(obj%Pt(1)/=0) &
+        call CommonMPI_abort('inconsistent CSR')
+#endif
+
+    j = obj%Pt(obj%Nb+1)
+  
+  end function CSR_last_of_all
+
+  function CSR_row_view(obj, i) result(p)
+    type(CSR), target, intent(in) :: obj
+    integer(c_int), intent(in) :: i
+    integer(c_int), pointer, dimension(:) :: p
+  
+#ifndef NDEBUG
+    if(i<1.or.i>obj%Nb) &
+        call CommonMPI_abort('wrong CSR index')
+    if(size(obj%Pt)/=obj%Nb+1) &
+        call CommonMPI_abort('inconsistent CSR')
+#endif
+    
+    p=>obj%Num(obj%Pt(i)+1:obj%Pt(i+1))
+  
+  end function CSR_row_view
+  
 
 end module CommonType
