@@ -254,6 +254,37 @@ def _process_dirichlet_nodes(
             messages.error('You are setting temperature dirichlet nodes without energy transfer')        
     kernel.global_mesh_count_dirichlet_nodes()
 
+def cell_distribution(colors):
+    """Distibute cells into list for each proc according to colors
+    and add a laer of ghost cells."""
+    assert mpi.is_on_master_proc
+    nprocs = mpi.communicator().size
+    assert np.all(
+        np.in1d(
+            np.unique(colors), np.arange(nprocs),
+            assume_unique=True
+        )
+    )
+    domains = [
+        np.nonzero(colors==color)[0]
+        for color in range(nprocs)
+    ]
+    # add one layer of ghost cells
+    ghost_layers = []
+    neighbors = get_global_connectivity().CellbyCell
+    for color, domain in enumerate(domains):
+        # FIXME: Fortran indexing in connectivity -> -1
+        extended_domain = np.hstack([neighbors[k] for k in domain]) - 1
+        extended_domain = np.unique(np.hstack([domain, extended_domain]))
+        own = np.in1d(extended_domain, domain, assume_unique=True)
+        ghosts = extended_domain[np.logical_not(own)]
+        ghosts_color = colors[ghosts]
+        ghost_layers.append({
+            color: ghosts[ghosts_color==color]
+            for color in np.unique(ghosts_color)
+        })
+    return domains, ghost_layers
+
 def part_mesh():
     nparts = mpi.communicator().size
     if nparts>1:
