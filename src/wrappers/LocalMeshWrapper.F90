@@ -23,11 +23,17 @@ module LocalMeshWrapper
    implicit none
 
    integer :: Ierr, errcode
+   
+   private :: &
+      retrieve_array, &       ! FIXME: to be moved elsewhere
+      retrieve_pointed_array  ! FIXME: to be moved elsewhere
 
    public :: &
 #ifdef _THERMIQUE_
+       retrieve_allthermalsources, &
        retrieve_cellthermalsource, &
        retrieve_nodethermalsource, &
+       retrieve_fracthermalsource, &
 #endif
       retrieve_vertices, &
       retrieve_nodeflags, &
@@ -134,6 +140,31 @@ contains
 
     end subroutine retrieve_facetypes
 
+   subroutine retrieve_array(array, cpp_array)
+
+      real(c_double), dimension(:), allocatable, target, intent(in) :: array
+      type(cpp_array_wrapper), intent(out) :: cpp_array
+      integer(c_size_t) :: n
+
+      if (.not. allocated(array)) then
+          cpp_array%p = C_NULL_PTR
+          cpp_array%n = 0
+      else
+          n = size(array)
+          cpp_array%n = n
+          if (n==0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+              ! FIXME: Remove comment
+              write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+              cpp_array%p = C_NULL_PTR
+          else
+              cpp_array%p = c_loc(array(1))
+          end if
+      end if
+
+   end subroutine retrieve_array
+
    subroutine retrieve_pointed_array(array, cpp_array)
 
       real(c_double), dimension(:), pointer, intent(in) :: array
@@ -161,6 +192,14 @@ contains
 
 #ifdef _THERMIQUE_
 
+    subroutine retrieve_allthermalsources(cpp_array) &
+         bind (C, name = "retrieve_allthermalsources")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+        call retrieve_array(ThermalSourceVol%values, cpp_array)
+
+    end subroutine retrieve_allthermalsources
+
     subroutine retrieve_cellthermalsource(cpp_array) &
          bind (C, name = "retrieve_cellthermalsource")
       type(cpp_array_wrapper), intent(inout):: cpp_array
@@ -177,13 +216,21 @@ contains
       
     end subroutine retrieve_nodethermalsource
 
-    subroutine retrieve_fracthermalsourcevol(cpp_array) &
-         bind (C, name = "retrieve_fracthermalsourcevol")
+    subroutine retrieve_fracthermalsource(cpp_array) &
+         bind (C, name = "retrieve_fracthermalsource")
       type(cpp_array_wrapper), intent(inout):: cpp_array
       
         call retrieve_pointed_array(ThermalSourceVol%fractures, cpp_array)
       
-    end subroutine retrieve_fracthermalsourcevol
+    end subroutine retrieve_fracthermalsource
+
+    subroutine retrieve_all_Fourier_porous_volumes(cpp_array) &
+         bind (C, name = "retrieve_all_Fourier_porous_volumes")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+        call retrieve_array(PoroVolFourier%values, cpp_array)
+
+    end subroutine retrieve_all_Fourier_porous_volumes
 
     subroutine retrieve_porovolfouriercell(cpp_array) &
          bind (C, name = "retrieve_porovolfouriercell")   

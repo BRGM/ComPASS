@@ -12,7 +12,7 @@
        use, intrinsic :: iso_c_binding
        use CommonMPI, only: commRank, CommonMPI_abort
        use DefModel, only: NbComp, NbPhase
-       use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode, IncCell, IncFrac
+       use IncCVReservoir, only: TYPE_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac
        use MeshSchema, only: NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus
        use IncCVWells, only: IncPressionWellProd, IncPressionWellInj
        use DirichletContribution, only: IncNodeDirBC
@@ -27,6 +27,7 @@
           get_NbPhase, &
           size_of_unknowns, &
           retrieve_dirichlet_node_states, &
+          retrieve_all_states, &
           retrieve_node_states, &
           retrieve_fracture_states, &
           retrieve_cell_states, &
@@ -120,6 +121,12 @@
             call CommonMPI_abort("inconsistent node sizes")
           cpp_array%n = nb_owns
        end subroutine retrieve_own_dirichlet_node_states
+
+       subroutine retrieve_all_states(cpp_array) &
+          bind(C, name="retrieve_all_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          call retrieve_state_array(IncAll, cpp_array)
+       end subroutine retrieve_all_states
 
        subroutine retrieve_node_states(cpp_array) &
           bind(C, name="retrieve_node_states")

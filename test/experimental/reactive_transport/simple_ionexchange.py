@@ -89,6 +89,9 @@ def set_states_inj(states, x, name):
         states.T[right] = c1_init
     else:
         raise SystemExit('wrong name %s % (name)') 
+
+def set_injection(name):
+    set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], name)
         
 # concentrations (=temperature !) treated separately, as there are 2 species
 def set_initial_values():
@@ -98,8 +101,7 @@ def set_initial_values():
         states.S[:] = 1
         states.C[:] = 1.
 
-    set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
-    set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
+    set_states(ComPASS.all_states(), ComPASS.compute_dof_locations()[:,0])
 
 
 ComPASS.load_eos('linear_water')
@@ -122,27 +124,26 @@ ComPASS.init(
 set_initial_values()
 set_boundary_conditions()
 
+#%%-- The four following functions are here just to hide
+#     the fact that we use temperatures as concentrations
+
 def retrieve_concentrations(): 
-    # should work, no copy needed because of hstack
-    return np.hstack((ComPASS.cell_states().T, ComPASS.node_states().T))
+    # copy needed
+    return np.copy(ComPASS.all_states().T)
 
 def set_concentrations(C):
-    ComPASS.cell_states().T[:] = C[:nbCells]
-    ComPASS.node_states().T[:] = C[nbCells:]
+    ComPASS.all_states().T[:] = C
 
 def set_source_term(S):
-    cellVAGvolume = ComPASS.porovolfouriercell()
-    nodeVAGvolume = ComPASS.porovolfouriernode()
-    
-    cellheatsource = ComPASS.cellthermalsource()
-    cellheatsource[:] =  - cellVAGvolume /omega_reservoir * S[:nbCells]
-    nodeheatsource = ComPASS.nodethermalsource()
-    nodeheatsource[:] =  - nodeVAGvolume /omega_reservoir * S[nbCells:]
+    # WARNING: only porous volume at dof not including rock volume
+    porous_volume = ComPASS.all_Fourier_porous_volumes()
+    thermal_sources = ComPASS.all_thermal_sources()
+    thermal_sources[:] = - porous_volume /omega_reservoir * S
 
 def clear_source_term():
-    ComPASS.cellthermalsource()[:] = 0
-    ComPASS.nodethermalsource()[:] = 0
-    
+    ComPASS.all_thermal_sources()[:] = 0
+
+#%%---------------------------------------------------------
 
 def make_one_timestep(t, dt, cTold, c1old):
 
@@ -150,10 +151,9 @@ def make_one_timestep(t, dt, cTold, c1old):
     #ts_manager = TimeStepManager(initial_timestep=720,)
     newton =  ComPASS.newton.Newton(1e-5, 20, ComPASS.newton.LinearSolver(1e-6, 150))  # ComPASS.default_Newton() #
     context = SimulationContext()
-	
     # do cT first (linear)
     set_concentrations(cTold)
-    set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], 'cT')
+    set_injection('cT')
     clear_source_term()
 
     timestep.make_one_timestep(
@@ -174,7 +174,7 @@ def make_one_timestep(t, dt, cTold, c1old):
 
     def fchim(cprev):
         set_concentrations(c1old)
-        set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0], 'c1')
+        set_injection('c1')
         set_source_term((freac(cprev, cTnew) - fc1old) / dt)
         
         #np.set_printoptions(precision=8,linewidth=150)

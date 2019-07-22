@@ -66,6 +66,7 @@ extern "C"
 	int number_of_phases();
 	int size_of_unknowns();
 	void retrieve_dirichlet_node_states(StateArray&);
+	void retrieve_all_states(StateArray&);
 	void retrieve_node_states(StateArray&);
 	void retrieve_fracture_states(StateArray&);
 	void retrieve_cell_states(StateArray&);
@@ -132,6 +133,10 @@ void add_IncCV_wrappers(py::module& module)
     //add_attribute_array<typename Neumann::Real>(PyNeumannArray, "heat_flux", offsetof(Neumann, heat_flux));
 
 	module.def("dirichlet_node_states", []() { return StateArray::retrieve(retrieve_dirichlet_node_states); });
+	module.def("all_states", []() { return StateArray::retrieve(retrieve_all_states); },
+    R"doc(
+        Retrieve all nodes, fractures and cell states in a contiguous structure.
+    )doc");
 	module.def("node_states", []() { return StateArray::retrieve(retrieve_node_states); });
 	module.def("fracture_states", []() { return StateArray::retrieve(retrieve_fracture_states); });
 	module.def("cell_states", []() { return StateArray::retrieve(retrieve_cell_states); });

@@ -452,6 +452,13 @@ def compute_face_centers():
 def compute_fracture_centers():
     return compute_face_centers()[ComPASS.frac_face_id() -1] # Fortran indexes start at 1
 
+def compute_dof_locations():
+    return np.vstack([
+        ComPASS.vertices(),
+        ComPASS.compute_fracture_centers(),
+        ComPASS.compute_cell_centers(),
+    ])
+
 def old_compute_face_centers():
     return _compute_centers(
         vertices().view(dtype=np.double).reshape((-1, 3)),

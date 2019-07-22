@@ -59,12 +59,14 @@ extern "C"
     void retrieve_cell_permeability(ArrayWrapper&);
     void retrieve_fracture_permeability(ArrayWrapper&);
 #ifdef _THERMIQUE_
+    void retrieve_allthermalsources(XArrayWrapper<double>&);
     void retrieve_cell_thermal_conductivity(ArrayWrapper&);
     void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
     void retrieve_cellthermalsource(XArrayWrapper<double>&);
     void retrieve_nodethermalsource(XArrayWrapper<double>&);
-	void retrieve_fracthermalsourcevol(XArrayWrapper<double>&);
+	void retrieve_fracthermalsource(XArrayWrapper<double>&);
     void retrieve_cell_heat_source(ArrayWrapper&);
+    void retrieve_all_Fourier_porous_volumes(XArrayWrapper<double>&);
 	void retrieve_porovolfouriercell(XArrayWrapper<double>&);
 	void retrieve_porovolfouriernode(XArrayWrapper<double>&);
 #endif
@@ -119,9 +121,11 @@ void add_mesh_utilities_wrappers(py::module& module)
 	add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
 	add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
 #ifdef _THERMIQUE_
+    add_array_wrapper(module, "all_thermal_sources", retrieve_allthermalsources);
 	add_array_wrapper(module, "cellthermalsource", retrieve_cellthermalsource);
 	add_array_wrapper(module, "nodethermalsource", retrieve_nodethermalsource);
-	add_array_wrapper(module, "fracturethermalsource", retrieve_fracthermalsourcevol);
+	add_array_wrapper(module, "fracturethermalsource", retrieve_fracthermalsource);
+    add_array_wrapper(module, "all_Fourier_porous_volumes", retrieve_all_Fourier_porous_volumes);
 	add_array_wrapper(module, "porovolfouriercell", retrieve_porovolfouriercell);
 	add_array_wrapper(module, "porovolfouriernode", retrieve_porovolfouriernode);
 #endif
