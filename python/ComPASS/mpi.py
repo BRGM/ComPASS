@@ -19,7 +19,7 @@ def communicator():
 def on_master_proc(f):
     def call(*args, **kwargs):
         if is_on_master_proc:
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
     return call
 
 def master_print(*args, **kwargs):
@@ -32,3 +32,8 @@ def synchronize():
 def abort():
     MPI.COMM_WORLD.Abort()       
 
+if __name__=='__main__':
+    @on_master_proc
+    def f():
+        return 1
+    print('on proc', proc_rank, 'f()=', f())
