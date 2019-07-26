@@ -10,16 +10,16 @@ class Timer:
         output_on_master=True, banner=None,
         fieldwidth=20,
     ):
-    """
-    Timer instance constructor.
+        """
+        Timer instance constructor.
 
-    :param collect_events: boolean that tells if timed event should be collected
-    :param output: a stream where timed events can be printed defaults to None (no messages)
-    :param output_on_master: boolean that tells if messages are output only on master proc (if False
-     the proc id is appended to the banner
-    :param banner: a string that can be prepended to the output messages, defaults to None
-    :param fieldwidth: the width used to print event name
-    """
+        :param collect_events: boolean that tells if timed event should be collected
+        :param output: a stream where timed events can be printed defaults to None (no messages)
+        :param output_on_master: boolean that tells if messages are output only on master proc (if False
+         the proc id is appended to the banner
+        :param banner: a string that can be prepended to the output messages, defaults to None
+        :param fieldwidth: the width used to print event name
+        """
         if not (collect_events or output):
             message.warning('''Your timer is probably useless
             as it neither outputs timed event nor collect them!''')
