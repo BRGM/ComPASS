@@ -35,8 +35,8 @@ grid = ComPASS.Grid(
     extent = (Lx, Lx/nx, Lx/nx),
 )
 
-muf = 1 # dynamic viscosity of pure water at 100°C
-pleft, pright = 0.369 * Lx,  0  # Darcy ve;ocity given 0.369 m / h
+muf = 1 # dynamic viscosity of water
+pleft, pright = 0.369 * Lx,  0  # Darcy velocity given 0.369 m / h
 k_reservoir = 1 # m^2
 omega_reservoir = 0.2
 vdarcy = (k_reservoir /muf) *(pleft - pright) / Lx
@@ -169,16 +169,11 @@ def make_one_timestep(t, dt, cTold, c1old):
         return Keq * rhos *cTbar *(c1 / (cT +(Keq-1)*c1))
 
     fc1old = freac(c1old, cTold)
-    #fc1oldc = fc1old[:nbCells]
-    #fc1oldn = fc1old[nbCells:]
 
     def fchim(cprev):
         set_concentrations(c1old)
         set_injection('c1')
         set_source_term((freac(cprev, cTnew) - fc1old) / dt)
-        
-        #np.set_printoptions(precision=8,linewidth=150)
-        #print(heatsource)
         
         timestep.make_one_timestep(
             newton, ts_manager.steps(),
@@ -186,47 +181,38 @@ def make_one_timestep(t, dt, cTold, c1old):
         )
         return retrieve_concentrations()
         
-    cinit = c1old  #  np.random.rand(nx) 
+    cinit = c1old
     c1new = newton_krylov(lambda c: c-fchim(c), cinit, method='lgmres', verbose=1)
 
-    #np.set_printoptions(precision=8,linewidth=150)
-    #print(cTnew[:nbCells])
-    #print(cTnew[nbCells:])
-    
     return cTnew, c1new
 
-##def plot_1D_concentrations(t, conc):
 def plot_1D_concentrations(t, cT, c1):
+    # Cell concentrations are last in the cT / c1 vectors
     xc = ComPASS.compute_cell_centers()[:,0]
     xn = ComPASS.vertices()[:,0]
-    ##conc = ComPASS.cell_states().T
     import ComPASS.utils.mpl_backends as mpl_backends
     plt = mpl_backends.import_pyplot(False)
     if plt:
         plt.clf()
-        plt.subplot(221)
-        plt.plot(xc, cT[:nbCells])
-        plt.subplot(222)
-        plt.plot(xn[:nbCells], cT[nbCells:2*nbCells])
+        plt.subplot(211)
+        plt.plot(xc, cT[-nbCells:])
         plt.xticks(np.arange(0,Lx+.01,step=5))
-        plt.title('t='+str(t))
+        plt.title(f't={t:.2f}')
         plt.ylabel('Total conc')
-        plt.subplot(223)
-        plt.plot(xc, c1[:nbCells])
-        plt.xticks(np.arange(0,Lx+.01,step=5))
-        plt.subplot(224)
-        plt.plot(xn[:nbCells], c1[nbCells:2*nbCells])
+        plt.subplot(212)
+        plt.plot(xc, c1[-nbCells:])
         plt.xticks(np.arange(0,Lx+.01,step=5))
         plt.xlabel('x in meters')
         plt.ylabel('C1 conc')
         plt.draw()
         plt.pause(0.1)
 
-        plt.savefig(ComPASS.to_output_directory('conc_'+str(t)), format='png')
+        plt.savefig(ComPASS.to_output_directory(f'conc_{t:.2f}.png'), format='png')
 
 t=0
 final_time = 55 # hrs
 dt = 0.2
+check = True # show solution at t=25 and t=55 (cf figure 1 in above Ref.)
 
 nbNodes = ComPASS.global_number_of_nodes()
 nbCells = ComPASS.global_number_of_cells()
@@ -236,7 +222,6 @@ cTold = np.tile(ctot_init, nbDofs)
 c1old = np.tile(c1_init, nbDofs)
 
 
-#midcurve= []
 while t<final_time :
     print("===== Doing time ", t)
 
@@ -245,7 +230,31 @@ while t<final_time :
     t =t + dt
     cTold = cTnew
     c1old = c1new
-#    ind = np.where(cTold['cells'] > 45)[0][0]
-#    midcurve.append([ind, t, cTold['cells'][ind]])
+    if check:
+        if np.abs(t-25) < dt/2:
+            sol25 = np.vstack(([cTold[-nbCells:], c1old[-nbCells:]]))
+        if np.abs(t-55) < dt/2:
+            sol55 = np.vstack(([cTold[-nbCells:], c1old[-nbCells:]]))
 
-#print(*midcurve, sep='\n')
+if check:
+    import ComPASS.utils.mpl_backends as mpl_backends
+    plt = mpl_backends.import_pyplot(False)
+    if plt:
+        plt.ion()
+        xc = ComPASS.compute_cell_centers()[:,0]
+        plt.figure(2)
+        plt.subplot(211)
+        plt.ylim(0, 110)
+        plt.plot(xc, sol25[0,:], label='T=25')
+        plt.plot(xc, sol55[0,:], label='T=55')
+        plt.ylabel('Total conc')
+        plt.legend()
+        plt.subplot(212)
+        plt.ylim(0, 22)
+        plt.plot(xc, sol25[1,:], label='T=25')
+        plt.plot(xc, sol55[1,:], label='T=55')
+        plt.xlabel('x in meters')
+        plt.ylabel('C1 conc')
+        plt.legend()
+        plt.draw()
+        plt.savefig(ComPASS.to_output_directory(f'concs_25_55.png'), format='png')
