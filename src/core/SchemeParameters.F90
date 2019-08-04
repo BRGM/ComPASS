@@ -54,16 +54,6 @@ module SchemeParameters
       TimeStepObj_C = 1.d0, &
       TimeStepObj_S = 0.6d0
 
-   ! ! ****** Parameters of VAG schme (volume distribution) ****** ! !
-
-   real(c_double), parameter :: &
-      omegaDarcyCell = 0.075, & ! darcy cell/frac
-      omegaDarcyFrac = 0.15
-
-   real(c_double), parameter :: &
-      omegaFourierCell = 0.075, & ! fourier cell/frac
-      omegaFourierFrac = 0.15
-
    ! ! ****** Others ****** ! !
 
    ! eps

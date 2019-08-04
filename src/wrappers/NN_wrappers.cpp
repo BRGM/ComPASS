@@ -12,18 +12,15 @@
 // Fortran functions
 extern "C"
 {
-	//void NN_init(const StringWrapper&, const StringWrapper&, const StringWrapper&);
-	//void NN_init_warmup_and_read_mesh(const StringWrapper&, const StringWrapper&);
 	void NN_init_warmup(const StringWrapper&);
-	//void NN_init_read_mesh(const StringWrapper&);
-	//void NN_init_build_grid(double, double, double, double, double, double, int, int, int);
-	void NN_init_phase2(bool, bool);
-	//void NN_main(int, const StringWrapper&);
-	// void NN_main_make_timestep(double);
-	//void NN_main_output_visu(int, const StringWrapper&);
 	void NN_main_summarize_timestep();
 	void NN_finalize();
     void NN_init_phase2_partition(ArrayWrapper&);
+    void init_phase2_build_local_mesh();
+    void init_phase2_setup_contexts();
+    void init_phase2_setup_VAG(double, double, double, double);
+    void init_phase2_setup_solvers(bool, bool);
+
 }
 
 #include "NN_wrappers.h"
@@ -46,11 +43,11 @@ void add_NN_wrappers(py::module& module)
         NN_init_phase2_partition(wrapper);
     },
       "Partition mesh.");
-	module.def("init_phase2",
-		[](bool activate_cpramg, bool activate_direct_solver) {
-		NN_init_phase2(activate_cpramg, activate_direct_solver);
-	},
-		"Initialisation of ComPASS phase 2 : distribute elements from global to local mesh.");
+
+    module.def("init_phase2_build_local_mesh", &init_phase2_build_local_mesh);
+    module.def("init_phase2_setup_contexts", &init_phase2_setup_contexts);
+    module.def("init_phase2_setup_VAG", &init_phase2_setup_VAG);
+    module.def("init_phase2_setup_solvers", &init_phase2_setup_solvers);
 
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
 

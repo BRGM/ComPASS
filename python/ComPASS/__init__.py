@@ -310,6 +310,19 @@ def summarize_simulation():
         # print('  NbDirNode T: ', NbDirNodeT)
     print('  Ncpus :     ', mpi.communicator().size)
 
+def setup_VAG(properties):
+    omegas = {}
+    for law in ('Darcy', 'Fourier'):
+        for location in ('cell', 'fracture'):
+            omega = properties[location + '_omega_' + law]()
+            if omega is None:
+                omega = 0.075 if location=='cell' else 0.15
+            omegas['%s_%s'%(location, law)] = omega
+    kernel.init_phase2_setup_VAG(
+        omegas['cell_Darcy'], omegas['fracture_Darcy'],
+        omegas['cell_Fourier'], omegas['fracture_Fourier'],
+    )
+
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -340,7 +353,10 @@ def init(
     def make_property_accessor(value):
         return lambda: value
     for location in ['cell', 'fracture']:
-        for property in ['porosity', 'permeability', 'thermal_conductivity']:
+        for property in [
+            'porosity', 'permeability', 'thermal_conductivity',
+            'omega_Darcy', 'omega_Fourier'
+        ]:
             name = '%s_%s' % (location, property)
             try:
                 f = kwargs[name]
@@ -406,7 +422,10 @@ def init(
         kernel.init_phase2_partition(mesh_parts)
     ComPASS.mesh_is_local = True
     mpi.synchronize()
-    kernel.init_phase2(activate_cpramg, activate_direct_solver)
+    kernel.init_phase2_build_local_mesh()
+    kernel.init_phase2_setup_contexts()
+    setup_VAG(properties)
+    kernel.init_phase2_setup_solvers(activate_cpramg, activate_direct_solver)
     mpi.synchronize() # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     initialized = True

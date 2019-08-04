@@ -37,8 +37,6 @@ module VAGFrac
 
   use Physics, only: Thickness
   use SchemeParameters, only: &
-     omegaDarcyCell, omegaDarcyFrac, &
-     omegaFourierCell, omegaFourierFrac, &
      eps
 
   implicit none
@@ -580,7 +578,9 @@ contains
 
     ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
-  subroutine VAGFrac_VolsDarcy
+  subroutine VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac)
+    real(c_double), intent(in) :: omegaDarcyCell
+    real(c_double), intent(in) :: omegaDarcyFrac
 
     call VAGFrac_allocate_Darcy_volumes
 
@@ -648,10 +648,11 @@ contains
 
 #ifdef _THERMIQUE_
 
-  subroutine VAGFrac_distribute_fourier_quantities(quantities)
-
+  subroutine VAGFrac_distribute_fourier_quantities(quantities, omegaFourierCell, omegaFourierFrac)
     type(DOFFamilyArray), intent(inout) :: quantities
-
+    real(c_double), intent(in) :: omegaFourierCell
+    real(c_double), intent(in) :: omegaFourierFrac
+    
     quantities%nodes = 0.d0
     call VAGFrac_SplitCellVolume( &
       NbCellLocal_Ncpus(commRank+1), &
@@ -726,7 +727,10 @@ contains
   
   end subroutine VAGFrac_allocate_Fourier_volumes
 
-  subroutine VAGFrac_VolsFourier
+  subroutine VAGFrac_VolsFourier(omegaFourierCell, omegaFourierFrac)
+    real(c_double), intent(in) :: omegaFourierCell
+    real(c_double), intent(in) :: omegaFourierFrac
+
 
     call VAGFrac_allocate_Fourier_volumes
 
@@ -741,15 +745,15 @@ contains
 
     PoroVolFourier%cells = PorositeCellLocal * VolCellLocal
     PoroVolFourier%fractures = PorositeFracLocal * Thickness * SurfFracLocal
-    call VAGFrac_distribute_fourier_quantities(PoroVolFourier)
+    call VAGFrac_distribute_fourier_quantities(PoroVolFourier, omegaFourierCell, omegaFourierFrac)
 
     Poro_1VolFourier%cells = (1 - PorositeCellLocal) * VolCellLocal
     Poro_1VolFourier%fractures = (1 - PorositeFracLocal) * Thickness * SurfFracLocal
-    call VAGFrac_distribute_fourier_quantities(Poro_1VolFourier)
+    call VAGFrac_distribute_fourier_quantities(Poro_1VolFourier, omegaFourierCell, omegaFourierFrac)
 
     ThermalSourceVol%cells = CellThermalSourceLocal * VolCellLocal
     ThermalSourceVol%fractures = FracThermalSourceLocal * Thickness * SurfFracLocal
-    call VAGFrac_distribute_fourier_quantities(ThermalSourceVol)
+    call VAGFrac_distribute_fourier_quantities(ThermalSourceVol, omegaFourierCell, omegaFourierFrac)
 
     call VAGFrac_check_fourier_volumes()
 

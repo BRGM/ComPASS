@@ -123,7 +123,6 @@ module NN
    public :: &
       NN_flash_all_control_volumes, &
       NN_init_warmup, &
-      NN_init_phase2, &
       NN_finalize
    
    private :: &
@@ -191,20 +190,9 @@ contains
           
     end subroutine NN_init_phase2_partition
 
-   subroutine NN_init_phase2(activate_cpramg, activate_direct_solver) &
-      bind(C, name="NN_init_phase2")
+   subroutine NN_init_phase2_build_local_mesh() &
+      bind(C, name="init_phase2_build_local_mesh")
        
-      logical(c_bool), intent(in), value :: activate_cpramg, activate_direct_solver
-
-      ! *** Global Mesh -> Local Mesh *** !
-
-      ! Main subroutine of module MeshSchema
-      ! This module constains all infos of local mesh
-      !   1. Send mesh from proc 0 to other procs
-      !   2. compute XCellLocal, XFaceLocal
-      !   3. compute VolCelllocal, SurfFracLocal
-      !   4. compute NbNodeCellmax, NbFracCellMax, NbNodeFaceMax
-
       call MeshSchema_make
 
       ! free some tmps in LocalMesh
@@ -212,11 +200,23 @@ contains
          call LocalMesh_Free
       end if
 
-      ! *** Numeratation derived from model *** !
+   end subroutine NN_init_phase2_build_local_mesh
+
+   subroutine NN_init_phase2_setup_contexts() &
+      bind(C, name="init_phase2_setup_contexts")
 
       call NumbyContext_make(get_model_configuration())
 
-      ! *** VAG Transmissivity *** !
+   end subroutine NN_init_phase2_setup_contexts
+
+   subroutine NN_init_phase2_setup_VAG( &
+        omegaDarcyCell, omegaDarcyFrac, &
+        omegaFourierCell, omegaFourierFrac &
+   ) bind(C, name="init_phase2_setup_VAG")
+      real(c_double), value, intent(in) :: omegaDarcyCell
+      real(c_double), value, intent(in) :: omegaDarcyFrac
+      real(c_double), value, intent(in) :: omegaFourierCell
+      real(c_double), value, intent(in) :: omegaFourierFrac
 
       call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
 
@@ -232,13 +232,17 @@ contains
       deallocate (CondThermalFracLocal)
 #endif
 
-      call VAGFrac_VolsDarcy
-
+      call VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac)
 #ifdef _THERMIQUE_
-      call VAGFrac_VolsFourier
+      call VAGFrac_VolsFourier(omegaFourierCell, omegaFourierFrac)
 #endif
 
-      ! **** allocate structure **** !
+   end subroutine NN_init_phase2_setup_VAG
+
+   subroutine NN_init_phase2_setup_solvers(activate_cpramg, activate_direct_solver) &
+      bind(C, name="init_phase2_setup_solvers")
+       
+      logical(c_bool), intent(in), value :: activate_cpramg, activate_direct_solver
 
       ! unknowns allocate
       call IncCV_allocate
@@ -282,7 +286,7 @@ contains
       ! init and sort for flash
       call DefFlashWells_allocate
 
-   end subroutine NN_init_phase2
+   end subroutine NN_init_phase2_setup_solvers
 
    subroutine NN_flash_control_volumes(n, state, rocktypes, volume)
 
