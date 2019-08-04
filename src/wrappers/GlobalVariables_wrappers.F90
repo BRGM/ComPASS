@@ -14,17 +14,11 @@
        use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax
        use Physics, only: Thickness, gravity, CpRoche, atm_pressure
        use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
-       use NN, only: Delta_t, TimeCurrent
 
        implicit none
 
        public :: &
           nb_primary_variables, &
-          get_current_time, &
-          set_current_time, &
-          get_delta_t, &
-          get_final_time, &
-          set_final_time, &
           get_gravity, &
           set_gravity, &
           get_atm_pressure, &
@@ -32,11 +26,7 @@
           get_volumetric_heat_capacity, &
           set_volumetric_heat_capacity, &
           get_fracture_thickness, &
-          set_fracture_thickness, &
-          get_initial_timestep, &
-          get_maximum_timestep, &
-          set_initial_timestep, &
-          set_maximum_timestep
+          set_fracture_thickness
 
     contains
 
@@ -45,36 +35,6 @@
         integer(c_size_t) :: n
         n = NbIncTotalPrimMax ! NbIncTotalMax
         end function nb_primary_variables
-        
-        function get_current_time() result(t) &
-          bind(C, name="get_current_time")
-          real(c_double) :: t
-          t = TimeCurrent
-       end function get_current_time
-
-       subroutine set_current_time(t) &
-          bind(C, name="set_current_time")
-          real(c_double), intent(in), value :: t
-          TimeCurrent = t
-       end subroutine set_current_time
-
-       function get_delta_t() result(t) &
-          bind(C, name="get_delta_t")
-          real(c_double) :: t
-          t = Delta_t
-       end function get_delta_t
-
-       function get_final_time() result(t) &
-          bind(C, name="get_final_time")
-          real(c_double) :: t
-          t = TimeFinal
-       end function get_final_time
-
-       subroutine set_final_time(t) &
-          bind(C, name="set_final_time")
-          real(c_double), value, intent(in) :: t
-          TimeFinal = t
-       end subroutine set_final_time
 
        function get_gravity() result(g) &
           bind(C, name="get_gravity")
@@ -123,30 +83,6 @@
           real(c_double), value, intent(in) :: d
           Thickness = d
        end subroutine set_fracture_thickness
-
-       function get_initial_timestep() result(t) &
-          bind(C, name="get_initial_timestep")
-          real(c_double) :: t
-          t = TimeStepInit
-       end function get_initial_timestep
-
-       function get_maximum_timestep() result(t) &
-          bind(C, name="get_maximum_timestep")
-          real(c_double) :: t
-          t = TimeStepMax
-       end function get_maximum_timestep
-
-       subroutine set_initial_timestep(t) &
-          bind(C, name="set_initial_timestep")
-          real(c_double), value, intent(in) :: t
-          TimeStepInit = t
-       end subroutine set_initial_timestep
-
-       subroutine set_maximum_timestep(t) &
-          bind(C, name="set_maximum_timestep")
-          real(c_double), value, intent(in) :: t
-          TimeStepMax = t
-       end subroutine set_maximum_timestep
 
     end module GlobalVariablesWrappers
 

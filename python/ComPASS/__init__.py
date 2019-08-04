@@ -526,10 +526,6 @@ def set_fractures(faces):
     idfaces[faces] = -2
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 
-@mpi.on_master_proc
-def timestep_summary():
-    kernel.summarize_timestep()
-
 def output_visualization_files(iteration):
     kernel.output_visu(iteration, runtime.output_directory)
 

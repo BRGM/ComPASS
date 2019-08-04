@@ -85,11 +85,6 @@ module NN
 
    double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
 
-   ! Time variables
-   double precision :: Delta_t, TimeCurrent, TimeOutput
-   integer :: VisuTimeIter = 1
-   double precision :: Psat, dTsat
-
    ! Computation time variables
    double precision :: &
       comptime_total, &
@@ -139,7 +134,6 @@ module NN
    ! ! ********************************** ! !
 
    public :: &
-      NN_main_summarize_timestep, &
       NN_flash_all_control_volumes, &
       NN_init_warmup, &
       NN_init_phase2, &
@@ -363,13 +357,6 @@ contains
       comptime_total = comptime_total + (MPI_WTIME() - comptime_start)
       comptime_start = MPI_WTIME()
 
-      ! *** Time steps *** !
-
-      TimeCurrent = 0.d0
-      TimeOutput = 0.d0
-
-      Delta_t = TimeStepInit
-
    end subroutine NN_init_phase2
 
    subroutine NN_flash_control_volumes(n, state, rocktypes, volume)
@@ -403,25 +390,6 @@ contains
    call DefFlashWells_NewtonFlashLinWells
 
    end subroutine NN_flash_all_control_volumes
-
-   subroutine NN_main_summarize_timestep() &
-      bind(C, name="NN_main_summarize_timestep")
-
-      do i = 1, size(fd)
-         j = fd(i)
-         write (j, *)
-         write (j, *)
-         write (j, '(A,I0)') "     -Total nb of Newton iters:     ", NewtonNiterTotal
-         write (j, '(A,I0)') "     -Total nb of Ksp iters:        ", KspNiterTotal
-         write (j, '(A,I0)') "     -Total nb of Newton failures:  ", NewtonNbFailure
-         write (j, '(A,I0)') "     -Total nb of Ksp failures:     ", KspNbFailure
-
-         write (j, *)
-         write (j, '(A,F15.3)') "     -Total Computation time:              ", comptime_total
-         write (j, '(A,F15.3)') "     -Computation time of this time step:  ", comptime_timestep
-      end do
-
-   end subroutine NN_main_summarize_timestep
 
    subroutine NN_finalize() &
       bind(C, name="NN_finalize")
