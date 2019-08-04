@@ -83,19 +83,6 @@ module NN
 
    double precision :: sol
 
-   double precision :: Tempmaxloc, Tempminloc, Tempmax, Tempmin
-
-   ! Computation time variables
-   double precision :: &
-      comptime_total, &
-      comptime_timestep, &
-      comptime_start, &
-      comptime_part
-
-   double precision :: &
-      comptime_readmesh !, &
-   !comptime_meshmake
-
    ! Newton variables
    logical :: NewtonConv
    integer :: NewtonIter
@@ -187,8 +174,6 @@ contains
    
       call NN_init_output_streams(fortran_string(Logfile))
    
-      comptime_readmesh = MPI_WTIME()
-   
    end subroutine NN_init_warmup
 
    subroutine NN_init_phase2_partition(colors) &
@@ -227,9 +212,6 @@ contains
          call LocalMesh_Free
       end if
 
-      comptime_start = MPI_WTIME() ! total time start
-      comptime_total = 0.d0
-
       ! *** Numeratation derived from model *** !
 
       call NumbyContext_make(get_model_configuration())
@@ -255,17 +237,6 @@ contains
 #ifdef _THERMIQUE_
       call VAGFrac_VolsFourier
 #endif
-
-      comptime_part = MPI_WTIME() - comptime_start
-      comptime_start = MPI_WTIME()
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            write (fd(i), '(A,F16.3)') "Computation time VAG init.        :", &
-               comptime_part
-         end do
-      end if
-
-      comptime_total = comptime_total + comptime_part
 
       ! **** allocate structure **** !
 
@@ -308,22 +279,8 @@ contains
       allocate (NewtonIncreWellProd &
                 (NbWellProdLocal_Ncpus(commRank + 1)))
 
-      comptime_part = MPI_WTIME() - comptime_start
-      comptime_start = MPI_WTIME()
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            write (fd(i), '(A,F16.3)') "Computation time of allocation:   ", &
-               comptime_part
-         end do
-      end if
-
-      comptime_total = comptime_total + comptime_part
-
       ! init and sort for flash
       call DefFlashWells_allocate
-
-      comptime_total = comptime_total + (MPI_WTIME() - comptime_start)
-      comptime_start = MPI_WTIME()
 
    end subroutine NN_init_phase2
 
