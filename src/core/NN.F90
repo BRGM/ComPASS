@@ -191,38 +191,6 @@ contains
    
    end subroutine NN_init_warmup
 
-   subroutine NN_init_phase2_summary() &
-      bind(C, name="NN_init_phase2_summary")
-
-      if (commRank == 0) then
-         do i = 1, size(fd)
-            j = fd(i)
-            write (j, *) "  NbCell:      ", NbCell
-            write (j, *) "  NbFace:      ", NbFace
-            write (j, *) "  NbNode:      ", NbNode
-            write (j, *) "  NbFrac:      ", NbFrac
-            write (j, *) "  NbWellInj    ", NbWellInj
-            write (j, *) "  NbWellProd   ", NbWellProd
-            write (j, *) "  NbDirNode P: ", NbDirNodeP
-#ifdef _THERMIQUE_
-            write (j, *) "  NbDirNode T: ", NbDirNodeT
-#endif
-            write (j, *) "  Ncpus :      ", commSize
-            write (j, *) ""
-            write (j, *) "Final time: ", TimeFinal/OneSecond
-            write (j, *) ""
-         end do
-
-         ! comptime_readmesh = MPI_WTIME() - comptime_readmesh
-         ! do i = 1, size(fd)
-            ! write (fd(i), '(A,F16.3)') "Computation time warm up and reading mesh: ", &
-               ! comptime_readmesh
-         ! end do
-
-      end if
-
-   end subroutine NN_init_phase2_summary
-
    subroutine NN_init_phase2_partition(colors) &
       bind(C, name="NN_init_phase2_partition")
       type(cpp_array_wrapper), intent(in) :: colors

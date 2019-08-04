@@ -23,7 +23,6 @@ extern "C"
 	//void NN_main_output_visu(int, const StringWrapper&);
 	void NN_main_summarize_timestep();
 	void NN_finalize();
-    void NN_init_phase2_summary();
     void NN_init_phase2_partition(ArrayWrapper&);
 }
 
@@ -41,8 +40,6 @@ void add_NN_wrappers(py::module& module)
 	},
 	"Initialisation of ComPASS - warmup phase.");
 
-    module.def("init_phase2_summary", &NN_init_phase2_summary,
-        "Initial summary of simulation on master proc.");
     module.def("init_phase2_partition", [](py::array_t<int, py::array::c_style> colors) {
         assert(colors.ndim()==1);
         auto wrapper = ArrayWrapper::wrap(colors.mutable_data(), colors.size());

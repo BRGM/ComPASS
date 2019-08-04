@@ -295,7 +295,21 @@ def part_mesh():
     else:
         cell_colors = np.zeros(global_number_of_cells(), dtype=np.int32)
     return cell_colors
-    
+
+@mpi.on_master_proc
+def summarize_simulation():
+    print('  NbCell:      ', kernel.global_number_of_cells())
+    # print('  NbFace:      ', NbFace)
+    print('  NbNode:      ', kernel.global_number_of_nodes())
+    # print('  NbFrac:      ', NbFrac)
+    # print('  NbWellInj    ', NbWellInj)
+    # print('  NbWellProd   ', NbWellProd)
+    # print('  NbDirNode P: ', NbDirNodeP)
+    if kernel.has_energy_transfer_enabled:
+        print('Energy transfer enabled')
+        # print('  NbDirNode T: ', NbDirNodeT)
+    print('  Ncpus :     ', mpi.communicator().size)
+
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 class Properties:
@@ -382,7 +396,7 @@ def init(
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
         kernel.set_well_data(well_list)
         kernel.compute_well_indices()
-        kernel.init_phase2_summary()
+        summarize_simulation()
         if mesh_parts is None:
             mesh_parts = part_mesh()
         else:
