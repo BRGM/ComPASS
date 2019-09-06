@@ -70,6 +70,7 @@ def nonlin_solve(F, x0, jacobian='krylov', iter=None, verbose=False,
 
     """
 
+    tol_norm = nls.maxnorm if tol_norm is None else tol_norm
     condition = nls.TerminationCondition(f_tol=f_tol, f_rtol=f_rtol,
                                      x_tol=x_tol, x_rtol=x_rtol,
                                      iter=iter, norm=tol_norm)
