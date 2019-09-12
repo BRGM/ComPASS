@@ -21,6 +21,22 @@ import matplotlib.pyplot as plt
 import scipy.sparse as sps
 import numpy as np
 
+#%%-- The four following functions are here just to hide
+#     the fact that we use temperatures as concentrations
+
+def retrieve_concentrations():
+    # copy needed
+    return np.copy(ComPASS.all_states().T)
+
+def set_concentrations(C):
+    ComPASS.all_states().T[:] = C
+
+def set_source_term(S):
+    # WARNING: only porous volume at dof not including rock volume
+    porous_volume = ComPASS.all_Fourier_porous_volumes()
+    thermal_sources = ComPASS.all_thermal_sources()
+    thermal_sources[:] = porous_volume * S
+
 
 class Transport(object):
     def __init__(self, rhow, b, rhocp, muf, porosity, perm, conduct,
@@ -214,22 +230,9 @@ class Transport(object):
                 print("espece ========> ", i)
                 # print ("ts_manager.current_step ========> ", ts_manager.current_step)
 
-                Src_nodes = srcF[i][0 : self.nb_nodes]
-                Src_cells = srcF[i][self.nb_nodes : self.nb_points]
+                set_source_term(srcF[i, :] / ts_manager.current_step)
 
-                if mpi.is_on_master_proc:
-
-                    # buffer1 = np.array(getattr(ComPASS.kernel, 'get_node_heat_source_buffer')(), copy = False)
-                    buffer1 = ComPASS.nodethermalsource()
-                    buffer1[:] = Src_nodes / ts_manager.current_step
-
-                    # buffer2 = np.array(getattr(ComPASS.kernel, 'get_cell_heat_source_buffer')(), copy = False)
-                    buffer2 = ComPASS.cellthermalsource()
-                    buffer2[:] = Src_cells / ts_manager.current_step
-
-                ComPASS.node_states().T[:] = Cold[i][0 : self.nb_nodes]
-                ComPASS.cell_states().T[:] = Cold[i][self.nb_nodes : self.nb_points]
-
+                set_concentrations(Cold[i, :])
                 self.set_states_inj(
                     ComPASS.dirichlet_node_states(),
                     ComPASS.vertices()[:, 0], ComPASS.vertices()[:, 1],
@@ -240,8 +243,7 @@ class Transport(object):
                     newton, ts_manager.steps(), simulation_context=context
                 )
 
-                Cnew[i, 0 : self.nb_nodes] = ComPASS.node_states().T
-                Cnew[i, self.nb_nodes : self.nb_points] = ComPASS.cell_states().T
+                Cnew[i, :] = retrieve_concentrations()
 
             else:
                 compute_all_concentrations = (
