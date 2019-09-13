@@ -148,6 +148,7 @@ class Transport(object):
         XX = xy[:, 0].reshape(ny, nx)
         YY = xy[:, 1].reshape(ny, nx)
         fig = plt.figure(1)
+        fig.clf()
 
         for i in range(len(Caq)):
             Ci_nodes = conc[i][0 : self.nb_nodes]
@@ -172,7 +173,6 @@ class Transport(object):
         plt.savefig(
             ComPASS.to_output_directory("cell_conc_at_time_" + str(t)), format="png"
         )
-        plt.clf()
 
     def plot_1D_concentrations(self, t, conc):
 
@@ -182,6 +182,7 @@ class Transport(object):
         ny = self.grid.shape[1]
         ligne = nx * int(ny / 2)
         fig2 = plt.figure(2)
+        fig2.clf()
 
         for i in range(len(Caq)):
             Ci_nodes = conc[i][0 : self.nb_nodes]
@@ -211,7 +212,6 @@ class Transport(object):
         )
         # if ((t==0)|(t==21600)|(t==28800)) :
         # 	plt.savefig(ComPASS.to_output_directory('diff_1D_cell_conc_at_time_'+str(t)),format='png')
-        plt.clf()
 
     # the function that advects and diffuses all concentration
     def transport_concentrations(self, t, ts_manager, Cold, srcF):
