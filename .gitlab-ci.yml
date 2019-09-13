@@ -3,16 +3,19 @@
 image: docker:stable
 
 variables:
-  CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
   # When using dind, it's wise to use the overlayfs driver for
   # improved performance.
   # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
   # and https://gitlab.inria.fr/charms/ComPASS/issues/72
   DOCKER_DRIVER: overlay2
-  # Introduced with docker 19.03
-  # cf. https://gitlab.com/gitlab-org/gitlab-ce/issues/64959
-  # FIXME: this should be replaced by correct certificates
-  DOCKER_TLS_CERTDIR: ""
+  # Specify to Docker where to create the certificates, Docker will
+  # create them automatically on boot, and will create
+  # `/certs/client` that will be shared between the service and job
+  # container, thanks to volume mount from config.toml
+  # cf. https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Project specifc variables
+  CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
 
 services:
   - docker:stable-dind
