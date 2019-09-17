@@ -43,14 +43,19 @@ build_docker_environments:
   only:
     - /^docker_evt_.*$/
   script:
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/base-environment --pull --tag $CI_REGISTRY_IMAGE/base-environment miscellaneous/docker/base
-    - docker push $CI_REGISTRY_IMAGE/base-environment
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/build-environment --pull --tag $CI_REGISTRY_IMAGE/build-environment miscellaneous/docker/build
-    - docker push $CI_REGISTRY_IMAGE/build-environment
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/run-environment --pull --tag $CI_REGISTRY_IMAGE/run-environment miscellaneous/docker/run
-    - docker push $CI_REGISTRY_IMAGE/run-environment
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE/work-environment --pull --tag $CI_REGISTRY_IMAGE/work-environment miscellaneous/docker/work
-    - docker push $CI_REGISTRY_IMAGE/work-environment
+    - cd miscellaneous/docker
+    # We cannot retrieve the latest wheel from MeshTools master branch
+    # using gitlab API beacause the use of CI_JOB_TOKEN is a premium feature
+    # (charms/MeshTools project id is 8447 on gitlab.inria.fr)
+    # # We rely on curl to retrieve MeshTools and we are in an alpine based image (hence apk)
+    # - apk add --no-cache curl
+    # The command is wrapped into single quotes since it contains a colon
+    # - 'curl --location --output wheel.zip --header "JOB-TOKEN: $CI_JOB_TOKEN" "https://gitlab.inria.fr/api/v4/projects/8447/jobs/artifacts/master/download?job=build"''
+    - docker pull registry.gitlab.inria.fr/charms/meshtools/master-wheel:latest
+    - docker run -v $PWD:/localfs --user $UID:`id -g $USER` registry.gitlab.inria.fr/charms/meshtools/master-wheel:latest
+    - /bin/sh -e generate_environments.bash wheel/*.whl
+    - rm -rf wheel
+
 
 build:
   stage: build

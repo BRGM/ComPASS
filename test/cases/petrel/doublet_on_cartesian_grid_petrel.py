@@ -10,9 +10,9 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.utils.wells import create_vertical_well
+from ComPASS.RawMesh import RawMesh
+import MeshTools as MT
 from MeshTools.io import petrel
-
-ComPASS.load_eos('water2ph')
 
 pres = 20. * MPa                  # initial reservoir pressure
 Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -23,9 +23,37 @@ k_reservoir = 1E-12               # reservoir permeability in m^2
 K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 g = 9.81
 
+ComPASS.load_eos('water2ph')
 ComPASS.set_gravity(g)
 
-mesh, perm = petrel.import_eclipse_grid('sample.grdecl')
+def load_eclipse_grid(filename):
+    import os
+    grdecl, kwargs = petrel.read_file_argument(filename)
+    name = os.path.basename(grdecl.split('.')[0])
+    pgrid = petrel.PetrelGrid.build_from_files(grdecl, **kwargs)
+    hexa, vertices, cell_faces, face_nodes = pgrid.process()
+    perm = pgrid.get_perm()
+#    mesh = MT.HybridMesh.Mesh()
+#    vertices = mesh.vertices
+#    for P in vertices:
+#        vertices.append(MT.Point(P))
+#    cellnodes = mesh.connectivity.cells.nodes
+#    for cell in hexa:
+#        cellnodes.append(MT.Hexahedron(cell))
+#    mesh.connectivity.update_from_cellnodes()
+    cell_nodes = [
+        np.unique(np.hstack(face_nodes[faces]))
+        for faces in cell_faces
+    ]
+    mesh = RawMesh(
+        vertices=vertices,
+        cell_faces=list(cell_faces),
+        face_nodes=list(face_nodes),
+        cell_nodes=cell_nodes,
+    )
+    return mesh, perm
+
+mesh, perm = load_eclipse_grid('sample.grdecl')
 
 def build_permeability_tensors():
     nbcells = len(perm[0])

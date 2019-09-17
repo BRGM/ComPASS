@@ -26,13 +26,6 @@ Log into the ComPASS docker regisry:
 docker login registry.gitlab.inria.fr
 ```
 
-then:
+then run `/bin/bash generate_environments.bash`
 
-```shell
-for evt in base build run work
-do
-    docker build -t registry.gitlab.inria.fr/charms/compass/${evt}-environment ${evt}
-    docker push registry.gitlab.inria.fr/charms/compass/${evt}-environment 
-done
-```
 
