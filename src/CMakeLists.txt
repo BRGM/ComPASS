@@ -62,9 +62,9 @@ target_include_directories(ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH})
 # target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
 target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
 # target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
-target_include_directories(ComPASSCommonCore PUBLIC ${PETSC_INCLUDES})
+target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDES})
 # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-# target_link_libraries(ComPASSCommonCore ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
+# target_link_libraries(ComPASSCommonCore ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
 
 set( ComPASSCore_SRCS
     # CommonMPI.F90
@@ -250,9 +250,9 @@ foreach(_conf ${CONFIGURATIONS})
     target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
     target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSC_INCLUDES})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSc_INCLUDES})
     # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-    target_link_libraries(${CONF_TARGETNAME} ${PETSC_LIBRARIES} ${LAPACK_LIBRARIES})
+    target_link_libraries(${CONF_TARGETNAME} ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
     include(${CONF_DIR}/cmake.conf)
 
     set(eos_target ${_conf})

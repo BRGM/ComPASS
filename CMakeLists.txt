@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules"
 include(ComPASSCMakeUtils)
 include(CMakeDependentOption)
 
-message(STATUS "%% PETSC:" ${PETSC_DIR})
+message(STATUS "%% PETSc:" ${PETSC_DIR})
 
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
   message(FATAL_ERROR
@@ -92,14 +92,21 @@ set(CMAKE_FIND_DIR ${CMAKE_SOURCE_DIR}/CMake)
 
 find_package(MPI REQUIRED)
 find_package(METIS REQUIRED)
-find_package(PETSc REQUIRED)
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND)
+    # Try to use pkg-config
+    pkg_check_modules(PETSc REQUIRED PETSc)
+else(PKG_CONFIG_FOUND)
+    # else defaults to local script
+    find_package(PETSc REQUIRED)
+endif(PKG_CONFIG_FOUND)
 
-if(${PETSC_VERSION} VERSION_LESS 3.6)
+if(${PETSc_VERSION} VERSION_LESS 3.6)
     add_definitions(-DCOMPASS_PETSC_VERSION_LESS_3_6)
-elseif(${PETSC_VERSION} VERSION_LESS 3.8)
-    message(FATAL_ERROR "Your PETSc version is " ${PETSC_VERSION} ".
+elseif(${PETSc_VERSION} VERSION_LESS 3.8)
+    message(FATAL_ERROR "Your PETSc version is " ${PETSc_VERSION} ".
     Please use a PETSc version lower or equal to 3.5.4 or greater or equal to 3.8.0.")
-endif(${PETSC_VERSION} VERSION_LESS 3.6)
+endif(${PETSc_VERSION} VERSION_LESS 3.6)
 
 find_package(LAPACK REQUIRED)
 

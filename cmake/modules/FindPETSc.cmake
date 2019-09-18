@@ -345,3 +345,18 @@ find_package_handle_standard_args (PETSc
   REQUIRED_VARS PETSC_INCLUDES PETSC_LIBRARIES PETSC_EXECUTABLE_RUNS
   VERSION_VAR PETSC_VERSION
   FAIL_MESSAGE "PETSc could not be found.  Be sure to set PETSC_DIR and PETSC_ARCH.")
+
+# Export duplicate variables for compliance with PETSc pkg-config support
+set(DUPLICATED_VARIABLES
+  FOUND
+  INCLUDES
+  LIBRARIES
+  COMPILER
+  DEFINITIONS
+  MPIEXEC
+  VERSION
+)
+foreach (var ${DUPLICATED_VARIABLES})
+  set(PETSc_${var} ${PETSC_${var}})
+endforeach ()
+
