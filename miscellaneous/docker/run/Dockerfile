@@ -9,11 +9,13 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     metis \
     openmpi-bin \
     libpetsc-real3.10 \
-    libcgal13 \
     python3-scipy \
  && apt-get clean 
 
-RUN mkdir -p /build
+# petsc4py installation
+COPY --from=build /wheel /wheel
+RUN pip3 install /wheel/petsc4py-*.whl \
+ && rm -rf /wheel
 
 COPY entrypoint.sh /etc/compass/entrypoint.sh
 COPY entrypoint.py /etc/compass/entrypoint.py

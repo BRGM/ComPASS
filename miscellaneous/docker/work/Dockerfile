@@ -4,16 +4,15 @@ FROM registry.gitlab.inria.fr/charms/compass/build-environment:latest
 ENV TZ=Europe/Paris
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt-get install --yes --no-install-recommends \
+    vim  \
     cmake-curses-gui \
-    python3-mpi4py \
-    metis \
-    openmpi-bin \
-    libpetsc-real3.10 \
-    libcgal13 \
     python3-scipy \
     python3-matplotlib \
     ipython3 \
  && apt-get clean
+
+# petsc4py installation
+RUN pip3 install /wheel/petsc4py-*.whl
 
 WORKDIR /localfs
 
