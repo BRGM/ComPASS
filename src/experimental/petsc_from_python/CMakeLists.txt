@@ -1,4 +1,4 @@
-pybind11_add_module(bind_petsc bind_petsc.cpp)
+pybind11_add_module(bind_petsc bind_petsc.cpp VariousDumps.F90)
 set_target_properties(bind_petsc
     PROPERTIES
     CXX_STANDARD 14

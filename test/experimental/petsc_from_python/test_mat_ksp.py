@@ -21,7 +21,7 @@ except: pass
 from petsc4py import PETSc
 
 # grid size and spacing
-m, n  = 32, 32
+m, n  = 4, 4
 hx = 1.0/(m-1)
 hy = 1.0/(n-1)
 
@@ -57,8 +57,11 @@ A.assemblyBegin()
 A.assemblyEnd()
 
 
-from ComPASS.bind_petsc import dump
+from ComPASS.bind_petsc import dump, dump_from_Fortran
+print('-'*20, 'dump from C++')
 dump(A)
+print('-'*20, 'dump from Fortran')
+dump_from_Fortran(A)
 
 # create linear solver
 ksp = PETSc.KSP()
