@@ -10,5 +10,5 @@ set_target_properties(bind_petsc
 )
 target_include_directories(bind_petsc PUBLIC ${pybind11_INCLUDE_DIR})
 target_include_directories(bind_petsc PUBLIC ${MPI_CXX_INCLUDE_DIRS})
-target_include_directories(bind_petsc PUBLIC ${PETSc_INCLUDES})
+target_include_directories(bind_petsc PUBLIC ${PETSc_INCLUDE_DIRS})
 target_link_libraries(bind_petsc PRIVATE ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})

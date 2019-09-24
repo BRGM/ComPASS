@@ -40,7 +40,7 @@ endif(DEF_VISU)
 target_include_directories(ComPASSCore PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
 target_include_directories(ComPASSCore PUBLIC ${METIS_INCLUDE_DIR})
 target_link_libraries(ComPASSCore ${METIS_LIBRARY})
-target_include_directories(ComPASSCore PUBLIC ${PETSc_INCLUDE_DIR})
+target_include_directories(ComPASSCore PUBLIC ${PETSc_INCLUDE_DIRS})
 # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
 target_link_libraries(ComPASSCore ${PETSc_LIBRARIES} ${LAPACK_lapack_LIBRARY})
 

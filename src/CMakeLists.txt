@@ -62,7 +62,7 @@ target_include_directories(ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH})
 # target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
 target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
 # target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
-target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDES})
+target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDE_DIRS})
 # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
 # target_link_libraries(ComPASSCommonCore ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
 

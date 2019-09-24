@@ -50,6 +50,12 @@ if(NOT ${PYTHONLIBS_FOUND})
     message(FATAL_ERROR "python libraries are mandatory, CMake will stop.")
 endif(NOT ${PYTHONLIBS_FOUND})
 
+if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -fcheck=all -Wall -Wextra -fbacktrace"
+    CACHE STRING "Useful gfortran debug compilation optopns" FORCE
+  )
+endif()
+
 ########### Configuration options
 
 option(DEF_THERMIQUE "Thermique" ON)
@@ -95,11 +101,18 @@ find_package(METIS REQUIRED)
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
     # Try to use pkg-config
-    pkg_check_modules(PETSc REQUIRED PETSc)
-else(PKG_CONFIG_FOUND)
+    pkg_check_modules(PETSc PETSc)
+endif(PKG_CONFIG_FOUND)
+if(NOT PETSc_FOUND OR NOT PKG_CONFIG_FOUND)
     # else defaults to local script
     find_package(PETSc REQUIRED)
-endif(PKG_CONFIG_FOUND)
+endif(NOT PETSc_FOUND OR NOT PKG_CONFIG_FOUND)
+
+if(NOT PETSc_FOUND)
+  message(FATAL_ERROR "PETSc could not be found"
+    "(use a PETSc version lower or equal to 3.5.4 or greater or equal to 3.8.0)"
+  )
+endif(NOT PETSc_FOUND)
 
 if(${PETSc_VERSION} VERSION_LESS 3.6)
     add_definitions(-DCOMPASS_PETSC_VERSION_LESS_3_6)

@@ -346,17 +346,15 @@ find_package_handle_standard_args (PETSc
   VERSION_VAR PETSC_VERSION
   FAIL_MESSAGE "PETSc could not be found.  Be sure to set PETSC_DIR and PETSC_ARCH.")
 
+# -----------------------------------------------------------------------
+# The following is specific to ComPASS
 # Export duplicate variables for compliance with PETSc pkg-config support
 set(DUPLICATED_VARIABLES
   FOUND
-  INCLUDES
   LIBRARIES
-  COMPILER
-  DEFINITIONS
-  MPIEXEC
   VERSION
 )
 foreach (var ${DUPLICATED_VARIABLES})
   set(PETSc_${var} ${PETSC_${var}})
 endforeach ()
-
+set(PETSc_INCLUDE_DIRS ${PETSC_INCLUDES})
