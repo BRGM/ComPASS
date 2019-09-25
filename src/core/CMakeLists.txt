@@ -19,6 +19,7 @@ add_library( ComPASSCore
     Partition.c
     Residu.F90
     SolvePetsc.F90
+    SyncPetsc.F90
     VAGFrac.F90
     NN.F90
 )

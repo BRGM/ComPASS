@@ -15,7 +15,6 @@ module SolvePetsc
   use iso_c_binding, only: c_bool, c_int, c_double, c_ptr, c_f_pointer
 
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
-  use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
   use DefModel, only: psprim, NbCompThermique, NbContexte
   use IncCVReservoir, only: IncNode, IncFrac
   use MeshSchema, only: &
@@ -39,15 +38,11 @@ module SolvePetsc
   ! Solver: A_mpi x_mpi = Sm_mpi
   Mat, private :: A_mpi
   Vec, private :: Sm_mpi
-  Vec, private :: x_mpi
+!   Vec, private :: x_mpi
   Vec, private :: y_mpi
 
   KSP, private :: ksp_mpi ! ksp
   PC,  private :: pc_mpi  ! pc
-
-  ! sync mat and vec
-  Mat, private :: M_s ! xs = M_s * x_mpi, (_s means sync)
-  Vec, private :: x_s
 
   ! Preconditioner CPR-AMG
   Mat, private :: Ap       ! Pression part of A_mpi
@@ -85,12 +80,6 @@ module SolvePetsc
        NrowG, & ! number of global (point) rows
        NcolG    ! number of global (point) cols
 
-  ! size of M_s: matrix used for sync
-  integer, private :: &
-       NrowL_s, &
-       NcolL_s, &
-       NrowG_s, &
-       NcolG_s
 
   ! Blockrowstart(i): sum of block rows (node own + frac own + well own) before proc i
   ! Blockcolstart(i): sum of block cols (node own + frac own + well own) before proc i = Blockrowstart
@@ -123,16 +112,13 @@ module SolvePetsc
        NbWellProdLocal
 
   public :: &
-       SolvePetsc_Init,           &
-       SolvePetsc_SetUp,          &
-       SolvePetsc_KspSolve,       &
-       SolvePetsc_check_solution, & 
-       SolvePetsc_SyncMat,        &
-       SolvePetsc_Sync,           &
-       SolvePetsc_GetSolNodeFracWell, &
-       SolvePetsc_Free,           &
-       SolvePetsc_cpramgFree, &
-       SolvePetsc_Ksp_configuration, &
+       SolvePetsc_Init,               &
+       SolvePetsc_SetUp,              &
+       SolvePetsc_KspSolve,           &
+       SolvePetsc_check_solution,     & 
+       SolvePetsc_free,               &
+       SolvePetsc_cpramgFree,         &
+       SolvePetsc_Ksp_configuration,  &
        SolvePetsc_KspSolveIterations
 
   private :: &
@@ -152,8 +138,7 @@ module SolvePetsc
                                 !
        SolvePetsc_SetAp,       &
        SolvePetsc_LtoG,        &
-       SolvePetsc_RowColStart, &
-       SolvePetsc_rowcolnum
+       SolvePetsc_RowColStart
 
 #ifdef _THERMIQUE_
 
@@ -166,7 +151,7 @@ module SolvePetsc
 
 contains
 
-  ! create structure of mat and solver
+! create structure of mat and solver
   subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
                              activate_cpramg, activate_direct_solver)
 
@@ -228,7 +213,6 @@ contains
     deallocate(Blockcolstart)
 
   end subroutine SolvePetsc_Init
-
 
   subroutine SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
 
@@ -1594,16 +1578,16 @@ contains
     call VecAssemblyEnd(Sm_mpi, Ierr)
     CHKERRQ(Ierr)
 
-    ! create x_mpi
-    call VecDuplicate(Sm_mpi, x_mpi, Ierr)
-    CHKERRQ(Ierr)
+   !  ! create x_mpi
+   !  call VecDuplicate(Sm_mpi, x_mpi, Ierr)
+   !  CHKERRQ(Ierr)
 
-    call VecSet(x_mpi, 0.d0, Ierr)
-    CHKERRQ(Ierr)
-    call VecAssemblyBegin(x_mpi, Ierr)
-    CHKERRQ(Ierr)
-    call VecAssemblyEnd(x_mpi, Ierr)
-    CHKERRQ(Ierr)
+   !  call VecSet(x_mpi, 0.d0, Ierr)
+   !  CHKERRQ(Ierr)
+   !  call VecAssemblyBegin(x_mpi, Ierr)
+   !  CHKERRQ(Ierr)
+   !  call VecAssemblyEnd(x_mpi, Ierr)
+   !  CHKERRQ(Ierr)
 
     ! create y_mpi
     call VecDuplicate(Sm_mpi, y_mpi, Ierr)
@@ -1817,15 +1801,13 @@ contains
     
   end subroutine SolvePetsc_KspSolveIterations
 
-  function SolvePetsc_KspSolve() &
-    result(reason) &
-    bind(C, name="SolvePetsc_KspSolve")
-
+  function SolvePetsc_KspSolve(x) result(reason)
+    Vec, intent(inout) :: x
     integer(c_int) :: reason
     KSPConvergedReason :: native_reason ! this wraps a C enum
     PetscErrorCode :: Ierr
 
-    call KSPSolve(ksp_mpi, Sm_mpi, x_mpi, Ierr)
+    call KSPSolve(ksp_mpi, Sm_mpi, x, Ierr)
     CHKERRQ(Ierr)
 
     call KSPGetConvergedReason(ksp_mpi, native_reason, Ierr)
@@ -1834,15 +1816,14 @@ contains
 
   end function SolvePetsc_KspSolve
 
-  subroutine SolvePetsc_check_solution() &
-    bind(C, name="SolvePetsc_check_solution")
-
+  subroutine SolvePetsc_check_solution(x)
+    Vec, intent(in) :: x
     PetscReal :: a
     PetscErrorCode :: Ierr
 
     call VecCopy(Sm_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
     call VecScale(y_mpi, -1.d0, Ierr); CHKERRQ(Ierr)
-    call MatMultAdd(A_mpi, x_mpi, y_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
+    call MatMultAdd(A_mpi, x, y_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
 
     write(*, *) 'linear solution check ||AX-b||' 
     call VecNorm(y_mpi, NORM_1, a, Ierr); CHKERRQ(Ierr)
@@ -1854,234 +1835,7 @@ contains
 
   end subroutine SolvePetsc_check_solution 
 
-  subroutine SolvePetsc_SyncMat
-
-    integer :: i, &
-         row, col
-    PetscErrorCode :: Ierr
-
-    integer, allocatable, dimension(:) :: &
-         d_nnz, o_nnz    ! number of non zeros each row, diag/non-diag
-
-    integer, allocatable, dimension(:) :: &
-         RowNum, ColNum  ! the index of element i is (RowNum(i), ColNum(i))
-
-    double precision, parameter :: c1 = 1.d0
-
-    ! NrowL, NcolL, NrowG, NcolG
-    NrowL_s = (NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1)) * NbCompThermique &
-         + NbWellInjLocal_Ncpus(commRank+1) + NbWellProdLocal_Ncpus(commRank+1)
-
-    NcolL_s = (NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1)) * NbCompThermique &
-         + NbWellInjOwn_Ncpus(commRank+1) + NbWellProdOwn_Ncpus(commRank+1)
-
-    NrowG_s = 0
-    NcolG_s = 0
-    do i=1, Ncpus
-       NrowG_s = NrowG_s + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i)) * NbCompThermique &
-            + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
-
-       NcolG_s = NcolG_s + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
-            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
-    end do
-
-    ! d_nnz, o_nnz
-    allocate(d_nnz(NrowL_s))
-    allocate(o_nnz(NrowL_s))
-
-    ! node own
-    do i=1, NbNodeOwn*NbCompThermique
-       d_nnz(i) = 1
-       o_nnz(i) = 0
-    end do
-
-    ! node ghost
-    do i=NbNodeOwn*NbCompThermique+1, &
-         NbNodeLocal*NbCompThermique
-       d_nnz(i) = 0
-       o_nnz(i) = 1
-    end do
-
-    ! frac own
-    do i=NbNodeLocal*NbCompThermique+1, &
-         (NbNodeLocal+NbFracOwn)*NbCompThermique
-       d_nnz(i) = 1
-       o_nnz(i) = 0
-    end do
-
-    ! frac ghost
-    do i=(NbNodeLocal+NbFracOwn)*NbCompThermique+1, &
-         (NbNodeLocal+NbFracLocal)*NbCompThermique
-       d_nnz(i) = 0
-       o_nnz(i) = 1
-    end do
-
-    ! well inj own
-    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+1, &
-         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjOwn
-       d_nnz(i) = 1
-       o_nnz(i) = 0
-    end do
-
-    ! well inj ghost
-    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjOwn+1, &
-         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal
-       d_nnz(i) = 0
-       o_nnz(i) = 1
-    end do
-
-    ! well prod own
-    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+1, &
-         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdOwn
-       d_nnz(i) = 1
-       o_nnz(i) = 0
-    end do
-
-    ! well prod ghost
-    do i=(NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdOwn+1, &
-         (NbNodeLocal+NbFracLocal)*NbCompThermique+NbWellInjLocal+NbWellProdLocal
-       d_nnz(i) = 0
-       o_nnz(i) = 1
-    end do
-
-    ! print*, NrowL, NcolL, NrowG, NcolG, commRank
-
-    ! allocate Ms
-    call MatCreateAIJ(ComPASS_COMM_WORLD, &
-         NrowL_s, NcolL_s, &
-         NrowG_s, NcolG_s, &
-         0, d_nnz, 0, o_nnz, M_s, Ierr)
-    CHKERRQ(Ierr)
-
-    ! set value Ms
-    allocate(RowNum(NrowL_s))
-    allocate(ColNum(NrowL_s))
-
-    call SolvePetsc_rowcolnum(RowNum, ColNum) ! make RowNum and ColNum
-
-    do i=1, NrowL_s
-
-       row = RowNum(i) - 1
-       col = ColNum(i) - 1
-
-       call MatSetValue(M_s, row, col, &
-            c1, INSERT_VALUES, Ierr) ! 0-based in petsc
-       CHKERRQ(Ierr)
-    end do
-
-    ! Mat create fin
-    call MatAssemblyBegin(M_s,MAT_FINAL_ASSEMBLY,Ierr)
-    CHKERRQ(Ierr)
-    call MatAssemblyEnd(M_s,MAT_FINAL_ASSEMBLY,Ierr)
-    CHKERRQ(Ierr)
-
-    deallocate(RowNum)
-    deallocate(ColNum)
-
-    ! call MatView(M_s,PETSC_VIEWER_STDOUT_WORLD,Ierr)
-
-    ! create x_s
-    call VecCreateMPI(ComPASS_COMM_WORLD, &
-         NrowL_s, NrowG_s, &
-         x_s, Ierr)
-    CHKERRQ(Ierr)
-
-    call VecSet(x_s, 0.d0, Ierr)
-    CHKERRQ(Ierr)
-
-    call VecAssemblyBegin(x_s, Ierr)
-    CHKERRQ(Ierr)
-    call VecAssemblyEnd(x_s, Ierr)
-    CHKERRQ(Ierr)
-
-  end subroutine SolvePetsc_SyncMat
-
-
-  ! x_s = M_s * x_mpi
-  subroutine SolvePetsc_Sync() &
-      bind(C, name="SolvePetsc_Sync")
-
-    integer :: Ierr
-
-    call MatMult(M_s, x_mpi, x_s, Ierr)
-    CHKERRQ(Ierr)
-
-  end subroutine SolvePetsc_Sync
-
-
-  subroutine SolvePetsc_GetSolNodeFracWell_C(increments_pointers) &
-      bind(C, name="SolvePetsc_GetSolNodeFracWell")
-
-    type(Newton_increments_pointers), intent(in), value :: increments_pointers
-    type(Newton_increments) :: increments
-    
-    call Newton_pointers_to_values(increments_pointers, increments)
-    call SolvePetsc_GetSolNodeFracWell( &
-       increments%nodes, increments%fractures, &
-       increments%injectors, increments%producers &
-    )
-
-  end subroutine SolvePetsc_GetSolNodeFracWell_C
-
-  subroutine SolvePetsc_GetSolNodeFracWell( &
-       NewtonIncreNode, NewtonIncreFrac, &
-       NewtonIncreWellInj, NewtonIncreWellProd)
-
-    real(c_double), dimension(:,:), intent(out) :: &
-         NewtonIncreNode, &
-         NewtonIncreFrac
-
-    real(c_double), dimension(:), intent(out) :: &
-         NewtonIncreWellInj, &
-         NewtonIncreWellProd
-
-    integer :: i, j, start
-    PetscErrorCode :: Ierr
-    double precision, pointer :: ptr(:)
-
-    ! get values from x_s
-    call VecGetArrayF90(x_s, ptr, Ierr)
-    CHKERRQ(Ierr)
-
-    ! increment node
-    do i=1, NbNodeLocal_Ncpus(commRank+1)
-
-       start = (i-1) * NbCompThermique
-
-       do j=1, NbCompThermique
-          NewtonIncreNode(j,i) = ptr(start+j)
-       end do
-    end do
-
-    ! increment frac
-    do i=1, NbFracLocal_Ncpus(commRank+1)
-
-       start = (i+NbNodeLocal_Ncpus(commRank+1)-1) * NbCompThermique
-
-       do j=1, NbCompThermique
-          NewtonIncreFrac(j,i) = ptr(start+j)
-       end do
-    end do
-
-    ! increment well inj
-    start = (NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1)) * NbCompThermique
-    do i=1, NbWellInjLocal_Ncpus(commRank+1)
-       NewtonIncreWellInj(i) = ptr(start+i)
-    end do
-
-    ! increment well prod
-    start = start + NbWellInjLocal_Ncpus(commRank+1)
-    do i=1, NbWellProdLocal_Ncpus(commRank+1)
-       NewtonIncreWellProd(i) = ptr(start+i)
-    end do
-
-    call VecRestoreArrayF90(x_s, ptr, Ierr)
-    CHKERRQ(Ierr)
-
-  end subroutine SolvePetsc_GetSolNodeFracWell
-
-  ! Free
-  subroutine SolvePetsc_Free
+  subroutine SolvePetsc_free
 
     PetscErrorCode :: Ierr
 
@@ -2105,17 +1859,10 @@ contains
 
     call VecDestroy(Sm_mpi, Ierr)
     CHKERRQ(Ierr)
-    call VecDestroy(x_mpi, Ierr)
-    CHKERRQ(Ierr)
+   !  call VecDestroy(x_mpi, Ierr)
+   !  CHKERRQ(Ierr)
 
-    ! sync
-    call MatDestroy(M_s, Ierr)
-    CHKERRQ(Ierr)
-
-    call VecDestroy(x_s, Ierr)
-    CHKERRQ(Ierr)
-
-  end subroutine SolvePetsc_Free
+  end subroutine SolvePetsc_free
 
 
   ! Free
@@ -2345,119 +2092,45 @@ contains
 
   end subroutine SolvePetsc_LtoGBlock
 
-
-
-  ! Row/Col num:  RowNum, ColNum
-  subroutine SolvePetsc_rowcolnum(RowNum, ColNum)
-
-    integer, allocatable, dimension(:), intent(inout) :: &
-         RowNum, ColNum
-
-    integer, allocatable, dimension(:) :: &
-         NbSumRow, NbSumCol
-    integer :: i, ipc, start, s
-
-    ! number of node and frac in the procs before commRank
-    ! used for RowNum
-    allocate(NbSumRow(Ncpus))
-    NbSumRow(:) = 0
-    do i=1, Ncpus-1
-       NbSumRow(i+1) = NbSumRow(i) &
-            + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i)) * NbCompThermique &
-            + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
-    end do
-
-    ! number of node own and frac own in the procs before commRank
-    ! used for ColNum
-    allocate(NbSumCol(Ncpus))
-    NbSumCol(:) = 0
-    do i=1, Ncpus-1
-       NbSumCol(i+1) = NbSumCol(i) &
-            + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
-            + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
-    end do
-
-    ! RowNum, node
-    do i=1, NbNodeLocal * NbCompThermique
-       RowNum(i) = i + NbSumRow(commRank+1)
-    end do
-
-    ! RowNum, frac
-    start = NbNodeLocal * NbCompThermique
-    do i=1, NbFracLocal * NbCompThermique
-       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
-    end do
-
-    ! RowNum, well inj
-    start = (NbNodeLocal + NbFracLocal) * NbCompThermique
-    do i=1, NbWellInjLocal
-       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
-    end do
-
-    ! RowNum, well prod
-    start = (NbNodeLocal + NbFracLocal) * NbCompThermique + NbWellInjLocal
-    do i=1, NbWellProdLocal
-       RowNum(i+start) = i + start + NbSumRow(commRank+1) ! (node, frac, well inj, well prod)
-    end do
-
-    ! ColNum, node
-    do i=1, NbNodeLocal
-
-       ipc = NumNodebyProc%Val(i) ! this node is in proc ipc
-
-       ! NumNodebyProc%Num(i) is the num of this node in the proc that it's own
-       do s=1, NbCompThermique
-          ColNum((i-1)*NbCompThermique+s) = (NumNodebyProc%Num(i)-1) * NbCompThermique + s + NbSumCol(ipc+1)
-
-          ! if(commRank==0) then
-          !    print*, (i-1)*NbCompThermique+s, ColNum((i-1)*NbCompThermique+s), NumNodebyProc%Num(i), ipc, NbSumCol(ipc+1)
-          ! end if
-       end do
-    end do
-
-    ! ColNum, frac
-    start = NbNodeLocal * NbCompThermique
-    do i=1, NbFracLocal
-
-       ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc
-
-       ! NumFracbyProc%Num(i) is the num of this frac in the proc that it's own
-       do s=1, NbCompThermique
-          ColNum(start+(i-1)*NbCompThermique+s) = (NumFracbyProc%Num(i)-1) * NbCompThermique + s &
-               + NbSumCol(ipc+1) + NbNodeOwn_Ncpus(ipc+1) * NbCompThermique
-       end do
-    end do
-
-    ! ColNum, well inj
-    start = (NbNodeLocal + NbFracLocal) * NbCompThermique
-    do i=1, NbWellInjLocal
-
-       ipc = NumWellInjbyProc%Val(i) ! this well inj is in proc ipc
-
-       ! NumWellInjbyProc%Num(i) is the num of this well inj in the proc that it's own
-       ColNum(start+i) = NumWellInjbyProc%Num(i) + NbSumCol(ipc+1) &
-            + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
-
-       ! if(commRank==1) then
-       !    print*, start+i, ColNum(start+i), ipc, NumWellInjbyProc%Num(i)
-       ! end if
-
-    end do
-
-    ! ColNum, well prod
-    start = (NbNodeLocal + NbFracLocal) * NbCompThermique + NbWellInjLocal
-    do i=1, NbWellProdLocal
-
-       ipc = NumWellProdbyProc%Val(i) ! this well inj is in proc ipc
-
-       ! NumWellInjbyProc%Num(i) is the num of this well inj in the proc that it's own
-       ColNum(start+i) = NumWellProdbyProc%Num(i) + NbSumCol(ipc+1) &
-            + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique + NbWellInjOwn_Ncpus(ipc+1)
-    end do
-
-    deallocate(NbSumRow)
-    deallocate(NbSumCol)
-
-  end subroutine SolvePetsc_rowcolnum
-
 end module SolvePetsc
+
+! FIXME: this is transitory
+! This is out the module scope because of function names mangling
+function compass_petsc_kspsolve(x) result(reason)
+
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
+#include <finclude/petscdef.h>
+#else
+#include <petsc/finclude/petsc.h>
+#endif
+
+   use petsc
+   use SolvePetsc, only: SolvePetsc_KspSolve
+
+   implicit none
+
+   Vec, intent(inout) :: x
+   integer(c_int) :: reason
+
+   reason = SolvePetsc_KspSolve(x)
+
+end function compass_petsc_kspsolve
+
+subroutine compass_check_solution(x)
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
+#include <finclude/petscdef.h>
+#else
+#include <petsc/finclude/petsc.h>
+#endif
+
+   use petsc
+   use SolvePetsc, only: SolvePetsc_check_solution
+
+   implicit none
+
+   Vec, intent(in) :: x
+   
+   call SolvePetsc_check_solution(x)
+
+end subroutine compass_check_solution
+   

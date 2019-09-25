@@ -48,7 +48,7 @@ module NN
     use Loisthermohydro, only: LoisThermoHydro_allocate, LoisThermoHydro_free
     use Flux, only: Flux_allocate, Flux_free
     use Jacobian, only: Jacobian_StrucJacA, Jacobian_StrucJacBigA, Jacobian_free
-    use SolvePetsc, only: SolvePetsc_Init, SolvePetsc_free, SolvePetsc_SyncMat
+    use SolvePetsc, only: SolvePetsc_Init, SolvePetsc_free
     use DefFlash, only: DefFlash_Flash_cv
     use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells
 
@@ -268,9 +268,6 @@ contains
 
       call SolvePetsc_Init(KspNiterMax, KspTol, activate_cpramg, activate_direct_solver)
 
-      ! sync mat create and set value
-      call SolvePetsc_SyncMat
-
       ! allocate increment
       allocate (NewtonIncreNode &
                 (NbIncTotalMax, NbNodeLocal_Ncpus(commRank + 1)))
@@ -347,15 +344,6 @@ contains
       ! call DefFlash_free
       call NumbyContext_free
       call MeshSchema_free
-
-      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
-
-      if (commRank == 0) then
-         close (11)
-     !    write (*, *) ""
-     !    write (*, *) "NN Finalize"
-      end if
-      call PetscFinalize(Ierr)
 
    end subroutine NN_finalize
 

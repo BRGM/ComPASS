@@ -12,6 +12,8 @@ import atexit
 import importlib
 import copy
 
+import numpy as np
+
 # We must load mpi wrapper first so that MPI is  initialized before calling PETSC_Initialize
 import ComPASS.mpi as mpi
 import ComPASS.runtime as runtime
@@ -20,8 +22,9 @@ import ComPASS.dumps
 import ComPASS.messages as messages
 import ComPASS.newton
 import ComPASS.timestep
-
-import numpy as np
+from ComPASS.distributed_system import DistributedSystem
+from ComPASS.ghosts.synchronizer import Synchronizer
+from ComPASS.petsc import PetscElements
 
 import MeshTools as MT
 import MeshTools.GridTools as GT
@@ -34,10 +37,18 @@ initialized = False
 # CHECKME: There might be a more elegant way to do this
 kernel = None
 
+class SimulationInfo:
+
+    def __init__(self):
+        self.activate_cpramg = True
+        self.activate_direct_solver = False
+        self.system = None
+        self.ghosts_synchronizer = None
+        self.petsc = None
+
 # FIXME: transient global... to be set elsewhere
-activate_cpramg = True
-activate_direct_solver = False
 mesh_is_local = False
+info = SimulationInfo()
 
 def load_eos(eosname):
     global kernel
@@ -58,7 +69,8 @@ def default_Newton():
     assert kernel
     # Legacy parameters
     # NB: you should remove 1 iteration in comparison with legacy values
-    return newton.Newton(1e-5, 8, newton.LinearSolver(1e-6, 150))
+    assert info.petsc is not None
+    return newton.Newton(1e-5, 8, newton.LinearSolver(1e-6, 150), solver_fmk=info.petsc)
 
 def exit_eos_and_finalize():
     finalize_model()
@@ -425,7 +437,11 @@ def init(
     kernel.init_phase2_build_local_mesh()
     kernel.init_phase2_setup_contexts()
     setup_VAG(properties)
-    kernel.init_phase2_setup_solvers(activate_cpramg, activate_direct_solver)
+    kernel.init_phase2_setup_solvers(info.activate_cpramg, info.activate_direct_solver)
+    system = DistributedSystem(kernel)
+    info.system = system
+    info.ghosts_synchronizer = Synchronizer(system)
+    info.petsc = PetscElements(system)
     mpi.synchronize() # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     initialized = True

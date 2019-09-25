@@ -1,7 +1,7 @@
 #
-# This file is part of kernel.
+# This file is part of ComPASS.
 #
-# kernel.is free software: you can redistribute it and/or modify it under both the terms
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
@@ -75,7 +75,12 @@ def dump_start_info(iteration):
 
 class Newton:
     
-    def __init__(self, tol, maxit, lsolver, convergence_scheme=None):
+    def __init__(self, tol, maxit, lsolver, convergence_scheme=None, solver_fmk=None):
+        # FIXME: this is transitory
+        if solver_fmk is None:
+            solver_fmk = ComPASS.info.petsc
+            assert solver_fmk is not None
+        self.solver_fmk = solver_fmk
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.lsolver = lsolver
@@ -112,11 +117,13 @@ class Newton:
     
     def increment(self):
         kernel = ComPASS.kernel
-        assert ComPASS.kernel
+        assert ComPASS.kernel is not None
 #        mpi.master_print('increment variables')
-        kernel.SolvePetsc_Sync()
+        ghosts_synchronizer = ComPASS.info.ghosts_synchronizer
+        assert ghosts_synchronizer is not None
+        ghosts_synchronizer.synchronize(ComPASS.info.petsc.x)
         # mpi.master_print('retrieve solutions')
-        kernel.SolvePetsc_GetSolNodeFracWell(self.increments)
+        ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
         # mpi.master_print(self.increments.nodes())
 #        mpi.master_print('lois thermo hydro')
@@ -137,6 +144,7 @@ class Newton:
         assert ComPASS.kernel is not None
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
+        solver_fmk = self.solver_fmk
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
@@ -155,9 +163,9 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
             kernel.Jacobian_ComputeJacSm(dt)
             kernel.SolvePetsc_SetUp()
-            ksp_status = kernel.SolvePetsc_KspSolve()
+            ksp_status = solver_fmk.solve()
             # mpi.master_print('KSP status', ksp_status) 
-            if not ComPASS.activate_direct_solver:
+            if not ComPASS.info.activate_direct_solver:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
                 total_lsolver_iterations+= nb_lsolver_iterations
@@ -167,13 +175,13 @@ class Newton:
                 #)
             if ksp_status<0:
                 lsolver.failures+= 1
-                if not ComPASS.activate_direct_solver:
+                if not ComPASS.info.activate_direct_solver:
                     lsolver.number_of_useless_iterations+= nb_lsolver_iterations
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations),
                     ksp_status,
                 )
-            # kernel.SolvePetsc_check_solution()
+            # solver_fmk.check_solution()
             lsolver.number_of_succesful_iterations+= nb_lsolver_iterations
             self.increment()
             self.init_iteration()

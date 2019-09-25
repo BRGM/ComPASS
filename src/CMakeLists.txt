@@ -32,6 +32,7 @@ set( ComPASSCommonCore_SRCS
     CommonMPI.F90
     CommonType.F90
     InteroperabilityStructures.F90
+    MeshInfo.F90
     NumbyContext.F90
     Physics.F90
     SchemeParameters.F90
@@ -91,6 +92,7 @@ set( ComPASSCore_SRCS
     Residu.F90
     # SchemeParameters.F90
     SolvePetsc.F90
+    SyncPetsc.F90
     VAGFrac.F90
     NN.F90
 )
@@ -195,6 +197,8 @@ set( WRAPPERS_SRCS
   Residu_wrappers.h
   Residu_wrappers.cpp
   SolvePetsc_wrappers.F90
+  SolvePetsc_wrappers.cpp
+  SyncPetsc_wrappers.cpp
   StringWrapper.h
   StringWrapper.F90
   TimeLoop_wrappers.h
@@ -250,7 +254,7 @@ foreach(_conf ${CONFIGURATIONS})
     target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
     target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
     target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
-    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSc_INCLUDES})
+    target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSc_INCLUDE_DIRS})
     # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
     target_link_libraries(${CONF_TARGETNAME} ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
     include(${CONF_DIR}/cmake.conf)
@@ -278,5 +282,5 @@ endforeach()
 
 # add experimental tests to compilation
 if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
-    add_subdirectory(experimental)    
+    add_subdirectory(experimental)
 endif(ComPASS_COMPILES_EXPERIMENTAL_PARTS)

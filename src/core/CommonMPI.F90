@@ -25,7 +25,7 @@ module CommonMPI
       Ncpus !< Total number of processors
 
    public :: &
-      CommonMPI_init, CommonMPI_abort
+      CommonMPI_init, CommonMPI_abort, CommonMPI_barrier
 
 contains
    !> \brief Initialize MPI constants:
@@ -79,5 +79,11 @@ contains
       call MPI_Abort(ComPASS_COMM_WORLD, error_code, abortion_result)
 
    end subroutine CommonMPI_abort
+
+   subroutine CommonMPI_barrier()
+   
+      call MPI_Barrier(ComPASS_COMM_WORLD)
+
+   end subroutine CommonMPI_barrier
 
 end module CommonMPI

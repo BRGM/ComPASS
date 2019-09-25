@@ -23,6 +23,9 @@ module MeshSchema
      DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
      DefWell_deallocCSRDataWell
 
+  use MeshInfo, only : &
+    PartInfo
+
   use LocalMesh, only: &
     XNodeRes_Ncpus, &
     meshSizeS_xmin, meshSizeS_xmax, meshSizeS_ymin, meshSizeS_ymax, meshSizeS_zmin, meshSizeS_zmax, &
@@ -264,9 +267,25 @@ module MeshSchema
        MeshSchema_subarrays_views, &
        MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
        MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
-       MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
+       MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray, &
+       MeshSchema_part_info
 
 contains
+
+   subroutine MeshSchema_part_info(info) &
+      bind(C, name="MeshSchema_part_info")
+      type(PartInfo), intent(out) :: info
+
+      info%nodes%nb_owns = NbNodeOwn_Ncpus(commRank + 1)
+      info%nodes%nb      = NbNodeLocal_Ncpus(commRank + 1)
+      info%fractures%nb_owns = NbFracOwn_Ncpus(commRank + 1)
+      info%fractures%nb      = NbFracLocal_Ncpus(commRank + 1)
+      info%injectors%nb_owns = NbWellInjOwn_Ncpus(commRank + 1)
+      info%injectors%nb      = NbWellInjLocal_Ncpus(commRank + 1)
+      info%producers%nb_owns = NbWellProdOwn_Ncpus(commRank + 1)
+      info%producers%nb      = NbWellProdLocal_Ncpus(commRank + 1)
+
+   end subroutine MeshSchema_part_info
 
     subroutine MeshSchema_subarrays_sizes(sizes)
         type(SubArraySizes), intent(out) :: sizes

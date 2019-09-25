@@ -17,16 +17,7 @@ extern "C" {
     void dump_from_fortran_(Mat*);
 }
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
-
-template <typename PetscObject>
-auto cast_to_PETSc(py::object obj) {
-    // cython object has a handle attribute that stores the PETSc object adress
-    auto handle = py::cast<long>(obj.attr("handle"));
-    return reinterpret_cast<PetscObject>((void *) handle);
-}
+#include "Petsc_caster.h"
 
 PYBIND11_MODULE(bind_petsc, module)
 {

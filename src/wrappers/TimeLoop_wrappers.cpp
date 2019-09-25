@@ -39,20 +39,10 @@ extern "C"
     double Residu_RelativeNorm_local_closure();
     void Jacobian_ComputeJacSm(double);
     void Jacobian_GetSolCell(NewtonIncrements::Pointers<double>);
-    void SolvePetsc_SetUp();
-    int SolvePetsc_KspSolveIterationNumber();
-    void SolvePetsc_KspSolveIterations(double *, int);
-    int SolvePetsc_KspSolve();
-    void SolvePetsc_Sync();
-    void SolvePetsc_GetSolNodeFracWell(NewtonIncrements::Pointers<double>); 
     void IncPrimSecd_PrimToSecd(NewtonIncrements::Pointers<double>);
     void NN_flash_all_control_volumes();
     void DefFlashWells_TimeFlash();
     void pass_and_dump_array(double *, std::size_t*);
-    void SolvePetsc_dump_system(const StringWrapper&);
-    void SolvePetsc_Ksp_configuration(double, int, int);
-    void SolvePetsc_check_solution();
-
 }
 
 #include "TimeLoop_wrappers.h"
@@ -81,26 +71,8 @@ void add_time_loop_wrappers(py::module& module)
     module.def("Residu_reset_history", &Residu_reset_history);
     module.def("Residu_RelativeNorm_local_closure", &Residu_RelativeNorm_local_closure);
     module.def("Jacobian_ComputeJacSm", &Jacobian_ComputeJacSm);
-    module.def("SolvePetsc_SetUp", &SolvePetsc_SetUp);
-    module.def("SolvePetsc_KspSolveIterationNumber", &SolvePetsc_KspSolveIterationNumber);
-    module.def("SolvePetsc_KspSolve", &SolvePetsc_KspSolve);
-    module.def("SolvePetsc_Sync", &SolvePetsc_Sync);
     module.def("NN_flash_all_control_volumes", &NN_flash_all_control_volumes);
     module.def("DefFlashWells_TimeFlash", &DefFlashWells_TimeFlash);
-    module.def("SolvePetsc_check_solution", &SolvePetsc_check_solution);
-    module.def("SolvePetsc_dump_system", [](py::str basename) {
-        SolvePetsc_dump_system(StringWrapper{ basename.cast<std::string>() });
-    });
-    module.def("SolvePetsc_Ksp_configuration", &SolvePetsc_Ksp_configuration);
-    module.def("SolvePetsc_Ksp_iterations", []() {
-        const auto n = SolvePetsc_KspSolveIterationNumber();
-        assert(n>=0);
-        auto res = py::array_t<double, py::array::c_style>{
-            static_cast<std::size_t>(n)
-        };
-        SolvePetsc_KspSolveIterations(res.mutable_data(), n);
-        return res;
-    });
 
     auto as_primary_array = [](std::vector<double>& v) {
         auto res = py::array_t<double, py::array::c_style>{v.size(), v.data()};
@@ -152,12 +124,4 @@ void add_time_loop_wrappers(py::module& module)
      Jacobian_GetSolCell(increments.pointers());
       });
     
-    module.def("SolvePetsc_GetSolNodeFracWell", [](NewtonIncrements& increments){
-//		    py::print("sizes:", nb_primary_variables(), nb_nodes(),
-//				    nb_fractures(), nb_cells(), nb_injectors(), nb_producers());
-//		    py::print("      ", increments.nodes.size(), increments.cells.size(), 
-//		   increments.injectors.size(), increments.producers.size()); 
-		    SolvePetsc_GetSolNodeFracWell(increments.pointers());
-       });
-
 }

@@ -8,6 +8,7 @@ set_target_properties(bind_petsc
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${pyComPASS_DIRECTORY}
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${pyComPASS_DIRECTORY}
 )
+target_include_directories(bind_petsc PUBLIC  ${PROJECT_SOURCE_DIR}/../wrappers)
 target_include_directories(bind_petsc PUBLIC ${pybind11_INCLUDE_DIR})
 target_include_directories(bind_petsc PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 target_include_directories(bind_petsc PUBLIC ${PETSc_INCLUDE_DIRS})
