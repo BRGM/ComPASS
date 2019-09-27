@@ -2104,6 +2104,7 @@ function compass_petsc_kspsolve(x) result(reason)
 #include <petsc/finclude/petsc.h>
 #endif
 
+   use iso_c_binding, only: c_int
    use petsc
    use SolvePetsc, only: SolvePetsc_KspSolve
 
