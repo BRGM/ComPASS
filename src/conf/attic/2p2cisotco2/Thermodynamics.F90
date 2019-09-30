@@ -55,7 +55,7 @@ contains
   ! Fugacity coefficient
   ! f * c_i
   ! P = Pg pression de reference
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_Fugacity(rt,iph,icp,P,T,C,S,f,DPf,DTf,DCf,DSf)
 
@@ -122,7 +122,7 @@ contains
 
 
   ! Densite molaire
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_DensiteMolaire(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
@@ -174,7 +174,7 @@ contains
 
 
   ! Densite Massique
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_DensiteMassique(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -206,7 +206,7 @@ contains
 
 
   ! Viscosities
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_Viscosite(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
@@ -236,7 +236,7 @@ contains
 
 
   ! Permeabilites = S**2
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_PermRel(rt,iph,S,f,DSf)
 
@@ -288,7 +288,7 @@ contains
 !#ifdef _THERMIQUE_
 
   ! EnergieInterne
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
 
@@ -305,7 +305,7 @@ contains
 
 
   ! Enthalpie
-  ! iph is an identificator for each phase:
+  ! iph is an identifier for each phase:
   ! GAS_PHASE = 1; LIQUID_PHASE = 2
   ! If Enthalpide depends on the compositon C, change DefFlash.F90
   subroutine f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &

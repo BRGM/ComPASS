@@ -11,8 +11,9 @@
 
        use, intrinsic :: iso_c_binding
 
-       use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax
-       use Physics, only: Thickness, gravity, CpRoche, atm_pressure
+       use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax, LIQUID_PHASE
+       use Physics, only: Thickness, gravity, CpRoche, atm_pressure, atm_temperature, &
+                          atm_flux_radiation, soil_emissivity, rain_flux
        use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
 
        implicit none
@@ -21,8 +22,18 @@
           nb_primary_variables, &
           get_gravity, &
           set_gravity, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
           get_atm_pressure, &
           set_atm_pressure, &
+          get_atm_temperature, &
+          set_atm_temperature, &
+          get_atm_flux_radiation, &
+          set_atm_flux_radiation, &
+          get_soil_emissivity, &
+          set_soil_emissivity, &
+          get_atm_rain_flux, &
+          set_atm_rain_flux, &
+#endif
           get_volumetric_heat_capacity, &
           set_volumetric_heat_capacity, &
           get_fracture_thickness, &
@@ -48,6 +59,7 @@
           gravity = g
        end subroutine set_gravity
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
        function get_atm_pressure() result(p) &
          bind(C, name="get_atm_pressure")
          real(c_double) :: p
@@ -59,6 +71,55 @@
           real(c_double), value, intent(in) :: p
           atm_pressure = p
        end subroutine set_atm_pressure
+
+       function get_atm_temperature() result(T) &
+         bind(C, name="get_atm_temperature")
+         real(c_double) :: T
+         T = atm_temperature
+      end function get_atm_temperature
+
+       subroutine set_atm_temperature(T) &
+          bind(C, name="set_atm_temperature")
+          real(c_double), value, intent(in) :: T
+          atm_temperature = T
+       end subroutine set_atm_temperature
+
+       function get_atm_flux_radiation() result(q) &
+         bind(C, name="get_atm_flux_radiation")
+         real(c_double) :: q
+         q = atm_flux_radiation
+      end function get_atm_flux_radiation
+
+       subroutine set_atm_flux_radiation(q) &
+          bind(C, name="set_atm_flux_radiation")
+          real(c_double), value, intent(in) :: q
+          atm_flux_radiation = q
+       end subroutine set_atm_flux_radiation
+
+       function get_soil_emissivity() result(cst) &
+         bind(C, name="get_soil_emissivity")
+         real(c_double) :: cst
+         cst = soil_emissivity
+      end function get_soil_emissivity
+
+       subroutine set_soil_emissivity(cst) &
+          bind(C, name="set_soil_emissivity")
+          real(c_double), value, intent(in) :: cst
+          soil_emissivity = cst
+       end subroutine set_soil_emissivity
+
+       function get_atm_rain_flux() result(q_rain) &
+         bind(C, name="get_atm_rain_flux")
+         real(c_double) :: q_rain
+         q_rain = rain_flux(LIQUID_PHASE)
+      end function get_atm_rain_flux
+
+       subroutine set_atm_rain_flux(q_rain) &
+          bind(C, name="set_atm_rain_flux")
+          real(c_double), value, intent(in) :: q_rain
+          rain_flux(LIQUID_PHASE) = q_rain
+       end subroutine set_atm_rain_flux
+#endif
 
        function get_volumetric_heat_capacity() result(cp) &
           bind(C, name="get_rock_volumetric_heat_capacity")

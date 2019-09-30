@@ -33,6 +33,9 @@ module IncPrimSecdFreeFlow
       NumIncTotalSecondCell, NumIncTotalSecondFrac, NumIncTotalSecondNode
   use Physics, only: atm_pressure
   use MeshSchema, only: &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     IdFFNodeLocal, &
+#endif
      NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
      NodeByWellInjLocal
@@ -121,7 +124,7 @@ contains
     do k=1,NbIncLocal
 
          ! done only for ff dof
-         if(inc(k)%ic<2**NbPhase) cycle ! FIXME: loop over freeflow dof only, avoid reservoir node
+         if(.not. IdFFNodeLocal(k)) cycle ! loop over freeflow dof only, avoid reservoir node
 
          ! init tmp values for each cv
          call IncPrimSecdFreeFlow_init_cv(inc(k))
@@ -196,7 +199,7 @@ contains
   !      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
   !      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
   !      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
-  !      dFsurdX(, :)                                            derivative freeflow flowrate
+  !      dFsurdX(, :)                                            derivative freeflow flowrate(s)
   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(inc, rt, dFsurdX, SmF)
 
     type(TYPE_IncCVReservoir), intent(in) :: inc

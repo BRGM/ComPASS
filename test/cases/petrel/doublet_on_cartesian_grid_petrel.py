@@ -111,7 +111,7 @@ for states, xyz in [
 ]:
     set_states(states, xyz)
 
-standard_loop(
-    initial_timestep = 1 * day, final_time = 30 * year,
-    output_period = year,
-)
+#standard_loop(
+#    initial_timestep = 1 * day, final_time = 30 * year,
+#    output_period = year,
+#)

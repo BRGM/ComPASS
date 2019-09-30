@@ -53,6 +53,8 @@ ComPASS.set_gravity(gravity)
 ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
+ComPASS.activate_direct_solver = True
+
 gas_context = ComPASS.Context.gas
 liquid_context = ComPASS.Context.liquid
 diphasic_context = ComPASS.Context.diphasic
@@ -87,8 +89,6 @@ if ComPASS.mpi.is_on_master_proc:
 
 if not ComPASS.mpi.is_on_master_proc:
     grid = Dirichlet_node =  omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
-
-#ComPASS.activate_direct_solver = True
 
 ComPASS.init(
     mesh = grid,

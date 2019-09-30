@@ -31,6 +31,9 @@ module VAGFrac
      CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
      PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
      NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     IdFFNodeLocal, &
+#endif
      IdNodeLocal, IdFaceLocal, FracToFaceLocal, &
      SubArrayView, MeshSchema_subarrays_views, &
      DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray
@@ -541,7 +544,11 @@ contains
     end do
 
     do k=1, NbNodeLocal_Ncpus(commRank+1)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+        if(IdNodeLocal(k)%P /= "d" .and. .not. IdFFNodeLocal(k) .and. VolDarcy%nodes(k)<eps) then
+#else
         if(IdNodeLocal(k)%P /= "d" .and. VolDarcy%nodes(k)<eps) then
+#endif
             if(DebugUtils_is_own_frac_node(k).or.IdNodeLocal(k)%Proc/='g') then
                 print*, "vol non dirichlet node < 0"
                 print*, "node", k, "at", XNodeLocal(:,k), "has volume", VolDarcy%nodes(k)
@@ -597,7 +604,11 @@ contains
       CellRocktypeLocal(1,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(1,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%P /= "d" .AND. .not. IdFFNodeLocal(:) .AND. IdNodeLocal(:)%Frac == "n", &
+#else
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+#endif
       omegaDarcyCell, &
       NodebyCellLocal, &
       VolDarcy%cells, &
@@ -608,7 +619,11 @@ contains
       FracRocktypeLocal(1,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(1,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%P /= "d" .AND. .not. IdFFNodeLocal(:) .AND. IdNodeLocal(:)%Frac == "y", &
+#else
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y", &
+#endif
       omegaDarcyFrac, &
       NodebyFractureLocal, &
       VolDarcy%fractures, &
@@ -624,7 +639,11 @@ contains
       CellRocktypeLocal(1,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(1,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%P /= "d" .AND. .not. IdFFNodeLocal(:) .AND. IdNodeLocal(:)%Frac == "n", &
+#else
       IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+#endif
       omegaDarcyCell, &
       NodebyCellLocal, &
       PoroVolDarcy%cells, &
@@ -635,7 +654,11 @@ contains
       FracRocktypeLocal(1,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(1,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%P /= "d" .AND. .not. IdFFNodeLocal(:), &
+#else
       IdNodeLocal(:)%P /= "d", &
+#endif
       omegaDarcyFrac, &
       NodebyFractureLocal, &
       PoroVolDarcy%fractures, &
@@ -659,7 +682,11 @@ contains
       CellRocktypeLocal(2,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(2,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%T /= "d" .AND. .not. IdFFNodeLocal(:) .AND. IdNodeLocal(:)%Frac == "n", &
+#else
       IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+#endif
       omegaFourierCell, &
       NodebyCellLocal, &
       quantities%cells, quantities%nodes & 
@@ -669,7 +696,11 @@ contains
       FracRocktypeLocal(2,:), &
       NbNodeLocal_Ncpus(commRank+1), &
       NodeRocktypeLocal(2,:), &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdNodeLocal(:)%T /= "d" .AND. .not. IdFFNodeLocal(:), &
+#else
       IdNodeLocal(:)%T /= "d", &
+#endif
       omegaFourierFrac, &
       NodebyFractureLocal, &
       quantities%fractures, quantities%nodes &

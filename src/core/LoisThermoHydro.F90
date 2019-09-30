@@ -39,6 +39,9 @@ module LoisThermoHydro
      NumIncTotalPrimCell, NumIncTotalPrimNode, NumIncTotalPrimFrac, &
      NumIncTotalSecondCell, NumIncTotalSecondNode, NumIncTotalSecondFrac
   use MeshSchema, only: &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     IdFFNodeLocal, &
+#endif
      NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
      CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal, &
      PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
@@ -221,7 +224,7 @@ module LoisThermoHydro
        LoisThermoHydro_FreeFlowHmComp_cv,      & ! Hm * (Ci - Ci_atm)
 #ifdef _THERMIQUE_
        LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv, & ! FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)  ; FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
-       LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv, & ! HT * (T - atm_temperature) + net Radiation (which is a factor of T**4)
+       LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv, & ! HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
        LoisThermoHydro_AtmEnthalpie_cv, & ! SpecificEnthalpy(water, gas) of the far field atmosphere ; Enthalpie(liquid) of the far field atmosphere
 #endif
 #endif
@@ -568,7 +571,7 @@ contains
          NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          PermRel, divPermRel)
 
-    ! Pression (unknown index is 1)
+    ! Reference Pressure (unknown index is 1)
     call LoisThermoHydro_Inc_cv(1, inc(k), &
          NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
          dXssurdXp(:,:,k), SmdXs(:,k),  &
@@ -789,7 +792,7 @@ contains
   ! loop over each local element
   do k=1, NbIncLocal
      
-     if(inc(k)%ic<2**NbPhase) cycle ! FIXME: loop over Freeflow dof only, avoid reservoir context
+     if(.not. IdFFNodeLocal(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
 
     ! init tmp values for each cv
      call LoisThermoHydro_init_cv(inc(k))
@@ -843,7 +846,7 @@ contains
           divFreeFlowMolarFlowrateEnthalpie(:,:,k), &
           SmFreeFlowMolarFlowrateEnthalpie(:,k))
 
-    ! term: HT * (T - atm_temperature) + net Radiation (which is a factor of T**4)
+    ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
     call LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv(inc(k), &
           divTemperature(:,k), SmTemperature(k), &
           FreeFlowHTTemperatureNetRadiation(k), &
@@ -1077,7 +1080,7 @@ contains
 
   end subroutine LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv
 
-      ! term: HT * (T - atm_temperature) + net Radiation (which is a factor of T**4)
+      ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
   subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv( &
           inc, &
           divTemperature, SmTemperature, &
@@ -1101,10 +1104,10 @@ contains
     dval(:) = 0.d0
     Smval = 0.d0
 
-    ! 1. val: HT * (T - atm_temperature) + 
-    !         atm_flux_radiation - soil_emissivity*Stephan_Boltzmann_cst*T**4
+    ! 1. val: HT * (T - atm_temperature) 
+    !         - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*T**4
     val = HT * (inc%Temperature - atm_temperature) &
-          + atm_flux_radiation - soil_emissivity * Stephan_Boltzmann_cst * inc%Temperature**4.d0
+          - atm_flux_radiation + soil_emissivity * Stephan_Boltzmann_cst * inc%Temperature**4.d0
 
      ! 2. dval
      do k=1, NbIncTotalPrim
@@ -1692,7 +1695,7 @@ contains
             dval(k,NbPhasePresente) = -1.d0
           endif
         enddo
-      ELSE if(inc%ic<2**NbPhase) then ! S not found in reservoir dof
+      ELSE if(inc%ic<2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
         call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
       ENDIF
     ENDDO
@@ -1744,7 +1747,7 @@ contains
                    dval(k,iph) = dSf(jph) - dfS_secd
                  endif
                enddo
-          ELSE if(inc%ic<2**NbPhase) then ! S not found in reservoir dof 
+          ELSE if(inc%ic<2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof 
                call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
           ENDIF
        enddo
@@ -1945,7 +1948,7 @@ contains
     end do
 
     do icp = 1, NbComp
-          ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
+          ! dv/dXp - dv/dXs*dXs/dXp, v=specific enth
           ! dval = dfdX_prim - dXssurdXp*dfdX_secd
           ! all the mats is in (col, row) index order, only need to consider as transpose
           call dgemm('N','N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &

@@ -63,8 +63,12 @@ module Residu
    use MeshSchema, only: &
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+      IdFFNodeLocal, &
+#endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
-      NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus
+      NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
+      SurfFreeFlowLocal
 
    implicit none
 
@@ -719,7 +723,7 @@ contains
 
     do nums=1, NbNodeOwn_Ncpus(commRank+1)
 
-      if(IncNode(nums)%ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+      if(IdFFNodeLocal(nums)) then ! loop over freeflow dof only, avoid reservoir node
 
          Flux_FreeFlow(:) = 0.d0
          FluxT_FreeFlow = 0.d0
@@ -734,16 +738,16 @@ contains
                do icp=1, NbComp
                   if(MCP(icp,mph)==1) then ! \cap P_i
 
-                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) &
-                           + FreeFlowMolarFlowrateCompNode(icp,m,nums) &
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums) * ( &
+                             FreeFlowMolarFlowrateCompNode(icp,m,nums) &
                            + FreeFlowHmCompNode(icp,m,nums) &
-                           + atm_comp(icp,mph) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+                           + atm_comp(icp,mph) * rain_flux(mph) )! rain source term (rain_flux(gas)=0)
                   end if
                end do ! end of icp
 #ifdef _THERMIQUE_
-               FluxT_FreeFlow = FluxT_FreeFlow &
-                     + FreeFlowMolarFlowrateEnthalpieNode(m,nums) &
-                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+               FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums) * ( &
+                       FreeFlowMolarFlowrateEnthalpieNode(m,nums) &
+                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
 #endif
 
             else ! FreeFlowMolarFlowrate<0.d0
@@ -752,29 +756,33 @@ contains
                do icp=1, NbComp
                   if(MCP(icp,mph)==1) then ! \cap P_i
          
-                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) &
-                              + FreeFlowMolarFlowrate * atm_comp(icp,mph) &
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums) * ( &
+                                FreeFlowMolarFlowrate * atm_comp(icp,mph) &
                               + FreeFlowHmCompNode(icp,m,nums) &
-                              + atm_comp(icp,mph) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+                              + atm_comp(icp,mph) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
                   end if
                end do ! end of icp
 #ifdef _THERMIQUE_
-               FluxT_FreeFlow = FluxT_FreeFlow &
-                     + FreeFlowMolarFlowrate * AtmEnthalpieNode(m,nums) &
-                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ! rain source term (rain_flux(gas)=0)
+               FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums) * ( &
+                       FreeFlowMolarFlowrate * AtmEnthalpieNode(m,nums) &
+                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
 #endif
             endif ! sign of FreeFlowMolarFlowrate
          enddo ! m
 
 #ifdef _THERMIQUE_
          FluxT_FreeFlow = FluxT_FreeFlow &
-               + FreeFlowHTTemperatureNetRadiationNode(nums)
-         ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) - FluxT_FreeFlow
+               + SurfFreeFlowLocal(nums) * FreeFlowHTTemperatureNetRadiationNode(nums)
+         ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_FreeFlow
+
+            ! if(XNodeLocal(3, nums)>=1000.d0) then
+            !    print*,"in compute flux residu evap from atm energy", FluxT_FreeFlow, "should not be 0"
+            ! endif
 #endif
 
-         ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) - Flux_FreeFlow(1:NbComp)
+         ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_FreeFlow(1:NbComp)
 
-      endif ! avoid resevroir node
+      endif ! avoid reservoir node
 
    enddo ! node nums
 

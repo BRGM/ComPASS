@@ -54,6 +54,14 @@ contains
 
    end function get_fluid_properties
 
+  ! Fugacity coefficients
+  !< rt is the rocktype identifier
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< icp component identifier
+  !< P is the reference pressure
+  !< T is the temperature
+  !< C is the phase molar frcations
+  !< S is all the saturations
    subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
@@ -72,8 +80,11 @@ contains
    end subroutine f_Fugacity
 
    ! Densite molaire
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
@@ -96,8 +107,11 @@ contains
    end subroutine f_DensiteMolaire
 
    ! Densite Massique
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -111,6 +125,11 @@ contains
 
    end subroutine f_DensiteMassique
 
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
@@ -129,9 +148,10 @@ contains
 
    end subroutine f_Viscosite
 
-   ! Permeabilites = S**2
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+   ! Permeabilites
+  !< rt is the rocktype identifier
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< S is all the saturations
    subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
@@ -147,7 +167,10 @@ contains
 
    end subroutine f_PermRel
 
-   ! Pressions Capillaires des Phases et leurs derivees
+  ! P(iph) = Pref + f_PressionCapillaire(iph)
+  !< rt is the rocktype identifier
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< S is all the saturations
    subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
@@ -164,8 +187,11 @@ contains
    end subroutine f_PressionCapillaire
 
    ! EnergieInterne
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -180,9 +206,11 @@ contains
    end subroutine f_EnergieInterne
 
    ! Enthalpie
-   ! iph is an identificator for each phase:
-   ! here only one phase : liquid
-   ! If Enthalpide depends on the compositon C, change DefFlash.F90
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
@@ -203,8 +231,11 @@ contains
    end subroutine f_Enthalpie
 
   ! Specific Enthalpy (used in FreeFlow)
-  ! iph is an identificator for each phase:
-  ! here only one phase : liquid
+  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
   subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 

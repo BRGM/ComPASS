@@ -22,6 +22,9 @@
 
     use MeshSchema, only: &
        IdNodeLocal, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       IdFFNodeLocal, &
+#endif
        NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
        NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
        SubArrayInfo, MeshSchema_subarrays_info
@@ -350,12 +353,13 @@ private :: &
     double precision, intent(in) :: incre(NbIncTotalMax), relax
 
     integer :: i, icp, iph
-    integer :: NbIncPTC, NbIncTotal
+    integer :: NbIncPTC, NbIncTotal, NbPhasePresente
     integer :: ic
 
     ic = inc%ic
     NbIncPTC = NbIncPTC_ctx(ic)
     NbIncTotal = NbIncTotal_ctx(ic)
+    NbPhasePresente = NbPhasePresente_ctx(ic)
 
     ! increment Pressure
     inc%Pression = inc%Pression + relax*incre(1)
@@ -377,11 +381,22 @@ private :: &
     enddo
 
     ! increment saturation
-    do i = 1, NbPhasePresente_ctx(ic)
+    do i = 1, NbPhasePresente
         iph = NumPhasePresente_ctx(i, ic)
 
         inc%Saturation(iph) = inc%Saturation(iph) + relax*incre(iph + NbIncPTC)
     end do
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    ! increment freeflow molar flowrate
+    if (ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+        do i = 1, NbPhasePresente
+            iph = NumPhasePresente_ctx(i, ic)
+
+            inc%FreeFlow_flowrate(iph) = inc%FreeFlow_flowrate(iph) + relax*incre(iph + NbIncPTC + NbPhasePresente)
+        enddo
+    endif
+#endif
 
     ! AccVol
     do i = 1, NbCompCtilde_ctx(ic)

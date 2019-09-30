@@ -36,7 +36,15 @@ module Thermodynamics
 
 contains
 
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+  ! Fugacity coefficient
+  !< rt is the rocktype identifier
+  !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
+  !< icp component identifier
+  !< P is the reference pressure
+  !< T is the temperature
+  !< C is the phase molar frcations
+  !< S is all the saturations
+subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -46,15 +54,21 @@ contains
 
       real(c_double) :: PSat, dTSat, Pc, DSPc(NbPhase)
 
+      dPf = 0.d0
+      dTf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
+
       if (iph == GAS_PHASE) then
-         f = P
+         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)  ! Pg=Pref + Pc 
+         f = P + Pc
+
          dPf = 1.d0
-         dTf = 0.d0
+         dSf = DSPc
 
       else if (iph == LIQUID_PHASE) then
          call FluidThermodynamics_Psat(T, Psat, dTSat)
          f = Psat
-         dPf = 0.d0
          dTf = dTSat
 
 #ifndef NDEBUG
@@ -63,9 +77,6 @@ contains
 #endif
 
       end if
-
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
 
    end subroutine f_Fugacity
 
@@ -82,6 +93,11 @@ contains
    end subroutine check_array_interop
 
    ! FIXME #51 densite massique
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
       integer(c_int), value, intent(in) :: iph
@@ -92,8 +108,20 @@ contains
       real(c_double) :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
       real(c_double) :: u, R, T0, d, Z, ds, ss, rs, dZ
       real(c_double) :: Psat, dT_Psat
+      real(c_double) :: Pc, DSPc(NbPhase), Pg, Pl
+
+      integer(c_int) :: rt(IndThermique+1)
 
       if (iph == GAS_PHASE) then
+
+         rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
+         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+         if(Pc.ne.0.d0) then
+           print*,"possible error in f_DensiteMolaire (change rt)"
+           stop
+         endif
+         Pg = P + Pc   
+
          u = 0.018016d0
          R = 8.3145d0
          T0 = 273.d0
@@ -104,11 +132,23 @@ contains
          Z = 1.d0
          dZ = 0.d0
 
-         f = P*u/(R*T*Z)
+         f = Pg*u/(R*T*Z)
          dPf = u/(R*T*Z)
-         dTf = -P*u/(R*T*Z)**2*(R*T*dZ + R*Z)
-
+         dTf = -Pg*u/(R*T*Z)**2*(R*T*dZ + R*Z)
+         dCf = 0.d0
+         dSf = DSPc(iph)*u/(R*T*Z)
+   
       else if (iph == LIQUID_PHASE) then
+         rt = 0 ! FIXME: rt is not used because Pc=0.
+         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+         if(Pc.ne.0.d0) then
+            print*,"error in f_DensiteMolaire"
+            print*,"confusion between P and Pl"
+            print*,"check the formula"
+            stop
+         endif
+         Pl = P + Pc   ! carreful, P is Pref and not Pl
+
          rs = 0.d0
 
          call FluidThermodynamics_Psat(T, Psat, dT_Psat)
@@ -137,7 +177,9 @@ contains
          f = ss*(1.d0 + cw*(P - Psat))
          dPf = ss*dcwp*(P - Psat) + ss*cw
          dTf = ds*(1.d0 + cw*(P - Psat)) + ss*dcwt*(P - Psat) - ss*cw*dT_Psat
-
+         dCf(:) = 0.d0
+         dSf(:) = 0.d0
+   
 #ifndef NDEBUG
       else
          call CommonMPI_abort('unknow phase in f_DensiteMolaire')
@@ -145,12 +187,14 @@ contains
 
       end if
 
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
-
    end subroutine f_DensiteMolaire
 
    ! FIXME #51 densite massique
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
@@ -160,6 +204,11 @@ contains
 
    end subroutine f_DensiteMassique
 
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
       integer(c_int), value, intent(in) :: iph
@@ -173,7 +222,9 @@ contains
          f = (0.361d0*T - 10.2d0)*1.d-7
          dPf = 0.d0
          dTf = 0.361*1.d-7
-
+         dCf(:) = 0.d0
+         dSf(:) = 0.d0
+      
       else if (iph == LIQUID_PHASE) then
          T1 = 300.d0
          Cs = 0.04d0
@@ -186,7 +237,9 @@ contains
          f = 1.d-3*a/ss
          dPf = 0.d0
          dTf = -a*1.d-3*ds/ss**2
-         
+         dCf(:) = 0.d0
+         dSf(:) = 0.d0
+   
 #ifndef NDEBUG
       else
          call CommonMPI_abort('unknow phase in f_Viscosite')
@@ -194,14 +247,12 @@ contains
 
       end if
 
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
-
    end subroutine f_Viscosite
 
    ! Permeabilites = S**2
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< rt is the rocktype identifier
+  !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
+  !< S is all the saturations
    subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
@@ -212,15 +263,15 @@ contains
       ! output
       real(c_double), intent(out) :: f, DSf(NbPhase)
 
+      dSf(:) = 0.d0
+
       if (iph == GAS_PHASE) then
-         f = S(1)**2
-         dSf(1) = 2.d0*S(1)
-         dSf(2) = 0.d0
+         f = S(iph)**2
+         dSf(iph) = 2.d0*S(iph)
 
       else if (iph == LIQUID_PHASE) then
-         f = S(2)**2
-         dSf(1) = 0.d0
-         dSf(2) = 2.d0*S(2)
+         f = S(iph)**2
+         dSf(iph) = 2.d0*S(iph)
 
 #ifndef NDEBUG
       else
@@ -231,7 +282,10 @@ contains
 
    end subroutine f_PermRel
 
-   ! Pressions Capillaires des Phases et leurs derivees
+  ! P(iph) = Pref + f_PressionCapillaire(iph)
+  !< rt is the rocktype identifier
+  !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
+  !< S is all the saturations
    subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
@@ -248,8 +302,11 @@ contains
    end subroutine f_PressionCapillaire
 
    ! EnergieInterne
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -264,8 +321,11 @@ contains
    end subroutine f_EnergieInterne
 
    ! Enthalpie
-   ! iph is an identificator for each phase:
-   ! GAS_PHASE = 1; LIQUID_PHASE = 2
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
@@ -279,6 +339,11 @@ contains
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       real(c_double) :: a, b, cc, d, T0
+
+      dPf = 0.d0
+      dTf = 0.d0
+      dCf(:) = 0.d0
+      dSf(:) = 0.d0
 
       if (iph == GAS_PHASE) then
          a = 1990.89d+3
@@ -304,16 +369,15 @@ contains
 
       end if
 
-      dPf = 0.d0
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
-
    end subroutine f_Enthalpie
 
   ! Specific Enthalpy (used in FreeFlow)
-  ! iph is an identificator for each phase:
-  ! GAS_PHASE or LIQUID_PHASE
-  subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+  !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+  !< P is the Reference Pressure
+  !< T is the Temperature
+  !< C is the phase molar fractions
+  !< S is all the saturations
+   subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 
     ! input
@@ -325,7 +389,12 @@ contains
     real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
                                   dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
 
-      real(c_double) :: a, b, cc, d, T0
+    real(c_double) :: a, b, cc, d, T0
+
+    dPf = 0.d0
+    dTf = 0.d0
+    dCf = 0.d0
+    dSf = 0.d0
 
     if(iph == GAS_PHASE)then
       a = 1990.89d+3
@@ -345,13 +414,9 @@ contains
       dTf(:) = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
     endif
 
-    dPf = 0.d0
-    dCf = 0.d0
-    dSf = 0.d0
-
   end subroutine f_SpecificEnthalpy
 
-
+  !< T is the Temperature
    subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
 
@@ -363,6 +428,7 @@ contains
 
    end subroutine FluidThermodynamics_Psat
 
+  !< P is the Reference Pressure
    subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
       bind(C, name="FluidThermodynamics_Tsat")
 

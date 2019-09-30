@@ -31,6 +31,9 @@ module IncPrimSecd
      TYPE_IncCVReservoir, &
      IncCell, IncFrac, IncNode
   use MeshSchema, only: &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     IdFFNodeLocal, &
+#endif
      NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
      NodeByWellInjLocal
@@ -933,7 +936,7 @@ contains
 
     integer :: k, ic, i, iph
     integer :: &
-         NbPhasePresente, NbEqFermeture, &
+         NbPhasePresente, NbEqFermeture, NbNodeLocal, &
          NbIncPTC, NbIncTotal, NbIncPTCPrim, NbIncTotalPrim
 
     double precision :: &
@@ -943,6 +946,7 @@ contains
     do k=1,NbIncLocal
 
          ic = inc(k)%ic
+         NbNodeLocal = NbNodeLocal_Ncpus(commRank+1)
          NbPhasePresente = NbPhasePresente_ctx(ic)
          NbEqFermeture = NbEqFermeture_ctx(ic)
          NbIncPTC  = NbIncPTC_ctx(ic)
@@ -978,14 +982,14 @@ contains
 
          ! fill secd S
          ! if NbPhasePresente=1,
-         !    then this phase must be secd
-         ! else last saturation is secd, the others are prim
-         !    secd S = - sum_{S^alpha is prim} S^alpha   ??????????
+         !    then this phase is eliminated
+         ! else last saturation is eliminated, the others are prim (in reservoir dof)
+         !    eliminated S = - sum_{S^alpha is prim} S^alpha
          if( NbPhasePresente==1) then
 
             ! iph is this phase in (P,T,C,S,n_i)
             iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-            var_inc(iph,k) = 0.d0
+            var_inc(iph,k) = 0.d0 ! FIXME: is usefull, because wrong numerotation of FreeFlow sat
          else
 
             ! iph is last present phase in vector (P,T,C,S,n_i)
@@ -995,6 +999,39 @@ contains
                var_inc(iph,k) = var_inc(iph,k) - xp(NbIncPTCPrim+i)
             end do
          end if
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+         if(k<=NbNodeLocal .and. IdFFNodeLocal(k) .and. NbPhasePresente>1) then ! loop over freeflow dof only, avoid reservoir node
+            ! Correct the value for the last saturation 
+            ! Remark : it is possible that no saturation belongs to the unknowns (when liquid outflow)
+            iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
+            var_inc(iph,k) = 0.d0
+            ! look for saturations which are primary unknowns
+            !    eliminated S = - sum_{S^alpha is prim} S^alpha
+            do i=NbIncPTCPrim+1, NbIncPTCPrim+NbPhasePresente-1
+               if(NumIncTotalPrimCV(i,k)>NbIncPTC .and. NumIncTotalPrimCV(i,k)<NbIncPTC+NbPhasePresente) then ! test if it is a saturation
+                  var_inc(iph,k) = var_inc(iph,k) - xp(i)
+               endif
+            enddo
+         endif
+
+         if(k<=NbNodeLocal .and. IdFFNodeLocal(k)) then !ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+            ! FIXME: change the numbering in DefModel to remove this part
+            ! Correct the value of var_inc because the eliminated saturation is inserted in the index 
+            ! whereas it is not counted in the numbering in DefModel
+            ! necessary to coincide with IncCVReservoir_NewtonIncrement_reservoir
+            ! copy prim 
+            do i=1, NbIncTotalPrim
+               if(NumIncTotalPrimCV(i,k)>=NbIncPTC+NbPhasePresente) var_inc(NumIncTotalPrimCV(i,k)+1,k) = xp(i)
+            end do
+   
+            ! copy secd 
+            do i=1, NbEqFermeture
+               if(NumIncTotalSecondCV(i,k)>=NbIncPTC+NbPhasePresente) var_inc(NumIncTotalSecondCV(i,k)+1,k) = xs(i)
+            end do
+         endif
+
+#endif
 
          ! term prim n_k(X_j^n), components which are present only in absent phase(s)
          ! n_k(X_j^n) are not part of NbIncTotal

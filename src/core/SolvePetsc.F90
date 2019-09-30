@@ -22,8 +22,15 @@ module SolvePetsc
      NbWellInjOwn_Ncpus, NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, &
      NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
      NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+     IdFFNodeLocal, &
+#endif
      NbFracLocal_Ncpus, NbCellLocal_Ncpus
   use Jacobian, only: JacA, Sm
+
+  ! tmp
+  use IncPrimSecd, only: NbIncTotalPrim_ctx 
+
 
 #ifdef COMPASS_PETSC_VERSION_LESS_3_6
 #include <finclude/petscdef.h> 
@@ -721,11 +728,13 @@ contains
     logical :: IsTprimbyContext(NbContexte)
 
     do i=1, NbContexte
-       if(psprim(2,i)==2) then
-          IsTprimbyContext(i) = .true. ! For context i, T is prim
-       else
-          IsTprimbyContext(i) = .false. ! For context i, T is secd
-       end if
+       do j=1, NbIncTotalPrim_ctx(i)
+          if(psprim(j,i)==2) then
+             IsTprimbyContext(i) = .true. ! For context i, T is prim
+          else
+             IsTprimbyContext(i) = .false. ! For context i, T is secd
+          end if
+       enddo
     end do
 
     ! T is prim or secd for unknowns (node and frac)
@@ -761,8 +770,21 @@ contains
              col = ColLToColGBlock( JacA%Num(j) ) - 1 ! 0-based in petsc
 
              if(IsTprimNodeFracLocal( JacA%Num(j) ) .eqv. .true.) then ! for j, T is prim
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+                if( JacA%Num(j)<=NbNodeLocal .and. IdFFNodeLocal(JacA%Num(j)) ) then  ! FIXME: FreeFlow node, T is first inc (not always)
+                   call MatSetValue(At, row, col, JacA%Val(1,1,j), INSERT_VALUES, Ierr)
+                   CHKERRQ(Ierr)
+                   print*,"entered in new loop, stop"
+                   stop
+                else ! reservoir node, T is second inc
+                   call MatSetValue(At, row, col, JacA%Val(2,2,j), INSERT_VALUES, Ierr)
+                   CHKERRQ(Ierr)
+                endif
+#else
+                ! reservoir node, T is second inc
                 call MatSetValue(At, row, col, JacA%Val(2,2,j), INSERT_VALUES, Ierr)
                 CHKERRQ(Ierr)
+#endif
              else
                 call MatSetValue(At, row, col, 0.d0, INSERT_VALUES, Ierr)
                 CHKERRQ(Ierr)

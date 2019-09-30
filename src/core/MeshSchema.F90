@@ -52,6 +52,10 @@ module MeshSchema
     NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
     NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+  use LocalMesh, only: IdFFNodeRes_Ncpus
+#endif
+
   implicit none
 
   ! 1. Mesh Info
@@ -126,6 +130,11 @@ module MeshSchema
   type(Type_IdNode), allocatable, dimension(:), target :: &
        IdNodeLocal
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+  logical, allocatable, dimension(:), target :: &
+       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
+#endif
+
   ! Well 
   integer, dimension(:), allocatable, protected :: &
        NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
@@ -168,10 +177,11 @@ module MeshSchema
        XCellLocal,&     ! center of cell
        XFaceLocal       ! center of frac
 
-  ! 8. VolCellLocal, SurfFracLocal
+  ! 8. VolCellLocal, SurfFreeFlowLocal, SurfFracLocal
   double precision, dimension(:), allocatable, protected :: &
-       VolCellLocal, &  ! vol of cell
-       SurfFracLocal    ! surf of frac face
+       VolCellLocal, &      ! vol of cell
+       SurfFreeFlowLocal, & ! surf of faces allocated to each freeflow node
+       SurfFracLocal        ! surf of frac face
 
   ! 9. max number of nodes/frac in a cell 
   integer, protected :: & 
@@ -249,6 +259,9 @@ module MeshSchema
        MeshSchema_XCellLocal,               &
        MeshSchema_VolCellLocal,             &
        MeshSchema_XFaceLocal,               &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       MeshSchema_SurfFreeFlowLocal,        &
+#endif
        MeshSchema_SurfFracLocal,            &
        MeshSchema_NbNodeCellMax,            &
        MeshSchema_NbNodeFaceMax,            &
@@ -549,6 +562,9 @@ contains
 
     ! VolCellLocal and SurfFraclocal
     call MeshSchema_VolCellLocal
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    call MeshSchema_SurfFreeFlowLocal
+#endif
     call MeshSchema_SurfFracLocal
 
     call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell 
@@ -1082,7 +1098,7 @@ contains
     ! Send IdFaceLocal
     if (commRank==0) then
 
-       ! proc >=1, send
+       ! send to proc >=1
        do i=1, Ncpus-1
           Nb = NbFaceLocal_Ncpus(i+1)
           call MPI_Send(IdFaceRes_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 11, ComPASS_COMM_WORLD, Ierr)
@@ -1116,24 +1132,37 @@ contains
     call MPI_Type_struct(1, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
     call MPI_Type_commit(MPI_IDNODE, Ierr)
 
-    ! Send IdNodeLocal
+    ! Send IdNodeLocal and IdFFNodeLocal
     if (commRank==0) then
 
-       ! proc >=1, send
+       ! send to proc >=1
        do i=1, Ncpus-1
           Nb = NbNodeLocal_Ncpus(i+1)
           call MPI_Send(IdNodeRes_Ncpus(i+1)%Val, Nb, MPI_IDNODE, i, 12, ComPASS_COMM_WORLD, Ierr)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+          call MPI_Send(IdFFNodeRes_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 20, ComPASS_COMM_WORLD, Ierr)   ! FIXME
+#endif
        end do
 
        ! proc=0, copy
        Nb = NbNodeLocal_Ncpus(1)
        allocate(IdNodeLocal(Nb))
        IdNodeLocal(:) = IdNodeRes_Ncpus(1)%Val(:)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       allocate(IdFFNodeLocal(Nb))
+       IdFFNodeLocal(:) = IdFFNodeRes_Ncpus(1)%Val(:)
+#endif
 
-    else   
+    else   ! not master proc
        Nb = NbNodeLocal_Ncpus(commRank+1)
        allocate(IdNodeLocal(Nb))
        call MPI_Recv(IdNodeLocal, Nb, MPI_IDNODE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       allocate(IdFFNodeLocal(Nb))
+       call MPI_Recv(IdFFNodeLocal, Nb, MPI_INTEGER, 0, 20, ComPASS_COMM_WORLD, stat, Ierr)
+       print*,"entered in MeshSchema // computation not validated for FreeFlow nodes" 
+       stop
+#endif
     end if
 
     ! free MPI_IDNODE
@@ -1143,8 +1172,14 @@ contains
     if(commRank==0) then
        do i=1, Ncpus
           deallocate(IdNodeRes_Ncpus(i)%Val)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+          deallocate(IdFFNodeRes_Ncpus(i)%Val)
+#endif
        end do
        deallocate(IdNodeRes_Ncpus)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+       deallocate(IdFFNodeRes_Ncpus)
+#endif
     end if
 
     ! ************************************ !
@@ -1826,6 +1861,33 @@ contains
 
   end function MeshSchema_local_face_surface
 
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+  ! Fill SurfFreeFlowLocal with the surface_face/NbNodebyface
+  subroutine MeshSchema_SurfFreeFlowLocal
+
+    integer :: i, mpt, m, errcode, Ierr, nbnodes
+    double precision :: SurfaceFace
+
+    allocate(SurfFreeFlowLocal(NbNodeLocal_Ncpus(commRank+1))) 
+
+    SurfFreeFlowLocal(:) = 0.d0
+    
+    do i = 1, NbFaceLocal_Ncpus(commRank+1)
+      if(FaceFlagsLocal(i)==30) then ! FIXME change 30 with parameter
+         ! compute surface of face
+         nbnodes = NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
+         SurfaceFace = MeshSchema_local_face_surface(i) / nbnodes
+         ! sum contributions of the faces to the nodes
+         do mpt = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
+            m = NodebyFaceLocal%Num(mpt)
+            SurfFreeFlowLocal(m) = SurfFreeFlowLocal(m) + SurfaceFace
+         enddo
+       endif
+    enddo
+
+  end subroutine MeshSchema_SurfFreeFlowLocal
+#endif
+
   subroutine MeshSchema_SurfFracLocal
 
     integer :: ifrac, errcode, Ierr
@@ -1993,6 +2055,9 @@ contains
     deallocate(IdCellLocal)
     deallocate(IdFaceLocal)
     deallocate(IdNodeLocal)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    deallocate(IdFFNodeLocal)
+#endif
 
     deallocate(FracToFaceLocal)
     deallocate(FaceToFracLocal)
@@ -2009,6 +2074,9 @@ contains
     deallocate(XFaceLocal)
 
     deallocate(VolCellLocal)
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+    deallocate(SurfFreeFlowLocal)
+#endif
     deallocate(SurfFracLocal)
 
     ! the follwoing free could be put after VAGFrac?

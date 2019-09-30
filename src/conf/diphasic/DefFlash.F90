@@ -45,31 +45,31 @@ contains
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: Cal, Cwl
       double precision :: PgCag, PgCwg
-      double precision :: Pref,P(NbPhase)
+      double precision :: Pref,Pg
 
       ic = inc%ic
       T = inc%Temperature
       S = inc%Saturation
       Pref = inc%Pression
-      do iph = 1,NbPhase
-        call f_PressionCapillaire(rt, iph, S(iph), Pc, DSPc)
-        P(iph) = Pref + Pc
-      enddo
+      ! Compute Pg 
+      call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
+      Pg = Pref + Pc
 
       if (ic == LIQUID_CONTEXT) then
          ! air liq fugacity
          iph = LIQUID_PHASE
-         call f_Fugacity(rt,iph,AIR_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         ! f_Fugacity called with reference pressure
+         call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf) 
          PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
 
-         ! water liq fugacity
-         call f_Fugacity(rt,iph,WATER_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+         ! water liq fugacity, f_Fugacity called with reference pressure
+         call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
          PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
-         if (PgCag + PgCwg > P(GAS_PHASE)) then
+         if (PgCag + PgCwg > Pg) then
 
-            ! write(*,*)' apparition gas ', P(GAS_PHASE), T
+            ! write(*,*)' apparition gas ', Pg, T
 
             inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(GAS_PHASE) = 0.d0
@@ -108,12 +108,12 @@ contains
       elseif (ic == GAS_CONTEXT) then
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,AIR_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
          enddo
          Cal = inc%Comp(AIR_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,WATER_COMP,P(iph),T,inc%Comp(:,iph),S(iph),f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
          enddo
          Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 

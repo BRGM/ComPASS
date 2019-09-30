@@ -13,7 +13,8 @@ module Physics
     real(c_double) :: gravity = 9.81d0
 
     ! Far field atm constants
-    real(c_double) :: atm_pressure = 1.d5
+    ! must be compatible with reference pressure !!! (called in f_SpecificEnthalpy which does not depend on P)
+    real(c_double) :: atm_pressure = 1.d5 
     real(c_double) :: atm_temperature = 300.d0
     real(c_double) :: atm_comp(2, 2) = &
                                     RESHAPE((/ &
@@ -31,7 +32,7 @@ module Physics
     real(c_double) :: Stephan_Boltzmann_cst = 5.67d-8  ! W/m^2/K^4
     ! Rain input flux
     real(c_double) :: rain_flux(2) = RESHAPE((/ 0.d0,   &  ! gas rain = 0
-                                                -32.d-3 &  ! liquid rain source term
+                                                -0.d0 &  ! liquid rain source term
                                                 /), (/2/))
 
     !FIXME: must be put elsewhere and must be an array

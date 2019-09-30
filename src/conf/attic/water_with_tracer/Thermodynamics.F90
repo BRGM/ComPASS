@@ -36,7 +36,7 @@ module Thermodynamics
 contains
 
    ! Fugacity
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
@@ -56,7 +56,7 @@ contains
    end subroutine f_Fugacity
 
    ! Densite molaire
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
@@ -108,7 +108,7 @@ contains
    end subroutine f_DensiteMolaire
 
    ! Densite Massique
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
@@ -124,7 +124,7 @@ contains
    end subroutine f_DensiteMassique
 
    ! Viscosities
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
@@ -156,7 +156,7 @@ contains
    end subroutine f_Viscosite
 
    ! Permeabilites = S**2
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_PermRel(rt, iph, S, f, DSf)
 
@@ -190,7 +190,7 @@ contains
    end subroutine f_PressionCapillaire
 
    ! EnergieInterne
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
@@ -206,7 +206,7 @@ contains
    end subroutine f_EnergieInterne
 
    ! Enthalpie
-   ! iph is an identificator for each phase:
+   ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &

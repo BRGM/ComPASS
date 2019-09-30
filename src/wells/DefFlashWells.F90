@@ -450,7 +450,7 @@ contains
    subroutine DefFlashWells_NonLinPressureUpdateWellProd(nWell)
       integer, intent(in) :: nWell ! numero of the production well
 
-      double precision :: Ps(NbPhase), Ts, Sat(NbPhase), C(NbComp, NbPhase)
+      double precision :: Ps, Ts, Sat(NbPhase), C(NbComp, NbPhase)
       double precision :: Viscosity, DensiteMolaire, PermRel
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_DensiteMolaire
       double precision :: WIDws, SumMob, SumMobR
@@ -469,21 +469,21 @@ contains
          Ts = IncNode(nums)%Temperature ! Ts: Temperature in matrix
          Sat(:) = IncNode(nums)%Saturation(:) ! Sat in matrix
          rt = NodeRocktype(:, s)
+         Ps = IncNode(nums)%Pression ! Ps: Reference Pressure in matrix 
 
          ! loop over alpha in Q_s
          do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
             comptn = comptn + 1 ! comptn = sum(s) sum(alpha in Q_s) 1
 
             mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-            Ps(mph) = IncNode(nums)%Pression ! Ps: Pressure in matrix (no capillary pressure)    ???
-            R(mph, s) = Ps(mph) - PerfoWellProd(s)%PressureDrop ! R_s,alpha = P_s,alpha^{n} - PressureDrop_{w,s}^{n-1}
+            R(mph, s) = Ps - PerfoWellProd(s)%PressureDrop ! R_s,alpha = P_s,alpha^{n} - PressureDrop_{w,s}^{n-1}, does not depend on mph
             C(:, mph) = IncNode(nums)%Comp(:, mph) ! Comp in matrix
 
             ! Molar density
-            call f_DensiteMolaire(mph, Ps(mph), Ts, C(:, mph), Sat, &
+            call f_DensiteMolaire(mph, Ps, Ts, C(:, mph), Sat, &
                                   DensiteMolaire, dPf, dTf, dCf, dSf)
             ! viscosity
-            call f_Viscosite(mph, Ps(mph), Ts, C(:, mph), Sat, &
+            call f_Viscosite(mph, Ps, Ts, C(:, mph), Sat, &
                              Viscosity, dPf, dTf, dCf, dSf)
             ! Permrel
             call f_PermRel(rt, mph, Sat, PermRel, dSf)
