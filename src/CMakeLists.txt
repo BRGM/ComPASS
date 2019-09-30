@@ -27,6 +27,23 @@ if(DEF_SCOREP_INSTRUMENTATION)
     add_subdirectory(perfanalysis)
 endif(DEF_SCOREP_INSTRUMENTATION)
 
+# Configuration to be built
+# FIXME: include file
+# liquid_water, linear_liquid_water, water_with_tracer have been moved to attic
+set( CONFIGURATIONS
+   diphasic
+   linear_water
+   water2ph
+)
+
+foreach(_conf ${CONFIGURATIONS})
+    option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
+endforeach()
+
+if(DEF_FREEFLOW_STRUCTURES)
+   list(APPEND CONFIGURATIONS diphasic_FreeFlowBC)
+endif(DEF_FREEFLOW_STRUCTURES)
+cmake_dependent_option(ComPASS_WITH_diphasic_FreeFlowBC "Build diphasic_FreeFlowBC module" ON "DEF_FREEFLOW_STRUCTURES" OFF)
 
 set( ComPASSCommonCore_SRCS
     CommonMPI.F90
@@ -44,32 +61,40 @@ foreach(_src ${ComPASSCommonCore_SRCS})
 endforeach()
 set(ComPASSCommonCore_SRCS ${_tmp})
 
-add_library(ComPASSCommonCore STATIC ${ComPASSCommonCore_SRCS})
-set_target_properties(ComPASSCommonCore
-    PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
-    Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/common
-    # CXX_STANDARD 14
-        # CXX_STANDARD_REQUIRED YES
-        # CXX_EXTENSIONS NO
-        # RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-# target_include_directories(ComPASSCommonCore PUBLIC ${CONF_DIR})
-target_include_directories(ComPASSCommonCore PUBLIC wrappers)
-# target_include_directories(ComPASSCommonCore PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
-# target_include_directories(ComPASSCommonCore PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_include_directories(ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH})
-# target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
-target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
-# target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
-target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDE_DIRS})
-# FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-# target_link_libraries(ComPASSCommonCore ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
+set(ComPASS_NEEDS_CORE_COMPILATION OFF)
+foreach(_conf ${CONFIGURATIONS})
+    if(${ComPASS_WITH_${_conf}_PHYSICS}) 
+        set(ComPASS_NEEDS_CORE_COMPILATION ON)
+        break()
+    endif()
+endforeach()
+
+if(${ComPASS_NEEDS_CORE_COMPILATION})
+    add_library(ComPASSCommonCore STATIC ${ComPASSCommonCore_SRCS})
+    set_target_properties(ComPASSCommonCore
+        PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
+        Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/common
+        # CXX_STANDARD 14
+            # CXX_STANDARD_REQUIRED YES
+            # CXX_EXTENSIONS NO
+            # RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
+    # target_include_directories(ComPASSCommonCore PUBLIC ${CONF_DIR})
+    target_include_directories(ComPASSCommonCore PUBLIC wrappers)
+    # target_include_directories(ComPASSCommonCore PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})
+    # target_include_directories(ComPASSCommonCore PUBLIC ${PYTHON_INCLUDE_DIRS})
+    target_include_directories(ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH})
+    # target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
+    target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
+    # target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
+    target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDE_DIRS})
+    # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
+    # target_link_libraries(ComPASSCommonCore ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES})
+endif(${ComPASS_NEEDS_CORE_COMPILATION})
 
 set( ComPASSCore_SRCS
-    # CommonMPI.F90
-    # CommonType.F90
     DebugUtils.F90
     GlobalMesh.F90
     IncCV.F90
@@ -78,19 +103,13 @@ set( ComPASSCore_SRCS
     DirichletContribution.F90
     NeumannContribution.F90
     Flux.F90
-    # InteroperabilityStructures.F90
     Jacobian.F90 
     LocalMesh.F90
     IncPrimSecd.F90
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90
-    # NumbyContext.F90
-    # PartitionMesh.F90
-    # Partition.c
-    # Physics.F90
     Residu.F90
-    # SchemeParameters.F90
     SolvePetsc.F90
     SyncPetsc.F90
     VAGFrac.F90
@@ -129,24 +148,6 @@ foreach(_src ${ComPASSWells_SRCS})
     list(APPEND _tmp wells/${_src})
 endforeach()
 set(ComPASSWells_SRCS ${_tmp})
-
-# Configuration to be built
-# FIXME: include file
-# liquid_water, linear_liquid_water, water_with_tracer have been moved to attic
-set( CONFIGURATIONS
-   diphasic
-   linear_water
-   water2ph
-)
-
-foreach(_conf ${CONFIGURATIONS})
-    option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
-endforeach()
-
-if(DEF_FREEFLOW_STRUCTURES)
-   list(APPEND CONFIGURATIONS diphasic_FreeFlowBC)
-endif(DEF_FREEFLOW_STRUCTURES)
-cmake_dependent_option(ComPASS_WITH_diphasic_FreeFlowBC "Build diphasic_FreeFlowBC module" ON "DEF_FREEFLOW_STRUCTURES" OFF)
 
 set( CONF_SRCS
     DefFlash.F90
