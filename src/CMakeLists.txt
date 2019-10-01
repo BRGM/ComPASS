@@ -43,7 +43,7 @@ endforeach()
 if(DEF_FREEFLOW_STRUCTURES)
    list(APPEND CONFIGURATIONS diphasic_FreeFlowBC)
 endif(DEF_FREEFLOW_STRUCTURES)
-cmake_dependent_option(ComPASS_WITH_diphasic_FreeFlowBC "Build diphasic_FreeFlowBC module" ON "DEF_FREEFLOW_STRUCTURES" OFF)
+cmake_dependent_option(ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS "Build diphasic_FreeFlowBC module" ON "DEF_FREEFLOW_STRUCTURES" OFF)
 
 set( ComPASSCommonCore_SRCS
     CommonMPI.F90
