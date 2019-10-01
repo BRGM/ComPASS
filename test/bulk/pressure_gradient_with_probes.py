@@ -88,6 +88,7 @@ Probe = namedtuple("Probe", ["id", "location", "cell"])
 
 def locate_probes():
     centers = ComPASS.cell_centers()
+    #print('centers on proc', mpi.proc_rank, ':', centers)
     dx = Lx / nx
     probes = []
     nb_cells_own = ComPASS.nb_cells_own()[mpi.proc_rank]
@@ -105,14 +106,15 @@ def locate_probes():
 probes = locate_probes()
 probe_cells = np.array([probe.cell for probe in probes])
 probe_pressure = []
-print(len(probes), "probes on proc", mpi.proc_rank)
-
+print(len(probes), "probes on proc", mpi.proc_rank, probe_cells)
 
 def store_data(n, t):
-    probe_pressure.append((t, ComPASS.cell_states().p[probe_cells]))
+    if len(probe_cells)>0:
+        probe_pressure.append((t, ComPASS.cell_states().p[probe_cells]))
+    else:
+        probe_pressure.append((t, []))
 
-
-final_time = 3600
+final_time = 1.2#3600
 output_period = 0.1 * final_time
 standard_loop(
     final_time=final_time,
