@@ -57,8 +57,8 @@ with open(options.process_file, 'w') as f:
         cmd.extend(args)
     elif options.postprocess_run:
         cmd.append('python3 -m ComPASS.postprocess')
-        cmd.extend(['-'+s[1:] for s in args if s.startswith('/')])
-   elif options.pytest_run:
+        cmd.extend(['-'+s[1:] if s.startswith('/') else s for s in args])
+    elif options.pytest_run:
         cmd.append('python3 -m pytest')
         if options.parallel_run:
             cmd.append('-n %d' % multiprocessing.cpu_count())
@@ -67,4 +67,5 @@ with open(options.process_file, 'w') as f:
             cmd.append('mpirun -n %d' % multiprocessing.cpu_count())
         cmd.append('python3')
         cmd.extend(args)
+    #print('Command:', ' '.join(cmd))
     print(' '.join(cmd), file=f)
