@@ -19,7 +19,7 @@ EOL
 CUSTSHELL=/etc/compass/customize-session
 SIMSCRIPT=/etc/compass/simulation-process
 
-# creates an default file in case nothing is to be done
+# creates a default file in case nothing is to be done
 echo "echo" > $SIMSCRIPT
 
 python3 /etc/compass/entrypoint.py \
