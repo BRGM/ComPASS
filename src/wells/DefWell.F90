@@ -504,7 +504,10 @@ contains
 
       length = dot_product(vectBC, vectBC)
       if (length < 1.0d-5) then
-         write (*, *) "pb with DistNodetoLine, line(BC) is not a line because B=C"
+         write (*, *) "WARNING - pb with DistNodetoLine, line(BC) is not a line because B=C"
+         write (*, *) "          A:", NodeA, "(cell center ?)"
+         write (*, *) "          B:", NodeB
+         write (*, *) "          C:", NodeA
          length = dsqrt(dot_product(vectBA, vectBA))
          return
       endif
