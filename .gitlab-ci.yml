@@ -112,7 +112,7 @@ time_bulk_scripts:
   tags:
     - test
   script:
-    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash /bin/bash ./time_all_scripts.bash
+    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --bash ./time_all_scripts.bash
 
 reactive_transport_test:
   stage: test

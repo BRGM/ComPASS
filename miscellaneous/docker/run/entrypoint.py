@@ -53,8 +53,10 @@ fi
 with open(options.process_file, 'w') as f:
     cmd = []
     if options.bash_session:
-        cmd.append('/bin/bash')
-        cmd.extend(args)
+        if len(args)>0:
+            # We open a sub shell if some commands are to be passed to the bash session
+            cmd.append('/bin/bash')
+            cmd.extend(args)
     elif options.postprocess_run:
         cmd.append('python3 -m ComPASS.postprocess')
         cmd.extend(['-'+s[1:] if s.startswith('/') else s for s in args])

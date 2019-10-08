@@ -25,13 +25,13 @@ echo "echo" > $SIMSCRIPT
 python3 /etc/compass/entrypoint.py \
     --customize-session $CUSTSHELL \
     --simulation-process $SIMSCRIPT "$@"
-source $CUSTSHELL
+[ -f $CUSTSHELL ] && source $CUSTSHELL
 
 # /localfs should already be present
 mkdir -p /localfs
 chown ${COMPASS_USER}:${COMPASS_USER} /localfs
 
-echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
+[ -f $CUSTSHELL ] && echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
 
-su-exec compass `cat $SIMSCRIPT`
+su-exec compass /bin/bash $SIMSCRIPT
 
