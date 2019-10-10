@@ -91,6 +91,9 @@ contains
         call air_henry_dT(dTf)
       else if(icp==WATER_COMP)then
         call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+        ! FIXME: Pl = Pref + f_PressionCapillaire, so Pc = -Pc
+        Pc = -Pc
+        DSPc = -DSPc
         call FluidThermodynamics_Psat(T, Psat, dTSat)
 
         f = Psat * dexp(Pc/(T*RZetal))
@@ -313,7 +316,7 @@ contains
     if(iph==GAS_PHASE)then
       f = 0.d0
     else if(iph == LIQUID_PHASE)then
-        Sg = 1.d0 - S(LIQUID_PHASE)
+        Sg = S(GAS_PHASE)
         Pc_cst = 2.d5
         Sg0 = 1.d0 - 1.d-2
         A = - Pc_cst * log(1.d0-Sg0) - Pc_cst/(1.d0-Sg0) * Sg0
@@ -324,7 +327,9 @@ contains
             f = Pc_cst * Sg / ( 1.d0 - Sg0 ) + A
             dSf(iph) = Pc_cst / ( 1.d0 - Sg0 )  ! wrt Sg
         endif
-        dSf(iph) = -dSf(iph) ! wrt Sl
+        ! FIXME: f_PressionCapillaire(LIQUID_PHASE) = - Pc 
+        f = -f   ! because P(LIQUID_PHASE) = Pref(=Pg) + f_PressionCapillaire(LIQUID_PHASE)
+        ! NO modification of sign of dSf because f = -f and dSf(iph) = -dSf(iph) wrt Sl = 1 - Sg
     endif
 
 

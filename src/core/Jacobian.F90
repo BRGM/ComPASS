@@ -38,7 +38,7 @@ module Jacobian
      divFreeFlowMolarFlowrateNode, SmFreeFlowMolarFlowrateNode, &
      FreeFlowMolarFlowrateCompNode, divFreeFlowMolarFlowrateCompNode, SmFreeFlowMolarFlowrateCompNode, &
      FreeFlowHmCompNode, divFreeFlowHmCompNode, SmFreeFlowHmCompNode, &
-     FreeFlowHTTemperatureNetRadiationNode, divFreeFlowHTTemperatureNetRadiationNode, SmFreeFlowHTTemperatureNetRadiationNode, &
+     divFreeFlowHTTemperatureNetRadiationNode, SmFreeFlowHTTemperatureNetRadiationNode, &
      FreeFlowMolarFlowrateEnthalpieNode, divFreeFlowMolarFlowrateEnthalpieNode, SmFreeFlowMolarFlowrateEnthalpieNode, &
      AtmEnthalpieNode, &
 #endif
@@ -3229,6 +3229,7 @@ contains
        do r=1, NbNodeCell
           numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k)+r)
 
+          ! P(mph) = PressionNode + PressionCap(mph)
           do j=1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
              divDarcyFlux_r(j,mph,r) = divDarcyFlux_r(j,mph,r) &
                   - TkLocal_Darcy(k)%pt(s,r) * divPressionNode(j,numr) &        ! a_{ks}^{s'} -P_s'

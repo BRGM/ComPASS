@@ -789,7 +789,7 @@ contains
        SmSpecificEnthalpy(NbComp, NbPhase)
     integer :: k, i, iph, icp
 
-  ! loop over each local element
+  ! loop over each local element, called only with nodes
   do k=1, NbIncLocal
      
      if(.not. IdFFNodeLocal(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
@@ -1703,7 +1703,7 @@ contains
   end subroutine LoisThermoHydro_Saturation_cv
 
 
-
+  ! In the sens P(iph) = Pref + f_PressionCapillaire(iph)
   subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, &
           NumIncTotalPrimCV, NumIncTotalSecondCV, &
           dXssurdXp, &
