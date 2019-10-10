@@ -158,12 +158,12 @@ contains
       ! ColNum, frac
       start = NbNodeLocal * NbCompThermique
       do i=1, NbFracLocal
+         ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc
 #ifndef NDEBUG
          if(i<=NbFracOwn.and.ipc/=commRank) then
             call CommonMPI_abort('inconsistent frac proc')
          end if
 #endif
-         ipc = NumFracbyProc%Val(i) ! this frac is in proc ipc
          ! NumFracbyProc%Num(i) is the num of this frac in the proc that it's own
          do s=1, NbCompThermique
             ColNum(start+(i-1)*NbCompThermique+s) = (NumFracbyProc%Num(i)-1) * NbCompThermique + s &
