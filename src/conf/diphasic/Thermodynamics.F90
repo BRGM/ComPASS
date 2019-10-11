@@ -299,6 +299,8 @@ contains
   !< rt is the rocktype identifier
   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
   !< S is all the saturations
+  ! FIXME: IF f_PressionCapillaire DEPENDS ON THE ROCKTYPE, 
+  ! MODIFY f_EnergieInterne AND f_DensiteMolaire
   subroutine f_PressionCapillaire(rt,iph,S,f,DSf)
 
     ! input
@@ -373,10 +375,6 @@ contains
 
     rt = 0
     call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-    if(Pc.ne.0.d0 .or. DSPc(iph).ne.0.d0) then
-      print*,"possible error in f_EnergieInterne (change rt)"
-      stop
-    endif
     Piph = P + Pc
 
     CALL f_Enthalpie(iph,P,T,C,S,enth,denthdP,denthdT,denthdC,denthdS) ! called with reference pressure
