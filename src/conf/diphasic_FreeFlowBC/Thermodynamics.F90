@@ -364,7 +364,6 @@ subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
     ! output
     real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    ! tmp 
     real(c_double) :: Piph, Pc, DSPc(NbPhase)
     real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp), dzetadS(NbPhase)
     real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp), denthdS(NbPhase)

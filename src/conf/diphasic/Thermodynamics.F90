@@ -366,8 +366,6 @@ contains
     ! output
     real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    ! CALL f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
-    ! tmp 
     real(c_double) :: Piph, Pc, DSPc(NbPhase)
     real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp), dzetadS(NbPhase)
     real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp), denthdS(NbPhase)
