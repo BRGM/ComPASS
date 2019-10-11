@@ -349,7 +349,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-  ! EnergieInterne
+  ! Internal energy = enthalpie - Pressure (here everything is volumic)
   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
   !< P is the Reference Pressure
   !< T is the Temperature
@@ -364,13 +364,37 @@ subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
     ! output
     real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    CALL f_Enthalpie(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
+    ! tmp 
+    real(c_double) :: Piph, Pc, DSPc(NbPhase)
+    real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp), dzetadS(NbPhase)
+    real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp), denthdS(NbPhase)
+    integer(c_int) :: rt(IndThermique+1)
+
+    rt = 0
+    call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
+    if(Pc.ne.0.d0 .or. DSPc(iph).ne.0.d0) then
+      print*,"possible error in f_EnergieInterne (change rt)"
+      stop
+    endif
+    Piph = P + Pc
+
+    CALL f_Enthalpie(iph,P,T,C,S,enth,denthdP,denthdT,denthdC,denthdS) ! called with reference pressure
+    CALL f_DensiteMolaire(iph,P,T,C,S,zeta,dzetadP,dzetadT,dzetadC,dzetadS) ! called with reference pressure
+    f = enth - Piph/zeta ! P is phase pressure
+    dPf = denthdP - 1.d0/zeta + Piph/zeta**2 * dzetadP
+    dTf = denthdT + Piph/zeta**2 * dzetadT
+    dCf = denthdC + Piph/zeta**2 * dzetadC
+    dSf = denthdS - DSPc/zeta + Piph/zeta**2 * dzetadS
 
   end subroutine f_EnergieInterne
 
 
   ! Enthalpie
+<<<<<<< HEAD
   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+=======
+  !< iph is an identificator for each phase: GAS_PHASE or LIQUID_PHASE
+>>>>>>> modif energie interne + test
   !< P is the Reference Pressure
   !< T is the Temperature
   !< C is the phase molar fractions
@@ -437,7 +461,11 @@ subroutine f_EnergieInterne(iph,P,T,C,S,f,dPf,dTf,dCf,dSf)
   end subroutine f_Enthalpie
 
   ! Specific Enthalpy (used in FreeFlow)
+<<<<<<< HEAD
   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+=======
+  !< iph is an identificator for each phase: GAS_PHASE or LIQUID_PHASE
+>>>>>>> modif energie interne + test
   !< P is the Reference Pressure
   !< T is the Temperature
   !< C is the phase molar fractions
