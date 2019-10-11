@@ -442,6 +442,11 @@ CALL GlobalMesh_SetRocktype( &
     allocate(CellTypes(NbCell))
     allocate(FaceTypes(NbFace))
 
+    ! Init all flags
+    NodeFlags = 0
+    CellFlags = 0
+    FaceFlags = 0
+
   end subroutine GlobalMesh_allocate_flags
 
   subroutine GlobalMesh_deallocate_flags()

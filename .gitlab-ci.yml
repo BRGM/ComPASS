@@ -106,6 +106,7 @@ parallel_test:
   script:
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel vertical_column_temperature.py
     - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel test_nodeflags_on_tetmesh.py
+    - docker run --rm -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel distribute_fracture_edge_info.py
 
 time_bulk_scripts:
   stage: test
@@ -145,4 +146,3 @@ tag_release:
   only:
     - tags
   when: on_success
-
