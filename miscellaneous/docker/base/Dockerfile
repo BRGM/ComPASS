@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-pytest-xdist \
     python3-pip \
     python3-wheel \
+    python3-matplotlib \
  && apt-get clean
 
 # The following is due to an output error with openmpi3 \

@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     vim  \
     cmake-curses-gui \
     python3-scipy \
-    python3-matplotlib \
     ipython3 \
  && apt-get clean
 
