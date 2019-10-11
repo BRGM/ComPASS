@@ -18,6 +18,7 @@ extern "C"
          XArrayWrapper<double>, XArrayWrapper<double>,
          XArrayWrapper<double>, XArrayWrapper<double>, XArrayWrapper<double>
     );
+    void Residu_update_accumulation();
     // FIXME: all fortran functions could be grouped in a single header file
     //        along with some python wrappers for direct binding cf. issue #75
     std::size_t number_of_nodes();
@@ -199,5 +200,7 @@ void add_Residu_wrappers(py::module& module)
         };
     }, py::keep_alive<0, 1>())
     ;
+
+    module.def("Residu_update_accumulation", &Residu_update_accumulation);
 
 }

@@ -642,3 +642,23 @@ def phase_index(phase):
 def context_index(context):
     assert type(context) is ComPASS.Context
     return int(context)-1 # Fortran indexing
+
+def total_accumulation(reset_states=True):
+    # FIXME: reset_states is needed because we also use this function in legacy newton convergence
+    if reset_states:
+        # Enforce Dirichlet values
+        kernel.DirichletContribution_update()
+        # Update local jacobian contributions (closure laws)
+        kernel.IncPrimSecd_update_secondary_dependencies() # FIXME: this is needed to update globals used in LoisThermoHydro_compute
+        kernel.LoisThermoHydro_compute() 
+        kernel.Residu_update_accumulation()
+    local = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+    for states in [
+        ComPASS.own_node_states(),
+        ComPASS.own_fracture_states(),
+        ComPASS.own_cell_states()
+    ]:
+        local+= np.linalg.norm(states.accumulation, 1, axis=0)
+    total = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+    mpi.communicator().Allreduce(local, total, mpi.MPI.SUM)
+    return total

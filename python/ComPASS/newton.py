@@ -103,9 +103,12 @@ class Newton:
     def init_iteration(self):
         kernel = ComPASS.kernel
         assert ComPASS.kernel
+        # Enforce Dirichlet values
         kernel.DirichletContribution_update()
+        # Update well state
         kernel.IncCVWells_PressureDrop()
 #        mpi.master_print('init iteration - compute thermo')
+        # Update local jacobian contributions (closure laws)
         kernel.IncPrimSecd_update_secondary_dependencies()
         kernel.LoisThermoHydro_compute()
 #        mpi.master_print('init iteration - compute fluxes')
@@ -198,5 +201,3 @@ class Newton:
         for i, r in enumerate(relative_residuals):
             mpi.master_print('%02d: %15.9e' % (i, r))
         raise IterationExhaustion(NewtonStatus(iteration, total_lsolver_iterations))
-    
-

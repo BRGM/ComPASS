@@ -45,17 +45,8 @@ class Legacy:
         return mpi.COMM_WORLD.allreduce(closure, mpi.SUM)
     
     def reset_conservation_reference(self, dt):
-        local = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
-        for states in [
-            ComPASS.own_node_states(),
-            ComPASS.own_fracture_states(),
-            ComPASS.own_cell_states()
-        ]:
-            local+= np.linalg.norm(states.accumulation, 1, axis=0)
-        local/= 1000. * dt
-        global_reference = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
-        mpi.COMM_WORLD.Allreduce(local, global_reference, mpi.SUM)
-        global_reference+= 1.
+        global_accumulation = ComPASS.total_accumulation(reset_states=False)
+        global_reference = global_accumulation / (1000. * dt) + 1.
         self.reference_pv = np.maximum(self.pv_norms(), global_reference)
     
     def reset_closure_reference(self):

@@ -98,10 +98,10 @@ module Residu
    public :: &
       Residu_reset_history, &
       Residu_compute, &
+      Residu_AccVol, &
       Residu_associate_pointers
 
    private :: &
-      Residu_AccVol, &
       Residu_add_flux_contributions, &
       Residu_reset_Dirichlet_nodes, &
       Residu_add_Neumann_contributions, &
@@ -302,7 +302,8 @@ contains
 
    end subroutine Residu_clear_absent_components_accumulation
 
-   subroutine Residu_AccVol
+   subroutine Residu_AccVol() &
+      bind(C, name="Residu_update_accumulation")
 
       integer :: k, m, mph, ic, icp
 
