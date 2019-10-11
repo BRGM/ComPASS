@@ -41,15 +41,20 @@ def tag_edges_families(families, verbose=False):
     EdgeTagger(families, verbose)()
 
 
+def fracture_edges_and_node_flags(verbose=False):
+    fracture_edges = ComPASS.find_fracture_edges(ComPASS.frac_face_id())
+    if verbose:
+        print(fracture_edges.shape[0], "fracture edges on proc", mpi.proc_rank)
+    flags = ComPASS.nodeflags()[fracture_edges]
+    return fracture_edges, flags
+
+
 def retrieve_fracture_edges_families(verbose=False):
     """Retrieve all fracture edges families among fracture edges.
        :param verbose: if True will output a summary of what has been retrieved
        :return: a dicitonnary of edges families with the key being the family id
     """
-    fracture_edges = ComPASS.find_fracture_edges(ComPASS.frac_face_id())
-    if verbose:
-        print(fracture_edges.shape[0], "fracture edges on proc", mpi.proc_rank)
-    flags = ComPASS.nodeflags()[fracture_edges]
+    fracture_edges, flags = fracture_edges_and_node_flags(verbose)
     result = {}
     for fi in range(31):
         mask = np.bitwise_and(flags, EdgeTagger.family_id(fi))
@@ -62,3 +67,30 @@ def retrieve_fracture_edges_families(verbose=False):
                     f" with {np.unique(fi_edges).shape[0]} nodes"
                     f" on proc {mpi.proc_rank}"
                 )
+
+
+def retrieve_fracture_edges_with_node_tag(node_tags, verbose=False):
+    """Retrieve all fracture edges sharing a node_atgs.
+       :param node_tags: a node tag or a list of node_tags
+       :param verbose: if True will output a summary of what has been retrieved
+       :return: a list of (possibly empty) list of edges in the same order as the node_tags parameter
+    """
+    try:
+        node_tags = list(node_tags)
+    except TypeError:
+        node_tags = [int(node_tags)]
+    fracture_edges, flags = fracture_edges_and_node_flags(verbose)
+    result = [
+        fracture_edges[(flags[:, 0] == tag) & (flags[:, 1] == tag)]
+        for tag in node_tags
+    ]
+    if verbose:
+        for tag, edges in zip(node_tags, result):
+            print(
+                f"{edges.shape[0]} edges found for node tag {tag}"
+                f" with {np.unique(edges).shape[0]} nodes"
+                f" on proc {mpi.proc_rank}"
+            )
+    if len(result) == 1:
+        return result[0]
+    return result
