@@ -20,7 +20,7 @@ RUN CC=mpicc cmake ../source/ComPASS && make -j `nproc`
 FROM registry.gitlab.inria.fr/charms/compass/run-environment:latest
 
 RUN mkdir -p /build/ComPASS
-COPY --from=build /source/ComPASS/python /build/ComPASS/python
-ENV PYTHONPATH=/build/ComPASS/python
+COPY --from=build /source/ComPASS/ComPASS /build/ComPASS/ComPASS
+ENV PYTHONPATH=/build/ComPASS
 
 WORKDIR /localfs

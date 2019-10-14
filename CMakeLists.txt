@@ -35,7 +35,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(COMPASS_CONFIG_DIRECTORY ${PROJECT_SOURCE_DIR}/config CACHE PATH "path to configuration scripts")
-set(COMPASS_PYTHON_DIRECTORY ${PROJECT_SOURCE_DIR}/python CACHE PATH "python package directory")
+set(COMPASS_PYTHON_DIRECTORY ${PROJECT_SOURCE_DIR}/ComPASS CACHE PATH "python package directory")
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(${THIRD_PARTY_DIR})
@@ -137,4 +137,4 @@ add_subdirectory(src)
 
 install(CODE "message(\"Installing ComPASS python environment.\")")
 # make module available through user site packages
-install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${COMPASS_PYTHON_DIRECTORY}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${PROJECT_SOURCE_DIR}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
