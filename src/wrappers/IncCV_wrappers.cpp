@@ -83,6 +83,7 @@ extern "C"
     void set_fracture_edge_with_neumann_contribution(const int*, const NeumannBC&);
     void set_fracture_edges_with_neumann_contribution(int, const int*, const NeumannBC&);
     void set_fracture_edge_neumann_contributions(int, int*, NeumannBC*);
+    void clear_all_neumann_contributions();
 }
 
 #include "IncCV_wrappers.h"
@@ -188,6 +189,8 @@ void add_IncCV_wrappers(py::module& module)
             raw_edges.shape(0), raw_edges.data(0, 0), condition
         );
     });
+
+    module.def("clear_all_neumann_contributions", &clear_all_neumann_contributions);
 
     //PYBIND11_NUMPY_DTYPE(NeumannBC, molar_flux, heat_flux);
     //module.def("neumann_conditions", [](std::size_t n) {

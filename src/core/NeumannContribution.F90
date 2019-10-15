@@ -47,7 +47,8 @@
 
     contains
 
-       subroutine NeumannContribution_clear
+       subroutine NeumannContribution_clear() &
+         bind(C, name="clear_all_neumann_contributions")
 
           integer :: k
 
