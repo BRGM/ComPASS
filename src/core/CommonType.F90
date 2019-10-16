@@ -107,7 +107,7 @@ module CommonType
      character(c_char) :: Proc  !< "o"/"g": own/ghost
      character(c_char) :: Frac  !< "y"/"n": node in fracture/not in fracture
      character(c_char) :: P     !< "d"/"n"/"i": dirichlet/newmann/interior for the Pressure
-     character(c_char) :: T     !< "d"/"n"/"i": dirichlet/newmann/interior for the Temperature
+     character(c_char) :: T     !< "d"/"n"/"i"/"o": dirichlet/newmann/interior/outflow for the Temperature
   end type Type_IdNode
 
   !> Array 1d type_IdNode
@@ -139,6 +139,10 @@ module CommonType
     interface last_of_all
       module procedure CSR_last_of_all
     end interface last_of_all
+
+    interface associate
+      module procedure CSR_associate_row
+    end interface associate
 
     interface row_view
       module procedure CSR_row_view
@@ -355,10 +359,10 @@ contains
   
   end function CSR_last_of_all
 
-  function CSR_row_view(obj, i) result(p)
+  subroutine CSR_associate_row(obj, i, p)
     type(CSR), target, intent(in) :: obj
     integer(c_int), intent(in) :: i
-    integer(c_int), pointer, dimension(:) :: p
+    integer(c_int), pointer, dimension(:), intent(out) :: p
   
 #ifndef NDEBUG
     if(i<1.or.i>obj%Nb) &
@@ -368,6 +372,15 @@ contains
 #endif
     
     p=>obj%Num(obj%Pt(i)+1:obj%Pt(i+1))
+  
+  end subroutine CSR_associate_row
+
+  function CSR_row_view(obj, i) result(p)
+    type(CSR), target, intent(in) :: obj
+    integer(c_int), intent(in) :: i
+    integer(c_int), pointer, dimension(:) :: p
+
+    call CSR_associate_row(obj, i, p)
   
   end function CSR_row_view
   
