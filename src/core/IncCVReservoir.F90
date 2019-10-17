@@ -44,10 +44,8 @@
     !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
     ! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
     ! to have the same structures in C++ and Python.
-    TYPE TYPE_IncCVReservoir
-
+    type, bind(C) :: TYPE_IncCVReservoir
         integer(c_int) :: ic !< context: index of the set of present phase(s)
-
         real(c_double) :: & !< values of Inc
         Pression, & !< Reference Pressure of the element
         Temperature, & !< Temperature of the element
