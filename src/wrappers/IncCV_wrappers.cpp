@@ -84,6 +84,9 @@ extern "C"
     void set_fracture_edges_with_neumann_contribution(int, const int*, const NeumannBC&);
     void set_fracture_edge_neumann_contributions(int, int*, NeumannBC*);
     void clear_all_neumann_contributions();
+#ifndef NDEBUG
+    void dump_incv_info();
+#endif
 }
 
 #include "IncCV_wrappers.h"
@@ -206,5 +209,9 @@ void add_IncCV_wrappers(py::module& module)
 
 	add_array_wrapper(module, "injection_whp", retrieve_injection_whp);
 	add_array_wrapper(module, "production_whp", retrieve_production_whp);
+
+#ifndef NDEBUG
+    module.def("dump_incv_info", &dump_incv_info);
+#endif
 
 }

@@ -8,7 +8,7 @@
 
     module IncCVReservoir
 
-    use iso_c_binding, only: c_int, c_double
+    use iso_c_binding, only: c_int, c_double, c_size_t
     use mpi, only: MPI_DOUBLE, MPI_MIN
     use mpi !, only: MPI_Allreduce ! FIXME: otherwise MPI_Allreduce not found on some platform
 
@@ -88,6 +88,41 @@ private :: &
         IncCVReservoir_NewtonIncrement_reservoir
 
     contains
+
+#ifndef NDEBUG
+
+subroutine dump_incv_info() &
+    bind(C, name="dump_incv_info")
+    integer(c_size_t) :: k, n
+    type(SubArrayInfo) :: info
+    
+    call MeshSchema_subarrays_info(info)
+    
+    n = info%nb%nodes + info%nb%fractures + info%nb%cells
+    write(*,*) info%nb%nodes, "nodes"
+    write(*,*) info%nb%fractures, "fractures"
+    write(*,*) info%nb%cells, "cells"
+    write(*,*) "-->", n, "dofs"
+    write(*,*) "%% - IncAll"
+    do k=1, n
+        write(*,*) "context", k, ":", IncAll(k)%ic
+    end do
+    write(*,*) "%% - IncNode"
+    do k=1, size(IncNode)
+        write(*,*) "context node", k, ":", IncNode(k)%ic
+    end do
+    write(*,*) "%% - IncCell"
+    do k=1, size(IncCell)
+        write(*,*) "context cell", k, ":", IncCell(k)%ic
+    end do
+    write(*,*) "%% - IncFrac"
+    do k=1, size(IncFrac)
+        write(*,*) "context fracture", k, ":", IncFrac(k)%ic
+    end do
+    
+   end subroutine dump_incv_info
+
+#endif
 
     !> \brief Define operator = between two TYPE_IncCV:  inc2=inc1
     subroutine assign_type_inccv(inc2, inc1)
