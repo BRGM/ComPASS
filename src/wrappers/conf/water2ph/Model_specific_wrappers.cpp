@@ -13,6 +13,10 @@ static_assert(ComPASS_NUMBER_OF_CONTEXTS==3, "Wrong number of contexts.");
 constexpr int GAS_PHASE = 0;   // FIXME: cpp starts at 0 where fortran at 1
 constexpr int LIQUID_PHASE = 1;
 
+enum struct Component {
+    single_component = ComPASS_SINGLE_COMPONENT
+};
+
 enum struct Phase {
     gas = ComPASS_GAS_PHASE,
     liquid = ComPASS_LIQUID_PHASE
@@ -143,6 +147,10 @@ void add_specific_model_wrappers(py::module& module)
     module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
     module.def("liquid_dynamic_viscosity", py::vectorize(liquid_dynamic_viscosity));
     
+    py::enum_<Component>(module, "Component")
+        .value("single_component", Component::single_component)
+    ;
+
     py::enum_<Context>(module, "Context")
         .value("gas", Context::gas)
         .value("liquid", Context::liquid)
