@@ -133,10 +133,10 @@ module Jacobian
   integer, allocatable, dimension(:), private :: csrK , csrSR
 
   public :: &
-       Jacobian_StrucJacBigA,  & ! non-zero structure of Jacobian before Schur
-       Jacobian_StrucJacA,     & ! non-zero structure of Jacobian after Schur
-       Jacobian_JacBigA_BigSm, & ! Jacobian and second member
-       Jacobian_Schur,       & ! Schur complement
+       Jacobian_StrucJacBigA,  & !< non-zero structure of Jacobian before Schur
+       Jacobian_StrucJacA,     & !< non-zero structure of Jacobian after Schur
+       Jacobian_JacBigA_BigSm, & !< Jacobian and second member
+       Jacobian_Schur,       & !< Schur complement
        Jacobian_free
 
   private :: &
@@ -245,7 +245,7 @@ contains
 
     end subroutine dump_jacobian
 
-  ! compute Jacobian
+  !> \brief Compute Jacobian and rhs
   subroutine Jacobian_ComputeJacSm(Delta_t)  &
         bind(C, name="Jacobian_ComputeJacSm")
 
@@ -277,19 +277,20 @@ contains
 
   end subroutine Jacobian_ComputeJacSm
 
-
+  !> \brief Fill BigSm with the residual values     
+  !!
+  !!   If the node is dir, we suppose that the residu is 0,
+  !!     in other words, we set its second member as 0.
+  !!
+  !!   The Jacobian corresponding to dir nodes are Id matrix,
+  !!     setting bigSm(dirichlet)=0 or not has no influence mathematically,
+  !!     however, it could have influence for linear solver
+  !!     since the values could be very large 10**7.
+  !!     It is observed when debugging!!!
   subroutine Jacobian_JacBigA_BigSm_init_from_residual()
 
     integer :: j, start
 
-    !   If the node is dir, we suppose that the residu is 0,
-    !     in other words, we set its second member as 0.
-
-    !   The Jacobian corresponding to dir nodes are Id matrix,
-    !     setting bigSm(dirichlet)=0 or not has no influence mathematically,
-    !     however, it could have influence for linear solver
-    !     since the values could be very large 10**7.
-    !     It is observed when debugging!!!
 
     do j=1, NbNodeOwn_Ncpus(commRank+1)
        if(IdNodeLocal(j)%P=="d") then
@@ -325,39 +326,39 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm_init_from_residual
 
-  ! fill Jacobian and second member before Schur: main subroutine
+  !> \brief fill Jacobian and second member before Schur: main subroutine
   subroutine Jacobian_JacBigA_BigSm(Delta_t)
 
     double precision, intent(in) :: Delta_t
 
     integer :: j, start, s, i, nz
 
-    ! 1. init second membre
+    !> 1. init second membre
     call Jacobian_JacBigA_BigSm_init_from_residual
     
     JacBigA%Val(:,:,:) = 0.d0
 
-    ! ! 2. div prim and Sm for term n_k(X_j^n)
+    !> 2. div prim and Sm for term n_k(X_j^n)
     call Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
 
-    ! 3.1 loop of cell
+    !> 3.1 loop of cell
     call Jacobian_JacBigA_BigSm_cell
 
-    ! ! 3.2 loop of frac
+    !> 3.2 loop of frac
     call Jacobian_JacBigA_BigSm_frac
 
-    ! ! 3.3 loop of well inj
+    !> 3.3 loop of well inj
     call Jacobian_JacBigA_BigSm_wellinj
 
-    ! ! 3.4 loop of well prod
+    !> 3.4 loop of well prod
     call Jacobian_JacBigA_BigSm_wellprod
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    ! ! 3.5 loop of FreeFlow Nodes
+    !> 3.5 loop of FreeFlow Nodes
     call Jacobian_JacBigA_BigSm_FF_node
 #endif
 
-    ! 4. Dirichlet in Jacobian
+    !> 4. Dirichlet in Jacobian
     do s=1, NbNodeOwn_Ncpus(commRank+1)
 
        ! Darcy dir
@@ -446,7 +447,7 @@ contains
   end subroutine Jacobian_JacBigA_BigSm
 
 
-  ! sub-subroutien of Jacobian_JacBigA_BigSm for term n_k(X_j^n)
+  !> \brief Sub-subroutine of Jacobian_JacBigA_BigSm for term n_k(X_j^n)
   subroutine Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
 
     double precision, intent(in) :: Delta_t
@@ -675,25 +676,26 @@ contains
   end subroutine Jacobian_JacBigA_BigSm_accmolaire
 
 
-  ! loop of cell, index is k
-  ! {
-  !   1. loop of nodes s in cell k
-  !      {
-  !        1.1 div( B * DarcyFlux_{k,s}), k is cell, s is node;
-  !               where B is DensiteMolaire*Kr/Viso or DensiteMolaire/Viso*Enthalpie
-  !            this term has three contributions to Jacobian:
-  !               A_kr (k is row cell, r is col cell k)
-  !               A_kr (k is row cell, r is col node s)
-  !               A_kr (k is row cell, r is col nodes/fracs in cell k)
-  !        1.2 A_sk, k is cell, s is node own;
-  !      }
-  !
-  !   2. loop of fracs in cell k
-  !      {
-  !        A_ks, k is cell, s is frac;
-  !        A_sk, k is cell, s is frac own;
-  !      }
-  ! }
+  !> \brief Loop over the cells and node by cell to compute the Jacobian                         <br>
+  !! loop of cell, index is k                                                                    <br>
+  !! {                                                                                           <br>
+  !!   1. loop of nodes s in cell k                                                             <br>
+  !!      {                                                                                         <br>
+  !!        1.1 div( B * DarcyFlux_{k,s}), k is cell, s is node;                                  <br>
+  !!               where B is DensiteMolaire*Kr/Viso or DensiteMolaire/Viso*Enthalpie             <br>
+  !!            this term has three contributions to Jacobian:                                      <br>
+  !!               A_kr (k is row cell, r is col cell k)                                              <br>
+  !!               A_kr (k is row cell, r is col node s)                                              <br>
+  !!               A_kr (k is row cell, r is col nodes/fracs in cell k)                                <br>
+  !!        1.2 A_sk, k is cell, s is node own;                                                            <br>
+  !!      }                                                                                            <br>
+  !!
+  !!   2. loop of fracs in cell k                                                                        <br>
+  !!      {                                                                                               <br>
+  !!        A_ks, k is cell, s is frac;                                                                  <br>
+  !!        A_sk, k is cell, s is frac own;                                                                  <br>
+  !!      }                                                                                                  <br>
+  !! }
   subroutine Jacobian_JacBigA_BigSm_cell
 
     ! div prims and Sm from term div(DensiteMolaire*Kr/Visco*Comp)*FluxDarcy

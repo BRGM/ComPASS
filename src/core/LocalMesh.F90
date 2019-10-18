@@ -324,6 +324,7 @@ module LocalMesh
 
 contains
 
+  !> \brief Main soubroutine of the file
   subroutine LocalMesh_Make(ProcbyCell) 
 
     integer, dimension(:), intent(in) :: ProcbyCell
@@ -331,6 +332,7 @@ contains
     ! tmp value
     integer :: i
 
+    !> Allocate LocalMesh entities
     ! local mesh info res(own+ghost)
     allocate(NbCellResS_Ncpus(Ncpus))
     allocate(NbFaceResS_Ncpus(Ncpus))
@@ -445,7 +447,7 @@ contains
 
     do i=0, Ncpus-1
 
-       ! Mesh and connectivities in num (global)
+       !> Set Mesh and connectivities in num (global)
        call LocalMesh_CellbyProc(i, ProcbyCell) ! CellbyProc(ip1)
        call LocalMesh_FacebyCellRes(i)    ! FacebyCellRes_Ncpus(ip1)
        call LocalMesh_FacebyProc(i, ProcbyCell) ! FacebyProc(ip1)
@@ -454,7 +456,7 @@ contains
        call LocalMesh_NodebyFaceRes(i)    ! NodebyFaceRes_Ncpus(ip1)
        call LocalMesh_CellbyFaceRes(i)    ! CellbyFaceRes_Ncpus(ip1)
 
-       ! Mesh and connectivites in num (local)
+       !> Set Mesh and connectivites in num (local)
 
        ! Wells
        call LocalMesh_WellbyProc(i)     ! WellInjbyProc(ip1)   (and WellProd)
@@ -523,7 +525,7 @@ contains
        call LocalMesh_FaceToFrac(i)       ! FaceToFracLocal_Ncpus(ip1)
        call LocalMesh_FracToFace(i)       ! FracToFaceLocal_Ncpus(ip1)
 
-       ! Free mesh and connectivities in num (global) of this proc
+       !> Free mesh and connectivities in num (global) of this proc
        call CommonType_deallocCSR(FacebyCellRes_Ncpus(i+1))
        call CommonType_deallocCSR(NodebyCellRes_Ncpus(i+1))
        call CommonType_deallocCSR(CellbyFaceRes_Ncpus(i+1))
@@ -533,7 +535,7 @@ contains
 
     end do
 
-    ! Free mesh and connectivities in num (global)
+    !> Free mesh and connectivities in num (global)
     deallocate(FacebyCellRes_Ncpus)
     deallocate(NodebyCellRes_Ncpus)
     deallocate(CellbyFaceRes_Ncpus)
@@ -615,8 +617,8 @@ contains
   !   NbCellRes(ip), NbCellOwn(ip)
   ! Use:
   !   CellbyCell, ProcbyCell
-  ! Stores own+ghost cells of proc ip in order:
-  !   | own cells | ghost cells (own for proc i) | ghost cells (own for proc j) | ...
+  !> \brief Stores own+ghost cells of proc ip in order: 
+  !!   | own cells | ghost cells (own for proc i) | ghost cells (own for proc j) | ...
   subroutine LocalMesh_CellbyProc(ip, ProcbyCell) 
 
     integer, dimension(:), intent(in) :: ProcbyCell
@@ -740,7 +742,7 @@ contains
   !  FacebyCellRes_Ncpus(ip)
   ! Use:
   !  CellbyProc, FacebyCell
-  ! Stores the global number of faces sourrounding each cell (own and ghost) of proc ip
+  !> \brief Stores the global number of faces sourrounding each cell (own and ghost) of proc ip
   subroutine LocalMesh_FacebyCellRes(ip)
 
     integer, intent(in) :: ip
@@ -786,7 +788,7 @@ contains
   !  NodebyCellRes_Ncpus(ip)
   ! Use:
   !  CellbyProc, NodebyCell
-  ! Stores the global number of nodes sourrounding each cell (own and ghost) of proc ip
+  !> \brief Stores the global number of nodes sourrounding each cell (own and ghost) of proc ip
   subroutine LocalMesh_NodebyCellRes(ip)
 
     integer, intent(in) :: ip
@@ -836,8 +838,8 @@ contains
   !  NbFaceOwn(ip), NbFaceRes(ip)
   ! Use:
   !  CellbyProc(ip1),FacebyCellRes_Ncpus(ip), ProcbyCell
-  ! Stores own+ghost faces of proc ip in order:
-  !   | own faces | ghost faces (own for proc i) | ghost faces (own for proc j>i) | ...
+  !> \brief Stores own+ghost faces of proc ip in order: 
+  !!   | own faces | ghost faces (own for proc i) | ghost faces (own for proc j>i) | ...
   subroutine LocalMesh_FacebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
@@ -1062,10 +1064,11 @@ contains
   !   CSR with  | .... own .... | ghost from proc i | ghost from proc j (i<j) |  ... |
   ! Use:
   !   NodebyCellRes, ProcbyCell
-  ! the nodes Own+Ghost are the nodes of the cells Own+Ghost (contained in CellbyProc)
-  !                                       PLUS the ghost cells concerning the wells
-  ! if one node of the well is contained by the proc (node own or ghost) then
-  ! every node of the well must be own or ghost for this proc
+  !> \brief Build the CSR with  | .... own .... | ghost from proc i | ghost from proc j (i<j) |  ... |
+  !! The nodes Own+Ghost are the nodes of the cells Own+Ghost (contained in CellbyProc)
+  !!                                       PLUS the ghost cells concerning the wells             <br>
+  !! if one node of the well is contained by the proc (node own or ghost) then
+  !! every node of the well must be own or ghost for this proc
   subroutine LocalMesh_NodebyProc(ip, ProcbyCell)
 
     integer, intent(in) :: ip
@@ -1272,12 +1275,12 @@ contains
   !  DataWellRes_Ncpus
   ! Use:
   !  NodebyProc, CellbyProc, NodebyWell, DataWell
-  ! Stores the global number of the wells (own or ghost) of proc ip in a CSR:
-  !   The number of rows is the same as that of NodebyProc.
-  !   If there is no well in proc i, %Pt(i+1)=%Pt(i).
-  !  | wells own | wells ghost (which are own for proc i) | wells ghost (which are own for proc j>i) | ...
-  ! A well is own if the head Node of the well is own
-  ! Carreful if (at least) two wells share a node
+  !> \brief Stores the global number of the wells (own or ghost) of proc ip in a CSR:                   <br>
+  !!   The number of rows is the same as that of NodebyProc.                  <br>
+  !!   If there is no well in proc i, %Pt(i+1)=%Pt(i).                  <br>
+  !!  | wells own | wells ghost (which are own for proc i) | wells ghost (which are own for proc j>i) | ...                  <br>
+  !! A well is own if the head Node of the well is own                  <br>
+  !! Carreful if (at least) two wells share a node
   subroutine LocalMesh_WellbyProc(ip)
 
     integer, intent(in) :: ip
@@ -1504,7 +1507,7 @@ contains
 
   end subroutine LocalMesh_Flags
 
-
+  !> \brief Initialize Rocktypes of the local from the info of the global mesh
   subroutine LocalMesh_Rocktype(ip)
     integer, intent(in) :: ip
     integer :: k, n, ip1
@@ -1568,9 +1571,9 @@ contains
   !  NodebyWellRes_Ncpus(ip1)
   ! Use:
   !  WellbyProc, NodebyWell
-  ! Nodes of local wells (global number)
-  ! 1 local well = 1 line in NodebyWellRes_Ncpus (CSR) in order:
-  !   | nodes of well own 1 | nodes of well own 2 | ... | nodes of well ghost 1 | nodes of well ghost 2 | ...
+  !> \brief Nodes of local wells (global number)                  <br>
+  !! 1 local well = 1 line in NodebyWellRes_Ncpus (CSR) in order:                  <br>
+  !!   | nodes of well own 1 | nodes of well own 2 | ... | nodes of well ghost 1 | nodes of well ghost 2 | ...
   subroutine LocalMesh_NodebyWellRes(ip)
 
     integer, intent(in) :: ip
@@ -1641,7 +1644,7 @@ contains
   ! Use:
   !  CellbyProc, FacebyProc, NodebyProc
   ! Size NbCell/NbFace/NbNode
-  !   Contains the local number of Cell/Face/Node given the global number for proc ip
+  !> \brief   Contains the local number of Cell/Face/Node given the global number for proc ip
   subroutine LocalMesh_GlobalToLocal(ip)
 
     integer, intent(in) :: ip
@@ -1680,7 +1683,7 @@ contains
   !  NodebyWellLocal_Ncpus(ip))
   ! Use:
   !  NodebyWellRes_Ncpus(ip), localbyGlobalNode
-  ! Nodes (local number) of wells (own+ghost) of proc ip
+  !> \brief Nodes (local number) of wells (own+ghost) of proc ip
   subroutine LocalMesh_NodebyWellLocal(ip)
 
     integer, intent(in) :: ip
@@ -1723,7 +1726,7 @@ contains
   !  FacebyCellLocal_Ncpus(ip)
   ! Use:
   !  FacebyCellRes_Ncpus(ip), localbyGlobalCell
-  ! Faces (local number) of cells (own+ghost) of proc ip
+  !> \brief Faces (local number) of cells (own+ghost) of proc ip
   subroutine LocalMesh_FacebyCellLocal(ip)
 
     integer, intent(in) :: ip
@@ -1752,7 +1755,7 @@ contains
   !  NodebyCellLocal_Ncpus(ip)
   ! Use:
   !  NodebyCellRes_Ncpus(ip), localbyGlobalNode
-  ! Nodes (local number) of cells (own+ghost) of proc ip
+  !> \brief Nodes (local number) of cells (own+ghost) of proc ip
   subroutine LocalMesh_NodebyCellLocal(ip)
 
     integer, intent(in) :: ip
@@ -1780,7 +1783,7 @@ contains
   !  NodebyFaceLocal_Ncpus(ip)
   ! Use:
   !  NodebyFaceRes_Ncpus(ip), localbyGlobalNode
-  ! Nodes (local number) of faces (own+ghost) of proc ip
+  !> \brief Nodes (local number) of faces (own+ghost) of proc ip
   subroutine LocalMesh_NodebyFaceLocal(ip)
 
     integer, intent(in) :: ip
@@ -1836,7 +1839,7 @@ contains
   !  IdCellRes_Ncpus(ip)
   ! Use:
   !  IdCell, CellbyProc
-  ! Id Cell of cells own+ghost of proc ip stored in %Val
+  !> \brief Id Cell of cells own+ghost of proc ip stored in %Val
   subroutine LocalMesh_IdCellRes(ip)
 
     integer, intent(in) :: ip
@@ -1857,7 +1860,7 @@ contains
   !  IdFaceRes_Ncpus(ip)
   ! Use:
   !  IdFace, FacebyProc
-  ! Id Face of faces own+ghost of proc ip stored in %Val
+  !> \brief Id Face of faces own+ghost of proc ip stored in %Val
   subroutine LocalMesh_IdFaceRes(ip)
 
     integer, intent(in) :: ip
@@ -1877,7 +1880,7 @@ contains
   !  IdNodeRes_Ncpus(ip)
   ! Use:
   !  IdNode, NodebyProc
-  ! Id Node of nodes own+ghost of proc ip stored in %Val
+  !> \brief Id Node of nodes own+ghost of proc ip stored in %Val
   subroutine LocalMesh_IdNodeRes(ip)
 
     integer, intent(in) :: ip
@@ -2055,9 +2058,9 @@ contains
   !  NodeDatabyWellLocal_Ncpus(ip)
   ! Use:
   !  WellbyProc, NodebyWellLocal_Ncpus, NodebyWell, NodeDatabyWell
-  ! Contains the local data for the wells (own+ghost) of proc ip
-  ! in particular %Parent contains the local number of the node Parent
-  !               %Parent remains -1 if head node of the well
+  !> \brief Contains the local data for the wells (own+ghost) of proc ip 
+  !! in particular %Parent contains the local number of the node Parent                   <br>
+  !!               %Parent remains -1 if head node of the well
   subroutine LocalMesh_NodeDatabyWellLocal(ip)
 
     integer, intent(in) :: ip
@@ -2159,10 +2162,10 @@ contains
   ! Use:
   !   NodebyWellLocal_Ncpus(ip),
   !   NbNodeOwnS_Ncpus(ip), NbWellLocal_Ncpus(ip)
-  ! Fill WellbyNodeOwn_Ncpus(ip)
-  !     with the local number of well for each own node (local number) of proc ip.
-  !     The number of rows is the number own node of proc i.
-  !     If there is no well in own node i, juste take %Pt(i+1)=%Pt(i).
+  !> \brief Fill WellbyNodeOwn_Ncpus(ip)
+  !!     with the local number of well for each own node (local number) of proc ip.
+  !!     The number of rows is the number own node of proc i.
+  !!     If there is no well in own node i, juste take %Pt(i+1)=%Pt(i).
   subroutine LocalMesh_WellbyNodeOwn(ip)
 
     integer, intent(in) :: ip
@@ -2255,7 +2258,7 @@ contains
   ! Use:
   !   NodebyCellLocal_Ncpus(ip)
   !   NbNodeOwnS_Ncpus(ip), NbCellLocal_Ncpus(ip)
-  ! Store the local number of cells surrounding own nodes of proc ip
+  !> \brief Store the local number of cells surrounding own nodes of proc ip
   subroutine LocalMesh_CellbyNodeOwn(ip)
 
     integer, intent(in) :: ip
@@ -2310,9 +2313,9 @@ contains
   !  NodebyNodeOwn(ip)
   ! Use:
   !  NodebyCellLocal_Ncpus(ip), CellbyNodeOwn_Ncpus(ip)
-  ! Store the neighbour nodes (local) of own nodes
-  !    (we know neighbour nodes are all own or ghost for this proc)
-  !    CAREFUL: the nodes have no particulary order (own nodes are not at the beginning !)
+  !> \brief Store the neighbour nodes (local) of own nodes  
+  !!    (we know neighbour nodes are all own or ghost for this proc)  
+  !!    CAREFUL: the nodes have no particulary order (own nodes are not at the beginning !)
   subroutine LocalMesh_NodebyNodeOwn(ip)
 
     integer, intent(in) :: ip
@@ -2408,11 +2411,11 @@ contains
   !  FracbyProc_Ncpus(ip)
   ! Use:
   !  FacebyProc_Ncpus(ip),IdFace
-  ! Compress FacebyProc_Ncpus(ip) using IdFace
-  ! FracbyProc is considered as a subset of FacebyProc, csr.
-  !   The number of rows are same as that of FacebyProc.
-  !   If there is no frac in row i, juste take %Pt(i+1)=%Pt(i).
-  !   It's not same with *byProc, no empty row in, *=cell/face/node,
+  !> \brief Compress FacebyProc_Ncpus(ip) using IdFace 
+  !! FracbyProc is considered as a subset of FacebyProc, csr. 
+  !!   The number of rows are same as that of FacebyProc. 
+  !!   If there is no frac in row i, juste take %Pt(i+1)=%Pt(i). 
+  !!   It's not same with *byProc, no empty row in, *=cell/face/node
   subroutine LocalMesh_FracbyProc(ip)
 
     integer, intent(in) :: ip
@@ -2473,7 +2476,7 @@ contains
   !  NodebyFracOwn_Npus(ip)
   ! Use:
   !  CellbyFracOwn_Ncpus(ip), NodebyCellLocal
-  ! Store the neighbour cells (local) of own frac
+  !> \brief Store the neighbour cells (local) of own frac
   subroutine LocalMesh_NodebyFracOwn(ip)
 
     ! Calcule les noeuds voisin de chaque frac own (on sait qu'ils sont tous own ou ghost au proc)
@@ -2844,9 +2847,9 @@ contains
   !   FracbyNodeOwn_Ncpus
   ! Use:
   !   FacebyNodeOwn_Ncpus, IdFaceRes_Ncpus(ip)
-  ! Contains the local number of frac for each own node (local number) of proc ip.
-  !     The number of rows is the number of own nodes of proc i.
-  !     If there is no frac in own node i, juste take %Pt(i+1)=%Pt(i).
+  !> \brief Contains the local number of frac for each own node (local number) of proc ip.
+  !!     The number of rows is the number of own nodes of proc i.
+  !!     If there is no frac in own node i, juste take %Pt(i+1)=%Pt(i).
   subroutine LocalMesh_FracbyNodeOwn(ip)
 
     integer, intent(in) :: ip
@@ -2900,8 +2903,8 @@ contains
   !  FracbyFracOwn_Ncpus(ip1)
   ! Use:
   !  CellbyFracOwn_Ncpus(ip1), FracbyCellLocal_Ncpus(ip1)
-  ! Store the neighbour frac (local number) of own frac
-  !     The number of rows is the number of own frac of proc i.
+  !> \brief Store the neighbour frac (local number) of own frac.
+  !!     The number of rows is the number of own frac of proc i.
   subroutine LocalMesh_FracbyFracOwn(ip)
 
     integer, intent(in) :: ip
@@ -3046,7 +3049,7 @@ contains
   ! Use:
   !  NodebyProc(ip), NumNodeGtoL
   !  NbNodeRes/OwnS_Ncpus(ip)
-  ! NumNodebyProc_Ncpus contains the node num (local) in the proc that this node is own
+  !> \brief NumNodebyProc_Ncpus contains the node num (local) in the proc that this node is own
   !                    %Val : in which proc
   subroutine LocalMesh_NumNodebyProc(ip)
 
@@ -3098,7 +3101,7 @@ contains
   ! Use:
   !  FracbyProc(ip), NumFracGtoL
   !  NbFracRes/OwnS_Ncpus(ip)
-  ! Contains num of frac (local) in the proc that this frac is own
+  !> \brief Contains num of frac (local) in the proc that this frac is own
   subroutine LocalMesh_NumFracbyProc(ip)
 
     integer, intent(in) :: ip
@@ -3144,8 +3147,8 @@ contains
   ! Use:
   !  WellbyProc(ip), NumWellGtoL
   !  NbWellRes/OwnS_Ncpus(ip)
-  ! Contains num of well (local) in the proc that this well is own
-  !                    %Val : in which proc
+  !> \brief Contains num of well (local) in the proc that this well is own          <br>
+  !!                    %Val : in which proc
   subroutine LocalMesh_NumWellbyProc(ip)
 
     integer, intent(in) :: ip
@@ -3232,9 +3235,9 @@ contains
   !  NumNodeGtoL
   ! Use:
   !  NodebyProc(:), NbNodeOwnS_Ncpus(:)
-  ! NumNodeGtoL is a vector used to make NumNodebyProc from NodebyProc
-  ! Size is NbNode
-  ! NumNodeGtoL(i) is the num (local) of node i in the proc that i is own
+  !> \brief NumNodeGtoL is a vector used to make NumNodebyProc from NodebyProc, 
+  !! Size is NbNode, 
+  !! NumNodeGtoL(i) is the num (local) of node i in the proc that i is own
   subroutine LocalMesh_NumNodeGtoL
 
     integer :: p, j
@@ -3254,9 +3257,9 @@ contains
   !  NumFracGtoL
   ! Use:
   !  FracbyProc(:), NbFracOwnS_Ncpus(:)
-  ! NumFracGtoL is a vector used to make NumFracbyProc from FracbyProc
-  ! Size is NbFace
-  ! NumFracGtoL(i) is the num (local) of frac i in the proc that i is own
+  !> \brief NumFracGtoL is a vector used to make NumFracbyProc from FracbyProc, 
+  !! Size is NbFace, 
+  !! NumFracGtoL(i) is the num (local) of frac i in the proc that i is own
   subroutine LocalMesh_NumFracGtoL
 
     integer :: p, j
@@ -3276,9 +3279,9 @@ contains
   !  NumWellGtoL
   ! Use:
   !  WellbyProc(:), NbWellOwnS_Ncpus(:)
-  ! NumWellGtoL is a vector used to make NumWellbyProc from WellbyProc
-  ! Size is NbWell
-  ! NumWellGtoL(i) is the num (local) of Well i in the proc that i is own
+  !> \brief NumWellGtoL is a vector used to make NumWellbyProc from WellbyProc, 
+  !! Size is NbWell, 
+  !! NumWellGtoL(i) is the num (local) of Well i in the proc that i is own
   subroutine LocalMesh_NumWellGtoL
 
     integer :: p, j

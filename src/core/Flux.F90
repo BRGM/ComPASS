@@ -32,13 +32,13 @@ module Flux
 
   ! flux Darcy V_{k,s}^alpha, k is cell/frac
   double precision, allocatable, dimension(:,:,:), public :: &
-      FluxDarcyKI, & ! Darcy flux from cell K to dof I (may be node or frac)
-      FluxDarcyFI    ! Darcy flux from frac F to dof I (may be cell or frac)
+      FluxDarcyKI, & !< Darcy flux from cell K to dof I (may be node or frac)
+      FluxDarcyFI    !< Darcy flux from frac F to dof I (may be cell or frac)
 
   ! flux Fourier
   double precision, allocatable, dimension(:,:), protected :: &
-      FluxFourierKI, &  ! Fourier flux from cell K to dof I (may be node or frac)
-      FluxFourierFI     ! Fourier flux from frac F to dof I (may be cell or frac)
+      FluxFourierKI, &  !< Fourier flux from cell K to dof I (may be node or frac)
+      FluxFourierFI     !< Fourier flux from frac F to dof I (may be cell or frac)
 
   public :: &
       Flux_allocate, &
@@ -50,7 +50,7 @@ module Flux
 
 contains
 
-  ! allocate
+  !> \brief Allocate FluxDarcy and FluxFourier
   subroutine Flux_allocate
 
     ! flux
@@ -70,7 +70,7 @@ contains
 
   end subroutine Flux_allocate
 
-  ! free
+  !> \brief Deallocate FluxDarcy and FluxFourier
   subroutine Flux_free
 
     deallocate(FluxDarcyKI)
@@ -84,27 +84,27 @@ contains
 
   end subroutine Flux_free
 
-  ! Structure of this subroutine:
-  ! loop of cell k
-  !   a. loop of node i of cell k
-  !       1. compute rho_ki_alpha
-  !          loops of Q_k and Q_i
-
-  !       2. loop of node j
-  !          loops of Q_k and Q_i
-
-  !       3. loop of frac j
-  !          loops of Q_k and Q_i
-
-  !   b. loop of frac i of cell k
-  !       1. compute rho_ki_alpha
-  !          loops of Q_k and Q_i
-
-  !       2. loop of node j
-  !          loops of Q_k and Q_i
-
-  !       3. loop of frac j
-  !          loops of Q_k and Q_i
+  !> \brief Structure of this subroutine:                             <br>
+  !! loop of cell k                             <br>
+  !!   a. loop of node i of cell k                             <br>
+  !!       1. compute rho_ki_alpha                             <br>
+  !!          loops of Q_k and Q_i                             <br>
+  !!
+  !!       2. loop of node j                             <br>
+  !!          loops of Q_k and Q_i                             <br>
+  !!
+  !!       3. loop of frac j                             <br>
+  !!          loops of Q_k and Q_i                             <br>
+  !!
+  !!   b. loop of frac i of cell k                             <br>
+  !!       1. compute rho_ki_alpha                             <br>
+  !!          loops of Q_k and Q_i                             <br>
+  !!
+  !!       2. loop of node j                             <br>
+  !!          loops of Q_k and Q_i                             <br>
+  !!
+  !!       3. loop of frac j                             <br>
+  !!          loops of Q_k and Q_i
   subroutine Flux_DarcyFlux_Cell() &
         bind(C, name="Flux_DarcyFlux_Cell")
 

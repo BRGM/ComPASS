@@ -19,3 +19,7 @@ build*
 *.aux
 *.pdf
 *.spl
+*.html
+Doxygen/html
+Doxygen/latex
+*.css

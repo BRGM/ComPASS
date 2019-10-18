@@ -54,7 +54,7 @@ module LoisThermoHydro
   implicit none
 
   ! densite massique
-  ! Rq important: it contains values for all phases, not only phase present
+  ! Rq important: it contains values for all phases, not only present phases
   double precision, allocatable, dimension(:,:), protected :: &
        DensiteMassiqueCell, &
        DensiteMassiqueFrac, &

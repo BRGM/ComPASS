@@ -75,14 +75,12 @@ module IncPrimSecd
        NbPhasePresente, NbCompCtilde, &
        NbEqFermeture, NbEqEquilibre,  & ! NbEqEquilibre -> Nombre d'Equation d'Equilibre thermodynamique fct du contexte (i.e. égalité des fugacités)
        NbIncPTC, NbIncPTCPrim, NbIncTotal, &
-       NbIncTotalPrim, &
-                                !
+       NbIncTotalPrim, &  !
        NumPhasePresente(NbPhase),               & ! Num -> identifiants de la phase présente
        NumCompCtilde(NbComp),                   & ! Num -> identifiants des composants absents
        NumCompEqEquilibre(NbEqEquilibreMax),    & ! identifiant des composant présents dans au moins 2 phases (donc concernés par égalité fugacités)
        NumIncPTC2NumIncComp_comp(NbIncPTCMax),  & ! Etant donné une ligne du "vecteur inconnu" quel est le composant
-       NumIncPTC2NumIncComp_phase(NbIncPTCMax), &
-                                ! Etant donné une ligne du "vecteur inconnu" quelle est la phase ????
+       NumIncPTC2NumIncComp_phase(NbIncPTCMax), & ! Etant donné une ligne du "vecteur inconnu" quelle est la phase
        Num2PhasesEqEquilibre(2, NbEqEquilibreMax), & ! phases impliquées dans l'équilibre (cf. NumCompEqEquilibre)
        NumIncComp2NumIncPTC(NbComp, NbPhase) ! matrice donnant pour chaque phase et chaque composant la ligne du "vecteur inconnu" 
 
@@ -102,13 +100,13 @@ module IncPrimSecd
                   
 contains
 
-  ! main subroutine of this module
-  ! compute dXssurdXp, SmdXs, NumIncTotalPrim, NumIncTotalSecond
-  ! loop of cell/frac/node
+  !> \brief Main subroutine of this module, 
+  !! compute dXssurdXp, SmdXs, NumIncTotalPrim, NumIncTotalSecond
+  !! loop of cell/frac/node
   subroutine IncPrimSecd_compute() &
         bind(C, name="IncPrimSecd_compute")
 
-    ! cell
+    !< cell
     call IncPrimSecd_compute_cv( &
          NbCellLocal_Ncpus(commRank+1), &
          IncCell, CellRocktypeLocal, &
@@ -117,7 +115,7 @@ contains
                                 !
          NumIncTotalPrimCell, NumIncTotalSecondCell)
 
-    ! frac
+    !< frac
     call IncPrimSecd_compute_cv( &
          NbFracLocal_Ncpus(commRank+1), &
          IncFrac, FracRocktypeLocal, &
@@ -126,7 +124,7 @@ contains
                                 !
          NumIncTotalPrimFrac, NumIncTotalSecondFrac)
 
-    ! node
+    !< node
     call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank+1), &
          IncNode, NodeRocktypeLocal, &
@@ -139,7 +137,7 @@ contains
   end subroutine IncPrimSecd_compute
 
 
-  ! all operations for a set of cv
+  !> \brief  all operations for a set of cv (cell/frac/node)
   subroutine IncPrimSecd_compute_cv( &
        NbIncLocal, &
        inc, rt, &
@@ -170,20 +168,20 @@ contains
 
     do k=1,NbIncLocal
 
-         if(inc(k)%ic>2**NbPhase-1) cycle ! FIXME: TEMPORARY: avoid FF dof, loop over reservoir node only. 
+         if(inc(k)%ic>2**NbPhase-1) cycle !< \todo FIXME: TEMPORARY: avoid FF dof, loop over reservoir node only. 
 
-         ! init tmp values for each cv
+         !< init tmp values for each cv
          call IncPrimSecd_init_cv(inc(k))
 
-         ! compute dF/dX
-         ! dFsurdX: (col, row) index order
+         !< compute dF/dX
+         !< dFsurdX: (col, row) index order
          call IncPrimSecd_dFsurdX_cv(inc(k), rt(:,k), dFsurdX, SmF(:,k))
 
-         ! choose inconnues prim and secd
+         !< choose inconnues prim and secd
          call IncPrimSecd_ps_cv(inc(k), dFsurdX, pschoice, &
             NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k))
 
-         ! compute dXssurdxp and SmdXs
+         !< compute dXssurdxp and SmdXs
          call IncPrimSecd_dXssurdXp_cv(inc(k), dFsurdX, SmF(:,k), &
             NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k), &
             dXssurdXp(:,:,k), SmdXs(:,k))
@@ -192,7 +190,7 @@ contains
 
   end subroutine IncPrimSecd_compute_cv
 
-  !> Update prim/secd arrays of nodes
+  !> \brief  Update prim/secd arrays of nodes
   subroutine IncPrimSecd_compPrim_nodes
 
     ! node
@@ -206,7 +204,7 @@ contains
 
   end subroutine IncPrimSecd_compPrim_nodes
 
-
+   !> \brief  init tmp values for each inc
   subroutine IncPrimSecd_init_cv(inc)
 
     type(TYPE_IncCVReservoir), intent(in) :: inc
@@ -235,16 +233,17 @@ contains
 
   end subroutine IncPrimSecd_init_cv
 
-  ! FIXME: reprendre notations de Xing et al. 2017
-  ! F = closure equations
-  !    * molar fractions sum to 1 for present phases
-  !    * thermodynamic equilibrium between phases if any (fugacities equality)
-  ! Remark: Sg+Sl=1 is not a closure law, as well as Pphase=Pref+Pc(phase)
-  ! compute dFsurdX for each control volume (Careful: the lines of the derivatives must coincide with the index of unknowns in DefModel.F90)
-  !      dFsurdX(1,:)                                            derivative Pressure
-  !      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
-  !      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
-  !      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
+  !> \todo FIXME: reprendre notations de Xing et al. 2017
+  !> \brief  compute dF/dX
+  !! F = closure equations
+  !!    * molar fractions sum to 1 for present phases
+  !!    * thermodynamic equilibrium between phases if any (fugacities equality)
+  !! Remark: Sg+Sl=1 is not a closure law, as well as Pphase=Pref+Pc(phase)
+  !! compute dFsurdX for each control volume (Careful: the lines of the derivatives must coincide with the index of unknowns in DefModel.F90)
+  !!      dFsurdX(1,:)                                            derivative Pressure
+  !!      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
+  !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
+  !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
   subroutine IncPrimSecd_dFsurdX_cv(inc, rt, dFsurdX, SmF)
 
     type(TYPE_IncCVReservoir), intent(in) :: inc
@@ -358,8 +357,8 @@ contains
   end subroutine IncPrimSecd_dFsurdX_cv
 
 
-  ! choose primary and secondary unknowns for each CV
-  ! fill inc%Nb/NumIncTotalPrim/Secd
+  !> \brief choose primary and secondary unknowns for each CV
+  !! fill inc%Nb/NumIncTotalPrim/Secd
   subroutine IncPrimSecd_ps_cv(inc, dFsurdX, pschoicecv, &
        NumIncTotalPrimCV, NumIncTotalSecondCV)
 
@@ -403,8 +402,8 @@ contains
   end subroutine IncPrimSecd_ps_cv
 
 
-  ! dXssurdXp = dFsurdXs**(-1) * dFsurdXp
-  ! SmdXs = dFsurdXs**(-1) * SmF
+  !> \brief Compute dXssurdXp = dFsurdXs**(-1) * dFsurdXp
+  !! and SmdXs = dFsurdXs**(-1) * SmF
   subroutine IncPrimSecd_dXssurdXp_cv(inc, dFsurdX, SmF, &
        NumIncTotalPrimCV, NumIncTotalSecondCV, dXssurdXp, SmdXs)
 
@@ -502,9 +501,10 @@ contains
 
   end subroutine IncPrimSecd_dXssurdXp_cv
 
-  ! Choix des inconnues primaires et secondaires
-  !  a partir de la matrice dFsurdX par algorithme glouton
-  !  minimisant les angles successifs
+  !> \brief  Choice of primary and secondary unknowns
+  !! from the matrix dFsurdX with the glouton algorithm
+  !! by minimizing the successives angles
+  !! \todo IncPrimSecd_IncSecondGlouton not implemented yet ?
   subroutine IncPrimSecd_IncSecondGlouton(inc, dFsurdX, &
        NumIncTotalPrimCV, NumIncTotalSecondCV)
 
@@ -623,7 +623,8 @@ contains
   end subroutine IncPrimSecd_IncSecondGlouton
 
 
-  !
+  !> \brief  Choice of primary and secondary unknowns
+  !! from the matrix dFsurdX with the Gauss algorithm
   subroutine IncPrimSecd_IncSecondGauss(inc, dFsurdX, &
        NumIncTotalPrimCV, NumIncTotalSecondCV)
 
@@ -640,7 +641,7 @@ contains
          BB(NbIncTotalMax, NbEqFermetureMax) ! copy of dFsurdX
 
     double precision :: pivotmax
-    integer :: npivot, pivot(2, NbEqFermetureMax*NbIncTotalMax) ! FIXME: ??? size
+    integer :: npivot, pivot(2, NbEqFermetureMax*NbIncTotalMax) !> \todo FIXME: check the size
     logical :: pivot_P, pivot_T
 
     integer :: & ! E^{eq}, E^{inc}
@@ -866,6 +867,7 @@ contains
   end subroutine IncPrimSecd_IncSecondGauss
 
 
+  !> \brief  Link with the C code
   subroutine IncPrimSecd_PrimToSecd_C(increments_pointers) &
       bind(C, name="IncPrimSecd_PrimToSecd")
 
@@ -879,9 +881,10 @@ contains
 
   end subroutine IncPrimSecd_PrimToSecd_C
 
-  ! compute prim values using secd values FIXME: l'inverse ?
-  ! secd = SmdX - dXssurdXp * prim !! en fait delta_prim / élimination des secondaires
-  ! v pour variation ?
+  !> \brief Compute secd values using prim values
+  !! secd = SmdX - dXssurdXp * prim
+  !! for node and frac and cell
+  ! v for variation ?
   subroutine IncPrimSecd_PrimToSecd( &
        vnode, vfrac, vcell)
 
@@ -911,7 +914,8 @@ contains
 
   end subroutine IncPrimSecd_PrimToSecd
 
-  ! compute secd values using prim values for a set of cv 
+  !> \brief Compute secd values using prim values 
+  !! for a set of cv (node or frac or cell)
   subroutine IncPrimSecd_PrimToSecd_cv( &
        inc, NbIncLocal, &
        dXssurdXp, SmdXs, &
@@ -989,7 +993,7 @@ contains
 
             ! iph is this phase in (P,T,C,S,n_i)
             iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-            var_inc(iph,k) = 0.d0 ! FIXME: is usefull, because wrong numerotation of FreeFlow sat
+            var_inc(iph,k) = 0.d0 !> \todo FIXME: is usefull, because wrong numerotation of FreeFlow sat
          else
 
             ! iph is last present phase in vector (P,T,C,S,n_i)
@@ -1016,11 +1020,11 @@ contains
          endif
 
          if(k<=NbNodeLocal .and. IdFFNodeLocal(k)) then !ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
-            ! FIXME: change the numbering in DefModel to remove this part
-            ! Correct the value of var_inc because the eliminated saturation is inserted in the index 
-            ! whereas it is not counted in the numbering in DefModel
-            ! necessary to coincide with IncCVReservoir_NewtonIncrement_reservoir
-            ! copy prim 
+            !> \todo FIXME: change the numbering in DefModel to remove this part
+            !! Correct the value of var_inc because the eliminated saturation is inserted in the index 
+            !! whereas it is not counted in the numbering in DefModel
+            !! necessary to coincide with IncCVReservoir_NewtonIncrement_reservoir
+            !! copy prim 
             do i=1, NbIncTotalPrim
                if(NumIncTotalPrimCV(i,k)>=NbIncPTC+NbPhasePresente) var_inc(NumIncTotalPrimCV(i,k)+1,k) = xp(i)
             end do

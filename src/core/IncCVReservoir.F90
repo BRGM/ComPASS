@@ -41,9 +41,10 @@
 
     implicit none
 
-    !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
-    ! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
-    ! to have the same structures in C++ and Python.
+    !> \brief Unknown for Degree Of Freedom (including thermal). 
+    !! DOF can be Cell, Fracture Face or Node.
+    !! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
+    !! to have the same structures in C++ and Python.
     type, bind(C) :: TYPE_IncCVReservoir
         integer(c_int) :: ic !< context: index of the set of present phase(s)
         real(c_double) :: & !< values of Inc
@@ -58,7 +59,7 @@
 #endif
     end TYPE TYPE_IncCVReservoir
 
-    !> to allow = between two TYPE_IncCVReservoir
+    !> \brief  to allow = between two TYPE_IncCVReservoir
     interface assignment(=)
     module procedure assign_type_inccv
     end interface assignment(=)
@@ -144,6 +145,7 @@ subroutine dump_incv_info() &
 #endif
     end subroutine assign_type_inccv
 
+    !> \brief Allocate unknowns vectors
     subroutine IncCVReservoir_allocate
     
         type(SubArrayInfo) :: info
@@ -173,6 +175,7 @@ subroutine dump_incv_info() &
 
     end subroutine IncCVReservoir_free
 
+    !> \brief Loops over nodes, fracs and cells to increment the unknowns
     subroutine IncCVReservoir_NewtonIncrement( &
         NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
         relax)

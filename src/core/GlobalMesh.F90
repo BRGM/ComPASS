@@ -6,21 +6,20 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-!> Main subroutine GlobalMesh_make.   <br>
-!! Contains the connectivity of the global mesh.
+!> \brief Main subroutine GlobalMesh_make.   <br>
+!! Contains the connectivity of the global mesh.  <br>
+!! 1. Read mesh   <br>
+!!      nbCell, nbFace, nbNode,   <br>
+!!      NodebyFace, FacebyCell, XNode,   <br>
+!!    and IdFace, Dir Part   <br>
+!! 2.a. calcul CellbyCell for metis   <br>
+!!    use NodebyFace, FacebyCell     <br>
+!!    to -> NodebyCell -> CellbyNode -> CellbyCell   <br>
+!! 2.b. calcul CellbyFace using FacebyCell    <br>
+!! 3. IdFace, Mesh Part
+
 module GlobalMesh
 
-  ! 1. Read mesh
-  !      nbCell, nbFace, nbNode
-  !      NodebyFace, FacebyCell, XNode
-  !    and IdFace, Dir Part
-
-  ! 2.1 calcul CellbyCell for metis
-  !    use NodebyFace, FacebyCell  
-  !    to -> NodebyCell -> CellbyNode -> CellbyCell
-  ! 2.2 calcul CellbyFace using FacebyCell 
-
-  ! 3. IdFace, Mesh Part
 
   ! This for array that are interfaced with python/C++
   use iso_c_binding, only: c_int, c_double, c_int8_t
@@ -53,8 +52,8 @@ module GlobalMesh
     NbDirNodeP !< Total number of Dirichlet nodes Darcy
 
   ! Well
-  ! FIXME: protected has been removed here to acces variable from C API
-  !        bad practice : use getter/setter subroutines instead
+  !> \todo FIXME: protected has been removed here to acces variable from C API
+  !!        bad practice : use getter/setter subroutines instead
   integer :: &
     NbWellInj, & !< Total number of injection wells
     NbWellProd   !< Total number of production wells
@@ -131,7 +130,7 @@ module GlobalMesh
 
   ! IdFace is filled in GlobalMesh_ReadMesh for Dir
   !                     GlobalMesh_Frac for Frac: IdFace(fracface)=-2
-  ! FIXME: protected attribute has been removed
+  !> \todo FIXME: protected attribute has been removed
   integer(c_int), allocatable, dimension(:), target :: &
     IdFace !< Identifier of each Face (1 to 6 to identify boundary faces and -2 for fracture faces)
 
@@ -156,7 +155,7 @@ module GlobalMesh
     PorositeFrac    !< Porosity of each fracture face
 
   ! Permeability
-  ! FIXME: protected has been removed to access array from C
+  !> \todo FIXME: protected has been removed to access array from C
   real(c_double), allocatable, dimension(:,:,:), target :: &
     PermCell !< Permeability tensor for each cell
   ! FIXME: protected has been removed to access array from C
@@ -189,7 +188,7 @@ module GlobalMesh
     !GlobalMesh_Make_post_read, &
     GlobalMesh_free
 
-  !FIXME: All routines are made public here
+  !> \todo FIXME: All routines are made public here
   !private :: &
   public :: &
     GlobalMesh_MeshBoundingBox,      & ! computes mesh bounding box (Mesh_xmin, Mesh_xmax...)
@@ -209,6 +208,8 @@ module GlobalMesh
 
 contains
 
+  !> \brief Determine Bounding box of the mesh
+  !! Fill Mesh_xmin, Mesh_xmax and similar
   subroutine GlobalMesh_MeshBoundingBox() &
   bind(C, name="GlobalMesh_mesh_bounding_box")
 
@@ -250,6 +251,7 @@ contains
 
   end subroutine GlobalMesh_MeshBoundingBox
 
+  !> \brief Set number of frac faces ?
   subroutine GlobalMesh_SetFrac() &
   bind(C, name="GlobalMesh_set_frac")
 
@@ -266,6 +268,8 @@ contains
 
   end subroutine GlobalMesh_SetFrac
 
+  !> \brief Compute all global connectivities
+  !! FaceByNode, CellByNode, CellbyCell, CellbyFace
   subroutine GlobalMesh_Compute_all_connectivies() &
   bind(C, name="GlobalMesh_compute_all_connectivies")
 
@@ -276,6 +280,7 @@ contains
 
   end subroutine GlobalMesh_Compute_all_connectivies
 
+!> \brief Allocate the rocktype vectors for node, frac, cell
 subroutine GlobalMesh_allocate_rocktype()
 
     ALLOCATE(NodeRocktype(IndThermique+1,Nbnode))
@@ -287,6 +292,7 @@ subroutine GlobalMesh_allocate_rocktype()
 
 end subroutine GlobalMesh_allocate_rocktype
 
+!> \brief Deallocate the rocktype vectors for node, frac, cell
 subroutine GlobalMesh_deallocate_rocktypes()
 
     deallocate(NodeRocktype)
@@ -330,7 +336,8 @@ FracThermalSource = 0.d0
 
 end subroutine GlobalMesh_allocate_petrophysics
 
-
+!> \brief Set rocktype for a type of cv
+!! (node or frac or cell)
 SUBROUTINE GlobalMesh_SetRocktype( &
     NbNode, &
     NbElem, &
@@ -377,6 +384,9 @@ DO i=1, NbNode
 ENDDO
 END SUBROUTINE GlobalMesh_SetRocktype
 
+!> \brief Set all rocktypes 
+!! for node, cell, frac
+!! using the permeability and the thermal conductivity
 subroutine GlobalMesh_set_all_rocktypes() &
     bind(C, name="GlobalMesh_set_all_rocktypes")
 
@@ -459,6 +469,8 @@ CALL GlobalMesh_SetRocktype( &
 
   end subroutine GlobalMesh_deallocate_flags
 
+  !> \brief Build Cartesian grid with origin coordonates,
+  !! length of grid and number of cells in each directions
   subroutine GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
     real(kind=c_double), intent(in)  :: Ox, Oy, Oz
@@ -668,15 +680,15 @@ CALL GlobalMesh_SetRocktype( &
 
   end subroutine GlobalMesh_Build_cartesian_grid
 
-  ! Output:
-  !   CellbyCellGlobal
-  ! Input:
-  !   CellbyNode, NodebyCell
   !> \brief Fill global connectivity CellbyCell with the numero of
   !! the cells surrounding one cell.
   !!
   !! The vector is used to build the
-  !!   Partition mesh with Metis.
+  !!   Partition mesh with Metis.    <br>
+  !! Output:
+  !!   CellbyCellGlobal   <br>
+  !! Input:
+  !!   CellbyNode, NodebyCell
   subroutine GlobalMesh_CellByCellGlobal
 
     integer :: i,j,k
@@ -749,12 +761,12 @@ CALL GlobalMesh_SetRocktype( &
 
   end subroutine GlobalMesh_CellByCellGlobal
 
-  ! Output:
-  !   NodebyCell
-  ! Use
-  !   NodebyFace, FacebyCell
   !> \brief This subroutine is not called.
   !! Build NodebyCell using NodebyFace and FacebyCell.
+  !! Output: 
+  !!   NodebyCell   <br>
+  !! Use: 
+  !!   NodebyFace, FacebyCell
   subroutine GlobalMesh_NodeByCellGlobal
 
     integer :: i, j, k
@@ -830,11 +842,11 @@ CALL GlobalMesh_SetRocktype( &
   end subroutine  GlobalMesh_NodeByCellGlobal
 
 
-  ! Output:
-  !  CellbyNode
-  ! Use:
-  !   NodebyCell
   !> \brief Make CellbyNode using NodebyCell.
+  !! Output:
+  !!  CellbyNode   <br>
+  !! Use:
+  !!   NodebyCell
   subroutine GlobalMesh_CellByNodeGlobal
 
     integer :: i, j
@@ -888,11 +900,11 @@ CALL GlobalMesh_SetRocktype( &
 
   end subroutine GlobalMesh_CellByNodeGlobal
 
-  ! Output:
-  !  CellbyFace
-  ! Use
-  !  FacebyCell
   !> \brief Make CellbyFace using FacebyCell.
+  !! Output:
+  !!  CellbyFace   <br>
+  !! Use: 
+  !!  FacebyCell
   subroutine GlobalMesh_CellByFaceGlobal
 
     integer :: i,k,nuf
@@ -1008,11 +1020,11 @@ CALL GlobalMesh_SetRocktype( &
   end subroutine GlobalMesh_NodeOfFrac
 
 
-  ! Output:
-  !  FacebyNode
-  ! Use:
-  !   NodebyFace
-  !> \brief Make FacebyNode using NodebyFace.
+  !> \brief Make FacebyNode using NodebyFace.   <br>
+  !! Output:
+  !!  FacebyNode   <br>
+  !! Use: 
+  !!   NodebyFace
   subroutine GlobalMesh_FaceByNodeGlobal
 
     integer :: i, j
@@ -1069,13 +1081,13 @@ CALL GlobalMesh_SetRocktype( &
 
 
 
-  ! Output:
-  !  FracbyNode
-  ! Use:
-  !  NodebyFace, IdFace
   !> \brief Make CSR FracbyNode with the number of fracture face by Node.
   !!
-  !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt
+  !! One line corresponds to one Node, if there is no fracture in node i: \%Pt(i+1) = \%Pt   <br>
+  !! Output: 
+  !!  FracbyNode   <br>
+  !! Use:
+  !!  NodebyFace, IdFace
   subroutine GlobalMesh_FracbyNode() &
   bind(C, name="GlobalMesh_frac_by_node")
 
@@ -1388,7 +1400,7 @@ CALL GlobalMesh_SetRocktype( &
 
   end subroutine fill_CSR
 
-  ! CHECKME/IMPROVE: data is copied... should work with C structures ?!
+  !> \todo CHECKME/IMPROVE: data is copied... should work with C structures ?!
   subroutine GlobalMesh_create_mesh(nodes, &
       cell_faces_ptr, cell_faces_val, &
       cell_nodes_ptr, cell_nodes_val, &

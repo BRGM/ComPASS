@@ -56,6 +56,7 @@ contains
 
    end subroutine CommonMPI_init
 
+   !> \brief End all MPI processes
    subroutine CommonMPI_abort(reason, optional_error_code)
 
       character(len=*), intent(in) :: reason
@@ -80,6 +81,7 @@ contains
 
    end subroutine CommonMPI_abort
 
+   !> \brief Barrier on all MPI processes
    subroutine CommonMPI_barrier()
    
       call MPI_Barrier(ComPASS_COMM_WORLD)

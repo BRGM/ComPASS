@@ -120,8 +120,8 @@ module IncCVWells
     end function get_injecting_perforations
 
      
-   ! sort the nodes of wells by z-cordinate from the smallest to the largest
-   ! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
+   !> \brief Sort the nodes of wells by z-cordinate from the smallest to the largest, 
+   !! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
    subroutine IncCVWells_SortHeightWellInj
 
       integer :: s, k, j, Nnz, nums
@@ -157,7 +157,7 @@ module IncCVWells
 
    end subroutine IncCVWells_SortHeightWellInj
 
-   ! compute P_{w,s} using Pw (pressure head) and density
+   !> \brief Compute P_{w,s} using Pw (pressure head) and density
    subroutine IncCVWells_PressureDropWellProd
 
       integer :: k, s, m, mph, nums, sparent
@@ -254,8 +254,8 @@ module IncCVWells
 
    end subroutine IncCVWells_PressureDropWellInj_integrate
 
-   ! compute pressure drop of injection well
-   ! integration from node head (w) to node (s)
+   !> \brief Compute pressure drop of injection well, 
+   !! integration from node head (w) to node (s)
    subroutine IncCVWells_PressureDropWellInj
 
       integer :: s, wk, nbwells, bottom, head, headsortedpos
@@ -292,6 +292,7 @@ module IncCVWells
 
    end subroutine IncCVWells_PressureDrop
 
+   !> \brief Allocate well unknowns vectors
    subroutine IncCVWells_allocate
 
       integer :: Nb, Nnz
@@ -320,7 +321,7 @@ module IncCVWells
 
    end subroutine IncCVWells_allocate
 
-   !> \brief Deallocate unknowns vectors
+   !> \brief Deallocate well unknowns vectors
    subroutine IncCVWells_free
 
       deallocate (IncPressionWellInj)

@@ -24,12 +24,14 @@ module DirichletContribution
 
     contains
 
+    !> \brief Allocate vector with Dirichlet contributions
     subroutine DirichletContribution_allocate
 
         allocate (IncNodeDirBC(NbNodeLocal_Ncpus(commRank + 1)))
 
     end subroutine DirichletContribution_allocate
 
+    !> \brief Deallocate vector with Dirichlet contributions
     subroutine DirichletContribution_free
 
         deallocate (IncNodeDirBC)

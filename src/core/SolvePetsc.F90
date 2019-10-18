@@ -158,7 +158,7 @@ module SolvePetsc
 
 contains
 
-! create structure of mat and solver
+!< Create structure of mat and solver
   subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
                              activate_cpramg, activate_direct_solver)
 
