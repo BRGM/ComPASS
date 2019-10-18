@@ -11,7 +11,6 @@
 import ComPASS
 import numpy as np
 import MeshTools as MT
-import MeshTools.CGALWrappers as CGAL
 import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
