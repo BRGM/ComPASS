@@ -2,6 +2,10 @@
 
 #include <pybind11/numpy.h>
 
+enum struct Component {
+    single_component = ComPASS_SINGLE_COMPONENT
+};
+
 enum struct Phase {
     single_phase = ComPASS_SINGLE_PHASE
 };
@@ -94,6 +98,10 @@ void add_specific_model_wrappers(py::module& module)
     module.def("molar_density", py::vectorize(molar_density));
     module.def("molar_enthalpy", py::vectorize(molar_enthalpy));
     module.def("dynamic_viscosity", py::vectorize(dynamic_viscosity));
+
+    py::enum_<Component>(module, "Component")
+        .value("single_component", Component::single_component)
+    ;
 
     py::enum_<Context>(module, "Context")
         .value("single_context", Context::single_context)
