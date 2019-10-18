@@ -25,6 +25,7 @@ stages:
   - build
   - test
   - release
+  - documentation
 
 before_script:
   - echo "Preparing build..."
@@ -148,3 +149,16 @@ tag_release:
   only:
     - tags
   when: on_success
+
+pages:
+  stage: documentation
+  tags:
+    - build
+  script:
+    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment /bin/bash -e docs/generate_doc.bash
+    - mv -v Doxygen/html public 
+  artifacts:
+    paths:
+    - public
+
+
