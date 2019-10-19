@@ -16,7 +16,8 @@ module Jacobian
   use iso_c_binding, only: c_double
   use mpi, only: MPI_Abort
   use CommonType, only: CSRArray2dble
-  use CommonMPI, only: commRank, ComPASS_COMM_WORLD
+  use CommonMPI, only: &
+     commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
   use DefModel, only: &
      NumPhasePresente_ctx, NbPhasePresente_ctx, &
@@ -4631,11 +4632,11 @@ contains
        call Jacobian_Alignment_man_row(k, rowk, IncNode(k)%ic)
 
        else if ( (IdNodeLocal(k)%P.eq."d").and.(IdNodeLocal(k)%T.ne."d") ) then
-          write(*,*)' reste a faire dir neu ds alignment_man '
-          stop
+          call CommonMPI_abort('in manual alignment Jacobian &
+            mix Dir/Neu node are not implemented')
        else if ( (IdNodeLocal(k)%T.eq."d").and.(IdNodeLocal(k)%P.ne."d") ) then
-          write(*,*)' reste a faire neu dir ds alignment_man '
-          stop
+          call CommonMPI_abort('in manual alignment Jacobian &
+            mix Dir/Neu node are not implemented')
        endif
     end do
 

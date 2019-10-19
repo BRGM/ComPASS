@@ -774,8 +774,7 @@ contains
                 if( JacA%Num(j)<=NbNodeLocal .and. IdFFNodeLocal(JacA%Num(j)) ) then  ! FIXME: FreeFlow node, T is first inc (not always)
                    call MatSetValue(At, row, col, JacA%Val(1,1,j), INSERT_VALUES, Ierr)
                    CHKERRQ(Ierr)
-                   print*,"entered in new loop, stop"
-                   stop
+                   call CommonMPI_abort('in solvePetsc entered in new loop (_WIP_FREEFLOW_STRUCTURES_)')
                 else ! reservoir node, T is second inc
                    call MatSetValue(At, row, col, JacA%Val(2,2,j), INSERT_VALUES, Ierr)
                    CHKERRQ(Ierr)

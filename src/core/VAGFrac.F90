@@ -1104,9 +1104,8 @@ contains
     erz = gz - (1.d0 - ps*v(3))
 
     if (dabs(erx)+ dabs(ery)+ dabs(erz) > 1.d-10) then
-      print*, "Gradient Frac error: "
-      print*, "   Center of Frac: ", xf
-      stop
+      call CommonMPI_abort('Gradient Frac error')
+      ! print*, "   Center of Frac: ", xf
     end if
 
   end subroutine VAGFrac_TestGfT

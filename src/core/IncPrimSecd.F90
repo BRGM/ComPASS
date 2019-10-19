@@ -167,10 +167,11 @@ contains
          dFsurdX (NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
 
     do k=1,NbIncLocal
-
+      
+#ifdef _WIP_FREEFLOW_STRUCTURES_
          if(inc(k)%ic>2**NbPhase-1) cycle !< \todo FIXME: TEMPORARY: avoid FF dof, loop over reservoir node only. 
-
-         !< init tmp values for each cv
+#endif
+         ! init tmp values for each cv
          call IncPrimSecd_init_cv(inc(k))
 
          !< compute dF/dX

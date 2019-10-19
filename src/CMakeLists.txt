@@ -34,6 +34,7 @@ set( CONFIGURATIONS
    diphasic
    linear_water
    water2ph
+   immiscible2ph
 )
 
 foreach(_conf ${CONFIGURATIONS})

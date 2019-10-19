@@ -11,7 +11,9 @@ module Thermodynamics
   use CommonMPI, only: CommonMPI_abort
   use iso_c_binding, only: c_double, c_int
   use DefModel, only: NbPhase, NbComp, IndThermique, &
-    GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP
+    GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
+    get_model_configuration
+  use CommonType, only: ModelConfiguration
 
 
   implicit none
@@ -182,10 +184,8 @@ contains
     if(iph==GAS_PHASE)then
       rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
       call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-      if(Pc.ne.0.d0) then
-        print*,"possible error in f_DensiteMolaire (change rt)"
-        stop
-      endif
+      if(Pc.ne.0.d0) &
+        call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
       Pg = P + Pc
       f = Pg/(Rgp*T)
 
@@ -219,21 +219,31 @@ contains
     ! output
     real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-    real(c_double) :: zeta, air_m, H2O_m, m
+    real(c_double) :: zeta, comp_m(NbComp), m
+    integer :: icp
+    type(ModelConfiguration) :: configuration
+    configuration = get_model_configuration()
 
     call f_DensiteMolaire(iph,P,T,C,S,zeta,dPf,dTf,dCf,dSf)   ! P is Reference Pressure
 
-    call air_MasseMolaire(air_m)
-    call H2O_MasseMolaire(H2O_m)
-
-    m = C(1)*air_m + C(2)*H2O_m
+    call air_MasseMolaire(comp_m(AIR_COMP))
+    call H2O_MasseMolaire(comp_m(WATER_COMP))
+  
+    m=0.d0
+    ! loop of component in phase iph
+    do icp=1, NbComp
+      ! configuration%MCP(icp,iph)=1 if component in phase iph
+      m = m + configuration%MCP(icp,iph) * C(icp) * comp_m(icp)
+    enddo
 
     f = zeta * m
 
     dPf = dPf * m
     dTf = dTf * m
-    dCf(1) = dCf(1) * m + zeta * air_m
-    dCf(2) = dCf(2) * m + zeta * H2O_m
+    ! loop of component in phase iph
+    do icp=1, NbComp
+      dCf(icp) = dCf(icp)*m + zeta*configuration%MCP(icp,iph)*comp_m(icp)
+    enddo
     dSf = dSf * m
 
   end subroutine f_DensiteMassique
@@ -288,8 +298,8 @@ contains
     f = S(iph)**2
     dSf = 0.d0
     dSf(iph) = 2.d0*S(iph)
-    if(S(iph)<0.d0) stop 2
-    if(S(iph)>1.d0) stop 2
+    if(S(iph)<0.d0) call CommonMPI_abort('Saturation < 0')
+    if(S(iph)>1.d0) call CommonMPI_abort('Saturation > 1')
 
 
   end subroutine f_PermRel
@@ -407,7 +417,8 @@ contains
 
     real(c_double) :: H2O_m, air_m
     real(c_double) :: a,b,cc,d,Ts,T0,ss,dTss,cp
-
+    type(ModelConfiguration) :: configuration
+    
     if(iph==GAS_PHASE)then
       a = 1990.89d+3
       b = 190.16d+3
@@ -424,12 +435,16 @@ contains
       call f_CpGaz(cp)
       call air_MasseMolaire(air_m)
 
-      f = C(AIR_COMP)*cp*air_m*T + C(WATER_COMP)*ss*H2O_m
+      configuration = get_model_configuration()
+
+      f = configuration%MCP(AIR_COMP,iph)*C(AIR_COMP)*cp*air_m*T + &
+          configuration%MCP(WATER_COMP,iph)*C(WATER_COMP)*ss*H2O_m
 
       dPf = 0.d0
-      dTf = C(AIR_COMP)*cp*air_m + C(WATER_COMP)*H2O_m*dTss
-      dCf(AIR_COMP) = cp*air_m*T
-      dCf(WATER_COMP) = ss*H2O_m
+      dTf = configuration%MCP(AIR_COMP,iph)*C(AIR_COMP)*cp*air_m + &
+            configuration%MCP(WATER_COMP,iph)*C(WATER_COMP)*H2O_m*dTss
+      dCf(AIR_COMP) = configuration%MCP(AIR_COMP,iph)*cp*air_m*T
+      dCf(WATER_COMP) = configuration%MCP(WATER_COMP,iph)*ss*H2O_m
       dSf = 0.d0
 
     else if(iph == LIQUID_PHASE)then
@@ -475,6 +490,7 @@ contains
 
     real(c_double) :: H2O_m, air_m
     real(c_double) :: a,b,cc,d,Ts,T0,ss,dTss,cp
+    type(ModelConfiguration) :: configuration
 
     if(iph == GAS_PHASE)then
       a = 1990.89d+3
@@ -493,12 +509,14 @@ contains
       call f_CpGaz(cp)
       call air_MasseMolaire(air_m)
 
-      f(AIR_COMP) = cp*air_m*T
-      f(WATER_COMP) = ss*H2O_m
+      configuration = get_model_configuration()
+
+      f(AIR_COMP) = configuration%MCP(AIR_COMP,iph)*cp*air_m*T
+      f(WATER_COMP) = configuration%MCP(WATER_COMP,iph)*ss*H2O_m
 
       dPf = 0.d0
-      dTf(AIR_COMP) = cp*air_m
-      dTf(WATER_COMP) = H2O_m*dTss
+      dTf(AIR_COMP) = configuration%MCP(AIR_COMP,iph)*cp*air_m
+      dTf(WATER_COMP) = configuration%MCP(WATER_COMP,iph)*H2O_m*dTss
       dCf = 0.d0
       dSf = 0.d0
 

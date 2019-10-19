@@ -116,10 +116,8 @@ subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
          rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
          call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-         if(Pc.ne.0.d0) then
-           print*,"possible error in f_DensiteMolaire (change rt)"
-           stop
-         endif
+         if(Pc.ne.0.d0) &
+            call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
          Pg = P + Pc   
 
          u = 0.018016d0
@@ -141,12 +139,9 @@ subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
       else if (iph == LIQUID_PHASE) then
          rt = 0 ! FIXME: rt is not used because Pc=0.
          call f_PressionCapillaire(rt,iph,S,Pc,DSPc)
-         if(Pc.ne.0.d0) then
-            print*,"error in f_DensiteMolaire"
-            print*,"confusion between P and Pl"
-            print*,"check the formula"
-            stop
-         endif
+         if(Pc.ne.0.d0) &
+            call CommonMPI_abort('error in f_DensiteMolaire, &
+               confusion between P and Pl')
          Pl = P + Pc   ! carreful, P is Pref and not Pl
 
          rs = 0.d0

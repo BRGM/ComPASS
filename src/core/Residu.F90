@@ -148,6 +148,7 @@ contains
    
    end subroutine Residu_associate_pointers
 
+   !> \brief Clear ResiduCell/Frac/Node/Well
    subroutine Residu_clear_residuals()
 
       ResiduCell(:, :) = 0.d0
@@ -159,7 +160,8 @@ contains
    end subroutine Residu_clear_residuals
 
 
-   ! Newton is initialized with the unknown at time step n-1
+   !> \brief Newton is initialized with the unknown at time step n-1
+   !! What about Ctilde ?????? shoud be 0 at the beginning of the time step
    subroutine Residu_reset_history() &
       bind(C, name="Residu_reset_history")
 
@@ -187,6 +189,7 @@ contains
 
    end subroutine Residu_reset_history
 
+   !> \brief Compute the residu and store it into inc%AccVol
    subroutine Residu_compute(Delta_t) &
       bind(C, name="Residu_compute")
 
@@ -194,11 +197,12 @@ contains
 
       integer :: i, k
 
+      !> Clear ResiduCell/Frac/...
       call Residu_clear_residuals
 
       call Residu_AccVol
 
-      ! Residu from terms of accumulation
+      !> Initialise Residu with terms of accumulation
       do k = 1, NbCellLocal_Ncpus(commRank + 1) ! cell
          do i = 1, NbCompThermique
             ResiduCell(i, k) = &
@@ -239,6 +243,8 @@ contains
 
    end subroutine Residu_compute
 
+   !> \brief Clear the residu of Dirichlet nodes 
+   !! (distinction between P and T)
    subroutine Residu_reset_Dirichlet_nodes
 
       integer :: k
@@ -279,7 +285,8 @@ contains
 
    end subroutine Residu_add_Neumann_contributions
 
-   ! FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1
+   !> \brief Reset residu for components which are not Ctilde
+   !> \todo FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1 (MCP...)
    subroutine Residu_clear_absent_components_accumulation(ic, accumulations)
 
       integer, intent(in) :: ic ! context
@@ -292,7 +299,7 @@ contains
          copy(i) = accumulations(icp)
       end do
 
-      ! CHECKME: is size differnent from NbCompThermique: inc(:) = 0.d0 would be enough
+      ! CHECKME: is size different from NbCompThermique: inc(:) = 0.d0 would be enough
       accumulations(1:NbCompThermique) = 0.d0
 
       do i = 1, NbCompCtilde_ctx(ic)
@@ -302,6 +309,8 @@ contains
 
    end subroutine Residu_clear_absent_components_accumulation
 
+   !> \brief Compute AccVol for the present phase and component
+   !! Keep previous value for Ctilde
    subroutine Residu_AccVol() &
       bind(C, name="Residu_update_accumulation")
 
@@ -314,6 +323,7 @@ contains
          do m = 1, NbPhasePresente_ctx(ic) ! Q_k
             mph = NumPhasePresente_ctx(m, ic)
             do icp = 1, NbComp
+               ! FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1 (MCP...)
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
                   IncAll(k)%AccVol(icp) = IncAll(k)%AccVol(icp) &
                                            + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, m, k)

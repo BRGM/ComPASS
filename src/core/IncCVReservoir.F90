@@ -382,7 +382,13 @@ subroutine dump_incv_info() &
 
     end subroutine IncCVReservoir_NewtonRelax
 
-    !> \brief Realize Newton increment of each control volume
+    !> \brief Realize Newton increment of each control volume           <br>
+    !! NOMBERING IS FIXED:                                              <br>
+    !!  Pressure=1,                                                     <br>
+    !!  Temperature=2,                                                   <br>
+    !!  Molar fraction of present component (without Ctilde),           <br>
+    !!  Saturation of present phase,                                     <br>
+    !!  Molar fraction only present in absent phase: Ctilde (put into inc%AccVol(icp) ???)
     subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax)
 
     type(TYPE_IncCVReservoir), intent(inout) :: inc
@@ -434,7 +440,7 @@ subroutine dump_incv_info() &
     endif
 #endif
 
-    ! AccVol
+    ! Contribution to Ctilde (to test appearance of phase)
     do i = 1, NbCompCtilde_ctx(ic)
         icp = NumCompCtilde_ctx(i, ic)
         inc%AccVol(icp) = incre(NbIncTotal + i)
