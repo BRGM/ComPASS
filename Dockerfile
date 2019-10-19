@@ -6,7 +6,7 @@ WORKDIR /build
 
 # If you want to compile only specific physics comment the following line and
 # use the next run command
-RUN CC=mpicc cmake ../source/ComPASS && make -j `nproc`
+RUN CC=mpicc cmake ../source/ComPASS && make -j `nproc` install
 #RUN CC=mpicc cmake ../source/ComPASS \
 #    -DComPASS_WITH_diphasic_PHYSICS=0, \
 #    -DComPASS_WITH_linear_water_PHYSICS=1, \

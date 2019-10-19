@@ -35,7 +35,28 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(COMPASS_CONFIG_DIRECTORY ${PROJECT_SOURCE_DIR}/config CACHE PATH "path to configuration scripts")
-set(COMPASS_PYTHON_DIRECTORY ${PROJECT_SOURCE_DIR}/ComPASS CACHE PATH "python package directory")
+
+# compiled python modules will be put in
+# ${CMAKE_INSTALL_PREFIX}/${COMPASS_PYTHON_PACKAGE_NAME}
+# FIXME: could be retrieve from setup.py
+set(COMPASS_PYTHON_PACKAGE_NAME ComPASS)
+
+# will not override a user-provided installation prefix
+# (e.g. using cmake -DCMAKE_INSTALL_PREFIX=...)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  if(COMPASS_PYTHON_PACKAGE_DIRECTORY)
+    set(CMAKE_INSTALL_PREFIX ${COMPASS_PYTHON_PACKAGE_DIRECTORY} CACHE
+    PATH "Default installation prefix, will be through COMPASS_PYTHON_PACKAGE_DIRECTORY variable only if no installation prefix is given." FORCE)
+  else()
+    # if no specific instalation prefix was provided
+    # and if the COMPASS_PYTHON_PACKAGE_DIRECTORY variable is not set
+    # default to the source directory
+    # cmake export will be put there and python modules
+    # will be put in ${CMAKE_INSTALL_PREFIX}/${COMPASS_PYTHON_PACKAGE_NAME}
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR} CACHE
+    PATH "Default installation prefix, will be through COMPASS_PYTHON_PACKAGE_DIRECTORY variable only if no installation prefix is given." FORCE)
+  endif()
+endif()
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(${THIRD_PARTY_DIR})
@@ -135,6 +156,13 @@ include_directories(${THIRD_PARTY_DIR}/mapbox/include)
 
 add_subdirectory(src)
 
+# -- targets and installation
+
+install(EXPORT ComPASS DESTINATION share/cmake/)
 install(CODE "message(\"Installing ComPASS python environment.\")")
 # make module available through user site packages
 install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${PROJECT_SOURCE_DIR}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+# targets (python modules) are also exported directly from the build tree
+# to use them you will need to reference the build tree 
+# cf. https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/Exporting-and-Importing-Targets
+export(EXPORT ComPASS FILE share/cmake/compass-exports.cmake)

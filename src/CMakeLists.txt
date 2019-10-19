@@ -217,8 +217,6 @@ foreach(_src ${WRAPPERS_SRCS})
 endforeach()
 set(WRAPPERS_SRCS ${_tmp})
 
-set(COMPASS_PYTHON_EOS_DIRECTORY "${COMPASS_PYTHON_DIRECTORY}/eos")
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 foreach(_conf ${CONFIGURATIONS})
@@ -268,18 +266,14 @@ foreach(_conf ${CONFIGURATIONS})
         CXX_STANDARD 14
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
-        LIBRARY_OUTPUT_DIRECTORY ${COMPASS_PYTHON_EOS_DIRECTORY}
-        LIBRARY_OUTPUT_DIRECTORY_DEBUG ${COMPASS_PYTHON_EOS_DIRECTORY}
-        LIBRARY_OUTPUT_DIRECTORY_RELEASE ${COMPASS_PYTHON_EOS_DIRECTORY}
     )
     include_directories(${pybind11_INCLUDE_DIR})
     target_include_directories(${eos_target} PUBLIC ${pybind11_INCLUDE_DIR})
     target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
     
-endforeach()
+    install(TARGETS ${eos_target} DESTINATION ${COMPASS_PYTHON_PACKAGE_NAME}/eos EXPORT ComPASS)
 
-#CHECKME: Should we install libraries/binaries?
-# install(TARGETS NN DESTINATION bin)
+endforeach()
 
 # add experimental tests to compilation
 if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
