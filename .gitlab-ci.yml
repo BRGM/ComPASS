@@ -16,6 +16,7 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   # Project specifc variables
   CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
+  WHEEL_PRERELTAG: ".dev_$CI_COMMIT_REF_SLUG"
 
 services:
   - docker:stable-dind
@@ -63,9 +64,14 @@ build:
   tags:
     - build
   script:
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
+    - mkdir -p wheel
+    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/build-environment python3 setup.py egg_info --tag-build=$WHEEL_PRERELTAG bdist_wheel -d wheel
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WHEEL_TAG=${WHEEL_PRERELTAG//-/_} .
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
+  artifacts:
+    paths:
+    - wheel
     
 #TODO
 #how to use docker cache ? split dockerfile to have a build image.fixed.

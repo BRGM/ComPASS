@@ -14,4 +14,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(pack)
 add_subdirectory(templates)
-add_subdirectory(petsc_from_python)
+#add_subdirectory(petsc_from_python)

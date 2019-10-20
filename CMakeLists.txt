@@ -158,10 +158,13 @@ add_subdirectory(src)
 
 # -- targets and installation
 
-install(EXPORT ComPASS DESTINATION share/cmake/)
-install(CODE "message(\"Installing ComPASS python environment.\")")
+# The Following is deactivated use: distutils or wheels to install ComPASS package
+# install(CODE "message(\"Installing ComPASS python environment.\")")
 # make module available through user site packages
-install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${PROJECT_SOURCE_DIR}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+# install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${PROJECT_SOURCE_DIR}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+
+install(EXPORT ComPASS DESTINATION share/cmake/)
+# the usual way is to pass the python package directory through COMPASS_PYTHON_PACKAGE_DIRECTORY
 # targets (python modules) are also exported directly from the build tree
 # to use them you will need to reference the build tree 
 # cf. https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/Exporting-and-Importing-Targets

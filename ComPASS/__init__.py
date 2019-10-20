@@ -32,6 +32,9 @@ from MeshTools.vtkwriters import vtk_celltype as vtk_celltype
 
 from ComPASS.RawMesh import RawMesh
 
+# __variables__ with double-quoted values will be available in setup.py:
+__version__ = "4.1.0"
+
 initialized = False
 
 # CHECKME: There might be a more elegant way to do this

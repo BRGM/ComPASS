@@ -1,26 +1,9 @@
-FROM registry.gitlab.inria.fr/charms/compass/build-environment:latest AS build
-
-RUN mkdir -p /source
-COPY ./ /source/ComPASS
-WORKDIR /build
-
-# If you want to compile only specific physics comment the following line and
-# use the next run command
-RUN CC=mpicc cmake ../source/ComPASS && make -j `nproc` install
-#RUN CC=mpicc cmake ../source/ComPASS \
-#    -DComPASS_WITH_diphasic_PHYSICS=0, \
-#    -DComPASS_WITH_linear_water_PHYSICS=1, \
-#    -DComPASS_WITH_linear_liquid_water_PHYSICS=0, \
-#    -DComPASS_WITH_liquid_water_PHYSICS=0, \
-#    -DComPASS_WITH_water2ph_PHYSICS=0, \
-#    -DComPASS_WITH_water_with_tracer_PHYSICS=0 \
-# && make -j `nproc`
-
-
 FROM registry.gitlab.inria.fr/charms/compass/run-environment:latest
 
-RUN mkdir -p /build/ComPASS
-COPY --from=build /source/ComPASS/ComPASS /build/ComPASS/ComPASS
-ENV PYTHONPATH=/build/ComPASS
+ARG WHEEL_TAG
+
+COPY wheel/*.whl /wheel/
+RUN pip3 install /wheel/ComPASS-*${WHEEL_TAG}*.whl \
+ && rm -rf /wheel
 
 WORKDIR /localfs

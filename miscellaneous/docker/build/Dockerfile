@@ -33,6 +33,9 @@ RUN mkdir -p /build \
  && rm -rf build
 VOLUME /wheel
 
+# This is used by cmake to find PETSc from the openmpi link flags
+ENV CC=mpicc
+
 RUN mkdir -p /localfs
 VOLUME /localfs
 WORKDIR /localfs
