@@ -8,16 +8,16 @@
 
 import numpy as np
 
-import ComPASS
+import ComPASS  # needed for cpp wrappers
 # access to underlying mpi4py
-from ComPASS.mpi import MPI as mpi
+from .mpi import MPI as mpi
+from ._kernel import get_kernel
 
 class Legacy:
 
     def __init__(self):
         # FIXME: should be put elsewhere
-        assert ComPASS.kernel
-        self.kernel = ComPASS.kernel
+        self.kernel = get_kernel()
         # FIXME: this rely on the residuals being allocated elsewhere
         #        and associated with fortran code
         assert ComPASS.mesh_is_local

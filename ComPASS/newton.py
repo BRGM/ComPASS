@@ -9,9 +9,10 @@
 from collections import namedtuple
 import numpy as np
 
-import ComPASS
-import ComPASS.mpi as mpi
-from ComPASS.newton_convergence import Legacy as LegacyConvergence
+import ComPASS  # needed for cpp wrappers
+from . import mpi
+from .newton_convergence import Legacy as LegacyConvergence
+from ._kernel import get_kernel
 
 class LinearSolver:
     
@@ -25,7 +26,7 @@ class LinearSolver:
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.restart_iteration = maxit if restart is None else restart
-        ComPASS.kernel.SolvePetsc_Ksp_configuration(
+        get_kernel().SolvePetsc_Ksp_configuration(
            self.tolerance, self.maximum_number_of_iterations,
            self.restart_iteration
        )
@@ -89,20 +90,18 @@ class Newton:
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
         self.relative_residuals = None
-        self.increments = ComPASS.kernel.NewtonIncrements()
+        self.increments = get_kernel().NewtonIncrements()
         self.increments.init()
         if not convergence_scheme: 
             self.convergence_scheme = LegacyConvergence()
 
     def reset_loop(self):
-        kernel = ComPASS.kernel
-        assert ComPASS.kernel
+        kernel = get_kernel()
         kernel.IncCV_LoadIncPreviousTimeStep()
         kernel.IncCVWells_PressureDrop()
 
     def init_iteration(self):
-        kernel = ComPASS.kernel
-        assert ComPASS.kernel
+        kernel = get_kernel()
         # Enforce Dirichlet values
         kernel.DirichletContribution_update()
         # Update well state
@@ -119,8 +118,7 @@ class Newton:
             kernel.Flux_FourierFlux_Frac()
     
     def increment(self):
-        kernel = ComPASS.kernel
-        assert ComPASS.kernel is not None
+        kernel = get_kernel()
 #        mpi.master_print('increment variables')
         ghosts_synchronizer = ComPASS.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
@@ -143,8 +141,7 @@ class Newton:
         kernel.NN_flash_all_control_volumes()
     
     def loop(self, dt):
-        kernel = ComPASS.kernel
-        assert ComPASS.kernel is not None
+        kernel = get_kernel()
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
         solver_fmk = self.solver_fmk

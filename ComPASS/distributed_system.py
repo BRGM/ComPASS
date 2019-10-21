@@ -1,7 +1,7 @@
 import numpy as np
 
 # access to underlying mpi4py
-from ComPASS.mpi import MPI as mpi
+from .mpi import MPI as mpi
 
 # A transitory structure to hold various information
 class DistributedSystem:

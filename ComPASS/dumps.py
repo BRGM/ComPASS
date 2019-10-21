@@ -9,15 +9,16 @@
 import os
 import numpy as np
 
-import ComPASS
-mpi = ComPASS.mpi
-create_directories = ComPASS.utils.create_directories
+import ComPASS  # needed for cpp wrappers
+from . import mpi
+from .utils import create_directories
+from .runtime import to_output_directory
 
 class Dumper:
 
     def __init__(self, output_directory=None):
         if output_directory is None:
-            output_directory = ComPASS.to_output_directory('')
+            output_directory = to_output_directory('')
         self.output_directory = os.path.abspath(output_directory)
         self.mesh_directory = os.path.join(self.output_directory, 'mesh')
         self.states_directory = os.path.join(self.output_directory, 'states')

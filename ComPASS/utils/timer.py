@@ -1,7 +1,7 @@
 import time
 
-import ComPASS.messages as message
-import ComPASS.mpi as mpi
+from .. import messages
+from .. import mpi
 
 class Timer:
 

@@ -7,7 +7,7 @@
 #
 
 import os
-from ComPASS import mpi
+from .. import mpi
 
 default_case_name = 'compass'
 

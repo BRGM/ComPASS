@@ -15,30 +15,34 @@ import copy
 import numpy as np
 
 # We must load mpi wrapper first so that MPI is  initialized before calling PETSC_Initialize
-import ComPASS.mpi as mpi
-import ComPASS.runtime as runtime
-import ComPASS.utils.filenames
-import ComPASS.dumps
-import ComPASS.messages as messages
-import ComPASS.newton
-import ComPASS.timestep
-from ComPASS.distributed_system import DistributedSystem
-from ComPASS.ghosts.synchronizer import Synchronizer
-from ComPASS.petsc import PetscElements
+from . import mpi
+from . import runtime
+from .utils import filenames as utils_filenames
+from . import dumps
+from . import messages
+from . import newton
+from . import timestep
+from .distributed_system import DistributedSystem
+from .ghosts.synchronizer import Synchronizer
+from .petsc import PetscElements
+from ._kernel import get_kernel
+
+from . import _kernel
 
 import MeshTools as MT
 import MeshTools.GridTools as GT
 from MeshTools.vtkwriters import vtk_celltype as vtk_celltype
 
-from ComPASS.RawMesh import RawMesh
+from .RawMesh import RawMesh
+from .runtime import to_output_directory
+
+import ComPASS  # needed for cpp wrappers
 
 # __variables__ with double-quoted values will be available in setup.py:
 __version__ = "4.1.0"
 
 initialized = False
 
-# CHECKME: There might be a more elegant way to do this
-kernel = None
 
 class SimulationInfo:
 
@@ -54,9 +58,8 @@ mesh_is_local = False
 info = SimulationInfo()
 
 def load_eos(eosname):
-    global kernel
-    assert kernel is None
-    kernel = importlib.import_module('ComPASS.eos.%s' % eosname)
+    assert _kernel.kernel is None
+    _kernel.kernel = kernel = importlib.import_module('ComPASS.eos.%s' % eosname)
     # CHECKME: we replace the behavior: from import ComPASS.eos.eosname import *
     #          there might be a more elegant way to do this
     gdict = globals()
@@ -65,11 +68,11 @@ def load_eos(eosname):
         if key not in gdict:
             gdict[key] = kdict[key]
     init_model()
-    ComPASS.timestep.kernel = kernel
+    timestep.kernel = kernel
 
 # FIXME: transient... to be set elsewhere
 def default_Newton():
-    assert kernel
+    get_kernel()
     # Legacy parameters
     # NB: you should remove 1 iteration in comparison with legacy values
     assert info.petsc is not None
@@ -80,7 +83,7 @@ def exit_eos_and_finalize():
     finalize()
 
 def set_output_directory_and_logfile(case_name):
-    runtime.output_directory, runtime.logfile = ComPASS.utils.filenames.output_directory_and_logfile(case_name)
+    runtime.output_directory, runtime.logfile = utils_filenames.output_directory_and_logfile(case_name)
 
 Grid = GT.GridInfo
 
@@ -119,6 +122,7 @@ def check_well_geometry(wells):
             messages.error(message, explanation=explanation)
 
 def init_and_load_mesh(mesh):
+    kernel = get_kernel()
     kernel.init_warmup(runtime.logfile)
     if mpi.is_on_master_proc:
         # this is a bit redundant but we want to rely entirely on MeshTools
@@ -166,6 +170,7 @@ def init_and_load_mesh(mesh):
             facetypes[:] = mesh.faces_vtk_ids().astype(np.int8, copy=False)
 
 def petrophysics_statistics_on_global_mesh(fractures):
+    kernel = get_kernel()
     if mpi.is_on_master_proc:
         for location in ['cell', 'fracture']:
             # TODO permeability and thermal_condutvity are tensors
@@ -195,6 +200,7 @@ def reshape_as_tensor_array(value, n, dim):
     return value
 
 def set_property_on_global_mesh(property, location, value, fractures=None):
+    kernel = get_kernel()
     buffer = np.array(
         getattr(kernel, 'get_%s_%s_buffer' % (location, property))(),
         copy = False,
@@ -217,6 +223,7 @@ def set_property_on_global_mesh(property, location, value, fractures=None):
         buffer[:] = value
 
 def set_petrophysics_on_global_mesh(properties, fractures):
+    kernel = get_kernel()
     if mpi.is_on_master_proc:
         kernel.global_mesh_allocate_petrophysics()
         useful_properties =  ['porosity', 'permeability']
@@ -241,7 +248,7 @@ def set_petrophysics_on_global_mesh(properties, fractures):
 def _process_dirichlet_flags(
     dirichlet_flags, location1, location2
 ):
-    assert ComPASS.mpi.is_on_master_proc
+    assert mpi.is_on_master_proc
     assert location1 is None or location2 is None
     # Node information is reset first ('i' flag)
     dirichlet_flags[:] = ord('i')
@@ -255,7 +262,8 @@ def _process_dirichlet_nodes(
     pressure_dirichlet_nodes,
     temperature_dirichlet_nodes
 ):
-    assert ComPASS.mpi.is_on_master_proc
+    kernel = get_kernel()
+    assert mpi.is_on_master_proc
     info = np.rec.array(global_node_info(), copy=False)
     _process_dirichlet_flags(
         info.pressure, dirichlet_nodes, pressure_dirichlet_nodes
@@ -301,6 +309,7 @@ def cell_distribution(colors):
     return domains, ghost_layers
 
 def part_mesh():
+    kernel = get_kernel()
     nparts = mpi.communicator().size
     if nparts>1:
         cell_colors = kernel.metis_part_graph(
@@ -313,6 +322,7 @@ def part_mesh():
 
 @mpi.on_master_proc
 def summarize_simulation():
+    kernel = get_kernel()
     print('  NbCell:      ', kernel.global_number_of_cells())
     # print('  NbFace:      ', NbFace)
     print('  NbNode:      ', kernel.global_number_of_nodes())
@@ -326,6 +336,7 @@ def summarize_simulation():
     print('  Ncpus :     ', mpi.communicator().size)
 
 def setup_VAG(properties):
+    kernel = get_kernel()
     omegas = {}
     for law in ('Darcy', 'Fourier'):
         for location in ('cell', 'fracture'):
@@ -358,7 +369,9 @@ def init(
     mesh_parts = None,
     **kwargs
 ):
-    assert not ComPASS.mesh_is_local
+    kernel = get_kernel()
+    global mesh_is_local
+    assert not mesh_is_local
     # here properties will just be used as a namespace
     properties = {}
     def call_if_callable(f):
@@ -435,7 +448,7 @@ def init(
             assert ucolors.min()>=0
             assert ucolors.max()<mpi.communicator().size
         kernel.init_phase2_partition(mesh_parts)
-    ComPASS.mesh_is_local = True
+    mesh_is_local = True
     mpi.synchronize()
     kernel.init_phase2_build_local_mesh()
     kernel.init_phase2_setup_contexts()
@@ -451,22 +464,28 @@ def init(
     atexit.register(exit_eos_and_finalize)
 
 def get_global_id_faces():
-   return np.array(kernel.get_global_id_faces_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_global_id_faces_buffer(), copy = False)
 
 def get_cell_permeability():
-   return np.array(kernel.get_cell_permeability_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_cell_permeability_buffer(), copy = False)
 
 def get_fracture_permeability():
-   return np.array(kernel.get_fracture_permeability_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_fracture_permeability_buffer(), copy = False)
 
 def get_cell_porosity():
-   return np.array(kernel.get_cell_porosity_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_cell_porosity_buffer(), copy = False)
 
 def get_cell_heat_source():
-   return np.array(kernel.get_cell_heat_source_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_cell_heat_source_buffer(), copy = False)
 
 def get_fracture_porosity():
-   return np.array(kernel.get_fracture_porosity_buffer(), copy = False)
+    kernel = get_kernel()
+    return np.array(kernel.get_fracture_porosity_buffer(), copy = False)
 
 def _compute_centers(points, elements):
     return np.array([
@@ -579,14 +598,11 @@ def set_fractures(faces):
     global_mesh_set_frac() # this will collect faces with flag -2 as fracture faces
 
 def output_visualization_files(iteration):
+    kernel = get_kernel()
     kernel.output_visu(iteration, runtime.output_directory)
 
-def to_output_directory(filename):
-    assert os.path.isdir(runtime.output_directory)
-    return os.path.abspath(os.path.join(runtime.output_directory, filename))
-
 def add_output_subdirectory(path):
-    target = ComPASS.to_output_directory(path)
+    target = to_output_directory(path)
     if mpi.is_on_master_proc:
        if not os.path.exists(target):
             os.makedirs(target)
@@ -623,6 +639,7 @@ def find_fracture_edges(faces):
     return  np.array(list(fracture_edges))
 
 def set_Neumann_faces(faces, Neumann):
+    kernel = get_kernel()
     faces = np.asarray(faces)
     if faces.dtype==np.bool:
         faces = np.nonzero(faces)[0]
@@ -630,6 +647,7 @@ def set_Neumann_faces(faces, Neumann):
     kernel.set_Neumann_faces(faces, Neumann)
 
 def set_Neumann_fracture_edges(edges, Neumann):
+    kernel = get_kernel()
     edges = np.asarray(edges)
     edges+= 1 # Fortran indexing starts at 1   
     kernel.set_Neumann_fracture_edges(edges, Neumann)
@@ -647,6 +665,7 @@ def context_index(context):
     return int(context)-1 # Fortran indexing
 
 def total_accumulation(reset_states=True):
+    kernel = get_kernel()
     # FIXME: reset_states is needed because we also use this function in legacy newton convergence
     if reset_states:
         # Enforce Dirichlet values

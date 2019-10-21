@@ -6,10 +6,10 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-import ComPASS
-import ComPASS.mpi as mpi
-from ComPASS.newton import KspFailure, IterationExhaustion, NewtonFailure
-from ComPASS.utils.units import time_string
+from . import mpi
+from .newton import KspFailure, IterationExhaustion, NewtonFailure
+from .utils.units import time_string
+from ._kernel import get_kernel
 
 # FIXME: computation time spent is to measured at the caller site
 # comptime_start = MPI_WTIME()
@@ -25,8 +25,7 @@ def try_timestep(
     deltat, newton, simulation_context,
 ):
     # CHECKME: do we need to retrieve kernel here???
-    kernel = ComPASS.kernel
-    assert ComPASS.kernel
+    kernel = get_kernel()
     kernel.IncCV_SaveIncPreviousTimeStep()
     kernel.IncCVWells_PressureDrop()
     try:
@@ -66,7 +65,6 @@ def make_one_timestep(
     else:
         raise AllAttemptsFailed(attempts)
     # CHECKME: do we need to retrieve kernel here???
-    kernel = ComPASS.kernel
-    assert ComPASS.kernel
+    kernel = get_kernel()
     kernel.DefFlashWells_TimeFlash()
     return deltat

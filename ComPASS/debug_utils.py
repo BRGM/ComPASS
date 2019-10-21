@@ -1,7 +1,7 @@
 import glob, re, os
 import numpy as np
 import MeshTools.vtkwriters as vtkw
-import ComPASS.mpi as mpi
+from . import mpi
 
 def extract_mesh(basename):
     info = []

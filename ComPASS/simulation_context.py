@@ -1,4 +1,4 @@
-import ComPASS
+
 
 class SimulationContext:
 

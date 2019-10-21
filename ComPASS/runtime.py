@@ -6,10 +6,16 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-#import ComPASS.utils.filenames
+import os
 
-#output_directory, logfile = ComPASS.utils.filenames.output_directory_and_logfile()
+# from .utils.filenames import output_directory_and_logfile
+
+#output_directory, logfile = output_directory_and_logfile()
 output_directory = None
 logfile = None
 
+
+def to_output_directory(filename):
+    assert os.path.isdir(output_directory)
+    return os.path.abspath(os.path.join(output_directory, filename))
 

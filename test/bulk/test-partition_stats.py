@@ -48,7 +48,7 @@ ComPASS.init(
 @ComPASS.mpi.on_master_proc
 def display_own_elements_number():
     for s in ['cells', 'faces', 'nodes', 'fractures']:
-        parts = getattr(ComPASS.kernel, 'nb_%s_own' % s)()
+        parts = getattr(ComPASS.get_kernel(), 'nb_%s_own' % s)()
         print('%s own:' % s, parts, 'total:', np.sum(parts))
 
 display_own_elements_number()

@@ -11,9 +11,9 @@ import sys
 import glob, os, re
 from optparse import OptionParser
 import numpy as np
-from ComPASS.dumps import Dumper
-from ComPASS.utils import create_directories
-from ComPASS.utils.units import year
+from .dumps import Dumper
+from .utils import create_directories
+from .utils.units import year
 import MeshTools.vtkwriters as vtkw
 
 

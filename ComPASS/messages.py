@@ -1,4 +1,4 @@
-import ComPASS.mpi as mpi
+from . import mpi
 
 def banner_message(s):
     return r'''

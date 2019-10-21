@@ -7,7 +7,7 @@
 #
 
 import numpy as np
-import ComPASS
+import ComPASS  # needed for cpp wrappers
 
 def create_vertical_well(xy, well_radius = None, zmin=None, zmax=None):
     x, y, z = ComPASS.coordinates(ComPASS.global_vertices())

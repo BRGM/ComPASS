@@ -8,14 +8,16 @@
 
 import numpy as np
 
-import ComPASS
-from ComPASS.utils.units import day, year
-from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
-from ComPASS.simulation_context import SimulationContext
-from ComPASS.utils.units import time_string
-import ComPASS.timestep as timestep
-mpi = ComPASS.mpi
-Dumper = ComPASS.dumps.Dumper
+from .utils.units import day, year
+from .timestep_management import FixedTimeStep, TimeStepManager
+from .simulation_context import SimulationContext
+from .utils.units import time_string
+from . import timestep
+from . import mpi
+from .dumps import Dumper
+
+import ComPASS  # needed for cpp wrappers
+
 
 def check_well_pressure():
     p_min, p_max = float('Inf'), -float('Inf')

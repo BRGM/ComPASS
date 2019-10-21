@@ -1,7 +1,7 @@
 import numpy as np
 
-import ComPASS
-import ComPASS.mpi as mpi
+import ComPASS  # needed for cpp wrappers
+from .. import mpi
 
 
 class EdgeTagger:
