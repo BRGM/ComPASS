@@ -1,4 +1,4 @@
-FROM registry.gitlab.inria.fr/charms/meshtools/run-environment:latest
+FROM registry.gitlab.inria.fr/charms/compass/run-environment:latest
 
 # The following two lines are necessary for the configuration of tzdata
 ENV TZ=Europe/Paris

@@ -1,4 +1,5 @@
 import sys
+import os
 import optparse
 import multiprocessing
 
@@ -30,6 +31,9 @@ parser.add_option("--pytest",
 parser.add_option("--bash",
                   action="store_true", dest="bash_session",
                   help="will enter a bash session executing the given command and overriding all other options")
+parser.add_option("--exec",
+                  action="store_true", dest="execute",
+                  help="will execute the given command through a bash shell overiding all other options")
 parser.add_option("--postprocess",
                   action="store_true", dest="postprocess_run",
                   help=("will run the ComPASS postprocess script overriding all other"
@@ -50,13 +54,18 @@ fi
 
 # This is the command to be substituted as the current process
 #print('Writing process file:', options.process_file)
-with open(options.process_file, 'w') as f:
+if options.bash_session and len(args)==0:
+    os.remove(options.process_file)
+else:
+  with open(options.process_file, 'w') as f:
     cmd = []
     if options.bash_session:
         if len(args)>0:
             # We open a sub shell if some commands are to be passed to the bash session
-            cmd.append('/bin/bash')
             cmd.extend(args)
+    elif options.execute:
+        cmd.extend(['/bin/bash', '-e'])
+        cmd.extend(args)
     elif options.postprocess_run:
         cmd.append('python3 -m ComPASS.postprocess')
         cmd.extend(['-'+s[1:] if s.startswith('/') else s for s in args])
@@ -71,3 +80,4 @@ with open(options.process_file, 'w') as f:
         cmd.extend(args)
     #print('Command:', ' '.join(cmd))
     print(' '.join(cmd), file=f)
+

@@ -19,8 +19,8 @@ EOL
 CUSTSHELL=/etc/compass/customize-session
 SIMSCRIPT=/etc/compass/simulation-process
 
-# creates a default file in case nothing is to be done
-echo "echo" > $SIMSCRIPT
+# we create e default script that is to be used when providing help
+echo "echo" > ${SIMSCRIPT}
 
 python3 /etc/compass/entrypoint.py \
     --customize-session $CUSTSHELL \
@@ -33,5 +33,8 @@ chown ${COMPASS_USER}:${COMPASS_USER} /localfs
 
 [ -f $CUSTSHELL ] && echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
 
-su-exec compass /bin/bash $SIMSCRIPT
-
+if [[ -f $SIMSCRIPT ]]; then
+    su-exec compass /bin/bash -e $SIMSCRIPT
+else
+    su-exec compass /bin/bash
+fi
