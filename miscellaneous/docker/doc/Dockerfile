@@ -13,6 +13,7 @@ RUN apt-get update \
     doxygen \
     graphviz \
  && apt-get clean \
+ && pip3 install --upgrade breathe \
  && pip3 install --upgrade recommonmark
 
 VOLUME /localfs
