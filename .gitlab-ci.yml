@@ -158,6 +158,8 @@ tag_release:
 
 pages:
   stage: documentation
+  only:
+    - develop
   tags:
     - build
   script:
@@ -168,5 +170,3 @@ pages:
   artifacts:
     paths:
     - public
-
-
