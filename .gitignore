@@ -20,6 +20,10 @@ build*
 *.pdf
 *.spl
 *.html
-Doxygen/html
-Doxygen/latex
+
+docs/doxygen/html
+docs/doxygen/xml
+docs/_build
+docs/python_reference
+public
 *.css
