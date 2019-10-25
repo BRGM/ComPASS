@@ -7,8 +7,3 @@ Installation instructions
 =========================
 
 .. include:: INSTALL.rst
-
-License
-=======
-
-.. include:: LICENSE.rst
