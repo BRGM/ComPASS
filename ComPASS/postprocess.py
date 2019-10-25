@@ -65,8 +65,8 @@ class MeshDistribution:
         return '\n'.join(
             [
                 '%s = %d'%(s, getattr(self, s)) for s in (
-                    nb_procs, nb_own_cells, nb_own_nodes,
-                    nb_own_faces, nb_own_fractures
+                    'nb_procs', 'nb_own_cells', 'nb_own_nodes',
+                    'nb_own_faces', 'nb_own_fractures'
                 )
             ]
         )
