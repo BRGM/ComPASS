@@ -1485,10 +1485,11 @@ contains
                 csrSR( JacBigA%Num(m) ) = m - JacBigA%Pt(rows)
              end do
 
+             ! A_sk
+             nz = JacBigA%Pt(rows) + csrSR(colk)
+
              if( IdNodeLocal(nums)%P /= "d" ) then
 
-                ! A_sk
-                nz = JacBigA%Pt(rows) + csrSR(colk)
                 do i=1, NbComp
                    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divK1(j,i) - divK2(j,i)
