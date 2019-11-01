@@ -892,7 +892,7 @@ contains
                - SmEg - SmFourierFlux
 #endif
 
-          ! node s is own
+          ! we consider the jacobian rows corresponding to node s when node s is own
           if( IdNodeLocal(nums)%Proc=="o") then
 
              rows = rowSR(s)
@@ -900,10 +900,10 @@ contains
                 csrSR( JacBigA%Num(m) ) = m - JacBigA%Pt(rows)
              end do
 
-             if( IdNodeLocal(nums)%P /= "d" ) then
+             ! A_sk, s is node, k is cell
+             nz = JacBigA%Pt(rows) + csrSR(colk)
 
-                ! A_sk, s is node, k is cell
-                nz = JacBigA%Pt(rows) + csrSR(colk)
+             if( IdNodeLocal(nums)%P /= "d" ) then
                 do i=1, NbComp
                    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                       JacBigA%Val(j,i,nz) = JacBigA%Val(j,i,nz) - divK1(j,i) - divK2(j,i)
