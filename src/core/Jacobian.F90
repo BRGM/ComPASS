@@ -358,47 +358,8 @@ contains
     !> 3.5 loop of FreeFlow Nodes
     call Jacobian_JacBigA_BigSm_FF_node
 #endif
-
-    !> 4. Dirichlet in Jacobian
-    do s=1, NbNodeOwn_Ncpus(commRank+1)
-
-       ! Darcy dir
-       if(IdNodeLocal(s)%P=="d") then
-
-          ! the diagonal element (s,s) is JacBigA(nz)
-          do i=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
-             if( JacBigA%Num(i)==s) then
-                nz = i
-                exit
-             end if
-          end do
-
-          ! Identity matrix for Darcy
-          ! JacBigA%Val(:,:,nz) = 0.d0
-          do j=1, NbComp
-             JacBigA%Val(j,j,nz) = 1.d0
-          end do
-       end if
-
-#ifdef _THERMIQUE_
-
-       ! Fourier dir
-       if(IdNodeLocal(s)%T=="d") then
-
-          ! the diagonal element (s,s) is JacBigA(nz)
-          do i=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
-             if( JacBigA%Num(i)==s) then
-                nz = i
-                exit
-             end if
-          end do
-
-          ! Identity for Fourier
-          JacBigA%Val(NbComp+1,NbComp+1,nz) = 1.d0
-       end if
-#endif
-
-    end do
+    
+    call Jacobian_JacBigA_BigSm_dirichlet_nodes
 
     ! if(commRank==1) then
 
@@ -447,6 +408,53 @@ contains
 
   end subroutine Jacobian_JacBigA_BigSm
 
+  subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
+
+      integer :: i, j, s, nz
+   
+      do s=1, NbNodeOwn_Ncpus(commRank+1)
+
+#ifdef _THERMIQUE_
+         if(IdNodeLocal(s)%P=="d".or.IdNodeLocal(s)%T=="d") then
+#else
+         if(IdNodeLocal(s)%P=="d") then
+#endif
+            ! the diagonal element (s,s) is JacBigA(nz)
+            do i=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
+               if( JacBigA%Num(i)==s) then
+                  nz = i
+                  exit
+               end if
+            end do
+         end if
+
+         if(IdNodeLocal(s)%P=="d") then
+            ! Identity matrix for Darcy
+#ifndef NDEBUG
+            if(.not.all(JacBigA%Val(1:NbComp,1:NbComp,nz)==0.d0)) then
+               call CommonMPI_abort("inconsitent inital value for jacobian of Darcy dirichlet conditions")
+            end if
+#endif
+            do j=1, NbComp
+               JacBigA%Val(j,j,nz) = 1.d0
+            end do
+         end if
+
+#ifdef _THERMIQUE_
+         if(IdNodeLocal(s)%T=="d") then
+            ! Identity for Fourier
+#ifndef NDEBUG
+            if(.not.(all(JacBigA%Val(NbComp+1,:,nz)==0.d0).and.all(JacBigA%Val(:,NbComp+1,nz)==0.d0))) then
+               call CommonMPI_abort("inconsitent inital value for jacobian of Fourier dirichlet conditions")
+            end if
+#endif
+            JacBigA%Val(NbComp+1,NbComp+1,nz) = 1.d0
+         end if
+#endif
+
+      end do
+
+   end subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
 
   !> \brief Sub-subroutine of Jacobian_JacBigA_BigSm for term n_k(X_j^n)
   subroutine Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
