@@ -249,26 +249,13 @@ contains
 
       integer :: k
 
-      ! Residu for dir node should be reset as 0 for computing norm of Residu
-#ifdef _THERMIQUE_
-      do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
-
-         if (IdNodeLocal(k)%P == "d") then
-            ResiduNode(1, k) = 0.d0
-            ResiduNode(3:NbCompThermique, k) = 0.d0
-         end if
-
-         if (IdNodeLocal(k)%T == "d") then
-            ResiduNode(2, k) = 0.d0
-         end if
-      end do
-#else
+      ! Residu for dirichlet node should be reset to 0 for computing norm of Residu
       do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-         if (IdNodeLocal(k)%P == "d") then
-            ResiduNode(1:NbCompThermique, k) = 0.d0
-         end if
-      end do
+         if (IdNodeLocal(k)%P == "d") ResiduNode(1:NbComp, k) = 0.d0
+#ifdef _THERMIQUE_
+         if (IdNodeLocal(k)%T == "d") ResiduNode(NbCompThermique, k) = 0.d0
 #endif
+      end do
 
    end subroutine Residu_reset_Dirichlet_nodes
 
