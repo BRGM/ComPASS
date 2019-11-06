@@ -26,10 +26,9 @@ Then: cd build; cmake ..
 --------------------------------")
 endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 
-## FIXME: to be removed ! not portable
-# set(CMAKE_Fortran_COMPILER mpifort)
-# set(CMAKE_C_COMPILER mpicc)
-# set(CMAKE_CXX_COMPILER mpicxx)
+# Cf. cmake documentation on RPATH and the related FAQ
+# https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling#common-questions
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
