@@ -1,0 +1,40 @@
+# -- Readme first
+# This is a template file to be used if you need to tweak compilation options
+# In such situation rename this file to config.cmake in this directory
+# and uncomment and edit the lines that are relevant to your needs.  
+# You can also add new lines to override any variable that is in the cmake CACHE.
+# The setup.py script, located in the top-level directory 
+# will check for an existing cmake/config.cmake file, and if present,
+# it will pass it to cmake through the "-C" options to override cache variables
+# (cf. https://cmake.org/cmake/help/latest/manual/cmake.1.html)
+# The config/config.cmake file is not to be tracked by git (it is added to .gitgnore)
+# so that your personal configuration does not impact other people.
+
+# -- Set the build configuration: Debug, Release...
+# set(CMAKE_BUILD_TYPE Release CACHE STRING "The CMake build type.")
+
+# -- MPI configuration
+# set(MPIDIR /my/path CACHE PATH "path to MPI library")
+
+# -- PETSc configuration
+# set(PETSC_DIR /my/path CACHE PATH "path to PETSc library")
+# set(PETSC_ARCH arch-linux-c-opt CACHE STRING "PETSc arch")
+
+# -- MPI compiler wrappers (mainly used to find PETSc libraries)
+# set(CC ${MPIDIR}/bin/mpicc CACHE FILEPATH "mpi wraper for the C compiler")
+# set(CXX ${MPIDIR}/bin/mpicxx CACHE FILEPATH "mpi wraper for the C++ compiler")
+# set(FC ${MPIDIR}/bin/mpifort CACHE FILEPATH "mpi wraper for the Fortran compiler")
+
+# -- Tweaks physics
+# set(DEF_THERMIQUE ON CACHE BOOL "Activate energy transfer.")
+# set(ComPASS_WITH_diphasic_PHYSICS ON CACHE BOOL "Compiles diphasic eos module.")
+# set(ComPASS_WITH_immiscible2ph_PHYSICS ON CACHE BOOL "Compiles subcritical 2 immiscible phases eos module.")
+# set(ComPASS_WITH_linear_water_PHYSICS ON CACHE BOOL "Compiles simplified water eos module.")
+# set(ComPASS_WITH_water2ph_PHYSICS ON CACHE BOOL "Compiles subcritical 2 phases pure water eos module.")
+
+# -- Work in progress
+# set(DEF_FREEFLOW_STRUCTURES OFF CACHE BOOL "Advanced atmospheric boundary conditions.")
+# set(ComPASS_WITH_diphasic_Freeflow_PHYSICS ON CACHE BOOL "Compiles advanced atmospheric boundary conditions eos module.")
+
+# -- Experimental features
+# set(ComPASS_COMPILES_EXPERIMENTAL_PARTS OFF CACHE BOOL "Compiles experimental features.")
