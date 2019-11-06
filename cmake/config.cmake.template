@@ -1,14 +1,24 @@
-# -- Readme first
+# Peronnal CMake configuration file -------------------------------------------
+
 # This is a template file to be used if you need to tweak compilation options
 # In such situation rename this file to config.cmake in this directory
 # and uncomment and edit the lines that are relevant to your needs.  
 # You can also add new lines to override any variable that is in the cmake CACHE.
+
 # The setup.py script, located in the top-level directory 
 # will check for an existing cmake/config.cmake file, and if present,
 # it will pass it to cmake through the "-C" options to override cache variables
 # (cf. https://cmake.org/cmake/help/latest/manual/cmake.1.html)
 # The config/config.cmake file is not to be tracked by git (it is added to .gitgnore)
 # so that your personal configuration does not impact other people.
+
+# One of the advantages of defining a config.cmake file is that you can
+# preserve specific configurations even when removing the build directory and the
+# CMakeCache.txt file it contains.
+# You can also have different files e.g. config-devel.cmake, config-release.cmake... 
+# and switch between configurations modifying a symbolic link to config.cmake
+
+# -----------------------------------------------------------------------------
 
 # -- Set the build configuration: Debug, Release...
 # set(CMAKE_BUILD_TYPE Release CACHE STRING "The CMake build type.")
