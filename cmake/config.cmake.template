@@ -31,9 +31,9 @@
 # set(PETSC_ARCH arch-linux-c-opt CACHE STRING "PETSc arch")
 
 # -- MPI compiler wrappers (mainly used to find PETSc libraries)
-# set(CC ${MPIDIR}/bin/mpicc CACHE FILEPATH "mpi wraper for the C compiler")
-# set(CXX ${MPIDIR}/bin/mpicxx CACHE FILEPATH "mpi wraper for the C++ compiler")
-# set(FC ${MPIDIR}/bin/mpifort CACHE FILEPATH "mpi wraper for the Fortran compiler")
+# set(CMAKE_C_COMPILER ${MPIDIR}/bin/mpicc CACHE FILEPATH "mpi wraper for the C compiler")
+# set(CMAKE_CXX_COMPILER ${MPIDIR}/bin/mpicxx CACHE FILEPATH "mpi wraper for the C++ compiler")
+# set(CMAKE_Fortran_COMPILER ${MPIDIR}/bin/mpifort CACHE FILEPATH "mpi wraper for the Fortran compiler")
 
 # -- Tweaks physics
 # set(DEF_THERMIQUE ON CACHE BOOL "Activate energy transfer.")
