@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 import importlib
 import site
 from optparse import OptionParser
@@ -18,18 +19,19 @@ options, args = parser.parse_args()
 
 
 def add_pth_file_to_user_site(mname, mpath, message=True):
-    if not os.path.isdir(mpath):
-        print('directory does not exist')
+    mpath = Path(mpath)
+    if not mpath.is_dir():
+        print(f'{mpath} directory does not exist')
         sys.exit(-1)
-    user_site = site.getusersitepackages()
-    if not os.path.isdir(user_site):
-        assert not os.path.exists(user_site)
-        os.makedirs(user_site)
+    user_site = Path(site.getusersitepackages())
+    if not user_site.is_dir():
+        assert not user_site.exists()
+        user_site.mkdir()
+    pthfile = user_site / f'{mname}.pth'
     if message:
-        print('setting', mname, 'module path to', mpath)
-    pthfile = os.path.join(user_site, mname + '.pth')
-    with open(pthfile, 'w') as f:
-        print(mpath, file=f)
+        print(f'Setting {mname} module path to {mpath} via user site file: {pthfile}')
+    with pthfile.open('w') as f:
+        print(mpath.resolve(), file=f)
 
 
 def add(mname, mpath):
@@ -52,6 +54,8 @@ def add(mname, mpath):
             print('WARNING: changing', mname, 'directory',
                   'from:', mfoundpath, 'to:', mpath)
             add_pth_file_to_user_site(mname, mpath, message=False)
+        else:
+            print('ComPASS.pth is already set to:', mpath)
     else:
         add_pth_file_to_user_site(mname, mpath)
 

@@ -169,3 +169,22 @@ install(EXPORT ComPASS DESTINATION share/cmake/)
 # to use them you will need to reference the build tree 
 # cf. https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/Exporting-and-Importing-Targets
 export(EXPORT ComPASS FILE share/cmake/compass-exports.cmake)
+
+# The following is an option to revert to old build/install strategy
+# Please be aware it will add a .pth file to your local python user site
+# (to know where it is type: python -m site --user-site)
+# and you are responsible for this file (and possible side effects)
+option(ComPASS_USES_OLD_INSTALL "Use old manual build/install strategy through cmake." OFF)
+if(ComPASS_USES_OLD_INSTALL)
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip list OUTPUT_VARIABLE PIP_OUTPUT)
+  string(FIND ${PIP_OUTPUT} ComPASS ComPASS_IS_INSTALLED_WITH_PIP)
+  if(${ComPASS_IS_INSTALLED_WITH_PIP} GREATER_EQUAL 0)
+    message(FATAL_ERROR "\r
+      It seems that ComPASS has already been installed using pip.\r
+      Before reverting to old style installation please uninstall ComPASS using pip:\r\r
+      ${PYTHON_EXECUTABLE} -m pip uninstall ComPASS\r"
+    )
+  endif(${ComPASS_IS_INSTALLED_WITH_PIP} GREATER_EQUAL 0)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH "CMake install prefix" FORCE)
+  install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" configure_user_site.py --add ComPASS \"${CMAKE_SOURCE_DIR}\" WORKING_DIRECTORY \"${COMPASS_CONFIG_DIRECTORY}\")")
+endif(ComPASS_USES_OLD_INSTALL)
