@@ -990,23 +990,15 @@ contains
          !    then this phase is eliminated
          ! else last saturation is eliminated, the others are prim (in reservoir dof)
          !    eliminated S = - sum_{S^alpha is prim} S^alpha
-         if( NbPhasePresente==1) then
-
-            ! iph is this phase in (P,T,C,S,n_i)
-            iph = NbIncPTC + NumPhasePresente_ctx(1,ic)
-            var_inc(iph,k) = 0.d0 !> \todo FIXME: is usefull, because wrong numerotation of FreeFlow sat
-         else
-
-            ! iph is last present phase in vector (P,T,C,S,n_i)
-            iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
-            var_inc(iph,k) = 0.d0
-            do i=1, NbPhasePresente-1
-               var_inc(iph,k) = var_inc(iph,k) - xp(NbIncPTCPrim+i)
-            end do
-         end if
+         ! iph is last present phase in vector (P,T,C,S,n_i)
+         iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
+         var_inc(iph,k) = 0.d0 !> \todo FIXME: is usefull, because wrong numerotation of FreeFlow sat
+         do i=1, NbPhasePresente-1
+            var_inc(iph,k) = var_inc(iph,k) - xp(NbIncPTCPrim+i)
+         end do
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-         if(k<=NbNodeLocal .and. IdFFNodeLocal(k) .and. NbPhasePresente>1) then ! loop over freeflow dof only, avoid reservoir node
+         if(ic>2**NbPhase-1 .and. NbPhasePresente>1) then ! FIXME: loop over freeflow dof only, avoid reservoir node
             ! Correct the value for the last saturation 
             ! Remark : it is possible that no saturation belongs to the unknowns (when liquid outflow)
             iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente,ic)
@@ -1020,7 +1012,7 @@ contains
             enddo
          endif
 
-         if(k<=NbNodeLocal .and. IdFFNodeLocal(k)) then !ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+         if(ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
             !> \todo FIXME: change the numbering in DefModel to remove this part
             !! Correct the value of var_inc because the eliminated saturation is inserted in the index 
             !! whereas it is not counted in the numbering in DefModel

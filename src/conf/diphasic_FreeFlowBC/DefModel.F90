@@ -144,7 +144,7 @@ integer, parameter :: &
 #ifdef _THERMIQUE_
       ! reservoir dof
       P, T, 3, & ! GAS_CONTEXT=1       P=1, T=2, Cga=3, Cgw=4
-      P, T, 4, & ! LIQUID_CONTEXT=2    P=1, T=2, Cla=3, Clw=4
+      P, T, 3, & ! LIQUID_CONTEXT=2    P=1, T=2, Cla=3, Clw=4
       P, T, 7, & ! DIPHASIC_CONTEXT=3  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
       ! FF dof : NO_LIQUID_OUTFLOW
       T, 3, 5,  & ! GAS_FF_NO_LIQ_OUTFLOW_CONTEXT=4       P=1, T=2, Cga=3, Cgw=4, freeflow_gas_flowrate=5
@@ -164,7 +164,7 @@ integer, parameter :: &
 #ifdef _THERMIQUE_
        ! reservoir dof
        4, 0, 0, 0, 0, & ! GAS_CONTEXT=1       P=1, T=2, Cga=3, Cgw=4
-       3, 0, 0, 0, 0, & ! LIQUID_CONTEXT=2    P=1, T=2, Cla=3, Clw=4
+       4, 0, 0, 0, 0, & ! LIQUID_CONTEXT=2    P=1, T=2, Cla=3, Clw=4
        3, 4, 5, 6, 0, & ! DIPHASIC_CONTEXT=3  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
        ! FF dof : NO_LIQUID_OUTFLOW
        P, 4, 0, 0, 0, & ! GAS_FF_NO_LIQ_OUTFLOW_CONTEXT=4       P=1, T=2, Cga=3, Cgw=4, freeflow_gas_flowrate=5

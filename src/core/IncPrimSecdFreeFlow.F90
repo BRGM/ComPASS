@@ -92,7 +92,7 @@ contains
   end subroutine IncPrimSecdFreeFlow_compute
 
 
-  ! all operations for a set of cv
+  ! all operations for a set of cv (called with nodes only)
   subroutine IncPrimSecdFreeFlow_compute_cv( &
        NbIncLocal, &
        inc, rt, &

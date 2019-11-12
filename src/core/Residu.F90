@@ -772,10 +772,6 @@ contains
          FluxT_FreeFlow = FluxT_FreeFlow &
                + SurfFreeFlowLocal(nums) * FreeFlowHTTemperatureNetRadiationNode(nums)
          ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_FreeFlow
-
-            ! if(XNodeLocal(3, nums)>=1000.d0) then
-            !    print*,"in compute flux residu evap from atm energy", FluxT_FreeFlow, "should not be 0"
-            ! endif
 #endif
 
          ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_FreeFlow(1:NbComp)

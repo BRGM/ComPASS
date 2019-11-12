@@ -19,7 +19,7 @@ module Physics
     real(c_double) :: atm_comp(2, 2) = &
                                     RESHAPE((/ &
                                         0.999d0, 1.d-3, & ! gas
-                                        0.d0,    1.d0   & ! liquid
+                                        0.01d0,    0.99d0   & ! liquid
                                     /), (/2, 2/))
     ! Convective-diffusive boundary layer constants
     real(c_double) :: Hm(2) = RESHAPE((/ 20.d0/29.d0, &  ! gas Convective-diffusive const of the FreeFlow boundary layer

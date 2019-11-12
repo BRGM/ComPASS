@@ -753,15 +753,6 @@ contains
          rowSR( NbNodeCellMax+NbFracCellMax), & ! rows (in JacBigA) of nodes/frac in cell k
          colSR( NbNodeCellMax+NbFracCellMax)    ! cols (in JacBigA) of nodes/frac in cell k
 
-    divK1(:,:) = 0.d0
-    divS1(:,:) = 0.d0
-    divK2(:,:) = 0.d0
-    divS2(:,:) = 0.d0
-    divR2(:,:,:) = 0.d0
-
-    csrK(:) = 0
-    csrSR(:) = 0
-
     ! main loop of cell
     do k=1, NbCellLocal_Ncpus(commRank+1)
 
@@ -774,6 +765,7 @@ contains
        call Jacobian_RowCol_KSR(k, nbNodeCell, nbFracCell, &
             rowk, colk, rowSR, colSR)
 
+       csrK(:) = 0
        do m=JacBigA%Pt(rowk)+1, JacBigA%Pt(rowk+1)
           csrK( JacBigA%Num(m) ) = m - JacBigA%Pt(rowk)
        end do
@@ -903,6 +895,7 @@ contains
           ! we consider the jacobian rows corresponding to node s when node s is own
           if( IdNodeLocal(nums)%Proc=="o") then
 
+             csrSR(:) = 0
              rows = rowSR(s)
              do m=JacBigA%Pt(rows)+1, JacBigA%Pt(rows+1)
                 csrSR( JacBigA%Num(m) ) = m - JacBigA%Pt(rows)
@@ -1163,6 +1156,7 @@ contains
           ! its corresponding face num <= NbFaceOwn
           if( FracToFaceLocal(nums)<=NbFaceOwn_Ncpus(commRank+1)) then
 
+             csrSR(:) = 0
              rows = rowSR(sf)
 
              do m=JacBigA%Pt(rows)+1, JacBigA%Pt(rows+1)
@@ -1366,15 +1360,6 @@ contains
     integer :: m
     integer :: nbNodeFrac
 
-    divK1(:,:) = 0.d0
-    divS1(:,:) = 0.d0
-    divK2(:,:) = 0.d0
-    divS2(:,:) = 0.d0
-    divR2(:,:,:) = 0.d0
-
-    csrK(:) = 0
-    csrSR(:) = 0
-
     do k=1, NbFracLocal_Ncpus(commRank+1)
 
        fk = FracToFaceLocal(k) ! fk is face num
@@ -1383,6 +1368,7 @@ contains
        call Jacobian_RowCol_FR(k, nbNodeFrac, &
             rowk, colk, rowSR, colSR)
 
+       csrK(:) = 0
        do m=JacBigA%Pt(rowk)+1, JacBigA%Pt(rowk+1)
           csrK( JacBigA%Num(m) ) = m - JacBigA%Pt(rowk) ! CHECKME: m: 1 -> NbCompThermique ?
        end do
@@ -1488,6 +1474,7 @@ contains
           ! node s is own
           if(IdNodeLocal(nums)%Proc=="o") then
 
+             csrSR(:) = 0
              rows = rowSR(s)
              do m=JacBigA%Pt(rows)+1, JacBigA%Pt(rows+1)
                 csrSR( JacBigA%Num(m) ) = m - JacBigA%Pt(rows)
@@ -3156,6 +3143,8 @@ contains
     integer :: r, numr, rf, j, m, mph
     double precision :: sum_aks, sum_aksgz
 
+    divDarcyFlux_k(:,:) = 0.d0
+    divDarcyFlux_s(:,:) = 0.d0
     divDarcyFlux_r(:,:,:) = 0.d0
     SmDarcyFlux(:) = 0.d0
 
@@ -3381,6 +3370,8 @@ contains
     integer :: r, numr, j, m, mph, sf, rf
     double precision :: sum_aks, sum_aksgz
 
+    divDarcyFlux_k(:,:) = 0.d0
+    divDarcyFlux_s(:,:) = 0.d0
     divDarcyFlux_r(:,:,:) = 0.d0
     SmDarcyFlux(:) = 0.d0
 
@@ -3591,6 +3582,8 @@ contains
     integer :: r, numr, j, m, mph, fk
     double precision :: sum_aks, sum_aksgz
 
+    divDarcyFlux_k(:,:) = 0.d0
+    divDarcyFlux_s(:,:) = 0.d0
     divDarcyFlux_r(:,:,:) = 0.d0
     SmDarcyFlux(:) = 0.d0
 
@@ -4221,6 +4214,10 @@ contains
 
     double precision :: sum_aks
 
+    divFourierFlux_k(:) = 0.d0
+    divFourierFlux_r(:,:) = 0.d0
+    SmFourierFlux = 0.d0
+
     ! number of nodes/fracs in cell k
     NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
     NbFracCell = FracbyCellLocal%Pt(k+1) - FracbyCellLocal%Pt(k)
@@ -4284,6 +4281,10 @@ contains
     integer :: NbNodeCell, NbFracCell
 
     double precision :: sum_aks
+
+    divFourierFlux_k(:) = 0.d0
+    divFourierFlux_r(:,:) = 0.d0
+    SmFourierFlux = 0.d0
 
     ! number of nodes/fracs in cell k
     NbNodeCell = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
@@ -4350,6 +4351,10 @@ contains
     integer :: NbNodeFrac
 
     double precision :: sum_aks
+
+    divFourierFlux_k(:) = 0.d0
+    divFourierFlux_r(:,:) = 0.d0
+    SmFourierFlux = 0.d0
 
     fk = FracToFaceLocal(k) ! fk is num face
 
@@ -4495,7 +4500,13 @@ contains
              print*, "Regularization error: icp=0"
              write(*,'(A,4I8)') "    row/col/i/commRank=", rowk, colk, i, commRank
              errcode = 52
-             write(*,*) "j ", j, "cv ", cv, " ic ", IncCell(k)%ic
+             if(cv .eq.'n') then ! node
+               write(*,*) "j ", j, "cv ", cv, " ic ", IncNode(k)%ic
+            else if(cv .eq. 'f') then ! fracs
+               write(*,*) "j ", j, "cv ", cv, " ic ", IncFrac(k)%ic
+            else if(cv .eq. 'c') then ! cell
+               write(*,*) "j ", j, "cv ", cv, " ic ", IncCell(k)%ic
+            endif
              write(*,*) "sumcol ", sumcol
              write(*,*) "i", i
              ! write(*,*) "x ", XFaceLocal(:,FracToFaceLocal(k))

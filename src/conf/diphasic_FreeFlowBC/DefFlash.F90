@@ -42,7 +42,7 @@ contains
       integer, intent(in) :: rt(IndThermique + 1)
       double precision, intent(in) :: porovol ! porous volume
 
-      integer :: iph, ic
+      integer :: iph, ic, i
       double precision :: T, f(NbPhase)
       double precision :: S(NbPhase), Pc, DSPc(NbPhase)
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
@@ -77,29 +77,40 @@ contains
             inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(GAS_PHASE) = 0.d0
             inc%Saturation(LIQUID_PHASE) = 1.d0
-            inc%Comp(AIR_COMP,GAS_PHASE) = min(max(inc%Comp(AIR_COMP,GAS_PHASE), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,GAS_PHASE) = 1.d0 - inc%Comp(AIR_COMP,GAS_PHASE)
+            ! force comp to be in [0,1]
+            do i=1,NbComp
+               inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+            enddo
 
          endif
+
+         ! force comp to be in [0,1]
+         do i=1,NbComp
+            inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
+         enddo
+
 
       elseif (ic == DIPHASIC_CONTEXT) then
 
          if (S(GAS_PHASE) < 0.d0) then
+            ! write(*,*)' disappearance gas ', Pg, T
             inc%ic = LIQUID_CONTEXT
             inc%Saturation(GAS_PHASE) = 0.d0
             inc%Saturation(LIQUID_PHASE) = 1.d0
 
          elseif (S(LIQUID_PHASE) < 0.d0) then
+            ! write (*, *) ' disappearance liquid ', Pg, T
             inc%ic = GAS_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
 
          endif
 
-         ! force comp to be in [0,1] and sum equal to 1
+         ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            inc%Comp(AIR_COMP,iph) = min(max(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
+            do i=1,NbComp
+               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            enddo
          enddo
 
       elseif (ic == GAS_CONTEXT) then
@@ -116,13 +127,20 @@ contains
          Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 
          if(Cal + Cwl > 1.d0) then
+            ! write(*,*)' appearance liquid '
             inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
-            Cal = min(max(Cal, 0.d0), 1.d0)
-            inc%Comp(AIR_COMP,LIQUID_PHASE) = Cal
-            inc%Comp(WATER_COMP,LIQUID_PHASE) = 1.d0 - Cal
+            ! force comp to be in [0,1]
+            do i=1,NbComp
+               inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
+            enddo
          endif
+
+         ! force comp to be in [0,1]
+         do i=1,NbComp
+            inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+         enddo
 
       ! FREEFLOW BC DOF
       elseif (ic == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
@@ -142,16 +160,20 @@ contains
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
-            ! force comp to be in [0,1] and sum equal to 1
-            do iph = 1, NbPhase
-               inc%Comp(AIR_COMP,iph) = min(max(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
-               inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
+            ! force comp to be in [0,1]
+            do i=1,NbComp
+               inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
             enddo
          endif
+         ! force comp to be in [0,1]
+         do i=1,NbComp
+            inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+         enddo
 
       elseif (ic == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
          if (S(GAS_PHASE) < 0.d0) then ! because there is no entry pressure in the atmosphere
+            ! write(*,*)' appearance liquid outflow in Freeflow BC', Pg, T
             inc%ic = DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
             ! important to set the following saturations
             ! because they are not unknowns in this context
@@ -160,30 +182,33 @@ contains
             inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
 
          elseif (S(LIQUID_PHASE) < 0.d0) then
+            ! write (*, *) ' disappearance liquid phase in Freeflow BC', Pg, T
             inc%ic = GAS_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
 
          endif
 
-         ! force comp to be in [0,1] and sum equal to 1
+         ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            inc%Comp(AIR_COMP,iph) = min(max(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
+            do i=1,NbComp
+               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            enddo
          enddo
 
       elseif (ic == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
 
          if(inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then
-            ! write(*,*)' disappearance liquid outflow '
+            ! write(*,*)' disappearance liquid outflow in Freeflow BC'
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
          endif
 
-         ! force comp to be in [0,1] and sum equal to 1
+         ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            inc%Comp(AIR_COMP,iph) = min(max(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
+            do i=1,NbComp
+               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            enddo
          enddo
    
       else

@@ -791,7 +791,7 @@ contains
 
   ! loop over each local element, called only with nodes
   do k=1, NbIncLocal
-     
+     ! subroutine only called with nodes
      if(.not. IdFFNodeLocal(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
 
     ! init tmp values for each cv
@@ -855,7 +855,7 @@ contains
 
     ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
     !       liquid-> Enthalpie(liquid) of the far field atmosphere
-    call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie)
+    call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie(:,k))
 #endif
   end do ! k
 
