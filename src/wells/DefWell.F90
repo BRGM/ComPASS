@@ -303,6 +303,66 @@ contains
 
    end subroutine DefWell_Make
 
+   ! FIXME: this is a convenience function that should be elsewhere
+   subroutine element_center(vertices, connectivity, element, xc)
+      double precision, intent(in) :: vertices(:, :)
+      type(CSR), intent(in) :: connectivity
+      integer, intent(in) :: element
+      double precision, intent(inout) :: xc(3)
+      
+      integer :: m
+
+      xc = 0.d0
+      do m = connectivity%Pt(element) + 1, connectivity%Pt(element + 1)
+         xc = xc + vertices(:, connectivity%Num(element))
+      enddo
+      xc = xc / dble( connectivity%Pt(element + 1) - connectivity%Pt(element) )
+   
+   end subroutine element_center
+
+   subroutine compute_peaceman_indices(                   &
+      sum_distances, sum_permeabilities, nb_contributors, &
+      thickness, well_radius, well_index                  &
+   )
+      double precision, intent(in) :: sum_distances, sum_permeabilities
+      integer, intent(in) :: nb_contributors
+      double precision, intent(in) :: well_radius, thickness
+      double precision, intent(out) :: well_index
+      
+      double precision, parameter :: Pi = 3.14159265359d0
+      double precision :: d, k, peaceman_radius
+      double precision :: wi_max
+
+      d = sum_distances / dble( nb_contributors )
+      k = sum_permeabilities / dble( nb_contributors )
+#ifndef NDEBUG
+      if(d<=0) call CommonMPI_abort('negative distance')
+      if(k<=0) call CommonMPI_abort('negative permeability')
+#endif
+      peaceman_radius = 0.14036d0 * dsqrt(2.d0) * d
+      well_index = thickness * Pi * k / log(peaceman_radius / well_radius)
+            
+      if(peaceman_radius < well_radius) &
+         call CommonMPI_abort('Peaceman Well radius is smaller than effective well radius (negative well index).')
+      
+      if(DefWell_has_WI_threshold) then
+         if(peaceman_radius < 2 * well_radius) then
+             wi_max = thickness * Pi * k / log(2d0)
+             write(*,*) 'WARNING'
+             write(*,*) 'WARNING'
+             write(*,*) ''
+             write(*,*) 'Applying threshold on Peaceman Well Index'
+             write(*,*) 'well radius', well_radius, 'vs. Peaceman radius', peaceman_radius
+             write(*,*) 'well index', well_index, 'well index limit', wi_max
+             write(*,*) ''
+             write(*,*) 'WARNING'
+             write(*,*) 'WARNING'
+             well_index = wi_max
+         end if
+       end if
+
+   end subroutine compute_peaceman_indices
+
    ! Output:
    !  NodeDatabyWell%Val%WI
    ! Use:
@@ -330,20 +390,15 @@ contains
       double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
       double precision, allocatable, dimension(:), intent(in) :: PermFrac
 
-      integer :: i, j, k, kp, m, num_node, num_parent, &
+      integer :: i, j, k, kp, num_node, num_parent, &
                  num_cell, num_face, comptCell, comptFrac
       logical :: cell_edge
-      double precision :: meanDist, meanPerm, meanThickness, dr0, de, wi, length
-      double precision :: wi_min
+      double precision :: meanDist, meanPerm, meanThickness, edge_length, wi, length
       double precision, dimension(3) :: xn1, xn2, xk
       double precision, allocatable, dimension(:) :: WI_global
 
-      double precision, parameter :: Pi = 3.14159265359d0
-
       allocate (WI_global(NbNode))
       WI_global(:) = 0.d0
-
-      ! computation of Well Index Darcy
 
       !! MATRIX
       do i = 1, NbWell
@@ -351,10 +406,8 @@ contains
          do j = NodeDatabyWell%Pt(i) + 1, NodeDatabyWell%Pt(i + 1) - 1
             num_node = NodeDatabyWell%Num(j)
             num_parent = NodeDatabyWell%Val(j)%Parent
-
-            xn1(1:3) = XNode(1:3, num_node)
-            xn2(1:3) = XNode(1:3, num_parent)
-
+            xn1 = XNode(:, num_node)
+            xn2 = XNode(:, num_parent)
             comptCell = 0
             meanDist = 0.d0
             meanPerm = 0.d0
@@ -369,116 +422,52 @@ contains
                enddo
                if (cell_edge) then
                   comptCell = comptCell + 1
-
-                  ! find coordinates of center of cell
-                  xk(:) = 0.d0
-                  do m = NodebyCell%Pt(num_cell) + 1, NodebyCell%Pt(num_cell + 1)
-                     xk(:) = xk(:) + XNode(:, NodebyCell%Num(m))
-                  enddo
-                  xk(:) = xk(:)/dble(NodebyCell%Pt(num_cell + 1) - NodebyCell%Pt(num_cell))
+                  call element_center(XNode, NodebyCell, num_cell, xk)
                   call DistNodetoLine(xk, xn1, xn2, length) ! dist of cell center to the edge (num,parent)
                   meanDist = meanDist + length
-
-                  meanPerm = meanPerm + PermCell(1, 1, num_cell) ! this formula is true if perm iso !
+                  meanPerm = meanPerm + PermCell(1, 1, num_cell) ! this formula is true for istropic permeability
                endif
             enddo ! loop over cells
-
-            meanPerm = meanPerm/dble(comptCell)
-            meanDist = meanDist/dble(comptCell)
-
-            de = dsqrt(dot_product(xn1 - xn2, xn1 - xn2)) ! length of edge
-            dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
-            wi = de*Pi*meanPerm/log(dr0/WellRadius(i))
-           if(DefWell_has_WI_threshold) then
-             wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
-            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
-            if(wi<wi_min) then
-                write(*,*) 'WARNING'
-                write(*,*) 'WARNING'
-                write(*,*) ''
-                write(*,*) 'Applying threshold on Peaceman Well Index'
-                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
-                write(*,*) 'well index', wi, 'well index limit', wi_min
-                write(*,*) ''
-                write(*,*) 'WARNING'
-                write(*,*) 'WARNING'
-                wi = wi_min
-            end if
-            end if
-            if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
-
+            edge_length = dsqrt(dot_product(xn1 - xn2, xn1 - xn2)) ! length of edge
+            call compute_peaceman_indices(meanDist, meanPerm, comptCell, edge_length, WellRadius(i), wi)
             ! contribution of the edge to each nodes: node and parent
             WI_global(num_node) = WI_global(num_node) + wi
             WI_global(num_parent) = WI_global(num_parent) + wi
-
          enddo ! loop over edges
       enddo ! loop over wells
 
       !! FRACTURES
       do i = 1, NbWell
-
          ! loop over the nodes
          do j = NodeDatabyWell%Pt(i) + 1, NodeDatabyWell%Pt(i + 1)
-
             num_node = NodeDatabyWell%Num(j)
             xn1(1:3) = XNode(1:3, num_node)
-
             meanDist = 0.d0
             meanPerm = 0.d0
             meanThickness = 0.d0
             comptFrac = 0
-
             ! loop over frac of node
             do k = FracbyNode%Pt(num_node) + 1, FracbyNode%Pt(num_node + 1)
-
-               comptFrac = comptFrac + 1
                num_face = FracbyNode%Num(k)
-
-               ! find coordinates of center of frac
-               xk(:) = 0.d0
-               do m = NodebyFace%Pt(num_face) + 1, NodebyFace%Pt(num_face + 1)
-                  xk(:) = xk(:) + XNode(:, NodebyFace%Num(m))
-               enddo
-               xk(:) = xk(:)/dble(NodebyFace%Pt(num_face + 1) - NodebyFace%Pt(num_face))
+               call element_center(XNode, NodebyFace, num_face, xk)
                length = dsqrt(dot_product(xk - xn1, xk - xn1)) ! dist of cell frac to the node
                meanDist = meanDist + length
-
-               meanPerm = meanPerm + PermFrac(num_face) ! this formula is true if perm iso !
+               meanPerm = meanPerm + PermFrac(num_face) ! this formula is true for isotropic permeability
                meanThickness = meanThickness + Thickness
+               comptFrac = comptFrac + 1
             enddo
+            ! there is at least one frac in this node, compute wi
             if (comptFrac > 0) then
-               ! there is at least one frac in this node, compute wi
-               meanPerm = meanPerm/dble(comptFrac)
-               meanDist = meanDist/dble(comptFrac)
-               meanThickness = meanThickness/dble(comptFrac)
-
-               dr0 = 0.14036d0*dsqrt(2.d0)*meanDist ! Peaceman radius
-               wi = meanThickness*2.d0*Pi*meanPerm/log(dr0/WellRadius(i))
-
-            wi_min = 2 * Pi * de * meanPerm / WellRadius(i)
-            if(wi_min<=0) call CommonMPI_abort('Peaceman Well Index limit is negative')
-            if(wi<wi_min) then
-                write(*,*) 'WARNING'
-                write(*,*) 'WARNING'
-                write(*,*) ''
-                write(*,*) 'Applying threshold on fracture Peaceman Well Index'
-                write(*,*) 'well radius', WellRadius(i), 'vs. Peaceman radius', dr0
-                write(*,*) 'well index', wi, 'well index limit', wi_min
-                write(*,*) ''
-                write(*,*) 'WARNING'
-                write(*,*) 'WARNING'
-                wi = wi_min
-            end if
-                if(wi<=0) call CommonMPI_abort('Peaceman Well Index is negative')
-
+               meanThickness = meanThickness / dble( comptFrac )
+               call compute_peaceman_indices(meanDist, meanPerm, comptFrac, meanThickness, WellRadius(i), wi)
                ! contribution of the fracs to the node
                WI_global(num_node) = WI_global(num_node) + wi
             endif
          enddo
       enddo
 
-      ! fill %WIF and %WID
-      NodeDatabyWell%Val(:)%WIF = 0.d0 ! not used, negligeable compared to WID
+      ! FIXME: unused Fourier Well Index
+      NodeDatabyWell%Val(:)%WIF = 0.d0
 
       ! loop over all nodes of all wells
       do j = 1, NodeDatabyWell%Pt(NbWell + 1)
