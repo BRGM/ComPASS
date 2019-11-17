@@ -369,6 +369,21 @@ def init(
     mesh_parts = None,
     **kwargs
 ):
+    """Initialize many simulation properties and distribute the mesh.
+    Before a call to ComPASS.init, the mesh is global in the sense that
+    there is only one mesh on the master proc.
+    After the execution of ComPASS.init the mesh is distributed, i.e.
+    there is as many local meshes (with possibly ghost elements) as procs.
+
+    :param cell_omega_Darcy: the cell volume proportion that is distributed
+        to nodes for the discretisation of the pressure gradient (Darcy law)
+    :param cell_omega_Fourier: the fracture volume proportion that is distributed
+        to nodes for the discretisation of the pressure gradient (Darcy law)
+    :param fracture_omega_Darcy: the cell volume proportion that is distributed
+        to nodes for the discretisation of the temperature gradient (Fourier law)
+    :param fracture_omega_Fourier:the fracture volume proportion that is distributed
+        to nodes for the discretisation of the temperature gradient (Fourier law)
+    """
     kernel = get_kernel()
     global mesh_is_local
     assert not mesh_is_local
