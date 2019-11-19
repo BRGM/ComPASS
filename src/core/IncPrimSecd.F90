@@ -241,7 +241,7 @@ contains
   !!    * thermodynamic equilibrium between phases if any (fugacities equality)
   !! Remark: Sg+Sl=1 is not a closure law, as well as Pphase=Pref+Pc(phase)
   !! compute dFsurdX for each control volume (Careful: the lines of the derivatives must coincide with the index of unknowns in DefModel.F90)
-  !!      dFsurdX(1,:)                                            derivative Pressure
+  !!      dFsurdX(1,:)                                            derivative reference Pressure
   !!      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
   !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
   !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
@@ -305,7 +305,7 @@ contains
             inc%Comp(:,iph2), inc%Saturation, &
             f2, dPf2, dTf2, dCf2, dSf2)
 
-       ! derivative Pression
+       ! derivative reference Pression
        dFsurdX(1,i+mi) = dPf1*inc%Comp(icp,iph1) - dPf2*inc%Comp(icp,iph2)
 
 #ifdef _THERMIQUE_

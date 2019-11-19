@@ -26,11 +26,11 @@ from ComPASS.mpi import master_print
 Lz=1000.
 nz=200
 dz=Lz/nz
-Lx=dz
-Ly=dz
+Lx=4*dz
+Ly=4*dz
 Ox, Oy, Oz = 0.,     0.,    -1000.
-nx = 1
-ny = 1
+nx = 3
+ny = 3
 Topz = Oz+Lz
 
 omega_reservoir = 0.35            # reservoir porosity
@@ -118,12 +118,12 @@ def set_FreeFlow_state(state):
     state.p[node_flags==freeflow_flag] = Ptop
     state.T[node_flags==freeflow_flag] = Tporous
     state.S[node_flags==freeflow_flag] = [1, 0]
-    state.C[node_flags==freeflow_flag] = [[ 1., 0.], [0.01, .99]] 
+    state.C[node_flags==freeflow_flag] = [[ 1., 0.], [0., 1.]] 
     state.FreeFlow_phase_flowrate[node_flags==freeflow_flag] = 0.
 
 def set_states(state, depths):
     state.context[:] = gas_context
-    state.p[:] = Ptop #lininterp(depths, Ptop, 10.*1000.)
+    state.p[:] = Ptop
     state.T[:] = Tporous
     state.S[:] = [1, 0]
     state.C[:] = [[ 1., 0.], [0., 1.]] 
@@ -153,7 +153,7 @@ increase_factor = 1.2, decrease_factor = 0.2,
 )
 
 final_time = 100. * year
-output_period = 0.001 * final_time
+output_period = 0.1 * final_time
 
 current_time = standard_loop(final_time = final_time, 
 context=context, newton=newton,

@@ -22,14 +22,14 @@ from ComPASS.newton import Newton, LinearSolver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
-Lz=4000.
+Lz=1000.
 nz=200
 dz=Lz/nz
-Lx=dz
-Ly=dz
-Ox, Oy, Oz = 0.,     0.,    -3000.
-nx = 1
-ny = 1
+Lx=3*dz
+Ly=3*dz
+Ox, Oy, Oz = 0.,     0.,    0.
+nx = 4
+ny = 4
 Topz = Oz+Lz
 
 omega_reservoir = 0.35            # reservoir porosity
@@ -99,7 +99,7 @@ def set_Dirichlet_state(state):
     state.p[node_flags==bot_flag] = Pporous
     state.T[node_flags==bot_flag] = Tporous 
     state.S[node_flags==bot_flag] = [0, 1]
-    state.C[node_flags==bot_flag] = [[ 1., 0.], [0.01, .99]]  
+    state.C[node_flags==bot_flag] = [[ 1., 0.], [0., 1.]]  
 
 def set_FreeFlow_state(state):
     node_flags = ComPASS.nodeflags()

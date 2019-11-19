@@ -1160,8 +1160,6 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
        allocate(IdFFNodeLocal(Nb))
        call MPI_Recv(IdFFNodeLocal, Nb, MPI_INTEGER, 0, 20, ComPASS_COMM_WORLD, stat, Ierr)
-       call CommonMPI_abort('entered in MeshSchema //  &
-         computation not validated for FreeFlow nodes')
 #endif
     end if
 

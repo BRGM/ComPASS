@@ -25,9 +25,9 @@ from ComPASS.mpi import master_print
 Lz=4000.
 nz=200
 dz=Lz/nz
-Lx=Ly=dz
+Lx=Ly=4*dz
 Ox, Oy, Oz = 0.,     0.,    -3000.
-nx = ny = 1
+nx = ny = 3
 Topz = Oz+Lz
 
 omega_reservoir = 0.35            # reservoir porosity
