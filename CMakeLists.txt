@@ -178,8 +178,8 @@ if(ComPASS_USES_OLD_INSTALL)
   execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip list OUTPUT_VARIABLE PIP_OUTPUT)
   string(FIND ${PIP_OUTPUT} ComPASS ComPASS_IS_INSTALLED_WITH_PIP)
   if(${ComPASS_IS_INSTALLED_WITH_PIP} GREATER_EQUAL 0)
-    message(FATAL_ERROR "\r
-      It seems that ComPASS has already been installed using pip.\r
+	  message(WARNING "\r
+      It is possible that ComPASS has already been installed using pip.\r
       Before reverting to old style installation please uninstall ComPASS using pip:\r\r
       ${PYTHON_EXECUTABLE} -m pip uninstall ComPASS\r"
     )

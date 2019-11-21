@@ -26,7 +26,7 @@ def add_pth_file_to_user_site(mname, mpath, message=True):
     user_site = Path(site.getusersitepackages())
     if not user_site.is_dir():
         assert not user_site.exists()
-        user_site.mkdir()
+        user_site.mkdir(parents=True)
     pthfile = user_site / f'{mname}.pth'
     if message:
         print(f'Setting {mname} module path to {mpath} via user site file: {pthfile}')
