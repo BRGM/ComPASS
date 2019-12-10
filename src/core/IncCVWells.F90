@@ -179,8 +179,8 @@ module IncCVWells
             PerfoWellProd(s)%Density = 0.d0
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-               call f_DensiteMolaire(NbPhase, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
+               ! CHECKME: IncNode is the reservoir unknown
+               call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
                                      IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
                PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp*IncNode(nums)%Saturation(m)
             end do
