@@ -12,6 +12,7 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
+from ComPASS.timestep_management import TimeStepManager
 import MeshTools as MT
 
 # ComPASS.load_eos('water2ph')
@@ -119,5 +120,7 @@ set_boundary_fluxes()
 
 final_time = 200 * year
 output_period = 0.1 * final_time
-ComPASS.set_maximum_timestep(output_period)
-standard_loop(initial_timestep= 1 * minute, final_time = final_time, output_period = output_period)
+standard_loop( final_time = final_time, output_period = output_period,
+              time_step_manager = TimeStepManager(
+                  initial_timestep= 1 * minute, maximum_timestep=output_period),
+              )
