@@ -68,21 +68,13 @@ ComPASS.init(
     cell_heat_source = cell_heat_source,
 )
 
-def set_initial_states(states):
-    states.context[:] = 1
-    states.p[:] = 0
-    states.T[:] = 0
-    states.S[:] = 1
-    states.C[:] = 1.
-for states in [ComPASS.node_states(),
-               ComPASS.cell_states()]:
-    set_initial_states(states)
+X0 = ComPASS.build_state(p=0, T=0) 
+ComPASS.all_states().set(X0)
 
-def set_dirichlet_states():
-    states = ComPASS.dirichlet_node_states()
-    set_initial_states(states)
-    states.T[:] = u(ComPASS.vertices())
-set_dirichlet_states()
+dirichlet = ComPASS.dirichlet_node_states()
+dirichlet.set(X0)
+vertices = ComPASS.vertices()
+dirichlet.T[:] = u(vertices)
     
 newton = Newton(1e-5, 3, LinearSolver(1e-8, 150))
 
@@ -94,6 +86,5 @@ standard_loop(
     newton=newton
 )
 
-vertices = ComPASS.vertices()
 usol = ComPASS.node_states().T
 assert np.allclose(usol, u(vertices), atol=1e-3)

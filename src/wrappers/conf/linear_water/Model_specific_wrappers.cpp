@@ -1,4 +1,5 @@
 #include "Model_wrappers.h"
+#include "StateObjects.h"
 
 #include <pybind11/numpy.h>
 
@@ -111,4 +112,27 @@ void add_specific_model_wrappers(py::module& module)
         .value("single_phase", Phase::single_phase)
     ;
 
+    module.def("build_state", [](py::object p, py::object T) {
+        if( p.is_none() || T.is_none())
+            throw std::runtime_error("You must provide both p and T.");
+        X result;
+        result.context = static_cast<int>(Context::single_context);
+        result.p = p.cast<double>();
+        result.T = T.cast<double>();
+        result.S.fill(1); // single phase
+        result.C[0][0] = 1; // single component
+        return result;
+    }, py::arg("p") = py::none{}, py::arg("T") = py::none{},
+R"doc(
+Construct a state pressure and temperature.
+
+Parameters
+----------
+
+:param p: pressure
+:param T: temperature
+
+)doc"
+    );
+    
 }
