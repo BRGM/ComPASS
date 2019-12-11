@@ -129,7 +129,7 @@ setup(
     author_email="anr-charms@brgm.fr",
     description="A parallel multiphase multicomponents simulator.",
     long_description="",
-    packages=["ComPASS", "ComPASS.eos", "ComPASS.ghosts", "ComPASS.utils"],
+    packages=["ComPASS", "ComPASS.eos", "ComPASS.ghosts", "ComPASS.io", "ComPASS.utils"],
     ext_package="ComPASS",
     ext_modules=[
         CMakeExtension("water2ph")

@@ -91,6 +91,7 @@ sanity_check:
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG heat_source_analytical.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG check_settings.py
 
 pytest_run:
   stage: test
@@ -116,6 +117,7 @@ parallel_test:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel distribute_fracture_edge_info.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel select_fracture_edges_with_node_info.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel check_balances.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel check_settings.py
 
 time_bulk_scripts:
   stage: test
