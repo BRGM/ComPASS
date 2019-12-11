@@ -1,4 +1,5 @@
 #include "Model_wrappers.h"
+#include "StateObjects.h"
 
 #include <array>
 
@@ -27,6 +28,12 @@ enum struct Context {
     liquid = ComPASS_LIQUID_CONTEXT,
     diphasic = ComPASS_DIPHASIC_CONTEXT
 };
+
+template<typename T>
+inline auto enum_to_rank(const T enum_value) {
+    assert(static_cast<int>(enum_value)>0);
+    return static_cast<int>(enum_value) - 1; // Fortran -> C indexing
+}
 
 // Fortran functions
 extern "C"
@@ -163,5 +170,49 @@ void add_specific_model_wrappers(py::module& module)
     ;
 
     use_context_locker(module);
+
+    module.def("build_state", [](Context context, py::object p, py::object T, py::object Sg) {
+        auto set_monophasic_state = [&] (X& state) {
+            if( !Sg.is_none() || p.is_none() || T.is_none())
+                throw std::runtime_error("You must set a monophasic states providing p and T.");
+            state.p = p.cast<double>();
+            state.T = T.cast<double>();
+            state.S.fill(0);
+            for(auto&& Ck: state.C) Ck.fill(0);
+        };
+        X result;
+        result.context = static_cast<int>(context);
+        switch(context) {
+        case Context::gas:
+            set_monophasic_state(result);
+            result.S[enum_to_rank(Phase::gas)] = 1;
+            result.C[enum_to_rank(Phase::gas)].fill(1); // single component
+            break;
+        case Context::liquid:
+            set_monophasic_state(result);
+            result.S[enum_to_rank(Phase::liquid)] = 1;
+            result.C[enum_to_rank(Phase::liquid)].fill(1);  // single component
+            break;
+        default:
+            throw std::runtime_error("Requested context is not implemented!");
+        }
+        return result;
+    }, py::arg("context"), py::arg("p") = py::none{}, py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
+R"doc(
+Construct a state given a specific context and physical parameters.
+
+Monophasic states (i.e. liquid and gas) must be set-up using pressure and temperature.
+
+Parameters
+----------
+
+:param context: context (i.e. liquid, gas or diphasic)
+:param p: pressure
+:param T: temperature
+:param Sg: gaz phase pressure
+
+)doc"
+    );
+
 
 }

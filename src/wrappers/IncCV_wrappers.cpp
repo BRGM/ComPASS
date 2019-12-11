@@ -8,56 +8,9 @@
 
 #include <cstddef>
 #include <array>
+#include <sstream>
 
-#include "XArrayWrapper.h"
-
-template <std::size_t nb_components, std::size_t nb_phases>
-struct Model {
-	static constexpr std::size_t nc = nb_components;
-	static constexpr std::size_t np = nb_phases;
-};
-
-template <typename Model_type, typename Real_type = double>
-struct IncCV {
-    typedef int Context;
-    typedef Real_type Real;
-    static constexpr std::size_t nc = Model_type::nc;
-    static constexpr std::size_t np = Model_type::np;
-    // FIXME: preprocessor directives to be removed!
-#ifdef _THERMIQUE_
-    static constexpr std::size_t nbdof = nc + 1;
-#else
-    static constexpr std::size_t nbdof = nc;
-#endif
-    typedef std::array<Real, nc> Component_vector;
-    typedef std::array<Component_vector, np> Phase_component_matrix;
-    typedef std::array<Real, np> Phase_vector;
-    typedef std::array<Real, nbdof> Accumulation_vector;
-    Context context;
-    Real p;
-    Real T;
-    Phase_component_matrix C;
-    Phase_vector S;
-    Accumulation_vector accumulation;
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-    Phase_vector FreeFlow_phase_flowrate; // molar flowrate in the freeflow (atmosphere) at the interface
-#endif // _WIP_FREEFLOW_STRUCTURES_
-};
-
-template <typename Model_type, typename Real_type = double>
-struct NeumannBoundaryConditions {
-    typedef Real_type Real;
-    static constexpr std::size_t nc = Model_type::nc;
-    typedef std::array<Real, nc> Component_vector;
-    Component_vector molar_flux;
-    Real heat_flux;
-};
-
-// FIXME: This is to be removed later
-typedef IncCV<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>> X;
-typedef XArrayWrapper<X> StateArray;
-using NeumannBC = NeumannBoundaryConditions<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;
-//typedef XArrayWrapper<Neumann> NeumannArray;
+#include "StateObjects.h"
 
 // Fortran functions
 extern "C"
@@ -117,10 +70,52 @@ void add_IncCV_wrappers(py::module& module)
 		py::print("Check IncCV:", number_of_components(), number_of_phases(), size_of_unknowns(), sizeof(X));
 	});
 
-	// FUTURE: all the following until next FUTURE tag shall be useless soon (cf infra)
+	py::class_<X>(module, "State")
+        .def_readwrite("p", &X::p)
+        .def_readwrite("T", &X::T)
+        .def_property_readonly("S", [](py::object& self) {
+            return py::array_t<X::Real, py::array::c_style>{ X::np, self.cast<X&>().S.data(), self};
+        })
+        .def_property_readonly("C", [](py::object& self) {
+            return py::array_t<X::Real, py::array::c_style>{ {X::np, X::nc}, self.cast<X&>().C.data()->data(), self};
+        })
+        .def_property_readonly("accumulation",  [](py::object& self) {
+            return py::array_t<X::Real, py::array::c_style>{X::nc, self.cast<X&>().accumulation.data(), self};
+        })
+        .def("__str__", [](const X& self) {
+            std::basic_stringstream<char> s;
+            s << "Context: " << static_cast<int>(self.context);
+            s << " p=" << self.p;
+            s << " T=" << self.T;
+            s << " S=(";
+            for(auto&& Sk: self.S) s << Sk <<", ";            
+            s << ") C=(";
+            for(auto&& Ck: self.C) {
+                s << "(" ;
+                for(auto&& Cki: Ck) s << Cki <<", ";   
+                s << "), ";         
+            }
+            s << ")";
+            return py::str{ s.str() };
+        })
+    ;
+
+    // FUTURE: all the following until next FUTURE tag shall be useless soon (cf infra)
 	auto PyStateArray = py::class_<StateArray>(module, "States")
-		.def("size", [](const StateArray& states) { return states.length; })
-		.def_property_readonly("shape", [](const StateArray& states) { return py::make_tuple(states.length); });
+		.def("size", [](const StateArray& self) { return self.length; })
+		.def_property_readonly("shape", [](const StateArray& self) { 
+            return py::make_tuple(self.length);
+        })
+        .def("__getitem__", &StateArray::operator[], py::return_value_policy::reference)
+        .def("__iter__", [](StateArray& self) {
+		    return py::make_iterator(
+                self.pointer, self.pointer + self.length
+            );
+        })
+        .def("fill", &StateArray::fill)
+        .def("set", &StateArray::fill)
+    ;
+
 	add_attribute_array<typename X::Context>(PyStateArray, "context", offsetof(X, context));
 	add_attribute_array<typename X::Real>(PyStateArray, "p", offsetof(X, p));
 	add_attribute_array<typename X::Real>(PyStateArray, "T", offsetof(X, T));

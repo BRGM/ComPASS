@@ -92,6 +92,7 @@ sanity_check:
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG check_settings.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG init_states.py
 
 pytest_run:
   stage: test

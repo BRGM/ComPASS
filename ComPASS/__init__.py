@@ -699,3 +699,11 @@ def total_accumulation(reset_states=True):
     total = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
     mpi.communicator().Allreduce(local, total, mpi.MPI.SUM)
     return total
+
+def all_positions():
+    """Returns all position of degrees of freedom stacked in the same order
+       as states.
+    """
+    return np.vstack([
+        vertices(), compute_fracture_centers(), compute_cell_centers()
+    ])

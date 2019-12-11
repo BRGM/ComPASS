@@ -31,6 +31,14 @@ struct XArrayWrapper
 		bind(wrapper);
 		return wrapper;
 	}
+	T& operator[](const std::size_t k) {
+		assert(k<length);
+		return *(pointer + k);
+	}
+	void fill(const T& t) {
+		auto last = pointer + length;
+		for(auto p = pointer; p!=last; ++p) {
+			(*p) = t;
+		}
+	}
 };
-
-
