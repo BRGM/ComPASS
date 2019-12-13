@@ -24,14 +24,14 @@ axis = 0
 def u(pts):
     return np.sin((2*np.pi/L) * pts[:, axis])
     
-ComPASS.load_eos('linear_water')
+simulation = ComPASS.load_eos('linear_water')
 ComPASS.set_output_directory_and_logfile(__file__)
-ComPASS.set_gravity(0)
-fluid_properties = ComPASS.get_fluid_properties()
+simulation.set_gravity(0)
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = 1.
 fluid_properties.dynamic_viscosity = 1.
 fluid_properties.volumetric_heat_capacity = 1.
-ComPASS.set_rock_volumetric_heat_capacity(1.)
+simulation.set_rock_volumetric_heat_capacity(1.)
 fluid_properties.thermal_expansivity = 0
 
 
@@ -51,14 +51,14 @@ def dump_solution(filename='solution.vtu'):
 dump_solution()
 
 def set_dirichlet_nodes():
-    x = ComPASS.global_vertices()[:, axis]
+    x = simulation.global_vertices()[:, axis]
     return (x<=-0.5*L) | (x>=0.5*L)
 
 def cell_heat_source():
-    centers = ComPASS.compute_global_cell_centers()
+    centers = simulation.compute_global_cell_centers()
     return (2*np.pi/L)**2 * u(centers)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = 1.,
     cell_porosity = 0.5,
@@ -68,23 +68,24 @@ ComPASS.init(
     cell_heat_source = cell_heat_source,
 )
 
-X0 = ComPASS.build_state(p=0, T=0) 
-ComPASS.all_states().set(X0)
+X0 = simulation.build_state(p=0, T=0) 
+simulation.all_states().set(X0)
 
-dirichlet = ComPASS.dirichlet_node_states()
+dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(X0)
-vertices = ComPASS.vertices()
+vertices = simulation.vertices()
 dirichlet.T[:] = u(vertices)
     
-newton = Newton(1e-5, 3, LinearSolver(1e-8, 150))
+newton = Newton(simulation, 1e-5, 3, LinearSolver(1e-8, 150))
 
 final_time = 1E2
 standard_loop(
+    simulation,
     initial_timestep=1., final_time=final_time,
     output_period=0.1*final_time,
     #nitermax=1,
     newton=newton
 )
 
-usol = ComPASS.node_states().T
+usol = simulation.node_states().T
 assert np.allclose(usol, u(vertices), atol=1e-3)

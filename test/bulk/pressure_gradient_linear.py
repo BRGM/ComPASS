@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 
+
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
 rhofcpf = rhof * cpf     # volumetric heat capacity
@@ -26,14 +27,14 @@ mass_flux = 1E-1
 Lx, Ly, Lz = 100., 10., 10.   # column dimensions
 nx, ny, nz = 100, 1, 1        # discretization
 
-ComPASS.load_eos('linear_water')
-fluid_properties = ComPASS.get_fluid_properties()
+simulation = ComPASS.load_eos('linear_water')
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_output_directory_and_logfile(__file__)
-ComPASS.set_gravity(0) # no gravity
+simulation.set_gravity(0) # no gravity
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -42,12 +43,12 @@ grid = ComPASS.Grid(
 )
 
 def left_nodes():
-    return ComPASS.global_vertices()[:, 0] <= 0
+    return simulation.global_vertices()[:, 0] <= 0
 
 def right_nodes():
-    return ComPASS.global_vertices()[:, 0] >= Lx
+    return simulation.global_vertices()[:, 0] >= Lx
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -61,35 +62,36 @@ def set_initial_states(states):
     states.T[:] = T_right
     states.S[:] = 1.
     states.C[:] = 1.
-for states in [ComPASS.dirichlet_node_states(),
-               ComPASS.node_states(),
-               ComPASS.cell_states()]:
+for states in [simulation.dirichlet_node_states(),
+               simulation.node_states(),
+               simulation.cell_states()]:
     set_initial_states(states)
 
 def set_boundary_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = mass_flux # one component
     Neumann.heat_flux = mass_flux * rhofcpf * T_right
-    face_centers = np.rec.array(ComPASS.face_centers())   
-    ComPASS.set_Neumann_faces(face_centers[:, 0] <= 0, Neumann) 
+    face_centers = np.rec.array(simulation.face_centers())   
+    simulation.set_Neumann_faces(face_centers[:, 0] <= 0, Neumann) 
 set_boundary_flux()
 
 final_time = 1E4 * year
 output_period = 0.1 * final_time
 standard_loop(
+    simulation,
     final_time = final_time,
     time_step_manager = TimeStepManager(1E-5, output_period),
     output_period = output_period,
 )
 
-x = ComPASS.cell_centers()[:, 0]
+x = simulation.cell_centers()[:, 0]
 amean = lambda a: 0.5 * (a[:-1] + a[1:])
 gradx_cells = lambda a: (a[1:] - a[:-1])/(x[1:] - x[:-1])
 assert np.abs(- k_matrix * (rhof/muf) * gradx_cells(states.p) - mass_flux).max() < 1E-12
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
-    states = ComPASS.cell_states()
+    states = simulation.cell_states()
     print(np.min(states.p) / bar, "bar <= pressure <=", np.max(states.p) / bar, "bar")
     print(K2degC(np.min(states.T)), "deg C <= temperature <=", K2degC(np.max(states.T)), "deg C")
     import ComPASS.utils.mpl_backends as mpl_backends

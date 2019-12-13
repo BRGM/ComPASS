@@ -42,20 +42,20 @@ def test__extrems__no_gravity(
     shape = nx, ny, nz = 100, 1, 1
     origin = (0, -0.5*Ly, -0.5*Lz)
 
-    ComPASS.load_eos('linear_water')
-    ComPASS.set_gravity(0)
+    simulation = ComPASS.load_eos('linear_water')
     ComPASS.set_output_directory_and_logfile(__file__)
-    ComPASS.set_rock_volumetric_heat_capacity(rhor*Cr)
+    simulation.set_gravity(0)
+    simulation.set_rock_volumetric_heat_capacity(rhor*Cr)
 
-    p = ComPASS.get_fluid_properties()
+    p = simulation.get_fluid_properties()
     p.compressibility = 1e-8
 
     grid = ComPASS.Grid(shape = shape, extent = extent, origin = origin)
 
     def outlet_nodes():
-       return ComPASS.global_vertices()[:, 0] >= Lx
+       return simulation.global_vertices()[:, 0] >= Lx
 
-    ComPASS.init(
+    simulation.init(
        grid = grid,
        cell_permeability = permeability,
        cell_porosity = porosity,
@@ -69,18 +69,18 @@ def test__extrems__no_gravity(
        states.T[:] = T0
        states.S[:] = 1
        states.C[:] = 1.     # component fraction... here only one component
-    for states in [ComPASS.dirichlet_node_states(),
-                  ComPASS.node_states(),
-                  ComPASS.cell_states()]:
+    for states in [simulation.dirichlet_node_states(),
+                  simulation.node_states(),
+                  simulation.cell_states()]:
        set_initial_states(states)
 
     def set_boundary_flux():
         Neumann = ComPASS.NeumannBC()
-        specific_massflux = flow_velocity_m_s * ComPASS.molar_density(p0, T_injection) / (Ly * Lz)
+        specific_massflux = flow_velocity_m_s * simulation.molar_density(p0, T_injection) / (Ly * Lz)
         Neumann.molar_flux[:] = specific_massflux
         # energy inflow is approximated using p0
-        Neumann.heat_flux = specific_massflux * ComPASS.molar_enthalpy(p0, T_injection)
-        ComPASS.set_Neumann_faces(ComPASS.face_centers()[:, 0] <= 0, Neumann)
+        Neumann.heat_flux = specific_massflux * simulation.molar_enthalpy(p0, T_injection)
+        simulation.set_Neumann_faces(simulation.face_centers()[:, 0] <= 0, Neumann)
     set_boundary_flux()
 
     output_period = 0.1 * final_time
@@ -88,8 +88,8 @@ def test__extrems__no_gravity(
     # On teste a chaque pas de temps si les valeurs extremes sont bien sur les bords
 
     (boundary_idx,) = np.where(
-        (ComPASS.vertices()[:, 0] >= Lx)
-        | (ComPASS.vertices()[:, 0] <= 0)
+        (simulation.vertices()[:, 0] >= Lx)
+        | (simulation.vertices()[:, 0] <= 0)
     )
 
     def valid(arr, atol=1e-3):
@@ -103,13 +103,14 @@ def test__extrems__no_gravity(
         )
 
     def valid_current(iteration, time):
-        X = ComPASS.node_states()
+        X = simulation.node_states()
         assert valid(X.T)
         assert valid(X.p)
         assert valid(X.C)
         ##assert valid(X.S)  # NON pas la saturation car la bulle se developpe avant la sortie
 
     standard_loop(
+        simulation,
         final_time = final_time,
         time_step_manager = TimeStepManager(1 * hour, 0.2 * output_period),
         output_period = output_period, output_callbacks=[valid_current],

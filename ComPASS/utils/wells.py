@@ -7,10 +7,11 @@
 #
 
 import numpy as np
-import ComPASS  # needed for cpp wrappers
+from .._kernel import common_wrapper
 
-def create_vertical_well(xy, well_radius = None, zmin=None, zmax=None):
-    x, y, z = ComPASS.coordinates(ComPASS.global_vertices())
+
+def create_vertical_well(simulation, xy, well_radius = None, zmin=None, zmax=None):
+    x, y, z = simulation.coordinates(simulation.global_vertices())
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]
     selection = (x == x_well) & (y == y_well)
@@ -21,7 +22,7 @@ def create_vertical_well(xy, well_radius = None, zmin=None, zmax=None):
     well_nodes = np.nonzero(selection)[0]
     # CHECKME: What is the expected order for well nodes?
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
-    well = ComPASS.Well()
+    well = common_wrapper.Well()
     if well_radius is None:
         well_radius = 0.1
     well.geometry.radius = well_radius

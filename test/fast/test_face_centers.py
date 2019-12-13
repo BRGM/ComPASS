@@ -15,7 +15,7 @@ from ComPASS.timeloops import standard_loop
 
 def test_face_centers():
 
-    ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos('water2ph')
     ComPASS.set_output_directory_and_logfile(__file__)
 
     Lx, Ly, Lz = 100., 100., 100.
@@ -27,11 +27,11 @@ def test_face_centers():
     )
 
     def fractures():
-        centers = ComPASS.compute_global_face_centers()
+        centers = simulation.compute_global_face_centers()
         selection = centers[:, 0] == 0.5 * Lx
         return selection
 
-    ComPASS.init(
+    simulation.init(
         mesh = grid,
         fracture_faces = fractures,
         cell_porosity = 0.5,               # dummy value, no simulation
@@ -43,17 +43,17 @@ def test_face_centers():
     )
 
     #print('Old computation')
-    #print(ComPASS.old_compute_face_centers())
+    #print(simulation.old_compute_face_centers())
     #print('New computation')
-    #print(ComPASS.compute_face_centers())
-    assert np.all((len(ComPASS.old_compute_face_centers())==0 and len(ComPASS.compute_face_centers())==0) or
-                   ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
+    #print(simulation.compute_face_centers())
+    assert np.all((len(simulation.old_compute_face_centers())==0 and len(simulation.compute_face_centers())==0) or
+                   simulation.old_compute_face_centers()==simulation.compute_face_centers())
     #print('Fractures old computation')
-    #print(ComPASS.old_compute_fracture_centers())
+    #print(simulation.old_compute_fracture_centers())
     #print('Fractures new computation')
-    #print(ComPASS.compute_fracture_centers())
-    assert np.all((len(ComPASS.old_compute_fracture_centers())==0 and len(ComPASS.compute_fracture_centers())==0) or
-                   ComPASS.old_compute_face_centers()==ComPASS.compute_face_centers())
+    #print(simulation.compute_fracture_centers())
+    assert np.all((len(simulation.old_compute_fracture_centers())==0 and len(simulation.compute_fracture_centers())==0) or
+                   simulation.old_compute_face_centers()==simulation.compute_face_centers())
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 import numpy as np
 
+
 rhow =1# 1E3
 b = 1#4.2e+3          # specific heat in J/kg/K
 rhocp =1# 2000*800   # volumetric heat capacity
@@ -34,17 +35,17 @@ exact_sol = True
 
 if onecomp:
     if exact_sol:
-        ComPASS.load_eos('linear_water')
+        simulation = ComPASS.load_eos('linear_water')
     else:
-        ComPASS.load_eos('water2ph')
-        ComPASS.lock_context(2)
+        simulation = ComPASS.load_eos('water2ph')
+        simulation.lock_context(2)
 else:
-    ComPASS.load_eos('water_with_tracer')
-fluid_properties = ComPASS.get_fluid_properties()
+    simulation = ComPASS.load_eos('water_with_tracer')
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhow
 fluid_properties.volumetric_heat_capacity = b
 fluid_properties.dynamic_viscosity = muf
-ComPASS.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_rock_volumetric_heat_capacity(rhocp)
 
 #mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = ((k_reservoir / muf) * (pleft - pright) / Lx)
@@ -65,7 +66,7 @@ on_the_left_in_the_middle = lambda x,y: (x <= grid.origin[0] ) & (grid.extent[1]
 on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]
 
 def select_dirichlet_nodes():
-    x = ComPASS.global_vertices()[:,0]
+    x = simulation.global_vertices()[:,0]
     return on_the_left(x) | on_the_right(x)
 
 def set_boundary_conditions():
@@ -87,8 +88,8 @@ def set_boundary_conditions():
             states.C[left] = (1, 0) #(0., 1)
             states.C[leftmid] = (0., 1.)
             states.C[right] = (1, 0)
-    verts = ComPASS.vertices()
-    set_states(ComPASS.dirichlet_node_states(), verts[:,0], verts[:,1])
+    verts = simulation.vertices()
+    set_states(simulation.dirichlet_node_states(), verts[:,0], verts[:,1])
 
 def set_initial_values():
     def set_states(states, x):
@@ -100,16 +101,16 @@ def set_initial_values():
             states.C[:] = 1.
         else:
             states.C[:] = (1, 0)
-    verts = ComPASS.vertices()
-    cellcenters = ComPASS.compute_cell_centers()
-    set_states(ComPASS.node_states(),  verts[:,0])
-    set_states(ComPASS.cell_states(), cellcenters[:,0])
+    verts = simulation.vertices()
+    cellcenters = simulation.compute_cell_centers()
+    set_states(simulation.node_states(),  verts[:,0])
+    set_states(simulation.cell_states(), cellcenters[:,0])
 
 # %%% Simulation %%%
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
     cell_porosity = omega_reservoir,
@@ -128,10 +129,11 @@ def collect_node_temperature(iteration, t):
         return
     print('Collecting temperature at iteration', iteration)
     print('                           and time', t/year, 'years')
-    states = ComPASS.cell_states()
+    states = simulation.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
 standard_loop(
+    simulation,
     final_time = final_time, output_period = final_time/50,
     time_step_manager = TimeStepManager(final_time/1e3, 1.),
     output_callbacks=(collect_node_temperature,),
@@ -139,7 +141,7 @@ standard_loop(
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
-    xy = ComPASS.compute_cell_centers()[:,0:2]
+    xy = simulation.compute_cell_centers()[:,0:2]
     XX = xy[:, 0].reshape(ny, nx)
     YY = xy[:, 1].reshape(ny, nx)
     import ComPASS.utils.mpl_backends as mpl_backends

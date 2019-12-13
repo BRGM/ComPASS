@@ -1,6 +1,5 @@
 import numpy as np
 
-import ComPASS  # needed for cpp wrappers
 from .. import mpi
 
 
@@ -23,8 +22,8 @@ class EdgeTagger:
         self.edges_families = edges_families
         self.verbose = verbose
 
-    def __call__(self):
-        flags = ComPASS.global_nodeflags()
+    def __call__(self, simulation):
+        flags = simulation.global_nodeflags()
         assert np.all(flags == 0), "all nodes flags must be set to 0 to tag edges"
         for i, edges_nodes in enumerate(self.edges_families):
             if self.verbose:
@@ -34,27 +33,27 @@ class EdgeTagger:
             )
 
 
-def tag_edges_families(families, verbose=False):
+def tag_edges_families(simulation, families, verbose=False):
     """Builds an EdgeTagger to tag all edges families.
        Parameters are the same as :py:class:`EdgeTagger`
     """
-    EdgeTagger(families, verbose)()
+    EdgeTagger(families, verbose)(simulation)
 
 
-def fracture_edges_and_node_flags(verbose=False):
-    fracture_edges = ComPASS.find_fracture_edges(ComPASS.frac_face_id())
+def fracture_edges_and_node_flags(simulation, verbose=False):
+    fracture_edges = simulation.find_fracture_edges(simulation.frac_face_id())
     if verbose:
         print(fracture_edges.shape[0], "fracture edges on proc", mpi.proc_rank)
-    flags = ComPASS.nodeflags()[fracture_edges]
+    flags = simulation.nodeflags()[fracture_edges]
     return fracture_edges, flags
 
 
-def retrieve_fracture_edges_families(verbose=False):
+def retrieve_fracture_edges_families(simulation, verbose=False):
     """Retrieve all fracture edges families among fracture edges.
        :param verbose: if True will output a summary of what has been retrieved
        :return: a dicitonnary of edges families with the key being the family id
     """
-    fracture_edges, flags = fracture_edges_and_node_flags(verbose)
+    fracture_edges, flags = fracture_edges_and_node_flags(simulation, verbose)
     result = {}
     for fi in range(31):
         mask = np.bitwise_and(flags, EdgeTagger.family_id(fi))
@@ -69,7 +68,7 @@ def retrieve_fracture_edges_families(verbose=False):
                 )
 
 
-def retrieve_fracture_edges_with_node_tag(node_tags, verbose=False):
+def retrieve_fracture_edges_with_node_tag(simulation, node_tags, verbose=False):
     """Retrieve all fracture edges sharing a node_atgs.
        :param node_tags: a node tag or a list of node_tags
        :param verbose: if True will output a summary of what has been retrieved
@@ -79,7 +78,7 @@ def retrieve_fracture_edges_with_node_tag(node_tags, verbose=False):
         node_tags = list(node_tags)
     except TypeError:
         node_tags = [int(node_tags)]
-    fracture_edges, flags = fracture_edges_and_node_flags(verbose)
+    fracture_edges, flags = fracture_edges_and_node_flags(simulation, verbose)
     result = [
         fracture_edges[(flags[:, 0] == tag) & (flags[:, 1] == tag)]
         for tag in node_tags

@@ -10,7 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
+
 
 p0 = 1.                  # initial reservoir pressure
 T0 = 1.              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -27,10 +27,10 @@ Ox, Oy, Oz = -5, -5, -5
 nx, ny, nz = 10, 10, 10
 volume = Lx * Ly * Lz
 
-ComPASS.load_eos('linear_water')
-ComPASS.set_gravity(0)
+simulation = ComPASS.load_eos('linear_water')
+simulation.set_gravity(0)
 
-fluid_properties = ComPASS.get_fluid_properties()
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhocpf
 fluid_properties.reference_pressure = p0
@@ -38,7 +38,7 @@ fluid_properties.compressibility = 0.1
 fluid_properties.reference_temperature = T0
 fluid_properties.thermal_expansivity = 0.1
 fluid_properties.dynamic_viscosity = 1.
-ComPASS.set_rock_volumetric_heat_capacity(rhocpr)
+simulation.set_rock_volumetric_heat_capacity(rhocpr)
 
 
 grid = ComPASS.Grid(
@@ -49,7 +49,7 @@ grid = ComPASS.Grid(
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_porosity = phi,
     cell_permeability = k,
@@ -57,15 +57,15 @@ ComPASS.init(
 )
 
 # Init physical values
-states = ComPASS.all_states()
+states = simulation.all_states()
 states.p[:] = p0
 states.T[:] = T0
 states.C[:] = 1.
 states.S[:] = 1.
-states.context[:] = ComPASS.Context.single_context
+states.context[:] = simulation.Context.single_context
 
 # Initial state
-mass, energy = ComPASS.total_accumulation()
+mass, energy = simulation.total_accumulation()
 
 assert np.allclose(mass, volume * phi * rhof) 
 assert np.allclose(energy, volume * ( phi * rhocpf + (1 - phi) * rhocpr))

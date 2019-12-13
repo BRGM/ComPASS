@@ -8,9 +8,8 @@
 
 from pathlib import Path
 import numpy as np
-import ComPASS
-from .. import mpi
 from MeshTools import vtkwriters as vtkw
+from .. import mpi
 
 
 def cell_description(cell_connectivity):
@@ -21,14 +20,14 @@ def cell_description(cell_connectivity):
     return cellnodes, cellnodes_offsets
 
 
-def mesh_description(nb_own_cells=None):
+def mesh_description(simulation, nb_own_cells=None):
     mesh_type = ""  # local mesh
-    if not ComPASS.mesh_is_local:
+    if not simulation.mesh_is_local:
         mesh_type = "global_"
-    vertices = getattr(ComPASS, f"{mesh_type}vertices")()
-    connectivity = getattr(ComPASS, f"get_{mesh_type}connectivity")()
+    vertices = getattr(simulation, f"{mesh_type}vertices")()
+    connectivity = getattr(simulation, f"get_{mesh_type}connectivity")()
     cellnodes, offsets = cell_description(connectivity.NodebyCell)
-    celltypes = getattr(ComPASS, f"{mesh_type}celltypes")()
+    celltypes = getattr(simulation, f"{mesh_type}celltypes")()
     if nb_own_cells is not None:
         offsets = offsets[: nb_own_cells + 1]
         cellnodes = cellnodes[: offsets[-1]]
@@ -36,9 +35,9 @@ def mesh_description(nb_own_cells=None):
     return vertices, offsets[1:], cellnodes, celltypes
 
 
-def write_vtu_mesh(filename, pointdata, celldata, ofmt):
-    nb_own_cells = ComPASS.number_of_own_cells()
-    vertices, offsets, cellnodes, celltypes = mesh_description(nb_own_cells)
+def write_vtu_mesh(simulation, filename, pointdata, celldata, ofmt):
+    nb_own_cells = simulation.number_of_own_cells()
+    vertices, offsets, cellnodes, celltypes = mesh_description(simulation, nb_own_cells)
     assert all([a.shape[0] == vertices.shape[0] for a in pointdata.values()])
     assert all([a.shape[0] >= nb_own_cells for a in celldata.values()])
     celldata = {name: a[:nb_own_cells] for name, a in celldata.items()}
@@ -71,6 +70,7 @@ def collect_dtypes(data):
         for name, a in data.items()
     }
 
+
 def create_vtu_directory(parent=Path(".")):
     parallel = mpi.communicator().size > 1
     if parallel:
@@ -80,7 +80,7 @@ def create_vtu_directory(parent=Path(".")):
     return vtu_directory if parallel else parent
 
 
-def write_mesh(basename, pointdata={}, celldata={}, ofmt="binary", ascontiguousarray=True):
+def write_mesh(simulation, basename, pointdata={}, celldata={}, ofmt="binary", ascontiguousarray=True):
     """
 
     ascontiguousarray: (default True)
@@ -95,6 +95,7 @@ def write_mesh(basename, pointdata={}, celldata={}, ofmt="binary", ascontiguousa
         pointdata = {k: np.ascontiguousarray(v) for k, v in pointdata.items()}
         celldata = {k: np.ascontiguousarray(v) for k, v in celldata.items()}
     vertices_type = write_vtu_mesh(
+        simulation,
         str(filename), pointdata=pointdata, celldata=celldata, ofmt=ofmt
     )
     nbprocs = mpi.communicator().size

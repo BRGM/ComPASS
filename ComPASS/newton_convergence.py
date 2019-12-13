@@ -8,22 +8,23 @@
 
 import numpy as np
 
-import ComPASS  # needed for cpp wrappers
 # access to underlying mpi4py
 from .mpi import MPI as mpi
 from ._kernel import get_kernel
 
+
 class Legacy:
 
-    def __init__(self):
+    def __init__(self, simulation):
         # FIXME: should be put elsewhere
         self.kernel = get_kernel()
+        self.simulation = simulation
         # FIXME: this rely on the residuals being allocated elsewhere
         #        and associated with fortran code
-        assert ComPASS.mesh_is_local
-        self.residuals = ComPASS.Residuals()
+        assert self.simulation.mesh_is_local
+        self.residuals = self.simulation.Residuals()
         self.reference_pv = np.zeros(
-            ComPASS.Residuals.npv(), dtype=np.double
+            self.simulation.Residuals.npv(), dtype=np.double
         )
         self.reference_closure = 0
 
@@ -34,7 +35,7 @@ class Legacy:
         local+= np.linalg.norm(residuals.own_cells, 1, axis=0)
         local[0]+= np.linalg.norm(residuals.own_injectors, 1)
         local[0]+= np.linalg.norm(residuals.own_producers, 1)
-        global_norms = np.zeros(ComPASS.Residuals.npv(), dtype=np.double)
+        global_norms = np.zeros(self.simulation.Residuals.npv(), dtype=np.double)
         mpi.COMM_WORLD.Allreduce(local, global_norms, mpi.SUM)
         return global_norms
     
@@ -45,7 +46,7 @@ class Legacy:
         return mpi.COMM_WORLD.allreduce(closure, mpi.SUM)
     
     def reset_conservation_reference(self, dt):
-        global_accumulation = ComPASS.total_accumulation(reset_states=False)
+        global_accumulation = self.simulation.total_accumulation(reset_states=False)
         global_reference = global_accumulation / (1000. * dt) + 1.
         self.reference_pv = np.maximum(self.pv_norms(), global_reference)
     

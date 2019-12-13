@@ -9,10 +9,11 @@
 import numpy as np
 import ComPASS
 
+
 def test_access_vertices():
 
     ComPASS.set_output_directory_and_logfile(__file__)
-    ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos('water2ph')
 
     nx, ny, nz = 3, 2, 1
 
@@ -21,13 +22,13 @@ def test_access_vertices():
     )
 
     def dirichlet_nodes():
-        vertices = ComPASS.global_vertices()
+        vertices = simulation.global_vertices()
         newz = 10.
         z = vertices[:, 2]
         z[z!=0] = newz
-        assert np.all(np.logical_or(ComPASS.global_vertices()[:, 2] == 0, ComPASS.global_vertices()[:, 2] == newz))
+        assert np.all(np.logical_or(simulation.global_vertices()[:, 2] == 0, simulation.global_vertices()[:, 2] == newz))
 
-    ComPASS.init(
+    simulation.init(
         mesh = grid,
         set_dirichlet_nodes = dirichlet_nodes,
         cell_porosity = 0.1,

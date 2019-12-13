@@ -10,11 +10,12 @@ import numpy as np
 import ComPASS
 import ComPASS.debug_utils
 
+
 def test_dump_mesh():
 
-    ComPASS.load_eos('water2ph')
-    ComPASS.lock_context(2) # not useful here but just as a strict replacement of liquid_water eos
+    simulation = ComPASS.load_eos('water2ph')
     ComPASS.set_output_directory_and_logfile(__file__)
+    simulation.lock_context(2) # not useful here but just as a strict replacement of liquid_water eos
 
     Lx, Ly, Lz = 3000., 2000., 100.
     Ox, Oy, Oz = -1500., -1000., -1600.
@@ -27,21 +28,21 @@ def test_dump_mesh():
     )
 
     def set_dirichlet():
-        vertices = ComPASS.global_vertices()
+        vertices = simulation.global_vertices()
         z = vertices[:, 2]
         zmax = z.max()
         return np.nonzero(z == zmax)[0]
 
     def set_flags():
-        vertices = ComPASS.global_vertices()
-        cell_centers = ComPASS.compute_global_cell_centers()
-        face_centers = ComPASS.compute_global_face_centers()
-        ComPASS.global_nodeflags()[:] = np.floor(vertices[:, 0])
-        ComPASS.global_faceflags()[:] = np.floor(face_centers[:, 0])
-        ComPASS.global_cellflags()[:] = np.floor(cell_centers[:, 0])
+        vertices = simulation.global_vertices()
+        cell_centers = simulation.compute_global_cell_centers()
+        face_centers = simulation.compute_global_face_centers()
+        simulation.global_nodeflags()[:] = np.floor(vertices[:, 0])
+        simulation.global_faceflags()[:] = np.floor(face_centers[:, 0])
+        simulation.global_cellflags()[:] = np.floor(cell_centers[:, 0])
 
 
-    ComPASS.init(
+    simulation.init(
         mesh = grid,
         cell_porosity = 0.1,
         cell_permeability = 1e-12,
@@ -50,7 +51,7 @@ def test_dump_mesh():
         set_dirichlet_nodes = set_dirichlet,
     )
 
-    ComPASS.debug_utils_dump_mesh_info()
+    simulation.debug_utils_dump_mesh_info()
     ComPASS.debug_utils.extract_all_meshes()
 
 if __name__ == '__main__':

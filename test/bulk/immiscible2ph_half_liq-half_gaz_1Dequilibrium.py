@@ -23,6 +23,7 @@ from ComPASS.newton import Newton, LinearSolver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
+
 Lx = 1000.0
 nx = 200
 dx = Lx / nx
@@ -38,12 +39,13 @@ Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
 CpRoche = 2.0e6
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 
-ComPASS.load_eos("immiscible2ph")
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
+simulation = ComPASS.load_eos("immiscible2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-liquid_context = ComPASS.Context.liquid
-gas_context = ComPASS.Context.gas
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
+
+liquid_context = simulation.Context.liquid
+gas_context = simulation.Context.gas
 
 if ComPASS.mpi.is_on_master_proc:
 
@@ -53,7 +55,7 @@ if ComPASS.mpi.is_on_master_proc:
 if not ComPASS.mpi.is_on_master_proc:
     grid = omega_reservoir = k_reservoir = cell_thermal_cond = None
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
@@ -78,15 +80,15 @@ def set_states(state, x):
 
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), ComPASS.vertices()[:, 0])
-    set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:, 0])
+    set_states(simulation.node_states(), simulation.vertices()[:, 0])
+    set_states(simulation.cell_states(), simulation.compute_cell_centers()[:, 0])
 
 
 master_print("set initial and BC")
 set_variable_initial_bc_values()
 
 # set linear solver properties
-newton = Newton(1e-7, 12, LinearSolver(1e-6, 50))
+newton = Newton(simulation, 1e-7, 12, LinearSolver(1e-6, 50))
 
 timestep = TimeStepManager(
     initial_timestep=100.,
@@ -100,6 +102,7 @@ final_time = 100.0 * year
 output_period = 0.01 * final_time
 
 current_time = standard_loop(
+    simulation,
     final_time=final_time,
     newton=newton,
     time_step_manager=timestep,

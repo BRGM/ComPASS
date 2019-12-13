@@ -13,6 +13,7 @@ from ComPASS.timeloops import standard_loop
 
 import numpy as np
 
+
 pres = 20. * MPa                            # initial reservoir pressure
 Tres = degC2K( 70. )                        # initial reservoir temperature - convert Celsius to Kelvin degrees
 Tinjection = degC2K( 30. )                  # injection temperature - convert Celsius to Kelvin degrees
@@ -30,9 +31,9 @@ Lx, Ly, Lz = 3000., 2000., 100.
 Ox, Oy, Oz = -1500., -1000., -1600.
 nx, ny, nz = 61, 41, 3
 
-ComPASS.load_eos('water2ph')
-ComPASS.set_gravity(9.81)
-ComPASS.set_fracture_thickness(1.)
+simulation = ComPASS.load_eos('water2ph')
+simulation.set_gravity(9.81)
+simulation.set_fracture_thickness(1.)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
@@ -42,9 +43,9 @@ grid = ComPASS.Grid(
 )
 
 def select_fractures():
-    face_centers = ComPASS.compute_global_face_centers()
+    face_centers = simulation.compute_global_face_centers()
     zfaces = face_centers[:, 2]
-    face_normals = ComPASS.compute_global_face_normals()
+    face_normals = simulation.compute_global_face_normals()
     ux, uy = face_normals[:, 0], face_normals[:, 1]
     dz = Lz / nz
     # select horizontal fault axis in the middle of the simulation domain
@@ -54,7 +55,7 @@ def select_fractures():
     return fractures
 
 def face_permeability():
-    face_centers = ComPASS.compute_global_face_centers()
+    face_centers = simulation.compute_global_face_centers()
     nbfaces = face_centers.shape[0]
     xfc, yfc, zfc = [face_centers[:, col] for col in range(3)]
     interwell_distance = doublet_utils.interwell_distance(grid)
@@ -67,9 +68,9 @@ def face_permeability():
     faceperm[in_channel] = channel_fracture_permeability
     return faceperm[select_fractures()]
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
-    wells = doublet_utils.make_wells_factory(grid),
+    wells = doublet_utils.make_wells_factory(simulation, grid),
     cell_porosity = omega_matrix,
     cell_permeability = k_matrix,
     cell_thermal_conductivity = K_matrix,
@@ -79,6 +80,6 @@ ComPASS.init(
     fracture_thermal_conductivity = K_fracture,
 )
 
-doublet_utils.init_states(pres, Tres)
+doublet_utils.init_states(simulation, pres, Tres)
 
-standard_loop(initial_timestep = day, final_time = 10 * year, output_period = 30 * day)
+standard_loop(simulation, initial_timestep = day, final_time = 10 * year, output_period = 30 * day)

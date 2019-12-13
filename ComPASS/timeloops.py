@@ -16,24 +16,20 @@ from . import timestep
 from . import mpi
 from .dumps import Dumper
 
-import ComPASS  # needed for cpp wrappers
 
-
-def check_well_pressure():
+def check_well_pressure(simulation):
     p_min, p_max = float('Inf'), -float('Inf')
-    for state in [ComPASS.node_states(), ComPASS.fracture_states(), ComPASS.cell_states()]:
+    for state in [simulation.node_states(), simulation.fracture_states(), simulation.cell_states()]:
         if state.p.shape[0]>0:
             p_min = min(p_min, state.p.min())
             p_max = max(p_max, state.p.max())
     # whp = well head pressure
-    ComPASS.production_whp()[:] = p_min - 1.
-    ComPASS.injection_whp()[:] = p_max + 1.
+    simulation.production_whp()[:] = p_min - 1.
+    simulation.injection_whp()[:] = p_max + 1.
 
 class Snapshooter:
 
-    def __init__(self, dumper=None):
-        if dumper is None:
-            dumper = Dumper()
+    def __init__(self, dumper):
         dumper.start_simulation()
         self.dumper = dumper
         self.nb_snaphots = 0
@@ -60,7 +56,8 @@ class Snapshooter:
 n = 0 # iteration counter
 shooter = None
 
-def standard_loop(initial_time=None, final_time=None,
+def standard_loop(simulation,
+                  initial_time=None, final_time=None,
                   initial_timestep=None, fixed_timestep=None,
                   output_period = None, output_every = None,
                   nb_output = None, nitermax = None, dumper=None,
@@ -71,7 +68,7 @@ def standard_loop(initial_time=None, final_time=None,
                  ):
     assert not (final_time is None and nitermax is None)
     if newton is None:
-        newton = ComPASS.default_Newton()
+        newton = simulation.default_Newton()
     if context is None:
         context = SimulationContext()
     global n
@@ -106,7 +103,7 @@ def standard_loop(initial_time=None, final_time=None,
         specific_outputs = list(specific_outputs)
         specific_outputs.sort()
     # this is necessary for well operating on pressures
-    check_well_pressure()
+    check_well_pressure(simulation)
     #FIXME: t = ComPASS.get_current_time()
     t = initial_time if initial_time else 0
     t_output = t
@@ -114,6 +111,8 @@ def standard_loop(initial_time=None, final_time=None,
     #    #FIXME: ComPASS.set_current_time(initial_time)
     #    t = initial_time
     if shooter is None:
+        if dumper is None:
+            dumper = Dumper(simulation)
         shooter = Snapshooter(dumper)
     else:
         t_output = t_output + output_period
@@ -128,8 +127,8 @@ def standard_loop(initial_time=None, final_time=None,
         print('Current time:', time_string(t), final_time_info)
         # print('Timestep: %.3g s = %.3f d = %.3f y' % (
             # ts_manager.current_step, ts_manager.current_step / day, ts_manager.current_step / year))
-    pcsp = np.copy(ComPASS.cell_states().p)
-    pcsT = np.copy(ComPASS.cell_states().T)
+    pcsp = np.copy(simulation.cell_states().p)
+    pcsT = np.copy(simulation.cell_states().T)
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         if ( t < t_output and specific_outputs and 
              t + ts_manager.current_step > specific_outputs[0] ):
@@ -152,8 +151,8 @@ def standard_loop(initial_time=None, final_time=None,
                 simulation_context=context,
         )
         t += ts_manager.current_step
-        mpi.master_print('max p variation', np.abs(ComPASS.cell_states().p-pcsp).max())
-        mpi.master_print('max T variation', np.abs(ComPASS.cell_states().T-pcsT).max())
+        mpi.master_print('max p variation', np.abs(simulation.cell_states().p-pcsp).max())
+        mpi.master_print('max T variation', np.abs(simulation.cell_states().T-pcsT).max())
         # --
         #ComPASS.make_timestep(timestep)
         #t = ComPASS.get_current_time()
@@ -163,8 +162,8 @@ def standard_loop(initial_time=None, final_time=None,
         # --
         for callback in iteration_callbacks:
             callback(n, t)
-        pcsp = np.copy(ComPASS.cell_states().p)
-        pcsT = np.copy(ComPASS.cell_states().T)
+        pcsp = np.copy(simulation.cell_states().p)
+        pcsT = np.copy(simulation.cell_states().T)
     # Output final time
     if shooter.latest_snapshot_time is None or shooter.latest_snapshot_time < t:
         for callback in output_callbacks:

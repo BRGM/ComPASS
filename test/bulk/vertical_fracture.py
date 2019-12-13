@@ -12,8 +12,9 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 
-ComPASS.load_eos('water2ph')
-ComPASS.activate_direct_solver = True
+
+simulation = ComPASS.load_eos('water2ph')
+simulation.info.activate_direct_solver = True
 
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -33,8 +34,8 @@ Lx, Ly, Lz = 2*H, 0.1*H, H
 ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded
-pbottom = ComPASS.get_gravity() * H * 900.
-hbottom = ComPASS.liquid_molar_enthalpy(pbottom, Tbottom)
+pbottom = simulation.get_gravity() * H * 900.
+hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -43,15 +44,15 @@ grid = ComPASS.Grid(
 )
 
 def top_nodes():
-    return ComPASS.global_vertices()[:, 2] >= 0
+    return simulation.global_vertices()[:, 2] >= 0
 
 def select_fractures():
-    centers = ComPASS.compute_global_face_centers()
+    centers = simulation.compute_global_face_centers()
     xc = centers[:, 0]
     zc = centers[:, 2]
     return (xc == 0) & (zc < -0.5 * H)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -69,24 +70,25 @@ def set_initial_states(states):
     states.T[:] = T0
     states.S[:] = [0, 1]
     states.C[:] = 1.
-for states in [ComPASS.dirichlet_node_states(),
-               ComPASS.node_states(),
-               ComPASS.cell_states(),
-               ComPASS.fracture_states()]:
+for states in [simulation.dirichlet_node_states(),
+               simulation.node_states(),
+               simulation.cell_states(),
+               simulation.fracture_states()]:
     set_initial_states(states)
 
 def set_boundary_fluxes():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = qmass
     Neumann.heat_flux = qmass * hbottom
-    face_centers = ComPASS.face_centers()   
-    bottom_fracture_edges = ComPASS.find_fracture_edges(face_centers[:, 2] <= -H)
-    ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
+    face_centers = simulation.face_centers()   
+    bottom_fracture_edges = simulation.find_fracture_edges(face_centers[:, 2] <= -H)
+    simulation.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
 set_boundary_fluxes()
 
 final_time = 1 * day
 output_period = 0.1 * final_time
 standard_loop(
+    simulation,
     final_time = final_time,
     time_step_manager = TimeStepManager(100, output_period),
     output_period = output_period,

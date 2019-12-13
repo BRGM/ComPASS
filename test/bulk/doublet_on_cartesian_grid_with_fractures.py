@@ -12,6 +12,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import doublet_utils
 
+
 pres = 20. * MPa            # initial reservoir pressure
 Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to Kelvin degrees
 Tinjection = degC2K( 30. )  # injection temperature - convert Celsius to Kelvin degrees
@@ -28,11 +29,11 @@ Ox, Oy, Oz = -1500., -1000., -1600.
 nx, ny, nz = 31, 21, 6
 
 
-ComPASS.load_eos('water2ph')
+simulation = ComPASS.load_eos('water2ph')
 
 def fractures_factory(grid):
     def select_fractures():
-        face_centers = ComPASS.compute_global_face_centers()
+        face_centers = simulation.compute_global_face_centers()
         dz = grid.extent[2] / grid.shape[2]
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = grid.origin[2] + 0.5 * grid.extent[2]
@@ -43,10 +44,10 @@ def wells_factory(grid):
     def make_wells():
         interwell_distance = 1 * km
         Cx, Cy, Cz = doublet_utils.center(grid)
-        producer = doublet_utils.make_well((Cx - 0.5 * interwell_distance, Cy))
+        producer = doublet_utils.make_well(simulation, (Cx - 0.5 * interwell_distance, Cy))
         producer.operate_on_flowrate = Qm , 1. * bar
         producer.produce()
-        injector = doublet_utils.make_well((Cx + 0.5 * interwell_distance, Cy))
+        injector = doublet_utils.make_well(simulation, (Cx + 0.5 * interwell_distance, Cy))
         injector.operate_on_flowrate = Qm, pres + 100. * MPa
         injector.inject(Tinjection)
         return (producer, injector)
@@ -60,7 +61,7 @@ grid = ComPASS.Grid(
     origin = (Ox, Oy, Oz),
 )
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     wells = wells_factory(grid),
     fracture_faces = fractures_factory(grid),
@@ -72,6 +73,6 @@ ComPASS.init(
     fracture_thermal_conductivity = K_fracture,
 )
 
-doublet_utils.init_states(pres, Tres)
+doublet_utils.init_states(simulation, pres, Tres)
 
-standard_loop(initial_timestep = day, final_time = 2 * year, output_period = 30 * day)
+standard_loop(simulation, initial_timestep = day, final_time = 2 * year, output_period = 30 * day)

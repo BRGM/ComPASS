@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 
+
 rhof = 1E3               # specific mass in kg/m^3
 cpf = 4200               # specific heat in J/kg/K
 rhofcpf = rhof * cpf     # volumetric heat capacity
@@ -27,14 +28,14 @@ mass_flux = 1E-1
 Lx, Ly, Lz = 100., 10., 10.   # column dimensions
 nx, ny, nz = 100, 1, 1        # discretization
 
-ComPASS.load_eos('linear_water')
-fluid_properties = ComPASS.get_fluid_properties()
+simulation = ComPASS.load_eos('linear_water')
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_output_directory_and_logfile(__file__)
-ComPASS.set_gravity(0) # no gravity
+simulation.set_gravity(0) # no gravity
 
 grid = ComPASS.Grid(
     shape = (nx, ny, nz),
@@ -43,15 +44,15 @@ grid = ComPASS.Grid(
 )
 
 def left_nodes():
-    return ComPASS.global_vertices()[:, 0] <= 0
+    return simulation.global_vertices()[:, 0] <= 0
 
 def right_nodes():
-    return ComPASS.global_vertices()[:, 0] >= Lx
+    return simulation.global_vertices()[:, 0] >= Lx
 
 def both_ends():
     return left_nodes() | right_nodes()
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -65,18 +66,19 @@ def set_initial_states(states):
     states.T[:] = T_right
     states.S[:] = 1.
     states.C[:] = 1.
-for states in [ComPASS.dirichlet_node_states(),
-               ComPASS.node_states(),
-               ComPASS.cell_states()]:
+for states in [simulation.dirichlet_node_states(),
+               simulation.node_states(),
+               simulation.cell_states()]:
     set_initial_states(states)
 
-states = ComPASS.dirichlet_node_states()
-vertices = ComPASS.vertices()
+states = simulation.dirichlet_node_states()
+vertices = simulation.vertices()
 states.T[vertices[:, 0] <= 0] = T_left
 
 final_time = 100 * year 
 output_period = 0.1 * final_time
 standard_loop(
+    simulation,
     final_time = final_time,
     time_step_manager = TimeStepManager(1E-5, output_period),
     output_period = output_period,
@@ -92,8 +94,8 @@ if ComPASS.mpi.communicator().size==1:
         print('WARNING - matplotlib was not found - no graphics will be generated')
         plt = None
     else:
-        x = ComPASS.cell_centers()[:, 0]
-        states = ComPASS.cell_states()
+        x = simulation.cell_centers()[:, 0]
+        states = simulation.cell_states()
         plt.clf()
         plt.plot(x, K2degC(states.T))
         plt.xlabel('x in meters')

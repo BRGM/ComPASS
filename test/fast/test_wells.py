@@ -9,10 +9,11 @@
 import numpy as np
 import ComPASS
 
+
 def test_wells():
 
     # FIXME: this is transitory but we need an eos to acces the well structure
-    ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos('water2ph')
 
     W1 = ComPASS.Well()
     W1.geometry.radius = 0.1
@@ -58,8 +59,8 @@ def test_wells():
     print('Well W3:', W3)
 
     wells = [W1, W2, W3]
-    ComPASS.set_well_geometries(wells)
-    ComPASS.set_well_data(wells)
+    simulation.set_well_geometries(wells)
+    simulation.set_well_data(wells)
 
 if __name__== '__main__':
     test_wells()

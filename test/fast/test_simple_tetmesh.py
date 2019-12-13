@@ -34,7 +34,7 @@ def test_simple_tetmesh():
     zmax = vertices[:, -1].max()
     topnodes = np.nonzero(vertices[:, -1]==zmax)[0]
 
-    ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos('water2ph')
 
     ComPASS.set_output_directory_and_logfile(__file__)
 
@@ -44,9 +44,9 @@ def test_simple_tetmesh():
         on_top[topnodes] = True
         return on_top
 
-    print('Gravity:', ComPASS.get_gravity())
+    print('Gravity:', simulation.get_gravity())
 
-    ComPASS.init(
+    simulation.init(
         mesh = mesh,
         set_dirichlet_nodes = select_dirichlet_nodes,
         cell_porosity = omega_reservoir,
@@ -55,7 +55,7 @@ def test_simple_tetmesh():
     )
 
     def set_boundary_conditions():
-        dirichlet = ComPASS.dirichlet_node_states()
+        dirichlet = simulation.dirichlet_node_states()
         dirichlet.p[topnodes] = 1E5
         dirichlet.T[topnodes] = degC2K(30)
         dirichlet.context[:] = 2
@@ -63,7 +63,7 @@ def test_simple_tetmesh():
         dirichlet.C[:] = 1.
 
     def set_initial_values():
-        for state in [ComPASS.node_states(), ComPASS.fracture_states(), ComPASS.cell_states()]:
+        for state in [simulation.node_states(), simulation.fracture_states(), simulation.cell_states()]:
             state.context[:] = 2
             state.p[:] = 1E5
             state.T[:] = degC2K(30)
@@ -75,6 +75,7 @@ def test_simple_tetmesh():
 
 
     standard_loop(
+        simulation,
         initial_timestep = 1 * year, final_time = 1E3 * year,
         output_period = 1E2 * year,
     )

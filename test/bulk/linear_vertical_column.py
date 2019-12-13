@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 
+
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 bottom_heat_flux = 0.08    # W/m2                                  
@@ -27,8 +28,8 @@ cpf = 4200                 # specific heat in J/kg/K
 rhofcpf = rhof * cpf       # volumetric heat capacity
 muf = 1E-3                 # fluid dynamic viscosity
 
-ComPASS.load_eos('linear_water')
-fluid_properties = ComPASS.get_fluid_properties()
+simulation = ComPASS.load_eos('linear_water')
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
@@ -43,9 +44,9 @@ grid = ComPASS.Grid(
 )
 
 def top_nodes():
-    return ComPASS.global_vertices()[:, 2] >= 0
+    return simulation.global_vertices()[:, 2] >= 0
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -59,21 +60,22 @@ def set_initial_states(states):
     states.T[:] = T0
     states.S[:] = 1. 
     states.C[:] = 1.
-for states in [ComPASS.dirichlet_node_states(),
-               ComPASS.node_states(),
-               ComPASS.cell_states()]:
+for states in [simulation.dirichlet_node_states(),
+               simulation.node_states(),
+               simulation.cell_states()]:
     set_initial_states(states)
 
 def set_boundary_heat_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.heat_flux = bottom_heat_flux
-    face_centers = ComPASS.face_centers()   
-    ComPASS.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann) 
+    face_centers = simulation.face_centers()   
+    simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann) 
 set_boundary_heat_flux()
 
 final_time = 1E4 * year
 output_period = 1E3 * year
 standard_loop(
+    simulation,
     final_time = final_time,
     time_step_manager = TimeStepManager(30 * day, output_period), 
     output_period = output_period,

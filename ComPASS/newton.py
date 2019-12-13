@@ -9,10 +9,10 @@
 from collections import namedtuple
 import numpy as np
 
-import ComPASS  # needed for cpp wrappers
 from . import mpi
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
+
 
 class LinearSolver:
     
@@ -76,10 +76,11 @@ def dump_start_info(iteration):
 
 class Newton:
     
-    def __init__(self, tol, maxit, lsolver, convergence_scheme=None, solver_fmk=None):
+    def __init__(self, simulation, tol, maxit, lsolver, convergence_scheme=None, solver_fmk=None):
         # FIXME: this is transitory
+        self.simulation = simulation
         if solver_fmk is None:
-            solver_fmk = ComPASS.info.petsc
+            solver_fmk = simulation.info.petsc
             assert solver_fmk is not None
         self.solver_fmk = solver_fmk
         self.tolerance = tol
@@ -93,7 +94,7 @@ class Newton:
         self.increments = get_kernel().NewtonIncrements()
         self.increments.init()
         if not convergence_scheme: 
-            self.convergence_scheme = LegacyConvergence()
+            self.convergence_scheme = LegacyConvergence(simulation)
 
     def reset_loop(self):
         kernel = get_kernel()
@@ -120,9 +121,9 @@ class Newton:
     def increment(self):
         kernel = get_kernel()
 #        mpi.master_print('increment variables')
-        ghosts_synchronizer = ComPASS.info.ghosts_synchronizer
+        ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(ComPASS.info.petsc.x)
+        ghosts_synchronizer.synchronize(self.simulation.info.petsc.x)
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -165,7 +166,7 @@ class Newton:
             kernel.SolvePetsc_SetUp()
             ksp_status = solver_fmk.solve()
             # mpi.master_print('KSP status', ksp_status) 
-            if not ComPASS.info.activate_direct_solver:
+            if not self.simulation.info.activate_direct_solver:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
                 total_lsolver_iterations+= nb_lsolver_iterations
@@ -175,7 +176,7 @@ class Newton:
                 #)
             if ksp_status<0:
                 lsolver.failures+= 1
-                if not ComPASS.info.activate_direct_solver:
+                if not self.simulation.info.activate_direct_solver:
                     lsolver.number_of_useless_iterations+= nb_lsolver_iterations
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations),

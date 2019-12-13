@@ -9,14 +9,15 @@
 import os
 import numpy as np
 
-import ComPASS  # needed for cpp wrappers
 from . import mpi
 from .utils import create_directories
 from .runtime import to_output_directory
 
+
 class Dumper:
 
-    def __init__(self, output_directory=None):
+    def __init__(self, simulation, output_directory=None):
+        self.simulation = simulation
         if output_directory is None:
             output_directory = to_output_directory('')
         self.output_directory = os.path.abspath(output_directory)
@@ -63,25 +64,25 @@ class Dumper:
         with open(filename, 'w') as f:
             print('# Number of procs', file=f)
             print('nb_procs =', communicator.size, file=f)
-            print('nb_own_cells =', ComPASS.nb_cells_own(), file=f)
-            print('nb_own_nodes =', ComPASS.nb_nodes_own(), file=f)
-            print('nb_own_faces =', ComPASS.nb_faces_own(), file=f)
-            print('nb_own_fractures =', ComPASS.nb_fractures_own(), file=f)
+            print('nb_own_cells =', self.simulation.nb_cells_own(), file=f)
+            print('nb_own_nodes =', self.simulation.nb_nodes_own(), file=f)
+            print('nb_own_faces =', self.simulation.nb_faces_own(), file=f)
+            print('nb_own_fractures =', self.simulation.nb_fractures_own(), file=f)
         np.set_printoptions(linewidth=np_linewidth_backup)
 
     def dump_mesh(self):
-        connectivity = ComPASS.get_connectivity()
-        fracture_nodes_coc = ComPASS.get_nodes_by_fractures()
+        connectivity = self.simulation.get_connectivity()
+        fracture_nodes_coc = self.simulation.get_nodes_by_fractures()
         fracture_nodes = [np.array(nodes) - 1 for nodes in fracture_nodes_coc]  # switch first node indexing from 1 to 0
         fracturenodes_offsets = np.cumsum([len(a) for a in fracture_nodes])
         fracturenodes_values = np.hstack(fracture_nodes) if len(fracture_nodes)>0 else np.array([])
-        fracture_faces = ComPASS.frac_face_id()
-        fracture_types = ComPASS.facetypes()[fracture_faces - 1] # switch first node indexing from 1 to 0
+        fracture_faces = self.simulation.frac_face_id()
+        fracture_types = self.simulation.facetypes()[fracture_faces - 1] # switch first node indexing from 1 to 0
         np.savez(self.mesh_filename(mpi.proc_rank),
-            vertices =  ComPASS.vertices().view(dtype=np.double).reshape((-1, 3)),
+            vertices =  self.simulation.vertices().view(dtype=np.double).reshape((-1, 3)),
             cellnodes_offsets = connectivity.NodebyCell.offsets()[1:], # VTK does not use the first 0 offset
             cellnodes_values = connectivity.NodebyCell.contiguous_content() - 1, # switch first node indexing from 1 to 0
-            celltypes = ComPASS.celltypes(),
+            celltypes = self.simulation.celltypes(),
             fracturenodes_offsets = fracturenodes_offsets,
             fracturenodes_values = fracturenodes_values,
             fracture_types = fracture_types,
@@ -89,9 +90,9 @@ class Dumper:
 
     def dump_states(self, tag='', dump_fluxes=True):
         assert self.simulation_running
-        node_states = ComPASS.node_states()
-        cell_states = ComPASS.cell_states()
-        fracture_states = ComPASS.fracture_states()
+        node_states = self.simulation.node_states()
+        cell_states = self.simulation.cell_states()
+        fracture_states = self.simulation.fracture_states()
         dumped_states = {
             'node_pressure': node_states.p,
             'node_temperature': node_states.T,
@@ -100,10 +101,10 @@ class Dumper:
             'fracture_pressure': fracture_states.p,
             'fracture_temperature': fracture_states.T,
         }
-        nbphases = ComPASS.number_of_phases()
-        phase_names = [name for name in ComPASS.Phase.__dict__.keys() if  not name.startswith('__')]   
-        nbcomponents = ComPASS.number_of_components()
-        comp_names = [name for name in ComPASS.Component.__dict__.keys() if  not name.startswith('__')]   
+        nbphases = self.simulation.number_of_phases()
+        phase_names = [name for name in self.simulation.Phase.__dict__.keys() if  not name.startswith('__')]   
+        nbcomponents = self.simulation.number_of_components()
+        comp_names = [name for name in self.simulation.Component.__dict__.keys() if  not name.startswith('__')]   
         for phase in range(nbphases):
             phasename = phase_names[phase]
             dumped_states['cell_saturation_phase_%s'%(phasename)] = cell_states.S[:, phase]
@@ -118,7 +119,7 @@ class Dumper:
                     dumped_states['node_comp_%s_in_phase_%s'%(compname, phasename)] = node_states.C[:, phase, comp]
                     dumped_states['fracture_comp_%s_in_phase_%s'%(compname, phasename)] = fracture_states.C[:, phase, comp]
         if dump_fluxes:
-            cell_fluxes, fracture_fluxes = ComPASS.mass_fluxes()
+            cell_fluxes, fracture_fluxes = self.simulation.mass_fluxes()
             dumped_states['cell_total_mass_flux'] = cell_fluxes.sum(axis=1)
             dumped_states['fracture_total_mass_flux'] = fracture_fluxes.sum(axis=1)
             if True or nbcomponents>1:
@@ -128,11 +129,11 @@ class Dumper:
                     dumped_states['fracture_mass_flux_comp%s'%(compname)] = fracture_fluxes[:, comp, :]
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
 
-def dump_mesh():
-    dumper = Dumper()
+def dump_mesh(simulation):
+    dumper = Dumper(simulation)
     dumper.dump_own_element_numbers()
     dumper.dump_mesh()
 
-def dump_states(tag=''):
-    Dumper().dump_states(tag)
+def dump_states(simulation, tag=''):
+    Dumper(simulation).dump_states(tag)
 

@@ -9,14 +9,13 @@
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 
 
-ComPASS.load_eos('water2ph')
+simulation = ComPASS.load_eos('water2ph')
 
 def fractures_factory(grid):
     def select_fractures():
-        face_centers = ComPASS.compute_global_face_centers()
+        face_centers = simulation.compute_global_face_centers()
         dz = grid.extent[2] / grid.shape[2]
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = grid.origin[2] + 0.5 * grid.extent[2]
@@ -31,7 +30,7 @@ grid = ComPASS.Grid(
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     fracture_faces = fractures_factory(grid),
     cell_porosity = 0.5,               # dummy value, no simulation
@@ -42,4 +41,4 @@ ComPASS.init(
     fracture_thermal_conductivity = 2, # dummy value, no simulation
 )
 
-ComPASS.dumps.dump_mesh()
+ComPASS.dumps.dump_mesh(simulation)

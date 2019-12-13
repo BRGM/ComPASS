@@ -13,6 +13,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep
 
+
 p0 = 0. * bar              # dummy pressure no gravity
 Tmean = 10.                # average surface temperature
 deltaT = 10.               # seasonal amplitude
@@ -28,12 +29,12 @@ H = 100.                   # column height
 nx, ny, nz = 1, 1, 200     # discretization
 dz = H/nz
 
-ComPASS.activate_direct_solver = True
-ComPASS.load_eos('linear_water')
-ComPASS.set_rock_volumetric_heat_capacity(rhor*cpr)
-fluid_properties = ComPASS.get_fluid_properties()
+simulation = ComPASS.load_eos('linear_water')
+simulation.info.activate_direct_solver = True
+simulation.set_rock_volumetric_heat_capacity(rhor*cpr)
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.volumetric_heat_capacity = rhor*cpr
-ComPASS.set_gravity(0)
+simulation.set_gravity(0)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
@@ -43,12 +44,12 @@ grid = ComPASS.Grid(
 )
 
 def top_nodes():
-    return ComPASS.global_vertices()[:, 2] >= 0
+    return simulation.global_vertices()[:, 2] >= 0
     
 def set_node_flags():
-    ComPASS.global_nodeflags()[:] = np.asarray(top_nodes(), dtype=np.int)
+    simulation.global_nodeflags()[:] = np.asarray(top_nodes(), dtype=np.int)
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -63,21 +64,21 @@ def set_initial_states(states, z):
     states.T[:] = Tmean - ( bottom_heat_flux / K_matrix ) * z
     states.S[:] = 1.
     states.C[:] = 1.
-set_initial_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,2])
-set_initial_states(ComPASS.node_states(), ComPASS.vertices()[:,2])
-set_initial_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,2])
+set_initial_states(simulation.dirichlet_node_states(), simulation.vertices()[:,2])
+set_initial_states(simulation.node_states(), simulation.vertices()[:,2])
+set_initial_states(simulation.cell_states(), simulation.compute_cell_centers()[:,2])
 
 def set_boundary_heat_flux():
     Neumann = ComPASS.NeumannBC()
     Neumann.heat_flux = bottom_heat_flux
-    face_centers = ComPASS.face_centers()   
-    ComPASS.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann) 
+    face_centers = simulation.face_centers()   
+    simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann) 
 set_boundary_heat_flux()
 
 # locate dirichlet nodes - not mandatory
 # we could have identified different regions using nodeflags
-dirichlet_nodes = np.nonzero(ComPASS.nodeflags())[0]
-dirichlet_T = ComPASS.dirichlet_node_states().T
+dirichlet_nodes = np.nonzero(simulation.nodeflags())[0]
+dirichlet_T = simulation.dirichlet_node_states().T
 
 def change_surface_temperature(n, t):
     dirichlet_T[dirichlet_nodes] = Tmean + deltaT * np.sin(t * (2*np.pi / year))
@@ -85,6 +86,7 @@ def change_surface_temperature(n, t):
 final_time = 5 * year
 output_period = year / 12
 standard_loop(
+    simulation,
    final_time = final_time,
    time_step_manager = FixedTimeStep(5. * day),
    output_period = output_period,

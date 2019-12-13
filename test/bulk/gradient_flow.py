@@ -11,6 +11,7 @@ import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+
 import numpy as np
 
 pleft, pright = 30 * MPa, 10 * MPa
@@ -40,7 +41,7 @@ on_the_left = lambda x: x <= grid.origin[0]
 on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]
 
 def select_dirichlet_nodes():
-    x = ComPASS.global_vertices()[:,0]
+    x = simulation.global_vertices()[:,0]
     return on_the_left(x) | on_the_right(x)
 
 def set_boundary_conditions():
@@ -59,7 +60,7 @@ def set_boundary_conditions():
         else:
             states.C[left] = (0, 1)
             states.C[right] = (1, 0)
-    set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:,0])
+    set_states(simulation.dirichlet_node_states(), simulation.vertices()[:,0])
 
 def set_initial_values():
     def set_states(states, x):
@@ -71,21 +72,21 @@ def set_initial_values():
             states.C[:] = 1.
         else:
             states.C[:] = (1, 0)
-    set_states(ComPASS.node_states(),  ComPASS.vertices()[:,0])
-    set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:,0])
+    set_states(simulation.node_states(),  simulation.vertices()[:,0])
+    set_states(simulation.cell_states(), simulation.compute_cell_centers()[:,0])
 
 # %%% Simulation %%%
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if onecomp:
-    ComPASS.load_eos('water2ph')
-    ComPASS.lock_context(2)
+    simulation = ComPASS.load_eos('water2ph')
+    simulation.lock_context(2)
 else:
     assert False, 'configuration temporarily desactivated'
-    ComPASS.load_eos('water_with_tracer')
+    simulation = ComPASS.load_eos('water_with_tracer')
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
     cell_porosity = omega_reservoir,
@@ -104,15 +105,15 @@ def collect_node_temperature(iteration, t):
         return
     print('Collecting temperature at iteration', iteration)
     print('                           and time', t/year, 'years')
-    states = ComPASS.cell_states()
+    states = simulation.cell_states()
     cell_temperatures.append((t, np.copy(states.T)))
 
-standard_loop(final_time = final_time, output_period = final_time/50, initial_timestep = final_time/(10*nx),
+standard_loop(simulation, final_time = final_time, output_period = final_time/50, initial_timestep = final_time/(10*nx),
               output_callbacks=(collect_node_temperature,))
 
 if ComPASS.mpi.communicator().size==1:
     assert ComPASS.mpi.is_on_master_proc
-    x = ComPASS.compute_cell_centers()[:,0]
+    x = simulation.compute_cell_centers()[:,0]
     with open(ComPASS.to_output_directory('cell_temperatures.csv'), 'w') as f:
         s = ';'.join(['%f' %(xi) for xi in x])
         print('"time (years)\\x";' + s, file=f)

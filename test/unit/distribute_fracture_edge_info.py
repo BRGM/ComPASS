@@ -14,13 +14,14 @@ from ComPASS.timeloops import standard_loop, TimeStepManager
 import ComPASS.mpi as mpi
 from ComPASS.utils.tags import tag_edges_families, retrieve_fracture_edges_families
 
+
 k = 1E-15           # dummy value
 phi = 0.15          # dummy value
 thermal_cond = 2.   # dummy value
 
 nx, ny, nz = (4,) * 3
 
-ComPASS.load_eos('linear_water')
+simulation = ComPASS.load_eos('linear_water')
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
@@ -30,26 +31,26 @@ grid = ComPASS.Grid(
 )
 
 def set_node_flags():
-    xyz = ComPASS.global_vertices()
+    xyz = simulation.global_vertices()
     x, y, z = [xyz[:, j] for j in range(3)]
     edge_families = [
         (x == 0) & ((np.abs(y) == 0.5) | (np.abs(z) == 0.5)),
         (y == 0) & ((np.abs(x) == 0.5) | (np.abs(z) == 0.5)),
         (z == 0) & ((np.abs(x) == 0.5) | (np.abs(y) == 0.5)),
     ]
-    tag_edges_families(edge_families)
+    tag_edges_families(simulation, edge_families)
 
 def select_fractures():
-    centers = ComPASS.compute_global_face_centers()
+    centers = simulation.compute_global_face_centers()
     xc, yc, zc = [centers[:, j] for j in range(3)]
     where = (xc == 0) | (yc == 0) | (zc == 0)
     print(np.sum(where), 'fracture faces')
     return where
 
 
-# The call to ComPASS.init will distribute the mesg
+# The call to simulation.init will distribute the mesg
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k,                        # dummy value
     cell_porosity = phi,                          # dummy value
@@ -62,6 +63,6 @@ ComPASS.init(
 )
 
 # The mesh is now distributed
-assert ComPASS.mesh_is_local
+assert simulation.mesh_is_local
 
-retrieve_fracture_edges_families(verbose=True)
+retrieve_fracture_edges_families(simulation, verbose=True)

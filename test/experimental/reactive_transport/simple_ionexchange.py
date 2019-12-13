@@ -16,10 +16,10 @@
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 import ComPASS.timestep as timestep
 from ComPASS.simulation_context import SimulationContext
+
 from scipy.optimize import newton_krylov
 import numpy as np
 
@@ -59,7 +59,7 @@ on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]
 
 
 def select_dirichlet_nodes():
-    x = ComPASS.global_vertices()[:, 0]
+    x = simulation.global_vertices()[:, 0]
     return on_the_left(x) | on_the_right(x)
 
 
@@ -75,7 +75,7 @@ def set_boundary_conditions():
         states.S[both] = 1
         states.C[both] = 1.0
 
-    set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:, 0])
+    set_states(simulation.dirichlet_node_states(), simulation.vertices()[:, 0])
 
 
 def set_states_inj(states, x, name):
@@ -92,7 +92,7 @@ def set_states_inj(states, x, name):
 
 
 def set_injection(name):
-    set_states_inj(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:, 0], name)
+    set_states_inj(simulation.dirichlet_node_states(), simulation.vertices()[:, 0], name)
 
 
 # concentrations (=temperature !) treated separately, as there are 2 species
@@ -103,19 +103,19 @@ def set_initial_values():
         states.S[:] = 1
         states.C[:] = 1.0
 
-    set_states(ComPASS.all_states(), ComPASS.compute_dof_locations()[:, 0])
+    set_states(simulation.all_states(), simulation.all_positions()[:, 0])
 
 
-ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-fluid_properties = ComPASS.get_fluid_properties()
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhow
 fluid_properties.volumetric_heat_capacity = b
 fluid_properties.dynamic_viscosity = muf
-ComPASS.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_rock_volumetric_heat_capacity(rhocp)
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     set_dirichlet_nodes=select_dirichlet_nodes,
     cell_porosity=omega_reservoir,
@@ -132,22 +132,22 @@ set_boundary_conditions()
 
 def retrieve_concentrations():
     # copy needed
-    return np.copy(ComPASS.all_states().T)
+    return np.copy(simulation.all_states().T)
 
 
 def set_concentrations(C):
-    ComPASS.all_states().T[:] = C
+    simulation.all_states().T[:] = C
 
 
 def set_source_term(S):
     # WARNING: only porous volume at dof not including rock volume
-    porous_volume = ComPASS.all_Fourier_porous_volumes()
-    thermal_sources = ComPASS.all_thermal_sources()
+    porous_volume = simulation.all_Fourier_porous_volumes()
+    thermal_sources = simulation.all_thermal_sources()
     thermal_sources[:] = -porous_volume / omega_reservoir * S
 
 
 def clear_source_term():
-    ComPASS.all_thermal_sources()[:] = 0
+    simulation.all_thermal_sources()[:] = 0
 
 
 #%%---------------------------------------------------------
@@ -158,8 +158,9 @@ def make_one_timestep(t, dt, cTold, c1old):
     ts_manager = FixedTimeStep(dt)
     # ts_manager = TimeStepManager(initial_timestep=720,)
     newton = ComPASS.newton.Newton(
+        simulation,
         1e-5, 20, ComPASS.newton.LinearSolver(1e-6, 150)
-    )  # ComPASS.default_Newton() #
+    )  # simulation.default_Newton() #
     context = SimulationContext()
     # do cT first (linear)
     set_concentrations(cTold)
@@ -195,8 +196,8 @@ def make_one_timestep(t, dt, cTold, c1old):
 
 def plot_1D_concentrations(t, cT, c1):
     # Cell concentrations are last in the cT / c1 vectors
-    xc = ComPASS.compute_cell_centers()[:, 0]
-    xn = ComPASS.vertices()[:, 0]
+    xc = simulation.compute_cell_centers()[:, 0]
+    xn = simulation.vertices()[:, 0]
     import ComPASS.utils.mpl_backends as mpl_backends
 
     plt = mpl_backends.import_pyplot(False)
@@ -223,8 +224,8 @@ final_time = 55  # hrs
 dt = 0.2
 check = True  # show solution at t=25 and t=55 (cf figure 1 in above Ref.)
 
-nbNodes = ComPASS.global_number_of_nodes()
-nbCells = ComPASS.global_number_of_cells()
+nbNodes = simulation.global_number_of_nodes()
+nbCells = simulation.global_number_of_cells()
 nbDofs = nbNodes + nbCells
 
 cTold = np.tile(ctot_init, nbDofs)
@@ -251,7 +252,7 @@ if check:
     plt = mpl_backends.import_pyplot(False)
     if plt:
         plt.ion()
-        xc = ComPASS.compute_cell_centers()[:, 0]
+        xc = simulation.compute_cell_centers()[:, 0]
         plt.figure(2)
         plt.subplot(211)
         plt.ylim(0, 110)

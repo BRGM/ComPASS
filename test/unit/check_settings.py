@@ -10,11 +10,11 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 
+
 ComPASS.set_output_directory_and_logfile(__file__)
-ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_eos("water2ph")
 
 pres = 20.0 * MPa  # initial reservoir pressure
 Tres = degC2K(
@@ -30,7 +30,7 @@ nx, ny, nz = 4, 4, 3
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     # set_dirichlet_nodes=doublet_utils.select_boundary_factory(grid),
     cell_porosity=omega_reservoir,
@@ -41,16 +41,17 @@ from MeshTools import vtkwriters as vtkw
 
 vtkw.write_vtu(
     vtkw.vtu_doc(
-        ComPASS.vertices(),
-        np.reshape(ComPASS.get_connectivity().NodebyCell.contiguous_content(), (-1, 8))
+        simulation.vertices(),
+        np.reshape(simulation.get_connectivity().NodebyCell.contiguous_content(), (-1, 8))
         - 1,
         ofmt="ascii",
     ),
     "mesh_debug",
 )
 
-io.write_mesh("mesh_alone")
+io.write_mesh(simulation, "mesh_alone")
 io.write_mesh(
+    simulation,
     "simulation_mesh",
-    celldata={"zcell": np.ascontiguousarray(ComPASS.compute_cell_centers()[:, 2])},
+    celldata={"zcell": simulation.compute_cell_centers()[:, 2]},
 )

@@ -12,8 +12,9 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
+
 ComPASS.set_output_directory_and_logfile(__file__)
-ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_eos("water2ph")
 
 pres = 20.0 * MPa  # initial reservoir pressure
 Tres = degC2K(
@@ -29,7 +30,7 @@ nx, ny, nz = 2, 2, 1
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
@@ -37,27 +38,27 @@ ComPASS.init(
 )
 
 # Create a specific state and set all degrees of freedom
-initial_state = ComPASS.build_state(ComPASS.Context.liquid, p=pres, T=Tres)
-ComPASS.all_states().set(initial_state)
+initial_state = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
+simulation.all_states().set(initial_state)
 
 # You can iterate over states and print them
-for state in ComPASS.cell_states():
+for state in simulation.cell_states():
     print(state)
 
 # You can also iterate jointly over states and positions
 # but this will not be very efficient
 rho = 1E3
-g = ComPASS.get_gravity()
-for state, position in zip(ComPASS.all_states(), ComPASS.all_positions()):
+g = simulation.get_gravity()
+for state, position in zip(simulation.all_states(), simulation.all_positions()):
     state.p = rho * g * position[2]
 
 # Or rather use the direct accesor over the whole array
-ComPASS.all_states().p[:] = rho * g * ComPASS.all_positions()[:, 2]
+simulation.all_states().p[:] = rho * g * simulation.all_positions()[:, 2]
 
-print(ComPASS.node_states().p)
+print(simulation.node_states().p)
 
 # You can acces a specific state and change its values
-S = ComPASS.all_states()[2]
+S = simulation.all_states()[2]
 S.p = 3
 S.S[:]=0.5
-print(ComPASS.all_states()[2])
+print(simulation.all_states()[2])
