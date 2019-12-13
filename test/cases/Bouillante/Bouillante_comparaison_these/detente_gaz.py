@@ -46,12 +46,12 @@ CpRoche = 0.
 
 bot_flag = 4
 
-ComPASS.load_eos('diphasic_FreeFlowBC')
-ComPASS.set_gravity(gravity)
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
+simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
+simulation.set_gravity(gravity)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-gas_context = ComPASS.Context.gas
+gas_context = simulation.Context.gas
 
 if ComPASS.mpi.is_on_master_proc:
     
@@ -62,18 +62,18 @@ if ComPASS.mpi.is_on_master_proc:
     )
     
     def Dirichlet_node():
-        vertices = np.rec.array(ComPASS.global_vertices())
+        vertices = np.rec.array(simulation.global_vertices())
         return (vertices[:,2] <= Oz)
     
     def set_global_flags():
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         nodeflags[vertices[:,2]<=Oz] = bot_flag
 
 if not ComPASS.mpi.is_on_master_proc:
     grid = Dirichlet_node =  omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     set_dirichlet_nodes = Dirichlet_node,
     cell_porosity = omega_reservoir,
@@ -85,7 +85,7 @@ ComPASS.init(
 # master_print('Maillage distribue')
 
 def set_Dirichlet_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # bottom
     state.context[node_flags==bot_flag] = gas_context
     state.p[node_flags==bot_flag] = pbot_dir
@@ -101,15 +101,15 @@ def set_states(state):
     state.C[:] = [[ 0.8, 0.2], [0, 1.]]
 
 def set_initial_bc_values():
-    set_states(ComPASS.node_states())
-    set_states(ComPASS.cell_states())
-    set_Dirichlet_state(ComPASS.dirichlet_node_states())
+    set_states(simulation.node_states())
+    set_states(simulation.cell_states())
+    set_Dirichlet_state(simulation.dirichlet_node_states())
 
 # master_print('set initial and BC')
 set_initial_bc_values()
 
 # set linear solver properties
-newton = Newton(1e-7, 15, LinearSolver(1e-6, 50))
+newton = Newton(simulation, 1e-7, 15, LinearSolver(1e-6, 50))
 
 context = SimulationContext()
 context.abort_on_ksp_failure = False 
@@ -125,7 +125,7 @@ final_time = 1000. * year
 output_period = 0.01 * final_time
 
 
-current_time = standard_loop(final_time = final_time,
+current_time = standard_loop(simulation, final_time = final_time,
 context=context, newton=newton,
 time_step_manager = timestep,
 output_period = output_period, 

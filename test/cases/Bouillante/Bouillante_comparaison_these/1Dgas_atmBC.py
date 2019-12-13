@@ -40,18 +40,18 @@ gravity = 0.0
 bot_flag = 4
 freeflow_flag = 30 # do not modify this number
 
-ComPASS.load_eos('diphasic_FreeFlowBC')
-ComPASS.set_gravity(gravity)
-ptop=ComPASS.get_atm_pressure()
-ComPASS.set_atm_temperature(600.)
-ComPASS.set_atm_rain_flux(0.)
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
+simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
+simulation.set_gravity(gravity)
+ptop=simulation.get_atm_pressure()
+simulation.set_atm_temperature(600.)
+simulation.set_atm_rain_flux(0.)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-ComPASS.activate_direct_solver = True
+simulation.info.activate_direct_solver = True
 
-gas_context = ComPASS.Context.gas
-gas_no_liq_outflow = ComPASS.Context.gas_FF_no_liq_outflow
+gas_context = simulation.Context.gas
+gas_no_liq_outflow = simulation.Context.gas_FF_no_liq_outflow
 
 if ComPASS.mpi.is_on_master_proc:
     
@@ -62,25 +62,25 @@ if ComPASS.mpi.is_on_master_proc:
     )
     
     def Dirichlet_node():
-        vertices = np.rec.array(ComPASS.global_vertices())
+        vertices = np.rec.array(simulation.global_vertices())
         return (vertices[:,2] <= Oz)
     
     def set_global_flags():
         # nodes
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         nodeflags[vertices[:,2]>=Topz] = freeflow_flag
         nodeflags[vertices[:,2]<=Oz] = bot_flag
         # freeflow faces, necessary to flag them
-        facecenters = ComPASS.compute_global_face_centers()
-        faceflags = ComPASS.global_faceflags()
+        facecenters = simulation.compute_global_face_centers()
+        faceflags = simulation.global_faceflags()
         faceflags[facecenters[:,2]>=Topz] = freeflow_flag
 
 
 if not ComPASS.mpi.is_on_master_proc:
     grid = Dirichlet_node =  omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     set_dirichlet_nodes = Dirichlet_node,
     cell_porosity = omega_reservoir,
@@ -92,7 +92,7 @@ ComPASS.init(
 # master_print('Maillage distribue')
 
 def set_Dirichlet_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # bottom
     state.context[node_flags==bot_flag] = gas_context
     state.p[node_flags==bot_flag] = 1.E5 + 1.E6 
@@ -101,7 +101,7 @@ def set_Dirichlet_state(state):
     state.C[node_flags==bot_flag] = [[ 0.8, 0.2], [0., 1.]]  
 
 def set_FreeFlow_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # top
     state.context[node_flags==freeflow_flag] = gas_no_liq_outflow  
     state.p[node_flags==freeflow_flag] = ptop
@@ -118,10 +118,10 @@ def set_states(state, depths):
     state.C[:] = [[ 0.8, 0.2], [0., 1.]] 
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), Topz-ComPASS.vertices()[:,2])
-    set_states(ComPASS.cell_states(), Topz-ComPASS.compute_cell_centers()[:,2])
-    set_FreeFlow_state(ComPASS.node_states())
-    set_Dirichlet_state(ComPASS.dirichlet_node_states())
+    set_states(simulation.node_states(), Topz-simulation.vertices()[:,2])
+    set_states(simulation.cell_states(), Topz-simulation.compute_cell_centers()[:,2])
+    set_FreeFlow_state(simulation.node_states())
+    set_Dirichlet_state(simulation.dirichlet_node_states())
 
 
 
@@ -129,7 +129,7 @@ def set_variable_initial_bc_values():
 set_variable_initial_bc_values()
 
 # set linear solver properties
-newton = Newton(1e-7, 15, LinearSolver(1e-6, 50))
+newton = Newton(simulation, 1e-7, 15, LinearSolver(1e-6, 50))
 
 context = SimulationContext()
 context.abort_on_ksp_failure = False 
@@ -144,7 +144,7 @@ increase_factor = 1.2, decrease_factor = 0.2,
 final_time = 1000. * year
 output_period = 0.001 * final_time
 
-current_time = standard_loop(final_time = final_time, 
+current_time = standard_loop(simulation, final_time = final_time, 
 context=context, newton=newton,
 time_step_manager = timestep,
 output_period = output_period, 

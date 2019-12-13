@@ -18,8 +18,8 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.newton import Newton, LinearSolver
 
-ComPASS.load_eos('diphasic_FreeFlowBC')
-ComPASS.activate_direct_solver = True
+simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
+simulation.info.activate_direct_solver = True
 
 pure_phase_molar_fraction = [[1., 0.], [0., 1.0]]
 p0 = 1. * bar              # initial reservoir pressure
@@ -41,13 +41,13 @@ Topz = -H+H-0.5
 ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded
-pbottom = ComPASS.get_gravity() * H * 1000.
-hbottom = ComPASS.liquid_molar_enthalpy(pbottom, Tbottom, pure_phase_molar_fraction)
+pbottom = simulation.get_gravity() * H * 1000.
+hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom, pure_phase_molar_fraction)
 
 freeflow_flag = 30  # do not modify this number
 
-liquid_context = ComPASS.Context.liquid
-diphasic_with_liq_outflow = ComPASS.Context.diphasic_FF_liq_outflow
+liquid_context = simulation.Context.liquid
+diphasic_with_liq_outflow = simulation.Context.diphasic_FF_liq_outflow
 
 if ComPASS.mpi.is_on_master_proc:
 
@@ -59,16 +59,16 @@ if ComPASS.mpi.is_on_master_proc:
 
     def set_global_flags():
         # nodes
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         nodeflags[vertices[:, -1] >= Topz] = freeflow_flag
         # freeflow faces, necessary to flag them
-        facecenters = ComPASS.compute_global_face_centers()
-        faceflags = ComPASS.global_faceflags()
+        facecenters = simulation.compute_global_face_centers()
+        faceflags = simulation.global_faceflags()
         faceflags[facecenters[:, -1] >= Topz] = freeflow_flag
 
     def select_fractures():
-        centers = ComPASS.compute_global_face_centers()
+        centers = simulation.compute_global_face_centers()
         xc = centers[:, 0]
         zc = centers[:, -1]
         return (xc == 0) #& (zc > -0.5 * H)
@@ -76,7 +76,7 @@ if ComPASS.mpi.is_on_master_proc:
 if not ComPASS.mpi.is_on_master_proc:
     grid = set_global_flags = select_fractures = None
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     cell_permeability = k_matrix,
     cell_porosity = phi_matrix,
@@ -95,22 +95,22 @@ def set_initial_states(states):
     states.S[:] = [0, 1]
     states.C[:] = [[1.0, 0.0], [0.0, 1.0]]
     states.FreeFlow_phase_flowrate[:] = 0.
-for states in [ComPASS.node_states(),
-               ComPASS.cell_states(),
-               ComPASS.fracture_states()]:
+for states in [simulation.node_states(),
+               simulation.cell_states(),
+               simulation.fracture_states()]:
     set_initial_states(states)
 
 def set_boundary_fluxes():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = [0., qmass]
     Neumann.heat_flux = qmass * hbottom
-    face_centers = ComPASS.face_centers()   
-    bottom_fracture_edges = ComPASS.find_fracture_edges(face_centers[:, -1] <= -H)
-    ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
+    face_centers = simulation.face_centers()   
+    bottom_fracture_edges = simulation.find_fracture_edges(face_centers[:, -1] <= -H)
+    simulation.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann) 
 set_boundary_fluxes()
 
 def set_FreeFlow_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # top
     state.context[node_flags == freeflow_flag] = diphasic_with_liq_outflow
     state.p[node_flags == freeflow_flag] = p0
@@ -118,10 +118,10 @@ def set_FreeFlow_state(state):
     state.S[node_flags == freeflow_flag] = [0., 1.]
     state.C[node_flags == freeflow_flag] = [[1., 0.], [0., 1.]]
     state.FreeFlow_phase_flowrate[node_flags == freeflow_flag] = 0.
-set_FreeFlow_state(ComPASS.node_states())
+set_FreeFlow_state(simulation.node_states())
 
 # set linear solver properties
-newton = Newton(1e-6, 35, LinearSolver(1e-6, 50))
+newton = Newton(simulation, 1e-6, 35, LinearSolver(1e-6, 50))
 
 
 final_time = 300 * year
@@ -135,6 +135,7 @@ timestep = TimeStepManager(
 )
 
 standard_loop(
+    simulation,
     final_time = final_time,
     time_step_manager = timestep,
     output_period = output_period,

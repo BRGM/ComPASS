@@ -45,21 +45,21 @@ CpRoche = 2.E6
 bot_flag = 4
 freeflow_flag = 30 # do not modify this number, necessary to flag FreeFlow Faces
 
-ComPASS.load_eos('diphasic_FreeFlowBC')
-gravity = ComPASS.get_gravity()
-ComPASS.set_atm_pressure(Patm)
-ComPASS.set_atm_temperature(330)
-ComPASS.set_atm_rain_flux(0.)
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
+simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
+gravity = simulation.get_gravity()
+simulation.set_atm_pressure(Patm)
+simulation.set_atm_temperature(330)
+simulation.set_atm_rain_flux(0.)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 
-ComPASS.activate_direct_solver = True
+simulation.info.activate_direct_solver = True
 
-liquid_context = ComPASS.Context.liquid
-gas_context = ComPASS.Context.gas
-diphasic_with_liq_outflow = ComPASS.Context.diphasic_FF_liq_outflow
-gas_no_liq_outflow = ComPASS.Context.gas_FF_no_liq_outflow
+liquid_context = simulation.Context.liquid
+gas_context = simulation.Context.gas
+diphasic_with_liq_outflow = simulation.Context.diphasic_FF_liq_outflow
+gas_no_liq_outflow = simulation.Context.gas_FF_no_liq_outflow
 
 if ComPASS.mpi.is_on_master_proc:
     
@@ -70,25 +70,25 @@ if ComPASS.mpi.is_on_master_proc:
     )
     
     def Dirichlet_node():
-        vertices = np.rec.array(ComPASS.global_vertices())
+        vertices = np.rec.array(simulation.global_vertices())
         return (vertices[:,2] <= Oz)
     
     def set_global_flags():
         # nodes
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         nodeflags[vertices[:,2]>=Topz] = freeflow_flag
         nodeflags[vertices[:,2]<=Oz] = bot_flag
         # freeflow faces, necessary to flag them
-        facecenters = ComPASS.compute_global_face_centers()
-        faceflags = ComPASS.global_faceflags()
+        facecenters = simulation.compute_global_face_centers()
+        faceflags = simulation.global_faceflags()
         faceflags[facecenters[:,2]>=Topz] = freeflow_flag
 
 
 if not ComPASS.mpi.is_on_master_proc:
     grid = Dirichlet_node =  omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
 
-ComPASS.init(
+simulation.init(
     mesh = grid,
     set_dirichlet_nodes = Dirichlet_node,
     cell_porosity = omega_reservoir,
@@ -103,7 +103,7 @@ def lininterp(depths, top, gradient):
 
 
 def set_Dirichlet_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # bottom
     state.context[node_flags==bot_flag] = liquid_context
     state.p[node_flags==bot_flag] = 5.E5 + gravity*1000*Lz
@@ -112,7 +112,7 @@ def set_Dirichlet_state(state):
     state.C[node_flags==bot_flag] = [[ 1., 0.], [0., 1.]] 
 
 def set_FreeFlow_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # top
     state.context[node_flags==freeflow_flag] = gas_no_liq_outflow  
     state.p[node_flags==freeflow_flag] = Ptop
@@ -129,10 +129,10 @@ def set_states(state, depths):
     state.C[:] = [[ 1., 0.], [0., 1.]] 
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), Topz-ComPASS.vertices()[:,2])
-    set_states(ComPASS.cell_states(), Topz-ComPASS.compute_cell_centers()[:,2])
-    set_FreeFlow_state(ComPASS.node_states())
-    set_Dirichlet_state(ComPASS.dirichlet_node_states())
+    set_states(simulation.node_states(), Topz-simulation.vertices()[:,2])
+    set_states(simulation.cell_states(), Topz-simulation.compute_cell_centers()[:,2])
+    set_FreeFlow_state(simulation.node_states())
+    set_Dirichlet_state(simulation.dirichlet_node_states())
 
 
 
@@ -140,7 +140,7 @@ master_print('set initial and BC')
 set_variable_initial_bc_values()
 
 # set linear solver properties
-newton = Newton(1e-7, 15, LinearSolver(1e-6, 50))
+newton = Newton(simulation, 1e-7, 15, LinearSolver(1e-6, 50))
 
 context = SimulationContext()
 context.abort_on_ksp_failure = False 
@@ -155,7 +155,7 @@ increase_factor = 1.2, decrease_factor = 0.2,
 final_time = 100. * year
 output_period = 0.1 * final_time
 
-current_time = standard_loop(final_time = final_time, 
+current_time = standard_loop(simulation, final_time = final_time, 
 context=context, newton=newton,
 time_step_manager = timestep,
 output_period = output_period,
