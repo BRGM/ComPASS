@@ -37,20 +37,12 @@ ComPASS.init(
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
 )
-from MeshTools import vtkwriters as vtkw
 
-vtkw.write_vtu(
-    vtkw.vtu_doc(
-        ComPASS.vertices(),
-        np.reshape(ComPASS.get_connectivity().NodebyCell.contiguous_content(), (-1, 8))
-        - 1,
-        ofmt="ascii",
-    ),
-    "mesh_debug",
-)
-
+# The following wil export all meshes:
+# - as a vtu file if the simulation is sequential (a single mesh)
+# - as a pvtu file and a set of vtu files (in the vtu folder) otherwise
 io.write_mesh("mesh_alone")
 io.write_mesh(
     "simulation_mesh",
-    celldata={"zcell": np.ascontiguousarray(ComPASS.compute_cell_centers()[:, 2])},
+    celldata={"zcell": ComPASS.compute_cell_centers()[:, 2]},
 )
