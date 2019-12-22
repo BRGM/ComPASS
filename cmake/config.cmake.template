@@ -42,6 +42,9 @@
 # set(ComPASS_WITH_linear_water_PHYSICS ON CACHE BOOL "Compiles simplified water eos module.")
 # set(ComPASS_WITH_water2ph_PHYSICS ON CACHE BOOL "Compiles subcritical 2 phases pure water eos module.")
 
+# -- Enable scorep instrumentation for compiled code profiling
+# set(DEF_SCOREP_INSTRUMENTATION OFF CACHE BOOL "Instrument the code with scorep.")
+
 # -- Work in progress
 # set(DEF_FREEFLOW_STRUCTURES OFF CACHE BOOL "Advanced atmospheric boundary conditions.")
 # set(ComPASS_WITH_diphasic_Freeflow_PHYSICS ON CACHE BOOL "Compiles advanced atmospheric boundary conditions eos module.")
