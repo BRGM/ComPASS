@@ -100,11 +100,24 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 get_directory_property( DirDefs COMPILE_DEFINITIONS )
 message(STATUS "COMPILE_DEFINITIONS ${DirDefs}" )
 
-option(DEF_SCOREP_INSTRUMENTATION "Instrument the code with scorep" OFF)
-
 option(ComPASS_COMPILES_EXPERIMENTAL_PARTS "Compiles experimental parts"  ON)
 
-##################
+# -- scorep intstrumentation ---------------------------------------------------
+
+# If scorep is used to profile code we need
+# to build a wrapper around th python interpreter
+set(ComPASS_HAS_SCOREP_INSTRUMENTATION FALSE)
+foreach(_lang C CXX Fortran)
+    get_filename_component(_lang_compiler ${CMAKE_${_lang}_COMPILER} NAME)
+    if(${_lang_compiler} MATCHES "^scorep-.*")
+        set(ComPASS_HAS_SCOREP_INSTRUMENTATION TRUE)	
+    endif()
+endforeach()
+if(${ComPASS_HAS_SCOREP_INSTRUMENTATION})
+    add_subdirectory(miscellaneous/scorep)
+endif()
+
+###################
 
 # #CHECKME ???? -> portability + test constants are compiled as double
 # set(CMAKE_Fortran_FLAGS "-I${LIB_PREFIX}/include/shared -fdefault-real-8 -fdefault-double-8" CACHE STRING "Fortran FLAGS") # make sure that the constants (ex. 1.0) are compiled as double (ex. 1.d0) -fdefault-real-8 -fdefault-double-8
