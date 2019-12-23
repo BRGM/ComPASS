@@ -30,28 +30,41 @@ nx, ny, nz = 4, 4, 3
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
+def select_dirichlet_nodes():
+    x = simulation.global_vertices()[:, 0]
+    return (x <= Ox) | (x >= Ox + Lx)
+
 simulation.init(
     mesh=grid,
-    # set_dirichlet_nodes=doublet_utils.select_boundary_factory(grid),
+    set_dirichlet_nodes=select_dirichlet_nodes,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
 )
-from MeshTools import vtkwriters as vtkw
 
-vtkw.write_vtu(
-    vtkw.vtu_doc(
-        simulation.vertices(),
-        np.reshape(simulation.get_connectivity().NodebyCell.contiguous_content(), (-1, 8))
-        - 1,
-        ofmt="ascii",
-    ),
-    "mesh_debug",
-)
+# Create a specific state and set all degrees of freedom
+initial_state = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
+simulation.all_states().set(initial_state)
+
+dirichlet = simulation.dirichlet_node_states()
+dirichlet.set(initial_state)
+# Set varying dirichlet conditions
+x = simulation.vertices()[:, 0]
+y = simulation.vertices()[:, 1]
+dirichlet.p[:] = ((pres + 1E5) * (x - Ox) + pres * (Ox + Lx - x)) / Lx
+dirichlet.T[:] = ((Tres + 100) * (y - Oy) + Tres * (Oy + Ly - y)) / Ly
 
 io.write_mesh(simulation, "mesh_alone")
 io.write_mesh(
     simulation,
     "simulation_mesh",
-    celldata={"zcell": simulation.compute_cell_centers()[:, 2]},
+    pointdata={
+        "dirichlet": simulation.dirichlet_nodes(),
+        "dirichlet pressure": simulation.pressure_dirichlet_values(),
+        "dirichlet temperature": simulation.temperature_dirichlet_values(),
+    },
+    celldata={
+        "initial pressure": simulation.cell_states().p,
+        "zcell": simulation.compute_cell_centers()[:, 2],
+    },
 )

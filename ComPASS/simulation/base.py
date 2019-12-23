@@ -282,10 +282,14 @@ def total_accumulation(reset_states=True):
     return total
 
 
+def _node_info():
+    return np.rec.array(_sw.node_info(), copy=False)
+
+
 def all_fracture_edges_tagged():
     faces = _sw.frac_face_id() - 1 # Fortran indexing...
     face_nodes = _sw.get_connectivity().NodebyFace
-    info = np.rec.array(_sw.node_info(), copy=False)
+    info = _node_info()
     for face in faces:
         nodes = np.array(face_nodes[face], copy=False) - 1 # Fortran indexing...
         in_fracture = info.frac[nodes] == ord('y')
@@ -300,7 +304,7 @@ def find_fracture_edges(faces):
     face_nodes = _sw.get_connectivity().NodebyFace
     # we do not want to store twice the same edge
     fracture_edges = set()
-    info = np.rec.array(_sw.node_info(), copy=False)
+    info = _node_info()
     for face in faces:
         nodes = np.array(face_nodes[face], copy=False) - 1 # Fortran indexing...
         in_fracture = info.frac[nodes] == ord('y')
@@ -311,6 +315,33 @@ def find_fracture_edges(faces):
                 else:
                     fracture_edges.add((nodes[i], nodes[i-1]))
     return  np.array(list(fracture_edges))
+
+
+def pressure_dirichlet_nodes():
+    return _node_info().pressure == ord('d')
+
+
+def pressure_dirichlet_values():
+    where = pressure_dirichlet_nodes()
+    result = np.tile(np.nan, where.shape)
+    result[where] = _sw.dirichlet_node_states().p[where]
+    return result
+
+
+def temperature_dirichlet_nodes():
+    return _node_info().temperature == ord('d')
+
+
+def temperature_dirichlet_values():
+    where = temperature_dirichlet_nodes()
+    result = np.tile(np.nan, where.shape)
+    result[where] = _sw.dirichlet_node_states().T[where]
+    return result
+
+
+def dirichlet_nodes():
+    return pressure_dirichlet_nodes() | temperature_dirichlet_nodes()
+
 
 
 #---------------------------------------------------------------------------#

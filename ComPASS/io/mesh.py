@@ -80,20 +80,32 @@ def create_vtu_directory(parent=Path(".")):
     return vtu_directory if parallel else parent
 
 
-def write_mesh(simulation, basename, pointdata={}, celldata={}, ofmt="binary", ascontiguousarray=True):
+def write_mesh(simulation, basename, pointdata={}, celldata={}, ofmt="binary"):
     """
+    Write mesh data from a simulation as paraview vtu (single processor) or pvtu (multi processor) file.
 
-    ascontiguousarray: (default True)
-        if True, convert the inputs arrays from `pointdata` and `celldata` as contiguous array
-        using np.ascontiguousarray()
-
+    :param simulation: a simulation object
+    :param basename: the output filename (paraview)
+    :param pointdata: a dictionnary of point based properties
+    :param celldata: a dictionnary of cell based properties
+    :param oftm: output format can be 'ascii' or 'binary' (the default)
     """
     basename = Path(basename)
     vtu_directory = create_vtu_directory(basename.parent)
     filename = vtu_directory / proc_filename(basename, mpi.proc_rank)
-    if ascontiguousarray:
-        pointdata = {k: np.ascontiguousarray(v) for k, v in pointdata.items()}
-        celldata = {k: np.ascontiguousarray(v) for k, v in celldata.items()}
+    # The following function ensures that properties have the right format
+    # no copy is made if the underlying array already matches the requirements
+    def check_properties(propdict):
+        # possibly convert some values into numpy arrays
+        propdict = {k: np.ascontiguousarray(v) for k, v in propdict.items()}
+        # vtkwriter does not handle arrays of boolean so we convert them to numpy.int8
+        propdict = {
+            k: np.asarray(v, dtype=np.int8 if v.dtype==np.bool else v.dtype) 
+            for k, v in propdict.items()
+        }
+        return propdict
+    pointdata = check_properties(pointdata)
+    celldata = check_properties(celldata)
     vertices_type = write_vtu_mesh(
         simulation,
         str(filename), pointdata=pointdata, celldata=celldata, ofmt=ofmt
