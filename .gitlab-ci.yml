@@ -162,14 +162,14 @@ tag_release:
 pages:
   stage: documentation
   only:
-    - develop
+    - develop-v4.1
   tags:
     - build
   script:
-    - mkdir -p public/core_reference
+    - mkdir -p public/v4.1/core_reference
     - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment --exec /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
-    - cp -rf docs/html/* public
-    - cp -rf docs/doxygen/html/* public/core_reference
+    - cp -rf docs/html/* public/v4.1
+    - cp -rf docs/doxygen/html/* public/v4.1/core_reference
   artifacts:
     paths:
-    - public
+    - public/v4.1
