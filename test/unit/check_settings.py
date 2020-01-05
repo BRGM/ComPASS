@@ -54,6 +54,9 @@ y = simulation.vertices()[:, 1]
 dirichlet.p[:] = ((pres + 1E5) * (x - Ox) + pres * (Ox + Lx - x)) / Lx
 dirichlet.T[:] = ((Tres + 100) * (y - Oy) + Tres * (Oy + Ly - y)) / Ly
 
+# The following wil export all meshes:
+# - as a vtu file if the simulation is sequential (a single mesh)
+# - as a pvtu file and a set of vtu files (in the vtu folder) otherwise
 io.write_mesh(simulation, "mesh_alone")
 io.write_mesh(
     simulation,
