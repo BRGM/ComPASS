@@ -12,7 +12,7 @@ ComPASS
    python_reference/ComPASS
    python_reference/modules
 
-`ComPASS core reference <https://charms.gitlabpages.inria.fr/ComPASS/core_reference>`_
+`ComPASS core reference <core_reference/index.html>`_
 
 .. include:: LICENSE.rst
 
