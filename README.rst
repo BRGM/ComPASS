@@ -17,4 +17,4 @@ Our main goals are:
 The collaborative development is made through the
 `INRIA gitlab platform <https://gitlab.inria.fr/charms/ComPASS>`_
 and the documentation is served 
-`here <https://charms.gitlabpages.inria.fr/ComPASS>`_.
+`here <https://charms.gitlabpages.inria.fr/ComPASS/v4.1>`_.
