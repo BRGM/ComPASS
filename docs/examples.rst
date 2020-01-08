@@ -11,3 +11,4 @@ Example scripts
    setting_up_initial_inputs
    classical_doublet
    doublet_petrel_grid
+   convection
