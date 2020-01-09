@@ -87,52 +87,52 @@ sanity_check:
     - echo "Job running with id"
     - id
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG heat_source_analytical_1D.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG heat_source_analytical.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_column_temperature.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG vertical_fracture.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG check_settings.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG init_states.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical_1D.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_column_temperature.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_fracture.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_settings.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run init_states.py
 
 pytest_run:
   stage: test
   tags:
     - test
   script:
-    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --pytest
+    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test
 
 petrel_test:
   stage: test
   tags:
     - test
   script:
-    - docker run --rm -v $PWD/test/cases/petrel:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG doublet_on_cartesian_grid_petrel.py
+    - docker run --rm -v $PWD/test/cases/petrel:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run doublet_on_cartesian_grid_petrel.py
   
 parallel_test:
   stage: test
   tags:
     - test
   script:
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel vertical_column_temperature.py
-    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel test_nodeflags_on_tetmesh.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel distribute_fracture_edge_info.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel select_fracture_edges_with_node_info.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel check_balances.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --parallel check_settings.py
+    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel vertical_column_temperature.py
+    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel test_nodeflags_on_tetmesh.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel distribute_fracture_edge_info.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel select_fracture_edges_with_node_info.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_balances.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_settings.py
 
 time_bulk_scripts:
   stage: test
   tags:
     - test
   script:
-    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --exec ./time_all_scripts.bash
+    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG exec ./time_all_scripts.bash
 
 reactive_transport_test:
   stage: test
   tags:
     - test
   script:
-    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG simple_ionexchange.py
+    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run simple_ionexchange.py
 
 master_release:
   stage: release
@@ -167,7 +167,7 @@ pages:
     - build
   script:
     - mkdir -p public/core_reference
-    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment --exec /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
+    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment bash /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
     - cp -rf docs/html/* public
     - cp -rf docs/doxygen/html/* public/core_reference
   artifacts:

@@ -17,14 +17,14 @@ export OMPI_MCA_btl_vader_single_copy_mechanism=none
 EOL
 
 CUSTSHELL=/etc/compass/customize-session
-SIMSCRIPT=/etc/compass/simulation-process
+SESSIONSCRIPT=/etc/compass/script
 
-# we create e default script that is to be used when providing help
-echo "echo" > ${SIMSCRIPT}
+rm -f $CUSTSHELL
+rm -f $SESSIONSCRIPT
 
 python3 /etc/compass/entrypoint.py \
     --customize-session $CUSTSHELL \
-    --simulation-process $SIMSCRIPT "$@"
+    --session-script $SESSIONSCRIPT "$@"
 [ -f $CUSTSHELL ] && source $CUSTSHELL
 
 # /localfs should already be present
@@ -33,8 +33,8 @@ chown ${COMPASS_USER}:${COMPASS_USER} /localfs
 
 [ -f $CUSTSHELL ] && echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
 
-if [[ -f $SIMSCRIPT ]]; then
-    su-exec compass /bin/bash -e $SIMSCRIPT
+if [[ -f $SESSIONSCRIPT ]]; then
+    su-exec compass /bin/bash -e $SESSIONSCRIPT
 else
     su-exec compass /bin/bash
 fi

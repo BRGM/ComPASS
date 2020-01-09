@@ -3,6 +3,7 @@ FROM ubuntu:19.04
 # We need python3-dev to have dynamic libraries at runtime
 RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-dev \
+    python3-click \
     python3-numpy \
     python3-setuptools \
     python3-pytest-xdist \

@@ -19,6 +19,6 @@ RUN pip3 install /wheel/petsc4py-*.whl \
 
 COPY entrypoint.sh /etc/compass/entrypoint.sh
 COPY entrypoint.py /etc/compass/entrypoint.py
-ENTRYPOINT ["/etc/compass/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "-e", "/etc/compass/entrypoint.sh"]
 CMD [""]
 

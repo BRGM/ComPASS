@@ -9,33 +9,13 @@
 
 import sys
 import glob, os, re
-from optparse import OptionParser
+import click
 import numpy as np
 from .dumps import Dumper
 from .utils import create_directories
 from .utils.units import year
 import MeshTools.vtkwriters as vtkw
 
-
-parser = OptionParser(
-usage = """usage: %prog [options] path
-
-NB: you may also use this script as a module from the python package, i.e. typically:
-python -m ComPASS.postprocesss [options] path
-
-Parameters:
-  path           where output from a ComPASS simulation are stored (typically output-scriptname)"""
-)
-parser.add_option("-p", "--procs",
-                  action="store_true", dest="collect_procs_id", default=False,
-                  help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)")
-parser.add_option("-s", "--states",
-                  action="store_true", dest="collect_states", default=False,
-                  help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory")
-parser.add_option("-C", "--Celsius",
-                  action="store_true", dest="convert_temperature", default=False,
-                  help="convert temperature from Kelvin to Celsius degrees")
-options, args = parser.parse_args()
 
 class MeshDistribution:
     def __init__(self, filename):
@@ -222,14 +202,14 @@ class PostProcessor:
         assert self.data_types == datatype_checks
         return data_arrays
     
-    def collect_states(self, options):
+    def collect_states(self, convert_temperature):
         snapshots = self.collect_snapshots()
         pvd = {}
         for tag in snapshots:
             all_pieces = []
             for proc in range(self.distribution.nb_procs):
                 data_arrays = self.extract_data(proc, tag)
-                if options.convert_temperature:
+                if convert_temperature:
                     for location in data_arrays.keys():
                         for property in data_arrays[location].keys():
                             if property=='temperature':
@@ -279,22 +259,35 @@ class PostProcessor:
                 self.to_paraview_directory('fracture_states')
             )
 
-for directory in args:
-    print('processing results in', directory)
-    something_done = False
-    if options.collect_procs_id or options.collect_states:
-        pp = PostProcessor(directory)
-        if options.collect_procs_id:
-            pp.collect_proc_ids()
-            something_done = True
-        if options.collect_states:
-            pp.collect_states(options)
-            something_done = True
-    if not something_done:
-        print()
-        print('************* WARNING **************')
-        print()
-        print('Nothing done: ckeck command options!')
-        print()
-        print('************************************')
-        print()
+@click.command()
+@click.option("-p", "--procs", "collect_procs_id", is_flag=True, default=False,
+                  help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)")
+@click.option("-s", "--states", "collect_states",  is_flag=True, default=False,
+                  help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory")
+@click.option("-C", "--Celsius", "convert_temperature", is_flag=True, default=False,
+                  help="convert temperature from Kelvin to Celsius degrees")
+@click.argument("directories", nargs=-1)
+def postprocess(collect_procs_id, collect_states, convert_temperature, directories):
+    """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
+    for directory in directories:
+        print('processing results in', directory)
+        something_done = False
+        if collect_procs_id or collect_states:
+            pp = PostProcessor(directory)
+            if collect_procs_id:
+                pp.collect_proc_ids()
+                something_done = True
+            if collect_states:
+                pp.collect_states(convert_temperature)
+                something_done = True
+        if not something_done:
+            print()
+            print('************* WARNING **************')
+            print()
+            print('Nothing done: ckeck command options!')
+            print()
+            print('************************************')
+            print()
+
+if __name__=="__main__":
+    postprocess(prog_name="compass postprocess")
