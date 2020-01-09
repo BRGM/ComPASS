@@ -270,10 +270,11 @@ class PostProcessor:
 def postprocess(collect_procs_id, collect_states, convert_temperature, directories):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
     for directory in directories:
-        print('processing results in', directory)
+        path = str(directory) # in case directory is a pathlib.Path object
+        print('processing results in', path)
         something_done = False
         if collect_procs_id or collect_states:
-            pp = PostProcessor(directory)
+            pp = PostProcessor(path)
             if collect_procs_id:
                 pp.collect_proc_ids()
                 something_done = True
