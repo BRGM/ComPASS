@@ -54,7 +54,8 @@ class MeshDistribution:
 class PostProcessor:
 
     def __init__(self, directory):
-        self.dumper = Dumper(directory)
+        # No simulation object during postprocess -> None
+        self.dumper = Dumper(None, directory)
         self.paraview_directory = os.path.join(
                                  self.dumper.to_output_directory(), 'paraview')
         create_directories(self.paraview_directory)
