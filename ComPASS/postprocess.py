@@ -9,6 +9,7 @@
 
 import sys
 import glob, os, re
+from pathlib import Path
 import click
 import numpy as np
 from .dumps import Dumper
@@ -20,15 +21,16 @@ import MeshTools.vtkwriters as vtkw
 class MeshDistribution:
     def __init__(self, filename):
         def extract_integer_list(s):
-            match = re.match('\[(.*)\]', s.strip())
+            match = re.match("\[(.*)\]", s.strip())
             assert match is not None
-            return  [int(si.strip()) for si in match.group(1).split()]
+            return [int(si.strip()) for si in match.group(1).split()]
+
         vars = {
-            'nb_procs': lambda s: int(s),
-            'nb_own_cells': extract_integer_list,
-            'nb_own_nodes': extract_integer_list,
-            'nb_own_faces': extract_integer_list,
-            'nb_own_fractures': extract_integer_list,
+            "nb_procs": lambda s: int(s),
+            "nb_own_cells": extract_integer_list,
+            "nb_own_nodes": extract_integer_list,
+            "nb_own_faces": extract_integer_list,
+            "nb_own_fractures": extract_integer_list,
         }
         for name in vars:
             setattr(self, name, None)
@@ -37,63 +39,82 @@ class MeshDistribution:
                 l = line.lower().strip()
                 for name, extract in vars.items():
                     if getattr(self, name) is None:
-                        match = re.match(name + '\s*=\s*(.*)', l)
+                        match = re.match(name + "\s*=\s*(.*)", l)
                         if match is not None:
                             setattr(self, name, extract(match.group(1)))
                             break
+
     def __str__(self):
-        return '\n'.join(
+        return "\n".join(
             [
-                '%s = %d'%(s, getattr(self, s)) for s in (
-                    'nb_procs', 'nb_own_cells', 'nb_own_nodes',
-                    'nb_own_faces', 'nb_own_fractures'
+                "%s = %d" % (s, getattr(self, s))
+                for s in (
+                    "nb_procs",
+                    "nb_own_cells",
+                    "nb_own_nodes",
+                    "nb_own_faces",
+                    "nb_own_fractures",
                 )
             ]
         )
 
-class PostProcessor:
 
+class PostProcessor:
     def __init__(self, directory):
         # No simulation object during postprocess -> None
         self.dumper = Dumper(None, directory)
         self.paraview_directory = os.path.join(
-                                 self.dumper.to_output_directory(), 'paraview')
+            self.dumper.to_output_directory(), "paraview"
+        )
         create_directories(self.paraview_directory)
-        self.vtu_directory = os.path.join(self.paraview_directory, 'vtu')
+        self.vtu_directory = os.path.join(self.paraview_directory, "vtu")
         create_directories(self.vtu_directory)
-        self.distribution = MeshDistribution(self.dumper.to_output_directory('own_elements'))
+        self.distribution = MeshDistribution(
+            self.dumper.to_output_directory("own_elements")
+        )
         self.vertices_type = None
         self.data_types = None
-        self.proc_id_type = np.dtype('i')
+        self.proc_id_type = np.dtype("i")
 
-    def to_paraview_directory(self, filename=''):
+    def to_paraview_directory(self, filename=""):
         return os.path.join(self.paraview_directory, filename)
-        
-    def to_vtu_directory(self, filename=''):
+
+    def to_vtu_directory(self, filename=""):
         return os.path.join(self.vtu_directory, filename)
-    
+
     def mesh_filename(self, proc):
         assert proc < self.distribution.nb_procs
         return self.dumper.mesh_filename(proc)
-        
-    def states_filename(self, proc, tag=''):
+
+    def states_filename(self, proc, tag=""):
         assert proc < self.distribution.nb_procs
         return self.dumper.states_filename(proc, tag)
-        
-    def write_mesh_vtu(self, proc, basename,
-                       own_only=True, dump_procid=False,
-                       nodedata=None, celldata=None, fracdata=None):
+
+    def write_mesh_vtu(
+        self,
+        proc,
+        basename,
+        own_only=True,
+        dump_procid=False,
+        nodedata=None,
+        celldata=None,
+        fracdata=None,
+    ):
         assert proc < self.distribution.nb_procs
         nb_own_cells = self.distribution.nb_own_cells[proc]
         nb_own_fractures = self.distribution.nb_own_fractures[proc]
         if dump_procid:
             own_only = True
             assert nodedata is None and celldata is None and fracdata is None
-            celldata = {'proc': np.array(np.tile(proc, nb_own_cells),
-                                         dtype=self.proc_id_type)}
-            if nb_own_fractures>0:
-                fracdata = {'proc': np.array(np.tile(proc, nb_own_fractures),
-                                             dtype=self.proc_id_type)}
+            celldata = {
+                "proc": np.array(np.tile(proc, nb_own_cells), dtype=self.proc_id_type)
+            }
+            if nb_own_fractures > 0:
+                fracdata = {
+                    "proc": np.array(
+                        np.tile(proc, nb_own_fractures), dtype=self.proc_id_type
+                    )
+                }
         if nodedata is None:
             nodedata = {}
         if celldata is None:
@@ -104,78 +125,91 @@ class PostProcessor:
         assert os.path.exists(meshfile)
         mesh = np.load(meshfile)
         if self.vertices_type is None:
-            self.vertices_type = mesh['vertices'].dtype
-        assert self.vertices_type == mesh['vertices'].dtype
+            self.vertices_type = mesh["vertices"].dtype
+        assert self.vertices_type == mesh["vertices"].dtype
         proc_label = self.dumper.proc_label(proc)
-        piecefile = self.to_vtu_directory('%s_%s.vtu' % (basename, proc_label))
-        cell_nodes_offsets = mesh['cellnodes_offsets']
-        cell_nodes = mesh['cellnodes_values']
-        cell_types = mesh['celltypes']
+        piecefile = self.to_vtu_directory("%s_%s.vtu" % (basename, proc_label))
+        cell_nodes_offsets = mesh["cellnodes_offsets"]
+        cell_nodes = mesh["cellnodes_values"]
+        cell_types = mesh["celltypes"]
         if own_only:
             cell_nodes_offsets = cell_nodes_offsets[:nb_own_cells]
-            cell_nodes = cell_nodes[:cell_nodes_offsets[-1]]
+            cell_nodes = cell_nodes[: cell_nodes_offsets[-1]]
             cell_types = cell_types[:nb_own_cells]
         vtkw.write_vtu(
             vtkw.vtu_doc_from_COC(
-                mesh['vertices'], cell_nodes_offsets, cell_nodes, cell_types, 
-                pointdata = nodedata, celldata=celldata
+                mesh["vertices"],
+                cell_nodes_offsets,
+                cell_nodes,
+                cell_types,
+                pointdata=nodedata,
+                celldata=celldata,
             ),
-            piecefile
+            piecefile,
         )
         if fracdata:
-            fracdata_size = int(np.unique([a.shape[0] for a in fracdata.values()])) # will triger a TypeError if array sizes are not the same
-            if fracdata_size>0:
-                fracpiecefile = self.to_vtu_directory('fracture_%s_%s.vtu' % (basename, proc_label))
-                cell_nodes_offsets = mesh['fracturenodes_offsets']
-                cell_nodes = mesh['fracturenodes_values']
-                cell_types = mesh['fracture_types']
+            fracdata_size = int(
+                np.unique([a.shape[0] for a in fracdata.values()])
+            )  # will triger a TypeError if array sizes are not the same
+            if fracdata_size > 0:
+                fracpiecefile = self.to_vtu_directory(
+                    "fracture_%s_%s.vtu" % (basename, proc_label)
+                )
+                cell_nodes_offsets = mesh["fracturenodes_offsets"]
+                cell_nodes = mesh["fracturenodes_values"]
+                cell_types = mesh["fracture_types"]
                 if own_only:
                     cell_nodes_offsets = cell_nodes_offsets[:nb_own_fractures]
-                    cell_nodes = cell_nodes[:cell_nodes_offsets[-1]]
+                    cell_nodes = cell_nodes[: cell_nodes_offsets[-1]]
                     cell_types = cell_types[:nb_own_fractures]
                 vtkw.write_vtu(
                     vtkw.vtu_doc_from_COC(
-                        mesh['vertices'], cell_nodes_offsets, cell_nodes, cell_types, 
-                        celldata=fracdata
+                        mesh["vertices"],
+                        cell_nodes_offsets,
+                        cell_nodes,
+                        cell_types,
+                        celldata=fracdata,
                     ),
                     fracpiecefile,
                 )
                 return piecefile, fracpiecefile
         return piecefile, None
-    
+
     def collect_proc_ids(self):
         pieces, fracpieces = [], []
         for proc in range(self.distribution.nb_procs):
-            piecefiles = self.write_mesh_vtu(proc, 'mesh', dump_procid=True)
+            piecefiles = self.write_mesh_vtu(proc, "mesh", dump_procid=True)
             assert piecefiles[0] is not None
             pieces.append(os.path.relpath(piecefiles[0], self.to_paraview_directory()))
             if piecefiles[1] is not None:
-                fracpieces.append(os.path.relpath(piecefiles[1], self.to_paraview_directory()))
+                fracpieces.append(
+                    os.path.relpath(piecefiles[1], self.to_paraview_directory())
+                )
         vtkw.write_pvtu(
             vtkw.pvtu_doc(
-                self.vertices_type, pieces,
-                celldata_types = {'proc': self.proc_id_type},
+                self.vertices_type, pieces, celldata_types={"proc": self.proc_id_type},
             ),
-            self.to_paraview_directory('mesh.pvtu')
+            self.to_paraview_directory("mesh.pvtu"),
         )
-        if len(fracpieces)>0:
+        if len(fracpieces) > 0:
             vtkw.write_pvtu(
                 vtkw.pvtu_doc(
-                    self.vertices_type, fracpieces,
-                    celldata_types = {'proc': self.proc_id_type},
+                    self.vertices_type,
+                    fracpieces,
+                    celldata_types={"proc": self.proc_id_type},
                 ),
-                self.to_paraview_directory('fractures_mesh.pvtu')
-            )  
-        
+                self.to_paraview_directory("fractures_mesh.pvtu"),
+            )
+
     def collect_snapshots(self):
-        snapshots_file = self.dumper.to_output_directory('snapshots')
+        snapshots_file = self.dumper.to_output_directory("snapshots")
         assert os.path.exists(snapshots_file)
         with open(snapshots_file) as f:
             snapshots = {}
             for line in f:
-    
+
                 l = line.strip().split()
-                if len(l)>=2:
+                if len(l) >= 2:
                     snapshots[l[0]] = float(l[1])
         return snapshots
 
@@ -183,26 +217,31 @@ class PostProcessor:
         datafile = self.states_filename(proc, tag)
         assert os.path.exists(datafile)
         data = np.load(datafile)
+
         def extract_at(location):
-            return { 
-                      name.replace(location + '_', ''): data[name]
-                      for name in data.files if name.startswith(location)
-                   }
+            return {
+                name.replace(location + "_", ""): data[name]
+                for name in data.files
+                if name.startswith(location)
+            }
+
         data_arrays = {
-                  location: extract_at(location)
-                  for location in ('node', 'cell', 'fracture')
-               }
+            location: extract_at(location) for location in ("node", "cell", "fracture")
+        }
         datatype_checks = {
-                            location: {
-                                    name: property.dtype if len(property.shape)==1 else (property.dtype, property.shape[1])
-                                    for name, property in properties.items()
-                                } for location, properties in data_arrays.items()
-                          }
+            location: {
+                name: property.dtype
+                if len(property.shape) == 1
+                else (property.dtype, property.shape[1])
+                for name, property in properties.items()
+            }
+            for location, properties in data_arrays.items()
+        }
         if self.data_types is None:
             self.data_types = datatype_checks
         assert self.data_types == datatype_checks
         return data_arrays
-    
+
     def collect_states(self, convert_temperature):
         snapshots = self.collect_snapshots()
         pvd = {}
@@ -213,83 +252,133 @@ class PostProcessor:
                 if convert_temperature:
                     for location in data_arrays.keys():
                         for property in data_arrays[location].keys():
-                            if property=='temperature':
-                                data_arrays[location][property]-= 273.15
-                pieces = self.write_mesh_vtu(proc, 'states_' + tag,
-                                             nodedata=data_arrays['node'],
-                                             celldata=data_arrays['cell'],
-                                             fracdata=data_arrays['fracture'])
+                            if property == "temperature":
+                                data_arrays[location][property] -= 273.15
+                pieces = self.write_mesh_vtu(
+                    proc,
+                    "states_" + tag,
+                    nodedata=data_arrays["node"],
+                    celldata=data_arrays["cell"],
+                    fracdata=data_arrays["fracture"],
+                )
                 all_pieces.append(pieces)
-            pvtufile = self.to_vtu_directory('state_' + tag + '.pvtu')            
+            pvtufile = self.to_vtu_directory("state_" + tag + ".pvtu")
             vtkw.write_pvtu(
                 vtkw.pvtu_doc(
                     self.vertices_type,
-                    [os.path.relpath(pieces[0], self.to_vtu_directory()) for pieces in all_pieces],
-                    pointdata_types = self.data_types['node'],
-                    celldata_types = self.data_types['cell']
+                    [
+                        os.path.relpath(pieces[0], self.to_vtu_directory())
+                        for pieces in all_pieces
+                    ],
+                    pointdata_types=self.data_types["node"],
+                    celldata_types=self.data_types["cell"],
                 ),
-                pvtufile
+                pvtufile,
             )
             pvtus = (pvtufile,)
             if any(pieces[1] is not None for pieces in all_pieces):
-                fracpvtufile = self.to_vtu_directory('fracture_state_' + tag + '.pvtu')            
+                fracpvtufile = self.to_vtu_directory("fracture_state_" + tag + ".pvtu")
                 vtkw.write_pvtu(
                     vtkw.pvtu_doc(
                         self.vertices_type,
-                        [os.path.relpath(pieces[1], self.to_vtu_directory()) for pieces in all_pieces if pieces[1] is not None],
-                        celldata_types = self.data_types['fracture']
+                        [
+                            os.path.relpath(pieces[1], self.to_vtu_directory())
+                            for pieces in all_pieces
+                            if pieces[1] is not None
+                        ],
+                        celldata_types=self.data_types["fracture"],
                     ),
-                    fracpvtufile
+                    fracpvtufile,
                 )
                 pvtus = (pvtufile, fracpvtufile)
             pvd[snapshots[tag] / year] = pvtus
         vtkw.write_pvd(
             vtkw.pvd_doc(
-                [(t, os.path.relpath(pvtus[0], self.to_paraview_directory()))
-                    for t, pvtus in pvd.items()]                    
+                [
+                    (t, os.path.relpath(pvtus[0], self.to_paraview_directory()))
+                    for t, pvtus in pvd.items()
+                ]
             ),
-            self.to_paraview_directory('states')
+            self.to_paraview_directory("states"),
         )
-        if any(len(pvtus)>1 for pvtus in pvd.values()):
-            assert all(len(pvtus)>1 for pvtus in pvd.values())
+        if any(len(pvtus) > 1 for pvtus in pvd.values()):
+            assert all(len(pvtus) > 1 for pvtus in pvd.values())
             vtkw.write_pvd(
                 vtkw.pvd_doc(
-                    [(t, os.path.relpath(pvtus[1], self.to_paraview_directory()))
-                        for t, pvtus in pvd.items()]                    
+                    [
+                        (t, os.path.relpath(pvtus[1], self.to_paraview_directory()))
+                        for t, pvtus in pvd.items()
+                    ]
                 ),
-                self.to_paraview_directory('fracture_states')
+                self.to_paraview_directory("fracture_states"),
             )
 
-@click.command()
-@click.option("-p", "--procs", "collect_procs_id", is_flag=True, default=False,
-                  help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)")
-@click.option("-s", "--states", "collect_states",  is_flag=True, default=False,
-                  help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory")
-@click.option("-C", "--Celsius", "convert_temperature", is_flag=True, default=False,
-                  help="convert temperature from Kelvin to Celsius degrees")
+
+def postprocess(
+    directory, collect_procs_id=False, collect_states=True, convert_temperature=True
+):
+    """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)
+    
+    :param directory: directory to process
+    :param collect_procs_id: boolean flag to collect procs ids and output mesh partitioning
+    :param collect_states: boolean flag to collect physical states
+    :param convert_temperature: boolean flag to convert Kelvin to Celsius degrees
+    
+    """
+    directory = Path(directory)
+    print("processing results in", directory)
+    something_done = False
+    if directory.is_dir() and (collect_procs_id or collect_states):
+        pp = PostProcessor(directory)
+        if collect_procs_id:
+            pp.collect_proc_ids()
+            something_done = True
+        if collect_states:
+            pp.collect_states(convert_temperature)
+            something_done = True
+    if not something_done:
+        print()
+        print("************* WARNING **************")
+        print()
+        print(f"Nothing done in: {directory}")
+        print()
+        print("************************************")
+        print()
+
+
+@click.command(name="postprocess")
+@click.option(
+    "-p",
+    "--procs",
+    "collect_procs_id",
+    is_flag=True,
+    default=False,
+    help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)",
+)
+@click.option(
+    "-s",
+    "--states",
+    "collect_states",
+    is_flag=True,
+    default=False,
+    help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory",
+)
+@click.option(
+    "-C",
+    "--Celsius",
+    "convert_temperature",
+    is_flag=True,
+    default=False,
+    help="convert temperature from Kelvin to Celsius degrees",
+)
 @click.argument("directories", nargs=-1)
-def postprocess(collect_procs_id, collect_states, convert_temperature, directories):
+def postprocess_command(
+    collect_procs_id, collect_states, convert_temperature, directories
+):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
     for directory in directories:
-        path = str(directory) # in case directory is a pathlib.Path object
-        print('processing results in', path)
-        something_done = False
-        if collect_procs_id or collect_states:
-            pp = PostProcessor(path)
-            if collect_procs_id:
-                pp.collect_proc_ids()
-                something_done = True
-            if collect_states:
-                pp.collect_states(convert_temperature)
-                something_done = True
-        if not something_done:
-            print()
-            print('************* WARNING **************')
-            print()
-            print('Nothing done: ckeck command options!')
-            print()
-            print('************************************')
-            print()
+        postprocess(directory, collect_procs_id, collect_states, convert_temperature)
 
-if __name__=="__main__":
-    postprocess(prog_name="compass postprocess")
+
+if __name__ == "__main__":
+    postprocess_command(prog_name="compass postprocess")

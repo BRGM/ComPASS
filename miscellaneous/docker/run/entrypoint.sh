@@ -25,6 +25,7 @@ rm -f $SESSIONSCRIPT
 python3 /etc/compass/entrypoint.py \
     --customize-session $CUSTSHELL \
     --session-script $SESSIONSCRIPT "$@"
+
 [ -f $CUSTSHELL ] && source $CUSTSHELL
 
 # /localfs should already be present
@@ -34,7 +35,9 @@ chown ${COMPASS_USER}:${COMPASS_USER} /localfs
 [ -f $CUSTSHELL ] && echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
 
 if [[ -f $SESSIONSCRIPT ]]; then
-    su-exec compass /bin/bash -e $SESSIONSCRIPT
-else
-    su-exec compass /bin/bash
+    if [[ -s $SESSIONSCRIPT ]]; then
+        su-exec compass /bin/bash -e $SESSIONSCRIPT
+    else
+    	su-exec compass /bin/bash
+    fi
 fi
