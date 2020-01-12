@@ -15,8 +15,18 @@ from ._kernel import get_kernel
 
 
 class LinearSolver:
+    """
+    A stucture that holds a few pareters for iterative solvers.
+
+    .. todo:: To be refactored to integrate direct solvers and much more...
+    """
     
     def __init__(self, tol, maxit, restart=None):
+        """
+        :param tol: tolerance (for iterative solvers).
+        :param maxit: maximum number of iterations (for iterative solvers).
+        :param restart: number of iterations before a restart (for gmres like iterative solvers).
+        """
         self.reset(tol, maxit, restart)
         self.failures = 0
         self.number_of_succesful_iterations = 0
@@ -75,8 +85,20 @@ def dump_start_info(iteration):
 
 
 class Newton:
+    """
+    A structure that manages the Newton loop.
+    """
     
     def __init__(self, simulation, tol, maxit, lsolver, convergence_scheme=None, solver_fmk=None):
+        """
+        :param simulation: The simulation object.
+        :param tol: The tolerance used for convergence.
+        :param maxit: The maximum number of newton iteration.
+        :param lsolver: The linear solver to be used (cf. :class:`ComPASS.newton.LinearSolver`).
+        :param covergence_scheme: The convergence scheme to be used (defaults to :class:`ComPASS.newton_convergence.Legacy`).
+
+        .. todo:: Document ``solver_fmk``.
+        """
         # FIXME: this is transitory
         self.simulation = simulation
         if solver_fmk is None:

@@ -66,6 +66,41 @@ def standard_loop(simulation,
                   newton = None, context = None,
                   time_step_manager = None
                  ):
+    """
+    Performs a standard timeloop.
+
+    :param simulation: The simulation object that the time loop is acting on.    
+    :param initial_time: Starting time of the simulation. Defaults to 0 if not specified.
+    :param final_time: Final time of the simulation (if any).
+    :param initial_timestep: Initial timestep in seconds, will activate automatic timestep management.
+            (cf. :mod:`ComPASS.timestep_management` module).
+            Cannot be specified along with ``fixed_timestep``.
+    :param fixed_timestep: Fixed timestep in seconds, will disable automatic timestep management
+            (cf. :mod:`ComPASS.timestep_management` module).
+            Cannot be specified along with ``initial_timestep``.
+    :param output_period: Will dump simulation information every ``output_period`` seconds.
+    :param output_every: Will dump simulation information every ``output_every`` iterations.
+    :param nb_output: Will compute ``output_period`` from ``final_time`` so that there are
+            ``nb_output`` dumps of simulation info. This parameter will not have effect if 
+            ``output_period`` is defined.
+    :param nitermax: Maximum number of iterations.    
+    :param dumper: The object used to dump simulation (snaphots).    
+    :param iteration_callbacks: A sequence that holds callbacks that will be called after each iteration.
+        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is 
+        the current time.    
+    :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
+        (cf. ``ouput_period`` and ``output_every``).
+        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is 
+        the current time.
+    :param specific_outputs: .    
+    :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created 
+        by the :func:`~ComPASS.simulation.base.default_Newton` function.
+    :param context: A :class:`ComPASS.simulation_context.SimulationContext` object that is used to
+        control generic option. If not provided a default one will be created.
+    :param time_step_manager: A specfic time manager that will override the parameters ``fixed_timestep``
+        or  ``initial_timestep`` (cf. :mod:`ComPASS.timestep_management` module).
+    :return: The time at the end of the time loop.
+    """
     assert not (final_time is None and nitermax is None)
     if newton is None:
         newton = simulation.default_Newton()
@@ -80,6 +115,9 @@ def standard_loop(simulation,
             nb_output = max(2, nb_output)
             if final_time:
                 output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
+    else:
+        if nb_output is not None:
+            print('WARNING: output_period is overriding nb_output in standard_loop.')
     assert not(output_period is None or output_period<=0)
     if time_step_manager:
         assert initial_timestep is None and fixed_timestep is None
@@ -105,7 +143,7 @@ def standard_loop(simulation,
     # this is necessary for well operating on pressures
     check_well_pressure(simulation)
     #FIXME: t = ComPASS.get_current_time()
-    t = initial_time if initial_time else 0
+    t = initial_time if initial_time is not None else 0
     t_output = t
     #if initial_time:
     #    #FIXME: ComPASS.set_current_time(initial_time)

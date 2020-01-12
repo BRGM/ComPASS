@@ -132,6 +132,8 @@ time_bulk_scripts:
   stage: test
   tags:
     - test
+  except:
+    - /^doc_.*$/
   script:
     - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG exec ./time_all_scripts.bash
 
@@ -139,6 +141,8 @@ reactive_transport_test:
   stage: test
   tags:
     - test
+  except:
+    - /^doc_.*$/
   script:
     - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run simple_ionexchange.py
 
@@ -169,10 +173,11 @@ tag_release:
 
 pages:
   stage: documentation
-  only:
-    - develop-v4.1
   tags:
     - build
+  only:
+    - develop-v4.1
+    - /^doc_.*$/
   script:
     - mkdir -p public/core_reference
     - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment bash /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
