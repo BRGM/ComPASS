@@ -89,8 +89,8 @@ def bash(session_script, cmd):
     If your command
     has double quotes use simple quote to escape them."""
     session_script = session_script
-    if len(cmd) > 0:
-        with session_script as f:
+    with session_script as f:
+        if len(cmd)>0:
             print(" ".join(cmd), file=f)
 
 
