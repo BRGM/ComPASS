@@ -2,7 +2,7 @@ import sys
 import os
 from pathlib import Path
 import click
-import multiprocessing
+import psutil 
 
 
 def write_customization_file(filename, uid=None):
@@ -66,7 +66,7 @@ def compass(ctx, customization_file, session_script, uid):
     "--parallel",
     is_flag=True,
     default=False,
-    help=f"run in parallel with the number of available procs ({multiprocessing.cpu_count()}) using mpirun to process simulation script",
+    help=f"run in parallel with the number of available procs ({psutil.cpu_count(logical=False)}) using mpirun to process simulation script",
 )
 @click.argument("script", nargs=1)
 @click.pass_obj
@@ -75,7 +75,7 @@ def run(session_script, parallel, script):
     with session_script as f:
         cmd = f"python3 {script}"
         if parallel:
-            print(f"mpirun -n {multiprocessing.cpu_count()} {cmd}", file=f)
+            print(f"mpirun -n {psutil.cpu_count(logical=False)} {cmd}", file=f)
         else:
             print(cmd, file=f)
 
@@ -132,7 +132,7 @@ def postprocess(session_script, request_help, args):
     "--parallel",
     is_flag=True,
     default=False,
-    help=f"Use pytest-xdist with the number of available procs ({multiprocessing.cpu_count()})",
+    help=f"Use pytest-xdist with the number of available procs ({psutil.cpu_count(logical=False)})",
 )
 @click.pass_obj
 def test(session_script, parallel):
@@ -140,7 +140,7 @@ def test(session_script, parallel):
     with session_script as f:
         pytest = "python3 -m pytest"
         if parallel:
-            print(f"{pytest} -n {multiprocessing.cpu_count()}", file=f)
+            print(f"{pytest} -n {psutil.cpu_count(logical=False)}", file=f)
         else:
             print(f"{pytest}", file=f)
 

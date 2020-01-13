@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     metis \
     openmpi-bin \
     libpetsc-real3.10 \
+    python3-psutil \
     python3-scipy \
  && apt-get clean 
 
