@@ -31,8 +31,14 @@ nx, ny, nz = 4, 4, 3
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
 def select_dirichlet_nodes():
-    x = simulation.global_vertices()[:, 0]
-    return (x <= Ox) | (x >= Ox + Lx)
+    # x1 | y1 | z1
+    # x2 | y2 | z2
+    # .  | .  | .
+    # .  | .  | .
+    # xn | yn | zn    
+    xyz = simulation.global_vertices() # an array of shape (n vertices, 3)
+    x = xyz[:, 0] # retrieve the first column, i.e. x
+    return (x <= x.min()) | (x >= x.max())
 
 simulation.init(
     mesh=grid,
