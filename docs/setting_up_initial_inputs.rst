@@ -1,3 +1,5 @@
+.. _Setting-up initial conditions:
+
 Setting up initial values
 =========================
 
