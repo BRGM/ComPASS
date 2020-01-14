@@ -73,13 +73,13 @@
           retrieve_global_mesh_connectivity, &
           retrieve_mesh_connectivity, &
           retrieve_nodes_by_fractures, &
-          retrieve_cell_porosity, &
-          retrieve_fracture_porosity, &
-          retrieve_cell_permeability, &
-          retrieve_fracture_permeability, &
+          retrieve_global_cell_porosity, &
+          retrieve_global_fracture_porosity, &
+          retrieve_global_cell_permeability, &
+          retrieve_global_fracture_permeability, &
 #ifdef _THERMIQUE_
-          retrieve_cell_thermal_conductivity, &
-          retrieve_fracture_thermal_conductivity, &
+          retrieve_global_cell_thermal_conductivity, &
+          retrieve_global_fracture_thermal_conductivity, &
 #endif
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
@@ -378,8 +378,8 @@
 
        end subroutine retrieve_global_id_faces
 
-       subroutine retrieve_cell_porosity(cpp_array) &
-          bind(C, name="retrieve_cell_porosity")
+       subroutine retrieve_global_cell_porosity(cpp_array) &
+          bind(C, name="retrieve_global_cell_porosity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -398,10 +398,10 @@
           cpp_array%p = c_loc(PorositeCell(1))
           cpp_array%n = size(PorositeCell)
 
-       end subroutine retrieve_cell_porosity
+       end subroutine retrieve_global_cell_porosity
 
-       subroutine retrieve_fracture_porosity(cpp_array) &
-          bind(C, name="retrieve_fracture_porosity")
+       subroutine retrieve_global_fracture_porosity(cpp_array) &
+          bind(C, name="retrieve_global_fracture_porosity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -420,7 +420,7 @@
           cpp_array%p = c_loc(PorositeFrac(1))
           cpp_array%n = size(PorositeFrac)
 
-       end subroutine retrieve_fracture_porosity
+       end subroutine retrieve_global_fracture_porosity
 
        subroutine get_global_number_of_nodes(n) &
           bind(C, name="get_global_number_of_nodes")
@@ -438,8 +438,8 @@
 
        end subroutine get_global_number_of_cells
 
-       subroutine retrieve_cell_permeability(cpp_array) &
-          bind(C, name="retrieve_cell_permeability")
+       subroutine retrieve_global_cell_permeability(cpp_array) &
+          bind(C, name="retrieve_global_cell_permeability")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -458,10 +458,10 @@
           cpp_array%p = c_loc(PermCell(1, 1, 1))
           cpp_array%n = size(PermCell, 3)
 
-       end subroutine retrieve_cell_permeability
+       end subroutine retrieve_global_cell_permeability
 
-       subroutine retrieve_fracture_permeability(cpp_array) &
-          bind(C, name="retrieve_fracture_permeability")
+       subroutine retrieve_global_fracture_permeability(cpp_array) &
+          bind(C, name="retrieve_global_fracture_permeability")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -480,12 +480,12 @@
           cpp_array%p = c_loc(PermFrac(1))
           cpp_array%n = size(PermFrac)
 
-       end subroutine retrieve_fracture_permeability
+       end subroutine retrieve_global_fracture_permeability
 
 #ifdef _THERMIQUE_
 
-       subroutine retrieve_cell_thermal_conductivity(cpp_array) &
-          bind(C, name="retrieve_cell_thermal_conductivity")
+       subroutine retrieve_global_cell_thermal_conductivity(cpp_array) &
+          bind(C, name="retrieve_global_cell_thermal_conductivity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -504,10 +504,10 @@
           cpp_array%p = c_loc(CondThermalCell(1, 1, 1))
           cpp_array%n = size(CondThermalCell, 3)
 
-       end subroutine retrieve_cell_thermal_conductivity
+       end subroutine retrieve_global_cell_thermal_conductivity
 
-       subroutine retrieve_fracture_thermal_conductivity(cpp_array) &
-          bind(C, name="retrieve_fracture_thermal_conductivity")
+       subroutine retrieve_global_fracture_thermal_conductivity(cpp_array) &
+          bind(C, name="retrieve_global_fracture_thermal_conductivity")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
@@ -526,7 +526,7 @@
           cpp_array%p = c_loc(CondThermalFrac(1))
           cpp_array%n = size(CondThermalFrac)
 
-          end subroutine retrieve_fracture_thermal_conductivity
+          end subroutine retrieve_global_fracture_thermal_conductivity
 
 #endif
 
@@ -692,4 +692,3 @@
        end subroutine GlobalMesh_create_mesh_from_C
 
     end module GlobalMeshWrapper
-

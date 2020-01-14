@@ -166,4 +166,3 @@ def set_Neumann_fracture_edges(edges, Neumann):
     edges = np.asarray(edges)
     edges+= 1 # Fortran indexing starts at 1   
     _sw.set_Neumann_fracture_edges(edges, Neumann)
-

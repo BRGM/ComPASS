@@ -487,7 +487,7 @@ def setup_VAG(properties):
 def _set_property_on_global_mesh(property, location, value, fractures=None):
     kernel = get_kernel()
     buffer = np.array(
-        getattr(kernel, 'get_%s_%s_buffer' % (location, property))(),
+        getattr(kernel, 'get_global_%s_%s_buffer' % (location, property))(),
         copy = False,
     )
     n = buffer.shape[0]
@@ -539,7 +539,7 @@ def _petrophysics_statistics_on_global_mesh(fractures):
             # TODO permeability and thermal_condutvity are tensors
             # for property in ['porosity', 'permeability', 'thermal_conductivity']:
             for property in ['porosity']:
-                buffer = np.array(getattr(kernel, 'get_%s_%s_buffer' % (location, property))(), copy = False)
+                buffer = np.array(getattr(kernel, 'get_global_%s_%s_buffer' % (location, property))(), copy = False)
                 if location=='fracture':
                     buffer = buffer[fractures]
                 print(buffer.min(), '<=', location, property, '<=', buffer.max())

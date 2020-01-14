@@ -54,14 +54,20 @@ extern "C"
 	void retrieve_mesh_connectivity(MeshConnectivity&);
 	void retrieve_nodes_by_fractures(COC&);
 	void retrieve_global_id_faces(ArrayWrapper&);
+	void retrieve_global_cell_porosity(ArrayWrapper&);
+	void retrieve_global_fracture_porosity(ArrayWrapper&);
+    void retrieve_global_cell_permeability(ArrayWrapper&);
+    void retrieve_global_fracture_permeability(ArrayWrapper&);
+	void retrieve_cell_permeability(ArrayWrapper&);
+	void retrieve_fracture_permeability(ArrayWrapper&);
 	void retrieve_cell_porosity(ArrayWrapper&);
 	void retrieve_fracture_porosity(ArrayWrapper&);
-    void retrieve_cell_permeability(ArrayWrapper&);
-    void retrieve_fracture_permeability(ArrayWrapper&);
 #ifdef _THERMIQUE_
     void retrieve_allthermalsources(XArrayWrapper<double>&);
-    void retrieve_cell_thermal_conductivity(ArrayWrapper&);
-    void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
+    void retrieve_global_cell_thermal_conductivity(ArrayWrapper&);
+    void retrieve_global_fracture_thermal_conductivity(ArrayWrapper&);
+	void retrieve_cell_thermal_conductivity(ArrayWrapper&);
+	void retrieve_fracture_thermal_conductivity(ArrayWrapper&);
     void retrieve_cellthermalsource(XArrayWrapper<double>&);
     void retrieve_nodethermalsource(XArrayWrapper<double>&);
 	void retrieve_fracthermalsource(XArrayWrapper<double>&);
@@ -150,33 +156,61 @@ void add_mesh_utilities_wrappers(py::module& module)
 		[]() { return retrieve_buffer<IntBuffer>(retrieve_global_id_faces); },
 		"Get faces integer flag. Can be used to specify fracture faces setting the flag to -2.");
 
-	module.def("get_cell_porosity_buffer",
-		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_porosity); }
-	);
-
-	module.def("get_cell_heat_source_buffer",
+	module.def("get_global_cell_heat_source_buffer",
 		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_heat_source); }
 	);
 
-	module.def("get_fracture_porosity_buffer",
+	module.def("get_global_cell_porosity_buffer",
+		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_global_cell_porosity); }
+	);
+
+	module.def("get_global_fracture_porosity_buffer",
+		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_global_fracture_porosity); }
+	);
+
+    module.def("get_global_cell_permeability_buffer",
+        []() { return retrieve_buffer<TensorBuffer>(retrieve_global_cell_permeability); }
+    );
+
+    module.def("get_global_fracture_permeability_buffer",
+        []() { return retrieve_buffer<DoubleBuffer>(retrieve_global_fracture_permeability); }
+    );
+
+#ifdef _THERMIQUE_
+
+    module.def("get_global_cell_thermal_conductivity_buffer",
+        []() { return retrieve_buffer<TensorBuffer>(retrieve_global_cell_thermal_conductivity); }
+    );
+
+    module.def("get_global_fracture_thermal_conductivity_buffer",
+        []() { return retrieve_buffer<DoubleBuffer>(retrieve_global_fracture_thermal_conductivity); }
+    );
+
+#endif
+
+	module.def("cell_porosity",
+		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_porosity); }
+	);
+
+	module.def("fracture_porosity",
 		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_porosity); }
 	);
 
-    module.def("get_cell_permeability_buffer",
+    module.def("cell_permeability",
         []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_permeability); }
     );
 
-    module.def("get_fracture_permeability_buffer",
+    module.def("fracture_permeability",
         []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_permeability); }
     );
 
 #ifdef _THERMIQUE_
 
-    module.def("get_cell_thermal_conductivity_buffer",
+    module.def("cell_thermal_conductivity",
         []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_thermal_conductivity); }
     );
 
-    module.def("get_fracture_thermal_conductivity_buffer",
+    module.def("fracture_thermal_conductivity",
         []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_thermal_conductivity); }
     );
 

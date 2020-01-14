@@ -9,6 +9,7 @@
 module MeshSchema
 
   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
+  use InteroperabilityStructures, only: cpp_array_wrapper
   use mpi
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
 
@@ -190,22 +191,24 @@ module MeshSchema
        NbNodeFaceMax
 
   ! 10. Porosity
-  double precision, dimension(:), allocatable, protected :: &
+  real(c_double), dimension(:), allocatable, target :: &
        PorositeCellLocal, &
        PorositeFracLocal
   ! permeability
-  double precision, dimension(:,:,:), allocatable, public :: &
+  real(c_double), dimension(:,:,:), allocatable, target :: &
        PermCellLocal
-  double precision, dimension(:), allocatable, public :: &
+  real(c_double), dimension(:), allocatable, target :: &
        PermFracLocal
 
 #ifdef _THERMIQUE_
   ! Thermal conductivity
-  double precision, dimension(:,:,:), allocatable, public :: &
+  real(c_double), dimension(:,:,:), allocatable, target :: &
        CondThermalCellLocal
-  double precision, dimension(:), allocatable, public :: &
+  real(c_double), dimension(:), allocatable, target :: &
        CondThermalFracLocal
+#endif
 
+#ifdef _THERMIQUE_
   ! Thermal source
   real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: CellThermalSourceLocal
   real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: FracThermalSourceLocal
@@ -355,7 +358,77 @@ contains
 
     end subroutine MeshSchema_subarrays_views
 
-    subroutine MeshSchema_allocate_DOFFamilyArray(a)
+    subroutine MeshSchema_retrieve_local_cell_permeability(buffer) &
+      bind(C, name="retrieve_cell_permeability")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(PermCellLocal))) &
+         call CommonMPI_abort("PermCellLocal is not allocated")
+      buffer%p = c_loc(PermCellLocal(1,1,1))
+      buffer%n = size(PermCellLocal, 3, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_cell_permeability
+
+   subroutine MeshSchema_retrieve_local_fracture_permeability(buffer) &
+      bind(C, name="retrieve_fracture_permeability")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(PermFracLocal))) &
+         call CommonMPI_abort("PermFracLocal is not allocated")
+      buffer%p = c_loc(PermFracLocal(1))
+      buffer%n = size(PermFracLocal, 1, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_fracture_permeability
+
+#ifdef _THERMIQUE_
+
+  subroutine MeshSchema_retrieve_local_cell_thermal_conductivity(buffer) &
+      bind(C, name="retrieve_cell_thermal_conductivity")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(CondThermalCellLocal))) &
+         call CommonMPI_abort("CondThermalCellLocal is not allocated")
+      buffer%p = c_loc(CondThermalCellLocal(1,1,1))
+      buffer%n = size(CondThermalCellLocal, 3, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_cell_thermal_conductivity
+
+   subroutine MeshSchema_retrieve_local_fracture_thermal_conductivity(buffer) &
+      bind(C, name="retrieve_fracture_thermal_conductivity")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(CondThermalFracLocal))) &
+         call CommonMPI_abort("CondThermalFracLocal is not allocated")
+      buffer%p = c_loc(CondThermalFracLocal(1))
+      buffer%n = size(CondThermalFracLocal, 1, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_fracture_thermal_conductivity
+
+#endif
+
+   subroutine MeshSchema_retrieve_local_cell_porosity(buffer) &
+      bind(C, name="retrieve_cell_porosity")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(PorositeCellLocal))) &
+         call CommonMPI_abort("PorositeCellLocal is not allocated")
+      buffer%p = c_loc(PorositeCellLocal(1))
+      buffer%n = size(PorositeCellLocal, 1, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_cell_porosity
+
+   subroutine MeshSchema_retrieve_local_fracture_porosity(buffer) &
+      bind(C, name="retrieve_fracture_porosity")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if(.not.(allocated(PorositeFracLocal))) &
+         call CommonMPI_abort("PorositeFracLocal is not allocated")
+      buffer%p = c_loc(PorositeFracLocal(1))
+      buffer%n = size(PorositeFracLocal, 1, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_fracture_porosity
+
+  subroutine MeshSchema_allocate_DOFFamilyArray(a)
         type(DOFFamilyArray), target, intent(inout) :: a
         
         type(SubArraySizes) :: nb

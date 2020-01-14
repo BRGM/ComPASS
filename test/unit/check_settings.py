@@ -11,7 +11,7 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 import ComPASS.io.mesh as io
-
+from ComPASS.utils.various import tensor_coordinates
 
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
@@ -30,15 +30,17 @@ nx, ny, nz = 4, 4, 3
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
+
 def select_dirichlet_nodes():
     # x1 | y1 | z1
     # x2 | y2 | z2
     # .  | .  | .
     # .  | .  | .
-    # xn | yn | zn    
-    xyz = simulation.global_vertices() # an array of shape (n vertices, 3)
-    x = xyz[:, 0] # retrieve the first column, i.e. x
+    # xn | yn | zn
+    xyz = simulation.global_vertices()  # an array of shape (n vertices, 3)
+    x = xyz[:, 0]  # retrieve the first column, i.e. x
     return (x <= x.min()) | (x >= x.max())
+
 
 simulation.init(
     mesh=grid,
@@ -57,23 +59,27 @@ dirichlet.set(initial_state)
 # Set varying dirichlet conditions
 x = simulation.vertices()[:, 0]
 y = simulation.vertices()[:, 1]
-dirichlet.p[:] = ((pres + 1E5) * (x - Ox) + pres * (Ox + Lx - x)) / Lx
+dirichlet.p[:] = ((pres + 1e5) * (x - Ox) + pres * (Ox + Lx - x)) / Lx
 dirichlet.T[:] = ((Tres + 100) * (y - Oy) + Tres * (Oy + Ly - y)) / Ly
 
 # The following wil export all meshes:
 # - as a vtu file if the simulation is sequential (a single mesh)
 # - as a pvtu file and a set of vtu files (in the vtu folder) otherwise
 io.write_mesh(simulation, "mesh_alone")
-io.write_mesh(
-    simulation,
-    "simulation_mesh",
-    pointdata={
-        "dirichlet": simulation.dirichlet_nodes(),
-        "dirichlet pressure": simulation.pressure_dirichlet_values(),
-        "dirichlet temperature": simulation.temperature_dirichlet_values(),
-    },
-    celldata={
-        "initial pressure": simulation.cell_states().p,
-        "zcell": simulation.compute_cell_centers()[:, 2],
-    },
+pointdata = {
+    "dirichlet": simulation.dirichlet_nodes(),
+    "dirichlet pressure": simulation.pressure_dirichlet_values(),
+    "dirichlet temperature": simulation.temperature_dirichlet_values(),
+}
+celldata = {
+    "initial pressure": simulation.cell_states().p,
+    "zcell": simulation.compute_cell_centers()[:, 2],
+    "phi": simulation.cell_porosity(),
+}
+celldata.update(
+    tensor_coordinates(simulation.cell_permeability(), "k", diagonal_only=True)
 )
+celldata.update(
+    tensor_coordinates(simulation.cell_thermal_conductivity(), "K", diagonal_only=True)
+)
+io.write_mesh(simulation, "simulation_mesh", pointdata=pointdata, celldata=celldata)

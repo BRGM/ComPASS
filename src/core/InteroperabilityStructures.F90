@@ -18,4 +18,3 @@ module InteroperabilityStructures
    end type cpp_array_wrapper
 
 end module InteroperabilityStructures
-
