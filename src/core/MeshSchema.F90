@@ -2078,8 +2078,15 @@ contains
     deallocate(SurfFracLocal)
 
     ! the follwoing free could be put after VAGFrac?
+    ! but we keep them just if user wants to use them
     deallocate(PorositeCellLocal)
     deallocate(PorositeFracLocal)
+    deallocate(PermCellLocal)
+    deallocate(PermFracLocal)
+#ifdef _THERMIQUE_
+    deallocate(CondThermalCellLocal)
+    deallocate(CondThermalFracLocal)
+#endif
 
 
 #ifdef _THERMIQUE_

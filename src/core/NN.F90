@@ -219,17 +219,8 @@ contains
       real(c_double), value, intent(in) :: omegaFourierFrac
 
       call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
-
 #ifdef _THERMIQUE_
       call VAGFrac_TransFourier(CondThermalCellLocal, CondThermalFracLocal)
-#endif
-
-      deallocate (PermCellLocal)
-      deallocate (PermFracLocal)
-
-#ifdef _THERMIQUE_
-      deallocate (CondThermalCellLocal)
-      deallocate (CondThermalFracLocal)
 #endif
 
       call VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac)
