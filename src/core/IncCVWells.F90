@@ -182,7 +182,7 @@ module IncCVWells
                ! CHECKME: IncNode is the reservoir unknown
                call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
                                      IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp*IncNode(nums)%Saturation(m)
+               PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp * IncNode(nums)%Saturation(mph)
             end do
 
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
