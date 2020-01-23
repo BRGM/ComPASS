@@ -861,7 +861,8 @@ contains
 
                sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
-               ! as the loop is done from head to queue, %Density is updated before being used
+              ! as the loop is done from head to queue
+              ! the %Density of the parent is updated before being used
                Pdrop = PerfoWellProd(sparent)%Density*gravity*(zp - zs)
                Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
 
