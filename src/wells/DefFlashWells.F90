@@ -756,7 +756,8 @@ contains
 
    end subroutine DefFlashWells_PressureToFlowrateWellProd
 
-   !> \brief Compute the flowrate at the head node of the injection well num_Well.
+   !> \brief Compute the flowrate of the injection well num_Well.
+   !! That is the total flowrate that goes through the injector well to the reservoir.
    !! Use PerfoWellInj, IncPressionWellInj, WID and IncNode\%Pression.
    !!
    !! \param[in]      num_Well             Numero of the injection well
@@ -766,36 +767,28 @@ contains
       integer, intent(in) :: num_Well
       double precision, intent(inout) :: Qw
 
-      integer :: s, nums, icp, m, mph
-      double precision :: Pws, Ps, WIDws
+      integer :: s, nums, icp
+      double precision :: Pws, Ps, deltaPs, qws
       double precision:: Flux_ks(NbComp)
 
       Qw = 0.d0
-
       ! nodes of well num_Well
       do s = NodebyWellInjLocal%Pt(num_Well) + 1, NodebyWellInjLocal%Pt(num_Well + 1)
          nums = NodebyWellInjLocal%Num(s)
-
-         Pws = IncPressionWellInj(num_Well) + PerfoWellInj(s)%PressureDrop ! P_{w,s}
-         Ps = IncNode(nums)%Pression ! P_s
-
-         WIDws = NodeDatabyWellInjLocal%Val(s)%WID
-
-         Flux_ks(:) = 0.d0
-
-         do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-            mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-            if ((Ps - Pws) < 0.d0) then ! < 0
-               do icp = 1, NbComp
-                  Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*(Ps - Pws)
-               end do
-            end if
-         end do
-
-         do icp = 1, NbComp
-            Qw = Qw + Flux_ks(icp)
-         end do
+         Pws = IncPressionWellInj(num_Well) + PerfoWellInj(s)%PressureDrop
+         Ps = IncNode(nums)%Pression
+         deltaPs = Ps - Pws
+         if (deltaPs < 0.d0) then
+#ifndef NDEBUG
+            if(NbPhasePresente_ctx(IncNode(nums)%ic)/=1) &
+               call CommonMPI_abort("Injectors are supposed to be monophasic.")
+#endif
+            qws = NodeDatabyWellInjLocal%Val(s)%WID * deltaPs
+            do icp = 1, NbComp
+               Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s) * qws
+            end do
+            Qw = Qw + sum(Flux_ks)
+         end if
       end do
 
    end subroutine DefFlashWells_PressureToFlowrateWellInj
