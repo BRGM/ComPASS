@@ -45,6 +45,7 @@ module IncCVWells
          Pression, & !< Pressure at the perforation
          Temperature, & !< Temperature at the perforation
          Density, & !< Density at the perforation: constant per edge, stored at node parent
+         Saturation(NbPhase), & !< Phases saturation
          PressureDrop !< Pressure drop at the perforation, used to construct Pressure from the head pressure
       ! FluxMolar(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
       ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}

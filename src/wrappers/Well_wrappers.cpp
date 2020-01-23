@@ -41,6 +41,7 @@ struct Perforation_state // WellPerforationState_type in IncCVWell.F90
     double pressure;
     double temperature;
     double density;
+	std::array<double, NP> saturation;
     double pressure_drop;
 };
 
@@ -405,6 +406,10 @@ void add_well_wrappers(py::module& module)
         .def_readonly("pressure", &Perforation_state::pressure)
         .def_readonly("temperature", &Perforation_state::temperature)
         .def_readonly("density", &Perforation_state::density)
+        .def_property_readonly("saturation", [](py::object& self) {
+			auto state = self.cast<Perforation_state*>();
+			return py::array_t<double, py::array::c_style>{NP, state->saturation.data(), self};
+		})
         .def_readonly("pressure_drop", &Perforation_state::pressure_drop)
         ;
 
@@ -447,7 +452,24 @@ void add_well_wrappers(py::module& module)
 	add_perforation_state_property("temperature", offsetof(Perforation_state, temperature)) ;
 	add_perforation_state_property("density", offsetof(Perforation_state, density)) ;
 	add_perforation_state_property("pressure_drop", offsetof(Perforation_state, pressure_drop)) ;
-	
+
+	pyWellInfo.def_property_readonly("saturation", [](py::object& self) {
+			auto info = self.cast<Well_information*>();
+			std::vector<std::size_t> shape;
+			shape.push_back(info->nb_perforations);
+			shape.push_back(NP);
+			std::vector<std::size_t> strides;
+			strides.push_back(sizeof(Perforation_state));
+			strides.push_back(sizeof(double));
+			auto ptr = reinterpret_cast<const double *>(
+				reinterpret_cast<const unsigned char *>(info->perforations_state) +
+				offsetof(Perforation_state, saturation)
+			);
+			return py::array_t<double, py::array::c_style>{
+				shape, strides, ptr, self
+			};
+		}, py::return_value_policy::reference_internal);
+
 	auto add_perforation_data_property = [&pyWellInfo](const char * name, std::size_t offset) {
 		pyWellInfo.def_property_readonly(name,
 			[offset](py::object& self) {
