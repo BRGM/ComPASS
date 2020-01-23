@@ -32,7 +32,7 @@ omega_reservoir = 0.15            # reservoir porosity
 k_fracture  = 1E-11 
 kres = 1E-14                      # reservoir permeability in m^2
 K_reservoir = 2                   # bulk thermal conductivity in W/m/K
-qw = 0.1
+qw = 1.
 mu = 1.E-3
 rho = 1.E3
 
@@ -46,6 +46,8 @@ simulation = ComPASS.load_eos('linear_water')
 fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rho
 fluid_properties.dynamic_viscosity = mu
+assert fluid_properties.compressibility == 0
+assert fluid_properties.thermal_expansivity == 0
 # fluid_properties.volumetric_heat_capacity = rhor*cpr # not relevant here - use default value
 # simulation.set_rock_volumetric_heat_capacity(rhor*cpr) # not relevant here - use default value
 
@@ -63,10 +65,10 @@ grid = ComPASS.Grid(
 def make_well():
     well = create_vertical_well(simulation, (0, 0), rw)
     if production:
-        well.operate_on_flowrate = (2*H+k_fracture/kres*df)*qw , 0. * MPa
+        well.operate_on_flowrate = (Lz+(k_fracture/kres)*df)*qw , 0. * MPa
         well.produce()
     else: # injection
-        well.operate_on_flowrate = (2*H+k_fracture/kres*df)*qw , pres + 100. * MPa
+        well.operate_on_flowrate = (Lz+(k_fracture/kres)*df)*qw , pres + 100. * MPa
         well.inject(Tinjection)
     return [well]
 
