@@ -1818,16 +1818,18 @@ contains
                       ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s) 
                       dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp,m,nums) * WIDws
 
-                      dP_s(:,icp) = dP_s(:,icp) + divDensiteMolaireKrViscoCompNode(:,icp,m,nums) * WIDws * Ps_Pws &
-                           + DensiteMolaireKrViscoCompNode(icp,m,nums) * WIDws
-
+                                           
+                      dP_s(:,icp) = dP_s(:,icp) + divDensiteMolaireKrViscoCompNode(:,icp,m,nums) * WIDws * Ps_Pws 
+                      dP_s(1,icp) = dP_s(1,icp)  + DensiteMolaireKrViscoCompNode(icp,m,nums) * WIDws                      
+                      
                    end if
                 end do
 
 #ifdef _THERMIQUE_
                 dP_ER_w = dP_ER_w - DensiteMolaireKrViscoEnthalpieNode(m,nums) * WIDws
-                der_ER_s(:) = der_ER_s(:) + divDensiteMolaireKrViscoEnthalpieNode(:,m,nums) * WIDws * Ps_Pws &
-                     + DensiteMolaireKrViscoEnthalpieNode(m,nums) * WIDws
+
+                der_ER_s(:) = der_ER_s(:) + divDensiteMolaireKrViscoEnthalpieNode(:,m,nums) * WIDws * Ps_Pws                
+                der_ER_s(1) = der_ER_s(1) + DensiteMolaireKrViscoEnthalpieNode(m,nums) * WIDws
 #endif
              end do
 
