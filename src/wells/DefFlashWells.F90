@@ -800,6 +800,30 @@ contains
 
    end subroutine DefFlashWells_PressureToFlowrateWellInj
 
+   subroutine DefFlashWells_solve_for_temperature(E, p, T, n, converged)
+      double precision, intent(in) :: E !< total energy
+      double precision, intent(in) :: p !< pressure
+      double precision, intent(inout) :: T !< initial temperature and result
+      double precision, intent(in) :: n !< total number of moles
+      logical, intent(inout) :: converged 
+      double precision :: H, ResT, dHdP, dHdT, Sat(NbPhase), dHdC(NbComp), dHdS(NbPhase)
+      double precision :: dummyCi(NbComp), dummySat(NbPhase) ! not used by f_Enthalpie !
+      integer :: i 
+      
+      converged = .false.
+      do i = 1, WellsNewtonMaxiter
+         call f_Enthalpie(LIQUID_PHASE, p, T, dummyCi, dummySat, H, dHdP, dHdT, dHdC, dHdS)
+         ResT = E - H * n ! residual
+         if (abs(ResT) < WellsNewtonTol) then
+            converged = .true.
+            exit
+         else
+            T = T + ResT / (dHdT * n)
+         end if
+      end do
+   
+   end subroutine DefFlashWells_solve_for_temperature
+
    !! \brief Execute the flash to determine T and the molar fractions
    !! to update PerfoWellProd(s)%Temperature and PerfoWellProd(s)%Density.
    !! This Flash is performed for a monophasic multicomponent fluid.
@@ -810,7 +834,7 @@ contains
    !! the loop is done from head to tail (mean density is updated before being used).
    subroutine DefFlashWells_TimeFlashSinglePhaseWellProd
 
-      double precision :: T, RT, Pws, Ci(NbComp), sumci, E, zp, zs
+      double precision :: T, ResT, Pws, Ci(NbComp), sumni, E, zp, zs
       double precision :: H, rhoMean, Pdrop
       double precision :: dPf, dTf, Sat(NbPhase), dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_Enthalpie
       integer :: k, s, icp, sparent, i
@@ -855,36 +879,19 @@ contains
             ! Newton method to compute T: R = E-Enthalpie*n = 0
             E = sumnrjFluxProd(s) ! energy
 
+            sumni = 0
             do icp = 1, NbComp
-               sumci = summolarFluxProd(icp, s) ! sum_i {n_i}
+               sumni = sumni + summolarFluxProd(icp, s)
             end do
 
             ! initialize newton with reservoir temperature
             T = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-
-            converged = .false.
-
-            do i = 1, WellsNewtonMaxiter
-
-               call f_Enthalpie(LIQUID_PHASE, Pws, T, Ci(:), Sat(:), &
-                                H, dPf, dTf, dCf, dSf)
-
-               RT = E - H*sumci ! residu
-
-               if (abs(RT) < WellsNewtonTol) then
-                  converged = .true.
-                  exit
-               else
-                  T = T + RT/(dTf*sumci)
-               end if
-            end do
-
-            ! check if the Newton has converged
-            if (converged .eqv. .false.) then
+            call DefFlashWells_solve_for_temperature(E, Pws, T, sumni, converged)
+            if (.not.converged) then
                print *, "Warning: Newton in DefFlashWells_TimeFlashSinglePhaseProd has not converged"
-               print *, "Residu is", abs(RT), "k= ", k, "s= ", s
+               print *, "Residu is", abs(ResT), "k= ", k, "s= ", s
             end if
-
+      
             ! update PhysPerfoWell
             PerfoWellProd(s)%Temperature = T
             call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, Sat, rhoMean, &
