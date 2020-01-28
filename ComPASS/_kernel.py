@@ -36,6 +36,9 @@ class Wrapper:
         else:
             raise AttributeError(f"wrapper has no attribute {name!r}")
 
+    def __dir__(self):
+        return self._exposed
+
 
 common_wrapper = Wrapper([
     # types
