@@ -9,7 +9,7 @@
 module DefWell
 
    use, intrinsic :: iso_c_binding, only: &
-     c_ptr, c_size_t, c_null_ptr, c_loc, c_double, c_char, c_bool
+     c_ptr, c_size_t, c_null_ptr, c_loc, c_int, c_double, c_char, c_bool
 
    use mpi, only: &
      MPI_CHARACTER, &
@@ -41,20 +41,27 @@ module DefWell
    end type WellData_type
 
    !> Store data of one Node Well about parent and well index
-   type TYPE_DataNodeWell
-      integer :: Parent !< num of parent; -1 if head node
-      integer :: PtParent !< pt of parent; -1 if head node
-      double precision :: WID !< Well Index Darcy
-      double precision :: WIF !< Well Index Fourier
+   type, bind(C) :: TYPE_DataNodeWell
+      integer(c_int) :: Parent !< num of parent; -1 if head node
+      integer(c_int) :: PtParent !< pt of parent; -1 if head node ! FIXME: improve doc !!!
+      real(c_double) :: WID !< Well Index Darcy
+      real(c_double) :: WIF !< Well Index Fourier
    end type TYPE_DataNodeWell
 
    !> CSR type with Pt, Num, and Val (1d DataNodeWell type)
    type TYPE_CSRDataNodeWell
-      integer :: Nb
-      integer, allocatable, dimension(:) :: Pt
-      integer, allocatable, dimension(:) :: Num
-      type(TYPE_DataNodeWell), allocatable, dimension(:) :: Val !< Parent and Well Indexes
+      integer(c_int) :: Nb
+      integer(c_int), pointer, dimension(:) :: Pt
+      integer(c_int), pointer, dimension(:) :: Num
+      type(TYPE_DataNodeWell), pointer, dimension(:) :: Val !< Parent and Well Indexes
    end type TYPE_CSRDataNodeWell
+
+   type, bind(C) :: PerforationDataCSR_wrapper
+      integer(c_int) :: nb_wells
+      type(c_ptr) :: well_offset
+      type(c_ptr) :: node_vertex
+      type(c_ptr) :: data
+   end type PerforationDataCSR_wrapper   
 
    !> to allow = between two DataNodeWell_type
    interface assignment(=)
@@ -69,7 +76,8 @@ module DefWell
    logical(c_bool) :: DefWell_has_WI_threshold = .false.
    real(c_double) :: DefWell_WI_threshold = 0.d0
 
-   type(WellData_type), allocatable, target, dimension(:), public :: &
+   ! FIXME: switch to pointer
+   type(WellData_type), allocatable, public, target, dimension(:) :: &
       DataWellInj, &
       DataWellProd
 
@@ -545,11 +553,11 @@ contains
 
       deallocate (CSR1%Pt)
 
-      if (allocated(CSR1%Num)) then
+      if (associated(CSR1%Num)) then
          deallocate (CSR1%Num)
       end if
 
-      if (allocated(CSR1%Val)) then
+      if (associated(CSR1%Val)) then
          deallocate (CSR1%Val)
       end if
 

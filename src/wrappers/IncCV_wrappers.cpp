@@ -58,7 +58,7 @@ auto add_attribute_array(PyClass& states, const char *name, std::size_t offset,
 		std::copy(strides.begin(), strides.end(), std::back_inserter(final_strides));
 		return py::array_t<AttributeType, py::array::c_style>{ final_shape, final_strides, attribute_position, self };
 	},
-		py::return_value_policy::reference_internal // py::keep_alive<0, 1>(): because the StateArray instance must be kept alive as long as the attribute is used - should be ok this is tge default for def_property
+		py::return_value_policy::reference_internal // py::keep_alive<0, 1>(): because the StateArray instance must be kept alive as long as the attribute is used - should be ok this is the default for def_property
 		);
 };
 

@@ -54,7 +54,10 @@ common_wrapper = Wrapper([
     "WellGeometry",
     "Well",
     "WellData",
+    "PerforationData",
     "PerforationState",
+    "WellGroup",
+    "WellInformation",
     "WellPerforations",
     "FluidProperties",
 ])
@@ -210,6 +213,10 @@ simulation_wrapper = Wrapper([
     "unlock_context",
     "build_state",
     "all_states",
+    "nb_producers",
+    "nb_injectors",
+    "producers_information",
+    "injectors_information",
 ])
 
 _a_verifier = [

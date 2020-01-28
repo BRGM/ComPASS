@@ -24,6 +24,8 @@ namespace ComPASS
 	namespace Well
 	{
 
+		enum struct Well_type {injector, producer, undefined};
+
 		struct Well_geometry
 		{
 			typedef int Node_id_type;

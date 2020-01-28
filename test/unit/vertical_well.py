@@ -14,16 +14,18 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 
+import MeshTools.vtkwriters as vtkw
+
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
 
 ds = 100  # horizontal cell size
 H = 1000  # height of the well
-nv = 2  # number of vertical layers
+nv = 50  # number of vertical layers
 hns = 1  # half the number of cells along basis side
 rw = 0.1  # well radius
-ptop = 1 * MPa  # pressure at the top of the reservoir
-Ttop = degC2K(100)  # temperature at the top of the reservoir
-vgradT = 30 / km  # degrees per km
+ptop = 10 * MPa  # pressure at the top of the reservoir
+Ttop = degC2K(130)  # temperature at the top of the reservoir
+vgradT = 170 / km  # degrees per km - to reach 300 degC at the bottom
 geotherm = lambda zeta: Ttop + vgradT * (H - zeta)
 gravity = 9.81
 injection = False
@@ -53,7 +55,7 @@ def hydrostatic_pressure(zbottom, ztop, nz):
         zeta = ztop
         dz = (ztop - zbot) / nbsteps
         for _ in range(nbsteps):
-            p += gravity * rho(p, geotherm(zeta))
+            p += gravity * rho(p, geotherm(zeta)) * dz
             zeta -= dz
         pressures.append(p)
     pressures = np.asarray(pressures)
@@ -119,26 +121,100 @@ set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
 
 # output the initial state before the simulation is run
+rho = simulation.liquid_molar_density
+node_states = simulation.node_states()
+cell_states = simulation.cell_states()
 io.write_mesh(
     simulation,
     "intial_state",
     pointdata={
         "dirichlet pressure": simulation.pressure_dirichlet_values(),
-        "dirichlet temperature": K2degC( simulation.temperature_dirichlet_values()),
-        "initial pressure": simulation.node_states().p,
-        "initial temperature": K2degC(simulation.node_states().T),
+        "dirichlet temperature": K2degC(simulation.temperature_dirichlet_values()),
+        "initial pressure": node_states.p,
+        "initial temperature": K2degC(node_states.T),
+        "liquid density": rho(node_states.p, node_states.T),
+        "Psat for T reservoir": simulation.Psat(node_states.T),
+        "Tsat for p reservoir": K2degC(simulation.Tsat(node_states.p)),
     },
     celldata={
-        "initial pressure": simulation.cell_states().p,
-        "initial temperature": K2degC(simulation.cell_states().T),
+        "initial pressure": cell_states.p,
+        "initial temperature": K2degC(cell_states.T),
     },
 )
 
 standard_loop(
     simulation,
-    initial_timestep = 1 , final_time = year ,
-    output_period = year/12,
+    initial_timestep=1,
+    final_time=year,
+    output_period=year / 12,
+    # nitermax=1,
 )
 
+wells = simulation.producers_information()
+print("Number of wells:", wells.nb_wells)
+print("Number of own producers:", simulation.number_of_own_producers())
+for wk, well in enumerate(wells):
+    print(f"Well {wk} has {well.nb_perforations} perforations.")
+    print("vertices:", well.vertices)
+    print("parent (vertex id):", well.parent_vertex)
+    print("parent (rank):", well.parent_rank)
+    print("pressure:", well.pressure)
+    print("temperature:", K2degC(well.temperature))
+    print("pressure_drop:", well.pressure_drop)
+    print("density:", well.density)
+    print("Darcy WI:", well.well_index_Darcy)
+    print("Fourier WI:", well.well_index_Fourier)
+
+
+# well_vertices = np.unique(np.hstack([well.vertices for well in wells]))
+vertices = simulation.vertices()
+node_states = simulation.node_states()
+
+for wk, well in enumerate(wells):
+    well_vertices = np.unique(well.vertices)
+    remap = np.zeros(vertices.shape[0], dtype=well_vertices.dtype)
+    remap[well_vertices] = 1
+    remap = np.cumsum(remap) - 1
+
+    vtkw.write_vtu(
+        vtkw.vtu_doc(
+            vertices[well_vertices],
+            np.hstack(
+                [
+                    np.reshape(remap[well.vertices[:-1]], (-1, 1)),
+                    np.reshape(remap[well.parent_vertex], (-1, 1)),
+                ]
+            ),
+            pointdata={
+                name: np.ascontiguousarray(a)
+                for name, a in [
+                    ("reservoir vertices", well_vertices),
+                    ("well pressure", well.pressure),
+                    ("well temperature", K2degC(well.temperature)),
+                    ("well pressure drop", well.pressure_drop),
+                    ("well density", well.density),
+                    ("Darcy WI", well.well_index_Darcy),
+                    ("Fourier WI", well.well_index_Fourier),
+                    ("reservoir pressure", node_states.p[well_vertices]),
+                    ("reservoir temperature", K2degC(node_states.T[well_vertices])),
+                    ("well saturation pressure", simulation.Psat(well.temperature)),
+                    (
+                        "inflow",
+                        np.where(
+                            well.pressure < node_states.p[well_vertices],
+                            well.well_index_Darcy
+                            * (node_states.p[well_vertices] - well.pressure),
+                            0,
+                        ),
+                    ),
+                ]
+            },
+        ),
+        f"well_{wk:04d}",
+    )
+    # We want that every point in the well is above the flash point
+    assert np.all(simulation.Psat(well.temperature) < well.pressure), 'flash occured!'
+
 from ComPASS.postprocess import postprocess
+
 postprocess(simulation.runtime.output_directory)

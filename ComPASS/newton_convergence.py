@@ -8,8 +8,8 @@
 
 import numpy as np
 
-# access to underlying mpi4py
-from .mpi import MPI as mpi
+# access to underlying MPI.py
+from .mpi import MPI
 from ._kernel import get_kernel
 
 
@@ -36,14 +36,14 @@ class Legacy:
         local[0]+= np.linalg.norm(residuals.own_injectors, 1)
         local[0]+= np.linalg.norm(residuals.own_producers, 1)
         global_norms = np.zeros(self.simulation.Residuals.npv(), dtype=np.double)
-        mpi.COMM_WORLD.Allreduce(local, global_norms, mpi.SUM)
+        MPI.COMM_WORLD.Allreduce(local, global_norms, MPI.SUM)
         return global_norms
     
     def closure_norm(self):
         kernel = self.kernel
         assert kernel
         closure = kernel.Residu_RelativeNorm_local_closure()
-        return mpi.COMM_WORLD.allreduce(closure, mpi.SUM)
+        return MPI.COMM_WORLD.allreduce(closure, MPI.SUM)
     
     def reset_conservation_reference(self, dt):
         global_accumulation = self.simulation.total_accumulation(reset_states=False)

@@ -640,7 +640,7 @@ contains
 
    end subroutine DefFlashWells_NewtonFlashLinWellProd
 
-   !> \brief Compute the flowrate at the each node of the production well num_Well:
+   !> \brief Compute the flowrate at each node of the production well num_Well:
    !! Fill the CSR vectors summolarFluxProd and sumnrjFluxProd.
    !! Use PerfoWellProd\%Pression and IncNode\%Pression.
    !!
@@ -802,7 +802,7 @@ contains
 
    !! \brief Execute the flash to determine T and the molar fractions
    !! to update PerfoWellProd(s)%Temperature and PerfoWellProd(s)%Density.
-   !! This Flash is performed for a monophasique multicomponent fluid.
+   !! This Flash is performed for a monophasic multicomponent fluid.
    !!
    !! Loop over the nodes s from head to tail to
    !! to determine wich phases are present, the temperature and the mean density.

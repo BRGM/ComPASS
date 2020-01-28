@@ -40,7 +40,7 @@ module IncCVWells
    implicit none
 
    !> Type for the perforations, stores informations which are not constant in the well
-   type, bind(c) :: WellPerforationState_type
+   type, bind(C) :: WellPerforationState_type
       real(c_double) :: &
          Pression, & !< Pressure at the perforation
          Temperature, & !< Temperature at the perforation
@@ -50,10 +50,10 @@ module IncCVWells
       ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}
    end type WellPerforationState_type
 
-   type, bind(c) :: WellPerforations_type
+   type, bind(C) :: WellPerforations_type
     type(c_ptr) :: perforations_begin
     integer(c_size_t) :: nb_perforations
-    end type WellPerforations_type
+   end type WellPerforations_type
        
        ! well pressure for current time step
    real(c_double), allocatable, dimension(:), target, public :: &

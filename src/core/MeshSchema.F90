@@ -20,7 +20,7 @@ module MeshSchema
   use DefModel, only: IndThermique, NbPhase, NbComp
 
   use DefWell, only: &
-     TYPE_CSRDataNodeWell, WellData_type, &
+     TYPE_CSRDataNodeWell, PerforationDataCSR_wrapper, WellData_type, &
      DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
      DefWell_deallocCSRDataWell
 
@@ -287,6 +287,60 @@ module MeshSchema
        MeshSchema_part_info
 
 contains
+
+   subroutine retrieve_CSRDataNodeWell(data, wrapper)
+      type(TYPE_CSRDataNodeWell), intent(in) :: data
+      type(PerforationDataCSR_wrapper), intent(inout) :: wrapper
+
+      if(.not.(associated(data%Pt).and.associated(data%Num).and.associated(data%Val))) then
+         write(*,*) ""
+         write(*,*) " WARNING - Some well pointers are not associated!"
+         if(.not.(associated(data%Pt))) &
+            write(*,*) "    Pt is not associated!"
+            if(.not.(associated(data%Num))) &
+            write(*,*) "    Num is not associated!"
+            if(.not.(associated(data%Val))) &
+            write(*,*) "    Val is not associated!"
+         write(*,*) ""
+         wrapper%nb_wells = 0
+         wrapper%well_offset = c_null_ptr
+         wrapper%node_vertex = c_null_ptr
+         wrapper%data = c_null_ptr
+         return
+      endif
+
+      if(data%Nb+1/=size(data%Pt)) then
+         write(*,*) " WARNING - Inconsistent Pt in CSRDataNodeWell!"
+         write(*,*) " Nb =", data%Nb, " Pt size =", size(data%Pt)
+         call CommonMPI_abort("Inconsistent Pt in CSRDataNodeWell")
+      end if
+      if(data%Pt(data%Nb+1)/=size(data%Num)) &
+         call CommonMPI_abort("Inconsistent Num in CSRDataNodeWell")
+      if(data%Pt(data%Nb+1)/=size(data%Val)) &
+         call CommonMPI_abort("Inconsistent Val in CSRDataNodeWell")
+
+      wrapper%nb_wells = data%Nb
+      wrapper%well_offset = c_loc(data%Pt(1))
+      wrapper%node_vertex = c_loc(data%Num(1))
+      wrapper%data = c_loc(data%Val(1))
+
+   end subroutine retrieve_CSRDataNodeWell 
+
+   subroutine retrieve_CSRData_producer(wrapper) &
+      bind(C, name="retrieve_CSRData_producer")
+      type(PerforationDataCSR_wrapper), intent(inout) :: wrapper
+
+      call retrieve_CSRDataNodeWell(NodeDatabyWellProdLocal, wrapper)
+
+   end subroutine retrieve_CSRData_producer
+
+   subroutine retrieve_CSRData_injector(wrapper) &
+      bind(C, name="retrieve_CSRData_injector")
+      type(PerforationDataCSR_wrapper), intent(inout) :: wrapper
+
+      call retrieve_CSRDataNodeWell(NodeDatabyWellInjLocal, wrapper)
+
+   end subroutine retrieve_CSRData_injector
 
    subroutine MeshSchema_part_info(info) &
       bind(C, name="MeshSchema_part_info")
