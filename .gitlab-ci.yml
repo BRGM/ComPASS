@@ -84,8 +84,6 @@ sanity_check:
   tags:
     - test
   script:
-    - echo "Job running with id"
-    - id
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical_1D.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical.py
@@ -94,7 +92,8 @@ sanity_check:
     - docker run --rm -v $PWD/test/sanity/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO1.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_settings.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run init_states.py
-
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_well.py
+    
 pytest_run:
   stage: test
   tags:
