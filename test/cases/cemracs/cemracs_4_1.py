@@ -13,18 +13,24 @@ from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
+import ComPASS.mpi as mpi
+from ComPASS.mpi import MPI # underlying mpi4py.MPI
 
 
 H    = 1000
 df   = 0.5
 rw   = 0.1
 epsilon = 0.0001
-pres = 5. * MPa                  # initial reservoir pressure
+production = True
+if production:
+    pres = 5. * MPa               # initial reservoir pressure, MPa=10^6
+else: # injection
+    pres = 20. * MPa              # initial reservoir pressure, MPa=10^6
+    Tinjection = degC2K( 30. )    # injection temperature - convert Celsius to Kelvin degrees
 Tres = degC2K( 70. )              # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
-Tinjection = degC2K( 30. )        # injection temperature - convert Celsius to Kelvin degrees
 omega_reservoir = 0.15            # reservoir porosity
 k_fracture  = 1E-11 
-k_reservoir = 1E-14               # reservoir permeability in m^2
+kres = 1E-14                      # reservoir permeability in m^2
 K_reservoir = 2                   # bulk thermal conductivity in W/m/K
 qw = 0.1
 mu = 1.E-3
@@ -32,25 +38,36 @@ rho = 1.E3
 
 Lx = Ly = Lz = 2*H
 Ox = Oy = Oz = -H
-n = 20
+n = 10
 
 ComPASS.set_output_directory_and_logfile(f"cemracs_4_1_{n}")
 
-simulation = ComPASS.load_eos('water2ph')
+simulation = ComPASS.load_eos('linear_water')
+fluid_properties = simulation.get_fluid_properties()
+fluid_properties.specific_mass = rho
+fluid_properties.dynamic_viscosity = mu
+# fluid_properties.volumetric_heat_capacity = rhor*cpr # not relevant here - use default value
+# simulation.set_rock_volumetric_heat_capacity(rhor*cpr) # not relevant here - use default value
+
+simulation.info.activate_direct_solver = True
+
 simulation.set_gravity(0)
 simulation.set_fracture_thickness(df)
 
 grid = ComPASS.Grid(
-    shape = (n, n, n/10),
+    shape = (n, n, n),
     extent = (Lx, Ly, Lz),
     origin = (Ox, Oy, Oz),
 )
 
 def make_well():
     well = create_vertical_well(simulation, (0, 0), rw)
-    well.operate_on_flowrate = (2*H+k_fracture/k_reservoir*df)*qw , 0. * MPa
-    # well.operate_on_pressure = 1. * MPa, qmax
-    well.produce()
+    if production:
+        well.operate_on_flowrate = (2*H+k_fracture/kres*df)*qw , 0. * MPa
+        well.produce()
+    else: # injection
+        well.operate_on_flowrate = (2*H+k_fracture/kres*df)*qw , pres + 100. * MPa
+        well.inject(Tinjection)
     return [well]
 
 def select_dirichlet_nodes():
@@ -63,13 +80,20 @@ def select_fracture():
     z = face_centers[:,2]
     return np.abs(z)<epsilon
 
+def build_anisotropic_permeability():
+    centers = simulation.compute_global_cell_centers()
+    result = np.zeros((centers.shape[0], 3, 3), dtype=np.double)
+    result[..., 0, 0] = kres
+    result[..., 1, 1] = kres
+    return result
+
 simulation.init(
     mesh = grid,
     set_dirichlet_nodes = select_dirichlet_nodes,
     wells = make_well,
     fracture_faces = select_fracture,
     cell_porosity = omega_reservoir,
-    cell_permeability = k_reservoir,
+    cell_permeability = build_anisotropic_permeability,
     cell_thermal_conductivity = K_reservoir,
     fracture_porosity = omega_reservoir,
     fracture_permeability = k_fracture,
@@ -78,10 +102,10 @@ simulation.init(
 
 from solution_test1 import Solution
 
-sol = Solution(pres, qw, mu, k_reservoir, rho, rw)
+sol = Solution(pres, qw, mu, kres, rho, rw)
 
 # -- Set initial state and boundary conditions
-initial_state = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
+initial_state = simulation.build_state(p=pres, T=Tres)
 simulation.all_states().set(initial_state)
 dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(initial_state) # will init all variables: context, states...
@@ -108,15 +132,25 @@ io.write_mesh(
 
 standard_loop(
     simulation,
-    initial_timestep = 1 , final_time = year ,
+    initial_timestep = 0.1 , final_time = 40, # year ,
     output_period = year,
 )
 
-#Compute L2 discrete error at the center
-centers  = simulation.cell_centers()
-usol_c   = simulation.cell_states().p
+rank = mpi.proc_rank
+ncells = simulation.nb_cells_own()[rank]
+centers  = simulation.cell_centers()[:ncells]
+usol_c   = simulation.cell_states().p[:ncells]
 centers_x, centers_y = centers[:,0], centers[:,1]
 ua_sol=sol(centers_x,centers_y)
-error_c= np.linalg.norm(usol_c-ua_sol)/np.linalg.norm(ua_sol)
-print("-------------------------------------------------------------------")
-print("cell_centers:\t"+ "L2D-error: ", error_c, ", DOFs: ", centers.shape[0])
+sum_squares = lambda a: np.sum(a**2)
+error_c = np.array([
+    sum_squares(usol_c-ua_sol), sum_squares(ua_sol)
+], np.double)
+if not mpi.is_on_master_proc:
+    MPI.COMM_WORLD.Reduce([error_c, MPI.DOUBLE], None, op=MPI.SUM, root=mpi.master_proc_rank)
+else:
+    result = np.zeros_like(error_c)
+    MPI.COMM_WORLD.Reduce([error_c, MPI.DOUBLE], [result, MPI.DOUBLE], op=MPI.SUM, root=mpi.master_proc_rank)
+    print("-------------------------------------------------------------------")
+    relative_error = np.sqrt(result[0]) / np.sqrt(result[1])
+    print(f"cell_centers:\t L2D-error: {relative_error} DOFs: {np.prod(grid.shape)}")
