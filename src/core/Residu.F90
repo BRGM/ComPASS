@@ -608,7 +608,7 @@ contains
 
             Pws = PerfoWellInj(s)%Pression ! P_{w,s}
             Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
-            Ps = IncNode(nums)%Pression ! P_s
+            Ps = IncNode(nums)%Pression ! P_s DCQ-TODO: Add capilarry pressure for 2-phase
             Ts = IncNode(nums)%Temperature ! T_s
 
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID

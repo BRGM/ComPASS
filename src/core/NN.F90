@@ -175,6 +175,18 @@ contains
    
    end subroutine NN_init_warmup
 
+
+     subroutine NN_wait_for_debug(debugwait) &
+         bind(C, name="NN_wait_for_debug")
+      logical(c_bool), intent(in), value :: debugwait
+
+      do while(debugwait .EQV. .TRUE.)
+         
+      end do
+      
+   end subroutine NN_wait_for_debug
+
+   
    subroutine NN_init_phase2_partition(colors) &
       bind(C, name="NN_init_phase2_partition")
       type(cpp_array_wrapper), intent(in) :: colors

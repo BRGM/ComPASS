@@ -1814,7 +1814,8 @@ contains
 
                 do icp=1, NbComp
                    if(MCP(icp,mph)==1) then ! \cap P_i
-
+                      ! p^w_s = p^w + {\Delta p}^(n-1)_s
+                      ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s) 
                       dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp,m,nums) * WIDws
 
                       dP_s(:,icp) = dP_s(:,icp) + divDensiteMolaireKrViscoCompNode(:,icp,m,nums) * WIDws * Ps_Pws &

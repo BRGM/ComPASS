@@ -8,7 +8,17 @@
 
 module IncCVWells
 
-   ! use, intrinsic :: iso_c_binding
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   use iso_c_binding
+   use mpi
+   use CommonMPI
+   use DefModel
+   use Physics
+   use Thermodynamics
+   use IncCVReservoir
+   use MeshSchema
+#else
+! use, intrinsic :: iso_c_binding
    use iso_c_binding
    use mpi, only: MPI_Abort
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD
@@ -25,7 +35,8 @@ module IncCVWells
       NodebyWellProdLocal, NodebyWellInjLocal, &
       NodeDatabyWellProdLocal, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
-
+#endif
+   
    implicit none
 
    !> Type for the perforations, stores informations which are not constant in the well
@@ -172,14 +183,14 @@ module IncCVWells
          ! end do
 
          ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1
+         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
 
             ! average density
             PerfoWellProd(s)%Density = 0.d0
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-               ! CHECKME: IncNode is the reservoir unknown
+
                call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
                                      IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
                PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp * IncNode(nums)%Saturation(mph)

@@ -15,6 +15,12 @@
 !! then the informations are send in subroutine MeshSchema_make.
 module LocalMesh
 
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+  use CommonType
+  use CommonMPI
+  use GlobalMesh
+  use DefModel
+#else
   use CommonType, only: &
     CSR, Array1IdNode, &
     ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
@@ -45,6 +51,7 @@ module LocalMesh
   use DefWell, only: &
     TYPE_CSRDataNodeWell, WellData_type, &
     DataWellInj, DataWellProd, NodeDatabyWellProd, NodeDatabyWellInj
+#endif
 
   ! 1. FacebyCellRes_Ncpus, NodebyFaceRes_Ncpus,
   !    NodebyCellRes_Ncpus, CellbyFaceRes_Ncpus

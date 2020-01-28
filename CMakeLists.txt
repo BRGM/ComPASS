@@ -72,7 +72,7 @@ endif(NOT ${PYTHONLIBS_FOUND})
 
 if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -fcheck=all -Wall -Wextra -fbacktrace"
-    CACHE STRING "Useful gfortran debug compilation optopns" FORCE
+    CACHE STRING "Useful gfortran debug compilation options" FORCE
   )
 endif()
 
@@ -96,6 +96,19 @@ endif(DEF_FREEFLOW_STRUCTURES)
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG_)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
+
+
+option(COMPASS_USE_GDB_FORTRAN "Use gdb debugger" OFF)
+if(COMPASS_USE_GDB_FORTRAN)
+  set(CMAKE_Fortran_FLAGS_DEBUG
+    "-g -fcheck=all -Wall -Wextra -fbacktrace -ggdb3 -fno-eliminate-unused-debug-symbols -O0"
+    CACHE STRING "Useful gfortran debug compilation options with gdb." FORCE
+  )
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_definitions(-D_COMPASS_FORTRAN_DO_NOT_USE_ONLY_)
+  endif(CMAKE_BUILD_TYPE MATCHES Debug)
+endif(COMPASS_USE_GDB_FORTRAN)
+
 
 get_directory_property( DirDefs COMPILE_DEFINITIONS )
 message(STATUS "COMPILE_DEFINITIONS ${DirDefs}" )

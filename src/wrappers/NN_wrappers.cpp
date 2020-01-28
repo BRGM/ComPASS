@@ -13,6 +13,7 @@
 extern "C"
 {
 	void NN_init_warmup(const StringWrapper&);
+    void NN_wait_for_debug(bool);
 	void NN_main_summarize_timestep();
 	void NN_finalize();
     void NN_init_phase2_partition(ArrayWrapper&);
@@ -50,5 +51,6 @@ void add_NN_wrappers(py::module& module)
     module.def("init_phase2_setup_solvers", &init_phase2_setup_solvers);
 
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
+    module.def("init_wait_for_debug",&NN_wait_for_debug);
 
 }
