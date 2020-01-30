@@ -21,5 +21,11 @@ class Simulation:
                 return value
         raise AttributeError(f"'Simulation' object has no attribute {name!r}")
 
+    def __dir__(self):
+        res = super().__dir__()
+        for src in (state, base, data, utils, simulation_wrapper):
+            res.extend(dir(src))
+        return res
+
 
 self = Simulation()

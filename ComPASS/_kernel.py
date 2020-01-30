@@ -37,7 +37,9 @@ class Wrapper:
             raise AttributeError(f"wrapper has no attribute {name!r}")
 
     def __dir__(self):
-        return self._exposed
+        res = super().__dir__()
+        res.extend(self._exposed)
+        return res
 
 
 common_wrapper = Wrapper([
