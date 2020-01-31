@@ -20,6 +20,7 @@ module LocalMesh
   use CommonMPI
   use GlobalMesh
   use DefModel
+  use DefWell
 #else
   use CommonType, only: &
     CSR, Array1IdNode, &
