@@ -14,7 +14,7 @@
 module DefFlashWells
 
    use CommonType, only: CSRdble
-   use CommonMPI, only: commRank
+   use CommonMPI, only: commRank, CommonMPI_abort
    use GlobalMesh, only: NodeRocktype
    use IncCVWells, only: &
       PerfoWellInj, &
