@@ -121,14 +121,14 @@ class Newton:
     def reset_loop(self):
         kernel = get_kernel()
         kernel.IncCV_LoadIncPreviousTimeStep()
-        kernel.IncCVWells_PressureDrop()
+        kernel.IncCVWells_InitPressureDrop()
 
     def init_iteration(self):
         kernel = get_kernel()
         # Enforce Dirichlet values
         kernel.DirichletContribution_update()
-        # Update well state
-        kernel.IncCVWells_PressureDrop()
+        # Update only Well Pressures (Well pressure drops are keep constant here)
+        kernel.IncCVWells_UpdateWellPressures()
 #        mpi.master_print('init iteration - compute thermo')
         # Update local jacobian contributions (closure laws)
         kernel.IncPrimSecd_update_secondary_dependencies()

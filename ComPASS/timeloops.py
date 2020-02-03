@@ -15,6 +15,7 @@ from .utils.units import time_string
 from . import timestep
 from . import mpi
 from .dumps import Dumper
+from ._kernel import get_kernel
 
 
 def check_well_pressure(simulation):
@@ -142,6 +143,10 @@ def standard_loop(simulation,
         specific_outputs.sort()
     # this is necessary for well operating on pressures
     check_well_pressure(simulation)
+    # InitPressureDrop
+    kernel = get_kernel()
+    kernel.IncCVWells_InitPressureDrop()
+   
     #FIXME: t = ComPASS.get_current_time()
     t = initial_time if initial_time is not None else 0
     t_output = t

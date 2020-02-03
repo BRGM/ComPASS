@@ -27,7 +27,6 @@ def try_timestep(
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
     kernel.IncCV_SaveIncPreviousTimeStep()
-    kernel.IncCVWells_PressureDrop()
     try:
         mpi.master_print('trying newton with timestep:', time_string(deltat))
         iterations = newton.loop(deltat)
@@ -67,4 +66,6 @@ def make_one_timestep(
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
     kernel.DefFlashWells_TimeFlash()
+    kernel.IncCVWells_UpdatePressureDrop()
+   
     return deltat

@@ -23,7 +23,9 @@ extern "C"
 {
     void IncCV_SaveIncPreviousTimeStep();
     void IncCV_LoadIncPreviousTimeStep();
-    void IncCVWells_PressureDrop();
+    void IncCVWells_InitPressureDrop();
+    void IncCVWells_UpdatePressureDrop();
+    void IncCVWells_UpdateWellPressures();
     double IncCVReservoir_NewtonRelax(const NewtonIncrements::Pointers<const double>);
     void IncCV_NewtonIncrement(const NewtonIncrements::Pointers<const double>, const double);
     void DirichletContribution_update();
@@ -53,7 +55,9 @@ void add_time_loop_wrappers(py::module& module)
 
     module.def("IncCV_SaveIncPreviousTimeStep", &IncCV_SaveIncPreviousTimeStep);
     module.def("IncCV_LoadIncPreviousTimeStep", &IncCV_LoadIncPreviousTimeStep);
-    module.def("IncCVWells_PressureDrop", &IncCVWells_PressureDrop);
+     module.def("IncCVWells_InitPressureDrop", &IncCVWells_InitPressureDrop);
+    module.def("IncCVWells_UpdatePressureDrop", &IncCVWells_UpdatePressureDrop);
+    module.def("IncCVWells_UpdateWellPressures", &IncCVWells_UpdateWellPressures);
     module.def("DirichletContribution_update", &DirichletContribution_update);
     module.def("IncPrimSecd_update_secondary_dependencies", [](){ 
         IncPrimSecd_compute();

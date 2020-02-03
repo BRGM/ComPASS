@@ -13,8 +13,30 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlashWells
 
+
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   use iso_c_binding
+   use mpi
+   use CommonMPI
+   use DefModel
+   use Physics
+   use Thermodynamics
+   use IncCVReservoir
+   use MeshSchema
+   use CommonType
+   use CommonMPI
+   use GlobalMesh
+   use IncCVWells
+   use IncCVReservoir
+   use LoisThermoHydro
+   use Thermodynamics
+   use MeshSchema
+   use Physics
+   use DefModel
+   use IncPrimSecd
+#else
    use CommonType, only: CSRdble
-   use CommonMPI, only: commRank, CommonMPI_abort
+   use CommonMPI, only: commRank,CommonMPI_abort
    use GlobalMesh, only: NodeRocktype
    use IncCVWells, only: &
       PerfoWellInj, &
@@ -47,7 +69,7 @@ module DefFlashWells
       NumPhasePresente_ctx, NbPhasePresente_ctx
 
    use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
-
+#endif
    implicit none
 
    double precision, parameter, private :: WellsNewtonTol = 1.0d-5 !< Newton convergence precision
@@ -653,6 +675,7 @@ contains
       double precision:: Flux_ks(NbComp), FluxT_ks
 
       ! nodes of well k
+      ! looping from head to queue, recall the numbering of parents & sons, parents_idxs are greater that their sons_idxs      
       do s = NodebyWellProdLocal%Pt(num_Well) + 1, NodebyWellProdLocal%Pt(num_Well + 1)
          nums = NodebyWellProdLocal%Num(s)
 
@@ -688,6 +711,7 @@ contains
          sumnrjFluxProd(s) = sumnrjFluxProd(s) + FluxT_ks
 #endif
 
+         !now update the parent node, except the well root node
          if (sparent /= -1) then ! head node if sparent = -1
             summolarFluxProd(:, sparent) = summolarFluxProd(:, sparent) + summolarFluxProd(:, s)
             sumnrjFluxProd(sparent) = sumnrjFluxProd(sparent) + sumnrjFluxProd(s)
@@ -847,28 +871,7 @@ contains
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1
 
-            ! compute P_{w,s}
-            if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
-
-               Pws = IncPressionWellProd(k)
-               PerfoWellProd(s)%Pression = Pws
-               PerfoWellProd(s)%PressureDrop = 0.d0
-
-            else ! Pws = P_{w,parent} + \Delta P_{w,parent}
-
-               zs = XNodeLocal(3, NodebyWellProdLocal%Num(s)) ! z-cordinate of node s
-               zp = XNodeLocal(3, NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
-
-               sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
-
-              ! as the loop is done from head to queue
-              ! the %Density of the parent is updated before being used
-               Pdrop = PerfoWellProd(sparent)%Density*gravity*(zp - zs)
-               Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
-
-               PerfoWellProd(s)%Pression = Pws
-               PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop + Pdrop
-            end if
+            Pws = PerfoWellProd(s)%Pression 
 
             ! Newton method to compute T: R = E-Enthalpie*n = 0
             E = sumnrjFluxProd(s) ! energy

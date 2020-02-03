@@ -33,7 +33,7 @@ module IncCVWells
    use MeshSchema, only: &
       XNodeLocal, &
       NodebyWellProdLocal, NodebyWellInjLocal, &
-      NodeDatabyWellProdLocal, DataWellInjLocal, &
+      NodeDatabyWellProdLocal,  NodeDatabyWellInjLocal, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
 #endif
    
@@ -71,18 +71,20 @@ module IncCVWells
       IncPressionWellInjPreviousTimeStep, & !< Injection Well unknown: head pressure for previous time step
       IncPressionWellProdPreviousTimeStep !< Production Well unknown: head pressure for previous time step
 
-   ! Sorted NodebyWellInjLocal%Num and %Val according to z-coordinate for each well
-   integer, allocatable, dimension(:), protected :: ZSortedInj_Znum
-   double precision, allocatable, dimension(:), protected :: ZSortedInj_Zval
+   !Flag to use the an avg_density  from the reservoir or the density computed from  the function DefFlashWells_TimeFlash  to compute the pressure drops
+   !We want to use the avg_density usually to init the pressure drops
+   logical use_avg_dens
 
    public :: &
       IncCVWells_allocate, &
       IncCVWells_free, &
-      IncCVWells_SortHeightWellInj, &
       IncCVWells_PressureDropWellProd, &
       IncCVWells_PressureDropWellInj, &
-      IncCVWells_PressureDrop, &
-      IncCVWells_PressureDropWellInj_integrate, &
+      IncCVWells_InitPressureDrop, &
+      IncCVWells_UpdatePressureDrop, &
+      IncCVWells_UpdateProdWellPressures, &
+      IncCVWells_UpdateInjWellPressures, &
+      IncCVWells_UpdateWellPressures, &
       IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, &
       IncCVWells_LoadIncPreviousTimeStep, &
@@ -132,44 +134,7 @@ module IncCVWells
     end function get_injecting_perforations
 
      
-   !> \brief Sort the nodes of wells by z-cordinate from the smallest to the largest, 
-   !! the results are stored in ZSortedInj_Znum (num) and in ZSortedinj_Zval (z-cordinate)
-   subroutine IncCVWells_SortHeightWellInj
-
-      integer :: s, k, j, Nnz, nums
-      integer :: tmp_num
-      double precision :: tmp_val
-
-      Nnz = NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)
-      do s = 1, Nnz
-         nums = NodebyWellInjLocal%Num(s)
-         ZSortedInj_Znum(s) = s
-         ZSortedInj_Zval(s) = XNodeLocal(3, nums)
-      end do
-
-      do k = 1, NodebyWellInjLocal%Nb ! = NbWellInjLocal(commRank+1)
-
-         do s = 1, NodebyWellInjLocal%Pt(k + 1) - NodebyWellInjLocal%Pt(k)
-            do j = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1) - s
-
-               if (ZSortedInj_Zval(j) > ZSortedInj_Zval(j + 1)) then
-
-                  tmp_num = ZSortedInj_Znum(j + 1)
-                  tmp_val = ZSortedInj_Zval(j + 1)
-
-                  ZSortedInj_Znum(j + 1) = ZSortedInj_Znum(j)
-                  ZSortedInj_Zval(j + 1) = ZSortedInj_Zval(j)
-
-                  ZSortedInj_Znum(j) = tmp_num
-                  ZSortedInj_Zval(j) = tmp_val
-               end if
-            end do
-         end do
-      end do
-
-   end subroutine IncCVWells_SortHeightWellInj
-
-   !> \brief Compute P_{w,s} using Pw (pressure head) and density
+      !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
    subroutine IncCVWells_PressureDropWellProd
 
       integer :: k, s, m, mph, nums, sparent
@@ -177,30 +142,26 @@ module IncCVWells
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
-
-         ! ! Init PressureDrop as zero
-         ! do s=NodebyWellProdLocal%Pt(k)+1, NodebyWellProdLocal%Pt(k+1)
-         !    PerfoWellProd(s)%PressureDrop = 0.d0
-         ! end do
-
+         
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
 
-            ! average density
-            PerfoWellProd(s)%Density = 0.d0
-            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
-               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-               call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
-                                     IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp * IncNode(nums)%Saturation(mph)
-            end do
-
+            if  (use_avg_dens) then
+              ! average density
+               PerfoWellProd(s)%Density = 0.d0
+               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
+                 mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+                 
+                 call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
+                      IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
+                 PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp * IncNode(nums)%Saturation(mph)
+              end do
+           end if
+           
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
 
                Pws = IncPressionWellProd(k) ! P_{w,s} = Pw
-
                PerfoWellProd(s)%Pression = Pws
                PerfoWellProd(s)%PressureDrop = 0.d0
 
@@ -213,7 +174,7 @@ module IncCVWells
 
                Pdrop = PerfoWellProd(sparent)%Density*gravity*(zp - zs)
                Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
-
+               
                PerfoWellProd(s)%Pression = Pws
                PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop + Pdrop
             end if
@@ -223,87 +184,153 @@ module IncCVWells
 
    end subroutine IncCVWells_PressureDropWellProd
 
-   subroutine IncCVWells_PressureDropWellInj_integrate(sfirst, slast, direction, Pfirst, T, C)
 
-      integer, intent(in) :: sfirst, slast
-      ! direction = 1 upwards / -1 downwards
-      integer, intent(in) :: direction
-      ! T and C are constant !!!
-      double precision, intent(in) :: Pfirst, T, C(NbComp)
+   !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Injectors
+   !! integration from node head (w) to node (s)
+   subroutine IncCVWells_PressureDropWellInj
 
-      integer :: n, s
+      integer :: s, n, k, nbwells,nums , sparent
+      double precision :: Pw_head, Pws, zp, zs, Pdrop, T, C(NbComp)
+
       ! nb pieces for discrete integration
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
       double precision :: Ptmp, Stmp(NbPhase), &
          z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+
 #ifndef NDEBUG
       integer :: Ierr, errcode ! used for MPI_Abort
 #endif
-
-      Ptmp = Pfirst
+      
+      nbwells = NbWellInjLocal_Ncpus(commRank + 1)
       ! Saturation is fixed to liquid
       Stmp(:) = 0.d0
       Stmp(LIQUID_PHASE) = 1.d0
-      PerfoWellInj(sfirst)%Pression = Pfirst
-      do s = sfirst, slast - direction, direction
-         z1 = ZSortedInj_Zval(s)
-         z2 = ZSortedInj_Zval(s + direction)
+  
+      do k = 1, nbwells
+         
+         Pw_head = IncPressionWellInj(k)
+         T = DataWellInjLocal(k)%Temperature
+         C = DataWellInjLocal(k)%CompTotal
+         
+         ! looping from head to queue
+         do s = NodebyWellInjLocal%Pt(k + 1), NodebyWellInjLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
+            nums = NodebyWellInjLocal%Num(s)
+
+
+            if (s == NodebyWellInjLocal%Pt(k + 1)) then ! head node, P = Pw
+               
+               Pws = Pw_head ! P_{w,s} = Pw
+               PerfoWellInj(s)%Pression = Pws
+               PerfoWellInj(s)%PressureDrop = 0.d0
+
+            else ! Pws = P_{w,parent} + \Delta P_{w,parent}
+
+
+               zs = XNodeLocal(3, nums) ! z-cordinate of node s
+               zp = XNodeLocal(3, NodeDatabyWellInjLocal%Val(s)%Parent) ! z-cordinate of parent of s               
+               sparent = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
+               dz = (zp - zs)/Npiece
 #ifndef NDEBUG
-         if (direction*(z2 - z1) < 0) then
-            write (*, *) 'Nodes are badly sorted.'
-            call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-         end if
+               if (dz < 0) then
+                  write (*, *) 'Nodes are badly sorted.'
+                  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+               end if
 #endif
-         dz = (z2 - z1)/Npiece
-         do n = 1, Npiece
-            call f_DensiteMolaire(LIQUID_PHASE, Ptmp, T, C, Stmp, &
+
+               !Proceed to integrate at the interval [zs,zp]
+               Pdrop=0
+               do n = 1, Npiece
+                  call f_DensiteMolaire(LIQUID_PHASE,Pws, T, C, Stmp, &
                                   Rhotmp, dPf, dTf, dCf, dSf)
-            Ptmp = Ptmp - direction*gravity*Rhotmp*dz
+                  Pdrop = Pdrop - gravity*Rhotmp*dz
+                  Pws = PerfoWellInj(sparent)%Pression + Pdrop ! Pws
+                  
+               end do
+               
+               PerfoWellInj(s)%Pression = Pws
+               PerfoWellInj(s)%PressureDrop = Pws - Pw_head
+               
+            end if
          end do
-         PerfoWellInj(s + direction)%Pression = Ptmp
       end do
 
-   end subroutine IncCVWells_PressureDropWellInj_integrate
+    end subroutine IncCVWells_PressureDropWellInj
 
-   !> \brief Compute pressure drop of injection well, 
-   !! integration from node head (w) to node (s)
-   subroutine IncCVWells_PressureDropWellInj
 
-      integer :: s, wk, nbwells, bottom, head, headsortedpos
-      double precision :: Phead, T, C(NbComp)
+     subroutine IncCVWells_InitPressureDrop() &
+          bind(C, name="IncCVWells_InitPressureDrop")
 
+       use_avg_dens=.TRUE.       
+       call IncCVWells_PressureDropWellInj
+       call IncCVWells_PressureDropWellProd
+       use_avg_dens=.FALSE.  
+    
+     end subroutine IncCVWells_InitPressureDrop
+
+
+   subroutine IncCVWells_UpdatePressureDrop() &
+      bind(C, name="IncCVWells_UpdatePressureDrop")
+
+     call IncCVWells_PressureDropWellInj
+     call IncCVWells_PressureDropWellProd
+
+   end subroutine IncCVWells_UpdatePressureDrop
+
+
+   !   !> \brief Update well Pressures of injection well, 
+   subroutine IncCVWells_UpdateInjWellPressures
+      integer :: s, n, k, nbwells
+      double precision :: Pw_head
+      
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
-      do s = NodebyWellInjLocal%Pt(1) + 1, NodebyWellInjLocal%Pt(nbwells + 1)
-         PerfoWellInj(s)%PressureDrop = 0.d0
-      end do
-      do wk = 1, nbwells
-         ! Locate head
-         bottom = NodebyWellInjLocal%Pt(wk) + 1
-         head = NodebyWellInjLocal%Pt(wk + 1)
-         do headsortedpos = bottom, head
-            if (ZsortedInj_Znum(headsortedpos) == head) exit
-         end do
-         Phead = IncPressionWellInj(wk)
-         T = DataWellInjLocal(wk)%Temperature
-         C = DataWellInjLocal(wk)%CompTotal
-         call IncCVWells_PressureDropWellInj_integrate(headsortedpos, head, 1, Phead, T, C)
-         call IncCVWells_PressureDropWellInj_integrate(headsortedpos, bottom, -1, Phead, T, C)
-         do s = bottom, head
-            PerfoWellInj(s)%PressureDrop = Phead - PerfoWellInj(s)%Pression
+      do k = 1, nbwells         
+         Pw_head = IncPressionWellInj(k)
+         ! looping from head to queue
+         do s = NodebyWellInjLocal%Pt(k + 1), NodebyWellInjLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
+            if (s == NodebyWellInjLocal%Pt(k + 1)) then ! head node, P = Pw
+               PerfoWellInj(s)%Pression = Pw_head               
+            else ! explicit computation               
+               PerfoWellInj(s)%Pression = Pw_head + PerfoWellInj(s)%PressureDrop 
+               
+            end if
          end do
       end do
+    end subroutine IncCVWells_UpdateInjWellPressures
 
-   end subroutine IncCVWells_PressureDropWellInj
+   
+    !> \brief Update  well pressures of producer well
+    subroutine IncCVWells_UpdateProdWellPressures
+     
+      integer :: s, n, k, nbwells
+      double precision :: Pw_head
+      
+      nbwells = NbWellProdLocal_Ncpus(commRank + 1)
+      do k = 1, nbwells         
+         Pw_head = IncPressionWellProd(k)
+         ! looping from head to queue
+         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
+            if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
+               PerfoWellProd(s)%Pression = Pw_head               
+            else ! explicit computation               
+               PerfoWellProd(s)%Pression = Pw_head + PerfoWellProd(s)%PressureDrop 
+               
+            end if
+         end do         
+      end do
+    end subroutine IncCVWells_UpdateProdWellPressures
 
-   subroutine IncCVWells_PressureDrop() &
-      bind(C, name="IncCVWells_PressureDrop")
 
-      call IncCVWells_PressureDropWellInj
-      call IncCVWells_PressureDropWellProd
+    !> \brief Update  only the  pressures of all wells, while the well pressures drops are kept constant.
+   subroutine IncCVWells_UpdateWellPressures() &
+     bind(C, name="IncCVWells_UpdateWellPressures")
 
-   end subroutine IncCVWells_PressureDrop
+     call   IncCVWells_UpdateInjWellPressures
+     call   IncCVWells_UpdateProdWellPressures
+     
+   end subroutine IncCVWells_UpdateWellPressures
 
+ 
    !> \brief Allocate well unknowns vectors
    subroutine IncCVWells_allocate
 
@@ -322,14 +349,7 @@ module IncCVWells
 
       allocate (IncPressionWellInjPreviousTimeStep(NbWellInjLocal_Ncpus(commRank + 1)))
       allocate (IncPressionWellProdPreviousTimeStep(NbWellProdLocal_Ncpus(commRank + 1)))
-
-      Nnz = NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)
-      allocate (ZSortedInj_Znum(Nnz))
-      allocate (ZSortedInj_Zval(Nnz))
-
-      ! Sort injection well
-      ! and save the results in vector ZsortedInj_Znum and ZsortedInj_Zval
-      call IncCVWells_SortHeightWellInj
+  
 
    end subroutine IncCVWells_allocate
 
@@ -345,9 +365,7 @@ module IncCVWells
       deallocate (IncPressionWellInjPreviousTimeStep)
       deallocate (IncPressionWellProdPreviousTimeStep)
 
-      deallocate (ZSortedInj_Znum)
-      deallocate (ZSortedInj_Zval)
-
+      
    end subroutine IncCVWells_free
 
    subroutine IncCVWells_NewtonIncrement( &
