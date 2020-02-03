@@ -7,7 +7,7 @@ __pycache__
 tmp_*
 output-*
 build*
-
+*.gdb_history 
 *.log
 *.png
 *.npz
