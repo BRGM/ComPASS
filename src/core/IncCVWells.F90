@@ -332,7 +332,8 @@ module IncCVWells
 
  
    !> \brief Allocate well unknowns vectors
-   subroutine IncCVWells_allocate
+   subroutine IncCVWells_allocate() &
+      bind(C, name="IncCVWells_allocate")
 
       integer :: Nb, Nnz
 
@@ -354,7 +355,8 @@ module IncCVWells
    end subroutine IncCVWells_allocate
 
    !> \brief Deallocate well unknowns vectors
-   subroutine IncCVWells_free
+   subroutine IncCVWells_free() &
+      bind(C, name="IncCVWells_free")
 
       deallocate (IncPressionWellInj)
       deallocate (IncPressionWellProd)
