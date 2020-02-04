@@ -16,7 +16,8 @@ module DefWell
      MPI_DOUBLE, &
      MPI_Type_Create_Struct, &
      MPI_ADDRESS_KIND, &
-     MPI_Abort
+     MPI_Abort, &
+     MPI_Get_address
 
    use CommonType, only: CSR
    use CommonMPI, only: ComPASS_COMM_WORLD, CommonMPI_abort
@@ -598,20 +599,26 @@ contains
 
       integer, parameter :: count = 7
       integer :: blocklengths(count)
-      integer(kind=MPI_ADDRESS_KIND) :: displacements(count)
+      integer(kind=MPI_ADDRESS_KIND) :: begin, offset, displacements(count)
       integer :: types(count)
       type(WellData_type) :: dummy
       integer :: Ierr
 
-      displacements(1) = 0
-      displacements(2) = displacements(1) + sizeof(dummy%Radius)
-      displacements(3) = displacements(2) + sizeof(dummy%PressionMax)
-      displacements(4) = displacements(3) + sizeof(dummy%PressionMin)
-      displacements(5) = displacements(4) + sizeof(dummy%ImposedFlowrate)
-      displacements(6) = displacements(5) + sizeof(dummy%CompTotal)
-      if (sizeof(dummy%CompTotal) /= NbComp * sizeof(dummy%CompTotal(1))) call CommonMPI_abort('Inconsistent sizes in memory.')
-      displacements(7) = displacements(6) + sizeof(dummy%Temperature)
-      ! IndWell no displacement necessary (end of structure)
+      call MPI_Get_address(dummy, begin, Ierr)
+      call MPI_Get_address(dummy%Radius, offset, Ierr)
+      displacements(1) = offset - begin
+      call MPI_Get_address(dummy%PressionMax, offset, Ierr)
+      displacements(2) = offset - begin
+      call MPI_Get_address(dummy%PressionMin, offset, Ierr)
+      displacements(3) = offset - begin
+      call MPI_Get_address(dummy%ImposedFlowrate, offset, Ierr)
+      displacements(4) = offset - begin
+      call MPI_Get_address(dummy%CompTotal, offset, Ierr)
+      displacements(5) = offset - begin
+      call MPI_Get_address(dummy%Temperature, offset, Ierr)
+      displacements(6) = offset - begin
+      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      displacements(7) = offset - begin
 
       types(:) = MPI_DOUBLE
       types(7) = MPI_CHARACTER
