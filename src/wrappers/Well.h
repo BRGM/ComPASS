@@ -89,6 +89,7 @@ namespace ComPASS
 		};
 
 		struct Well {
+			std::size_t id;
 			Well_geometry geometry;
 			Well_control control;
 			bool is_stopped() const { return control.is_stopped(); }

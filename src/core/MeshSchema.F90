@@ -1159,39 +1159,34 @@ contains
 
     ! Injectors
     if (commRank==0) then
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbWellInjLocal_Ncpus(i+1)
-          call MPI_Send(DataWellInjRes_Ncpus(:,i+1), Nb, MPI_WELLDATA_ID, i, 210, ComPASS_COMM_WORLD, Ierr)
-       end do
-       ! proc=0, copy
-       Nb = NbWellInjLocal_Ncpus(1)
-       allocate(DataWellInjLocal(Nb))
-       DataWellInjLocal(:) = DataWellInjRes_Ncpus(1:Nb,1)
-    else
-       Nb = NbWellInjLocal_Ncpus(commRank+1)
-       allocate(DataWellInjLocal(Nb))
-       call MPI_Recv(DataWellInjLocal, Nb, MPI_WELLDATA_ID, 0, 210, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      ! proc >=1, send
+      do i=1, Ncpus-1
+         Nb = NbWellInjLocal_Ncpus(i+1)
+         call MPI_Send(DataWellInjRes_Ncpus(1:Nb,i+1), Nb, MPI_WELLDATA_ID, i, 210, ComPASS_COMM_WORLD, Ierr)
+      end do
+   end if
+   Nb = NbWellInjLocal_Ncpus(commRank+1)
+   allocate(DataWellInjLocal(Nb))
+   if (commRank==0) then
+      DataWellInjLocal(:) = DataWellInjRes_Ncpus(1:Nb,1) ! proc=0, copy
+   else
+      call MPI_Recv(DataWellInjLocal, Nb, MPI_WELLDATA_ID, 0, 210, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
+   end if
 
     ! Producers
     if (commRank==0) then
        ! proc >=1, send
        do i=1, Ncpus-1
           Nb = NbWellProdLocal_Ncpus(i+1)
-          call MPI_Send(DataWellProdRes_Ncpus(:,i+1), Nb, MPI_WELLDATA_ID, i, 211, ComPASS_COMM_WORLD, Ierr)
+          call MPI_Send(DataWellProdRes_Ncpus(1:Nb,i+1), Nb, MPI_WELLDATA_ID, i, 211, ComPASS_COMM_WORLD, Ierr)
        end do
-       ! proc=0, copy
-       Nb = NbWellProdLocal_Ncpus(1)
-       allocate(DataWellProdLocal(Nb))
-       DataWellProdLocal(:) = DataWellProdRes_Ncpus(1:Nb,1)
+    end if
+    Nb = NbWellProdLocal_Ncpus(commRank+1)
+    allocate(DataWellProdLocal(Nb))
+    if (commRank==0) then
+       DataWellProdLocal(:) = DataWellProdRes_Ncpus(1:Nb,1) ! proc 0, copy
     else
-       Nb = NbWellProdLocal_Ncpus(commRank+1)
-       allocate(DataWellProdLocal(Nb))
-       call MPI_Recv(DataWellProdLocal, Nb, MPI_WELLDATA_ID, 0, 211, ComPASS_COMM_WORLD, stat, Ierr)
-       do i=1, Nb
-         write(*,*) "Receiving on proc", commRank+1, "well", DataWellProdLocal(i)%Id
-         end do
+       call MPI_Recv(DataWellProdLocal, Nb, MPI_WELLDATA_ID, 0, 211, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
     end if
 
     call MPI_Type_free(MPI_WELLDATA_ID, Ierr)

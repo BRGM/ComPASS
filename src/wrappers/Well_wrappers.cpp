@@ -26,6 +26,7 @@ constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 struct Fortran_well_data
 {
     typedef std::array<double, NC> Component_vector;
+    int id;
     double radius;
     double maximum_pressure;
     double minimum_pressure;
@@ -232,12 +233,14 @@ void set_well_geometries(py::list wells)
 
 struct Producer_data_info
 {
+	int id;
 	double radius;
 	double minimum_pressure;
 	double imposed_flowrate;
 	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode
 	Producer_data_info(const Well& well) {
 		assert(well.is_producing());
+		id = well.id;
 		radius = well.geometry.radius;
 		if (well.operates_on_pressure()) {	
 			operating_code = 'p';
@@ -260,6 +263,7 @@ struct Producer_data_info
 
 struct Injector_data_info
 {
+	int id;
 	double radius;
 	double temperature;
 	double maximum_pressure;
@@ -267,6 +271,7 @@ struct Injector_data_info
 	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode
 	Injector_data_info(const Well& well) {
 		assert(well.is_injecting());
+		id = well.id;
 		radius = well.geometry.radius;
 		assert(well.control.status.is<Injection_well_status>());
 		auto status = well.control.status.get<Injection_well_status>();
@@ -342,6 +347,7 @@ void add_well_wrappers(py::module& module)
 
 	py::class_<Well>(module, "Well")
 		.def(py::init<>())
+		.def_readwrite("id", &Well::id)
 		.def_readwrite("geometry", &Well::geometry)
 		.def_property_readonly("stopped", &Well::is_stopped)
 		.def_property_readonly("injecting", &Well::is_injecting)
@@ -394,6 +400,7 @@ void add_well_wrappers(py::module& module)
 
 
     py::class_<Fortran_well_data>(module, "WellData")
+        .def_readonly("id", &Fortran_well_data::id)
         .def_readwrite("operating_code", &Fortran_well_data::operating_code)
         .def_readwrite("radius", &Fortran_well_data::radius)
         .def_readwrite("maximum_pressure", &Fortran_well_data::maximum_pressure)

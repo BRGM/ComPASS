@@ -24,6 +24,7 @@
     implicit none
 
     type, bind(C) :: Producer_data
+        integer(c_int) :: id
         real(c_double) :: radius
         real(c_double) :: minimum_pressure
         real(c_double) :: imposed_flowrate
@@ -31,6 +32,7 @@
     end type Producer_data
 
     type, bind(C) :: Injector_data
+        integer(c_int) :: id
         real(c_double) :: radius
         real(c_double) :: temperature
         ! FIXME: introduce composition (CompTotal(NbComp))
@@ -122,6 +124,7 @@
     call c_f_pointer(c_producers_data%p, producers_data, shape=[nb_producers])
     !write(*,*) "decode", nb_producers, "producers"
     do k=1, nb_producers
+        DataWellProd(k)%Id = producers_data(k)%id
         DataWellProd(k)%Radius = producers_data(k)%radius
         DataWellProd(k)%PressionMin = producers_data(k)%minimum_pressure
         DataWellProd(k)%ImposedFlowrate = producers_data(k)%imposed_flowrate
@@ -145,6 +148,7 @@
     call c_f_pointer(c_injectors_data%p, injectors_data, shape=[nb_injectors])
     !write(*,*) "decode", nb_injectors, "injectors"
     do k=1, nb_injectors
+        DataWellInj(k)%Id = injectors_data(k)%id
         DataWellInj(k)%Radius = injectors_data(k)%radius
         DataWellInj(k)%CompTotal(:) = 1.d0 ! FIXME... for multi component injection
         DataWellInj(k)%Temperature = injectors_data(k)%temperature

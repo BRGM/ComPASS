@@ -218,10 +218,15 @@ simulation_wrapper = Wrapper([
     "unlock_context",
     "build_state",
     "all_states",
+    # wells
     "nb_producers",
     "nb_injectors",
     "producers_information",
     "injectors_information",
+    "producers_data",
+    "injectors_data",
+    "producers_perforations",
+    "injectors_perforations",
 ])
 
 _a_verifier = [
@@ -279,12 +284,6 @@ _a_verifier = [
     "IncCV_NewtonIncrement",
     "IncPrimSecd_PrimToSecd",
     "Jacobian_GetSolCell",
-    "injectors_data",
-    "producers_data",
-    "producers_perforations",
-    "injectors_perforations",
-    "nb_producers",
-    "nb_injectors",
     "gas_molar_enthalpy",
     "gas_molar_density",
     "gas_dynamic_viscosity",

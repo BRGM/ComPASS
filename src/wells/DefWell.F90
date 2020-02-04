@@ -13,6 +13,7 @@ module DefWell
 
    use mpi, only: &
      MPI_CHARACTER, &
+     MPI_INT, &
      MPI_DOUBLE, &
      MPI_Type_Create_Struct, &
      MPI_ADDRESS_KIND, &
@@ -27,6 +28,7 @@ module DefWell
    implicit none
 
    type, bind(c) :: WellData_type
+      integer(c_int) :: Id
       real(c_double) :: &
          Radius, & ! both well types
          PressionMax, & ! injector only
@@ -576,20 +578,21 @@ contains
       x2%WIF = x1%WIF
 
    end subroutine assign_DataNodeWell_equal
-
+ 
    !> \brief Define operator = between two DataWellInj:  x2 = x1
    subroutine assign_DataWell_equal(x2, x1)
 
       TYPE(WellData_type), intent(in) :: x1
       TYPE(WellData_type), intent(out) :: x2
 
-      x2%IndWell = x1%IndWell
+      x2%Id = x1%Id
       x2%Radius = x1%Radius
       x2%PressionMax = x1%PressionMax
       x2%PressionMin = x1%PressionMin
       x2%ImposedFlowrate = x1%ImposedFlowrate
-      x2%Temperature = x1%Temperature
       x2%CompTotal = x1%CompTotal
+      x2%Temperature = x1%Temperature
+      x2%IndWell = x1%IndWell
 
    end subroutine assign_DataWell_equal
 
@@ -597,7 +600,7 @@ contains
 
       integer, intent(out) :: mpi_id
 
-      integer, parameter :: count = 7
+      integer, parameter :: count = 8
       integer :: blocklengths(count)
       integer(kind=MPI_ADDRESS_KIND) :: begin, offset, displacements(count)
       integer :: types(count)
@@ -605,26 +608,29 @@ contains
       integer :: Ierr
 
       call MPI_Get_address(dummy, begin, Ierr)
-      call MPI_Get_address(dummy%Radius, offset, Ierr)
+      call MPI_Get_address(dummy%Id, offset, Ierr)
       displacements(1) = offset - begin
-      call MPI_Get_address(dummy%PressionMax, offset, Ierr)
+      call MPI_Get_address(dummy%Radius, offset, Ierr)
       displacements(2) = offset - begin
-      call MPI_Get_address(dummy%PressionMin, offset, Ierr)
+      call MPI_Get_address(dummy%PressionMax, offset, Ierr)
       displacements(3) = offset - begin
-      call MPI_Get_address(dummy%ImposedFlowrate, offset, Ierr)
+      call MPI_Get_address(dummy%PressionMin, offset, Ierr)
       displacements(4) = offset - begin
-      call MPI_Get_address(dummy%CompTotal, offset, Ierr)
+      call MPI_Get_address(dummy%ImposedFlowrate, offset, Ierr)
       displacements(5) = offset - begin
-      call MPI_Get_address(dummy%Temperature, offset, Ierr)
+      call MPI_Get_address(dummy%CompTotal, offset, Ierr)
       displacements(6) = offset - begin
-      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      call MPI_Get_address(dummy%Temperature, offset, Ierr)
       displacements(7) = offset - begin
+      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      displacements(8) = offset - begin
 
       types(:) = MPI_DOUBLE
-      types(7) = MPI_CHARACTER
+      types(1) = MPI_INT
+      types(8) = MPI_CHARACTER
 
       blocklengths(:) = 1    
-      blocklengths(5) = NbComp
+      blocklengths(6) = NbComp
 
       call MPI_Type_Create_Struct(count, blocklengths, displacements, types, mpi_id, Ierr)
       if (Ierr /= 0) call CommonMPI_abort('Couldt not create well data MPI structure.')
