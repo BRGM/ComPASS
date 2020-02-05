@@ -17,7 +17,9 @@ module DefWell
      MPI_DOUBLE, &
      MPI_Type_Create_Struct, &
      MPI_ADDRESS_KIND, &
-     MPI_Abort, &
+     MPI_Abort
+
+   use mpi_f08, only: &
      MPI_Get_address
 
    use CommonType, only: CSR
