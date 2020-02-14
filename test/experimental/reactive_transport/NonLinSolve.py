@@ -15,7 +15,6 @@ from scipy._lib._util import getargspec_no_self as _getargspec
 #from .linesearch import scalar_search_wolfe1, scalar_search_armijo
 from scipy.optimize.linesearch import scalar_search_wolfe1, scalar_search_armijo
 import matplotlib.pyplot as plt
-import ComPASS
 
 __all__ = [
     'broyden1', 'broyden2', 'anderson', 'linearmixing',
@@ -389,13 +388,16 @@ class CouplingJacobianF(CouplingJacobian):
         if nv == 0:
             return 0*v
         sc = self.omega / nv
+        #f, _ , _= self.func(self.x0 + sc*v)
+        #r = (f - self.f0) / sc
   
         (_, jac_tr_v, jac_ch)= self.func(v)
         
-        r = v - np.matmul(jac_ch, v) + np.matmul(jac_ch, jac_tr_v) 
+        r = v - np.matmul(jac_ch, v) + np.matmul(jac_ch, jac_tr_v)
         
         if not np.all(np.isfinite(r)) and np.all(np.isfinite(v)):
             raise ValueError('Function returned non-finite results')
+
         return r
         
 class CouplingJacobianCF(CouplingJacobian):   
