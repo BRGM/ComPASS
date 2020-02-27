@@ -1792,6 +1792,7 @@ contains
           Pws = PerfoWellProd(s)%Pression   ! P_{w,s}
           Ps_Pws = Ps - Pws
 
+
           WIDws = NodeDatabyWellProdLocal%Val(s)%WID ! WID_{w,s}
 #ifdef _THERMIQUE_
           WIFws = NodeDatabyWellProdLocal%Val(s)%WIF ! WIF_{w,s}
@@ -1833,10 +1834,8 @@ contains
 #endif
              end do
 
-             if(k<=NbWellProdOwn_Ncpus(commRank+1)) then ! own production well
-
+             if(k<=NbWellProdOwn_Ncpus(commRank+1)) then ! own production well                
                 if( DataWellProdLocal(k)%IndWell == 'f') then
-
                    ! A_kk, k is own production well
                    nz = JacBigA%Pt(rowk) + csrK(colk)
                    do icp=1, NbComp
@@ -1880,8 +1879,19 @@ contains
 
           end if
        end do
-       if(.not.something_is_produced) write(*,*) 'WARNING: nothing is produced from well', k, 'on proc', commRank+1
-    end do
+       !if(.not.something_is_produced) write(*,*) 'WARNING: nothing is produced from well', k, 'on proc', commRank+1
+
+       !Make sure Jac is not singular
+       if((DataWellProdLocal(k)%IndWell == 'f') .AND. (something_is_produced .EQV. .false.)) then
+          if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
+             nz = JacBigA%Pt(rowk) + csrK(colk)
+             JacBigA%Val(1,1,nz) = 1.d0
+          end if
+       end if
+
+
+       
+    end do !k-well loop
 
   end subroutine Jacobian_JacBigA_BigSm_wellprod
 

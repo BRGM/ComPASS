@@ -593,6 +593,7 @@ contains
 
       double precision :: Flux_ks(NbComp), FluxT_ks
       double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
+      logical  something_is_produced
 
       ! Injection well
       ! It is possible that one ghost well contains some own nodes,
@@ -655,6 +656,7 @@ contains
 
       ! Production well
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
+         something_is_produced = .false.
 
          qw = 0.d0
 
@@ -667,7 +669,8 @@ contains
             Ps_Pws = Ps - Pws
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
 
-            ! print*, "ps_pw: ", Ps_Pws
+
+            if (Ps_Pws > 0.d0) something_is_produced = .true.
 
             Flux_ks(:) = 0.d0
             FluxT_ks = 0.d0
@@ -675,7 +678,7 @@ contains
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-               if (Ps_Pws > 0.d0) then
+               if (something_is_produced .EQV. .true.) then
 
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
@@ -704,7 +707,11 @@ contains
          if (DataWellProdLocal(k)%IndWell == 'p') then
             ResiduWellProd(k) = IncPressionWellProd(k) - DataWellProdLocal(k)%PressionMin
          else if (DataWellProdLocal(k)%IndWell == 'f') then
-            ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
+            if (something_is_produced .EQV. .true.) then
+               ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
+            else
+               ResiduWellProd(k) = 0.d0
+            end if
          else
             call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
