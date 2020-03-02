@@ -1590,7 +1590,7 @@ contains
     
     do k=1, NbWellInjLocal_Ncpus(commRank+1)
 
-              something_is_injected = .false.
+       something_is_injected = .false.
 
               ! A_kk, k is well
        rowk = k + NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
@@ -1726,9 +1726,18 @@ contains
 ! #endif
        end do
 
-       if(.not.something_is_injected) write(*,*) 'WARNING: nothing is injected in well', k, 'on proc', commRank+1
+       
+       !Make sure Jacobian is not singular
+       if((DataWellInjLocal(k)%IndWell == 'f') .AND.  (something_is_injected  .EQV. .false.)) then
+
+        if(k<=NbWellInjOwn_Ncpus(commRank+1)) then ! own injection well
+           nz = JacBigA%Pt(rowk) + csrK(colk)
+           JacBigA%Val(1,1,nz) = 1.d0
+          end if
+       end if
+       
           
-    end do
+    end do !k-well loop
 
   end subroutine Jacobian_JacBigA_BigSm_wellinj
 
@@ -1879,9 +1888,9 @@ contains
 
           end if
        end do
-       !if(.not.something_is_produced) write(*,*) 'WARNING: nothing is produced from well', k, 'on proc', commRank+1
 
-       !Make sure Jac is not singular
+
+       !Make sure Jacobian is not singular
        if((DataWellProdLocal(k)%IndWell == 'f') .AND. (something_is_produced .EQV. .false.)) then
           if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
              nz = JacBigA%Pt(rowk) + csrK(colk)

@@ -593,14 +593,14 @@ contains
 
       double precision :: Flux_ks(NbComp), FluxT_ks
       double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
-      logical  something_is_produced
+      logical  something_is_produced,  something_is_injected
 
       ! Injection well
       ! It is possible that one ghost well contains some own nodes,
       ! thus, when assembly of flux, we need to take into account
       ! not only own well, but also ghost well
       do k = 1, NbWellInjLocal_Ncpus(commRank + 1) ! injection well k
-
+         something_is_injected = .false.
          qw = 0.d0
 
          ! nodes of well k
@@ -620,8 +620,9 @@ contains
 
             ! Flux q_{w,s,i} and q_{w,s,e}
             Ps_Pws = Ps - Pws
+            if (Ps_Pws < 0.d0)  something_is_injected = .true.
 
-            if (Ps_Pws < 0.d0) then ! < 0
+            if (something_is_injected) then ! < 0
 
                do icp = 1, NbComp
                   Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*Ps_Pws
@@ -647,7 +648,11 @@ contains
          if (DataWellInjLocal(k)%IndWell == 'p') then
             ResiduWellInj(k) = DataWellInjLocal(k)%PressionMax - IncPressionWellInj(k)
          else if (DataWellInjLocal(k)%IndWell == 'f') then
-            ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
+            if (something_is_injected .EQV. .true.) then
+               ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
+            else
+               ResiduWellInj(k) = 0.d0
+            end if
          else
             call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
