@@ -10,6 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.wells import create_vertical_well
+import ComPASS.dump_wells as dw
 import ComPASS.mpi as mpi
 
 
@@ -26,11 +27,13 @@ def make_wells():
         for j in range(1, ny - 1):
             well = create_vertical_well(simulation, (i, j), 0.1)  # dummy radius
             well.operate_on_flowrate = 1, 0.0  # dummy values
-            well.produce()
-            # well.inject(0)
             wells.append(well)
     for wk, well in enumerate(wells):
         well.id = wk
+        if wk % 2 == 0:
+            well.produce()
+        else:
+            well.inject(0)
     return wells
 
 
@@ -42,13 +45,26 @@ simulation.init(
     cell_thermal_conductivity=2,  # dummy value
 )
 
+print(
+    f"Number of injectors on proc {mpi.proc_rank}: {simulation.number_of_own_injectors()} / {simulation.nb_injectors()}"
+)
+print(
+    f"Number of producers on proc {mpi.proc_rank}: {simulation.number_of_own_producers()} / {simulation.nb_producers()}"
+)
 
-for wk, well in enumerate(simulation.producers_data()):
-    print(f"well {wk} on proc {mpi.proc_rank} has id {well.id}")
 
-print(f"Number of injectors on proc {mpi.proc_rank}: {simulation.number_of_own_injectors()} / {simulation.nb_injectors()}")
-print(f"Number of producers on proc {mpi.proc_rank}: {simulation.number_of_own_producers()} / {simulation.nb_producers()}")
+def message(well_type, data):
+    for wk, well in enumerate(data):
+        print(f"{well_type} well {wk} on proc {mpi.proc_rank} has id {well.id}")
+
+
+message("production", simulation.producers_data())
+message("injection", simulation.injectors_data())
+
+
+dw.dump_producers(simulation)
+dw.dump_injectors(simulation)
 
 nx, ny, _ = grid.shape
-nb_wells = (nx-2) * (ny - 2)
+nb_wells = (nx - 2) * (ny - 2)
 assert all([0 <= well.id <= nb_wells for well in simulation.producers_data()])

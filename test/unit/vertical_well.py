@@ -13,8 +13,7 @@ from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
-
-import MeshTools.vtkwriters as vtkw
+import ComPASS.dump_wells as dw
 
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
 
@@ -23,7 +22,9 @@ H = 1000  # height of the well
 nv = 50  # number of vertical layers
 hns = 1  # half the number of cells along basis side
 rw = 0.1  # well radius
-ptop = 10 * MPa  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
+ptop = (
+    10 * MPa
+)  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
 Ttop = degC2K(130)  # temperature at the top of the reservoir
 vgradT = 170 / km  # degrees per km - to reach 300 degC at the bottom
 geotherm = lambda zeta: Ttop + vgradT * (H - zeta)
@@ -147,74 +148,11 @@ standard_loop(
     initial_timestep=1,
     final_time=year,
     output_period=year / 12,
-    # nitermax=1,
+    nitermax=1,
 )
 
-wells = simulation.producers_information()
-print("Number of wells:", wells.nb_wells)
-print("Number of own producers:", simulation.number_of_own_producers())
-for wk, well in enumerate(wells):
-    print(f"Well {wk} has {well.nb_perforations} perforations.")
-    print("vertices:", well.vertices)
-    print("parent (vertex id):", well.parent_vertex)
-    print("parent (rank):", well.parent_rank)
-    print("pressure:", well.pressure)
-    print("temperature:", K2degC(well.temperature))
-    print("pressure_drop:", well.pressure_drop)
-    print("density:", well.density)
-    print("Darcy WI:", well.well_index_Darcy)
-    print("Fourier WI:", well.well_index_Fourier)
 
-
-# well_vertices = np.unique(np.hstack([well.vertices for well in wells]))
-vertices = simulation.vertices()
-node_states = simulation.node_states()
-
-for wk, well in enumerate(wells):
-    well_vertices = np.unique(well.vertices)
-    remap = np.zeros(vertices.shape[0], dtype=well_vertices.dtype)
-    remap[well_vertices] = 1
-    remap = np.cumsum(remap) - 1
-
-    vtkw.write_vtu(
-        vtkw.vtu_doc(
-            vertices[well_vertices],
-            np.hstack(
-                [
-                    np.reshape(remap[well.vertices[:-1]], (-1, 1)),
-                    np.reshape(remap[well.parent_vertex], (-1, 1)),
-                ]
-            ),
-            pointdata={
-                name: np.ascontiguousarray(a)
-                for name, a in [
-                    ("reservoir vertices", well_vertices),
-                    ("well pressure", well.pressure),
-                    ("well temperature", K2degC(well.temperature)),
-                    ("well pressure drop", well.pressure_drop),
-                    ("well density", well.density),
-                    ("Darcy WI", well.well_index_Darcy),
-                    ("Fourier WI", well.well_index_Fourier),
-                    ("reservoir pressure", node_states.p[well_vertices]),
-                    ("reservoir temperature", K2degC(node_states.T[well_vertices])),
-                    ("well saturation pressure", simulation.Psat(well.temperature)),
-                    (
-                        "inflow",
-                        np.where(
-                            well.pressure < node_states.p[well_vertices],
-                            well.well_index_Darcy
-                            * (node_states.p[well_vertices] - well.pressure),
-                            0,
-                        ),
-                    ),
-                ]
-            },
-        ),
-        f"well_{wk:04d}",
-    )
-    # We want that every point in the well is above the flash point
-    assert np.all(simulation.Psat(well.temperature) < well.pressure), 'flash occured!'
-
-from ComPASS.postprocess import postprocess
-
-postprocess(simulation.runtime.output_directory)
+dw.print_producers_stats(simulation)
+dw.print_injectors_stats(simulation)
+dw.dump_producers(simulation)
+dw.dump_injectors(simulation)
