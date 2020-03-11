@@ -10,9 +10,9 @@ import os
 import numpy as np
 
 from . import mpi
+from . import dump_wells as dw
 from .utils import create_directories
 from .runtime import to_output_directory
-
 
 class Dumper:
 
@@ -23,11 +23,13 @@ class Dumper:
         self.output_directory = os.path.abspath(output_directory)
         self.mesh_directory = os.path.join(self.output_directory, 'mesh')
         self.states_directory = os.path.join(self.output_directory, 'states')
+        self.wells_directory = os.path.join(self.output_directory, 'wells')
         self.simulation_running = False
         self.proc_label_pattern = 'proc_{:06d}' #IMPROVE: hard coded maximum nb of procs
         create_directories(self.to_output_directory())
         create_directories(self.to_mesh_directory())
         create_directories(self.to_states_directory())
+        create_directories(self.to_wells_directory())
 
     def to_output_directory(self, filename=''):
         return os.path.join(self.output_directory, filename)
@@ -37,6 +39,9 @@ class Dumper:
 
     def to_states_directory(self, filename=''):
         return os.path.join(self.states_directory, filename)
+
+    def to_wells_directory(self, filename=''):
+        return os.path.join(self.wells_directory, filename)
 
     def proc_label(self, proc):
         return self.proc_label_pattern.format(proc)
@@ -53,6 +58,7 @@ class Dumper:
         assert not self.simulation_running
         self.simulation_running = True
         self.dump_own_element_numbers()
+        self.dump_wellids()
         self.dump_mesh()
 
     @mpi.on_master_proc
@@ -69,6 +75,16 @@ class Dumper:
             print('nb_own_faces =', self.simulation.nb_faces_own(), file=f)
             print('nb_own_fractures =', self.simulation.nb_fractures_own(), file=f)
         np.set_printoptions(linewidth=np_linewidth_backup)
+    
+    def dump_wellids(self):
+        well_ids = dw.collect_well_ids(self.simulation)
+        well_ids = mpi.communicator().gather(well_ids, root=mpi.master_proc_rank)
+        if mpi.is_on_master_proc:
+            filename = self.to_output_directory('well_ids')
+            with open(filename, 'w') as f:
+                for ids in well_ids:
+                    for i in ids:
+                        print(i, file=f)
 
     def dump_mesh(self):
         connectivity = self.simulation.get_connectivity()
@@ -128,6 +144,7 @@ class Dumper:
                     dumped_states['cell_mass_flux_comp%s'%(compname)] = cell_fluxes[:, comp, :]
                     dumped_states['fracture_mass_flux_comp%s'%(compname)] = fracture_fluxes[:, comp, :]
         np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
+        dw.dump_all_wells(self.simulation, self.to_wells_directory(), tag)
 
 def dump_mesh(simulation):
     dumper = Dumper(simulation)
@@ -136,4 +153,3 @@ def dump_mesh(simulation):
 
 def dump_states(simulation, tag=''):
     Dumper(simulation).dump_states(tag)
-

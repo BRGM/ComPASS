@@ -8,11 +8,13 @@
 #
 
 import sys
+import shutil
 import glob, os, re
 from pathlib import Path
 import click
 import numpy as np
 from .dumps import Dumper
+from .dump_wells import _well_vtu_filename as well_vtu
 from .utils import create_directories
 from .utils.units import year
 import MeshTools.vtkwriters as vtkw
@@ -69,6 +71,8 @@ class PostProcessor:
         create_directories(self.paraview_directory)
         self.vtu_directory = os.path.join(self.paraview_directory, "vtu")
         create_directories(self.vtu_directory)
+        self.pvwells_directory = self.vtu_directory # everything in the same vtu directory
+        create_directories(self.pvwells_directory)
         self.distribution = MeshDistribution(
             self.dumper.to_output_directory("own_elements")
         )
@@ -78,6 +82,9 @@ class PostProcessor:
 
     def to_paraview_directory(self, filename=""):
         return os.path.join(self.paraview_directory, filename)
+
+    def to_pvwells_directory(self, filename=""):
+        return os.path.join(self.pvwells_directory, filename)
 
     def to_vtu_directory(self, filename=""):
         return os.path.join(self.vtu_directory, filename)
@@ -313,9 +320,32 @@ class PostProcessor:
                 self.to_paraview_directory("fracture_states"),
             )
 
+    def collect_wells(self, convert_temperature):
+        # FIXME: temperature conversion is not available (cf. gitlab issue #205)
+        well_ids = np.loadtxt(self.dumper.to_output_directory('well_ids'), dtype=np.uint64)
+        snapshots = self.collect_snapshots()
+        for well in well_ids:
+            pvd = {}
+            for tag in snapshots:
+                vtu = self.dumper.to_wells_directory(well_vtu(well, tag))
+                assert os.path.exists(vtu)
+                # copy file in paraview directory
+                new_vtu = self.to_pvwells_directory(os.path.basename(vtu))
+                shutil.copyfile(vtu, new_vtu)
+                pvd[snapshots[tag] / year] = new_vtu
+            vtkw.write_pvd(
+                vtkw.pvd_doc(
+                    [
+                        (t, os.path.relpath(vtu, self.to_paraview_directory()))
+                        for t, vtu in pvd.items()
+                    ]
+                ),
+                self.to_paraview_directory(f"well-{well:04d}"),
+            )
+
 
 def postprocess(
-    directory, collect_procs_id=False, collect_states=True, convert_temperature=True
+    directory, collect_procs_id=False, collect_states=True, convert_temperature=True, collect_wells=True
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)
     
@@ -328,13 +358,23 @@ def postprocess(
     directory = Path(directory)
     print("processing results in", directory)
     something_done = False
-    if directory.is_dir() and (collect_procs_id or collect_states):
+    if directory.is_dir() and (collect_procs_id or collect_states or collect_wells):
         pp = PostProcessor(directory)
         if collect_procs_id:
             pp.collect_proc_ids()
             something_done = True
         if collect_states:
             pp.collect_states(convert_temperature)
+            something_done = True
+        if collect_wells:
+            if not convert_temperature:
+                print("***************** WARNING ******************")
+                print()
+                print("Well temperature is output in Celsius degree")
+                print("          (cf. gitlab issue #205)")
+                print()
+                print("********************************************")                
+            pp.collect_wells(convert_temperature)
             something_done = True
     if not something_done:
         print()
@@ -364,6 +404,14 @@ def postprocess(
     help="ouput paraview files with transient states as pvd files to be found in the path/paraview directory",
 )
 @click.option(
+    "-w",
+    "--wells",
+    "collect_wells",
+    is_flag=True,
+    default=False,
+    help="ouput wells transient states in paraview pvd files to be found in the path/paraview directory",
+)
+@click.option(
     "-C",
     "--Celsius",
     "convert_temperature",
@@ -373,7 +421,7 @@ def postprocess(
 )
 @click.argument("directories", nargs=-1)
 def postprocess_command(
-    collect_procs_id, collect_states, convert_temperature, directories
+    collect_procs_id, collect_states, collect_wells, convert_temperature, directories
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
     for directory in directories:

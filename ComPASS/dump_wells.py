@@ -1,4 +1,5 @@
 from collections import namedtuple
+from pathlib import Path
 import numpy as np
 from ComPASS.utils.units import *
 import ComPASS.mpi as mpi
@@ -87,17 +88,31 @@ def _print_well_stats(simulation, well_type):
     print()
 
 
-def _dump_wells(simulation, well_type):
+def _well_vtu_filename(wellid, tag=None):
+    if tag is None:
+        tag = ""
+    else:
+        tag = f"_{tag}"
+    return f"well_id{wellid:04d}{tag}.vtu"
+
+
+def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
+    if outputdir is None:
+        outputdir = Path(".")
+    else:
+        outputdir = Path(outputdir)
+    assert outputdir.exists() and outputdir.is_dir()
     info = _wells_info(simulation, well_type)
     if not _any_wells(info):
         return
     wells = info.information
     nb_own_wells = _check_own_wells(wells, info)
-    print(f"Dumping {info.nb_own} {info.type} wells out of {info.nb}.")
+    if verbose:
+        print(f"Dumping {info.nb_own} {info.type} wells out of {info.nb}.")
     wells_data = [data for data, _ in zip(info.data, range(nb_own_wells))]
     vertices = simulation.vertices()
     node_states = simulation.node_states()
-    if len(set([data.id for data in wells_data]))!=nb_own_wells:
+    if len(set([data.id for data in wells_data])) != nb_own_wells:
         print("!!!")
         print("!!! WARNING: you must use unique well id to discriminate output files")
         print("!!!")
@@ -145,16 +160,21 @@ def _dump_wells(simulation, well_type):
                     ]
                 },
             ),
-            f"well_id{wells_data[wk].id:04d}",
+            str(outputdir / _well_vtu_filename(wells_data[wk].id, tag)),
         )
 
 
-def dump_injectors(simulation):
-    _dump_wells(simulation, "injection")
+def dump_injectors(simulation, outputdir=None, tag=None, verbose=False):
+    _dump_wells(simulation, "injection", outputdir, tag, verbose)
 
 
-def dump_producers(simulation):
-    _dump_wells(simulation, "production")
+def dump_producers(simulation, outputdir=None, tag=None, verbose=False):
+    _dump_wells(simulation, "production", outputdir, tag, verbose)
+
+
+def dump_all_wells(simulation, outputdir=None, tag=None, verbose=False):
+    for well_type in ("injection", "production"):
+        _dump_wells(simulation, well_type, outputdir, tag, verbose)
 
 
 def print_injectors_stats(simulation):
@@ -163,3 +183,15 @@ def print_injectors_stats(simulation):
 
 def print_producers_stats(simulation):
     _print_well_stats(simulation, "production")
+
+
+def collect_well_ids(simulation):
+    well_ids = []
+    for well_type in ("injection", "production"):
+        info = _wells_info(simulation, well_type)
+        if info.nb == 0:
+            continue
+        wells = info.information
+        nb_own_wells = _check_own_wells(wells, info)
+        well_ids += [data.id for data, _ in zip(info.data, range(nb_own_wells))]
+    return well_ids

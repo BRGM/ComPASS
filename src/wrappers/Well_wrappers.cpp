@@ -9,6 +9,7 @@
 #include <cassert>
 #include <sstream>
 #include <functional>
+#include <set>
 #include <iostream>
 
 #include "ArrayWrapper.h"
@@ -299,14 +300,40 @@ struct Injector_data_info
 	}
 };
 
-void set_well_data(py::list wells)
+/** Change well ids so that each each has a unique id. */
+void check_well_ids(py::list& wells)
 {
+	std::set<std::size_t> ids;
+	std::size_t new_id=0;
+	bool renumbered_wells = false;
+	auto compute_new_id = [&]() {
+		while(ids.count(new_id)==1) {
+			++new_id;
+		}
+		return new_id;
+	};
+	for (auto& p : wells) {
+		Well& well = p.cast<Well&>();
+		if(ids.count(well.id)==1) {
+			well.id = compute_new_id();
+			renumbered_wells = true;
+		}
+		ids.insert(well.id);
+	}
+	if(renumbered_wells) {
+		py::print("WARNING - Some wells were renumbered to have a unique id.");
+	}
+}
+
+void set_well_data(py::list& wells)
+{
+	check_well_ids(wells);
 	std::vector<Producer_data_info> producers_info;
 	std::vector<Injector_data_info> injectors_info;
-	for (auto&& p : wells) {
-		auto well = p.cast<const Well&>();
-		if (well.is_producing()) producers_info.push_back(Producer_data_info{ well });
-		if (well.is_injecting()) injectors_info.push_back(Injector_data_info{ well });
+	for (auto& p : wells) {
+		const Well& well = p.cast<const Well&>();
+		if (well.is_producing()) producers_info.emplace_back(well);
+		if (well.is_injecting()) injectors_info.emplace_back(well);
 	}
 	producers_info.shrink_to_fit();
 	injectors_info.shrink_to_fit();
