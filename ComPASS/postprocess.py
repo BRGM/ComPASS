@@ -322,7 +322,7 @@ class PostProcessor:
 
     def collect_wells(self, convert_temperature):
         # FIXME: temperature conversion is not available (cf. gitlab issue #205)
-        well_ids = np.loadtxt(self.dumper.to_output_directory('well_ids'), dtype=np.uint64)
+        well_ids = np.loadtxt(self.dumper.to_output_directory('well_ids'), ndmin=1, dtype=np.uint64)
         snapshots = self.collect_snapshots()
         for well in well_ids:
             pvd = {}
