@@ -1,4 +1,5 @@
-
+from functools import partial
+from . import fake_methods
 from . import base
 from . import data
 from . import utils
@@ -8,6 +9,7 @@ from .._kernel import simulation_wrapper
 
 
 _not_available = object()
+_fake_members = state, base, data, utils, simulation_wrapper
 
 
 class Simulation:
@@ -15,7 +17,10 @@ class Simulation:
         assert False, "no modification for now !"
 
     def __getattr__(self, name):
-        for src in (state, base, data, utils, simulation_wrapper):
+        value = getattr(fake_methods, name, _not_available)
+        if value is not _not_available:
+            return partial(value, self)
+        for src in _fake_members:
             value = getattr(src, name, _not_available)
             if value is not _not_available:
                 return value
@@ -23,7 +28,8 @@ class Simulation:
 
     def __dir__(self):
         res = super().__dir__()
-        for src in (state, base, data, utils, simulation_wrapper):
+        res.extend(dir(fake_methods))
+        for src in _fake_members:
             res.extend(dir(src))
         return res
 

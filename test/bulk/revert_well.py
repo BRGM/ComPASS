@@ -9,7 +9,7 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
+from ComPASS.utils.wells import create_vertical_well, set_well_property
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
@@ -38,6 +38,7 @@ k_reservoir = (
 )
 K_reservoir = 2  # bulk thermal conductivity in W/m/K
 Qw = 300.0
+injector, producer = 1, 2
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
@@ -71,7 +72,7 @@ grid = ComPASS.Grid(
 
 
 def create_well():
-    return create_vertical_well(simulation, (0, 0), rw)
+    return simulation.create_vertical_well((0, 0), rw)
 
 
 def make_producer():
@@ -124,9 +125,6 @@ set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
 
 
-injector = list(simulation.injectors_data())[0]
-producer = list(simulation.producers_data())[0]
-
 month = year / 12
 onestep = lambda t0: standard_loop(
     simulation,
@@ -138,11 +136,11 @@ onestep = lambda t0: standard_loop(
 
 t0 = 0
 # Injection - no production
-producer.imposed_flowrate = 0
+simulation.set_well_property(producer, imposed_flowrate=0)
 t0 = onestep(t0)
 # Stop both wells
-injector.imposed_flowrate = 0
+simulation.set_well_property(injector, imposed_flowrate=0)
 t0 = onestep(t0)
-# Porduction - no injection
-producer.imposed_flowrate = Qw
+# Production - no injection
+simulation.set_well_property(producer, imposed_flowrate=Qw)
 t0 = onestep(t0)
