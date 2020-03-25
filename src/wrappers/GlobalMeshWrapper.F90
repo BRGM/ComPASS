@@ -46,12 +46,12 @@
 
        type, bind(C) :: cpp_MeshConnectivity
           type(cpp_COC) :: NodebyCell
-          type(cpp_COC) :: NodebyFace; 
-          type(cpp_COC) :: FacebyNode; 
-          type(cpp_COC) :: FacebyCell; 
-          type(cpp_COC) :: CellbyNode; 
-          type(cpp_COC) :: CellbyFace; 
-          type(cpp_COC) :: CellbyCell; 
+          type(cpp_COC) :: NodebyFace 
+          type(cpp_COC) :: FacebyNode 
+          type(cpp_COC) :: FacebyCell 
+          type(cpp_COC) :: CellbyNode 
+          type(cpp_COC) :: CellbyFace 
+          type(cpp_COC) :: CellbyCell 
        end type cpp_MeshConnectivity
 
        public :: &
