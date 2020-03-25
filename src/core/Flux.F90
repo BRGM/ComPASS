@@ -205,7 +205,8 @@ contains
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
 ! cela doit etre un bug car il faut calculer les Pcs de ttes les phases, pas slt les phases presentes                
-              FluxDarcyKI(numph_i,i,k) = FluxDarcyKI(numph_i,i,k) &
+              FluxDarcyKI(numph_i,i,k) = &
+              FluxDarcyKI(numph_i,i,k) &
                   + (Pkj + PressionCapCell(numph_i,k) - PressionCapNode(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if
@@ -242,7 +243,8 @@ contains
 
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
-              FluxDarcyKI(numph_i,i,k) = FluxDarcyKI(numph_i,i,k) &
+              FluxDarcyKI(numph_i,i,k) = &
+              FluxDarcyKI(numph_i,i,k) &
                   + (Pkj + PressionCapCell(numph_i,k) - PressionCapFrac(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if
@@ -332,7 +334,8 @@ contains
 
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
-              FluxDarcyKI(numph_i,i+NbNodeCell,k) = FluxDarcyKI(numph_i,i+NbNodeCell,k) &
+              FluxDarcyKI(numph_i,i+NbNodeCell,k) = &
+              FluxDarcyKI(numph_i,i+NbNodeCell,k) &
                   + (Pkj + PressionCapCell(numph_i,k) - PressionCapNode(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if
@@ -373,7 +376,8 @@ contains
 
             if( Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
-              FluxDarcyKI(numph_i,i+NbNodeCell,k) = FluxDarcyKI(numph_i,i+NbNodeCell,k) &
+              FluxDarcyKI(numph_i,i+NbNodeCell,k) = &
+              FluxDarcyKI(numph_i,i+NbNodeCell,k) &
                   + (Pkj + PressionCapCell(numph_i,k) - PressionCapFrac(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if
@@ -507,7 +511,8 @@ contains
 
             if(Id_Qki(numph_i) .eqv. .false.) then ! this phase is not in Q_k
 
-              FluxDarcyFI(numph_i,i,k) = FluxDarcyFI(numph_i,i,k) &
+              FluxDarcyFI(numph_i,i,k) = &
+              FluxDarcyFI(numph_i,i,k) &
                   + (Pkj + PressionCapFrac(numph_i,k) - PressionCapNode(numph_i,numj) &
                   + rho_ki_alpha(numph_i)*zkj) * Tkij
             end if

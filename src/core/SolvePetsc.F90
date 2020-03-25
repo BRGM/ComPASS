@@ -2007,8 +2007,10 @@ contains
           ! j is in proc ipc
           ipc = NumWellInjbyProc%Val(j)
 
-          ColLToColG(j+start) = NumWellInjbyProc%Num(j) &
-               + colstart(ipc+1) + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
+          ColLToColG(j+start) = &
+          NumWellInjbyProc%Num(j) &
+               + colstart(ipc+1) &
+               + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
        end do
     end do
 
@@ -2021,8 +2023,11 @@ contains
           ! j is in proc ipc
           ipc = NumWellProdbyProc%Val(j)
 
-          ColLToColG(j+start) = NumWellProdbyProc%Num(j) &
-               + colstart(ipc+1) + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique + NbWellInjOwn_Ncpus(ipc+1)
+          ColLToColG(j+start) = &
+          NumWellProdbyProc%Num(j) &
+               + colstart(ipc+1) &
+               + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique &
+               + NbWellInjOwn_Ncpus(ipc+1)
        end do
     end do
 
@@ -2155,4 +2160,3 @@ subroutine compass_check_solution(x)
    call SolvePetsc_check_solution(x)
 
 end subroutine compass_check_solution
-   

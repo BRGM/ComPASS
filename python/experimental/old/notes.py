@@ -1,4 +1,3 @@
-
 z = objet_qui_connait_tout.zones()
 v = objet_qui_connait_tout.variables()
 
@@ -14,9 +13,7 @@ centre = [2.3e3, 3.4e3, -100]
 rayon = 25
 
 xyz = v.locations[z.cells]  # positions des centres des cellules
-sable = z.cells.from_mask(
-    np.linalg.norm(xyz - centre) < rayon
-)
+sable = z.cells.from_mask(np.linalg.norm(xyz - centre) < rayon)
 
 v.porosity[sable] = 0.4
 
@@ -106,8 +103,8 @@ Manitou -> Case
 case = Case.from_mesh_spec(...)
 case.mesh
 
-case.positions.cells -> ArrayProperty (x, y, z)
-case.location.cells -> ZoneManager sur cells
+# case.positions.cells -> ArrayProperty (x, y, z)
+# case.location.cells -> ZoneManager sur cells
 case.prop1
 
 mapping_proc = overlap_strategy(metis(np.mesh))

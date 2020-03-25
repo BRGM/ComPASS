@@ -411,15 +411,17 @@ contains
   subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
 
       integer :: i, j, s, nz
-   
+      logical :: is_diagonal = .false.
+
       do s=1, NbNodeOwn_Ncpus(commRank+1)
 
+         ! CHECKME: why .or. and not .and. ?
+         ! Is the diagonal element (s,s) JacBigA(nz)
+         is_diagonal = IdNodeLocal(s)%P == "d"
 #ifdef _THERMIQUE_
-         if(IdNodeLocal(s)%P=="d".or.IdNodeLocal(s)%T=="d") then
-#else
-         if(IdNodeLocal(s)%P=="d") then
+         is_diagonal = is_diagonal .or. IdNodeLocal(s)%T == "d"
 #endif
-            ! the diagonal element (s,s) is JacBigA(nz)
+         if(is_diagonal) then 
             do i=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
                if( JacBigA%Num(i)==s) then
                   nz = i
@@ -462,16 +464,17 @@ contains
     double precision, intent(in) :: Delta_t
 
     integer :: k, rowk, i, icp, nz, j, m, mph
+    logical :: outside_diagonal = .false.
 
     ! 2.1 div prim: n_k(X_j^n), k is node
     do k=1, NbNodeOwn_Ncpus(commRank+1) ! node
 
        ! look for diagonal
+        outside_diagonal = IdNodeLocal(k)%P /= "d"
 #ifdef _THERMIQUE_
-       if ((IdNodeLocal(k)%P /= "d") .or. (IdNodeLocal(k)%T /= "d")) then
-#else
-       if ((IdNodeLocal(k)%P /= "d")) then
+         outside_diagonal = outside_diagonal .or. IdNodeLocal(k)%T /= "d"
 #endif
+         if (outside_diagonal) then
           rowk = k ! row of node k in vector (node own, frac own, cell)
 
           ! the diagonal element (k,k) is JacBigA(nz)
@@ -589,7 +592,8 @@ contains
           mph = NumPhasePresente_ctx(m,IncFrac(k)%ic)
 
           do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
-             JacBigA%Val(j,NbComp+1,nz) = JacBigA%Val(j,NbComp+1,nz) &
+             JacBigA%Val(j,NbComp+1,nz) = &
+             JacBigA%Val(j,NbComp+1,nz) &
                   + PoroVolFourier%fractures(k) * divDensiteMolaireEnergieInterneSatFrac(j,m,k) / Delta_t
           end do
 
@@ -787,20 +791,20 @@ contains
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
           ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
-          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
           ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
-          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
 
           ! compute div FluxFourier
-          call Jacobian_divFourierFlux_cellnode(k,s,nums, &
-               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+          call Jacobian_divFourierFlux_cellnode( &
+          k,s,nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
           ! divK, divS, divR to JacBigA
@@ -1048,20 +1052,20 @@ contains
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
           ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
-          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
           ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
-          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
 
           ! compute div FluxFourier
-          call Jacobian_divFourierFlux_cellfrac(k,s,nums, &
-               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+          call Jacobian_divFourierFlux_cellfrac( &
+          k,s,nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
           ! divK, divS, divR to JacBigA
@@ -1377,28 +1381,28 @@ contains
           nums = NodebyFaceLocal%Num( NodebyFaceLocal%Pt(fk)+s)
 
           ! compute div(DensiteMolaire*Kr/Viso) * DarcyFlux
-          call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_fracnode(k,s,nums,&
-               divK1, divS1, Sm1)
+          call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_fracnode( &
+          k,s,nums,divK1, divS1, Sm1)
 
           ! compute div Darcy flux
           call Jacobian_divDarcyFlux_fracnode(k,s,nums, &
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
           ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
-          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
           ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
-          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_fracnode(k,s,nums, &
-               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+          call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_fracnode( &
+          k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
 
           ! compute div FluxFourier
-          call Jacobian_divFourierFlux_fracnode(k,s,nums, &
-               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+          call Jacobian_divFourierFlux_fracnode( &
+          k,s,nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
           ! line with frac own
@@ -2361,8 +2365,8 @@ contains
   !         + Sm
   ! compute
   !        divK, divS, divR, Sm
-  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divK, divS, divR, Sm0)
 
     integer, intent(in) :: k, s, nums
@@ -2502,8 +2506,8 @@ contains
   !         + Sm )
   ! compute:
   !        divK, divS, divR, Sm
-  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divK, divS, divR, Sm0)
 
     integer, intent(in) :: k, s, nums
@@ -2636,8 +2640,8 @@ contains
   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac
 
 
-  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divK, divS, divR, Sm0)
 
     integer, intent(in) :: k, s, nums
@@ -2748,8 +2752,8 @@ contains
 
 
 
-  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divEgK, divEgS, divEgR, SmEg)
 
     integer, intent(in) :: k, s, nums
@@ -2882,8 +2886,8 @@ contains
 
 
 
-  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divEgK, divEgS, divEgR, SmEg)
 
     ! nums: frac num
@@ -3020,8 +3024,8 @@ contains
   end subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac
 
 
-  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_fracnode(k,s,nums, &
-       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+  subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_fracnode( &
+   k,s,nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
        divEgK, divEgS, divEgR, SmEg)
 
     integer, intent(in) :: k, s, nums
@@ -5005,7 +5009,7 @@ contains
 
     integer :: i, j, k, jf, Nz, start
     integer :: tmp
-
+    logical :: is_diagonal
     integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
          nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
@@ -5031,11 +5035,11 @@ contains
 
        ! Darcy dir and T dir
        ! only in this case, one non-zero (block) this row, it is Id
+      is_diagonal = IdNodeLocal(i)%P == "d"
 #ifdef _THERMIQUE_
-       if( (IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then
-#else
-       if( (IdNodeLocal(i)%P=="d")) then
+      is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
 #endif
+      if (is_diagonal) then
           nbNnzbyLine(i) = 1
        else
           nbNnzbyLine(i) = NodebyNodeOwn%Pt(i+1) - NodebyNodeOwn%Pt(i) &
@@ -5104,12 +5108,12 @@ contains
     do i=1, nbNodeOwn
 
        ! dir Darcy and dir T
+      is_diagonal = IdNodeLocal(i)%P == "d"
 #ifdef _THERMIQUE_
-       if((IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then
-#else
-       if((IdNodeLocal(i)%P=="d")) then
+      is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
 #endif
-
+       if (is_diagonal) then
+      
           JacBigA%Num(start+1) = i ! node=(node own, node ghost)
           start = start + 1
 
@@ -5275,7 +5279,7 @@ contains
 
     integer :: i, j, k, jf, Nz, start
     integer :: tmp
-
+    logical :: is_diagonal = .false.
     integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
          nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
@@ -5306,12 +5310,12 @@ contains
     do i=1, nbNodeOwn
 
        ! Darcy dir and T dir
+      is_diagonal = IdNodeLocal(i)%P == "d"
 #ifdef _THERMIQUE_
-       if( (IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then !
-#else
-       if( (IdNodeLocal(i)%P=="d")) then !
+      is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
 #endif
-          nbNnzbyLine(i) = 1 ! one non zero (block) this row
+      if (is_diagonal) then
+         nbNnzbyLine(i) = 1 ! one non zero (block) this row
        else
           nbNnzbyLine(i) = NodebyNodeOwn%Pt(i+1) - NodebyNodeOwn%Pt(i) &
                + FracbyNodeOwn%Pt(i+1) - FracbyNodeOwn%Pt(i) &
@@ -5365,12 +5369,13 @@ contains
     do i=1, nbNodeOwn
 
        ! Darcy and T are both dir
+      is_diagonal = IdNodeLocal(i)%P == "d"
 #ifdef _THERMIQUE_
-       if((IdNodeLocal(i)%P=="d") .and. (IdNodeLocal(i)%T=="d")) then
-#else
-       if(IdNodeLocal(i)%P=="d") then
+      is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
 #endif
-          JacA%Num(start+1) = i ! node=(node own, node ghost)
+      if (is_diagonal) then
+          
+         JacA%Num(start+1) = i ! node=(node own, node ghost)
           start = start + 1
 
        else ! one of Darcy and T is not dir

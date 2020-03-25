@@ -46,7 +46,7 @@ extent = [L/ds,] * 3
 extent[axis] = L
 grid = ComPASS.Grid(
     shape = shape,
-    extent = extent),
+    extent = extent,
 )
 
 def select_dirichlet_nodes():

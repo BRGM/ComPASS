@@ -453,7 +453,8 @@ contains
 
 
   ! all operations for one cv
-  subroutine LoisThermoHydro_divPrim_cv(NbIncLocal, inc,&
+  subroutine LoisThermoHydro_divPrim_cv( &
+     NbIncLocal, inc,&
        rt, &
        dXssurdXp, SmdXs, SmF, &
        NumIncTotalPrimCV, NumIncTotalSecondCV, &
@@ -600,14 +601,17 @@ contains
       divSaturation(:,:,k))
 
     ! term: DensiteMolaire * PermRel / Viscosite * Comp
-    call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( inc(k), &
+    call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( &
+    inc(k), &
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
          PermRel, divPermRel, &
          UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
          divComp, SmComp, &
          NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k),  &
          dXssurdXp(:,:,k), SmdXs(:,k), &
-         DensiteMolaireKrViscoComp(:,:,k), divDensiteMolaireKrViscoComp(:,:,:,k), SmDensiteMolaireKrViscoComp(:,:,k))
+         DensiteMolaireKrViscoComp(:,:,k), &
+         divDensiteMolaireKrViscoComp(:,:,:,k), &
+         SmDensiteMolaireKrViscoComp(:,:,k))
 
     ! term: DensiteMolaire * Saturation * Comp
     call LoisThermoHydro_DensiteMolaireSatComp_cv( &
@@ -616,7 +620,9 @@ contains
          divComp, SmComp, &
          NumIncTotalPrimCV(:,k), NumIncTotalSecondCV(:,k),  &
          dXssurdXp(:,:,k), SmdXs(:,k), &
-         DensiteMolaireSatComp(:,:,k), divDensiteMolaireSatComp(:,:,:,k), SmDensiteMolaireSatComp(:,:,k))
+         DensiteMolaireSatComp(:,:,k), &
+         divDensiteMolaireSatComp(:,:,:,k), &
+         SmDensiteMolaireSatComp(:,:,k))
 
 
 #ifdef _THERMIQUE_
@@ -641,7 +647,9 @@ contains
          inc(k), divSaturation(:,:,k), &
          DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
          EnergieInterne, divEnergieInterne, SmEnergieInterne, &
-         DensiteMolaireEnergieInterneSat(:,k), divDensiteMolaireEnergieInterneSat(:,:,k), SmDensiteMolaireEnergieInterneSat(:,k))
+         DensiteMolaireEnergieInterneSat(:,k), &
+         divDensiteMolaireEnergieInterneSat(:,:,k), &
+         SmDensiteMolaireEnergieInterneSat(:,k))
 
     ! term: DensiteMolaire * PermRel / Viscosite * Enthalpie
     call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
@@ -649,7 +657,9 @@ contains
          PermRel, divPermRel, &
          UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
          Enthalpie, divEnthalpie, SmEnthalpie, &
-         DensiteMolaireKrViscoEnthalpie(:,k), divDensiteMolaireKrViscoEnthalpie(:,:,k), SmDensiteMolaireKrViscoEnthalpie(:,k))
+         DensiteMolaireKrViscoEnthalpie(:,k), &
+         divDensiteMolaireKrViscoEnthalpie(:,:,k), &
+         SmDensiteMolaireKrViscoEnthalpie(:,k))
 #endif
 
  !       do i=1, NbPhasePresente_ctx(inc(k)%ic)
@@ -730,7 +740,8 @@ contains
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
   ! Compute derivative of phase molar flowrates in the Freeflow dof
-  subroutine LoisThermoHydro_divPrim_FreeFlow_cv(NbIncLocal, inc,&
+  subroutine LoisThermoHydro_divPrim_FreeFlow_cv( &
+     NbIncLocal, inc,&
        rt, &
        dXssurdXp, SmdXs, SmF, &
        NumIncTotalPrimCV, NumIncTotalSecondCV, &
@@ -2482,8 +2493,8 @@ do k=1, NbIncLocal
           DensiteMolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel * DensiteMolaire / Viscosite
 
           ! div of pression
-          divDensiteMolaireKrViscoCompWellInj(i,s) = Cw(i) * PermRel  &
-               * (dP_DensiteMolaire / Viscosite - DensiteMolaire * dP_Viscosite / (Viscosite**2) )
+          divDensiteMolaireKrViscoCompWellInj(i,s) = &
+          Cw(i) * PermRel * (dP_DensiteMolaire / Viscosite - DensiteMolaire * dP_Viscosite / (Viscosite**2) )
        end do
 
 #ifdef _THERMIQUE_
