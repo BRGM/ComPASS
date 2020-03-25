@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# SCOREP is used or not used for all sources...
+# scorep scripts (scorep-mpicc, scorep-mpicxx and scorep-mpif90) shall be on your path
+# scorep must also have been built with the --enable-shared optio
+
+if [ \
+    -z `command -v scorep-mpicc` \
+ -o -z `command -v scorep-mpicc` \
+ -o -z `command -v scorep-mpicc` ]
+then
+    echo ""
+    echo "WARNING - At least one of the scorep scripts is missing"
+    echo ""
+else
+    SCOREP_WRAPPER=off CC=scorep-mpicc CXX=scorep-mpicxx FC=scorep-mpif90 $@
+fi

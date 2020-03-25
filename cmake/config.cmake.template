@@ -1,4 +1,4 @@
-# Peronnal CMake configuration file -------------------------------------------
+# User defined CMake configuration file ---------------------------------------
 
 # This is a template file to be used if you need to tweak compilation options
 # In such situation rename this file to config.cmake in this directory
@@ -18,6 +18,35 @@
 # You can also have different files e.g. config-devel.cmake, config-release.cmake... 
 # and switch between configurations modifying a symbolic link to config.cmake
 
+#
+# WARNING - Setting CMake compilers
+#
+# It is NOT recommended to set CMake compilers using this file.
+# CMake prohibits to change the compiler after the CMake step and 
+# it also prohibits that the compiler variable value includes any flags.
+# Trying to change a compiler will delete the cache and you would loose
+# all previous settings.
+#
+# Prefer to pass compiler either through the CC, CXX and FC environment
+# variables, e.g.:
+# CC=mpicc cmake ..
+# either setting the CMAKE_<LANG>_COMPILER variables
+# using the -D options of the cmake executable e.g.: 
+# cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_Fortran_COMPILER=mpif90 ..
+
+#
+# Score-p instrumentation
+#
+# Because of the previous limitations scorep instrumentation must be done
+# setting the SCOREP_WRAPPER variable to off
+# (cf. http://scorepci.pages.jsc.fz-juelich.de/scorep-pipelines/docs/scorep-6.0/html/scorepwrapper.html)
+# For example doing:
+# SCOREP_WRAPPER=off CC=scorep-mpicc CXX=scorep-mpicxx FC=scorep-mpif90
+# will setup cmake to instrument all files with scorep.
+# The cmake script will also detect the presence of the scorep instrumentation
+# testing the compiler name and if present will compile an instrumented wrapper 
+# for the python interpreter. 
+
 # -----------------------------------------------------------------------------
 
 # -- Set the build configuration: Debug, Release...
@@ -26,14 +55,9 @@
 # -- MPI configuration
 # set(MPIDIR /my/path CACHE PATH "path to MPI library")
 
-# -- PETSc configuration
+# -- PETSc configuration -- petsc lib can be found using mpicc linker flags
 # set(PETSC_DIR /my/path CACHE PATH "path to PETSc library")
 # set(PETSC_ARCH arch-linux-c-opt CACHE STRING "PETSc arch")
-
-# -- MPI compiler wrappers (mainly used to find PETSc libraries)
-# set(CMAKE_C_COMPILER ${MPIDIR}/bin/mpicc CACHE FILEPATH "mpi wraper for the C compiler")
-# set(CMAKE_CXX_COMPILER ${MPIDIR}/bin/mpicxx CACHE FILEPATH "mpi wraper for the C++ compiler")
-# set(CMAKE_Fortran_COMPILER ${MPIDIR}/bin/mpifort CACHE FILEPATH "mpi wraper for the Fortran compiler")
 
 # -- Tweaks physics
 # set(DEF_THERMIQUE ON CACHE BOOL "Activate energy transfer.")

@@ -26,7 +26,3 @@ Cf. for example the :func:`ComPASS.timeloops.standard_loop` function.
 
 Simulation results can be prostprocess with ComPASS.prostprocess module.
 If you use docker container you can also use the :code:`posprocess` subcommand.
-
-
-
-

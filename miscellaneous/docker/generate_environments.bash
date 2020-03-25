@@ -7,7 +7,7 @@ docker build -t registry.gitlab.inria.fr/charms/compass/base-environment${REF_SL
 docker push registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG}
 
 # order is important because of environments dependencies 
-for evt in build run work doc
+for evt in build run work profiling doc
 do
     echo "Building ${evt}-environment${REF_SLUG}"
     docker build -t registry.gitlab.inria.fr/charms/compass/${evt}-environment${REF_SLUG} ${evt}

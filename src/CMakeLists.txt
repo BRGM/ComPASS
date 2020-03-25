@@ -12,21 +12,6 @@
 # When there is no longer hard-coded include directives this should be enough
 # add_subdirectory(core)
 
-
-# SCOREP is used or not used for all sources... to be refined later
-# scorep scripts (scorep-mpicc, scorep-mpicxx and scorep-mpif90) shall be on your path
-# scorep must also have been built with the --enable-shared option
-if(DEF_SCOREP_INSTRUMENTATION)
-    find_program(SCOREP_MPICC_SCRIPT scorep-mpicc)
-    find_program(SCOREP_MPICXX_SCRIPT scorep-mpicxx)
-    find_program(SCOREP_MPIF90_SCRIPT scorep-mpif90)
-    set(CMAKE_C_COMPILER ${SCOREP_MPICC_SCRIPT})
-    set(CMAKE_CXX_COMPILER ${SCOREP_MPICXX_SCRIPT})
-    set(CMAKE_Fortran_COMPILER ${SCOREP_MPIF90_SCRIPT})
-    # This will build a instrumented wrapper around the python interpreter
-    add_subdirectory(perfanalysis)
-endif(DEF_SCOREP_INSTRUMENTATION)
-
 # Configuration to be built
 # FIXME: include file
 # liquid_water, linear_liquid_water, water_with_tracer have been moved to attic
