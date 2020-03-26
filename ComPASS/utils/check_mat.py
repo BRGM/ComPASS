@@ -17,7 +17,7 @@ import scipy.version as scpver
 scipy_version = int(scpver.full_version.split('.')[1])
 
 if len(sys.argv)!=2:
-    print('to few arguments')
+    print('too few arguments')
     sys.exit(-1)
 
 basename = sys.argv[1]
@@ -150,4 +150,3 @@ def explore(s, v):
     print(s, np.min(av), np.mean(av), np.max(av))
 explore('b p part', b[::2])
 explore('b T part', b[1::2])
-
