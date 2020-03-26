@@ -125,7 +125,42 @@ def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
         remap = np.zeros(vertices.shape[0], dtype=well_vertices.dtype)
         remap[well_vertices] = 1
         remap = np.cumsum(remap) - 1
-
+        # FIXME: well.pressure has no real meaning for multiple phases (reference pressure ?)
+        welldata = {
+            name: np.ascontiguousarray(a)
+            for name, a in [
+                ("reservoir vertices id", well_vertices),
+                ("well pressure", well.pressure),
+                ("well temperature", K2degC(well.temperature)),
+                ("well pressure drop", well.pressure_drop),
+                ("well density", well.density),
+                ("Darcy WI", well.well_index_Darcy),
+                ("Fourier WI", well.well_index_Fourier),
+                ("reservoir pressure", node_states.p[well_vertices]),
+                ("reservoir temperature", K2degC(node_states.T[well_vertices])),
+                (
+                    "inflow",
+                    np.where(
+                        well.pressure < node_states.p[well_vertices],
+                        well.well_index_Darcy
+                        * (node_states.p[well_vertices] - well.pressure),
+                        0,
+                    ),
+                ),
+            ]
+        }
+        try:
+            welldata["well saturation pressure"] = np.ascontiguousarray(
+                simulation.Psat(well.temperature)
+            )
+        except AttributeError:
+            pass
+        try:
+            welldata["well saturation temperature"] = np.ascontiguousarray(
+                simulation.Tsat(well.pressure)
+            )
+        except AttributeError:
+            pass
         vtkw.write_vtu(
             vtkw.vtu_doc(
                 vertices[well_vertices],
@@ -135,30 +170,7 @@ def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
                         np.reshape(remap[well.parent_vertex], (-1, 1)),
                     ]
                 ),
-                pointdata={
-                    name: np.ascontiguousarray(a)
-                    for name, a in [
-                        ("reservoir vertices id", well_vertices),
-                        ("well pressure", well.pressure),
-                        ("well temperature", K2degC(well.temperature)),
-                        ("well pressure drop", well.pressure_drop),
-                        ("well density", well.density),
-                        ("Darcy WI", well.well_index_Darcy),
-                        ("Fourier WI", well.well_index_Fourier),
-                        ("reservoir pressure", node_states.p[well_vertices]),
-                        ("reservoir temperature", K2degC(node_states.T[well_vertices])),
-                        ("well saturation pressure", simulation.Psat(well.temperature)),
-                        (
-                            "inflow",
-                            np.where(
-                                well.pressure < node_states.p[well_vertices],
-                                well.well_index_Darcy
-                                * (node_states.p[well_vertices] - well.pressure),
-                                0,
-                            ),
-                        ),
-                    ]
-                },
+                pointdata=welldata,
             ),
             str(outputdir / _well_vtu_filename(wells_data[wk].id, tag)),
         )
