@@ -133,11 +133,11 @@ parallel_test:
 time_bulk_scripts:
   stage: test
   tags:
-    - test
+    - build
   except:
     - /^doc_.*$/
   script:
-    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG exec ./time_all_scripts.bash
+    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 -m ComPASS.utils.pool .
 
 reactive_transport_test:
   stage: test
