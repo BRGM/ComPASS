@@ -6,6 +6,8 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
+from petsc4py import PETSc
+
 from . import mpi
 from .newton import KspFailure, IterationExhaustion, NewtonFailure
 from .utils.units import time_string
@@ -21,6 +23,13 @@ class AllAttemptsFailed(Exception):
         self.attempts = attempts
 
 
+def explain_reason(reason):
+    possible_reasons = [ name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__") ] 
+    for name in possible_reasons:
+        if getattr(PETSc.KSP.ConvergedReason, name)==reason:
+            return name
+
+
 def try_timestep(
     deltat, newton, simulation_context,
 ):
@@ -33,7 +42,7 @@ def try_timestep(
         mpi.master_print(iterations)
     except KspFailure as e:        
         mpi.master_print(
-            'KSP failure - with reason', e.reason, 'after',
+            'KSP failure - with reason', explain_reason(e.reason), 'after',
             kernel.SolvePetsc_KspSolveIterationNumber(), 'iterations'
         )
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
