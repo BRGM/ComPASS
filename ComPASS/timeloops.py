@@ -52,6 +52,8 @@ class Snapshooter:
         if mpi.is_on_master_proc:
             with open(self.filename, 'a') as f:
                 print(tag, '%.12g'%t, file=f)
+                print ("[Snapshooter] Saving output at time:",t)
+
         self.dumper.dump_states(tag)
 
 n = 0 # iteration counter
