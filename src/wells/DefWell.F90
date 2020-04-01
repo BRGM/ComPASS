@@ -327,9 +327,9 @@ contains
 
       xc = 0.d0
       do m = connectivity%Pt(element) + 1, connectivity%Pt(element + 1)
-         xc = xc + vertices(:, connectivity%Num(element))
+         xc = xc + vertices(:, connectivity%Num(m))
       enddo
-      xc = xc / dble( connectivity%Pt(element + 1) - connectivity%Pt(element) )
+      xc = xc / dble( connectivity%Pt(element + 1) - (connectivity%Pt(element)))
    
    end subroutine element_center
 
@@ -353,6 +353,7 @@ contains
       if(k<=0) call CommonMPI_abort('negative permeability')
 #endif
       peaceman_radius = 0.14036d0 * dsqrt(2.d0) * d
+
       well_index = thickness * Pi * k / log(peaceman_radius / well_radius)
             
       if(peaceman_radius < well_radius) &
@@ -412,7 +413,6 @@ contains
 
       allocate (WI_global(NbNode))
       WI_global(:) = 0.d0
-
       !! MATRIX
       do i = 1, NbWell
          ! loop over the EDGES: (node,Parent(node)) for node=1,head_node-1
@@ -472,9 +472,11 @@ contains
             ! there is at least one frac in this node, compute wi
             if (comptFrac > 0) then
                meanThickness = meanThickness / dble( comptFrac )
-               call compute_peaceman_indices(meanDist, meanPerm, comptFrac, meanThickness, WellRadius(i), wi)
+               !Compute peaceman-indices, but for fractures  multiplying by a factor of 2 is necessary 
+               call compute_peaceman_indices(meanDist, meanPerm, comptFrac, 2*meanThickness, WellRadius(i), wi)
                ! contribution of the fracs to the node
-               WI_global(num_node) = WI_global(num_node) + wi
+                WI_global(num_node) = WI_global(num_node) + wi
+                              
             endif
          enddo
       enddo
