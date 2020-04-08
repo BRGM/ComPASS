@@ -15,6 +15,7 @@ from .utils.units import time_string
 from . import timestep
 from . import mpi
 from .dumps import Dumper
+from .options import get_callbacks_from_options
 from ._kernel import get_kernel
 
 
@@ -135,7 +136,7 @@ def standard_loop(simulation,
                     initial_timestep, max(initial_timestep, output_period),
             )
     if iteration_callbacks is None:
-        iteration_callbacks = tuple()
+        iteration_callbacks = get_callbacks_from_options()
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:
