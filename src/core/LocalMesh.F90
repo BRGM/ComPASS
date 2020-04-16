@@ -22,11 +22,12 @@ module LocalMesh
   use DefModel
   use DefWell
 #else
+  use iso_c_binding, only: c_int
   use CommonType, only: &
-    CSR, Array1IdNode, &
+    CSR, FamilyDOFId, FamilyDOFIdCOC, Array1IdNode, &
     ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
-    CommonType_deallocCSR
-  use CommonMPI, only: Ncpus
+    CommonType_deallocCSR, copy_sparsity_pattern
+  use CommonMPI, only: Ncpus, CommonMPI_abort
 
   use GlobalMesh, only: &
     Mesh_xmax, Mesh_xmin, Mesh_ymin, Mesh_ymax, Mesh_zmax, Mesh_zmin, &
@@ -142,7 +143,7 @@ module LocalMesh
 
 
   !! NumNode/Frac/WellbyProc_Ncpus(ip): node/frac/well num in the proc that this object is own
-  type(CSR), dimension(:), allocatable, public :: &
+  type(FamilyDOFIdCOC), dimension(:), allocatable, public :: &
        NumNodebyProc_Ncpus,    &
        NumFracbyProc_Ncpus,    &
        NumWellInjbyProc_Ncpus, &
@@ -252,13 +253,6 @@ module LocalMesh
        localbyGlobalFace,    &
        localbyGlobalNode
 
-  ! tmp vectors used to make NumNode/Frac/WellbyProc
-  integer, dimension(:), allocatable, private :: &
-       NumNodeGtoL,    &
-       NumFracGtoL,    &
-       NumWellInjGtoL, &
-       NumWellProdGtoL
-
   public :: &
        LocalMesh_Make, &
        LocalMesh_Free
@@ -320,15 +314,7 @@ module LocalMesh
        LocalMesh_NodeDatabyWellLocal, & ! make NodeDatabyWellLocal_Ncpus(ip1)
        !
        LocalMesh_FracToFace,       & ! make FracToFaceLocal(ip1)
-       LocalMesh_FaceToFrac,       & ! make FaceToFracLocal(ip1)
-       !
-       LocalMesh_NumNodebyProc,    & !
-       LocalMesh_NumFracbyProc,    & !
-       LocalMesh_NumWellbyProc,    & !
-       !
-       LocalMesh_NumNodeGtoL,      &
-       LocalMesh_NumFracGtoL,      &
-       LocalMesh_NumWellGtoL
+       LocalMesh_FaceToFrac
 
 contains
 
@@ -556,33 +542,10 @@ contains
     deallocate(localbyGlobalFace)
     deallocate(localbyGlobalNode)
 
-    ! NumNodeGtoL: global number of node -> local number of node in the proc that this node is own
-    call LocalMesh_NumNodeGtoL ! make vector NumNodeGtoL, used to make NumNodebyProc
-    ! NumNodebyProc contains the node num (local) in the proc that this node is own
-    allocate(NumNodebyProc_Ncpus(Ncpus))
-    do i=0, Ncpus-1
-       call LocalMesh_NumNodebyProc(i)
-    end do
-    deallocate(NumNodeGtoL)
-
-    ! NumFracbyProc
-    call LocalMesh_NumFracGtoL ! make vector NumFracGtoL, used to make NumFracbyProc
-    allocate(NumFracbyProc_Ncpus(Ncpus))
-    do i=0, Ncpus-1
-       call LocalMesh_NumFracbyProc(i)
-    end do
-    deallocate(NumFracGtoL)
-
-    ! NumWellGtoL: global number of well -> local number of well in the proc that this well is own
-    call LocalMesh_NumWellGtoL ! make vector NumWellGtoL, used to make NumWellbyProc
-    ! NumWellbyProc contains the well number (local) in the proc that this well is own
-    allocate(NumWellInjbyProc_Ncpus(Ncpus))
-    allocate(NumWellProdbyProc_Ncpus(Ncpus))
-    do i=0, Ncpus-1
-       call LocalMesh_NumWellbyProc(i)   ! NumWellInjbyProc(i+1)  (idem Prod)
-    end do
-    deallocate(NumWellInjGtoL)
-    deallocate(NumWellProdGtoL)
+    call LocalMesh_compute_local_info(NodebyProc, NbNode, NbNodeOwnS_Ncpus, NumNodebyProc_Ncpus)
+    call LocalMesh_compute_local_info(FracbyProc, NbFace, NbFracOwnS_Ncpus, NumFracbyProc_Ncpus)
+    call LocalMesh_compute_local_info(WellInjbyProc, NbWellInj, NbWellInjOwnS_Ncpus, NumWellInjbyProc_Ncpus)
+    call LocalMesh_compute_local_info(WellProdbyProc, NbWellProd, NbWellProdOwnS_Ncpus, NumWellProdbyProc_Ncpus)
 
     ! Mesh Size
     meshSizeS_xmax = Mesh_xmax
@@ -3052,268 +3015,91 @@ contains
 
   ! ************************************************************** !
 
-  ! Output:
-  !  NumNodebyProc_Ncpus(ip)
-  ! Use:
-  !  NodebyProc(ip), NumNodeGtoL
-  !  NbNodeRes/OwnS_Ncpus(ip)
-  !> \brief NumNodebyProc_Ncpus contains the node num (local) in the proc that this node is own
-  !                    %Val : in which proc
-  subroutine LocalMesh_NumNodebyProc(ip)
+#ifdef NDEBUG
+  pure &
+#endif
+  subroutine LocalMesh_compute_local_info(part_global_info, total_nb_elements, part_nb_owns, part_local_info)
+    type(CSR), dimension(:), target, intent(in) :: part_global_info
+    integer, intent(in) :: total_nb_elements
+    integer, intent(in) :: part_nb_owns(:)
+    type(FamilyDOFIdCOC), allocatable, dimension(:), target, intent(out) :: part_local_info
+    integer :: nb_parts, nb_neighbors, nb_nodes, i, k, proc, proc_k
+    type(FamilyDOFId), allocatable, dimension(:) :: GtoL_map
+    integer(c_int), pointer, dimension(:) :: offsets
 
-    integer, intent(in) :: ip
-    integer :: Nb, Nnz, ip1, i, j
+    allocate(GtoL_map(total_nb_elements))
+    call LocalMesh_make_GtoL_map(part_global_info, part_nb_owns, GtoL_map)
 
-    ip1 = ip + 1
+    nb_parts = size(part_global_info)
+    allocate(part_local_info(nb_parts))
 
-    Nb = NodebyProc(ip1)%Nb
-    Nnz = NodebyProc(ip1)%Pt(Nb+1)
+    do proc=1, nb_parts
 
-    allocate(NumNodebyProc_Ncpus(ip1)%Pt(Nb+1))
-    allocate(NumNodebyProc_Ncpus(ip1)%Num(Nnz))
-    allocate(NumNodebyProc_Ncpus(ip1)%Val(Nnz))
+      call copy_sparsity_pattern(part_global_info(proc), part_local_info(proc))
 
-    NumNodebyProc_Ncpus(ip1)%Nb = Nb
-    NumNodebyProc_Ncpus(ip1)%Pt(:) =  NodebyProc(ip1)%Pt(:)
-    NumNodebyProc_Ncpus(ip1)%Num(:) = 0
-    NumNodebyProc_Ncpus(ip1)%Val(:) = -1
+      nb_nodes = size(part_local_info(proc)%ids)
+      do i=1, nb_nodes
+         part_local_info(proc)%ids(i)%local_id = GtoL_map(part_global_info(proc)%Num(i))%local_id
+      end do
 
-    do i=1,Nb
-       do j=NodebyProc(ip1)%Pt(i)+1, NodebyProc(ip1)%Pt(i+1)
+      ! FIXME: part_global_info(proc)%Val has not the same size as NodebuProc%Num what is misleading!
+      !        part_global_info(proc)%Val actually stores the real proc id in a small vector (cf. code below)
+      offsets => part_local_info(proc)%offsets
+      nb_neighbors = part_global_info(proc)%Nb ! including proc
+      do k=1, nb_neighbors
+         proc_k = part_global_info(proc)%Val(k)
+         do i=offsets(k)+1, offsets(k+1)
+            part_local_info(proc)%ids(i)%proc = proc_k
+#ifndef NDEBUG
+            if(GtoL_map(part_global_info(proc)%Num(i))%proc/=proc_k) &
+               call CommonMPI_abort("Inconsistent proc id")
+#endif
+         end do
+      end do
 
-          ! transform using NumNodeGtoL
-          NumNodebyProc_Ncpus(ip1)%Num(j) = &
-               NumNodeGtoL( NodebyProc(ip1)%Num(j) )
-       end do
-    end do
+     end do
 
-    ! Rq:
-    ! NodebyProc%Val(i)    : row i is in which proc, where i=1:Nb
-    ! NumNodebyProc%Val(i) : each node is in which proc, whiere i=1,Nnz
-    ! the definition of NumNodebyProc%Val here is not same with NodebyProc%Val
-    !   in NodebyProc, its size is Nb (for each row)
-    !   in NumNodebyProc, its size is Nnz (for each element)
-    do i=1,Nb
-       do j=NodebyProc(ip1)%Pt(i)+1, NodebyProc(ip1)%Pt(i+1)
+     deallocate(GtoL_map)
 
-          NumNodebyProc_Ncpus(ip1)%Val(j) &
-               =  NodebyProc(ip1)%Val(i)
-       end do
-    end do
+  end subroutine LocalMesh_compute_local_info
 
+#ifdef NDEBUG
+  pure &
+#endif
+subroutine LocalMesh_make_GtoL_map(partition, nb_owns, GtoL_map)
+   type(CSR), dimension(:), intent(in) :: partition
+   integer, intent(in) :: nb_owns(:)
+   type(FamilyDOFId), allocatable, dimension(:), intent(inout) :: GtoL_map
 
-  end subroutine LocalMesh_NumNodebyProc
+   integer :: i, proc, global_id
+   type(FamilyDOFId) :: default_dof_id
 
-  ! Output:
-  !  NumFracbyProc_Ncpus(ip)
-  ! Use:
-  !  FracbyProc(ip), NumFracGtoL
-  !  NbFracRes/OwnS_Ncpus(ip)
-  !> \brief Contains num of frac (local) in the proc that this frac is own
-  subroutine LocalMesh_NumFracbyProc(ip)
+#ifndef NDEBUG
+      if(.not.allocated(GtoL_map)) &
+         call CommonMPI_abort("GtoL_map should already be a valid pointer")
+#endif
 
-    integer, intent(in) :: ip
-    integer :: Nb, Nnz, ip1, i, j
+   default_dof_id%proc = -1
+   default_dof_id%local_id = 0
+   do i=1, size(GtoL_map)
+      GtoL_map(i) = default_dof_id
+   end do
 
-    ip1 = ip + 1
+   do proc=1, size(partition)
+#ifndef NDEBUG
+      if(nb_owns(proc)>partition(proc)%Pt(partition(proc)%Nb+1)) then
+         write(*,*) "Weird partition: proc", proc, "nb owns", nb_owns(proc), "csr Nb", partition(proc)%Nb
+         call CommonMPI_abort("Inconsistent partition")
+      end if
+#endif
+      do i=1, nb_owns(proc)
+         global_id = partition(proc)%Num(i)
+         GtoL_map(global_id)%proc = proc - 1 ! C indexing, master proc rank is 0
+         ! the ith DOF is owned by proc (i <= nb_owns(proc))
+         GtoL_map(global_id)%local_id = i
+      end do
+   end do
 
-    Nb = FracbyProc(ip1)%Nb
-    Nnz = FracbyProc(ip1)%Pt(Nb+1)
-
-    allocate(NumFracbyProc_Ncpus(ip1)%Pt(Nb+1))
-    allocate(NumFracbyProc_Ncpus(ip1)%Num(Nnz))
-    allocate(NumFracbyProc_Ncpus(ip1)%Val(Nnz))
-
-    NumFracbyProc_Ncpus(ip1)%Nb = Nb
-    NumFracbyProc_Ncpus(ip1)%Pt(:) =  FracbyProc(ip1)%Pt(:)
-    NumFracbyProc_Ncpus(ip1)%Num(:) = 0
-    NumFracbyProc_Ncpus(ip1)%Val(:) = -1
-
-    do i=1,Nb
-       do j=FracbyProc(ip1)%Pt(i)+1, FracbyProc(ip1)%Pt(i+1)
-
-          NumFracbyProc_Ncpus(ip1)%Num(j) = &
-               NumFracGtoL( FracbyProc(ip1)%Num(j) )
-       end do
-    end do
-
-    ! Rq:
-    ! FracbyProc%Val(i)    : row i is in which proc, where i=1:Nb
-    ! NumFracbyProc%Val(i) : each frac is in which proc, whiere i=1,Nnz
-    do i=1,Nb
-       do j=FracbyProc(ip1)%Pt(i)+1, FracbyProc(ip1)%Pt(i+1)
-
-          NumFracbyProc_Ncpus(ip1)%Val(j) = &
-               FracbyProc(ip1)%Val(i)
-       end do
-    end do
-
-  end subroutine LocalMesh_NumFracbyProc
-
-  ! Output:
-  !  NumWellbyProc_Ncpus(ip)
-  ! Use:
-  !  WellbyProc(ip), NumWellGtoL
-  !  NbWellRes/OwnS_Ncpus(ip)
-  !> \brief Contains num of well (local) in the proc that this well is own          <br>
-  !!                    %Val : in which proc
-  subroutine LocalMesh_NumWellbyProc(ip)
-
-    integer, intent(in) :: ip
-    integer :: Nb, Nnz, ip1, i, j
-
-    ip1 = ip + 1
-
-    !! INJ WELL
-    Nb = WellInjbyProc(ip1)%Nb
-    Nnz = WellInjbyProc(ip1)%Pt(Nb+1)
-
-    allocate(NumWellInjbyProc_Ncpus(ip1)%Pt(Nb+1))
-    allocate(NumWellInjbyProc_Ncpus(ip1)%Num(Nnz))
-    allocate(NumWellInjbyProc_Ncpus(ip1)%Val(Nnz))
-
-    NumWellInjbyProc_Ncpus(ip1)%Nb = Nb
-    NumWellInjbyProc_Ncpus(ip1)%Pt(:) =  WellInjbyProc(ip1)%Pt(:)
-    NumWellInjbyProc_Ncpus(ip1)%Num(:) = 0
-    NumWellInjbyProc_Ncpus(ip1)%Val(:) = -1
-
-    do i=1,Nb
-       do j=WellInjbyProc(ip1)%Pt(i)+1, WellInjbyProc(ip1)%Pt(i+1)
-
-          ! transform using NumWellInjGtoL
-          NumWellInjbyProc_Ncpus(ip1)%Num(j) = &
-               NumWellInjGtoL( WellInjbyProc(ip1)%Num(j) )
-       end do
-    end do
-
-    ! Rq:
-    ! the definition of NumWellInjbyProc%Val here is not same with WellInjbyProc%Val
-    !   in WellInjbyProc, its size is Nb (for each row)
-    !   in NumWellInjbyProc, its size is Nnz (for each element)
-    !   WellInjbyProc%Val(i)    : row i is in which proc, where i=1:Nb
-    !   NumWellInjbyProc%Val(i) : each WellInj is in which proc, whiere i=1,Nnz
-    do i=1,Nb
-       do j=WellInjbyProc(ip1)%Pt(i)+1, WellInjbyProc(ip1)%Pt(i+1)
-
-          NumWellInjbyProc_Ncpus(ip1)%Val(j) &
-               =  WellInjbyProc(ip1)%Val(i)
-       end do
-    end do
-
-    !! PROD WELL
-    Nb = WellProdbyProc(ip1)%Nb
-    Nnz = WellProdbyProc(ip1)%Pt(Nb+1)
-
-    allocate(NumWellProdbyProc_Ncpus(ip1)%Pt(Nb+1))
-    allocate(NumWellProdbyProc_Ncpus(ip1)%Num(Nnz))
-    allocate(NumWellProdbyProc_Ncpus(ip1)%Val(Nnz))
-
-    NumWellProdbyProc_Ncpus(ip1)%Nb = Nb
-    NumWellProdbyProc_Ncpus(ip1)%Pt(:) =  WellProdbyProc(ip1)%Pt(:)
-    NumWellProdbyProc_Ncpus(ip1)%Num(:) = 0
-    NumWellProdbyProc_Ncpus(ip1)%Val(:) = -1
-
-    do i=1,Nb
-       do j=WellProdbyProc(ip1)%Pt(i)+1, WellProdbyProc(ip1)%Pt(i+1)
-
-          ! transform using NumWellProdGtoL
-          NumWellProdbyProc_Ncpus(ip1)%Num(j) = &
-               NumWellProdGtoL( WellProdbyProc(ip1)%Num(j) )
-       end do
-    end do
-
-    ! Rq:
-    ! WellProdbyProc%Val(i)    : row i is in which proc, where i=1:Nb
-    ! NumWellProdbyProc%Val(i) : each WellProd is in which proc, whiere i=1,Nnz
-    ! the definition of NumWellProdbyProc%Val here is not same with WellProdbyProc%Val
-    !   in WellProdbyProc, its size is Nb (for each row)
-    !   in NumWellProdbyProc, its size is Nnz (for each element)
-    do i=1,Nb
-       do j=WellProdbyProc(ip1)%Pt(i)+1, WellProdbyProc(ip1)%Pt(i+1)
-
-          NumWellProdbyProc_Ncpus(ip1)%Val(j) &
-               =  WellProdbyProc(ip1)%Val(i)
-       end do
-    end do
-
-  end subroutine LocalMesh_NumWellbyProc
-
-
-  ! Ouput:
-  !  NumNodeGtoL
-  ! Use:
-  !  NodebyProc(:), NbNodeOwnS_Ncpus(:)
-  !> \brief NumNodeGtoL is a vector used to make NumNodebyProc from NodebyProc, 
-  !! Size is NbNode, 
-  !! NumNodeGtoL(i) is the num (local) of node i in the proc that i is own
-  subroutine LocalMesh_NumNodeGtoL
-
-    integer :: p, j
-
-    allocate(NumNodeGtoL(NbNode))
-    NumNodeGtoL(:) = 0
-
-    do p=1,Ncpus
-       do j=1, NbNodeOwnS_Ncpus(p)    ! j is local number of node own in proc p
-          NumNodeGtoL( NodebyProc(p)%Num(j) ) = j
-       end do
-    end do
-
-  end subroutine LocalMesh_NumNodeGtoL
-
-  ! Output:
-  !  NumFracGtoL
-  ! Use:
-  !  FracbyProc(:), NbFracOwnS_Ncpus(:)
-  !> \brief NumFracGtoL is a vector used to make NumFracbyProc from FracbyProc, 
-  !! Size is NbFace, 
-  !! NumFracGtoL(i) is the num (local) of frac i in the proc that i is own
-  subroutine LocalMesh_NumFracGtoL
-
-    integer :: p, j
-
-    allocate(NumFracGtoL(NbFace)) ! size is NbFace, not NbFrac
-    NumFracGtoL(:) = 0
-
-    do p=1,Ncpus
-       do j=1, NbFracOwnS_Ncpus(p)    ! j is local number of frac own in proc p
-          NumFracGtoL( FracbyProc(p)%Num(j) ) = j
-       end do
-    end do
-
-  end subroutine LocalMesh_NumFracGtoL
-
-  ! Ouput:
-  !  NumWellGtoL
-  ! Use:
-  !  WellbyProc(:), NbWellOwnS_Ncpus(:)
-  !> \brief NumWellGtoL is a vector used to make NumWellbyProc from WellbyProc, 
-  !! Size is NbWell, 
-  !! NumWellGtoL(i) is the num (local) of Well i in the proc that i is own
-  subroutine LocalMesh_NumWellGtoL
-
-    integer :: p, j
-
-    !! INJ WELL
-    allocate(NumWellInjGtoL(NbWellInj))
-    NumWellInjGtoL(:) = 0
-
-    do p=1,Ncpus
-       do j=1, NbWellInjOwnS_Ncpus(p)    ! j is local number of WellInj own in proc p
-          NumWellInjGtoL( WellInjbyProc(p)%Num(j) ) = j
-       end do
-    end do
-
-    !! PROD WELL
-    allocate(NumWellProdGtoL(NbWellProd))
-    NumWellProdGtoL(:) = 0
-
-    do p=1,Ncpus
-       do j=1, NbWellProdOwnS_Ncpus(p)    ! j is local number of WellProd own in proc p
-          NumWellProdGtoL( WellProdbyProc(p)%Num(j) ) = j
-       end do
-    end do
-
-  end subroutine LocalMesh_NumWellGtoL
+  end subroutine LocalMesh_make_GtoL_map
 
 end module LocalMesh

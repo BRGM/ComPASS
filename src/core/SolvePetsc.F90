@@ -15,6 +15,7 @@ module SolvePetsc
   use iso_c_binding, only: c_bool, c_int, c_double, c_ptr, c_f_pointer
 
   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
+  use CommonType, only: FamilyDOFIdCOC
   use DefModel, only: psprim, NbCompThermique, NbContexte
   use IncCVReservoir, only: IncNode, IncFrac
   use MeshSchema, only: &
@@ -1748,7 +1749,6 @@ contains
 
     PetscViewer :: viewer
     PetscErrorCode :: Ierr
-    integer :: errcode
 
     call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename) // '_structure.dat', viewer, ierr)
     CHKERRQ(Ierr)
@@ -1944,7 +1944,8 @@ contains
   ! ColLToColG(i): gloabl col i in A_mpi where i is col in JacA
   subroutine SolvePetsc_LtoG
 
-    integer :: i, ipc, j, start, ndisp
+    integer :: i, start, ndisp
+    integer :: local_block_col_offset, global_col_offset(Ncpus)
 
     ! RowLtoRowG
     ! idea: add sum of numbers of own nodes/frac/well in the procs before commRank (rowstart)
@@ -1964,86 +1965,56 @@ contains
     end do
 
     ! Colltocolg(i), where i is in (node local, frac local, well local)
-    allocate( ColLToColG(NbNodeLocal+NbFracLocal &
-         + NbWellInjLocal+NbWellProdLocal) )
+    allocate( ColLToColG(NbNodeLocal+NbFracLocal + NbWellInjLocal +NbWellProdLocal) )
     ColLToColG(:) = 0
 
-    ! part node local in ColLtocolG
-    do i=1, NumNodebyProc%Nb
-       do j=NumNodebyProc%Pt(i)+1, NumNodebyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumNodebyProc%Val(j)
-
-          ColLToColG(j) = (NumNodebyProc%Num(j)-1) * NbCompThermique + 1  &
-               + colstart(ipc+1)
-       end do
-    end do
-
-    ! part frac in ColLtocolG
-    do i=1,NumFracbyProc%Nb
-       do j=NumFracbyProc%Pt(i)+1, NumFracbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumFracbyProc%Val(j)
-
-          ColLToColG(j+NbNodeLocal) = (NumFracbyProc%Num(j)-1) * NbCompThermique + 1 &
-               + colstart(ipc+1) + NbNodeOwn_Ncpus(ipc+1) * NbCompThermique ! frac is after node own in proc ipc
-
-
-          ! if(commRank==0 .and. i==2) then
-          !    print*, NumFracbyProc%Num(j), j+NbNodeLocal, ColLToColG(j+NbNodeLocal)
-          ! end if
-
-       end do
-    end do
-
-    ! part well inj in ColLtoColG
-    start = NbNodeLocal + NbFracLocal
-    do i=1, NumWellInjbyProc%Nb
-
-       do j=NumWellInjbyProc%Pt(i)+1, NumWellInjbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumWellInjbyProc%Val(j)
-
-          ColLToColG(j+start) = &
-          NumWellInjbyProc%Num(j) &
-               + colstart(ipc+1) &
-               + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique
-       end do
-    end do
-
-    ! part well prod in ColLtoColG
-    start = NbNodeLocal + NbFracLocal + NbWellInjLocal
-    do i=1, NumWellProdbyProc%Nb
-
-       do j=NumWellProdbyProc%Pt(i)+1, NumWellProdbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumWellProdbyProc%Val(j)
-
-          ColLToColG(j+start) = &
-          NumWellProdbyProc%Num(j) &
-               + colstart(ipc+1) &
-               + (NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)) * NbCompThermique &
-               + NbWellInjOwn_Ncpus(ipc+1)
-       end do
-    end do
-
-    ! if(commRank==1) then
-    !    print*, ""
-    !    print*, ""
-    !    print*, ColLToColG
-    ! end if
+    local_block_col_offset = 0
+    global_col_offset = colstart
+    call SolvePetsc_LtoG_fill_ColLToColG(&
+      local_block_col_offset, global_col_offset, NumNodebyProc, NbCompThermique, ColLToColG)
+    local_block_col_offset = local_block_col_offset + NbNodeLocal
+    global_col_offset = global_col_offset + NbCompThermique * NbNodeOwn_Ncpus
+    if(NbFracLocal>0) then
+      call SolvePetsc_LtoG_fill_ColLToColG(&
+         local_block_col_offset, global_col_offset, NumFracbyProc, NbCompThermique, ColLToColG)
+      local_block_col_offset = local_block_col_offset + NbFracLocal
+    end if
+    global_col_offset = global_col_offset + NbCompThermique * NbFracOwn_Ncpus
+    if(NbWellInjLocal>0) then
+      call SolvePetsc_LtoG_fill_ColLToColG(&
+         local_block_col_offset, global_col_offset, NumWellInjbyProc, 1, ColLToColG)
+      local_block_col_offset = local_block_col_offset + NbWellInjLocal
+    endif
+    global_col_offset = global_col_offset + NbWellInjOwn_Ncpus
+    if(NbWellProdLocal>0) then
+      call SolvePetsc_LtoG_fill_ColLToColG(&
+         local_block_col_offset, global_col_offset, NumWellProdbyProc, 1, ColLToColG)
+      ! local_block_col_offset = local_block_col_offset + NbWellProdLocal
+    endif
+    ! global_col_offset = global_col_offset + NbWellProdOwn_Ncpus
 
   end subroutine SolvePetsc_LtoG
 
+  subroutine SolvePetsc_LtoG_fill_ColLToColG(local_block_offset, global_col_offset, dof_family, dof_size, LtoG_col_map)
+    integer, intent(in) :: local_block_offset ! offset in terms of local blocks
+    integer, dimension(Ncpus), intent(in) :: global_col_offset
+    type(FamilyDOFIdCOC), intent(in) :: dof_family
+    integer, intent(in) :: dof_size
+    integer, dimension(:), intent(inout) :: LtoG_col_map
 
+    integer :: i, proc, local_id
+
+    do i=1, size(dof_family%ids)
+      proc = dof_family%ids(i)%proc
+      local_id = dof_family%ids(i)%local_id
+      LtoG_col_map(local_block_offset + i) =  global_col_offset(proc+1) + (local_id - 1) * dof_size + 1
+    end do
+
+  end subroutine SolvePetsc_LtoG_fill_ColLToColG
 
   subroutine SolvePetsc_LtoGBlock
 
-    integer :: i, ipc, j, start
+    integer :: i, local_block_col_offset, global_block_col_offset(Ncpus)
 
     ! RowLtoRowGBlock
     ! idea: add sum of numbers of own nodes/frac/well in the procs before commRank (rowstart)
@@ -2051,72 +2022,57 @@ contains
     do i=1, NBlockrowL
        RowLToRowGBlock(i) = Blockrowstart(commRank+1) + i
     end do
-
     ! ColLtoColGBlock(i), where i is in (node local, frac local, well local)
-    allocate( ColLToColGBlock(NbNodeLocal+NbFracLocal &
-         + NbWellInjLocal+NbWellProdLocal) )
+    allocate( ColLToColGBlock(NbNodeLocal+NbFracLocal + NbWellInjLocal+NbWellProdLocal) )
     ColLToColGBlock(:) = 0
 
-    ! part node local in ColLtocolGBlock
-    do i=1, NumNodebyProc%Nb
+    local_block_col_offset = 0
+    global_block_col_offset = Blockcolstart
+    call SolvePetsc_LtoGBlock_fill_ColLToColGBlock( &
+      local_block_col_offset, global_block_col_offset, NumNodebyProc, ColLToColGBlock)
+    local_block_col_offset = local_block_col_offset + NbNodeLocal
+    global_block_col_offset = global_block_col_offset + NbNodeOwn_Ncpus
+    if(NbFracLocal>0) then
+      call SolvePetsc_LtoGBlock_fill_ColLToColGBlock( &
+         local_block_col_offset, global_block_col_offset, NumFracbyProc, ColLToColGBlock)
+      local_block_col_offset = local_block_col_offset + NbFracLocal
+      global_block_col_offset = global_block_col_offset + NbFracOwn_Ncpus
+    end if
+    if(NbWellInjLocal>0) then
+      call SolvePetsc_LtoGBlock_fill_ColLToColGBlock( &
+         local_block_col_offset, global_block_col_offset, NumWellInjbyProc, ColLToColGBlock)
+      local_block_col_offset = local_block_col_offset + NbWellInjLocal
+    end if
+    global_block_col_offset = global_block_col_offset + NbWellInjOwn_Ncpus
+    if(NbWellProdLocal>0) then
+      call SolvePetsc_LtoGBlock_fill_ColLToColGBlock( &
+         local_block_col_offset, global_block_col_offset, NumWellProdbyProc, ColLToColGBlock)
+      ! local_block_col_offset = local_block_col_offset + NbWellProdLocal
+    end if
+    ! global_block_col_offset = global_block_col_offset + NbWellProdOwn_Ncpus
 
-       do j=NumNodebyProc%Pt(i)+1, NumNodebyProc%Pt(i+1)
+end subroutine SolvePetsc_LtoGBlock
 
-          ! j is in proc ipc
-          ipc = NumNodebyProc%Val(j)
+!> Computes the offset in terms of dof_sizexdof_size small (dense) blocks
+subroutine SolvePetsc_LtoGBlock_fill_ColLToColGBlock(local_col_offset, global_block_col_offset, dof_family, LtoG_block_col_map)
+   integer, intent(in) :: local_col_offset
+   integer, dimension(Ncpus), intent(in) :: global_block_col_offset
+   type(FamilyDOFIdCOC), intent(in) :: dof_family
+   integer, dimension(:), intent(inout) :: LtoG_block_col_map
 
-          ColLToColGBlock(j) = NumNodebyProc%Num(j) + Blockcolstart(ipc+1)
-       end do
-    end do
+   integer :: nb_proc, i, p, proc, local_id
 
-    ! part frac in ColLtocolGBlock
-    do i=1,NumFracbyProc%Nb
+   nb_proc = size(dof_family%offsets) - 1
+   if(nb_proc<1) call CommonMPI_abort("Inconsistent number of procs")
+   do p=1, nb_proc
+      do i=dof_family%offsets(p)+1, dof_family%offsets(p+1)
+         proc = dof_family%ids(i)%proc
+         local_id = dof_family%ids(i)%local_id
+         LtoG_block_col_map(local_col_offset + i) = global_block_col_offset(proc+1) + local_id
+      end do
+   end do
 
-       do j=NumFracbyProc%Pt(i)+1, NumFracbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumFracbyProc%Val(j)
-
-          ColLToColGBlock(j+NbNodeLocal) = NumFracbyProc%Num(j) + Blockcolstart(ipc+1) &
-               + NbNodeOwn_Ncpus(ipc+1) ! frac is after node own in proc ipc
-       end do
-    end do
-
-    ! part well inj in ColLtoColGBlock
-    start = NbNodeLocal + NbFracLocal
-    do i=1, NumWellInjbyProc%Nb
-
-       do j=NumWellInjbyProc%Pt(i)+1, NumWellInjbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumWellInjbyProc%Val(j)
-
-          ColLToColGBlock(j+start) = NumWellInjbyProc%Num(j) + Blockcolstart(ipc+1) &
-               + NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1)
-       end do
-    end do
-
-    ! part well prod in ColLtoColGBlock
-    start = NbNodeLocal + NbFracLocal + NbWellInjLocal
-    do i=1, NumWellProdbyProc%Nb
-
-       do j=NumWellProdbyProc%Pt(i)+1, NumWellProdbyProc%Pt(i+1)
-
-          ! j is in proc ipc
-          ipc = NumWellProdbyProc%Val(j)
-
-          ColLToColGBlock(j+start) = NumWellProdbyProc%Num(j) + Blockcolstart(ipc+1) &
-               + NbNodeOwn_Ncpus(ipc+1) + NbFracOwn_Ncpus(ipc+1) + NbWellInjOwn_Ncpus(ipc+1)
-       end do
-    end do
-
-    ! if(commRank==1) then
-    !    print*, ""
-    !    print*, ""
-    !    print*, ColLToColGBlock
-    ! end if
-
-  end subroutine SolvePetsc_LtoGBlock
+end subroutine SolvePetsc_LtoGBlock_fill_ColLToColGBlock
 
 end module SolvePetsc
 

@@ -16,7 +16,8 @@ module MeshSchema
   use CommonType, only: &
     Type_IdNode, CSR, &
     VALSIZE_NB, VALSIZE_NNZ, VALSIZE_ZERO, &
-    CommonType_deallocCSR, CommonType_csrcopy
+    FamilyDOFId, FamilyDOFIdCOC, check_FamilyDOFIdCOC, create_FamilyDOFId_MPI_struct, &
+    CommonType_deallocCSR, CommonType_csrcopy, free_ComPASS_struct
   use DefModel, only: IndThermique, NbPhase, NbComp
 
   use DefWell, only: &
@@ -167,7 +168,7 @@ module MeshSchema
        FaceToFracLocal
 
   ! 6. NumNodebyProc, NumFracbyProc
-  type(CSR), protected:: &
+  type(FamilyDOFIdCOC), protected:: &
        NumNodebyProc,    &
        NumFracbyProc,    &
        NumWellInjbyProc, &
@@ -1347,44 +1348,7 @@ contains
        deallocate(FaceToFracLocal_Ncpus)
     end if
 
-
-    ! ********************************** !
-
-    ! Send NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
-    if(commRank==0) then
-       do i=1,Ncpus-1
-          call MeshSchema_csrsend(NumNodebyProc_Ncpus(i+1), i, 100, VALSIZE_NNZ)
-          call MeshSchema_csrsend(NumFracbyProc_Ncpus(i+1), i, 300, VALSIZE_NNZ)
-          call MeshSchema_csrsend(NumWellInjbyProc_Ncpus(i+1), i, 500, VALSIZE_NNZ)
-          call MeshSchema_csrsend(NumWellProdbyProc_Ncpus(i+1), i, 700, VALSIZE_NNZ)
-       end do
-
-       call CommonType_csrcopy(NumNodebyProc_Ncpus(1), NumNodebyProc, VALSIZE_NNZ)
-       call CommonType_csrcopy(NumFracbyProc_Ncpus(1), NumFracbyProc, VALSIZE_NNZ)
-       call CommonType_csrcopy(NumWellInjbyProc_Ncpus(1), NumWellInjbyProc, VALSIZE_NNZ)
-       call CommonType_csrcopy(NumWellProdbyProc_Ncpus(1), NumWellProdbyProc, VALSIZE_NNZ)
-
-    else
-       call MeshSchema_csrrecv(NumNodebyProc, 0, 100, VALSIZE_NNZ)
-       call MeshSchema_csrrecv(NumFracbyProc, 0, 300, VALSIZE_NNZ)
-       call MeshSchema_csrrecv(NumWellInjbyProc, 0, 500, VALSIZE_NNZ)
-       call MeshSchema_csrrecv(NumWellProdbyProc, 0, 700, VALSIZE_NNZ)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          call CommonType_deallocCSR(NumNodebyProc_Ncpus(i))
-          call CommonType_deallocCSR(NumFracbyProc_Ncpus(i))
-          call CommonType_deallocCSR(NumWellInjbyProc_Ncpus(i))
-          call CommonType_deallocCSR(NumWellProdbyProc_Ncpus(i))
-       end do
-       deallocate(NumNodebyProc_Ncpus)
-       deallocate(NumFracbyProc_Ncpus)
-       deallocate(NumWellInjbyProc_Ncpus)
-       deallocate(NumWellProdbyProc_Ncpus)
-    end if
-
-    ! ******************************* !
+    call MeshSchema_send_recv_FamilyDOFIdCOC
 
     ! send PorositeCell
     if (commRank==0) then
@@ -1750,7 +1714,87 @@ contains
 
   end subroutine MeshSchema_csrdatawellrecv
 
-  ! Output:
+  subroutine MeshSchema_send_FamilyDOFIdCOC(fidcoc, mpi_struct_id, dest, tag)
+
+   type(FamilyDOFIdCOC), intent(in) :: fidcoc
+   integer, intent(in) :: mpi_struct_id, dest, tag
+
+   integer n, Ierr
+
+   n = size(fidcoc%offsets)
+   call MPI_Send(n, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
+   call MPI_Send(fidcoc%offsets, n, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
+#ifndef NDEBUG
+   if(.not.check_FamilyDOFIdCOC(fidcoc)) &
+      call CommonMPI_abort("Inconsistent input COC")
+#endif
+   n = size(fidcoc%ids)
+   call MPI_Send(fidcoc%ids, n, mpi_struct_id, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
+
+  end subroutine MeshSchema_send_FamilyDOFIdCOC
+
+  subroutine MeshSchema_recv_FamilyDOFIdCOC(fidcoc, mpi_struct_id, source, tag)
+
+   type(FamilyDOFIdCOC), intent(inout) :: fidcoc
+   integer, intent(in) :: mpi_struct_id, source, tag
+
+   integer n, Ierr
+   integer stat(MPI_STATUS_SIZE)
+
+   call MPI_Recv(n, 1, MPI_INTEGER, source, tag+1, ComPASS_COMM_WORLD, stat, Ierr)
+   allocate(fidcoc%offsets(n))
+   call MPI_Recv(fidcoc%offsets, n, MPI_INTEGER, source, tag+2, ComPASS_COMM_WORLD, stat, Ierr)
+   n = fidcoc%offsets(n)
+   allocate(fidcoc%ids(n))
+   call MPI_Recv(fidcoc%ids, n, mpi_struct_id, source, tag+3, ComPASS_COMM_WORLD, stat, Ierr)
+
+ end subroutine MeshSchema_recv_FamilyDOFIdCOC
+
+ subroutine MeshSchema_send_recv_FamilyDOFIdCOC()
+
+   integer :: i, Ierr
+   integer :: mpi_FamilyDOFIdCOC_id ! FIXME: use MPI_DATATYPE
+
+   mpi_FamilyDOFIdCOC_id = create_FamilyDOFId_MPI_struct()
+   call MPI_Type_commit(mpi_FamilyDOFIdCOC_id, Ierr)
+
+   if(commRank==0) then
+      do i=1, Ncpus-1
+         call MeshSchema_send_FamilyDOFIdCOC(NumNodebyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 100)
+         call MeshSchema_send_FamilyDOFIdCOC(NumFracbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 300)
+         call MeshSchema_send_FamilyDOFIdCOC(NumWellInjbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 500)
+         call MeshSchema_send_FamilyDOFIdCOC(NumWellProdbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 700)
+      end do
+      NumNodebyProc = NumNodebyProc_Ncpus(1)
+      NumFracbyProc = NumFracbyProc_Ncpus(1)
+      NumWellInjbyProc = NumWellInjbyProc_Ncpus(1)
+      NumWellProdbyProc = NumWellProdbyProc_Ncpus(1)
+   else
+      call MeshSchema_recv_FamilyDOFIdCOC(NumNodebyProc, mpi_FamilyDOFIdCOC_id, 0, 100)
+      call MeshSchema_recv_FamilyDOFIdCOC(NumFracbyProc, mpi_FamilyDOFIdCOC_id, 0, 300)
+      call MeshSchema_recv_FamilyDOFIdCOC(NumWellInjbyProc, mpi_FamilyDOFIdCOC_id, 0, 500)
+      call MeshSchema_recv_FamilyDOFIdCOC(NumWellProdbyProc, mpi_FamilyDOFIdCOC_id, 0, 700)
+   end if
+
+   ! CHECKME: from Fortran 2003 nested allocatable are automatically deallocated
+   if(commRank==0) then
+      do i=1, Ncpus
+         call free_ComPASS_struct(NumNodebyProc_Ncpus(i))
+         call free_ComPASS_struct(NumFracbyProc_Ncpus(i))
+         call free_ComPASS_struct(NumWellInjbyProc_Ncpus(i))
+         call free_ComPASS_struct(NumWellProdbyProc_Ncpus(i))
+      end do
+      deallocate(NumNodebyProc_Ncpus)
+      deallocate(NumFracbyProc_Ncpus)
+      deallocate(NumWellInjbyProc_Ncpus)
+      deallocate(NumWellProdbyProc_Ncpus)
+   end if
+
+   call MPI_Type_free(mpi_FamilyDOFIdCOC_id, Ierr)
+
+  end subroutine MeshSchema_send_recv_FamilyDOFIdCOC
+
+ ! Output:
   !  NumNodebyEdgebyWellLocal
   ! Input:
   !  NodeDatabyWellLocal
@@ -2185,8 +2229,10 @@ contains
     deallocate(FracToFaceLocal)
     deallocate(FaceToFracLocal)
 
-    call CommonType_deallocCSR(NumNodebyProc)
-    call CommonType_deallocCSR(NumFracbyProc)
+    call free_ComPASS_struct(NumNodebyProc)
+    call free_ComPASS_struct(NumFracbyProc)
+    call free_ComPASS_struct(NumWellInjbyProc)
+    call free_ComPASS_struct(NumWellProdbyProc)
 
     deallocate(NbEdgebyWellInjLocal)
     deallocate(NbEdgebyWellProdLocal)

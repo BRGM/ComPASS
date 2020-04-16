@@ -12,6 +12,8 @@ module CommonType
   use iso_c_binding, only: &
      c_int, c_int8_t, c_char, c_double
 
+  use mpi
+
   use CommonMPI, only: &
      CommonMPI_abort
 
@@ -72,6 +74,23 @@ module CommonType
     integer(kind=c_int), allocatable, dimension(:) :: Num
   end type COC
 
+  type DOFInfo
+     integer(c_int) :: proc
+     integer(c_int) :: row
+  end type DOFInfo
+
+  !> Any Degree of Freddom id owned by a single proc (but may have ghost copies)
+  !> local_id is the id in a given family (Node, Fractures...)
+  type, bind(C) :: FamilyDOFId
+     integer(c_int) :: proc
+     integer(c_int) :: local_id
+  end type FamilyDOFId
+
+  type FamilyDOFIdCOC
+    integer(c_int), allocatable, dimension(:) :: offsets
+    type(FamilyDOFId), allocatable, dimension(:) :: ids
+  end type FamilyDOFIdCOC
+
   type FractureInfo
     integer(kind=c_int)                            :: face
     integer(kind=c_int)                            :: fracture
@@ -129,7 +148,9 @@ module CommonType
 
   !> to allow = between two TYPE_IdNode
   interface assignment(=)
-     module procedure assign_IdNode_equal
+    module procedure assign_IdNode_equal
+    module procedure copy_FamilyDOFId
+    module procedure copy_FamilyDOFIdCOC
   end interface assignment(=)
 
     interface first_of_all
@@ -147,6 +168,15 @@ module CommonType
     interface row_view
       module procedure CSR_row_view
     end interface row_view
+
+    interface copy_sparsity_pattern
+      module procedure copy_CSR_sparsity_pattern
+      module procedure allocate_FamilyDOFIdCOC_from_CSR
+    end interface copy_sparsity_pattern
+
+    interface free_ComPASS_struct
+      module procedure free_FamilyDOFIdCOC
+    end interface free_ComPASS_struct
 
 contains
 
@@ -381,8 +411,159 @@ contains
     integer(c_int), pointer, dimension(:) :: p
 
     call CSR_associate_row(obj, i, p)
-  
+
   end function CSR_row_view
-  
+
+  pure subroutine IMECS_create_offsets(sizes, offsets)
+    integer, intent(in) :: sizes(:)
+    integer(c_int), allocatable, intent(out) :: offsets(:)
+
+    integer(c_int) :: k, n, pos
+
+    n = size(sizes)
+    allocate(offsets(n+1))
+    pos = 0
+    do k=1, n
+      offsets(k) = pos
+      pos = pos + sizes(k)
+    end do
+    offsets(n+1) = pos
+
+  end subroutine IMECS_create_offsets
+
+#ifdef NDEBUG
+  pure &
+#endif
+  function check_offsets_consitency(offsets) result(ok)
+    integer(c_int), intent(in) :: offsets(:)
+    logical :: ok
+    integer :: k
+
+    ok = .false.
+
+#ifndef NDEBUG
+    if(size(offsets)<2) call CommonMPI_abort("Inconsistent offsets size!")
+#endif
+
+    if(offsets(1)/=0) return
+    do k=2, size(offsets)
+      if(offsets(k-1) > offsets(k)) return
+    end do
+
+    ok = .true.
+
+  end function check_offsets_consitency
+
+#ifdef NDEBUG
+  pure &
+#endif
+  subroutine copy_CSR_sparsity_pattern(other, offsets)
+    type(CSR), intent(in) :: other
+    integer(c_int), allocatable, intent(out) :: offsets(:)
+
+#ifndef NDEBUG
+    if(.not.allocated(other%Pt)) call CommonMPI_abort("CSR is not allocated")
+    if(size(other%Pt)/=other%Nb + 1) call CommonMPI_abort("Inconsistent CSR!")
+#endif
+
+    allocate(offsets(size(other%Pt)))
+    offsets(:) = other%Pt(:)
+
+#ifndef NDEBUG
+    if(.not.check_offsets_consitency(offsets)) &
+      call CommonMPI_abort("Offsets are not consistent!")
+#endif
+
+  end subroutine copy_CSR_sparsity_pattern
+
+#ifdef NDEBUG
+  pure &
+#endif
+  subroutine allocate_FamilyDOFIdCOC_from_CSR(template_csr, output_coc)
+    type(CSR), intent(in) :: template_csr
+    type(FamilyDOFIdCOC), intent(out) :: output_coc
+
+    call copy_CSR_sparsity_pattern(template_csr, output_coc%offsets)
+    allocate(output_coc%ids(output_coc%offsets(size(output_coc%offsets))))
+
+  end subroutine allocate_FamilyDOFIdCOC_from_CSR
+
+  pure subroutine copy_FamilyDOFId(self, other)
+    type(FamilyDOFId), intent(out) :: self
+    type(FamilyDOFId), intent(in) :: other
+
+    self%proc = other%proc
+    self%local_id = other%local_id
+
+  end subroutine copy_FamilyDOFId
+
+#ifdef NDEBUG
+  pure &
+#endif
+  function check_FamilyDOFIdCOC(self) result(ok)
+  type(FamilyDOFIdCOC), intent(in) :: self
+  logical :: ok
+
+  ok = check_offsets_consitency(self%offsets)
+  if(.not.ok) return
+  ok = size(self%ids)==self%offsets(size(self%offsets))
+
+  end function check_FamilyDOFIdCOC
+
+#ifdef NDEBUG
+  pure &
+#endif
+  subroutine copy_FamilyDOFIdCOC(self, other)
+    type(FamilyDOFIdCOC), intent(out) :: self
+    type(FamilyDOFIdCOC), intent(in) :: other
+    integer :: i, noff, ntot
+
+#ifndef NDEBUG
+    if(.not.check_FamilyDOFIdCOC(other)) &
+      call CommonMPI_abort("Input COC is not consistent!")
+#endif
+    ! FIXME: we could share the offsets between different COCs
+    ! CHECKME: a single line should be ok self%offsets = other%offsets
+    noff = size(other%offsets)
+    allocate(self%offsets(noff))
+    self%offsets(:) = other%offsets(:)
+    ntot = self%offsets(noff)
+    allocate(self%ids(ntot))
+    do i= 1, ntot
+      self%ids(i) = other%ids(i)
+    end do
+
+  end subroutine copy_FamilyDOFIdCOC
+
+  subroutine free_FamilyDOFIdCOC(self)
+    type(FamilyDOFIdCOC), intent(inout) :: self
+
+#ifndef NDEBUG
+    if(.not.check_FamilyDOFIdCOC(self)) &
+      call CommonMPI_abort("Freed COC is not consistent!")
+#endif
+
+    deallocate(self%offsets)
+    deallocate(self%ids)
+
+  end subroutine free_FamilyDOFIdCOC
+
+  function create_FamilyDOFId_MPI_struct() result(mpi_struct_id)
+
+    ! FIXME: use MPI_DATATYPE
+    integer :: mpi_struct_id
+
+    integer, parameter :: n = 2
+    integer :: blocklen(n), arraytype(n), Ierr
+    integer(MPI_ADDRESS_KIND) :: disp(n)
+
+    blocklen(:) = 1
+    arraytype(:) = MPI_INTEGER
+    disp(1) = 0 !  = 0
+    disp(2) = 4 !  + integer
+
+    call MPI_Type_Create_Struct(n, blocklen, disp, arraytype, mpi_struct_id, Ierr)
+
+  end function create_FamilyDOFId_MPI_struct
 
 end module CommonType
