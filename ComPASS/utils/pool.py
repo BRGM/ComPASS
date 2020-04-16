@@ -26,13 +26,23 @@ and standard error:
     )
 
 
-def time_script(filename):
+def time_script(filename, timeout=600):
     start = time.time()
-    fiename = Path(filename)
+    filename = Path(filename)
     assert filename.exists()
-    result = run(
-        [sys.executable, filename.as_posix()], capture_output=True, encoding="utf-8"
-    )
+    try:
+        result = run(
+            [sys.executable, filename.as_posix()],
+            capture_output=True,
+            encoding="utf-8",
+            timeout=timeout,
+        )
+    except TimeoutExpired:
+        error_diagnosis(filename, result)
+        print(
+            f"\nScript {str(filename)} timed out after {tiemout}s.\n", file=sys.stderr
+        )
+        raise
     elapsed = time.time() - start
     try:
         result.check_returncode()
