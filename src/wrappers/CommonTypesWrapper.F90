@@ -13,8 +13,8 @@
           c_ptr, c_f_pointer, C_NULL_PTR
 
        use mpi, only: MPI_Abort
-       use CommonMPI, only: ComPASS_COMM_WORLD
-       use CommonType, only: CSR
+       use CommonMPI, only: ComPASS_COMM_WORLD, CommonMPI_abort
+       use CommonType, only: CSR, FamilyDOFIdCOC, check_FamilyDOFIdCOC
        use InteroperabilityStructures, only: cpp_array_wrapper
        
        implicit none
@@ -32,7 +32,7 @@
 
        ! Container of container
        type, bind(C) :: cpp_COC
-          integer(c_int)    :: nb_containers
+          integer(c_size_t)    :: nb_containers
           type(c_ptr)       :: container_offset
           type(c_ptr)       :: container_content
        end type cpp_COC
@@ -50,6 +50,7 @@
           f2c_double_array, &
           retrieve_double_array, &
           retrieve_coc, &
+          retrieve_dof_family, &
           bind_2array, &
           bind_3array
 
@@ -117,39 +118,69 @@
 
        subroutine retrieve_coc(fortran_csr, retrieved_coc)
 
-          type(CSR), intent(in) :: fortran_csr
-          type(cpp_COC), intent(inout) :: retrieved_coc
-          ! FIXME: set consistent values to error codes
-          integer :: n, errcode, Ierr
+         type(CSR), intent(in) :: fortran_csr
+         type(cpp_COC), intent(inout) :: retrieved_coc
+         ! FIXME: set consistent values to error codes
+         integer :: n, errcode, Ierr
 
-          n = fortran_csr%Nb
-          retrieved_coc%nb_containers = n
+         n = fortran_csr%Nb
+         retrieved_coc%nb_containers = n
 
-          if (n == 0) then
+         if (n == 0) then
 #ifdef TRACK_ZERO_SIZE_ARRAY
-             write (*, *) 'WARNING - Retrieving zero size COC.'
+            write (*, *) 'WARNING - Retrieving zero size COC.'
 #endif
-             retrieved_coc%container_offset = C_NULL_PTR
-             retrieved_coc%container_content = C_NULL_PTR
-          else
-             if ((.not. allocated(fortran_csr%Pt)) .or. &
-                 (.not. allocated(fortran_csr%Num))) then
-                print *, "Trying to retrieve as COC a CSR which is not allocated."
-                !CHECKME: MPI_Abort is supposed to end all MPI processes
-                call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-             end if
-             if (allocated(fortran_csr%Val)) then
-                print *, "Trying to retrieve as COC a CSR which has allocated values (i.e. it is not a COC but rather a true CSR)."
-                !CHECKME: MPI_Abort is supposed to end all MPI processes
-                call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-             end if
-             call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
-             call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
-          end if
+            retrieved_coc%container_offset = C_NULL_PTR
+            retrieved_coc%container_content = C_NULL_PTR
+         else
+            if ((.not. allocated(fortran_csr%Pt)) .or. &
+                (.not. allocated(fortran_csr%Num))) then
+               print *, "Trying to retrieve as COC a CSR which is not allocated."
+               !CHECKME: MPI_Abort is supposed to end all MPI processes
+               call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+            end if
+            if (allocated(fortran_csr%Val)) then
+               print *, "Trying to retrieve as COC a CSR which has allocated values (i.e. it is not a COC but rather a true CSR)."
+               !CHECKME: MPI_Abort is supposed to end all MPI processes
+               call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+            end if
+            call f2c_integer_array_to_pointer(fortran_csr%Pt, retrieved_coc%container_offset)
+            call f2c_integer_array_to_pointer(fortran_csr%Num, retrieved_coc%container_content)
+         end if
 
-       end subroutine retrieve_coc
+      end subroutine retrieve_coc
 
-       subroutine bind_2array(a, p)
+      subroutine retrieve_dof_family(dof_family, retrieved_coc)
+         type(FamilyDOFIdCOC), target, intent(in) :: dof_family
+         type(cpp_COC), intent(inout) :: retrieved_coc
+         ! FIXME: set consistent values to error codes
+         integer :: n !, errcode, Ierr
+
+         if(.not.check_FamilyDOFIdCOC(dof_family)) &
+            call CommonMPI_abort("Inconsistent retrieved COC")
+         n = size(dof_family%offsets)
+         if(n<2) &
+            call CommonMPI_abort("Retrieved COC is empty or ill formed")
+         retrieved_coc%nb_containers = n - 1
+
+!          if (n == 0) then
+! #ifdef TRACK_ZERO_SIZE_ARRAY
+!             write (*, *) 'WARNING - Retrieving zero size COC.'
+! #endif
+!             retrieved_coc%container_offset = C_NULL_PTR
+!             retrieved_coc%container_content = C_NULL_PTR
+!          else
+            if ((.not. allocated(dof_family%offsets)) .or. &
+                (.not. allocated(dof_family%ids))) then
+                call CommonMPI_abort("Trying to retrieve as COC a DofFamily which is not allocated.")
+            end if
+            retrieved_coc%container_offset = c_loc(dof_family%offsets(1))
+            retrieved_coc%container_content = c_loc(dof_family%ids(1))
+         ! end if
+
+     end subroutine retrieve_dof_family
+
+     subroutine bind_2array(a, p)
 
           type(cpp_narray_wrapper), intent(in) :: a
           integer(c_size_t), pointer :: ashape(:)

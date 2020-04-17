@@ -170,6 +170,8 @@ set( WRAPPERS_SRCS
   IncCV_wrappers.F90
   LocalMeshWrapper.F90
   MeshUtilities.h
+  MeshSchema_wrappers.h
+  MeshSchema_wrappers.cpp
   MeshUtilities_wrappers.h
   MeshUtilities_wrappers.cpp
   Metis_wrapper.h

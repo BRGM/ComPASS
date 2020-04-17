@@ -14,33 +14,44 @@
 #include <iterator>
 #include <vector>
 
-struct COC_container
+template <typename Value_type>
+struct GenericCOC_iterator;
+
+template <typename Value_type>
+struct GenericCOC;
+
+template <typename Value_type>
+struct GenericCOC_container
 {
+	typedef Value_type value_type;
 protected:
-	int * begin_;
-	int * end_;
-	COC_container() = delete;
-	COC_container(int * content, int length) :
+	value_type * begin_;
+	value_type * end_;
+	GenericCOC_container() = delete;
+	GenericCOC_container(value_type * content, int length) :
 		begin_{ content },
 		end_{ content + length }
 	{
 		assert(length >= 0);
 	}
 public:
-	int * begin() const { return begin_; }
-	int * end() const { return end_; }
+	value_type * data() const { return begin_; }
+	value_type * begin() const { return begin_; }
+	value_type * end() const { return end_; }
 	std::size_t length() const { return std::distance(begin_, end_); }
-	friend class COC_iterator;
+	friend class GenericCOC_iterator<value_type>;
 };
 
-class COC_iterator
+template <typename Value_type>
+struct GenericCOC_iterator
 {
+	typedef Value_type value_type;
 protected:
 	// This is const as COC structure is not supposed to be changed
 	const int * container_offset;
-	int * container_content;
-	COC_iterator() = delete;
-	COC_iterator(int * offset, int * content) :
+	value_type * container_content;
+	GenericCOC_iterator() = delete;
+	GenericCOC_iterator(int * offset, value_type * content) :
 		container_offset{ offset },
 		container_content{ content }
 	{}
@@ -49,44 +60,45 @@ protected:
 	}
 public:
 	auto operator*() const {
-		return COC_container{ container_content, container_length() };
+		return GenericCOC_container<value_type>{ container_content, container_length() };
 	}
-	auto operator<(const COC_iterator& other) const {
+	auto operator<(const GenericCOC_iterator& other) const {
 		return container_content < other.container_content;
 	}
-	auto operator==(const COC_iterator& other) const {
+	auto operator==(const GenericCOC_iterator& other) const {
 		return container_content == other.container_content;
 	}
-	auto operator!=(const COC_iterator& other) const {
+	auto operator!=(const GenericCOC_iterator& other) const {
 		return container_content != other.container_content;
 	}
-	COC_iterator& operator++() {
+	GenericCOC_iterator& operator++() {
 		// WARNING: container_content must be advanced before offset
 		//          otherwise length is unvalidated
 		std::advance(container_content, container_length());
 		std::advance(container_offset, 1);
         return *this;
 	}
-	friend class COC;
+	friend class GenericCOC<value_type>;
 };
 
 /** Container of containers. */
-struct COC
+template <typename Value_type>
+struct GenericCOC
 {
 	typedef int offset_type;
-	typedef int value_type;
+	typedef Value_type value_type;
 protected:
 	std::size_t nb_containers;
 	offset_type * container_offset;
 	value_type * container_content;
 public:
-	COC() :
+	GenericCOC() :
 		nb_containers{ 0 },
 		container_offset{ nullptr },
 		container_content{ nullptr }
 	{}
 	auto begin() const {
-		return COC_iterator{ container_offset, container_content };
+		return GenericCOC_iterator<value_type>{ container_offset, container_content };
 	}
 	auto end() const {
 		assert(nb_containers >= 0);
@@ -102,12 +114,12 @@ public:
 		else {
 			assert(container_offset == nullptr);
 		}
-		return COC_iterator{ offset, content };
+		return GenericCOC_iterator<value_type>{ offset, content };
 	}
 	auto operator[](const int i) {
 		assert(i >= 0);
 		assert(i < nb_containers);
-		return *COC_iterator{ &container_offset[i], &container_content[container_offset[i]] };
+		return *GenericCOC_iterator<value_type>{ &container_offset[i], &container_content[container_offset[i]] };
 	}
 	/** Wrap contiguous vector as COC.
 	\todo FIXME This is just a convenience function a more robust C++ side API to COC<T> is to be developed/used.
@@ -119,7 +131,7 @@ public:
 		assert(offsets.back() == content.size());
 		assert(offsets.size() > 0);
 		assert(std::all_of(offsets.begin(), offsets.end(), [](const int& i) { return i >= 0; }));
-		COC coc;
+		GenericCOC<value_type> coc;
 		coc.nb_containers = offsets.size() - 1;
 		coc.container_offset = offsets.data();
 		coc.container_content = content.data();
@@ -138,3 +150,7 @@ public:
 		return static_cast<std::size_t>(container_offset[nb_containers]);
 	}
 };
+
+typedef GenericCOC_container<int> COC_container;
+typedef GenericCOC_iterator<int> COC_iterator;
+typedef GenericCOC<int> COC;

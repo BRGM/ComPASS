@@ -74,10 +74,10 @@ module CommonType
     integer(kind=c_int), allocatable, dimension(:) :: Num
   end type COC
 
-  type DOFInfo
-     integer(c_int) :: proc
-     integer(c_int) :: row
-  end type DOFInfo
+  ! type DOFInfo
+  !    integer(c_int) :: proc
+  !    integer(c_int) :: row
+  ! end type DOFInfo
 
   !> Any Degree of Freddom id owned by a single proc (but may have ghost copies)
   !> local_id is the id in a given family (Node, Fractures...)

@@ -56,7 +56,8 @@
     integer, allocatable, dimension(:), intent(inout) :: NbEdgebyWell
     integer, allocatable, dimension(:,:,:), intent(inout) :: NumNodebyEdgebyWell
     integer(c_int), pointer :: offsets(:), edges(:)
-    integer i, j, k, nb_wells, nb_nodes, nb_edges
+    integer :: j, k, nb_nodes, nb_edges
+    integer(c_size_t) :: i, nb_wells
 
     ! FIXME: Memory management should not be here
     if(allocated(NbEdgebyWell)) then

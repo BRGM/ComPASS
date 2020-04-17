@@ -227,6 +227,10 @@ simulation_wrapper = Wrapper([
     "injectors_data",
     "producers_perforations",
     "injectors_perforations",
+    "NumNodebyProc",
+    "NumFracbyProc",
+    "NumWellInjbyProc",
+    "NumWellProdbyProc",
 ])
 
 _a_verifier = [

@@ -13,13 +13,15 @@
        use mpi, only: MPI_Abort
        use CommonMPI, only: Ncpus, ComPASS_COMM_WORLD
        use InteroperabilityStructures, only: cpp_array_wrapper
+       use CommonTypesWrapper, only: cpp_COC, retrieve_dof_family
        use MeshSchema, only: &
          IdNodeLocal, &
          FaceToFracLocal, FracToFaceLocal, &
          NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
          NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
-         XCellLocal, XFaceLocal
-
+         XCellLocal, XFaceLocal, &
+         NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
+  
        implicit none
 
        integer :: Ierr, errcode
@@ -250,5 +252,36 @@
           end if
           end subroutine retrieve_nb_fractures_own
 
-    end module MeshSchema_wrappers
+          subroutine retrieve_NumNodebyProc(coc) &
+            bind(C, name="retrieve_NumNodebyProc")
+            type(cpp_COC), intent(inout) :: coc
+            
+            call retrieve_dof_family(NumNodebyProc, coc)
+            
+          end subroutine retrieve_NumNodebyProc
 
+          subroutine retrieve_NumFracbyProc(coc) &
+            bind(C, name="retrieve_NumFracbyProc")
+            type(cpp_COC), intent(inout) :: coc
+            
+            call retrieve_dof_family(NumFracbyProc, coc)
+            
+          end subroutine retrieve_NumFracbyProc
+
+          subroutine retrieve_NumWellProdbyProc(coc) &
+            bind(C, name="retrieve_NumWellProdbyProc")
+            type(cpp_COC), intent(inout) :: coc
+            
+            call retrieve_dof_family(NumWellProdbyProc, coc)
+            
+          end subroutine retrieve_NumWellProdbyProc
+
+          subroutine retrieve_NumWellInjbyProc(coc) &
+            bind(C, name="retrieve_NumWellInjbyProc")
+            type(cpp_COC), intent(inout) :: coc
+            
+            call retrieve_dof_family(NumWellInjbyProc, coc)
+            
+          end subroutine retrieve_NumWellInjbyProc
+
+    end module MeshSchema_wrappers
