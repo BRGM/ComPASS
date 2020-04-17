@@ -30,6 +30,7 @@ def time_script(filename, timeout=600):
     start = time.time()
     filename = Path(filename)
     assert filename.exists()
+    print(f"{'Launching:':13s} {filename.name}")
     try:
         result = run(
             [sys.executable, filename.as_posix()],
@@ -40,7 +41,7 @@ def time_script(filename, timeout=600):
     except TimeoutExpired:
         error_diagnosis(filename, result)
         print(
-            f"\nScript {str(filename)} timed out after {tiemout}s.\n", file=sys.stderr
+            f"{'Timed-out:':13s} {filename.name} timed out after {tiemout}s.\n", file=sys.stderr
         )
         raise
     elapsed = time.time() - start
@@ -61,11 +62,11 @@ if __name__ == "__main__":
                 filenames.extend(path.glob("*.py"))
             elif path.is_file():
                 filenames.append(path)
-    with Pool() as pool:
+    with Pool(maxtasksperchild=1) as pool:
         jobs = [pool.apply_async(time_script, (filename,)) for filename in filenames]
         for job in jobs:
             try:
                 filename, elapsed = job.get()
             except CalledProcessError:
                 sys.exit(-1)
-            print(f"{filename} ran in {elapsed:.3f} s (indicative time)")
+            print(f"{'Happy-ending:':13s} {filename} ran in {elapsed:.3f} s (indicative time)")
