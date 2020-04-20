@@ -30,7 +30,8 @@ def time_script(filename, tag=None, timeout=600):
     start = time.time()
     filename = Path(filename)
     assert filename.exists()
-    message = f"{'Launching:':13s} {filename.name}"
+    # Remark: messages are flushed asynchronously to the output stream
+    message = f"{'Launching:':20s} {filename.name}"
     if tag is not None:
         message = message + f" which is job {tag}"
     print(message)
@@ -41,10 +42,14 @@ def time_script(filename, tag=None, timeout=600):
             encoding="utf-8",
             timeout=timeout,
         )
+        # message = f"{'End of subprocess:':20s} {filename.name}"
+        # if tag is not None:
+        #     message = message + f" which is job {tag}"
+        # print(message)
     except TimeoutExpired:
         error_diagnosis(filename, result)
         print(
-            f"{'Timed-out:':13s} {filename.name} timed out after {tiemout}s.\n",
+            f"{'Timed-out:':20s} {filename.name} timed out after {timeout}s.\n",
             file=sys.stderr,
         )
         raise
@@ -69,6 +74,7 @@ if __name__ == "__main__":
     nb_scripts = len(filenames)
     print(f"Collected {nb_scripts} scripts.")
     with Pool(maxtasksperchild=1) as pool:
+        print("\n*** Enter pool context\n")
         jobs = [
             pool.apply_async(time_script, (filename,), {"tag": f"{fk+1}/{nb_scripts}"})
             for fk, filename in enumerate(filenames)
@@ -79,5 +85,6 @@ if __name__ == "__main__":
             except CalledProcessError:
                 sys.exit(-1)
             print(
-                f"{'Happy-ending:':13s} {filename} ran in {elapsed:.3f} s (indicative time for job {jk+1}/{nb_scripts})"
+                f"{'Results collection:':20s} {filename} ran in {elapsed:.3f} s (indicative time for job {jk+1}/{nb_scripts})"
             )
+        print("\n*** Exit pool context\n")
