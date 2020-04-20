@@ -137,7 +137,7 @@ time_bulk_scripts:
   except:
     - /^doc_.*$/
   script:
-    - docker run -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 -m ComPASS.utils.pool .
+    - docker run -v $PWD/test:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 utilities/pool.py bulk
 
 reactive_transport_test:
   stage: test
