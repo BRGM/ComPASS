@@ -62,42 +62,10 @@ module NN
 
    implicit none
 
-   ! Mesh file and Perm file
-   character(len=200) :: Wellinfoname
-
-   character(len=200) :: output_path
-
-   integer :: Ierr, errcode
-   logical :: file_exists
-
-   integer :: i, j, k, s, iph, fi, numj, head
-   integer :: nsf, is, n, fk
    integer, allocatable, dimension(:) :: fd
-   integer :: rowk, nz, colk
-   double precision, pointer :: ptr(:)
-
-   double precision :: err_cell_L1, err_cell_L2, err_cell_Linf
-   double precision :: errlocal_cell_L1, errlocal_cell_L2, errlocal_cell_Linf
-   double precision :: err_frac_L1, err_frac_L2, err_frac_Linf
-   double precision :: errlocal_frac_L1, errlocal_frac_L2, errlocal_frac_Linf
-
-   double precision :: sol
-
-   ! Newton variables
-   logical :: NewtonConv
-   integer :: NewtonIter
-   double precision :: NewtonResNormRel(NewtonNiterMax)
-   double precision :: NewtonRelax
-   integer :: NewtonNiterTotal = 0
-   integer :: NewtonNbFailure = 0
 
    ! ksp variables
    double precision, allocatable, dimension(:) :: KspHistory
-
-   logical :: KspConv
-   integer :: KspNiter, KspNiterTimeStep
-   integer :: KspNiterTotal = 0
-   integer :: KspNbFailure = 0
 
    ! Newton increment (NbInc,NbNodelocal)
    real(c_double), dimension(:, :), allocatable :: &
@@ -110,21 +78,14 @@ module NN
       NewtonIncreWellInj, &
       NewtonIncreWellProd
 
-   !  ! Perm
-   !  double precision, dimension(:,:,:), allocatable :: PermCellLocal
-   !  double precision, dimension(:), allocatable :: PermFracLocal
-
-   double precision :: visutime
-
-   double precision :: f, CC(NbComp), SS(NbPhase), dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-   ! ! ********************************** ! !
+   !  double precision :: f, CC(NbComp), SS(NbPhase), dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
    public :: &
+      NN_wait_for_debug, &
       NN_flash_all_control_volumes, &
       NN_init_warmup, &
       NN_finalize
-   
+
    private :: &
        NN_flash_control_volumes, &
        NN_init_output_streams, &
@@ -161,7 +122,9 @@ contains
       bind(C, name="NN_init_warmup")
    
       type(cpp_string_wrapper), intent(in) :: Logfile
-   
+
+      integer :: Ierr
+
       ! initialisation petsc/MPI
       call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
    
@@ -176,7 +139,7 @@ contains
    end subroutine NN_init_warmup
 
 
-     subroutine NN_wait_for_debug(debugwait) &
+   subroutine NN_wait_for_debug(debugwait) &
          bind(C, name="NN_wait_for_debug")
       logical(c_bool), intent(in), value :: debugwait
 
