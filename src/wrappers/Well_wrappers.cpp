@@ -325,9 +325,21 @@ void check_well_ids(py::list& wells)
 	}
 }
 
-void set_well_data(py::list& wells)
+void output_well_ids(py::list& wells)
+{
+	std::ostringstream oss;
+	oss << "Well ids:" << " ";
+	for(auto&& w: wells) {
+		oss << " " << w.cast<Well&>().id;
+	}
+	py::print(oss.str());
+}
+
+
+void set_well_data(py::list& wells, const bool display_well_ids)
 {
 	check_well_ids(wells);
+	if(display_well_ids) output_well_ids(wells);
 	std::vector<Producer_data_info> producers_info;
 	std::vector<Injector_data_info> injectors_info;
 	for (auto& p : wells) {
@@ -423,7 +435,7 @@ void add_well_wrappers(py::module& module)
 	});
 
 	module.def("set_well_geometries", &set_well_geometries, "Set well geometries.");
-	module.def("set_well_data", &set_well_data, "Set well data.");
+	module.def("set_well_data", &set_well_data, "Set well data.", py::arg("wells"), py::arg("display_well_ids") = false);
 
 
     py::class_<Fortran_well_data>(module, "WellData")

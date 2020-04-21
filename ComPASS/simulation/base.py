@@ -62,6 +62,7 @@ def init(
     grid = None,
     mesh = None,
     wells = lambda: [],
+    display_well_ids = False,
     fracture_faces = lambda: None,
     set_dirichlet_nodes = lambda: None,
     set_pressure_dirichlet_nodes = lambda: None,
@@ -86,6 +87,7 @@ def init(
         or a MeshTools object. MeshTools provides several helpers modules to load and modify meshes.
 
     :param wells: a python sequence of well objects
+    :param display_well_ids: a boolean to output well ids at the beginning of the simulation (defaults to False)
     :param fracture_faces: the face id of faces that are to be considered as fractures,
         it can also be a mask over all faces
     :param set_dirichlet_nodes: the ids of all nodes that hold boundary conditions (pressure + temperature)
@@ -186,7 +188,7 @@ def init(
             value = call_if_callable(kwargs['cell_heat_source'])
             _set_property_on_global_mesh('heat_source', 'cell', value)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
-        kernel.set_well_data(well_list)
+        kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
         if mesh_parts is None:

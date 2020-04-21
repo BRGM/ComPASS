@@ -8,6 +8,7 @@
 
 import numpy as np
 from .._kernel import common_wrapper
+from .. import mpi
 
 
 def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None):
@@ -55,7 +56,7 @@ def get_well_data(simulation, wid):
 
 
 # WARNING: in parallel we must modify both own and ghost wells
-def set_well_property(simulation, wid, **kwargs):
+def set_well_property(simulation, wid, verbose=False, **kwargs):
     """
     Select data of the well which as `wid` id and set every property
     according to the `kwargs` dictionnary items 
@@ -75,4 +76,6 @@ def set_well_property(simulation, wid, **kwargs):
     data = get_well_data(simulation, wid)
     if data is not None:
         for name, value in kwargs.items():
+            if verbose:
+                print(f"Setting {name} for well {wid} to {value} on proc {mpi.proc_rank}")
             setattr(data, name, value)

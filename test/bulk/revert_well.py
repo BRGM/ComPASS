@@ -38,7 +38,7 @@ k_reservoir = (
 )
 K_reservoir = 2  # bulk thermal conductivity in W/m/K
 Qw = 300.0
-injector, producer = 1, 2
+injector, producer = 0, 1
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
@@ -104,6 +104,7 @@ simulation.init(
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
+    display_well_ids = True,
 )
 
 
@@ -135,12 +136,12 @@ onestep = lambda t0: standard_loop(
 )
 
 t0 = 0
-# Injection - no production
-simulation.set_well_property(producer, imposed_flowrate=0)
+# Injection - no production, 
+simulation.set_well_property(producer, imposed_flowrate=0, verbose=True)
 t0 = onestep(t0)
 # Stop both wells
-simulation.set_well_property(injector, imposed_flowrate=0)
+simulation.set_well_property(injector, imposed_flowrate=0, verbose=True)
 t0 = onestep(t0)
 # Production - no injection
-simulation.set_well_property(producer, imposed_flowrate=Qw)
+simulation.set_well_property(producer, imposed_flowrate=Qw, verbose=True)
 t0 = onestep(t0)
