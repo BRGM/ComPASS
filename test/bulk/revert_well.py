@@ -136,12 +136,15 @@ onestep = lambda t0: standard_loop(
 )
 
 t0 = 0
-# Injection - no production, 
+# Injection - no production
 simulation.set_well_property(producer, imposed_flowrate=0, verbose=True)
 t0 = onestep(t0)
+print("----------------- Finished first cycle with t0=",t0)
 # Stop both wells
 simulation.set_well_property(injector, imposed_flowrate=0, verbose=True)
 t0 = onestep(t0)
+print("----------------- Finished second cycle with t0=",t0)
 # Production - no injection
 simulation.set_well_property(producer, imposed_flowrate=Qw, verbose=True)
 t0 = onestep(t0)
+print("----------------- Finished third cycle with t0=",t0)

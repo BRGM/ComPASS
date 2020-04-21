@@ -1737,9 +1737,15 @@ contains
         if(k<=NbWellInjOwn_Ncpus(commRank+1)) then ! own injection well
            nz = JacBigA%Pt(rowk) + csrK(colk)
            JacBigA%Val(1,1,nz) = 1.d0
-          end if
+        end if
+
+#ifdef COMPASS_LOG_WELL_INFO
+        write(*,*) '[Well Monitoring]  Jacobian regularization has been performed, since nothing is injected for well', &
+             k, 'on proc', commRank+1        
+#endif        
        end if
-       
+
+
           
     end do !k-well loop
 
@@ -1900,6 +1906,10 @@ contains
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = 1.d0
           end if
+#ifdef COMPASS_LOG_WELL_INFO
+          write(*,*) '[Well Monitoring]:  Jacobian regularization has been performed, since nothing is produced for well', &
+               k, 'on proc', commRank+1
+#endif          
        end if
 
 

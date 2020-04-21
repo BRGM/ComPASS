@@ -593,7 +593,12 @@ contains
 
                DataWellInjLocal(num_Well)%IndWell = 'p' ! change to pressure mode
                IncPressionWellInj(num_Well) = DataWellInjLocal(num_Well)%PressionMax ! Pw = PwMax
-            endif
+
+#ifdef COMPASS_LOG_WELL_INFO
+               write(*,*) '[Well-Monitoring] Injector has changed to pressure mode, well number: ', num_Well 
+#endif
+               
+    endif
 
          else if (DataWellInjLocal(num_Well)%IndWell == 'p') then ! pressure mode
 
@@ -607,6 +612,11 @@ contains
 
             if (abs(Flowrate_head) > abs(DataWellInjLocal(num_Well)%ImposedFlowrate)) then ! inj well then DataWellInjLocal(num_Well)%flowrate < 0
                DataWellInjLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
+
+#ifdef COMPASS_LOG_WELL_INFO
+               write(*,*) '[Well-Monitoring] Injector has changed to flowrate mode, well number: ', num_Well
+#endif              
+               
             endif
          else
 
@@ -638,6 +648,11 @@ contains
 
                DataWellProdLocal(num_Well)%IndWell = 'p' ! change to pressure mode
                IncPressionWellProd(num_Well) = DataWellProdLocal(num_Well)%PressionMin ! Pw = PwMin
+
+#ifdef COMPASS_LOG_WELL_INFO
+               write(*,*) '[Well-Monitoring] Producer has changed to pressure mode, well number: ', num_Well
+#endif               
+               
             endif
 
          else if (DataWellProdLocal(num_Well)%IndWell == 'p') then ! pressure mode
@@ -651,6 +666,11 @@ contains
 
             if (abs(Flowrate_head) > abs(DataWellProdLocal(num_Well)%ImposedFlowrate)) then ! Prod well then DataWellProdLocal(num_Well)%flowrate > 0
                DataWellProdLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
+
+#ifdef COMPASS_LOG_WELL_INFO
+               write(*,*) '[Well-Monitoring] Producer has changed to flowrate mode, well number: ', num_Well
+#endif               
+               
             endif
          else
 
