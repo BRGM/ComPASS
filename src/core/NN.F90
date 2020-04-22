@@ -29,15 +29,12 @@ module NN
    use IncCVReservoir, only: &
       Type_IncCVReservoir, IncNode, IncCell, IncFrac
    use MeshSchema, only: &
-      PermCellLocal, PermFracLocal, CondThermalCellLocal, CondThermalFracLocal, &
       NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
       MeshSchema_make, MeshSchema_free
    use VAGFrac, only: &
-      PoroVolDarcy, &
-      VAGFrac_TransDarcy, VAGFrac_TransFourier, &
-      VAGFrac_VolsDarcy, VAGFrac_VolsFourier, VAGFrac_free
+      PoroVolDarcy, VAGFrac_free
 
     use LocalMesh, only: LocalMesh_Make, LocalMesh_Free
     use NumbyContext, only: NumbyContext_make, NumbyContext_free
@@ -183,27 +180,6 @@ contains
       call NumbyContext_make(get_model_configuration())
 
    end subroutine NN_init_phase2_setup_contexts
-
-   subroutine NN_init_phase2_setup_VAG( &
-        omegaDarcyCell, omegaDarcyFrac, &
-        omegaFourierCell, omegaFourierFrac &
-   ) bind(C, name="init_phase2_setup_VAG")
-      real(c_double), value, intent(in) :: omegaDarcyCell
-      real(c_double), value, intent(in) :: omegaDarcyFrac
-      real(c_double), value, intent(in) :: omegaFourierCell
-      real(c_double), value, intent(in) :: omegaFourierFrac
-
-      call VAGFrac_TransDarcy(PermCellLocal, PermFracLocal)
-#ifdef _THERMIQUE_
-      call VAGFrac_TransFourier(CondThermalCellLocal, CondThermalFracLocal)
-#endif
-
-      call VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac)
-#ifdef _THERMIQUE_
-      call VAGFrac_VolsFourier(omegaFourierCell, omegaFourierFrac)
-#endif
-
-   end subroutine NN_init_phase2_setup_VAG
 
    subroutine NN_init_phase2_setup_solvers(activate_cpramg, activate_direct_solver) &
       bind(C, name="init_phase2_setup_solvers")

@@ -480,10 +480,12 @@ def setup_VAG(properties):
             if omega is None:
                 omega = 0.075 if location=='cell' else 0.15
             omegas['%s_%s'%(location, law)] = omega
-    kernel.init_phase2_setup_VAG(
-        omegas['cell_Darcy'], omegas['fracture_Darcy'],
-        omegas['cell_Fourier'], omegas['fracture_Fourier'],
-    )
+    kernel.VAGFrac_TransDarcy()
+    if kernel.has_energy_transfer_enabled():
+        kernel.VAGFrac_TransFourier()
+    kernel.VAGFrac_VolsDarcy(omegas['cell_Darcy'], omegas['fracture_Darcy'])
+    if kernel.has_energy_transfer_enabled():
+        kernel.VAGFrac_VolsFourier(omegas['cell_Fourier'], omegas['fracture_Fourier'])
 
 
 def _set_property_on_global_mesh(property, location, value, fractures=None):

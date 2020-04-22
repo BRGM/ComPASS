@@ -26,6 +26,7 @@
 #include "Metis_wrapper.h"
 #include "SolvePetsc_wrappers.h"
 #include "SyncPetsc_wrappers.h"
+#include "VAGFrac_wrappers.h"
 
 
 PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
@@ -50,5 +51,6 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module)
     add_Metis_wrapper(module);
 	add_SolvePetsc_wrappers(module);
 	add_SyncPetsc_wrappers(module);
+	add_VAGFrac_wrappers(module);
 
 }

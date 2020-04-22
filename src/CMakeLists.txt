@@ -192,6 +192,8 @@ set( WRAPPERS_SRCS
   StringWrapper.F90
   TimeLoop_wrappers.h
   TimeLoop_wrappers.cpp
+  VAGFrac_wrappers.h
+  VAGFrac_wrappers.cpp
   Well.h
   Well_wrappers.h
   Well_wrappers.cpp

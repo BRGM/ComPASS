@@ -25,6 +25,7 @@ module VAGFrac
   use DebugUtils, only: DebugUtils_is_own_frac_node
 
   use MeshSchema, only: &
+     PermCellLocal, PermFracLocal, CondThermalCellLocal, CondThermalFracLocal, &
      NodebyCellLocal, FracbyCellLocal, FacebyCellLocal, &
      NodebyFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
      CellRocktypeLocal, NodeRocktypeLocal, FracRocktypeLocal, &
@@ -95,15 +96,12 @@ module VAGFrac
 
 contains
 
-
   ! compute Trans and TransFrac for Darcy
-  subroutine VAGFrac_TransDarcy(Perm, PermFrac)
+  subroutine VAGFrac_TransDarcy() &
+    bind(C, name="VAGFrac_TransDarcy")
 
-    double precision, dimension(:,:,:), intent(in) :: Perm
-    double precision, dimension(:), intent(in) :: PermFrac
-
-    call VAGFrac_Trans(Perm, TkLocal_Darcy)
-    call VAGFrac_TransFrac(PermFrac, TkFracLocal_Darcy)
+    call VAGFrac_Trans(PermCellLocal, TkLocal_Darcy)
+    call VAGFrac_TransFrac(PermFracLocal, TkFracLocal_Darcy)
 
   end subroutine VAGFrac_TransDarcy
 
@@ -111,13 +109,11 @@ contains
 #ifdef _THERMIQUE_
 
   ! compute Trans and TransFrac for Fourier
-  subroutine VAGFrac_TransFourier(CondThermic, CondThermicFrac)
+  subroutine VAGFrac_TransFourier() &
+    bind(C, name="VAGFrac_TransFourier")
 
-    double precision, dimension(:,:,:), intent(in) :: CondThermic
-    double precision, dimension(:), intent(in) :: CondThermicFrac
-
-    call VAGFrac_Trans(CondThermic, TkLocal_Fourier)
-    call VAGFrac_TransFrac(CondThermicFrac, TkFracLocal_Fourier)
+    call VAGFrac_Trans(CondThermalCellLocal, TkLocal_Fourier)
+    call VAGFrac_TransFrac(CondThermalFracLocal, TkFracLocal_Fourier)
 
   end subroutine VAGFrac_TransFourier
 #endif
@@ -576,11 +572,12 @@ contains
 
   end subroutine VAGFrac_distribute_Darcy_quantities
 
-    ! Compute vols darcy:
+  ! Compute vols darcy:
   !   VolDarcy and PoroVolDarcy
-  subroutine VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac)
-    real(c_double), intent(in) :: omegaDarcyCell
-    real(c_double), intent(in) :: omegaDarcyFrac
+  subroutine VAGFrac_VolsDarcy(omegaDarcyCell, omegaDarcyFrac) &
+    bind(C, name="VAGFrac_VolsDarcy")
+    real(c_double), value, intent(in) :: omegaDarcyCell
+    real(c_double), value, intent(in) :: omegaDarcyFrac
 
     call VAGFrac_allocate_Darcy_volumes
 
@@ -727,9 +724,10 @@ contains
   
   end subroutine VAGFrac_allocate_Fourier_volumes
 
-  subroutine VAGFrac_VolsFourier(omegaFourierCell, omegaFourierFrac)
-    real(c_double), intent(in) :: omegaFourierCell
-    real(c_double), intent(in) :: omegaFourierFrac
+  subroutine VAGFrac_VolsFourier(omegaFourierCell, omegaFourierFrac) &
+    bind(C, name="VAGFrac_VolsFourier")
+    real(c_double), value, intent(in) :: omegaFourierCell
+    real(c_double), value, intent(in) :: omegaFourierFrac
 
 
     call VAGFrac_allocate_Fourier_volumes

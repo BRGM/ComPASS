@@ -19,9 +19,7 @@ extern "C"
     void NN_init_phase2_partition(ArrayWrapper&);
     void init_phase2_build_local_mesh();
     void init_phase2_setup_contexts();
-    void init_phase2_setup_VAG(double, double, double, double);
     void init_phase2_setup_solvers(bool, bool);
-
 }
 
 #include "NN_wrappers.h"
@@ -47,7 +45,6 @@ void add_NN_wrappers(py::module& module)
 
     module.def("init_phase2_build_local_mesh", &init_phase2_build_local_mesh);
     module.def("init_phase2_setup_contexts", &init_phase2_setup_contexts);
-    module.def("init_phase2_setup_VAG", &init_phase2_setup_VAG);
     module.def("init_phase2_setup_solvers", &init_phase2_setup_solvers);
 
 	module.def("finalize", &NN_finalize, "Cleans ComPASS data structures.");
