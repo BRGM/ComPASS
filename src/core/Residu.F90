@@ -648,7 +648,7 @@ contains
          if (DataWellInjLocal(k)%IndWell == 'p') then
             ResiduWellInj(k) = DataWellInjLocal(k)%PressionMax - IncPressionWellInj(k)
          else if (DataWellInjLocal(k)%IndWell == 'f') then
-            if (something_is_injected .EQV. .true.) then
+            if (something_is_injected) then
                ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
             else
                ResiduWellInj(k) = 0.d0
@@ -683,7 +683,7 @@ contains
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-               if (something_is_produced .EQV. .true.) then
+               if (something_is_produced) then
 
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
@@ -712,7 +712,7 @@ contains
          if (DataWellProdLocal(k)%IndWell == 'p') then
             ResiduWellProd(k) = IncPressionWellProd(k) - DataWellProdLocal(k)%PressionMin
          else if (DataWellProdLocal(k)%IndWell == 'f') then
-            if (something_is_produced .EQV. .true.) then
+            if (something_is_produced) then
                ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
             else
                ResiduWellProd(k) = 0.d0

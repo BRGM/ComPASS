@@ -1732,7 +1732,7 @@ contains
 
        
        !Make sure Jacobian is not singular
-       if((DataWellInjLocal(k)%IndWell == 'f') .AND.  (something_is_injected  .EQV. .false.)) then
+       if((DataWellInjLocal(k)%IndWell == 'f').AND.(.NOT.something_is_injected)) then
 
         if(k<=NbWellInjOwn_Ncpus(commRank+1)) then ! own injection well
            nz = JacBigA%Pt(rowk) + csrK(colk)
@@ -1901,7 +1901,7 @@ contains
 
 
        !Make sure Jacobian is not singular
-       if((DataWellProdLocal(k)%IndWell == 'f') .AND. (something_is_produced .EQV. .false.)) then
+       if((DataWellProdLocal(k)%IndWell == 'f').AND.(.NOT.something_is_produced)) then
           if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = 1.d0
@@ -3301,7 +3301,7 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       if(.NOT.Id_Qks(mph)) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
           do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3513,7 +3513,7 @@ contains
     do m=1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       if(.NOT.Id_Qks(mph)) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
           do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3698,7 +3698,7 @@ contains
     do m=1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
        mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-       if( Id_Qks(mph) .eqv. .false.) then ! this phase is not in Q_k
+       if(.NOT.Id_Qks(mph)) then ! this phase is not in Q_k
 
           ! divDarcyFlux_k
           do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)

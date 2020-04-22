@@ -17,17 +17,22 @@ from . import mpi
 from .dumps import Dumper
 from .options import get_callbacks_from_options
 from ._kernel import get_kernel
+from .utils.units import bar
 
+def check_well_pressure(simulation, pressure_offset = 1 * bar):
+    """
+    Set all well head pressures:
+        - to minimum reservoir pressure - pressure_offset for producers
+        - to maximum reservoir pressure + pressure_offset for injectors
 
-def check_well_pressure(simulation):
-    p_min, p_max = float('Inf'), -float('Inf')
-    for state in [simulation.node_states(), simulation.fracture_states(), simulation.cell_states()]:
-        if state.p.shape[0]>0:
-            p_min = min(p_min, state.p.min())
-            p_max = max(p_max, state.p.max())
+    :param simulation: the current simulation
+    :param pressure_offset: the pressure offset to be applied (defaults to 1 bar)
+    """
+    p_min = simulation.all_states().p.min()
+    p_max = simulation.all_states().p.max()
     # whp = well head pressure
-    simulation.production_whp()[:] = p_min - 1.
-    simulation.injection_whp()[:] = p_max + 1.
+    simulation.production_whp()[:] = p_min - pressure_offset
+    simulation.injection_whp()[:] = p_max + pressure_offset
 
 class Snapshooter:
 
@@ -68,7 +73,8 @@ def standard_loop(simulation,
                   iteration_callbacks = None, output_callbacks = None,
                   specific_outputs = None,
                   newton = None, context = None,
-                  time_step_manager = None
+                  time_step_manager = None,
+                  well_pressure_offset = 1 * bar
                  ):
     """
     Performs a standard timeloop.
@@ -103,6 +109,8 @@ def standard_loop(simulation,
         control generic option. If not provided a default one will be created.
     :param time_step_manager: A specfic time manager that will override the parameters ``fixed_timestep``
         or  ``initial_timestep`` (cf. :mod:`ComPASS.timestep_management` module).
+    :param well_pressure_offset: if given the corresponfing pressure offset will be apply to wells
+        (this may be usefull to init wells operating on pressure) - if None, nothing is done. defaults to 1 bar.
     :return: The time at the end of the time loop.
     """
     assert not (final_time is None and nitermax is None)
@@ -145,7 +153,8 @@ def standard_loop(simulation,
         specific_outputs = list(specific_outputs)
         specific_outputs.sort()
     # this is necessary for well operating on pressures
-    check_well_pressure(simulation)
+    if well_pressure_offset is not None:
+        check_well_pressure(simulation, well_pressure_offset)
     # InitPressureDrop
     kernel = get_kernel()
     kernel.IncCVWells_InitPressureDrop()

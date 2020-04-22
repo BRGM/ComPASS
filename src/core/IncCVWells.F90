@@ -21,7 +21,7 @@ module IncCVWells
 ! use, intrinsic :: iso_c_binding
    use iso_c_binding
    use mpi, only: MPI_Abort
-   use CommonMPI, only: commRank, ComPASS_COMM_WORLD
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
    use DefModel, only: NbComp, NbPhase, LIQUID_PHASE
    use Physics, only: gravity
@@ -70,10 +70,6 @@ module IncCVWells
    double precision, allocatable, dimension(:), target, public :: &
       IncPressionWellInjPreviousTimeStep, & !< Injection Well unknown: head pressure for previous time step
       IncPressionWellProdPreviousTimeStep !< Production Well unknown: head pressure for previous time step
-
-   !Flag to use the an avg_density  from the reservoir or the density computed from  the function DefFlashWells_TimeFlash  to compute the pressure drops
-   !We want to use the avg_density usually to init the pressure drops
-   logical use_avg_dens
 
    public :: &
       IncCVWells_allocate, &
@@ -135,14 +131,22 @@ module IncCVWells
 
      
       !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
-   subroutine IncCVWells_PressureDropWellProd
+   subroutine IncCVWells_PressureDropWellProd(use_avg_dens)
+   !Flag to use the an avg_density  from the reservoir or the density computed from  the function DefFlashWells_TimeFlash  to compute the pressure drops
+   !We want to use the avg_density usually to init the pressure drops
+      logical, intent(in) :: use_avg_dens
 
       integer :: k, s, m, mph, nums, sparent
       double precision :: Pws, zp, zs, Pdrop, Rhotmp
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
+#ifndef NDEBUG
+      if(NbWellProdLocal_Ncpus(commRank + 1)/=NodebyWellProdLocal%Nb) &
+         call CommonMPI_abort("Well numbers are inconsistent")
+#endif
+
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
-         
+
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
@@ -198,11 +202,13 @@ module IncCVWells
       double precision :: Ptmp, Stmp(NbPhase), &
          z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-#ifndef NDEBUG
-      integer :: Ierr, errcode ! used for MPI_Abort
-#endif
-      
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
+
+#ifndef NDEBUG
+      if(NbWellInjLocal_Ncpus(commRank + 1)/=NodebyWellInjLocal%Nb) &
+         call CommonMPI_abort("Well numbers are inconsistent")
+#endif
+
       ! Saturation is fixed to liquid
       Stmp(:) = 0.d0
       Stmp(LIQUID_PHASE) = 1.d0
@@ -232,10 +238,8 @@ module IncCVWells
                sparent = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
                dz = (zp - zs)/Npiece
 #ifndef NDEBUG
-               if (dz < 0) then
-                  write (*, *) 'Nodes are badly sorted.'
-                  call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-               end if
+               if (dz < 0) &
+                  call CommonMPI_abort("Nodes are badly sorted.")
 #endif
 
                !Proceed to integrate at the interval [zs,zp]
@@ -261,10 +265,8 @@ module IncCVWells
      subroutine IncCVWells_InitPressureDrop() &
           bind(C, name="IncCVWells_InitPressureDrop")
 
-       use_avg_dens=.TRUE.       
        call IncCVWells_PressureDropWellInj
-       call IncCVWells_PressureDropWellProd
-       use_avg_dens=.FALSE.  
+       call IncCVWells_PressureDropWellProd(.true.)
     
      end subroutine IncCVWells_InitPressureDrop
 
@@ -273,7 +275,7 @@ module IncCVWells
       bind(C, name="IncCVWells_UpdatePressureDrop")
 
      call IncCVWells_PressureDropWellInj
-     call IncCVWells_PressureDropWellProd
+     call IncCVWells_PressureDropWellProd(.false.)
 
    end subroutine IncCVWells_UpdatePressureDrop
 
