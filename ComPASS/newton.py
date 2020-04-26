@@ -10,6 +10,7 @@ from collections import namedtuple
 import numpy as np
 
 from . import mpi
+from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
 
@@ -117,6 +118,7 @@ class Newton:
         self.increments.init()
         if not convergence_scheme: 
             self.convergence_scheme = LegacyConvergence(simulation)
+        self.check_well_errors_at_convergence = False
 
     def reset_loop(self):
         kernel = get_kernel()
@@ -216,8 +218,35 @@ class Newton:
                 'rel', relative_residuals[-1],
             )
             if relative_residuals[-1] < self.tolerance:
+                if self.check_well_errors_at_convergence:
+                    self.check_well_residuals()
                 return NewtonStatus(iteration+1, total_lsolver_iterations)
         mpi.master_print('Newton relative residuals:')
         for i, r in enumerate(relative_residuals):
             mpi.master_print('%02d: %15.9e' % (i, r))
         raise IterationExhaustion(NewtonStatus(iteration, total_lsolver_iterations))
+
+    def check_well_residuals(self):
+        simulation = self.simulation
+        residuals = self.convergence_scheme.residuals
+        compute_error = lambda a: 0 if len(a)==0 else np.fabs(a).max()
+        def well_errors(well_data, well_residuals):
+            nb_own_wells = well_residuals.shape[0]
+            def well_errors_category(code):
+                category = np.array([data.operating_code==code for data in well_data[:nb_own_wells]])
+                return compute_error(well_residuals[category])
+            max_flowrate_error = well_errors_category('f')
+            max_wellhead_error = well_errors_category('p')
+            return max_flowrate_error, max_wellhead_error
+        all_well_errors = np.vstack([
+            well_errors(list(simulation.injectors_data()), residuals.own_injectors),
+            well_errors(list(simulation.producers_data()), residuals.own_producers),
+        ])
+        all_well_errors = np.max(all_well_errors, axis=0)
+        global_well_errors = np.zeros(2, dtype=np.double)
+        MPI.COMM_WORLD.Allreduce(all_well_errors, global_well_errors, MPI.MAX)
+        if mpi.is_on_master_proc:
+            print("Maximum well errors:")
+            dq, dp = global_well_errors
+            print(f"  {dq} for well operatinf on flowrate")
+            print(f"  {dp} for well operatinf on pressure")

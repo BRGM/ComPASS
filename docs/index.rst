@@ -8,6 +8,7 @@ ComPASS
 
    introduction
    examples
+   wells
    developer_corner
    python_reference/ComPASS
    python_reference/modules
