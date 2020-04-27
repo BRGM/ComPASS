@@ -7,6 +7,7 @@ ComPASS
    :caption: Contents:
 
    introduction
+   wiki/using_docker
    examples
    wells
    developer_corner
