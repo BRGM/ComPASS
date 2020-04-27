@@ -178,7 +178,7 @@ pages:
   tags:
     - build
   only:
-    - develop-v4.1
+    - v4.1
     - /^doc_.*$/
   script:
     - mkdir -p public/core_reference
