@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     cmake \
     libopenmpi-dev \
     libmetis-dev \
-    libpetsc-real3.10-dev \
+    libpetsc-real3.12-dev \
     python3-mpi4py \
  && apt-get clean
 
@@ -24,9 +24,9 @@ ENV PETSC_DIR=/usr/lib/petsc
 RUN mkdir -p /build \
  && mkdir -p /wheel \
  && cd /build \
- && wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.10.1.tar.gz \
- && tar xf petsc4py-3.10.1.tar.gz \
- && cd petsc4py-3.10.1 \
+ && wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.12.0.tar.gz \
+ && tar xf petsc4py-3.12.0.tar.gz \
+ && cd petsc4py-3.12.0 \
  && python3 setup.py bdist_wheel \
  && cp -v dist/*.whl /wheel/ \
  && cd / \

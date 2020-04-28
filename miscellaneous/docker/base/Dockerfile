@@ -1,4 +1,4 @@
-FROM ubuntu:19.04
+FROM ubuntu:20.04
 
 # We need python3-dev to have dynamic libraries at runtime
 RUN apt-get update && apt-get install --yes --no-install-recommends \

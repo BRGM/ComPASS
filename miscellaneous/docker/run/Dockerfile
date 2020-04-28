@@ -8,10 +8,11 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-mpi4py \
     metis \
     openmpi-bin \
-    libpetsc-real3.10 \
+    libpetsc-real3.12 \
     python3-psutil \
     python3-scipy \
- && apt-get clean 
+ && apt-get clean \
+ && pip3 install sortedcontainers
 
 # petsc4py installation
 COPY --from=build /wheel /wheel

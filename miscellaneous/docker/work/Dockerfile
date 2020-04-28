@@ -8,10 +8,12 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     cmake-curses-gui \
     python3-scipy \
     ipython3 \
- && apt-get clean
+ && apt-get clean \
+ && pip3 install sortedcontainers
 
 # petsc4py installation
-RUN pip3 install /wheel/petsc4py-*.whl
+RUN pip3 install /wheel/petsc4py-*.whl \
+ && rm -rf /wheel
 
 WORKDIR /localfs
 
