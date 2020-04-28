@@ -60,6 +60,6 @@ doublet_utils.init_states(simulation, pres, Tres)
 
 standard_loop(
     simulation,
-    initial_timestep = 1 * day, final_time = 30 * year,
+    initial_timestep = 30 * day, final_time = 30 * year,
     output_period = year,
 )

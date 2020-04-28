@@ -54,9 +54,9 @@ def _check_own_wells(wells, info):
 
 def _any_wells(info):
     if info.nb == 0:
-        print()
-        print(f"No {info.type} wells.")
-        print()
+        # print()
+        # print(f"No {info.type} wells.")
+        # print()
         return False
     return True
 

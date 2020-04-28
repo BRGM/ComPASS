@@ -2,15 +2,19 @@
 class FixedTimeStep:
 
     def __init__(self, step):
+        self.fixed_step = step
         self.step = step
     
     @property
     def current_step(self):
         return self.step
     
-    def steps(self):
+    def steps(self, upper_bound=None):
+        self.step = self.fixed_step
+        if upper_bound is not None:
+            self.step = min(self.step, upper_bound)
         return (self.step,)
-    
+
 
 class TimeStepManager:
 
@@ -35,22 +39,23 @@ class TimeStepManager:
 
     @current_step.setter
     def current_step(self, step):
-        print('>>>>>>>>>>>>> setting')
         self.previous = self.step
         self.step = step
 
-    def steps(self):
+    def steps(self, upper_bound=None):
         if self.previous:
-            self.previous = self.step
-            self.step*= self.increase_factor
-            if self.maximum:
+            self.previous*= self.increase_factor
+            self.step = self.previous
+            if self.maximum is not None:
                 self.step = min(self.step, self.maximum)
-        else: # FIXME: for first use only
-            self.previous = self.step
+        self.previous = self.step
+        if upper_bound is not None:
+            self.step = min(self.step, upper_bound)
         def attempts():
             while self.current_step > self.minimum:
                 yield self.step
                 self.step*= self.decrease_factor
+                self.previous = self.step
         return attempts()
         
 
@@ -60,7 +65,3 @@ if __name__=='__main__':
     print(list(tsm.steps()))
     tsm.current_step = 2E-6
     print(list(tsm.steps()))
-    
-    
-
-    

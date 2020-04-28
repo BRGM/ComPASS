@@ -15,7 +15,7 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.newton import Newton, LinearSolver
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
-
+from ComPASS.exceptions import SanityCheckFailure
 
 p0 = 1. * bar              # initial reservoir pressure
 T0 = degC2K( 20. )         # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
@@ -82,7 +82,7 @@ context.abort_on_ksp_failure = False
 context.dump_system_on_ksp_failure = False
 context.abort_on_newton_failure = False 
 
-final_time = 1E6 * year
+final_time = 2E6 * year
 # ComPASS.set_maximum_timestep(0.1*final_time)
 current_time = standard_loop(
     simulation,
@@ -101,6 +101,9 @@ zc = simulation.cell_centers()[:, 2]
 #print(ComPASS.get_current_time() < )
 # print('Final time:', current_time, current_time/year, current_time >= final_time)
 # print('Final error:', np.linalg.norm(T0-zc*bottom_heat_flux/K_matrix-T, np.inf))
-if ( current_time < final_time or
-    np.linalg.norm(T0-zc*bottom_heat_flux/K_matrix-T, np.inf) > 1e-2):
-    raise Exception
+if current_time < final_time:
+    raise SanityCheckFailure("final time was not reached")
+
+error_Linf = np.linalg.norm(T0-zc*bottom_heat_flux/K_matrix-T, np.inf)
+if error_Linf > 1e-2:
+    raise SanityCheckFailure(f"mismatch with reference solution ||error||inf = {error_Linf}")
