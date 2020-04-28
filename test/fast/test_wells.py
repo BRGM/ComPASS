@@ -29,8 +29,8 @@ def test_wells():
         for well in [W1, W2]:
             print()
             print(well)
-            if well.stopped:
-                print('Well is stopped')
+            if well.closed:
+                print('Well is closed')
             else:
                 if well.injecting:
                     print('Injection well:')

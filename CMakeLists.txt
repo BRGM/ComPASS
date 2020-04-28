@@ -93,11 +93,6 @@ if(DEF_FREEFLOW_STRUCTURES)
   add_definitions(-D_WIP_FREEFLOW_STRUCTURES_)
 endif(DEF_FREEFLOW_STRUCTURES)
 
-option(COMPASS_LOG_WELL_INFO "Activate log messages concerning wells" OFF)
-if(COMPASS_LOG_WELL_INFO)
-  add_definitions(-DCOMPASS_LOG_WELL_INFO)
-endif(COMPASS_LOG_WELL_INFO)
-
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG_)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)

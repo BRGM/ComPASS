@@ -600,8 +600,15 @@ contains
       ! thus, when assembly of flux, we need to take into account
       ! not only own well, but also ghost well
       do k = 1, NbWellInjLocal_Ncpus(commRank + 1) ! injection well k
-         something_is_injected = .false.
+
+         ! Check if the well is closed
+         if (DataWellInjLocal(k)%IndWell == 'c') then
+            ResiduWellInj(k) = 0.d0
+            cycle ! FIXME: if Fourier contribion is considered we should take it into account
+         end if
+
          qw = 0.d0
+         something_is_injected = .false.
 
          ! nodes of well k
          do s = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1)
@@ -642,7 +649,8 @@ contains
             do icp = 1, NbComp
                qw = qw + Flux_ks(icp)
             end do
-         end do
+
+         end do ! end of node s in injection well k
 
          ! inj well equation
          if (DataWellInjLocal(k)%IndWell == 'p') then
@@ -657,13 +665,19 @@ contains
             call CommonMPI_abort("Injection well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
 
-      end do ! end of node s in injection well k
+      end do ! end of injection well k
 
       ! Production well
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
-         something_is_produced = .false.
+
+         ! Check if the well is closed
+         if (DataWellProdLocal(k)%IndWell == 'c') then
+            ResiduWellProd(k) = 0.d0
+            cycle ! FIXME: if Fourier contribion is considered we should take it into account
+         end if
 
          qw = 0.d0
+         something_is_produced = .false.
 
          ! nodes of well k
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
@@ -706,7 +720,7 @@ contains
             do icp = 1, NbComp
                qw = qw + Flux_ks(icp)
             end do
-         end do
+         end do ! end of node s in production well k
 
          ! prod well equation
          if (DataWellProdLocal(k)%IndWell == 'p') then
@@ -721,7 +735,7 @@ contains
             call CommonMPI_abort("Production well index should be 'p' (pressure mode) or 'f' (flowrate mode)!")
          end if
 
-      end do
+      end do ! end of production well k
 
    end subroutine Residu_add_flux_contributions_wells
 

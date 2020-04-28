@@ -42,7 +42,7 @@ module DefWell
       ! because of "memory padding" when creating mpi well data structure
       ! cf. DefWell_mpi_register_well_data_description
       character(c_char) :: &
-         IndWell ! both well types 'p' for pressure mode ; 'f' for flowrate mode
+         IndWell ! both well types 'p' for pressure mode ; 'f' for flowrate mode; 'c' for closed
    end type WellData_type
 
    !> Store data of one Node Well about parent and well index

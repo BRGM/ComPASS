@@ -57,7 +57,7 @@ namespace ComPASS
 
 		typedef mapbox::util::variant<Undefined_operating_conditions, Flowrate_operating_conditions, Pressure_operating_conditions> Operating_conditions;
 
-		struct Stopped_well_status
+		struct Closed_well_status
 		{};
 
 		struct Production_well_status
@@ -71,7 +71,7 @@ namespace ComPASS
 				temperature{ T } {}
 		};
 
-		typedef mapbox::util::variant<Stopped_well_status, Injection_well_status, Production_well_status> Well_status;
+		typedef mapbox::util::variant<Closed_well_status, Injection_well_status, Production_well_status> Well_status;
 
 		struct Well_control
 		{
@@ -81,7 +81,7 @@ namespace ComPASS
 			bool check_status() const { return status.is<WellStatus>(); }
 			template <typename WellOperatingConditions>
 			bool check_operating_conditions() const { return operating_conditions.is<WellOperatingConditions>(); }
-			bool is_stopped() const { return check_status<Stopped_well_status>(); }
+			bool is_closed() const { return check_status<Closed_well_status>(); }
 			bool is_injecting() const { return check_status<Injection_well_status>(); }
 			bool is_producing() const { return check_status<Production_well_status>(); }
 			bool is_flowrate_operating() const { return check_operating_conditions<Flowrate_operating_conditions>(); }
@@ -92,7 +92,7 @@ namespace ComPASS
 			std::size_t id;
 			Well_geometry geometry;
 			Well_control control;
-			bool is_stopped() const { return control.is_stopped(); }
+			bool is_closed() const { return control.is_closed(); }
 			bool is_injecting() const { return control.is_injecting(); }
 			bool is_producing() const { return control.is_producing(); }
 			bool operates_on_flowrate() const { return control.is_flowrate_operating(); }

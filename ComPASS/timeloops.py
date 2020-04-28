@@ -7,6 +7,8 @@
 #
 
 from collections import namedtuple
+import logging
+
 import numpy as np
 
 from sortedcontainers import SortedKeyList
@@ -43,8 +45,21 @@ def check_well_pressure(simulation, pressure_offset = 1 * bar):
     p_min = simulation.all_states().p.min()
     p_max = simulation.all_states().p.max()
     # whp = well head pressure
-    simulation.production_whp()[:] = p_min - pressure_offset
-    simulation.injection_whp()[:] = p_max + pressure_offset
+    whp = simulation.production_whp()
+    for wk, data in enumerate(simulation.producers_data()):
+        if data.operating_code=="f" and data.imposed_flowrate==0:
+            logging.warning(f"Producer well {data.id} has no flow rate but is not marked as closed.")
+            whp[wk] = p_max + pressure_offset
+        else:
+            whp[wk] = p_min - pressure_offset
+    whp = simulation.injection_whp()
+    for wk, data in enumerate(simulation.injectors_data()):
+        if data.operating_code=="f" and data.imposed_flowrate==0:
+            logging.warning(f"Injector well {data.id} has no flow rate but is not marked as closed.")
+            whp[wk] = p_min - pressure_offset
+        else:
+            whp[wk] = p_max + pressure_offset
+
 
 class Snapshooter:
 

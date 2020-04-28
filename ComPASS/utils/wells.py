@@ -79,3 +79,48 @@ def set_well_property(simulation, wid, verbose=False, **kwargs):
             if verbose:
                 print(f"Setting {name} for well {wid} to {value} on proc {mpi.proc_rank}")
             setattr(data, name, value)
+
+# WARNING: in parallel we must modify both own and ghost wells
+def close_well(simulation, wid):
+    """
+    Close the well which as `wid` id.
+
+    :param simulation: simulation object, the method can also be accessed 
+                       through a fake method (cf. example below)
+    
+    :param wid: well unique id
+    
+    :Example:
+
+    .. highlight:: python
+    .. code-block:: python
+    
+        simulation.close_well(wid)
+    """
+    data = get_well_data(simulation, wid)
+    if data is not None:
+        # FIXME: to be generalized
+        assert data.operating_code in "cf", "Only wells operating on flowrate can be closed."
+        data.operating_code='c'
+
+# WARNING: in parallel we must modify both own and ghost wells
+def open_well(simulation, wid):
+    """
+    Open the well which as `wid` id and set its operating mode to *flowrate*.
+
+    :param simulation: simulation object, the method can also be accessed 
+                       through a fake method (cf. example below)
+    
+    :param wid: well unique id
+    
+    :Example:
+
+    .. highlight:: python
+    .. code-block:: python
+    
+        simulation.open_well(wid)
+    """
+    data = get_well_data(simulation, wid)
+    if data is not None:
+        assert data.operating_code=='c', "Only closed wells can be opened and set operated on flowrate."
+        data.operating_code='f'

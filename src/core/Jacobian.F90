@@ -1588,15 +1588,17 @@ contains
     integer :: k, rowk, colk, s, nums, rows, cols, m, icp, nz
     double precision :: Tws, Ps_Pws, Ts, WIDws, WIFws
     double precision :: dP_w(NbComp), dP_s(NbComp), dP_ER_w, dP_ER_s
-    logical :: something_is_injected
+    logical :: something_is_injected, well_is_closed
 
     nz = -1
     
     do k=1, NbWellInjLocal_Ncpus(commRank+1)
 
        something_is_injected = .false.
+       ! CHECKME: we could directly jump to regularization
+       well_is_closed = (DataWellInjLocal(k)%IndWell == 'c')
 
-              ! A_kk, k is well
+       ! A_kk, k is well
        rowk = k + NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
             + NbCellLocal_Ncpus(commRank+1)
        colk = k + NbNodeLocal_Ncpus(commRank+1) + NbFracLocal_Ncpus(commRank+1) &
@@ -1659,7 +1661,7 @@ contains
           end if
 
           cols = nums
-          if(Ps_Pws < 0.d0) then ! if >0, this term is 0
+          if((Ps_Pws < 0.d0).AND.(.NOT. well_is_closed)) then ! if >0, this term is 0
   
               something_is_injected = .true.
 
@@ -1732,7 +1734,7 @@ contains
 
        
        !Make sure Jacobian is not singular
-       if((DataWellInjLocal(k)%IndWell == 'f').AND.(.NOT.something_is_injected)) then
+       if(well_is_closed.OR.((DataWellInjLocal(k)%IndWell == 'f').AND.(.NOT.something_is_injected))) then
 
         if(k<=NbWellInjOwn_Ncpus(commRank+1)) then ! own injection well
            nz = JacBigA%Pt(rowk) + csrK(colk)
@@ -1762,12 +1764,15 @@ contains
     double precision :: &
          dP_w(NbComp), dP_s(NbCompThermique,NbComp), &
          dP_ER_w, der_ER_s(NbCompThermique)
-    logical :: something_is_produced
+    logical :: something_is_produced, well_is_closed
 
     nz = -1
     
     do k=1, NbWellProdLocal_Ncpus(commRank+1)
-    something_is_produced = .false.
+      something_is_produced = .false.
+      ! CHECKME: we could directly jump to regularization
+      well_is_closed = (DataWellProdLocal(k)%IndWell == 'c')
+
        ! A_kk, k is well
        rowk = k + NbNodeOwn_Ncpus(commRank+1) + NbFracOwn_Ncpus(commRank+1) &
             + NbCellLocal_Ncpus(commRank+1) + NbWellInjOwn_Ncpus(commRank+1)
@@ -1817,7 +1822,7 @@ contains
           WIFws = NodeDatabyWellProdLocal%Val(s)%WIF ! WIF_{w,s}
 #endif
 
-          if(Ps_Pws > 0.d0) then ! if Ps_Pws < 0 then this term is zero
+          if((Ps_Pws > 0.d0).AND.(.NOT.well_is_closed)) then ! if Ps_Pws < 0 then this term is zero
             something_is_produced = .true.
              ! derivative of
              !   sum_{Q_s \cap P_i} q_{w,s,i}
@@ -1901,7 +1906,7 @@ contains
 
 
        !Make sure Jacobian is not singular
-       if((DataWellProdLocal(k)%IndWell == 'f').AND.(.NOT.something_is_produced)) then
+       if(well_is_closed.OR.((DataWellProdLocal(k)%IndWell == 'f').AND.(.NOT.something_is_produced))) then
           if(k<=NbWellProdOwn_Ncpus(commRank+1)) then
              nz = JacBigA%Pt(rowk) + csrK(colk)
              JacBigA%Val(1,1,nz) = 1.d0

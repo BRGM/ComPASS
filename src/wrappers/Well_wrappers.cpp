@@ -238,7 +238,7 @@ struct Producer_data_info
 	double radius;
 	double minimum_pressure;
 	double imposed_flowrate;
-	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode
+	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode; 'c' for closed
 	Producer_data_info(const Well& well) {
 		assert(well.is_producing());
 		id = well.id;
@@ -251,12 +251,18 @@ struct Producer_data_info
 			imposed_flowrate = operating_conditions.flowrate_limit;
 		}
 		else {
-			assert(well.operates_on_flowrate());
-			operating_code = 'f';
-			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
-			auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
-			minimum_pressure = operating_conditions.pressure_limit;
-			imposed_flowrate = operating_conditions.flowrate;
+			if(well.operates_on_flowrate()) {
+				operating_code = 'f';
+				assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+				auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
+				minimum_pressure = operating_conditions.pressure_limit;
+				imposed_flowrate = operating_conditions.flowrate;
+			} else {
+				assert(well.is_closed());
+				operating_code = 'c';
+				minimum_pressure = std::numeric_limits<decltype(minimum_pressure)>::min();
+				imposed_flowrate = 0;
+			}
 		}
 		//std::cerr << "Create Producer_data_info: " << radius << " " << minimum_pressure << " " << imposed_flowrate << std::endl;
 	}
@@ -269,7 +275,7 @@ struct Injector_data_info
 	double temperature;
 	double maximum_pressure;
 	double imposed_flowrate;
-	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode
+	char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode; 'c' for closed
 	Injector_data_info(const Well& well) {
 		assert(well.is_injecting());
 		id = well.id;
@@ -285,12 +291,18 @@ struct Injector_data_info
 			imposed_flowrate = operating_conditions.flowrate_limit;
 		}
 		else {
-			assert(well.operates_on_flowrate());
-			operating_code = 'f';
-			assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
-			auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
-			maximum_pressure = operating_conditions.pressure_limit;
-			imposed_flowrate = operating_conditions.flowrate;
+			if(well.operates_on_flowrate()) {
+				operating_code = 'f';
+				assert(well.control.operating_conditions.is<Flowrate_operating_conditions>());
+				auto operating_conditions = well.control.operating_conditions.get<Flowrate_operating_conditions>();
+				maximum_pressure = operating_conditions.pressure_limit;
+				imposed_flowrate = operating_conditions.flowrate;
+			} else {
+				assert(well.is_closed());
+				operating_code = 'c';
+				maximum_pressure = std::numeric_limits<decltype(maximum_pressure)>::max();
+				imposed_flowrate = 0;
+			}
 		}
 		if (imposed_flowrate > 0) {
 			imposed_flowrate = -imposed_flowrate;
@@ -388,11 +400,11 @@ void add_well_wrappers(py::module& module)
 		.def(py::init<>())
 		.def_readwrite("id", &Well::id)
 		.def_readwrite("geometry", &Well::geometry)
-		.def_property_readonly("stopped", &Well::is_stopped)
+		.def_property_readonly("closed", &Well::is_closed)
 		.def_property_readonly("injecting", &Well::is_injecting)
 		.def_property_readonly("producing", &Well::is_producing)
-		.def("stop", [](Well& instance) {
-		instance.control.status = Stopped_well_status{};
+		.def("close", [](Well& instance) {
+		instance.control.status = Closed_well_status{};
 	})
 		.def("produce", [](Well& instance) {
 		instance.control.status = Production_well_status{};

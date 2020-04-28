@@ -28,7 +28,7 @@
         real(c_double) :: radius
         real(c_double) :: minimum_pressure
         real(c_double) :: imposed_flowrate
-        character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode
+        character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode ; 'c' for closed
     end type Producer_data
 
     type, bind(C) :: Injector_data
@@ -38,7 +38,7 @@
         ! FIXME: introduce composition (CompTotal(NbComp))
         real(c_double) :: maximum_pressure
         real(c_double) :: imposed_flowrate
-        character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode
+        character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode ; 'c' for closed
     end type Injector_data
 
     public :: &

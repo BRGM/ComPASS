@@ -294,6 +294,8 @@ contains
 
       do nWell = 1, NodebyWellInjLocal%Nb
 
+         if (DataWellInjLocal(nWell)%IndWell == 'c') cycle ! well is closed
+
          if (DataWellInjLocal(nWell)%IndWell == 'f') then ! flowrate mode
 
             ! non linear update of the unknown pressure in well
@@ -435,6 +437,8 @@ contains
       double precision :: Flowrate_head
 
       do nWell = 1, NodebyWellProdLocal%Nb
+
+         if (DataWellProdLocal(nWell)%IndWell == 'c') cycle ! well is closed
 
          if (DataWellProdLocal(nWell)%IndWell == 'f') then ! flowrate mode
 
@@ -587,6 +591,8 @@ contains
 
       do num_Well = 1, NbWellInjLocal_Ncpus(commRank + 1)
 
+         if (DataWellInjLocal(num_Well)%IndWell == 'c') cycle ! well is closed
+
          if (DataWellInjLocal(num_Well)%IndWell == 'f') then ! flowrate mode
 
             if (IncPressionWellInj(num_Well) > DataWellInjLocal(num_Well)%PressionMax) then
@@ -641,6 +647,8 @@ contains
       integer :: num_Well
 
       do num_Well = 1, NbWellProdLocal_Ncpus(commRank + 1)
+
+         if (DataWellProdLocal(num_Well)%IndWell == 'c') cycle ! well is closed
 
          if (DataWellProdLocal(num_Well)%IndWell == 'f') then ! flowrate mode
 
