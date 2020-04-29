@@ -26,14 +26,18 @@ from .utils.units import bar, year
 
 
 Event = namedtuple("Event", ["time", "actions"])
-LoopTick = namedtuple("LoopTick", ["time", "iteration", "last_timestep"], defaults=(None,)*2)
+LoopTick = namedtuple(
+    "LoopTick", ["time", "iteration", "last_timestep"], defaults=(None,) * 2
+)
+
 
 def _make_event_list(events=None):
     if events is None:
         events = []
     return SortedKeyList(events, key=lambda event: event.time)
 
-def check_well_pressure(simulation, pressure_offset = 1 * bar):
+
+def check_well_pressure(simulation, pressure_offset=1 * bar):
     """
     Set all well head pressures:
         - to minimum reservoir pressure - pressure_offset for producers
@@ -47,35 +51,38 @@ def check_well_pressure(simulation, pressure_offset = 1 * bar):
     # whp = well head pressure
     whp = simulation.production_whp()
     for wk, data in enumerate(simulation.producers_data()):
-        if data.operating_code=="f" and data.imposed_flowrate==0:
-            logging.warning(f"Producer well {data.id} has no flow rate but is not marked as closed.")
+        if data.operating_code == "f" and data.imposed_flowrate == 0:
+            logging.warning(
+                f"Producer well {data.id} has no flow rate but is not marked as closed."
+            )
             whp[wk] = p_max + pressure_offset
         else:
             whp[wk] = p_min - pressure_offset
     whp = simulation.injection_whp()
     for wk, data in enumerate(simulation.injectors_data()):
-        if data.operating_code=="f" and data.imposed_flowrate==0:
-            logging.warning(f"Injector well {data.id} has no flow rate but is not marked as closed.")
+        if data.operating_code == "f" and data.imposed_flowrate == 0:
+            logging.warning(
+                f"Injector well {data.id} has no flow rate but is not marked as closed."
+            )
             whp[wk] = p_min - pressure_offset
         else:
             whp[wk] = p_max + pressure_offset
 
 
 class Snapshooter:
-
     def __init__(self, dumper):
         dumper.start_simulation()
         self.dumper = dumper
         self.nb_snaphots = 0
         self.latest_snapshot_time = None
-        self.filename = self.dumper.to_output_directory('snapshots')
+        self.filename = self.dumper.to_output_directory("snapshots")
         if mpi.is_on_master_proc:
-            with open(self.filename, 'w') as f:
+            with open(self.filename, "w") as f:
                 pass
 
     def new_tag(self):
-        tag = '%05d' % self.nb_snaphots
-        self.nb_snaphots+= 1
+        tag = "%05d" % self.nb_snaphots
+        self.nb_snaphots += 1
         return tag
 
     def shoot(self, t):
@@ -85,32 +92,43 @@ class Snapshooter:
             return
         self.latest_snapshot_time = t
         if mpi.is_on_master_proc:
-            with open(self.filename, 'a') as f:
-                print(tag, '%.12g'%t, file=f)
-                print (f"[Snapshooter] Saving output at time: {t} s = {t/year} y")
+            with open(self.filename, "a") as f:
+                print(tag, "%.12g" % t, file=f)
+                print(f"[Snapshooter] Saving output at time: {t} s = {t/year} y")
 
         self.dumper.dump_states(tag)
 
-n = 0 # iteration counter FIXME: global variable
+
+n = 0  # iteration counter FIXME: global variable
 shooter = None
 
-def standard_loop(simulation,
-                  initial_time=None, final_time=None,
-                  initial_timestep=None, fixed_timestep=None,
-                  output_period = None, output_every = None,
-                  nb_output = None, nitermax = None, dumper=None,
-                  iteration_callbacks = None, output_callbacks = None,
-                  specific_outputs = None,
-                  newton = None, context = None,
-                  time_step_manager = None,
-                  well_pressure_offset = 1 * bar,
-                  events = None,
-                  output_before_start=True, output_after_loop=True,
-                 ):
+
+def standard_loop(
+    simulation,
+    initial_time=None,
+    final_time=None,
+    initial_timestep=None,
+    fixed_timestep=None,
+    output_period=None,
+    output_every=None,
+    nb_output=None,
+    nitermax=None,
+    dumper=None,
+    iteration_callbacks=None,
+    output_callbacks=None,
+    specific_outputs=None,
+    newton=None,
+    context=None,
+    time_step_manager=None,
+    well_pressure_offset=1 * bar,
+    events=None,
+    output_before_start=True,
+    output_after_loop=True,
+):
     """
     Performs a standard timeloop.
 
-    :param simulation: The simulation object that the time loop is acting on.    
+    :param simulation: The simulation object that the time loop is acting on.
     :param initial_time: Starting time of the simulation. Defaults to 0 if not specified.
     :param final_time: Final time of the simulation (if any).
     :param initial_timestep: Initial timestep in seconds, will activate automatic timestep management.
@@ -122,19 +140,19 @@ def standard_loop(simulation,
     :param output_period: Will dump simulation information every ``output_period`` seconds.
     :param output_every: Will dump simulation information every ``output_every`` iterations.
     :param nb_output: Will compute ``output_period`` from ``final_time`` so that there are
-            ``nb_output`` dumps of simulation info. This parameter will not have effect if 
+            ``nb_output`` dumps of simulation info. This parameter will not have effect if
             ``output_period`` is defined.
-    :param nitermax: Maximum number of iterations.    
-    :param dumper: The object used to dump simulation (snaphots).    
+    :param nitermax: Maximum number of iterations.
+    :param dumper: The object used to dump simulation (snaphots).
     :param iteration_callbacks: A sequence that holds callbacks that will be called after each iteration.
-        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is 
-        the current time.    
+        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is
+        the current time.
     :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
         (cf. ``ouput_period`` and ``output_every``).
-        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is 
+        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is
         the current time.
-    :param specific_outputs: .    
-    :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created 
+    :param specific_outputs: .
+    :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
     :param context: A :class:`ComPASS.simulation_context.SimulationContext` object that is used to
         control generic option. If not provided a default one will be created.
@@ -162,8 +180,8 @@ def standard_loop(simulation,
                 output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
     else:
         if nb_output is not None:
-            print('WARNING: output_period is overriding nb_output in standard_loop.')
-    assert output_period is None or output_period>0
+            print("WARNING: output_period is overriding nb_output in standard_loop.")
+    assert output_period is None or output_period > 0
     if time_step_manager:
         assert initial_timestep is None and fixed_timestep is None
         ts_manager = time_step_manager
@@ -177,85 +195,110 @@ def standard_loop(simulation,
     if iteration_callbacks is None:
         iteration_callbacks = get_callbacks_from_options()
     else:
-        iteration_callbacks = tuple(callback for callback in iteration_callbacks) + get_callbacks_from_options()
+        iteration_callbacks = (
+            tuple(callback for callback in iteration_callbacks)
+            + get_callbacks_from_options()
+        )
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:
         specific_outputs = []
     events = _make_event_list(events)
-    while len(events)>0 and events[0].time<t:
-        mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
-        events.pop(0)
     if well_pressure_offset is not None:
         check_well_pressure(simulation, well_pressure_offset)
     # InitPressureDrop
     kernel = get_kernel()
     kernel.IncCVWells_InitPressureDrop()
     t = initial_time if initial_time is not None else 0
+    while len(events) > 0 and events[0].time < t:
+        mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
+        events.pop(0)
     if shooter is None:
         if dumper is None:
             dumper = Dumper(simulation)
         shooter = Snapshooter(dumper)
+
     def output_actions(tick):
         t, n, _ = tick
         for callback in output_callbacks:
             callback(n, t)
         shooter.shoot(t)
-    events.update([
-        Event(tout, [output_actions,]) for tout in specific_outputs
-    ])
+
+    events.update([Event(tout, [output_actions,]) for tout in specific_outputs])
+
     def add_output_event(tout):
         events.add(Event(tout, [output_actions,]))
+
     @mpi.on_master_proc
     def print_iteration_info():
         print()
-        print('** Time Step (iteration):', n, '*'*50)
+        print("** Time Step (iteration):", n, "*" * 50)
         if final_time:
-            final_time_info = '-> ' + time_string(final_time)
+            final_time_info = "-> " + time_string(final_time)
         else:
-            final_time_info = '-> NO final time'
-        print('Current time:', time_string(t), final_time_info)
+            final_time_info = "-> NO final time"
+        print("Current time:", time_string(t), final_time_info)
         # print('Timestep: %.3g s = %.3f d = %.3f y' % (
-            # ts_manager.current_step, ts_manager.current_step / day, ts_manager.current_step / year))
+        # ts_manager.current_step, ts_manager.current_step / day, ts_manager.current_step / year))
+
     pcsp = np.copy(simulation.cell_states().p)
     pcsT = np.copy(simulation.cell_states().T)
     dt = None
+
+    def process_events(tick):
+        while len(events) > 0 and events[0].time <= tick.time:
+            for action in events[0].actions:
+                action(tick)
+            events.pop(0)
+
     if output_period is not None:
+
         def push_reccuring_output_event(tick):
             t = tick.time
             if final_time is None or t + output_period <= final_time:
-                events.add(Event(t + output_period, [output_actions, push_reccuring_output_event]))
-        push_reccuring_output_event(LoopTick(time=t+output_period))
+                events.add(
+                    Event(
+                        t + output_period, [output_actions, push_reccuring_output_event]
+                    )
+                )
+
+        push_reccuring_output_event(LoopTick(time=t + output_period))
     if output_before_start:
         output_actions(LoopTick(time=t, iteration=n))
+    process_events(LoopTick(time=t, iteration=n))
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
-        if len(events)>0:
+        if len(events) > 0:
             dt_to_next_event = events[0].time - t
         if final_time is not None:
             if dt_to_next_event is None:
                 dt_to_next_event = final_time - t
             else:
                 dt_to_next_event = min(dt_to_next_event, final_time - t)
-        assert dt_to_next_event is None or dt_to_next_event>0
-        n+= 1
+        assert (
+            dt_to_next_event is None or dt_to_next_event > 0
+        ), f"dt to next event: {dt_to_next_event}"
+        n += 1
         print_iteration_info()
         # --
         dt = timestep.make_one_timestep(
-                newton, ts_manager.steps(upper_bound=dt_to_next_event),
-                simulation_context=context,
+            newton,
+            ts_manager.steps(upper_bound=dt_to_next_event),
+            simulation_context=context,
         )
-        assert dt == ts_manager.current_step, f"Timesteps differ: {dt} vs {ts_manager.current_step}"
+        assert (
+            dt == ts_manager.current_step
+        ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
-        mpi.master_print('max p variation', np.fabs(simulation.cell_states().p-pcsp).max())
-        mpi.master_print('max T variation', np.fabs(simulation.cell_states().T-pcsT).max())
-        if output_every is not None and n%output_every==0:
+        mpi.master_print(
+            "max p variation", np.fabs(simulation.cell_states().p - pcsp).max()
+        )
+        mpi.master_print(
+            "max T variation", np.fabs(simulation.cell_states().T - pcsT).max()
+        )
+        if output_every is not None and n % output_every == 0:
             add_output_event(t)
-        while len(events)>0 and events[0].time<=t:
-            tick = LoopTick(time=t, iteration=n, last_timestep=dt)
-            for action in events[0].actions:
-                action(tick)
-            events.pop(0)
+        process_events(LoopTick(time=t, iteration=n, last_timestep=dt))
         for callback in iteration_callbacks:
             callback(n, t)
         pcsp[:] = simulation.cell_states().p
@@ -265,6 +308,8 @@ def standard_loop(simulation,
     # Check if some events were left unprocessed
     if mpi.is_on_master_proc:
         for event in events:
-            mpi.master_print(f"WARNING: Event at time {events[0].time} was not reached.")
-    mpi.synchronize() # is this usefull ?
+            mpi.master_print(
+                f"WARNING: Event at time {events[0].time} was not reached."
+            )
+    mpi.synchronize()  # is this usefull ?
     return t

@@ -1,5 +1,5 @@
 ===============
-Example scripts 
+Example scripts
 ===============
 
 .. toctree::
@@ -10,5 +10,6 @@ Example scripts
    output_information
    setting_up_initial_inputs
    classical_doublet
+   well_history
    doublet_petrel_grid
    convection
