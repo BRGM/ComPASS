@@ -64,17 +64,9 @@ simulation.init(
     set_dirichlet_nodes = top_nodes,
 )
 
-def set_initial_states(states):
-    states.context[:] = 2
-    states.p[:] = p0
-    states.T[:] = T0
-    states.S[:] = [0, 1]
-    states.C[:] = 1.
-for states in [simulation.dirichlet_node_states(),
-               simulation.node_states(),
-               simulation.cell_states(),
-               simulation.fracture_states()]:
-    set_initial_states(states)
+X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
+simulation.all_states().set(X0)
+simulation.dirichlet_node_states().set(X0)
 
 def set_boundary_fluxes():
     Neumann = ComPASS.NeumannBC()

@@ -60,20 +60,15 @@ simulation.init(
     set_dirichlet_nodes = both_ends,
 )
 
-def set_initial_states(states):
-    states.context[:] = 1
-    states.p[:] = p_right
-    states.T[:] = T_right
-    states.S[:] = 1.
-    states.C[:] = 1.
-for states in [simulation.dirichlet_node_states(),
-               simulation.node_states(),
-               simulation.cell_states()]:
-    set_initial_states(states)
+# initial values
+X0 = simulation.build_state(p=p_right, T=T_right) 
+simulation.all_states().set(X0)
 
+# dirichlet boundary conditions
+simulation.dirichlet_node_states().set(X0)
 states = simulation.dirichlet_node_states()
-vertices = simulation.vertices()
-states.T[vertices[:, 0] <= 0] = T_left
+xd = simulation.vertices()[:, 0]
+states.T[xd <= 0] = T_left
 
 final_time = 100 * year 
 output_period = 0.1 * final_time

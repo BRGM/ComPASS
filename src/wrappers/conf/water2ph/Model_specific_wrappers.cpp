@@ -186,15 +186,17 @@ void add_specific_model_wrappers(py::module& module)
         case Context::gas:
             set_monophasic_state(result);
             result.S[enum_to_rank(Phase::gas)] = 1;
-            result.C[enum_to_rank(Phase::gas)].fill(1); // single component
             break;
         case Context::liquid:
             set_monophasic_state(result);
             result.S[enum_to_rank(Phase::liquid)] = 1;
-            result.C[enum_to_rank(Phase::liquid)].fill(1);  // single component
             break;
         default:
             throw std::runtime_error("Requested context is not implemented!");
+        }
+        // As we have a single component concentrations in both phases are always 1
+        for(auto&& Cphi: result.C) {
+            Cphi.fill(1);
         }
         return result;
     }, py::arg("context"), py::arg("p") = py::none{}, py::arg("T") = py::none{}, py::arg("Sg") = py::none{},

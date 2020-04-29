@@ -58,15 +58,12 @@ simulation.init(
     set_global_flags = set_node_flags,
 )
 
-def set_initial_states(states, z):
-    states.context[:] = 1
-    states.p[:] = p0
-    states.T[:] = Tmean - ( bottom_heat_flux / K_matrix ) * z
-    states.S[:] = 1.
-    states.C[:] = 1.
-set_initial_states(simulation.dirichlet_node_states(), simulation.vertices()[:,2])
-set_initial_states(simulation.node_states(), simulation.vertices()[:,2])
-set_initial_states(simulation.cell_states(), simulation.compute_cell_centers()[:,2])
+X0 = simulation.build_state(p=p0, T=Tmean) 
+simulation.all_states().set(X0)
+simulation.dirichlet_node_states().set(X0)
+geotherm = lambda z: Tmean - ( bottom_heat_flux / K_matrix ) * z
+simulation.all_states().T[:] = geotherm(simulation.all_positions()[:,2])
+simulation.dirichlet_node_states().T[:] = geotherm(simulation.vertices()[:,2])
 
 def set_boundary_heat_flux():
     Neumann = ComPASS.NeumannBC()

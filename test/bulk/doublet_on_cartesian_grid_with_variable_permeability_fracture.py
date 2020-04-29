@@ -8,6 +8,7 @@
 
 import ComPASS
 import doublet_utils
+from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
@@ -80,6 +81,8 @@ simulation.init(
     fracture_thermal_conductivity = K_fracture,
 )
 
-doublet_utils.init_states(simulation, pres, Tres)
+X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres) 
+simulation.all_states().set(X0)
+simulation.dirichlet_node_states().set(X0)
 
 standard_loop(simulation, initial_timestep = day, final_time = 10 * year, output_period = 30 * day)

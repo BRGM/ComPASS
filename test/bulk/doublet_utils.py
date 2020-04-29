@@ -28,20 +28,6 @@ def select_boundary_factory(simulation, grid):
         return on_xmin(vertices) | on_xmax(vertices) | on_ymin(vertices) | on_ymax(vertices)
     return select
 
-def init_states(simulation, p, T):
-    def set_states(states):
-        states.context[:] = simulation.Context.liquid
-        states.p[:] = p
-        states.T[:] = T
-        states.S[:, simulation.phase_index(simulation.Phase.gas)] = 0
-        states.S[:, simulation.phase_index(simulation.Phase.liquid)] = 1
-        states.C[:] = 1
-    for states in [simulation.dirichlet_node_states(),
-                  simulation.node_states(),
-                  simulation.fracture_states(),
-                  simulation.cell_states()]:
-        set_states(states)
-
 def make_well(simulation, xy, well_radius = None):
     return create_vertical_well(simulation, xy, well_radius)
 

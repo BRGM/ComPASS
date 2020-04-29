@@ -67,15 +67,15 @@ simulation.init(
     cell_thermal_conductivity = Kres,
 )
 
-def set_states(states, z):
-    states.context[:] = 2
+X0 = simulation.build_state(simulation.Context.liquid, p=pbot, T=Tbot) 
+simulation.all_states().set(X0)
+def apply_linear_gradients(states, z):
     states.p[:] = ptop - ((pbot - ptop) / H) * z
     states.T[:] = Ttop - ((Tbot - Ttop) / H) * z
-    states.S[:] = [0, 1]
-    states.C[:] = 1.
-set_states(simulation.dirichlet_node_states(), simulation.vertices()[:, 2])
-set_states(simulation.node_states(), simulation.vertices()[:, 2])
-set_states(simulation.cell_states(), simulation.compute_cell_centers()[:,2])
+apply_linear_gradients(simulation.all_states(), simulation.all_positions()[:, 2])
+dirichlet = simulation.dirichlet_node_states()
+dirichlet.set(X0)
+apply_linear_gradients(dirichlet, simulation.vertices()[:, 2])
 
 standard_loop(
     simulation,

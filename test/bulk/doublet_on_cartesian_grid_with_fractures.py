@@ -8,6 +8,7 @@
 
 import numpy as np
 import ComPASS
+from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import doublet_utils
@@ -44,10 +45,10 @@ def wells_factory(grid):
     def make_wells():
         interwell_distance = 1 * km
         Cx, Cy, Cz = doublet_utils.center(grid)
-        producer = doublet_utils.make_well(simulation, (Cx - 0.5 * interwell_distance, Cy))
+        producer = create_vertical_well(simulation, (Cx - 0.5 * interwell_distance, Cy))
         producer.operate_on_flowrate = Qm , 1. * bar
         producer.produce()
-        injector = doublet_utils.make_well(simulation, (Cx + 0.5 * interwell_distance, Cy))
+        injector = create_vertical_well(simulation, (Cx + 0.5 * interwell_distance, Cy))
         injector.operate_on_flowrate = Qm, pres + 100. * MPa
         injector.inject(Tinjection)
         return (producer, injector)
@@ -73,6 +74,11 @@ simulation.init(
     fracture_thermal_conductivity = K_fracture,
 )
 
-doublet_utils.init_states(simulation, pres, Tres)
+X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres) 
+simulation.all_states().set(X0)
+simulation.dirichlet_node_states().set(X0)
 
-standard_loop(simulation, initial_timestep = day, final_time = 2 * year, output_period = 30 * day)
+standard_loop(
+    simulation, initial_timestep = day,
+    final_time = 2 * year, output_period = 30 * day
+)
