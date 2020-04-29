@@ -1,7 +1,7 @@
 """ simulation data access
 """
 
-
+import warnings
 import numpy as np
 
 from .utils import (
@@ -32,23 +32,27 @@ def get_global_id_faces():
 
 
 def get_cell_permeability():
-    return np.array(_sw.get_cell_permeability_buffer(), copy = False)
+    warnings.warn("Use simulation.petropyhics()", DeprecationWarning)
+    return _sw.petrophysics().cell_permeability
 
 
 def get_fracture_permeability():
-    return np.array(_sw.get_fracture_permeability_buffer(), copy = False)
+    warnings.warn("Use simulation.petropyhics()", DeprecationWarning)
+    return _sw.petrophysics().fracture_permeability
 
 
 def get_cell_porosity():
-    return np.array(_sw.get_cell_porosity_buffer(), copy = False)
+    warnings.warn("Use simulation.petropyhics()", DeprecationWarning)
+    return _sw.petrophysics().cell_porosity
+
+
+def get_fracture_porosity():
+    warnings.warn("Use simulation.petropyhics()", DeprecationWarning)
+    return _sw.petrophysics().fracture_porosity
 
 
 def get_cell_heat_source():
     return np.array(_sw.get_cell_heat_source_buffer(), copy = False)
-
-
-def get_fracture_porosity():
-    return np.array(_sw.get_fracture_porosity_buffer(), copy = False)
 
 
 def compute_global_cell_centers():

@@ -26,6 +26,7 @@ protected:
 	std::vector<std::size_t> strides;
 	PyBufferWrapper() = delete;
 public:
+	typedef T value_type;
 	explicit PyBufferWrapper(const ArrayWrapper& AW) :
 		wrapper{ AW },
 		ndim{ sizeof...(extend)+1 },
@@ -49,7 +50,8 @@ public:
 	static auto add_buffer_class(py::module& module, const std::string& classname) {
 		typedef PyBufferWrapper<T, extend...> Buffer;
 		return py::class_<Buffer>(module, classname.c_str(), py::buffer_protocol())
-			.def_buffer([](Buffer& buffer) -> py::buffer_info { return buffer.buffer_info(); });
+			.def_buffer(&Buffer::buffer_info)
+		;
 	}
 };
 

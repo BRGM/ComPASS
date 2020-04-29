@@ -8,6 +8,7 @@ ComPASS
 
    introduction
    wiki/using_docker
+   simulation_object
    examples
    wells
    developer_corner

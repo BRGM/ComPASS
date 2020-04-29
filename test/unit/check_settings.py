@@ -66,6 +66,7 @@ dirichlet.T[:] = ((Tres + 100) * (y - Oy) + Tres * (Oy + Ly - y)) / Ly
 # - as a vtu file if the simulation is sequential (a single mesh)
 # - as a pvtu file and a set of vtu files (in the vtu folder) otherwise
 io.write_mesh(simulation, "mesh_alone")
+petrophysics = simulation.petrophysics()
 pointdata = {
     "dirichlet": simulation.dirichlet_nodes(),
     "dirichlet pressure": simulation.pressure_dirichlet_values(),
@@ -74,12 +75,12 @@ pointdata = {
 celldata = {
     "initial pressure": simulation.cell_states().p,
     "zcell": simulation.compute_cell_centers()[:, 2],
-    "phi": simulation.cell_porosity(),
+    "phi": petrophysics.cell_porosity,
 }
 celldata.update(
-    tensor_coordinates(simulation.cell_permeability(), "k", diagonal_only=True)
+    tensor_coordinates(petrophysics.cell_permeability, "k", diagonal_only=True)
 )
 celldata.update(
-    tensor_coordinates(simulation.cell_thermal_conductivity(), "K", diagonal_only=True)
+    tensor_coordinates(petrophysics.cell_thermal_conductivity, "K", diagonal_only=True)
 )
 io.write_mesh(simulation, "simulation_mesh", pointdata=pointdata, celldata=celldata)

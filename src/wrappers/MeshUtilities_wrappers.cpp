@@ -97,6 +97,23 @@ extern "C"
 
 #include "MeshUtilities_wrappers.h"
 
+template <typename Buffer, typename PyClass, typename Accessor>
+void register_property_buffer(PyClass& pyclass, const char * name, Accessor accessor) {
+	pyclass.def_property_readonly(name, [accessor](py::object& self) { 
+			typedef typename Buffer::value_type value_type;
+			auto buffer = retrieve_buffer<Buffer>(accessor).buffer_info();
+			return py::array_t<value_type, py::array::c_style>{
+				buffer.shape, buffer.strides, reinterpret_cast<value_type*>(buffer.ptr), self
+			};
+		},
+		// py::keep_alive<0, 1>(): because we want the holder instance to be kept alive
+		// as long as the buffer is used - should be ok this is the default for def_property
+		// it's useless till the buffers are allocated globally on the Fortran side but
+		// could become usefull later
+		py::return_value_policy::reference_internal
+	);
+}
+
 void add_mesh_utilities_wrappers(py::module& module)
 {
 
@@ -188,32 +205,19 @@ void add_mesh_utilities_wrappers(py::module& module)
 
 #endif
 
-	module.def("cell_porosity",
-		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_cell_porosity); }
-	);
+	// A holder class that could grow later
+	// This is used so that numpy arrays are views and not copies
+	struct Petrophysics{};
 
-	module.def("fracture_porosity",
-		[]() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_porosity); }
-	);
-
-    module.def("cell_permeability",
-        []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_permeability); }
-    );
-
-    module.def("fracture_permeability",
-        []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_permeability); }
-    );
-
+	auto petrophysics = py::class_<Petrophysics>(module, "petrophysics");
+	petrophysics.def(py::init<>());
+	register_property_buffer<DoubleBuffer>(petrophysics, "cell_porosity", retrieve_cell_porosity);
+	register_property_buffer<TensorBuffer>(petrophysics, "cell_permeability", retrieve_cell_permeability);
+	register_property_buffer<DoubleBuffer>(petrophysics, "fracture_porosity", retrieve_fracture_porosity);
+	register_property_buffer<DoubleBuffer>(petrophysics, "fracture_permeability", retrieve_fracture_permeability);
 #ifdef _THERMIQUE_
-
-    module.def("cell_thermal_conductivity",
-        []() { return retrieve_buffer<TensorBuffer>(retrieve_cell_thermal_conductivity); }
-    );
-
-    module.def("fracture_thermal_conductivity",
-        []() { return retrieve_buffer<DoubleBuffer>(retrieve_fracture_thermal_conductivity); }
-    );
-
+	register_property_buffer<TensorBuffer>(petrophysics, "cell_thermal_conductivity", retrieve_cell_thermal_conductivity);
+	register_property_buffer<DoubleBuffer>(petrophysics, "fracture_thermal_conductivity", retrieve_fracture_thermal_conductivity);
 #endif
 
     py::class_<MeshConnectivity>(module, "MeshConnectivity")
