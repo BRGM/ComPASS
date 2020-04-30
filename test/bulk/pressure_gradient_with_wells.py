@@ -93,15 +93,13 @@ def set_wells(n):
     xy[:, 0]*= Lx
     xy[:, 1]*= Ly
     wells = []
-    for wt, pos in zip(welltype, xy):
+    for wid, (wt, pos) in enumerate(zip(welltype, xy)):
         # print(wt, pos)
         if wt==0:
             wells.append(make_producer(pos[0], pos[1], 0))
         else:
             wells.append(make_injector(pos[0], pos[1], 0))
-    # Close all wells
-    for well in wells:
-        well.close()
+        wells[-1].id = wid
     return wells
 
 
@@ -131,6 +129,9 @@ set_pT_distribution(simulation.node_states(), simulation.vertices())
 set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers())
 set_pT_distribution(dirichlet, simulation.vertices())
 
+# Close all wells
+for wid in range(nb_random_wells):
+    simulation.close_well(wid)
 
 final_time = 500 * year
 output_period = 0.1 * final_time

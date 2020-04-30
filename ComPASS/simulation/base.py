@@ -188,6 +188,17 @@ def init(
             value = call_if_callable(kwargs['cell_heat_source'])
             _set_property_on_global_mesh('heat_source', 'cell', value)
         kernel.global_mesh_make_post_read_well_connectivity_and_ip()
+        # FIXME: we should distinguish well nature and well status
+        for well in well_list:
+            if well.closed:
+                print("WARNING")
+                print("WARNING")
+                print("WARNING Closed well will be DISCARDED.")
+                print("WARNING Set the well as a producer or injector,")
+                print("WARNING and close it before running the simulation.")
+                print("WARNING")
+                print("WARNING")
+                break
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
