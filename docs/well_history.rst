@@ -1,3 +1,5 @@
+.. _setting_well_transients:
+
 Setting transient well history
 ==============================
 
@@ -24,9 +26,9 @@ Download files:
 Injector example
 ----------------
 
-.. literalinclude:: ../test/bulk/well_production_history.py
+.. literalinclude:: ../test/bulk/well_injection_history.py
    :language: python
    :linenos:
 
 Download files:
-:download:`well_production_history.py <../test/bulk/well_production_history.py>`
+:download:`well_injection_history.py <../test/bulk/well_injection_history.py>`
