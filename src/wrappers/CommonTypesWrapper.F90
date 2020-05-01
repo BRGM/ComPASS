@@ -160,23 +160,25 @@
             call CommonMPI_abort("Inconsistent retrieved COC")
          n = size(dof_family%offsets)
          if(n<2) &
-            call CommonMPI_abort("Retrieved COC is empty or ill formed")
-         retrieved_coc%nb_containers = n - 1
+            call CommonMPI_abort("Retrieved COC is ill formed")
 
-!          if (n == 0) then
-! #ifdef TRACK_ZERO_SIZE_ARRAY
-!             write (*, *) 'WARNING - Retrieving zero size COC.'
-! #endif
-!             retrieved_coc%container_offset = C_NULL_PTR
-!             retrieved_coc%container_content = C_NULL_PTR
-!          else
-            if ((.not. allocated(dof_family%offsets)) .or. &
+        if(dof_family%offsets(size(dof_family%offsets))==0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+            write (*, *) 'WARNING - Retrieving zero size dof_family.'
+#endif
+            retrieved_coc%nb_containers = 0
+            retrieved_coc%container_offset = C_NULL_PTR
+            retrieved_coc%container_content = C_NULL_PTR
+            return
+        end if
+
+         retrieved_coc%nb_containers = n - 1
+         if ((.not. allocated(dof_family%offsets)) .or. &
                 (.not. allocated(dof_family%ids))) then
                 call CommonMPI_abort("Trying to retrieve as COC a DofFamily which is not allocated.")
-            end if
-            retrieved_coc%container_offset = c_loc(dof_family%offsets(1))
-            retrieved_coc%container_content = c_loc(dof_family%ids(1))
-         ! end if
+        end if
+        retrieved_coc%container_offset = c_loc(dof_family%offsets(1))
+        retrieved_coc%container_content = c_loc(dof_family%ids(1))
 
      end subroutine retrieve_dof_family
 
