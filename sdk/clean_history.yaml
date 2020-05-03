@@ -1,0 +1,13 @@
+# A YAML list of dictonnary with two keys "sha1" and "message"
+# The commits must be given in *chronological* order
+# (meaning a commit is the ancestor of any commits that follows it in the list order)
+# you can use branch name/tags instead of sha1 as long the chronological order is ok
+
+- sha1: 6b1d719c50520e1bb88eff2282c34d3a820a396a
+  message: |
+    Step 1
+
+    Details about step 1.
+- sha1: 3aed29aac3e0c2a0eccd4b386f39d71181e32410
+  message: |
+    Step 2
