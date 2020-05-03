@@ -39,7 +39,9 @@ module DefWell
          CompTotal(NbComp), & ! injector only
          InjectionTemperature, & ! injector only
          actual_mass_flowrate, &
-         actual_energy_flowrate
+         actual_energy_flowrate, &
+         actual_pressure, &
+         actual_temperature
       ! WARNING: we put character at the end of the structure
       ! because of "memory padding" when creating mpi well data structure
       ! cf. DefWell_mpi_register_well_data_description
@@ -508,6 +510,8 @@ contains
       x2%InjectionTemperature = x1%InjectionTemperature
       x2%actual_mass_flowrate = x1%actual_mass_flowrate
       x2%actual_energy_flowrate = x1%actual_energy_flowrate
+      x2%actual_pressure = x1%actual_pressure
+      x2%actual_temperature = x1%actual_temperature
       x2%IndWell = x1%IndWell
 
    end subroutine assign_DataWell_equal
@@ -516,7 +520,7 @@ contains
 
       integer, intent(out) :: mpi_id
 
-      integer, parameter :: count = 10
+      integer, parameter :: count = 12
       integer :: blocklengths(count)
       integer(kind=MPI_ADDRESS_KIND) :: begin, offset, displacements(count)
       integer :: types(count)
@@ -542,12 +546,16 @@ contains
       displacements(8) = offset - begin
       call MPI_Get_address(dummy%actual_energy_flowrate, offset, Ierr)
       displacements(9) = offset - begin
-      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      call MPI_Get_address(dummy%actual_pressure, offset, Ierr)
       displacements(10) = offset - begin
+      call MPI_Get_address(dummy%actual_temperature, offset, Ierr)
+      displacements(11) = offset - begin
+      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      displacements(12) = offset - begin
 
       types(:) = MPI_DOUBLE
       types(1) = MPI_INT
-      types(10) = MPI_CHARACTER
+      types(11) = MPI_CHARACTER
 
       blocklengths(:) = 1    
       blocklengths(6) = NbComp

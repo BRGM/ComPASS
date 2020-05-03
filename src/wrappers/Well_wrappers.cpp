@@ -36,6 +36,8 @@ struct Fortran_well_data
     double injection_temperature;
     double actual_mass_flowrate;
     double actual_energy_flowrate;
+    double actual_pressure;
+    double actual_temperature;
     char operating_code;
 };
 
@@ -463,6 +465,8 @@ void add_well_wrappers(py::module& module)
         .def_readwrite("injection_temperature", &Fortran_well_data::injection_temperature)
         .def_readonly("actual_mass_flowrate", &Fortran_well_data::actual_mass_flowrate)
         .def_readonly("actual_energy_flowrate", &Fortran_well_data::actual_energy_flowrate)
+        .def_readonly("actual_pressure", &Fortran_well_data::actual_pressure)
+        .def_readonly("actual_temperature", &Fortran_well_data::actual_temperature)
         ;
 
     py::class_<Perforation_state>(module, "PerforationState")

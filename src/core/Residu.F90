@@ -54,7 +54,14 @@ module Residu
       PerfoWellInj, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, &
       NodebyWellProdLocal, PerfoWellProd, IncPressionWellInj, &
-      IncPressionWellProd, NodeDatabyWellProdLocal
+      IncPressionWellProd, NodeDatabyWellProdLocal, &
+      WellPerforationState_type
+   use DefWell, only: &
+      WellData_type
+!#ifndef NDEBUG
+   use DefFlashWells, only: &
+      DefFlashWells_solve_for_temperature
+!#endif
    use VAGFrac, only: &
       ThermalSourceVol, &
       PoroVolDarcy, &
@@ -587,6 +594,37 @@ contains
 
    end subroutine Residu_add_flux_contributions
 
+   subroutine collect_wellhead_information(well_head_perforation, qw, qe, well_data)
+      type(WellPerforationState_type), intent(in) :: well_head_perforation
+      double precision, intent(in) :: qw, qe
+      type(WellData_type), intent(inout) :: well_data
+
+!#ifndef NDEBUG
+        double precision :: T
+        logical :: converged
+!#endif
+
+      well_data%actual_mass_flowrate = qw
+      well_data%actual_energy_flowrate = qe
+      well_data%actual_pressure = well_head_perforation%Pression
+!      well_data%actual_temperature = well_head_perforation%Temperature
+      
+!#ifndef NDEBUG
+      ! WARNING: well_data%actual_temperature must be set to a consistent number...
+      T = well_data%actual_temperature
+      call DefFlashWells_solve_for_temperature(qe, well_head_perforation%Pression, T, qw, converged)
+      if(.not.converged) &
+         !write(*,*) "WARNING: Conversion from enthalpy to temperature diverged."
+         call CommonMPI_abort("WARNING: Conversion from enthalpy to temperature diverged.")
+      !   if(abs(T-well_data%actual_temperature)>1e-3) then
+      !      write(*,*) "Well head temperatures:", well_data%actual_temperature, T
+      !      call CommonMPI_abort("Collected wellhead temperature is inconsistent.")
+      !   endif
+!#endif
+      well_data%actual_temperature = T
+
+   end subroutine collect_wellhead_information
+
    subroutine Residu_add_flux_contributions_wells
 
       integer :: k, s, nums, m, mph, icp
@@ -642,8 +680,10 @@ contains
             end if
          end do ! end of node s in injection well k
 
-         DataWellInjLocal(k)%actual_mass_flowrate = qw
-         DataWellInjLocal(k)%actual_energy_flowrate = qe
+         ! FIXME: Init actual temperature
+         s =  NodebyWellInjLocal%Pt(k + 1) ! well head
+         DataWellInjLocal(k)%actual_temperature = IncNode(NodebyWellInjLocal%Num(s))%Temperature
+         call collect_wellhead_information(PerfoWellInj(s), qw, qe, DataWellInjLocal(k))
 
          ! inj well equation
          if (DataWellInjLocal(k)%IndWell == 'p') then
@@ -704,8 +744,10 @@ contains
             end if
          end do ! end of node s in production well k
 
-         DataWellProdLocal(k)%actual_mass_flowrate = qw
-         DataWellProdLocal(k)%actual_energy_flowrate = qe
+         ! FIXME: Init actual temperature
+         s =  NodebyWellProdLocal%Pt(k + 1) ! well head
+         DataWellProdLocal(k)%actual_temperature = IncNode(NodebyWellProdLocal%Num(s))%Temperature
+         call collect_wellhead_information(PerfoWellProd(NodebyWellProdLocal%Pt(k + 1)), qw, qe, DataWellProdLocal(k))
 
          ! prod well equation
          if (DataWellProdLocal(k)%IndWell == 'p') then

@@ -133,6 +133,7 @@ parallel_test:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel vertical_wells.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_petrophysics.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel dof_families.py
+    - docker run --rm -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel chain_random_wells.py
 
 time_bulk_scripts:
   stage: test

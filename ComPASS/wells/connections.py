@@ -5,8 +5,10 @@ from .. import mpi
 from .wells import get_well_data
 
 
-WellFlowrates = namedtuple(
-    "WellFlowrates", ["mass_flowrate", "energy_flowrates"], defaults=(None,) * 2
+WellHead = namedtuple(
+    "WellHead",
+    ["mass_flowrate", "energy_flowrate", "pressure", "temperature"],
+    defaults=(None,) * 4,
 )
 
 
@@ -25,7 +27,7 @@ class WellDataConnection:
         if dest is not None:
             self.dest = [proc for proc in dest if proc != mpi.proc_rank]
         self.mpi_tag = mpi_tag
-        self._value = WellFlowrates()
+        self._value = WellHead()
 
     @property
     def value(self):
@@ -35,14 +37,17 @@ class WellDataConnection:
         data = self.well_data
         if data is None:
             return
-        flowrates = WellFlowrates(
-            data.actual_mass_flowrate, data.actual_energy_flowrate
+        wellhead = WellHead(
+            data.actual_mass_flowrate,
+            data.actual_energy_flowrate,
+            data.actual_pressure,
+            data.actual_temperature,
         )
-        self._value = flowrates
+        self._value = wellhead
         comm = mpi.communicator()
         for proc in self.dest:
             assert self.mpi_tag is not None
-            comm.send(flowrates, dest=proc, tag=self.mpi_tag)
+            comm.send(wellhead, dest=proc, tag=self.mpi_tag)
 
     def recv(self):
         if self.well_data is None:
@@ -77,7 +82,7 @@ class WellDataConnections:
 
 def _map_well_pairs(well_pairs, well_data_provider):
     comm = mpi.communicator()
-    wells = [], [] # owns, ghosts
+    wells = [], []  # owns, ghosts
     for wid in set(chain(*well_pairs)):
         # FIXME: we could have an alternative way to find if a well is seen by this proc
         for k, own_only in enumerate((True, False)):
@@ -121,6 +126,7 @@ def _define_connections(well_pairs, well_data_provider):
             comm.send(connections, dest=proc, tag=well_connections_tag)
         return all_connections[master]
     return comm.recv(source=master, tag=well_connections_tag)
+
 
 def add_well_connections(well_pairs, connections, well_data_provider):
     for connection in _define_connections(well_pairs, well_data_provider):

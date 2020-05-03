@@ -103,7 +103,8 @@ module DefFlashWells
       DefFlashWells_allocate, & ! Allocation, initialization and deallocation (in NN.F90)
       DefFlashWells_NewtonFlashLinWells, & ! Flash after each Newton iteration
       DefFlashWells_TimeFlash, & ! Flash after each time step
-      DefFlashWells_free
+      DefFlashWells_free, &
+      DefFlashWells_solve_for_temperature ! FIXME: should be elsewhere (pure physical function)
 
    private :: &
       DefFlashWells_Flash_cv
@@ -850,7 +851,8 @@ contains
       double precision, intent(in) :: p !< pressure
       double precision, intent(inout) :: T !< initial temperature and result
       double precision, intent(in) :: n !< total number of moles
-      logical, intent(inout) :: converged 
+      logical, intent(out) :: converged
+
       double precision :: H, ResT, dHdP, dHdT, Sat(NbPhase), dHdC(NbComp), dHdS(NbPhase)
       double precision :: dummyCi(NbComp), dummySat(NbPhase) ! not used by f_Enthalpie !
       integer :: i 

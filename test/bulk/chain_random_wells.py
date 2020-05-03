@@ -12,17 +12,18 @@ import ComPASS
 import ComPASS.mpi as mpi
 from ComPASS.utils.units import *
 
-np.random.seed(12345)  # Set the seed to have always the same pattern
-nb_random_wells = 10  # nb_random_wells producers + nb_random_wells injectors
-
-pres = 15.0 * MPa  # initial reservoir pressure
-Tres = degC2K(60)  # temperature of the reservoir
-k_reservoir = 1e-12  # reservoir permeability in m^2
-K_reservoir = 2  # bulk thermal conductivity in W/m/K
-phi_reservoir = 0.15  # reservoir porosity
+# fmt: off
+np.random.seed(12345)  # set the seed to always have the same well pattern
+nb_random_wells = 10   # nb_random_wells producers + nb_random_wells injectors
+pres = 15.0 * MPa      # initial reservoir pressure
+Tres = degC2K(60)      # temperature of the reservoir
+k_reservoir = 1e-12    # reservoir permeability in m^2
+K_reservoir = 2        # bulk thermal conductivity in W/m/K
+phi_reservoir = 0.15   # reservoir porosity
 gravity = 0
-rw = 0.1  # well radius
-Qw = 100.0
+rw = 0.1               # well radius
+Qw = 100.0             # well imposed flowrate
+# fmt: on
 
 Lx, Ly, Lz = 1000.0, 1000.0, 100.0
 nx, ny, nz = 40, 40, 1  # discretization
@@ -84,25 +85,33 @@ X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
 
+# We must define well connections between source wells (producers) and target wells (injectors)
 doublets = np.reshape(np.arange(2 * nb_random_wells), (-1, 2), order="F")
 simulation.add_well_connections(doublets)
 
+# A fuction giving the temperature delta imposed by heat network at time t
+def network_deltaT(t):
+    return 20 * (1 + np.sin(t * (2 * np.pi) / year))
 
-def connect_wells(tick):
+
+def chain_wells(tick):
     for source, target in doublets:
         data = simulation.get_well_data(target)
         if data is not None:
-            flowrates = simulation.well_connections[source]
+            wellhead = simulation.well_connections[source]
             assert (
-                flowrates.mass_flowrate >= 0
+                wellhead.mass_flowrate >= 0
             ), f"source well {source} should be a producer"
-            data.imposed_flowrate = -flowrates.mass_flowrate
-            data.injection_temperature = Tres - 20
+            data.imposed_flowrate = -wellhead.mass_flowrate
+            # print(f"Wellhead temperature at well {source}: {K2degC(wellhead.temperature)}")
+            data.injection_temperature = max(
+                degC2K(20), wellhead.temperature - network_deltaT(tick.time)
+            )
 
 
 simulation.standard_loop(
     initial_timestep=day,
-    output_period=30 * day,
+    output_period=10 * day,
     final_time=year,
-    iteration_callbacks=[connect_wells],
+    iteration_callbacks=[chain_wells],
 )
