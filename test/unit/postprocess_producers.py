@@ -9,9 +9,7 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.dump_wells as dw
 
@@ -72,7 +70,7 @@ grid = ComPASS.Grid(
 
 
 def create_well():
-    return create_vertical_well(simulation, (0, 0), rw)
+    return simulation.create_vertical_well((0, 0), rw)
 
 
 def make_producer():
@@ -131,8 +129,8 @@ def set_well_property(wid, property, value):
         setattr(data, property, value)
 
 
-standard_loop(
-    simulation, initial_timestep=1, output_period=1, nitermax=1,
+simulation.standard_loop(
+    initial_timestep=1, output_period=1, nitermax=1,
 )
 
 

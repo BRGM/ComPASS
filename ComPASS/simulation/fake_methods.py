@@ -1,4 +1,6 @@
-from ..utils.wells import (
+from ..timeloops import standard_loop
+
+from ..wells.wells import (
     create_vertical_well,
     get_well_data,
     set_well_property,
@@ -8,4 +10,9 @@ from ..utils.wells import (
     well_injection_history,
 )
 
-from ..timeloops import standard_loop
+from ..utils.grid import (
+    vertical_boundaries,
+    bottom_boundary,
+    top_boundary,
+    all_boundaries,
+)

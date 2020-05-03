@@ -9,9 +9,7 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.dump_wells as dw
 
@@ -39,9 +37,9 @@ k_reservoir = (
 K_reservoir = 2  # bulk thermal conductivity in W/m/K
 Qw = 1.0
 
-ComPASS.set_output_directory_and_logfile(__file__)
 
 simulation = ComPASS.load_eos("water2ph")
+ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 
 
@@ -71,7 +69,7 @@ grid = ComPASS.Grid(
 
 
 def create_well():
-    return create_vertical_well(simulation, (0, 0), rw)
+    return simulation.create_vertical_well((0, 0), rw)
 
 
 def make_producer():
@@ -143,8 +141,7 @@ io.write_mesh(
     },
 )
 
-standard_loop(
-    simulation,
+simulation.standard_loop(
     initial_timestep=1,
     final_time=year,
     output_period=year / 12,

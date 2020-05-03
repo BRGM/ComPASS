@@ -7,13 +7,12 @@
 #
 
 import numpy as np
+
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
-import doublet_utils
+from ComPASS.utils.grid import grid_center
 
-
+# fmt: off
 pres = 20. * MPa            # initial reservoir pressure
 Tres = degC2K( 70. )        # initial reservoir temperature - convert Celsius to Kelvin degrees
 Tinjection = degC2K( 30. )  # injection temperature - convert Celsius to Kelvin degrees
@@ -24,13 +23,17 @@ K_matrix = 2                # bulk thermal conductivity in W/m/K
 k_fracture = 1E-12          # fracture permeability in m^2
 omega_fracture = 0.5        # fracture porosity
 K_fracture = 2              # bulk thermal conductivity in W/m/K
+# fmt: on
 
-Lx, Ly, Lz = 3000., 2000., 100.
-Ox, Oy, Oz = -1500., -1000., -1600.
+Lx, Ly, Lz = 3000.0, 2000.0, 100.0
+Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
 nx, ny, nz = 31, 21, 6
 
+simulation = ComPASS.load_eos("water2ph")
+ComPASS.set_output_directory_and_logfile(__file__)
+simulation.set_gravity(0)
 
-simulation = ComPASS.load_eos('water2ph')
+grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
 def fractures_factory(grid):
     def select_fractures():
@@ -39,46 +42,40 @@ def fractures_factory(grid):
         # select horizontal fault axis in the middle of the simulation domain
         zfrac = grid.origin[2] + 0.5 * grid.extent[2]
         return np.abs(face_centers[:, 2] - zfrac) < 0.25 * dz
+
     return select_fractures
 
 def wells_factory(grid):
     def make_wells():
         interwell_distance = 1 * km
-        Cx, Cy, Cz = doublet_utils.center(grid)
-        producer = create_vertical_well(simulation, (Cx - 0.5 * interwell_distance, Cy))
-        producer.operate_on_flowrate = Qm , 1. * bar
+        Cx, Cy, Cz = grid_center(grid)
+        producer = simulation.create_vertical_well((Cx - 0.5 * interwell_distance, Cy))
+        producer.operate_on_flowrate = Qm, 1.0 * bar
         producer.produce()
-        injector = create_vertical_well(simulation, (Cx + 0.5 * interwell_distance, Cy))
-        injector.operate_on_flowrate = Qm, pres + 100. * MPa
+        injector = simulation.create_vertical_well((Cx + 0.5 * interwell_distance, Cy))
+        injector.operate_on_flowrate = -Qm, pres + 100.0 * MPa
         injector.inject(Tinjection)
         return (producer, injector)
+
     return make_wells
 
-ComPASS.set_output_directory_and_logfile(__file__)
-
-grid = ComPASS.Grid(
-    shape = (nx, ny, nz),
-    extent = (Lx, Ly, Lz),
-    origin = (Ox, Oy, Oz),
-)
-
 simulation.init(
-    mesh = grid,
-    wells = wells_factory(grid),
-    fracture_faces = fractures_factory(grid),
-    cell_porosity = omega_matrix,
-    cell_permeability = k_matrix,
-    cell_thermal_conductivity = K_matrix,
-    fracture_porosity = omega_fracture,
-    fracture_permeability = k_fracture,
-    fracture_thermal_conductivity = K_fracture,
+    mesh=grid,
+    set_dirichlet_nodes=simulation.vertical_boundaries(grid),
+    wells=wells_factory(grid),
+    fracture_faces=fractures_factory(grid),
+    cell_porosity=omega_matrix,
+    cell_permeability=k_matrix,
+    cell_thermal_conductivity=K_matrix,
+    fracture_porosity=omega_fracture,
+    fracture_permeability=k_fracture,
+    fracture_thermal_conductivity=K_fracture,
 )
 
-X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres) 
+X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
 
-standard_loop(
-    simulation, initial_timestep = day,
-    final_time = 2 * year, output_period = 30 * day
+simulation.standard_loop(
+    initial_timestep=day, final_time=2 * year, output_period=30 * day
 )

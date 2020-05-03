@@ -124,6 +124,7 @@ def standard_loop(
     events=None,
     output_before_start=True,
     output_after_loop=True,
+    well_connections=None,
 ):
     """
     Performs a standard timeloop.
@@ -145,12 +146,10 @@ def standard_loop(
     :param nitermax: Maximum number of iterations.
     :param dumper: The object used to dump simulation (snaphots).
     :param iteration_callbacks: A sequence that holds callbacks that will be called after each iteration.
-        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is
-        the current time.
+        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
     :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
         (cf. ``ouput_period`` and ``output_every``).
-        The callback signature must be `f(n, t)` where `n` is the iteration number and `t` is
-        the current time.
+        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
     :param specific_outputs: .
     :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
@@ -164,6 +163,8 @@ def standard_loop(
         the ComPASS.timeloops.Event namedtuple object.
     :param output_before_start: A boolean to specify if an output should be dumped before starting loop (default is True).
     :param output_after_loop: A boolean to specify if an output should be dumped when the loop is finished (default is True).
+    :param well_connections: Well connections to be synchronized at the end of each time loop.
+                             It must be a :py:class:`WellDataConnections` (defaults to simulation.well_connections).
     :return: The time at the end of the time loop.
     """
     assert not (final_time is None and nitermax is None)
@@ -171,6 +172,8 @@ def standard_loop(
         newton = simulation.default_Newton()
     if context is None:
         context = SimulationContext()
+    if well_connections is None:
+        well_connections = simulation.well_connections
     global n
     global shooter
     if output_period is None:
@@ -286,10 +289,12 @@ def standard_loop(
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,
         )
+        well_connections.synchronize()
         assert (
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
+        tick = LoopTick(time=t, iteration=n, last_timestep=dt)
         mpi.master_print(
             "max p variation", np.fabs(simulation.cell_states().p - pcsp).max()
         )
@@ -298,18 +303,24 @@ def standard_loop(
         )
         if output_every is not None and n % output_every == 0:
             add_output_event(t)
-        process_events(LoopTick(time=t, iteration=n, last_timestep=dt))
+        process_events(tick)
         for callback in iteration_callbacks:
-            callback(n, t)
+            try:
+                callback(tick)
+            except TypeError:
+                mpi.master_print(
+                    "WARNING: use the LoopTick API for iteration callbacks"
+                )
+                callback(n, t)
         pcsp[:] = simulation.cell_states().p
         pcsT[:] = simulation.cell_states().T
     if output_after_loop:
-        output_actions(LoopTick(time=t, iteration=n, last_timestep=dt))
+        output_actions(tick)
     # Check if some events were left unprocessed
     if mpi.is_on_master_proc:
         for event in events:
             mpi.master_print(
-                f"WARNING: Event at time {events[0].time} was not reached."
+                f"WARNING: Event at time {events[0].time} = {events[0].time / year} y was not reached."
             )
     mpi.synchronize()  # is this usefull ?
     return t

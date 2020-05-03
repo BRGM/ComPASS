@@ -7,7 +7,6 @@
 #
 
 import ComPASS
-#import doublet_utils
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 import numpy as np

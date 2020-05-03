@@ -9,7 +9,6 @@
 import numpy as np
 
 import ComPASS
-import doublet_utils
 from ComPASS.utils.units import *
 
 

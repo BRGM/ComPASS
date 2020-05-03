@@ -9,7 +9,6 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
 import ComPASS.dump_wells as dw
 import ComPASS.mpi as mpi
 
@@ -25,7 +24,7 @@ def make_wells():
     nx, ny, _ = grid.shape
     for i in range(1, nx - 1):
         for j in range(1, ny - 1):
-            well = create_vertical_well(simulation, (i, j), 0.01)  # dummy radius
+            well = simulation.create_vertical_well((i, j), 0.01)  # dummy radius
             well.operate_on_flowrate = 1, 0.0  # dummy values
             wells.append(well)
     for wk, well in enumerate(wells):

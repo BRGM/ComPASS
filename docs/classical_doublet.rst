@@ -5,9 +5,8 @@ Classical geothermal doublet
    :language: python
    :linenos:
 
-Download files:
+Download file:
 :download:`doublet_on_cartesian_grid.py <../test/bulk/doublet_on_cartesian_grid.py>` 
-:download:`doublet_utils.py <../test/bulk/doublet_utils.py>`
 
 
 Classical geothermal doublet with horizontal fracture
@@ -17,6 +16,5 @@ Classical geothermal doublet with horizontal fracture
    :language: python
    :linenos:
 
-Download files:
+Download file:
 :download:`doublet_on_cartesian_grid_with_fractures.py <../test/bulk/doublet_on_cartesian_grid_with_fractures.py>` 
-:download:`doublet_utils.py <../test/bulk/doublet_utils.py>` 

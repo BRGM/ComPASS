@@ -9,11 +9,7 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well, set_well_property
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
-import ComPASS.io.mesh as io
-import ComPASS.dump_wells as dw
 
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
 
@@ -127,8 +123,7 @@ set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
 
 
 month = year / 12
-onestep = lambda t0: standard_loop(
-    simulation,
+onestep = lambda t0: simulation.standard_loop(
     initial_time=t0,
     initial_timestep=hour,
     final_time=t0 + month,

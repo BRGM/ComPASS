@@ -9,9 +9,7 @@
 import numpy as np
 
 import ComPASS
-import doublet_utils
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 
 def test_face_centers():
 
