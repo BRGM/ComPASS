@@ -34,6 +34,8 @@ struct Fortran_well_data
     double imposed_flowrate;
     Component_vector injection_composition;
     double injection_temperature;
+    double actual_mass_flowrate;
+    double actual_energy_flowrate;
     char operating_code;
 };
 
@@ -85,6 +87,7 @@ struct Well_information
 };
 
 // Fortran functions
+#include "MeshSchema.fh"
 extern "C"
 {
 	void Well_allocate_well_geometries(COC&, COC&);
@@ -458,6 +461,8 @@ void add_well_wrappers(py::module& module)
         .def_readwrite("minimum_pressure", &Fortran_well_data::minimum_pressure)
         .def_readwrite("imposed_flowrate", &Fortran_well_data::imposed_flowrate)
         .def_readwrite("injection_temperature", &Fortran_well_data::injection_temperature)
+        .def_readonly("actual_mass_flowrate", &Fortran_well_data::actual_mass_flowrate)
+        .def_readonly("actual_energy_flowrate", &Fortran_well_data::actual_energy_flowrate)
         ;
 
     py::class_<Perforation_state>(module, "PerforationState")
@@ -593,17 +598,19 @@ void add_well_wrappers(py::module& module)
 		return unpack_well_information(ComPASS::Well::Well_type::producer);
 	});
 
-	module.def("injectors_data",
-        []() {
+    module.def("injectors_data",
+        [](bool own_only) {
         auto p = get_injectors_data();
-        return py::make_iterator(p, p + nb_injectors());
-    }, py::return_value_policy::reference);
+        const std::size_t n = own_only ? number_of_own_injectors() : nb_injectors();
+        return py::make_iterator(p, p + n);
+    }, py::return_value_policy::reference, py::arg("own_only") = false);
 
     module.def("producers_data",
-        []() {
+        [](bool own_only) {
         auto p = get_producers_data();
-        return py::make_iterator(p, p + nb_producers());
-    }, py::return_value_policy::reference);
+        const std::size_t n = own_only ? number_of_own_producers() : nb_producers();
+        return py::make_iterator(p, p + n);
+    }, py::return_value_policy::reference, py::arg("own_only") = false);
 
     py::class_<Well_perforations>(module, "WellPerforations")
         .def("__len__", &Well_perforations::size)

@@ -42,19 +42,27 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
     return well
 
 
-def get_well_data(simulation, wid):
+def _get_well_data(simulation, wells_data, wid):
+    for data in wells_data:
+        if data.id == wid:
+            return data
+
+
+def get_well_data(simulation, wid, own_only=False):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.get_well_data`
 
     :param wid: well unique id
+    :param own_only: will look amongst own wells only
+                     (well whose unknowns are managed by this proc)
 
     :return: The data of the well which as `wid` id.
     """
-    for wells in [simulation.injectors_data(), simulation.producers_data()]:
-        for data in wells:
-            if data.id == wid:
-                return data
+    data = _get_well_data(simulation, simulation.injectors_data(own_only), wid)
+    if data is not None:
+        return data
+    return _get_well_data(simulation, simulation.producers_data(own_only), wid)
 
 
 # WARNING: in parallel we must modify both own and ghost wells

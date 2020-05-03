@@ -26,6 +26,7 @@ struct NodeInfo
 };
 
 // Fortran functions
+#include "MeshSchema.fh"
 extern "C"
 {
 	void get_global_number_of_nodes(long&);
@@ -84,15 +85,6 @@ extern "C"
 	void retrieve_nb_faces_own(XArrayWrapper<int>&);
 	void retrieve_nb_nodes_own(XArrayWrapper<int>&);
 	void retrieve_nb_fractures_own(XArrayWrapper<int>&);
-	std::size_t number_of_nodes();
-	std::size_t number_of_own_nodes();
-	std::size_t number_of_cells();
-	std::size_t number_of_own_cells();
-	std::size_t number_of_fractures();
-	std::size_t number_of_own_fractures();
-	std::size_t number_of_own_injectors();
-	std::size_t number_of_own_producers();
-
 }
 
 #include "MeshUtilities_wrappers.h"

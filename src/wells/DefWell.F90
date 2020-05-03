@@ -37,7 +37,9 @@ module DefWell
          PressionMin, & ! producer only
          ImposedFlowrate, & ! both well types (>=0 for producer <0 for injector)
          CompTotal(NbComp), & ! injector only
-         Temperature ! injector only
+         InjectionTemperature, & ! injector only
+         actual_mass_flowrate, &
+         actual_energy_flowrate
       ! WARNING: we put character at the end of the structure
       ! because of "memory padding" when creating mpi well data structure
       ! cf. DefWell_mpi_register_well_data_description
@@ -91,9 +93,6 @@ module DefWell
       NodeDatabyWellProd !< CSR store data about Parent and Well index of nodes of each production Well
 
    public :: &
-      DefWell_SetDataWellInj, &
-      DefWell_SetDataWellProd, &
-      DefWell_Make, &
       DefWell_WellIndex, & ! Compute Well index
       DefWell_csrdatawellcopy, & ! copy CSRDatawell
       DefWell_deallocCSRDataWell, & ! free CSRdataWell
@@ -178,72 +177,6 @@ contains
 
    end function nb_global_producers
 
-   subroutine DefWell_print_WellData(datawell)
-
-      type(WellData_type), intent(in) :: datawell
-
-      write (*, *) "%%", "injector data", datawell%Radius, &
-         datawell%Temperature, datawell%compTotal(:), &
-         datawell%PressionMax, datawell%ImposedFlowrate, &
-         datawell%IndWell
-
-      write (*, *) "%%", "producer data", datawell%Radius, &
-         datawell%PressionMin, datawell%ImposedFlowrate, &
-         datawell%IndWell
-
-   end subroutine DefWell_print_WellData
-
-   ! allocate DataWellInj and set Radius
-   subroutine DefWell_SetDataWellInj(NbWell)
-
-      integer, intent(in) :: NbWell
-      integer :: k
-
-      allocate (DataWellInj(NbWell))
-
-      do k = 1, NbWell
-
-         DataWellInj(k)%Radius = 0.1d0
-         DataWellInj(k)%Temperature = 60.d0 + 273.d0
-
-         DataWellInj(k)%CompTotal(:) = 1.d0 ! here NbComp=1
-         DataWellInj(k)%PressionMax = 3.d7
-         DataWellInj(k)%ImposedFlowrate = -1.d5/3600.d0
-
-         DataWellInj(k)%IndWell = 'p'
-      end do
-
-   end subroutine DefWell_SetDataWellInj
-
-   ! allocate DataWellProd and set Radius
-   subroutine DefWell_SetDataWellProd(NbWell)
-
-      integer, intent(in) :: NbWell
-      integer :: k
-
-      allocate (DataWellProd(NbWell))
-
-      do k = 1, NbWell
-
-         DataWellProd(k)%Radius = 0.1d0
-         DataWellProd(k)%PressionMin = 1.d7
-         DataWellProd(k)%ImposedFlowrate = 1.d5/3600.d0
-
-         DataWellProd(k)%IndWell = 'p'
-      end do
-
-   end subroutine DefWell_SetDataWellProd
-
-   !! ----------------------------------------------------!!
-
-   subroutine DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-      integer, intent(in) :: NbWellInj, NbWellProd
-
-      call DefWell_SetDataWellInj(NbWellInj) ! allocate DataWellInj and set Radius
-      call DefWell_SetDataWellProd(NbWellProd) ! allocate DataWellProd and set Radius
-
-   end subroutine DefWell_Make_SetDataWell
-
    subroutine DefWell_Make_ComputeWellIndex( &
       NbNode, XNode, CellbyNode, NodebyCell, &
       FracbyNode, NodebyFace, PermCell, PermFrac)
@@ -292,29 +225,6 @@ contains
       deallocate (WellRadius)
 
    end subroutine DefWell_Make_ComputeWellIndex
-
-   subroutine DefWell_Make(NbWellInj, NbWellProd, &
-                           NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-                           PermCell, PermFrac)
-
-      integer, intent(in) :: NbWellInj, NbWellProd, NbNode
-      double precision, allocatable, dimension(:, :), intent(in) :: XNode
-      type(CSR), intent(in) :: CellbyNode, NodebyCell, NodebyFace
-      !type(FractureInfoCOC), intent(in) :: FracbyNode
-      type(CSR), intent(in) :: FracbyNode
-
-      double precision, allocatable, dimension(:, :, :), intent(in) :: PermCell
-      double precision, allocatable, dimension(:), intent(in) :: PermFrac
-
-      !double precision, allocatable, dimension(:) :: WellRadius
-
-      call DefWell_Make_SetDataWell(NbWellInj, NbWellProd)
-
-      call DefWell_Make_ComputeWellIndex( &
-         NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-         PermCell, PermFrac)
-
-   end subroutine DefWell_Make
 
    ! FIXME: this is a convenience function that should be elsewhere
    subroutine element_center(vertices, connectivity, element, xc)
@@ -595,7 +505,9 @@ contains
       x2%PressionMin = x1%PressionMin
       x2%ImposedFlowrate = x1%ImposedFlowrate
       x2%CompTotal = x1%CompTotal
-      x2%Temperature = x1%Temperature
+      x2%InjectionTemperature = x1%InjectionTemperature
+      x2%actual_mass_flowrate = x1%actual_mass_flowrate
+      x2%actual_energy_flowrate = x1%actual_energy_flowrate
       x2%IndWell = x1%IndWell
 
    end subroutine assign_DataWell_equal
@@ -604,7 +516,7 @@ contains
 
       integer, intent(out) :: mpi_id
 
-      integer, parameter :: count = 8
+      integer, parameter :: count = 10
       integer :: blocklengths(count)
       integer(kind=MPI_ADDRESS_KIND) :: begin, offset, displacements(count)
       integer :: types(count)
@@ -624,14 +536,18 @@ contains
       displacements(5) = offset - begin
       call MPI_Get_address(dummy%CompTotal, offset, Ierr)
       displacements(6) = offset - begin
-      call MPI_Get_address(dummy%Temperature, offset, Ierr)
+      call MPI_Get_address(dummy%InjectionTemperature, offset, Ierr)
       displacements(7) = offset - begin
-      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      call MPI_Get_address(dummy%actual_mass_flowrate, offset, Ierr)
       displacements(8) = offset - begin
+      call MPI_Get_address(dummy%actual_energy_flowrate, offset, Ierr)
+      displacements(9) = offset - begin
+      call MPI_Get_address(dummy%IndWell, offset, Ierr)
+      displacements(10) = offset - begin
 
       types(:) = MPI_DOUBLE
       types(1) = MPI_INT
-      types(8) = MPI_CHARACTER
+      types(10) = MPI_CHARACTER
 
       blocklengths(:) = 1    
       blocklengths(6) = NbComp

@@ -592,7 +592,7 @@ contains
       integer :: k, s, nums, m, mph, icp
 
       double precision :: Flux_ks(NbComp), FluxT_ks
-      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, Ps_Pws
+      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, qe, Ps_Pws
       logical  something_is_produced,  something_is_injected
 
       ! Injection well
@@ -608,6 +608,7 @@ contains
          end if
 
          qw = 0.d0
+         qe = 0.d0
          something_is_injected = .false.
 
          ! nodes of well k
@@ -622,35 +623,27 @@ contains
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID
             WIFws = NodeDatabyWellInjLocal%Val(s)%WIF
 
-            Flux_ks(:) = 0.d0
-            FluxT_ks = 0.d0
-
             ! Flux q_{w,s,i} and q_{w,s,e}
             Ps_Pws = Ps - Pws
-            if (Ps_Pws < 0.d0)  something_is_injected = .true.
-
-            if (something_is_injected) then ! < 0
-
-               do icp = 1, NbComp
-                  Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*Ps_Pws
-               end do
+            if (Ps_Pws < 0.d0)  then
+               something_is_injected = .true.
+               Flux_ks = DensiteMolaireKrViscoCompWellInj(:, s)*WIDws*Ps_Pws
 #ifdef _THERMIQUE_
                FluxT_ks = DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws*Ps_Pws
 #endif
-            end if
-
-            ! node equation
-            ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
+               ! node equation
+               ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks
 
 #ifdef _THERMIQUE_
-            ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks ! + WIFws * (Ts-Tws)
+               ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks ! + WIFws * (Ts-Tws)
 #endif
-            ! qw
-            do icp = 1, NbComp
-               qw = qw + Flux_ks(icp)
-            end do
-
+               qw = qw + sum(Flux_ks)
+               qe = qe + FluxT_ks
+            end if
          end do ! end of node s in injection well k
+
+         DataWellInjLocal(k)%actual_mass_flowrate = qw
+         DataWellInjLocal(k)%actual_energy_flowrate = qe
 
          ! inj well equation
          if (DataWellInjLocal(k)%IndWell == 'p') then
@@ -677,50 +670,42 @@ contains
          end if
 
          qw = 0.d0
+         qe = 0.d0
          something_is_produced = .false.
 
          ! nodes of well k
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
             nums = NodebyWellProdLocal%Num(s)
-
             Pws = PerfoWellProd(s)%Pression ! P_{w,s}
             Ps = IncNode(nums)%Pression ! P_s
             Ps_Pws = Ps - Pws
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
-
-
-            if (Ps_Pws > 0.d0) something_is_produced = .true.
-
-            Flux_ks(:) = 0.d0
-            FluxT_ks = 0.d0
-
-            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-               if (something_is_produced) then
-
+            if (Ps_Pws > 0.d0) then
+               something_is_produced = .true.
+               Flux_ks(:) = 0.d0
+               FluxT_ks = 0.d0
+               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+                  mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
                         Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*Ps_Pws
                      end if
                   end do
-
 #ifdef _THERMIQUE_
                   FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*Ps_Pws
 #endif
-               end if
-            end do
-
-            ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
-
+               end do
+               ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
 #ifdef _THERMIQUE_
-            ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
+               ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
 #endif
-            ! qw
-            do icp = 1, NbComp
-               qw = qw + Flux_ks(icp)
-            end do
+               qw = qw + sum(Flux_ks)
+               qe = qe + FluxT_ks
+            end if
          end do ! end of node s in production well k
+
+         DataWellProdLocal(k)%actual_mass_flowrate = qw
+         DataWellProdLocal(k)%actual_energy_flowrate = qe
 
          ! prod well equation
          if (DataWellProdLocal(k)%IndWell == 'p') then

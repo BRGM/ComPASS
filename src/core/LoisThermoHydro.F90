@@ -2465,7 +2465,7 @@ do k=1, NbIncLocal
 
        Pws = PerfoWellInj(s)%Pression ! P_{w,s}
 
-       Tw = DataWellInjLocal(k)%Temperature     ! T_w
+       Tw = DataWellInjLocal(k)%InjectionTemperature     ! T_w
        Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w
 
        rt = NodeRocktypeLocal(:,s)

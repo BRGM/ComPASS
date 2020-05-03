@@ -34,7 +34,7 @@
     type, bind(C) :: Injector_data
         integer(c_int) :: id
         real(c_double) :: radius
-        real(c_double) :: temperature
+        real(c_double) :: injection_temperature
         ! FIXME: introduce composition (CompTotal(NbComp))
         real(c_double) :: maximum_pressure
         real(c_double) :: imposed_flowrate
@@ -152,12 +152,12 @@
         DataWellInj(k)%Id = injectors_data(k)%id
         DataWellInj(k)%Radius = injectors_data(k)%radius
         DataWellInj(k)%CompTotal(:) = 1.d0 ! FIXME... for multi component injection
-        DataWellInj(k)%Temperature = injectors_data(k)%temperature
+        DataWellInj(k)%InjectionTemperature = injectors_data(k)%injection_temperature
         DataWellInj(k)%PressionMax = injectors_data(k)%maximum_pressure
         DataWellInj(k)%ImposedFlowrate = injectors_data(k)%imposed_flowrate
         DataWellInj(k)%IndWell = injectors_data(k)%operating_code
         !write(*,*) "Setting injector:", &
-        !    DataWellInj(k)%Radius, DataWellInj(k)%Temperature, &
+        !    DataWellInj(k)%Radius, DataWellInj(k)%InjectionTemperature, &
         !    DataWellInj(k)%PressionMax, DataWellInj(k)%ImposedFlowrate, &
         !    DataWellInj(k)%IndWell
     end do

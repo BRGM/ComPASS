@@ -216,7 +216,7 @@ module IncCVWells
       do k = 1, nbwells
          
          Pw_head = IncPressionWellInj(k)
-         T = DataWellInjLocal(k)%Temperature
+         T = DataWellInjLocal(k)%InjectionTemperature
          C = DataWellInjLocal(k)%CompTotal
          
          ! looping from head to queue
