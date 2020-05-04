@@ -34,8 +34,8 @@ is made available using the source well id with `simulation.well_connections[sou
 
 This can be used to chain well productions using `simulation.standard_loop` iteration callbacks.
 The example :download:`chain_random_wells.py <../test/bulk/chain_random_wells.py>` demonstrate
-such a use.
+such a use case.
 
 .. warning::
-    Doing so wells are chained not coupled. So the simulation result will strongly depend
+    Doing so wells are chained but not coupled. So the simulation result will strongly depend
     on the timestep (do not take too big a timestep).

@@ -1434,7 +1434,12 @@ contains
             f, dPf, dTf, dCf, dSf)
 
 #ifndef NDEBUG
-    if(f.le.0) call CommonMPI_abort('inconsistent viscosity value')
+    if(f.le.0) then
+        write(*,*) "Viscosity at p=", inc%Pression, "T=", inc%Temperature
+        write(*,*) "             C=", inc%Comp,  "S=", inc%Saturation
+        write(*,*) "          -> mu=", f
+        call CommonMPI_abort('inconsistent viscosity value')
+    endif
 #endif
 
        val(i) = 1.d0/f ! val

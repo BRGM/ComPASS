@@ -1956,10 +1956,18 @@ contains
           enddo
        enddo
 
-       VolCellLocal(k) = volk
-       !if(volk<eps) then
-       !     print *, "DEBUG - Small cell volume for cell", k    
-       !endif
+#ifndef NDEBUG
+       if(volk<1E-10) then
+           print *, "DEBUG - Small cell volume for cell", k
+           do m = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
+               n1 =  NodebyCellLocal%Num(m)
+               print *, "        Node", n1, ":", XNodeLocal(:, n1)
+           end do
+       endif
+#endif
+
+        VolCellLocal(k) = volk
+
     enddo
 
   end subroutine MeshSchema_VolCellLocal

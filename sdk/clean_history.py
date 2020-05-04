@@ -58,3 +58,4 @@ for k in range(len(messages)):
         tmp.write(messages[k].encode("utf-8"))
         tmp.flush()
         run(f"git commit --no-verify -F {tmp.name}")
+    assert len(run(f"git diff HEAD {commit}").strip())==0, "Something went wrong !"

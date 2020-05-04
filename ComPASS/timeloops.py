@@ -27,7 +27,7 @@ from .utils.units import bar, year
 
 Event = namedtuple("Event", ["time", "actions"])
 LoopTick = namedtuple(
-    "LoopTick", ["time", "iteration", "last_timestep"], defaults=(None,) * 2
+    "LoopTick", ["time", "iteration", "latest_timestep"], defaults=(None,) * 2
 )
 
 
@@ -294,7 +294,7 @@ def standard_loop(
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
-        tick = LoopTick(time=t, iteration=n, last_timestep=dt)
+        tick = LoopTick(time=t, iteration=n, latest_timestep=dt)
         mpi.master_print(
             "max p variation", np.fabs(simulation.cell_states().p - pcsp).max()
         )
