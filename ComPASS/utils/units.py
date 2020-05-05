@@ -11,6 +11,7 @@ km = 1E3 # m
 minute = 60 # s
 hour = 60 * minute
 day = 24 * hour
+week = 7 * day
 year = 365.25 * day
 ky = 1E3 * year
 My = 1E6 * year

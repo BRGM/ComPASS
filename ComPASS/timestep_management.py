@@ -39,7 +39,7 @@ class TimeStepManager:
 
     @current_step.setter
     def current_step(self, step):
-        self.previous = self.step
+        self.previous = None
         self.step = step
 
     def steps(self, upper_bound=None):

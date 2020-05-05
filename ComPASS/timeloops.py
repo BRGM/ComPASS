@@ -320,7 +320,7 @@ def standard_loop(
     if mpi.is_on_master_proc:
         for event in events:
             mpi.master_print(
-                f"WARNING: Event at time {events[0].time} = {events[0].time / year} y was not reached."
+                f"WARNING: Event at time {event.time} = {event.time / year} y was not reached."
             )
     mpi.synchronize()  # is this usefull ?
     return t
