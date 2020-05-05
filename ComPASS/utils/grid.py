@@ -63,6 +63,38 @@ def vertical_boundaries(simulation, grid):
     return select
 
 
+def xmin_boundary(simulation, grid):
+    def select():
+        vertices = simulation.global_vertices()
+        return on_xmin(grid)(vertices)
+
+    return select
+
+
+def xmax_boundary(simulation, grid):
+    def select():
+        vertices = simulation.global_vertices()
+        return on_xmax(grid)(vertices)
+
+    return select
+
+
+def ymin_boundary(simulation, grid):
+    def select():
+        vertices = simulation.global_vertices()
+        return on_ymin(grid)(vertices)
+
+    return select
+
+
+def ymax_boundary(simulation, grid):
+    def select():
+        vertices = simulation.global_vertices()
+        return on_ymax(grid)(vertices)
+
+    return select
+
+
 def bottom_boundary(simulation, grid):
     def select():
         vertices = simulation.global_vertices()
