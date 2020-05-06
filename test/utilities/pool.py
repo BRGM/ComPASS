@@ -1,6 +1,6 @@
 import sys
 from multiprocessing import Pool
-from subprocess import run, CalledProcessError
+from subprocess import run, CalledProcessError, TimeoutExpired
 from pathlib import Path
 import time
 
@@ -47,7 +47,6 @@ def time_script(filename, tag=None, timeout=600):
         #     message = message + f" which is job {tag}"
         # print(message)
     except TimeoutExpired:
-        error_diagnosis(filename, result)
         print(
             f"{'Timed-out:':20s} {filename.name} timed out after {timeout}s.\n",
             file=sys.stderr,
@@ -82,7 +81,7 @@ if __name__ == "__main__":
         for jk, job in enumerate(jobs):
             try:
                 filename, elapsed = job.get()
-            except CalledProcessError:
+            except (CalledProcessError, TimeoutExpired):
                 sys.exit(-1)
             print(
                 f"{'Results collection:':20s} {filename} ran in {elapsed:.3f} s (indicative time for job {jk+1}/{nb_scripts})"
