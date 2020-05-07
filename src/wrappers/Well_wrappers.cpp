@@ -467,6 +467,15 @@ void add_well_wrappers(py::module& module)
         .def_readonly("actual_energy_flowrate", &Fortran_well_data::actual_energy_flowrate)
         .def_readonly("actual_pressure", &Fortran_well_data::actual_pressure)
         .def_readonly("actual_temperature", &Fortran_well_data::actual_temperature)
+        .def_property_readonly("is_closed", [](const Fortran_well_data& self) {
+            return self.operating_code=='c';
+        })
+        .def("open", [](Fortran_well_data& self) {
+            self.operating_code='f';
+        })
+        .def("close", [](Fortran_well_data& self) {
+            self.operating_code='c';
+        })
         ;
 
     py::class_<Perforation_state>(module, "PerforationState")

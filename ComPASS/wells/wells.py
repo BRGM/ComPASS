@@ -115,8 +115,8 @@ def close_well(simulation, wid):
         # FIXME: to be generalized
         assert (
             data.operating_code in "cf"
-        ), "Only wells operating on flowrate can be closed."
-        data.operating_code = "c"
+        ), f"Only wells operating on flowrate can be closed (found operating code {data.operating_code})."
+        data.close()
 
 
 # WARNING: in parallel we must modify both own and ghost wells
@@ -140,8 +140,8 @@ def open_well(simulation, wid):
     if data is not None:
         assert (
             data.operating_code == "c"
-        ), "Only closed wells can be opened and set operated on flowrate."
-        data.operating_code = "f"
+        ), f"Only closed wells can be opened and set operated on flowrate (found operating code {data.operating_code})."
+        data.open()
 
 
 def _make_close_well_action(simulation, wid, verbose):
@@ -176,24 +176,25 @@ def well_production_history(simulation, wid, history, verbose=True):
                 master_print(
                     f"WELL OPERATION: setting well {wid} production flowrate to {qw}"
                 )
-            set_well_property(simulation, wid, imposed_flowrate=qw)
+            data = get_well_data(simulation, wid)
+            if data is not None:
+                if data.is_closed:
+                    data.open()
+                assert data.operating_code=='f'
+                assert qw>0
+                data.imposed_flowrate = qw
 
         return action
 
     close_this_well = _make_close_well_action(simulation, wid, verbose)
     open_this_well = _make_open_well_action(simulation, wid, verbose)
     events = []
-    closed = False
     for t, qw in history:
         actions = []
         if qw == 0:
             actions.append(close_this_well)
-            closed = True
         else:
             assert qw > 0, "Production flow rate should be positive or null."
-            if closed:
-                actions.append(open_this_well)
-                closed = False
             actions.append(make_set_flowrate_action(simulation, wid, qw, verbose))
         events.append(Event(t, actions))
     return events
@@ -213,25 +214,25 @@ def well_injection_history(simulation, wid, history, verbose=True):
                 master_print(
                     f"WELL OPERATION: setting well {wid} injection flowrate to {qw} with temperature {T}"
                 )
-            set_well_property(
-                simulation, wid, imposed_flowrate=qw, injection_temperature=T
-            )
+            data = get_well_data(simulation, wid)
+            if data is not None:
+                if data.is_closed:
+                    data.open()
+                assert data.operating_code=='f'
+                assert qw<0 and T>273.15 # 0°C
+                data.imposed_flowrate = qw
+                data.injection_temperature = T
 
         return action
 
     close_this_well = _make_close_well_action(simulation, wid, verbose)
     open_this_well = _make_open_well_action(simulation, wid, verbose)
     events = []
-    closed = False
     for t, qw, T in history:
         actions = []
         if qw == 0:
             actions.append(close_this_well)
-            closed = True
         else:
-            if closed:
-                actions.append(open_this_well)
-                closed = False
             actions.append(
                 make_set_flowrate_action(simulation, wid, -abs(qw), T, verbose)
             )

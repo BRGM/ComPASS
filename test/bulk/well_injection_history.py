@@ -29,11 +29,10 @@ k_reservoir = (
     1e-12  # reservoir permeability in m^2 - low value to limit reservoir convection
 )
 K_reservoir = 2  # bulk thermal conductivity in W/m/K
-Qw = 300.0
+Qw = 50
 
 
 ComPASS.set_output_directory_and_logfile(__file__)
-
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(gravity)
 
@@ -75,22 +74,16 @@ def make_injector():
 # it must have three columns: time, flowrate and injection temperature
 # well will be closed if flowrate == 0
 history = [
-    (0, 100, degC2K(10)),
+    (0, 25, degC2K(10)),
     (3 * day, 0, np.nan),  # well is closed - we must provide a dummy temperature
-    (5 * day, 300, degC2K(30)),
+    (5 * day, 50, degC2K(30)),
 ]
 well_operations = simulation.well_injection_history(wid, history)
 
 
-def select_dirichlet_nodes():
-    vertices = simulation.global_vertices()
-    x, y = vertices[:, 0], vertices[:, 1]
-    return (x <= -slim) | (x >= slim) | (y <= -slim) | (y >= slim)
-
-
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=select_dirichlet_nodes,
+    set_dirichlet_nodes=simulation.vertical_boundaries(grid),
     wells=lambda: make_injector(),
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,

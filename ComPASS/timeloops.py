@@ -207,11 +207,6 @@ def standard_loop(
     if specific_outputs is None:
         specific_outputs = []
     events = _make_event_list(events)
-    if well_pressure_offset is not None:
-        check_well_pressure(simulation, well_pressure_offset)
-    # InitPressureDrop
-    kernel = get_kernel()
-    kernel.IncCVWells_InitPressureDrop()
     t = initial_time if initial_time is not None else 0
     while len(events) > 0 and events[0].time < t:
         mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
@@ -269,6 +264,13 @@ def standard_loop(
     if output_before_start:
         output_actions(LoopTick(time=t, iteration=n))
     process_events(LoopTick(time=t, iteration=n))
+
+    if well_pressure_offset is not None:
+        check_well_pressure(simulation, well_pressure_offset)
+    # InitPressureDrop
+    kernel = get_kernel()
+    kernel.IncCVWells_InitPressureDrop()
+
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
         if len(events) > 0:
