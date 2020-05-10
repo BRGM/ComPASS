@@ -1,21 +1,12 @@
 import sys
 import yaml
-import subprocess
-import shlex
 import tempfile
-
-
-def run(cmd, verbose=True):
-    if verbose:
-        print(cmd)
-    res = subprocess.run(shlex.split(cmd), capture_output=True)
-    if res.returncode != 0:
-        print(res.stderr)
-    res.check_returncode()
-    return res.stdout.strip().decode("utf-8")
+from gitutils import run, check_clean_head
 
 
 assert len(sys.argv) == 2, f"Syntax is: {sys.argv[0]} yaml_history_file"
+check_clean_head()
+
 with open(sys.argv[1]) as f:
     commits = yaml.safe_load(f)
 
@@ -58,4 +49,4 @@ for k in range(len(messages)):
         tmp.write(messages[k].encode("utf-8"))
         tmp.flush()
         run(f"git commit --no-verify -F {tmp.name}")
-    assert len(run(f"git diff HEAD {commit}").strip())==0, "Something went wrong !"
+    assert len(run(f"git diff HEAD {commit}").strip()) == 0, "Something went wrong !"
