@@ -3,6 +3,8 @@ FROM registry.gitlab.inria.fr/charms/compass/base-environment:latest AS base
 RUN apt-get update && apt-get install --yes --no-install-recommends \
     wget \
     build-essential \
+    git \
+    clang-format \
     gcc \
     gfortran \
     cmake \
@@ -10,7 +12,9 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     libmetis-dev \
     libpetsc-real3.12-dev \
     python3-mpi4py \
- && apt-get clean
+ && apt-get clean \
+ && python3 -m pip install \
+    pre-commit
 
 COPY su-exec/su-exec.c /tmp/su-exec.c
 RUN gcc -O3 -Wall -Werror /tmp/su-exec.c -o /usr/local/sbin/su-exec \
@@ -32,6 +36,14 @@ RUN mkdir -p /build \
  && cd / \
  && rm -rf build
 VOLUME /wheel
+
+# install pre-commit environment
+WORKDIR /dummy
+COPY .pre-commit-config.yaml .
+RUN git init \
+ && pre-commit install \
+ && pre-commit run --all \
+ && rm -rf /dummy
 
 # This is used by cmake to find PETSc from the openmpi link flags
 ENV CC=mpicc

@@ -1,0 +1,22 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: check-merge-conflict
+    -   id: mixed-line-ending
+-   repo: https://github.com/psf/black
+    rev: 19.10b0
+    hooks:
+    -   id: black
+-   repo: https://github.com/pseewald/fprettify
+    rev: v0.3.5
+    hooks:
+    -   id: fprettify
+-   repo: https://github.com/doublify/pre-commit-clang-format
+    rev: master
+    hooks:
+    -   id: clang-format
+        args: [-style=file]

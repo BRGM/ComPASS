@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+cp -v ../../.pre-commit-config.yaml build/
+
 MESHTOOLS_WHEEL=${1:-"NO_MESHTOOLS_WHEEL"}
 REF_SLUG=${2:+":"}${2:-""}
 
