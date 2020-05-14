@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
  && pip3 install sortedcontainers
 
 # petsc4py installation
+# docker seems to be unable to delete /wheel directory, so we just delete its content
+# might be linked to https://stackoverflow.com/questions/46824425/docker-is-unable-to-delete-a-directory-when-building-images
 RUN pip3 install /wheel/petsc4py-*.whl \
- && rm -rf /wheel
+ && rm -rvf /wheel/*.whl
 
 WORKDIR /localfs
 
