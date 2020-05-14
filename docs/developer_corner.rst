@@ -82,7 +82,7 @@ is available in ``sdk/format_history.py``.
     For the time being you will need python 3.7 or higher.
     All commits on the ``feature`` branch must contain code that is syntaxically corect.
     Otherwise the formatting hooks may fail.
-    
+
 To display the help message, run:
 
 .. code:: shell
