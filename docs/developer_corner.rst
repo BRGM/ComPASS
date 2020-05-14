@@ -72,16 +72,22 @@ run subcommand (cf. the `command documentation <https://pre-commit.com/#pre-comm
     Don't hesitate to create new gitlab issues to discuss formatting choices.
 
 
-Migration script
-----------------
+Reformat branch history
+-----------------------
 
-A migration script is available at ``sdk/reformat_history.py``.
+A script to duplicate a branch applying formating tools
+is available in ``sdk/format_history.py``.
 
+.. warning::
+    For the time being you will need python 3.7 or higher.
+    All commits on the ``feature`` branch must contain code that is syntaxically corect.
+    Otherwise the formatting hooks may fail.
+    
 To display the help message, run:
 
 .. code:: shell
 
-    python sdk/reformat_history.py --help
+    python sdk/format_history.py --help
 
 
 The common use is to reformat a branch (let's say ``feature``)
@@ -92,17 +98,13 @@ Then running:
 
 .. code:: shell
 
-    python sdk/reformat_history.py v4.1 feature --format-source v4.2
+    python sdk/format_history.py v4.1 feature --format-source v4.2
 
 will first issue a commit with the *"Reformat code"* message that will contain
 a formatted version of all the files present in `v4.1` that were modified in `feature`.
 
 Then all the commits in the ``feature`` branch will be re-issued with a formatted version of the files
 in a *detached* HEAD state.
-
-.. warning::
-    All commits on the ``feature`` branch must contain code that is syntaxically corect.
-    Otherwise the formatting hooks may fail.
 
 Then if the reformatting script works fine, you can save the result in a new branch, *e.g.*:
 
