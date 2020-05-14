@@ -1,4 +1,5 @@
 import sys
+import shlex
 from subprocess import CalledProcessError
 from pathlib import Path
 
@@ -43,7 +44,7 @@ def reformat_files(files, commit_message=None, verbose=False, skip_missing_files
     if need_commit and commit_message is not None:
         try:
             run(
-                f"git commit -m '{commit_message}'",
+                f"git commit -m {shlex.quote(commit_message)}",
                 verbose=False,
                 output_stderr_on_error=True,
             )
