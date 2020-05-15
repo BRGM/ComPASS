@@ -20,3 +20,9 @@ repos:
     hooks:
     -   id: clang-format
         args: [-style=file]
+-   repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.10
+    hooks:
+    - id: cmake-format
+      args: ['-i', '--dangle-parens', '--dangle-align=prefix']
+#    - id: cmake-lint
