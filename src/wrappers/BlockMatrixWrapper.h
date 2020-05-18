@@ -12,6 +12,11 @@
 #include <cassert>
 #include <cstddef>
 
+struct DoubleArray2 {
+   double* p;
+   std::array<std::size_t, 2> shape;
+};
+
 struct CsrBlockMatrixWrapper {
    typedef double value_type;
    typedef int integral_type;

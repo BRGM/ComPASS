@@ -8,8 +8,7 @@
 
 from collections import namedtuple
 import numpy as np
-
-from .build_petsc_matrix import *
+import cProfile
 from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
@@ -190,11 +189,17 @@ class Newton:
         )
         for iteration in range(self.maximum_number_of_iterations):
             kernel.Jacobian_ComputeJacSm(dt)
-            kernel.SolvePetsc_SetUp()
-            solver_fmk.setUp(self.simulation)
+            # pr = cProfile.Profile()
+            # pr.enable()
+            kernel.SolvePetsc_SetUp()  # For now linear solving is still operated by fortran SolvePetsc
+            solver_fmk.setUp(
+                self.simulation
+            )  # Eventually this will replace SolvePetsc_SetUp()
+            # pr.disable()
+            # pr.dump_stats(f"SetUp_funcs_{mpi.proc_rank:05d}.profile")
             # kernel.SolvePetsc_dump_system("f90")
-            ksp_status = solver_fmk.solve()
             # 1/0
+            ksp_status = solver_fmk.solve()
             # mpi.master_print('KSP status', ksp_status)
             if not self.simulation.info.activate_direct_solver:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()

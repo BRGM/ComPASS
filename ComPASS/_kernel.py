@@ -242,6 +242,9 @@ simulation_wrapper = Wrapper(
         "retrieve_jacobian",
         "retrieve_right_hand_side",
         "retrieve_partitioning",
+        "set_AMPI_cpp",
+        "get_AMPI_nnz_cpp",
+        "set_RHS_cpp",
     ]
 )
 

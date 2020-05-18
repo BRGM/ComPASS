@@ -164,30 +164,6 @@ module SolvePetsc
 
 contains
 
-   subroutine retrieve_RowLToRowGBlock(a) &
-      bind(C, name="retrieve_RowLToRowGBlock")
-      type(cpp_array_wrapper), intent(inout) :: a
-      call retrieve_id_array(RowLToRowGBlock, a)
-   end subroutine retrieve_RowLToRowGBlock
-
-   subroutine retrieve_ColLToColGBlock(a) &
-      bind(C, name="retrieve_ColLToColGBlock")
-      type(cpp_array_wrapper), intent(inout) :: a
-      call retrieve_id_array(ColLToColGBlock, a)
-   end subroutine retrieve_ColLToColGBlock
-
-   subroutine retrieve_RowLToRowG(a) &
-      bind(C, name="retrieve_RowLToRowG")
-      type(cpp_array_wrapper), intent(inout) :: a
-      call retrieve_id_array(RowLToRowG, a)
-   end subroutine retrieve_RowLToRowG
-
-   subroutine retrieve_ColLToColG(a) &
-      bind(C, name="retrieve_ColLToColG")
-      type(cpp_array_wrapper), intent(inout) :: a
-      call retrieve_id_array(ColLToColG, a)
-   end subroutine retrieve_ColLToColG
-
    subroutine retrieve_partitioning(part) &
       bind(C, name="retrieve_partitioning")
       type(partitioning_wrapper), intent(inout) :: part
