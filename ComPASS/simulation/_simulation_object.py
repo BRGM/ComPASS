@@ -22,7 +22,7 @@ class SimmulationBase:
         self.well_data_provider = well_data_provider
         self.well_connections = WellDataConnections()
 
-    def add_well_connections(self, well_pairs):
+    def add_well_connections(self, well_pairs=None, proc_requests=None):
         """
             Given a sequence of well ids pairs `(source, target)`,
             create connections between simulations domains so that domains
@@ -36,8 +36,14 @@ class SimmulationBase:
             on self.well_connections : e.g. `self.well_connections[source].mass_flowrate`.
 
             :param well_pairs: a sequence of well ids pairs `(source, target)`
+            :param proc_requests: a sequence of pair (proc, list of wells to make available)
         """
-        add_well_connections(well_pairs, self.well_connections, self.well_data_provider)
+        add_well_connections(
+            self.well_connections,
+            self.well_data_provider,
+            well_pairs=well_pairs,
+            proc_requests=proc_requests,
+        )
 
 
 class Simulation:

@@ -80,54 +80,92 @@ class WellDataConnections:
         return self.wells[wid].value
 
 
-def _map_well_pairs(well_pairs, well_data_provider):
-    comm = mpi.communicator()
-    wells = [], []  # owns, ghosts
-    for wid in set(chain(*well_pairs)):
+def _map_wells_distribution(wells, well_data_provider):
+    distribution = [], []  # owns, ghosts
+    for wid in set(wells):
         # FIXME: we could have an alternative way to find if a well is seen by this proc
         for k, own_only in enumerate((True, False)):
             data = well_data_provider(wid, own_only)
             if data is not None:
-                wells[k].append(wid)
+                distribution[k].append(wid)
                 break
     # print(f"Wells collected on proc {mpi.proc_rank}, owns: {wells[0]}, ghosts: {wells[1]}")
-    return comm.gather(wells, root=mpi.master_proc_rank)
+    return mpi.communicator().gather(distribution, root=mpi.master_proc_rank)
 
 
-def _define_connections(well_pairs, well_data_provider):
-    well_connections_tag = 12000  # FIXME: magic number
-    mpi_tag = lambda well_id: well_connections_tag + well_id + 1
-    comm = mpi.communicator()
+def _mpi_well_connections_tag():
+    return 12000  # FIXME: magic number
+
+
+def _mpi_well_tag(well_id):
+    return _mpi_well_connections_tag() + well_id + 1
+
+
+def _send_connections(owning_proc, sent_wells):
+    assert mpi.is_on_master_proc
     master = mpi.master_proc_rank
-    wells_map = _map_well_pairs(well_pairs, well_data_provider)
+    comm = mpi.communicator()
+    all_connections = [list() for _ in range(comm.size)]
+    for well, dest in sent_wells.items():
+        source_proc = owning_proc[well]
+        tag = _mpi_well_tag(well)
+        dest = [proc for proc in dest if proc != source_proc]
+        all_connections[source_proc].append((well, source_proc, tag, dest))
+        for target_proc in dest:
+            all_connections[target_proc].append((well, source_proc, tag))
+    for proc, connections in enumerate(all_connections):
+        if proc == master:
+            continue
+        comm.send(connections, dest=proc, tag=_mpi_well_connections_tag())
+    return all_connections[master]
+
+
+def _define_connections(well_data_provider, well_pairs=None, proc_requests=None):
+    """
+    :param well_pairs: a sequence of well pair to be chained
+    :param proc_requests: a sequence of pair (proc, list of wells to make available)
+    """
+    wells = set()
+    if well_pairs is not None:
+        wells.update(chain(*well_pairs))
+    else:
+        well_pairs = []
+    if proc_requests is not None:
+        for _, well_list in proc_requests:
+            wells.update(well_list)
+    else:
+        proc_requests = []
+    # the following line MUST be executed by all procs
+    wells_map = _map_wells_distribution(wells, well_data_provider)
     if mpi.is_on_master_proc:
-        all_connections = [list() for _ in range(comm.size)]
         owning_proc = {}
-        sent_wells = defaultdict(list)
-        for source_well, target_well in well_pairs:
-            need_sync = False
-            for proc, (owns, ghosts) in enumerate(wells_map):
-                all_wells = owns + ghosts
+        for proc, (owns, _) in enumerate(wells_map):
+            for well in owns:
+                owning_proc[well] = proc
+        sent = defaultdict(set)
+        for proc, (owns, ghosts) in enumerate(wells_map):
+            all_wells = owns + ghosts
+            for source_well, target_well in well_pairs:
                 if target_well in all_wells:
-                    sent_wells[source_well].append(proc)
-                if source_well in owns:
-                    assert source_well not in owning_proc
-                    owning_proc[source_well] = proc
-        for well, dest in sent_wells.items():
-            source_proc = owning_proc[well]
-            tag = mpi_tag(well)
-            dest = [proc for proc in dest if proc != source_proc]
-            all_connections[source_proc].append((well, source_proc, tag, dest))
-            for target_proc in dest:
-                all_connections[target_proc].append((well, source_proc, tag))
-        for proc, connections in enumerate(all_connections):
-            if proc == master:
-                continue
-            comm.send(connections, dest=proc, tag=well_connections_tag)
-        return all_connections[master]
-    return comm.recv(source=master, tag=well_connections_tag)
+                    sent[source_well].add(proc)
+        for target_proc, well_list in proc_requests:
+            for well in well_list:
+                sent[well].add(target_proc)
+        return _send_connections(owning_proc, sent)
+    return mpi.communicator().recv(
+        source=mpi.master_proc_rank, tag=_mpi_well_connections_tag()
+    )
 
 
-def add_well_connections(well_pairs, connections, well_data_provider):
-    for connection in _define_connections(well_pairs, well_data_provider):
+def add_well_connections(
+    connections, well_data_provider, well_pairs=None, proc_requests=None
+):
+    """
+    :param well_pairs: a sequence of well pair to be chained
+    :param proc_requests: a sequence of pair (proc, list of wells to make available)
+    """
+    new_connections = _define_connections(
+        well_data_provider, well_pairs=well_pairs, proc_requests=proc_requests
+    )
+    for connection in new_connections:
         connections.add(*connection, data=well_data_provider(connection[0]))

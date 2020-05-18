@@ -6,6 +6,9 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
+import copy
+from collections import defaultdict
+
 import numpy as np
 
 import ComPASS
@@ -87,7 +90,10 @@ simulation.dirichlet_node_states().set(X0)
 
 # We must define well connections between source wells (producers) and target wells (injectors)
 doublets = np.reshape(np.arange(2 * nb_random_wells), (-1, 2), order="F")
-simulation.add_well_connections(doublets)
+all_wells = set(doublets.ravel())
+# make all doublet wells available on master proc
+proc_requests = [(mpi.master_proc_rank, all_wells)]
+simulation.add_well_connections(well_pairs=doublets, proc_requests=proc_requests)
 
 # A fuction giving the temperature delta imposed by heat network at time t
 def network_deltaT(t):
@@ -109,9 +115,31 @@ def chain_wells(tick):
             )
 
 
+iteration_callbacks = [chain_wells]
+
+if mpi.is_on_master_proc:
+    # This will be kept in memory for the whole simulation
+    # you may need to flush data to a file at some point
+    wellhead_states = defaultdict(list)
+
+    def collect_wellhead_states(tick):
+        for well in all_wells:
+            wellhead_states[well].append(
+                [tick.time, *simulation.well_connections[well]]
+            )
+
+    iteration_callbacks.append(collect_wellhead_states)  # only on master proc...
+
+
 simulation.standard_loop(
     initial_timestep=day,
     output_period=10 * day,
     final_time=year,
-    iteration_callbacks=[chain_wells],
+    iteration_callbacks=iteration_callbacks,
 )
+
+if mpi.is_on_master_proc:
+    for well, transient in wellhead_states.items():
+        # Will produce a text file with 5 columns
+        # time (in s), mass_florate, energy_flowrate, pressure (Pa), temperature (K)
+        np.savetxt(f"well_{well:04d}.txt", np.asarray(transient), fmt="%.5g")

@@ -9,8 +9,8 @@ ComPASS
    introduction
    wiki/using_docker
    simulation_object
-   examples
    wells
+   examples
    developer_corner
    python_reference/ComPASS
    python_reference/modules
