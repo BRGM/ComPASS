@@ -15,28 +15,48 @@ class LinearSystem:
         assert system.kernel is not None
         self.system = system
         comm = PETSc.COMM_WORLD
-        self.x = PETSc.Vec()
+        self.x = PETSc.Vec().createMPI((system.local_nb_cols, system.global_nb_cols))
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
         self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
         self.ksp.setTolerances(rtol=1e-6, max_it=150)
+
+        def monitor(ksp, it, rnorm):
+            self.residual_history.append((it, rnorm))
+
+        self.ksp.setMonitor(monitor)
+        # self.viewer = PETSc.Viewer().createASCII("ksp.dat", "a", PETSc.COMM_WORLD)
+        self.residual_history = []
 
     def setUp(self, simulation):
 
+        """fortran"""
+        # self.system.kernel.SolvePetsc_SetUp() # For now linear solving is still operated by fortran SolvePetsc
+
+        """self"""
         self.createAMPI(simulation)
         self.setAMPI(simulation)
         self.setVecs(simulation)
         self.ksp.setOperators(self.A, self.A)
         self.ksp.setFromOptions()
 
-    def SolvePetsc_solve(self):
-
-        return self.system.kernel.SolvePetsc_ksp_solve(self.x)
-
     def solve(self):
 
+        """ Fortran """
+        # reason = self.system.kernel.SolvePetsc_ksp_solve(self.x)
+        # self.system.kernel.SolvePetsc_dump_system("t1/f90")
+
+        """ self """
+        self.residual_history = []
         self.ksp.solve(self.RHS, self.x)
-        return self.ksp.getConvergedReason()
+        reason = self.ksp.getConvergedReason()
+        # self.ksp.view(self.viewer)
+        # mpi.master_print("lin_residuals :", self.residual_history[:])
+        # self.dump_LinearSystem(basename="", binary = True)
+        # 1/0
+
+        return reason
 
     def check_solution(self):
 
@@ -65,21 +85,42 @@ class LinearSystem:
 
         simulation.set_RHS_cpp(self.RHS)
 
-    def dump_LinearSystem(self, binary=False):
+    def dump_LinearSystem(self, basename="", binary=False):
 
         if binary:
-            viewer = PETSc.Viewer().createBinary("A_binary.dat", "w", PETSc.COMM_WORLD)
+            viewer = PETSc.Viewer().createBinary(
+                basename + "A_binary.dat", "w", PETSc.COMM_WORLD
+            )
             self.A.view(viewer)
             viewer.destroy()
 
-            viewer = PETSc.Viewer().createBinary("b_binary.dat", "w", PETSc.COMM_WORLD)
+            viewer = PETSc.Viewer().createBinary(
+                basename + "b_binary.dat", "w", PETSc.COMM_WORLD
+            )
             self.RHS.view(viewer)
             viewer.destroy()
+
+            viewer = PETSc.Viewer().createBinary(
+                basename + "x.dat", "w", PETSc.COMM_WORLD
+            )
+            self.x.view(viewer)
+            viewer.destroy()
+
         else:
-            viewer = PETSc.Viewer().createASCII("A.dat", "w", PETSc.COMM_WORLD)
+            viewer = PETSc.Viewer().createASCII(
+                basename + "A.dat", "w", PETSc.COMM_WORLD
+            )
             self.A.view(viewer)
             viewer.destroy()
 
-            viewer = PETSc.Viewer().createASCII("b.dat", "w", PETSc.COMM_WORLD)
+            viewer = PETSc.Viewer().createASCII(
+                basename + "b.dat", "w", PETSc.COMM_WORLD
+            )
             self.RHS.view(viewer)
+            viewer.destroy()
+
+            viewer = PETSc.Viewer().createASCII(
+                basename + "x.dat", "w", PETSc.COMM_WORLD
+            )
+            self.x.view(viewer)
             viewer.destroy()

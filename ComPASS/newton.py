@@ -190,13 +190,10 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            kernel.SolvePetsc_SetUp()  # For now linear solving is still operated by fortran SolvePetsc
             solver_fmk.setUp(
                 self.simulation
             )  # Eventually this will replace SolvePetsc_SetUp()
-
             ksp_status = solver_fmk.solve()
-            # ksp_status = solver_fmk.SolvePetsc_solve()
 
             mpi.master_print("KSP status", ksp_status)
             if not self.simulation.info.activate_direct_solver:
