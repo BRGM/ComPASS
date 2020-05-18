@@ -12,6 +12,7 @@
 #include <petscmat.h>
 #include <petscvec.h>
 
+#include "COC.h"
 #include "Petsc_caster.h"
 #include "XArrayWrapper.h"
 
@@ -23,17 +24,21 @@
 // used (based on multiple preprocessor defines... !). As this wrapping is bound
 // to disappear (one day) we keep it "simple" but not very portable.
 
+struct DOFId {
+   int proc;
+   int local_id;
+};
+
+typedef GenericCOC<DOFId> DofFamilyCOC;
+
 extern "C" {
-void retrieve_num_node_by_proc(CsrMatrixWrapper&);
-void retrieve_num_frac_by_proc(CsrMatrixWrapper&);
-void retrieve_num_well_inj_by_proc(CsrMatrixWrapper&);
-void retrieve_num_well_prod_by_proc(CsrMatrixWrapper&);
+void retrieve_NumNodebyProc(DofFamilyCOC&);
+void retrieve_NumFracbyProc(DofFamilyCOC&);
+void retrieve_NumWellProdbyProc(DofFamilyCOC&);
+void retrieve_NumWellInjbyProc(DofFamilyCOC&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
-void retrieve_nb_nodes_own(XArrayWrapper<int>&);
-void retrieve_nb_fractures_own(XArrayWrapper<int>&);
-void retrieve_nb_wellinj_own(XArrayWrapper<int>&);
-void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
+void SolvePetsc_LtoG();
 }
 
 #include <iostream>
@@ -70,14 +75,6 @@ void LinearSystemBuilder::compute_nonzeros() {
    const auto nb_well_inj_local = myrank_part_info.injectors.nb;
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
    const auto nb_well_prod_local = myrank_part_info.producers.nb;
-   XArrayWrapper<int> nb_node_own_ncpus;
-   XArrayWrapper<int> nb_frac_own_ncpus;
-   XArrayWrapper<int> nb_well_inj_cpus;
-   XArrayWrapper<int> nb_well_prod_cpus;
-   retrieve_nb_nodes_own(nb_node_own_ncpus);
-   retrieve_nb_fractures_own(nb_frac_own_ncpus);
-   retrieve_nb_wellinj_own(nb_well_inj_cpus);
-   retrieve_nb_wellprod_own(nb_well_prod_cpus);
 
    auto columns = JacA.column;
    auto row_offset = [this](const std::size_t i) {
@@ -90,10 +87,10 @@ void LinearSystemBuilder::compute_nonzeros() {
    n_coll = n_rowl;
    // global row/col size: sum of all procs
    n_rowg = 0;
-   for (size_t i = 0; i < nb_node_own_ncpus.length; i++) {
-      n_rowg +=
-          (nb_node_own_ncpus[i] + nb_frac_own_ncpus[i]) * nb_comp_thermique +
-          nb_well_inj_cpus[i] + nb_well_prod_cpus[i];
+   for (size_t i = 0; i < ncpus; i++) {
+      n_rowg += (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) *
+                    nb_comp_thermique +
+                part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
    }
    n_colg = n_rowg;
 
@@ -233,9 +230,8 @@ void LinearSystemBuilder::compute_ltog() {
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
    const auto nb_well_prod_local = myrank_part_info.producers.nb;
 
-   auto nblock_rowl = static_cast<std::size_t>(
-       nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own);
-   rowl_to_rowg.resize(nblock_rowl);
+   rowl_to_rowg.resize(nb_node_own + nb_frac_own + nb_well_inj_own +
+                       nb_well_prod_own);
    // ! node/frac
    for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
       rowl_to_rowg[i] = rowstart[comm_rank] + i * n;  // C indexing
@@ -249,68 +245,62 @@ void LinearSystemBuilder::compute_ltog() {
       rowl_to_rowg[i + start] = ndisp + i;
    }
 
+   DofFamilyCOC NBP;
+   retrieve_NumNodebyProc(NBP);
+   DofFamilyCOC FBP;
+   retrieve_NumFracbyProc(FBP);
+   DofFamilyCOC WIBP;
+   retrieve_NumWellInjbyProc(WIBP);
+   DofFamilyCOC WPBP;
+   retrieve_NumWellProdbyProc(WPBP);
+
+   int local_block_col_offset{0};
    coll_to_colg.resize(nb_node_local + nb_frac_local + nb_well_inj_local +
                        nb_well_prod_local);
-   CsrMatrixWrapper NBP;
-   retrieve_num_node_by_proc(NBP);
-   auto nb = NBP.nb_rows;
-   CsrMatrixWrapper FBP;
-   retrieve_num_frac_by_proc(FBP);
-   CsrMatrixWrapper WIBP;
-   retrieve_num_well_inj_by_proc(WIBP);
-   CsrMatrixWrapper WPBP;
-   retrieve_num_well_prod_by_proc(WPBP);
 
-   // ! part node local in ColLtocolG
-   // Nb : nb_rows, data : Val, column : Num, row_offset : Pt
-   for (size_t i = 0; i < NBP.nb_rows; i++) {
-      for (size_t j = NBP.row_offset[i]; j < NBP.row_offset[i + 1]; j++) {
-         // ! j is in proc ipc
-         auto ipc = NBP.data[j];
-         coll_to_colg[j] = (NBP.column[j] - 1) * n + colstart[ipc];
+   auto fill_coll_to_colg = [this, &local_block_col_offset, &colstart](
+                                DofFamilyCOC dof_family, int dof_size) {
+      // A lambda function to automatically fill coll_to_colg, for each unknown
+      // type (nodes, fractures, wells)
+      for (size_t i = 0; i < dof_family.size(); i++) {
+         auto proc = (dof_family.content_data() + i)->proc;
+         auto local_id =
+             (dof_family.content_data() + i)
+                 ->local_id;  // local_id = dof_family%ids(i)%local_id
+         this->coll_to_colg[local_block_col_offset + i] =
+             colstart[proc] + (local_id - 1) * dof_size;
+      }
+   };
+
+   // ! part node local in coll_to_colg
+   fill_coll_to_colg(NBP, n);
+   local_block_col_offset += nb_node_local;
+   for (size_t i = 0; i < ncpus; i++) {
+      colstart[i] += n * part_info[i].nodes.nb_owns;
+   }
+
+   // // ! part frac in ColLtocolG
+   if (nb_frac_local > 0) {
+      fill_coll_to_colg(FBP, n);
+      local_block_col_offset += nb_frac_local;
+      for (size_t i = 0; i < ncpus; i++) {
+         colstart[i] += n * part_info[i].fractures.nb_owns;
       }
    }
 
-   // ! part frac in ColLtocolG
-   for (size_t i = 0; i < FBP.nb_rows; i++) {
-      for (size_t j = FBP.row_offset[i]; j < FBP.row_offset[i + 1]; j++) {
-         //       ! j is in proc ipc
-         auto ipc = FBP.data[j];
-         coll_to_colg[j + nb_node_local] = (FBP.column[j] - 1) * n +
-                                           colstart[ipc] +
-                                           part_info[ipc].nodes.nb_owns * n;
+   // // ! part well inj in ColLtoColG
+   if (nb_well_inj_local > 0) {
+      fill_coll_to_colg(WIBP, 1);
+      local_block_col_offset += nb_well_inj_local;
+      for (size_t i = 0; i < ncpus; i++) {
+         colstart[i] += part_info[i].injectors.nb_owns;
       }
    }
 
-   // ! part well inj in ColLtoColG
-   start = nb_node_local + nb_frac_local;
-   for (size_t i = 0; i < WIBP.nb_rows; i++) {
-      for (size_t j = WIBP.row_offset[i]; j < WIBP.row_offset[i + 1]; j++) {
-         //       ! j is in proc ipc
-         auto ipc = WIBP.data[j];
-         coll_to_colg[j + start] =
-             WIBP.column[j] - 1 + colstart[ipc] +
-             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
-                 n;
-         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
-         // std::endl;
-      }
-   }
-
-   // ! part well prod in ColLtoColG
-   start = nb_node_local + nb_frac_local + nb_well_inj_local;
-   for (size_t i = 0; i < WPBP.nb_rows; i++) {
-      for (size_t j = WPBP.row_offset[i]; j < WPBP.row_offset[i + 1]; j++) {
-         //  j is in proc ipc
-         auto ipc = WPBP.data[j];
-         coll_to_colg[j + start] =
-             WPBP.column[j] - 1 + colstart[ipc] +
-             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
-                 n +
-             part_info[ipc].injectors.nb_owns;
-         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
-         // std::endl;
-      }
+   // // ! part well prod in ColLtoColG
+   if (nb_well_prod_local > 0) {
+      fill_coll_to_colg(WPBP, 1);
+      local_block_col_offset += nb_well_prod_local;
    }
 };
 
