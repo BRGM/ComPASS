@@ -20,8 +20,9 @@ class LinearSystem:
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
 
-    def createAMPI(self, sizes, d_nnz, o_nnz):
+    def createAMPI(self, nonzeros):
 
+        (sizes, d_nnz, o_nnz) = nonzeros
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
 
@@ -38,13 +39,13 @@ class LinearSystem:
         self.x.createMPI((n_rowl, n_rowg))
         self.RHS.createMPI((n_rowl, n_rowg))
 
-    def setAMPI(self, simulation):
+    def setAMPI(self, cpp_lsystem):
 
-        simulation.set_AMPI_cpp(self.A)
+        cpp_lsystem.set_AMPI_cpp(self.A)
 
-    def setRHS(self, simulation):
+    def setRHS(self, cpp_lsystem):
 
-        simulation.set_RHS_cpp(self.RHS)
+        cpp_lsystem.set_RHS_cpp(self.RHS)
 
     def dump_LinearSystem(self, basename="", binary=False):
 
@@ -112,7 +113,7 @@ class LinearSolver:
         comm = PETSc.COMM_WORLD
         self.ksp = PETSc.KSP().create(comm=comm)
 
-    def initialize(self, simulation):
+    def initialize(self, cpp_lsystem):
 
         self.reset(self.rtol, self.maxit, self.restart)
 
@@ -121,14 +122,14 @@ class LinearSolver:
 
         self.ksp.setMonitor(monitor)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
-        sizes, d_nnz, o_nnz = simulation.get_AMPI_nnz_cpp()
-        self.lsystem.createAMPI(sizes, d_nnz, o_nnz)
-        self.lsystem.createVecs(sizes)
+        nonzeros = cpp_lsystem.get_non_zeros()
+        self.lsystem.createAMPI(nonzeros)
+        self.lsystem.createVecs(nonzeros[0])
 
-    def setUp(self, simulation):
+    def setUp(self, cpp_lsystem):
 
-        self.lsystem.setAMPI(simulation)
-        self.lsystem.setRHS(simulation)
+        self.lsystem.setAMPI(cpp_lsystem)
+        self.lsystem.setRHS(cpp_lsystem)
         self.ksp.setOperators(self.lsystem.A, self.lsystem.A)
         if self.activate_direct_solver:
             self.ksp.setType("preonly")

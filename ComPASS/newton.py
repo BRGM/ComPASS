@@ -140,7 +140,8 @@ class Newton:
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
-        lsolver.initialize(self.simulation)
+        cpp_lsystem = self.simulation.LinearSystem()
+        lsolver.initialize(cpp_lsystem)
         if self.simulation.info.activate_direct_solver:
             self.lsolver.activate_direct_solver = True
         nb_lsolver_iterations = 0
@@ -159,7 +160,7 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsolver.setUp(self.simulation)
+            lsolver.setUp(cpp_lsystem)
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)

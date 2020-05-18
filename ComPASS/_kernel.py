@@ -73,6 +73,7 @@ common_wrapper = Wrapper(
 
 simulation_wrapper = Wrapper(
     [
+        "LinearSystem",
         "init_model",
         "finalize_model",
         "finalize",
