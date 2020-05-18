@@ -14,19 +14,29 @@ class LinearSystem:
         # CHECKME: is there a way to check PETSc has been initialized here
         assert system.kernel is not None
         self.system = system
+        comm = PETSc.COMM_WORLD
         self.x = PETSc.Vec()
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
+        self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setTolerances(rtol=1e-6, max_it=150)
 
     def setUp(self, simulation):
 
         self.createAMPI(simulation)
         self.setAMPI(simulation)
         self.setVecs(simulation)
+        self.ksp.setOperators(self.A, self.A)
+        self.ksp.setFromOptions()
+
+    def SolvePetsc_solve(self):
+
+        return self.system.kernel.SolvePetsc_ksp_solve(self.x)
 
     def solve(self):
 
-        return self.system.kernel.SolvePetsc_ksp_solve(self.x)
+        self.ksp.solve(self.RHS, self.x)
+        return self.ksp.getConvergedReason()
 
     def check_solution(self):
 

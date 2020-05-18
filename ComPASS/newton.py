@@ -188,19 +188,17 @@ class Newton:
             convergence_scheme.reference_closure,
         )
         for iteration in range(self.maximum_number_of_iterations):
+
             kernel.Jacobian_ComputeJacSm(dt)
-            # pr = cProfile.Profile()
-            # pr.enable()
             kernel.SolvePetsc_SetUp()  # For now linear solving is still operated by fortran SolvePetsc
             solver_fmk.setUp(
                 self.simulation
             )  # Eventually this will replace SolvePetsc_SetUp()
-            # pr.disable()
-            # pr.dump_stats(f"SetUp_funcs_{mpi.proc_rank:05d}.profile")
-            # kernel.SolvePetsc_dump_system("f90")
-            # 1/0
+
             ksp_status = solver_fmk.solve()
-            # mpi.master_print('KSP status', ksp_status)
+            # ksp_status = solver_fmk.SolvePetsc_solve()
+
+            mpi.master_print("KSP status", ksp_status)
             if not self.simulation.info.activate_direct_solver:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
@@ -216,7 +214,7 @@ class Newton:
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
                 )
-            # solver_fmk.check_solution()
+            solver_fmk.check_solution()
             lsolver.number_of_succesful_iterations += nb_lsolver_iterations
             self.increment()
             self.init_iteration()
