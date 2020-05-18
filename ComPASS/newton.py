@@ -74,7 +74,7 @@ class Newton:
         """
         # FIXME: this is transitory
         self.simulation = simulation
-        self.lsolver = lsolver or LinearSolver(1e-6, 150)
+        self.lsolver = lsolver or LinearSolver(simulation, 1e-6, 150)
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.failures = 0
@@ -152,20 +152,21 @@ class Newton:
             convergence_scheme.reference_pv,
             convergence_scheme.reference_closure,
         )
+
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsolver.setUp(self.simulation)
+            lsolver.setUp()
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)
             if not self.simulation.info.activate_direct_solver:
-                nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()
+                nb_lsolver_iterations = lsolver.ksp.getIterationNumber()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
                 total_lsolver_iterations += nb_lsolver_iterations
                 # mpi.master_print(
                 #    'linear iterations:',
-                #    kernel.SolvePetsc_Ksp_iterations(),
+                #    lsolver.last_residual_history,
                 # )
             if ksp_status < 0:
                 lsolver.failures += 1

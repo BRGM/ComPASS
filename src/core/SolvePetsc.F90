@@ -167,14 +167,20 @@ contains
    subroutine retrieve_partitioning(part) &
       bind(C, name="retrieve_partitioning")
       type(partitioning_wrapper), intent(inout) :: part
-
-      call retrieve_partitioning_information(NbNodeOwn, NbFracOwn, &
-                                             NbNodeLocal, NbFracLocal, &
-                                             NbCompThermique, NbWellInjOwn, &
-                                             NbWellProdOwn, NbWellInjLocal, &
-                                             NbWellProdLocal, &
-                                             RowLToRowG, ColLToColG, part)
+      call retrieve_partitioning_information(NbCompThermique, part)
    end subroutine retrieve_partitioning
+
+   subroutine retrieve_rowl_to_rowg(array_wrapper) &
+      bind(C, name="retrieve_rowl_to_rowg")
+      type(cpp_array_wrapper), intent(inout) :: array_wrapper
+      call retrieve_id_array(RowLToRowG, array_wrapper)
+   end subroutine retrieve_rowl_to_rowg
+
+   subroutine retrieve_coll_to_colg(array_wrapper) &
+      bind(C, name="retrieve_coll_to_colg")
+      type(cpp_array_wrapper), intent(inout) :: array_wrapper
+      call retrieve_id_array(ColLToColG, array_wrapper)
+   end subroutine retrieve_coll_to_colg
 
 !< Create structure of mat and solver
    subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &

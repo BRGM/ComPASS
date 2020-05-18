@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include "SyncPetsc_wrappers.h"
+
 #include <petscmat.h>
 #include <petscvec.h>
 
@@ -20,33 +22,10 @@
 // used (based on multiple preprocessor defines... !). As this wrapping is bound
 // to disappear (one day) we keep it "simple" but not very portable.
 
-struct MatrixSize {
-   typedef std::size_t size_type;
-   size_type nb_rows;
-   size_type nb_cols;
-};
-
-struct PartElement {
-   typedef std::size_t size_type;
-   size_type nb_owns;
-   size_type nb;
-   size_type nb_ghosts() const {
-      assert(nb_owns <= nb);
-      return nb - nb_owns;
-   }
-};
-
-struct PartInfo {
-   PartElement nodes;
-   PartElement fractures;
-   PartElement injectors;
-   PartElement producers;
-};
-
 extern "C" {
 void syncpetsc_getsolnodefracwell_(Vec*, NewtonIncrements::Pointers<double>);
 void SyncPetsc_colnum(int*, std::size_t);
-void MeshSchema_part_info(PartInfo&);
+// void MeshSchema_part_info(PartInfo&);
 // void SyncPetsc_global_matrix_size(MatrixSize&);
 // void SyncPetsc_local_matrix_size(MatrixSize&);
 // void SyncPetsc_rowcolnum(int*, std::size_t, int*, std::size_t);

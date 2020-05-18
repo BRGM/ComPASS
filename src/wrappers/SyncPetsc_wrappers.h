@@ -13,4 +13,31 @@
 
 namespace py = pybind11;
 
+struct MatrixSize {
+   typedef std::size_t size_type;
+   size_type nb_rows;
+   size_type nb_cols;
+};
+
+struct PartElement {
+   typedef std::size_t size_type;
+   size_type nb_owns;
+   size_type nb;
+   size_type nb_ghosts() const {
+      assert(nb_owns <= nb);
+      return nb - nb_owns;
+   }
+};
+
+struct PartInfo {
+   PartElement nodes;
+   PartElement fractures;
+   PartElement injectors;
+   PartElement producers;
+};
+
+extern "C" {
+void MeshSchema_part_info(PartInfo&);
+}
+
 void add_SyncPetsc_wrappers(py::module& module);

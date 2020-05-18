@@ -123,10 +123,10 @@ contains
       integer :: Ierr
 
       ! initialisation petsc/MPI
-      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
+      ! call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
 
       ! cf. https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscInitializeFortran.html
-      call PetscInitializeFortran(Ierr); CHKERRQ(Ierr)
+      ! call PetscInitializeFortran(Ierr); CHKERRQ(Ierr)
 
       ! init mpi, communicator/commRank/commSize
       call CommonMPI_init(PETSC_COMM_WORLD)

@@ -36,15 +36,15 @@ module InteroperabilityStructures
    type, bind(C) :: partitioning_wrapper
       type(c_ptr)    :: rowl_to_rowg
       type(c_ptr)    :: coll_to_colg
-      integer(c_int) :: nb_well_inj_local
-      integer(c_int) :: nb_well_prod_local
-      integer(c_int) :: nb_node_own
-      integer(c_int) :: nb_frac_own
-      integer(c_int) :: nb_node_local
-      integer(c_int) :: nb_frac_local
+      ! integer(c_int) :: nb_well_inj_local
+      ! integer(c_int) :: nb_well_prod_local
+      ! integer(c_int) :: nb_node_own
+      ! integer(c_int) :: nb_frac_own
+      ! integer(c_int) :: nb_node_local
+      ! integer(c_int) :: nb_frac_local
       integer(c_int) :: nb_comp_thermique
-      integer(c_int) :: nb_well_inj_own
-      integer(c_int) :: nb_well_prod_own
+      ! integer(c_int) :: nb_well_inj_own
+      ! integer(c_int) :: nb_well_prod_own
 
    end type partitioning_wrapper
 
@@ -92,34 +92,11 @@ contains
 
    end subroutine retrieve_double_array_dim2
 
-   subroutine retrieve_partitioning_information(NbNodeOwn, NbFracOwn, &
-                                                NbNodeLocal, NbFracLocal, &
-                                                NbCompThermique, NbWellInjOwn, &
-                                                NbWellProdOwn, NbWellInjLocal, &
-                                                NbWellProdLocal, &
-                                                RowLToRowG, ColLToColG, &
-                                                c_wrapper)
+   subroutine retrieve_partitioning_information(NbCompThermique, c_wrapper)
 
       type(partitioning_wrapper), intent(inout) :: c_wrapper
-      integer, dimension(:), target, intent(in) :: RowLToRowG, ColLToColG
-      integer(c_int), value, intent(in) :: NbNodeOwn, NbFracOwn, &
-                                           NbNodeLocal, NbFracLocal, &
-                                           NbCompThermique, NbWellInjOwn, &
-                                           NbWellProdOwn, NbWellInjLocal, &
-                                           NbWellProdLocal
-
-      c_wrapper%rowl_to_rowg = c_loc(RowLToRowG)
-      c_wrapper%coll_to_colg = c_loc(ColLtoColG)
-      c_wrapper%nb_well_inj_local = NbWellInjLocal
-      c_wrapper%nb_well_prod_local = NbWellProdLocal
-      c_wrapper%nb_node_local = NbNodeLocal
-      c_wrapper%nb_frac_local = NbFracLocal
-      c_wrapper%nb_node_own = NbNodeOwn
-      c_wrapper%nb_frac_own = NbFracOwn
+      integer(c_int), value, intent(in) :: NbCompThermique
       c_wrapper%nb_comp_thermique = NbCompThermique
-      c_wrapper%nb_well_inj_own = NbWellInjOwn
-      c_wrapper%nb_well_prod_own = NbWellProdOwn
-
    end subroutine retrieve_partitioning_information
 
 end module InteroperabilityStructures

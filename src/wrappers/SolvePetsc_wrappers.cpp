@@ -12,35 +12,21 @@
 
 #include "ArrayWrapper.h"
 #include "BlockMatrixWrapper.h"
-#include "PartitioningInformationWrapper.h"
 #include "Petsc_caster.h"
-#include "PyBuffer_wrappers.h"
-#include "PyXArrayWrapper.h"
-#include "StringWrapper.h"
+#include "SyncPetsc_wrappers.h"
 #include "XArrayWrapper.h"
-// #include "Jacobian_wrappers.h"
-
-// #include "MeshUtilities.h"
 
 // Passing PETSc objects between C and Fortran does not rely on iso C binding
 // but on opaque pointers and compiler dependant name mangling hence some
-// restrictions on the case of the subroutine names. It is supposed that the
+// restrictions on the case of the subroutine names. It is assumed that the
 // compiler expose the Fortran routine with lower case and a trailing underscore
 // (what gcc does). In the above PETSc example a more elaborated strategy is
 // used (based on multiple preprocessor defines... !). As this wrapping is bound
 // to disappear (one day) we keep it "simple" but not very portable.
 
 extern "C" {
-void retrieve_partitioning(PartitioningInformationWrapper&);
-void SolvePetsc_SetUp();
-int SolvePetsc_KspSolveIterationNumber();
-void SolvePetsc_KspSolveIterations(double*, int);
-void SolvePetsc_dump_system(const StringWrapper&);
-void SolvePetsc_Ksp_configuration(double, int, int);
-//     int SolvePetsc_KspSolve();
-int compass_petsc_kspsolve_(Vec*);
-//     void SolvePetsc_check_solution();
-void compass_check_solution_(Vec*);
+void retrieve_rowl_to_rowg(XArrayWrapper<int>&);
+void retrieve_coll_to_colg(XArrayWrapper<int>&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
 void retrieve_nb_nodes_own(XArrayWrapper<int>&);
@@ -52,49 +38,28 @@ void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <iostream>
+
 void add_SolvePetsc_wrappers(py::module& module) {
-   module.def("SolvePetsc_SetUp", &SolvePetsc_SetUp);
-   module.def("SolvePetsc_KspSolveIterationNumber",
-              &SolvePetsc_KspSolveIterationNumber);
-   module.def("SolvePetsc_dump_system", [](py::str basename) {
-      SolvePetsc_dump_system(StringWrapper{basename.cast<std::string>()});
-   });
-
-   module.def("SolvePetsc_Ksp_configuration", &SolvePetsc_Ksp_configuration);
-   module.def("SolvePetsc_Ksp_iterations", []() {
-      const auto n = SolvePetsc_KspSolveIterationNumber();
-      assert(n >= 0);
-      auto res =
-          py::array_t<double, py::array::c_style>{static_cast<std::size_t>(n)};
-      SolvePetsc_KspSolveIterations(res.mutable_data(), n);
-      return res;
-   });
-   module.def("SolvePetsc_ksp_solve", [](py::object V) {
-      auto vec = cast_to_PETSc<Vec>(V);
-      return compass_petsc_kspsolve_(&vec);
-   });
-   module.def("SolvePetsc_check_solution", [](py::object V) {
-      auto vec = cast_to_PETSc<Vec>(V);
-      compass_check_solution_(&vec);
-   });
-
    module.def("set_AMPI_cpp", [](py::object pyA) {
       auto A = cast_to_PETSc<Mat>(pyA);
       // FIXME: we should make a structure that aggregates JacA and part
       CsrBlockMatrixWrapper JacA;
       retrieve_jacobian(JacA);
-      PartitioningInformationWrapper part;
-      retrieve_partitioning(part);
+      PartInfo part_info;
+      MeshSchema_part_info(part_info);
+      XArrayWrapper<int> rlg;
+      XArrayWrapper<int> clg;
+      retrieve_rowl_to_rowg(rlg);
+      retrieve_coll_to_colg(clg);
 
-      const auto n = static_cast<std::size_t>(part.nb_comp_thermique);
-      const auto nb_node_own = part.nb_node_own;
-      const auto nb_frac_own = part.nb_frac_own;
-      const auto nb_node_local = part.nb_node_local;
-      const auto nb_frac_local = part.nb_frac_local;
-      const auto nb_well_inj_own = part.nb_well_inj_own;
-      const auto nb_well_prod_own = part.nb_well_prod_own;
-
-      assert(static_cast<std::size_t>(JacA.block_size) == n);
+      const auto n = static_cast<std::size_t>(JacA.block_size);
+      const auto nb_node_own = part_info.nodes.nb_owns;
+      const auto nb_node_local = part_info.nodes.nb;
+      const auto nb_frac_own = part_info.fractures.nb_owns;
+      const auto nb_frac_local = part_info.fractures.nb;
+      const auto nb_well_inj_own = part_info.injectors.nb_owns;
+      const auto nb_well_prod_own = part_info.producers.nb_owns;
 
       std::vector<PetscInt> idxm(
           n, -1);  // number of rows and their global indices
@@ -110,16 +75,13 @@ void add_SolvePetsc_wrappers(py::module& module) {
          return static_cast<std::size_t>(*(JacA.row_offset + i));
       };
 
-      const auto rlg = part.rowl_to_rowg;
-      const auto clg = part.coll_to_colg;
-
       // Rows associated with node own and frac own
       for (std::size_t i = 0; i < nb_node_own + nb_frac_own; ++i) {
          for (auto offset = row_offset(i); offset < row_offset(i + 1);
               ++offset) {
-            auto row = *(rlg + i) - 1;  // 0-based in petsc
+            auto row = rlg[i] - 1;  // 0-based in petsc
             auto col =
-                *(clg + static_cast<std::size_t>(*(JacA.column + offset) - 1)) -
+                clg[static_cast<std::size_t>(*(JacA.column + offset) - 1)] -
                 1;  // 0-based in petsc
             block_indices(row, idxm);
             block_indices(col, idxn);
@@ -145,10 +107,9 @@ void add_SolvePetsc_wrappers(py::module& module) {
            ++i) {
          for (auto offset = row_offset(i); offset < row_offset(i + 1);
               ++offset) {
-            auto row = *(rlg + i) - 1;
+            auto row = rlg[i] - 1;
             auto col =
-                *(clg + static_cast<std::size_t>(*(JacA.column + offset) - 1)) -
-                1;
+                clg[static_cast<std::size_t>(*(JacA.column + offset) - 1)] - 1;
 
             block_indices(row, idxm);
             block_indices(col, idxn);
@@ -169,18 +130,18 @@ void add_SolvePetsc_wrappers(py::module& module) {
    module.def("get_AMPI_nnz_cpp", []() {
       CsrBlockMatrixWrapper JacA;
       retrieve_jacobian(JacA);
-      PartitioningInformationWrapper part;
-      retrieve_partitioning(part);
+      PartInfo part_info;
+      MeshSchema_part_info(part_info);
 
-      const auto nb_node_own = part.nb_node_own;
-      const auto nb_frac_own = part.nb_frac_own;
-      const auto nb_node_local = part.nb_node_local;
-      const auto nb_frac_local = part.nb_frac_local;
-      const auto nb_comp_thermique = part.nb_comp_thermique;
-      const auto nb_well_inj_own = part.nb_well_inj_own;
-      const auto nb_well_prod_own = part.nb_well_prod_own;
-      const auto nb_well_inj_local = part.nb_well_inj_local;
-      const auto nb_well_prod_local = part.nb_well_prod_local;
+      const auto nb_comp_thermique = JacA.block_size;
+      const auto nb_node_own = part_info.nodes.nb_owns;
+      const auto nb_node_local = part_info.nodes.nb;
+      const auto nb_frac_own = part_info.fractures.nb_owns;
+      const auto nb_frac_local = part_info.fractures.nb;
+      const auto nb_well_inj_own = part_info.injectors.nb_owns;
+      const auto nb_well_inj_local = part_info.injectors.nb;
+      const auto nb_well_prod_own = part_info.producers.nb_owns;
+      const auto nb_well_prod_local = part_info.producers.nb;
       XArrayWrapper<int> nb_node_own_ncpus;
       XArrayWrapper<int> nb_frac_own_ncpus;
       XArrayWrapper<int> nb_well_inj_cpus;
@@ -332,15 +293,17 @@ void add_SolvePetsc_wrappers(py::module& module) {
       auto RHS = cast_to_PETSc<Vec>(pyRHS);
       DoubleArray2 JacRHS;
       retrieve_right_hand_side(JacRHS);
-      PartitioningInformationWrapper part;
-      retrieve_partitioning(part);
+      PartInfo part_info;
+      MeshSchema_part_info(part_info);
+      XArrayWrapper<int> rlg;
+      retrieve_rowl_to_rowg(rlg);
 
-      const auto nb_node_own = part.nb_node_own;
-      const auto nb_frac_own = part.nb_frac_own;
-      const auto n = static_cast<std::size_t>(part.nb_comp_thermique);
-      const auto nb_well_inj_own = part.nb_well_inj_own;
-      const auto nb_well_prod_own = part.nb_well_prod_own;
-      const auto rlg = part.rowl_to_rowg;
+      const auto n = static_cast<std::size_t>(JacRHS.shape[1]);
+      const auto nb_node_own = part_info.nodes.nb_owns;
+      const auto nb_frac_own = part_info.fractures.nb_owns;
+      const auto nb_well_inj_own = part_info.injectors.nb_owns;
+      const auto nb_well_prod_own = part_info.producers.nb_owns;
+
       int row;
       std::vector<PetscInt> idxm(n, -1);
 
@@ -353,7 +316,7 @@ void add_SolvePetsc_wrappers(py::module& module) {
 
       // Rows associated with node own and frac own
       for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
-         row = *(rlg + i) - 1;
+         row = rlg[i] - 1;
          block_indices(row, idxm);
          for (size_t j = 0; j < n; j++) {
             VecSetValue(RHS, idxm.data()[j], *(JacRHS.p + n * i + j),
@@ -366,7 +329,7 @@ void add_SolvePetsc_wrappers(py::module& module) {
       // JacRHS.p
       auto start = nb_node_own + nb_frac_own;
       for (size_t i = 0; i < nb_well_inj_own + nb_well_prod_own; i++) {
-         row = *(rlg + i + start) - 1;
+         row = rlg[i + start] - 1;
          block_indices(row, idxm);
          // VecSetValue takes in a global index, but JacRHS.p is a local
          // variable with block size n
