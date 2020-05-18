@@ -40,14 +40,6 @@ class Properties:
     pass
 
 
-# # FIXME: transient... to be set elsewhere
-# def default_Newton():
-#     get_kernel()
-#     # Legacy parameters
-#     # NB: you should remove 1 iteration in comparison with legacy values
-#     return
-
-
 # FIXME: grid is kept for backward compatibility, should be deprecated
 #        then mesh should not default to None and be explicitely provided
 def init(

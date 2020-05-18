@@ -33,21 +33,6 @@ module InteroperabilityStructures
       integer(c_int) :: block_size
    end type csr_block_matrix_wrapper
 
-   type, bind(C) :: partitioning_wrapper
-      type(c_ptr)    :: rowl_to_rowg
-      type(c_ptr)    :: coll_to_colg
-      ! integer(c_int) :: nb_well_inj_local
-      ! integer(c_int) :: nb_well_prod_local
-      ! integer(c_int) :: nb_node_own
-      ! integer(c_int) :: nb_frac_own
-      ! integer(c_int) :: nb_node_local
-      ! integer(c_int) :: nb_frac_local
-      integer(c_int) :: nb_comp_thermique
-      ! integer(c_int) :: nb_well_inj_own
-      ! integer(c_int) :: nb_well_prod_own
-
-   end type partitioning_wrapper
-
 contains
 
    subroutine retrieve_csr_block_matrix(matrix, c_wrapper)
@@ -91,12 +76,5 @@ contains
       a%nj = size(p, 1)
 
    end subroutine retrieve_double_array_dim2
-
-   subroutine retrieve_partitioning_information(NbCompThermique, c_wrapper)
-
-      type(partitioning_wrapper), intent(inout) :: c_wrapper
-      integer(c_int), value, intent(in) :: NbCompThermique
-      c_wrapper%nb_comp_thermique = NbCompThermique
-   end subroutine retrieve_partitioning_information
 
 end module InteroperabilityStructures

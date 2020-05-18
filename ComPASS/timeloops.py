@@ -19,7 +19,7 @@ from .simulation_context import SimulationContext
 from .utils.units import time_string
 from . import timestep
 from . import mpi
-from .newton import Newton
+from .newton import Newton, default_Newton
 from .dumps import Dumper
 from .options import get_callbacks_from_options
 from ._kernel import get_kernel
@@ -172,7 +172,7 @@ def standard_loop(
     """
     assert not (final_time is None and nitermax is None)
     if newton is None:
-        newton = Newton(simulation, 1e-5, 8)
+        newton = default_Newton(simulation)
     if context is None:
         context = SimulationContext()
     if well_connections is None:

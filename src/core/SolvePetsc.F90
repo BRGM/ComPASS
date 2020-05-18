@@ -212,18 +212,18 @@ contains
       NBlockcolG = NBlockrowG
 
       call SolvePetsc_RowColStart
-      call SolvePetsc_CreateAmpi
-      call SolvePetsc_CreateSm
+      ! call SolvePetsc_CreateAmpi
+      ! call SolvePetsc_CreateSm
 
-      if (activate_cpramg .and. .not. activate_direct_solver) then
-         call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
-      else
-         if (activate_direct_solver) then
-            call SolvePetsc_CreateKsp_direct_solver
-         else
-            call SolvePetsc_CreateKsp
-         endif
-      endif
+      ! if(activate_cpramg.and..not.activate_direct_solver) then
+      !     call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
+      ! else
+      !     if(activate_direct_solver) then
+      !         call SolvePetsc_CreateKsp_direct_solver
+      !     else
+      !         call SolvePetsc_CreateKsp
+      !     endif
+      ! endif
 
       ! compute RowLToRowG and ColLToColG
       call SolvePetsc_LtoG
@@ -1856,10 +1856,10 @@ contains
       PetscErrorCode :: Ierr
 
       ! Destroy
-      call KSPDestroy(ksp_mpi, Ierr)
-      CHKERRQ(Ierr)
-      call MatDestroy(A_mpi, Ierr)
-      CHKERRQ(Ierr)
+      ! call KSPDestroy(ksp_mpi, Ierr)
+      ! CHKERRQ(Ierr)
+      ! call MatDestroy(A_mpi, Ierr)
+      ! CHKERRQ(Ierr)
 
       ! free ksp convergence history vector
       if (allocated(kspHistory)) then
@@ -1873,8 +1873,8 @@ contains
       deallocate (RowLToRowG)
       deallocate (ColLToColG)
 
-      call VecDestroy(Sm_mpi, Ierr)
-      CHKERRQ(Ierr)
+      ! call VecDestroy(Sm_mpi, Ierr)
+      ! CHKERRQ(Ierr)
       !  call VecDestroy(x_mpi, Ierr)
       !  CHKERRQ(Ierr)
 

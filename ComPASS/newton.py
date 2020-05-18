@@ -64,7 +64,7 @@ class Newton:
     A structure that manages the Newton loop.
     """
 
-    def __init__(self, simulation, tol, maxit, lsolver=None, convergence_scheme=None):
+    def __init__(self, simulation, tol, maxit, lsolver, convergence_scheme=None):
         """
         :param simulation: The simulation object.
         :param tol: The tolerance used for convergence.
@@ -74,7 +74,7 @@ class Newton:
         """
         # FIXME: this is transitory
         self.simulation = simulation
-        self.lsolver = lsolver or LinearSolver(1e-6, 150)
+        self.lsolver = lsolver
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.failures = 0
@@ -140,6 +140,7 @@ class Newton:
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
+        lsolver.initialize(self.simulation)
         if self.simulation.info.activate_direct_solver:
             self.lsolver.activate_direct_solver = True
         nb_lsolver_iterations = 0
@@ -231,3 +232,8 @@ class Newton:
             dq, dp = global_well_errors
             print(f"  {dq} for well operatinf on flowrate")
             print(f"  {dp} for well operatinf on pressure")
+
+
+def default_Newton(simulation):
+
+    return Newton(simulation, 1e-5, 8, LinearSolver(1e-6, 150))
