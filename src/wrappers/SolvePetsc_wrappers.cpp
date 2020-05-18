@@ -38,7 +38,7 @@ void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
 
 #include <iostream>
 
-LinearSystem::LinearSystem() {
+LinearSystemBuilder::LinearSystemBuilder() {
    retrieve_jacobian(JacA);
    retrieve_right_hand_side(JacRHS);
    MeshSchema_part_info(myrank_part_info);
@@ -51,7 +51,15 @@ LinearSystem::LinearSystem() {
    compute_ltog();
 };
 
-void LinearSystem::compute_nonzeros() {
+void LinearSystemBuilder::compute_nonzeros() {
+   // A function that computes the d_nnz and o_nnz arrays
+   // d_nnz : array containing the number of nonzeros in the various rows
+   //         of the DIAGONAL portion of the local submatrix (different for each
+   //         row)
+   // o_nnz : array containing the number of nonzeros in the various rows
+   //         of the OFF-DIAGONAL portion of the local submatrix (different for
+   //         each row)
+   //  https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Mat/MatCreateAIJ.html#MatCreateAIJ
    const auto nb_comp_thermique = JacA.block_size;
    const auto ncpus = myrank_part_info.ncpus;
    const auto nb_node_own = myrank_part_info.nodes.nb_owns;
@@ -90,12 +98,10 @@ void LinearSystem::compute_nonzeros() {
    n_colg = n_rowg;
 
    const std::size_t n = static_cast<std::size_t>(n_rowl);
-   d_nnz.resize(n);
-   o_nnz.resize(n);
-   for (size_t i = 0; i < n; ++i) {
-      d_nnz[i] = 0;
-      o_nnz[i] = 0;
-   }
+   d_nnz.clear();
+   d_nnz.resize(n, 0);
+   o_nnz.clear();
+   o_nnz.resize(n, 0);
 
    // N: Node, F: Frac, WI: well inj, WP: well prod
    // l: local, o: own
@@ -196,7 +202,12 @@ void LinearSystem::compute_nonzeros() {
    }
 };
 
-void LinearSystem::compute_ltog() {
+void LinearSystemBuilder::compute_ltog() {
+   // A function that computes the local to global index arrays
+   // If i is the local index of a row in the local submatrix
+   // then rowl_to_rowg[i] is the global index of that row in the matrix
+   // If j is the local index of a column in the local submatrix
+   // then coll_to_colg[j] is the global index of that column in the matrix
    const auto ncpus = myrank_part_info.ncpus;
    const auto n = static_cast<std::size_t>(JacA.block_size);
    int rowstart[ncpus];
@@ -303,7 +314,10 @@ void LinearSystem::compute_ltog() {
    }
 };
 
-void LinearSystem::set_AMPI(py::object pyA) {
+void LinearSystemBuilder::set_AMPI(py::object pyA) {
+   // A function that sets the nonzeros entries in the Petsc matrix
+   // using the JacA.block_data array computed in the Fortran core.
+   // This is done in the C++ layer for increased performance
    auto A = cast_to_PETSc<Mat>(pyA);
 
    const auto n = static_cast<std::size_t>(JacA.block_size);
@@ -378,7 +392,10 @@ void LinearSystem::set_AMPI(py::object pyA) {
    MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
 };
 
-void LinearSystem::set_RHS(py::object pyRHS) {
+void LinearSystemBuilder::set_RHS(py::object pyRHS) {
+   // A function that sets the nonzeros entries in the Petsc vector RHS
+   // using the JacRHS.p array computed in the Fortran core.
+   // This is done in the C++ layer for increased performance
    auto RHS = cast_to_PETSc<Vec>(pyRHS);
 
    const auto n = static_cast<std::size_t>(JacRHS.shape[1]);
@@ -423,131 +440,10 @@ void LinearSystem::set_RHS(py::object pyRHS) {
    VecAssemblyEnd(RHS);
 };
 
-void compute_ltog(std::vector<size_t>& rowl_to_rowg,
-                  std::vector<size_t>& coll_to_colg) {
-   CsrBlockMatrixWrapper JacA;
-   retrieve_jacobian(JacA);
-   const auto n = static_cast<std::size_t>(JacA.block_size);
-   PartInfo myrank_part_info;
-   MeshSchema_part_info(myrank_part_info);
-   const auto ncpus = myrank_part_info.ncpus;
-
-   int rowstart[ncpus];
-   int colstart[ncpus];
-   rowstart[0] = 0;
-   colstart[0] = rowstart[0];
-   PartInfo part_info[ncpus];
-   for (size_t i = 0; i < ncpus; i++) {
-      MeshSchema_part_info_by_rank(part_info[i], i);
-   }
-   size_t i;
-   for (i = 0; i < ncpus - 1; i++) {
-      rowstart[i + 1] =
-          rowstart[i] +
-          (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) * n +
-          part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
-      colstart[i + 1] = rowstart[i + 1];
-   }
-
-   // std::cout << "1" << std::endl;
-   const auto comm_rank = myrank_part_info.rank;
-   const auto nb_node_own = myrank_part_info.nodes.nb_owns;
-   const auto nb_node_local = myrank_part_info.nodes.nb;
-   const auto nb_frac_own = myrank_part_info.fractures.nb_owns;
-   const auto nb_frac_local = myrank_part_info.fractures.nb;
-   const auto nb_well_inj_own = myrank_part_info.injectors.nb_owns;
-   const auto nb_well_inj_local = myrank_part_info.injectors.nb;
-   const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
-   const auto nb_well_prod_local = myrank_part_info.producers.nb;
-
-   // std::cout << "2" << std::endl;
-   // std::cout << "3" << std::endl;
-   auto nblock_rowl = static_cast<std::size_t>(
-       nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own);
-   rowl_to_rowg.resize(nblock_rowl);
-   // ! node/frac
-   for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
-      // std::cout << "4" << std::endl;
-      rowl_to_rowg[i] = rowstart[comm_rank] + i * n;  // C indexing
-   }
-
-   // ! well
-   auto start = nb_node_own + nb_frac_own;
-   auto ndisp = rowstart[comm_rank] + (nb_node_own + nb_frac_own) * n;
-
-   for (size_t i = 0; i < nb_well_inj_own + nb_well_prod_own; i++) {
-      rowl_to_rowg[i + start] = ndisp + i;
-   }
-
-   coll_to_colg.resize(nb_node_local + nb_frac_local + nb_well_inj_local +
-                       nb_well_prod_local);
-   CsrMatrixWrapper NBP;
-   retrieve_num_node_by_proc(NBP);
-   auto nb = NBP.nb_rows;
-   CsrMatrixWrapper FBP;
-   retrieve_num_frac_by_proc(FBP);
-   CsrMatrixWrapper WIBP;
-   retrieve_num_well_inj_by_proc(WIBP);
-   CsrMatrixWrapper WPBP;
-   retrieve_num_well_prod_by_proc(WPBP);
-
-   // ! part node local in ColLtocolG
-   // Nb : nb_rows, data : Val, column : Num, row_offset : Pt
-   for (size_t i = 0; i < NBP.nb_rows; i++) {
-      for (size_t j = NBP.row_offset[i]; j < NBP.row_offset[i + 1]; j++) {
-         // ! j is in proc ipc
-         auto ipc = NBP.data[j];
-         coll_to_colg[j] = (NBP.column[j] - 1) * n + colstart[ipc];
-      }
-   }
-
-   // ! part frac in ColLtocolG
-   for (size_t i = 0; i < FBP.nb_rows; i++) {
-      for (size_t j = FBP.row_offset[i]; j < FBP.row_offset[i + 1]; j++) {
-         //       ! j is in proc ipc
-         auto ipc = FBP.data[j];
-         coll_to_colg[j + nb_node_local] = (FBP.column[j] - 1) * n +
-                                           colstart[ipc] +
-                                           part_info[ipc].nodes.nb_owns * n;
-      }
-   }
-
-   // ! part well inj in ColLtoColG
-   start = nb_node_local + nb_frac_local;
-   for (size_t i = 0; i < WIBP.nb_rows; i++) {
-      for (size_t j = WIBP.row_offset[i]; j < WIBP.row_offset[i + 1]; j++) {
-         //       ! j is in proc ipc
-         auto ipc = WIBP.data[j];
-         coll_to_colg[j + start] =
-             WIBP.column[j] - 1 + colstart[ipc] +
-             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
-                 n;
-         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
-         // std::endl;
-      }
-   }
-
-   // ! part well prod in ColLtoColG
-   start = nb_node_local + nb_frac_local + nb_well_inj_local;
-   for (size_t i = 0; i < WPBP.nb_rows; i++) {
-      for (size_t j = WPBP.row_offset[i]; j < WPBP.row_offset[i + 1]; j++) {
-         //  j is in proc ipc
-         auto ipc = WPBP.data[j];
-         coll_to_colg[j + start] =
-             WPBP.column[j] - 1 + colstart[ipc] +
-             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
-                 n +
-             part_info[ipc].injectors.nb_owns;
-         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
-         // std::endl;
-      }
-   }
-};
-
 void add_SolvePetsc_wrappers(py::module& module) {
-   py::class_<LinearSystem>(module, "LinearSystem")
+   py::class_<LinearSystemBuilder>(module, "LinearSystemBuilder")
        .def(py::init<>())
-       .def("get_non_zeros", &LinearSystem::get_non_zeros)
-       .def("set_AMPI_cpp", &LinearSystem::set_AMPI)
-       .def("set_RHS_cpp", &LinearSystem::set_RHS);
+       .def("get_non_zeros", &LinearSystemBuilder::get_non_zeros)
+       .def("set_AMPI", &LinearSystemBuilder::set_AMPI)
+       .def("set_RHS", &LinearSystemBuilder::set_RHS);
 }

@@ -49,9 +49,8 @@ class DumpLinearSystemTrigger:
         self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Dump linear system")
-            # print(n,t, self.flag.n, self.flag.parent_flag.t)
             assert self.petsc is not None
-            self.petsc.dump_LinearSystem()
+            self.petsc.dump()
 
 
 class InterruptTrigger:
@@ -74,7 +73,7 @@ def get_callbacks_from_options(newton):
     example : --dump_ls 1.5e6,2 --kill 1.5e6,2 """
 
     callbacks = []
-    petsc = newton.lsolver.lsystem
+    petsc = newton.lsolver.plsystem
     dump_ls = get("--dump_ls")
     if dump_ls is not None:
         tdump = float(dump_ls)
