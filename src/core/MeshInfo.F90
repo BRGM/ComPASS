@@ -16,6 +16,8 @@ module MeshInfo
    end type PartElement
 
    type, bind(C) :: PartInfo
+      integer(c_size_t) :: ncpus
+      integer(c_size_t) :: rank
       type(PartElement) :: nodes
       type(PartElement) :: fractures
       type(PartElement) :: injectors

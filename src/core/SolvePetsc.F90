@@ -162,18 +162,6 @@ module SolvePetsc
 
 contains
 
-   subroutine retrieve_rowl_to_rowg(array_wrapper) &
-      bind(C, name="retrieve_rowl_to_rowg")
-      type(cpp_array_wrapper), intent(inout) :: array_wrapper
-      call retrieve_id_array(RowLToRowG, array_wrapper)
-   end subroutine retrieve_rowl_to_rowg
-
-   subroutine retrieve_coll_to_colg(array_wrapper) &
-      bind(C, name="retrieve_coll_to_colg")
-      type(cpp_array_wrapper), intent(inout) :: array_wrapper
-      call retrieve_id_array(ColLToColG, array_wrapper)
-   end subroutine retrieve_coll_to_colg
-
 !< Create structure of mat and solver
    subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
                               activate_cpramg, activate_direct_solver)
@@ -226,14 +214,14 @@ contains
       ! endif
 
       ! compute RowLToRowG and ColLToColG
-      call SolvePetsc_LtoG
-      call SolvePetsc_LtoGBlock
+      ! call SolvePetsc_LtoG
+      ! call SolvePetsc_LtoGBlock
 
       ! delete row/col start
-      deallocate (rowstart)
-      deallocate (colstart)
-      deallocate (Blockrowstart)
-      deallocate (Blockcolstart)
+      ! deallocate(rowstart)
+      ! deallocate(colstart)
+      ! deallocate(Blockrowstart)
+      ! deallocate(Blockcolstart)
 
    end subroutine SolvePetsc_Init
 
@@ -1867,11 +1855,11 @@ contains
       end if
 
       ! free RowLToRowG ColLToColG
-      deallocate (RowLToRowGBlock)
-      deallocate (ColLToColGBlock)
-
-      deallocate (RowLToRowG)
-      deallocate (ColLToColG)
+      ! deallocate(RowLToRowGBlock)
+      ! deallocate(ColLToColGBlock)
+      !
+      ! deallocate(RowLToRowG)
+      ! deallocate(ColLToColG)
 
       ! call VecDestroy(Sm_mpi, Ierr)
       ! CHKERRQ(Ierr)

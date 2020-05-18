@@ -86,12 +86,6 @@ class LinearSystem:
             self.x.view(viewer)
             viewer.destroy()
 
-    def destroy(self):
-
-        self.A.destroy()
-        self.x.destroy()
-        self.RHS.destroy()
-
 
 class LinearSolver:
 
@@ -180,8 +174,3 @@ class LinearSolver:
     def getSolution(self):
 
         return self.lsystem.x
-
-    def destroy(self):
-
-        self.ksp.destroy()
-        self.lsystem.destroy()

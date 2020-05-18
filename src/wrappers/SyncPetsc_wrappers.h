@@ -30,6 +30,9 @@ struct PartElement {
 };
 
 struct PartInfo {
+   typedef std::size_t size_type;
+   size_type ncpus;
+   size_type rank;
    PartElement nodes;
    PartElement fractures;
    PartElement injectors;
@@ -37,6 +40,7 @@ struct PartInfo {
 };
 
 extern "C" {
+void MeshSchema_part_info_by_rank(PartInfo&, size_t&);
 void MeshSchema_part_info(PartInfo&);
 }
 

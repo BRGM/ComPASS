@@ -9,7 +9,7 @@
 module InteroperabilityStructures
 
    use, intrinsic :: iso_c_binding
-   use CommonType, only: CSRArray2dble
+   use CommonType, only: CSRArray2dble, CSR
    use CommonMPI, only: CommonMPI_abort
 
    implicit none
@@ -33,7 +33,29 @@ module InteroperabilityStructures
       integer(c_int) :: block_size
    end type csr_block_matrix_wrapper
 
+   type, bind(C) :: csr_matrix_wrapper
+      type(c_ptr)    :: row_offset
+      type(c_ptr)    :: column
+      type(c_ptr)    :: data
+      integer(c_int) :: nb_rows
+      integer(c_int) :: block_size
+   end type csr_matrix_wrapper
+
 contains
+
+   subroutine retrieve_csr_matrix(matrix, c_wrapper)
+
+      type(CSR), intent(in), target :: matrix
+      type(csr_matrix_wrapper), intent(inout) :: c_wrapper
+      if (size(matrix%Val, 1) /= matrix%Pt(matrix%Nb + 1)) &
+         call CommonMPI_abort("Inconsistent offset pointers.")
+
+      c_wrapper%row_offset = c_loc(matrix%Pt)
+      c_wrapper%column = c_loc(matrix%Num)
+      c_wrapper%data = c_loc(matrix%Val)
+      c_wrapper%nb_rows = matrix%Nb
+
+   end subroutine retrieve_csr_matrix
 
    subroutine retrieve_csr_block_matrix(matrix, c_wrapper)
 

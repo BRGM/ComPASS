@@ -67,7 +67,6 @@ common_wrapper = Wrapper(
         "WellPerforations",
         "FluidProperties",
         "BlockMatrix",
-        "PartitioningInformationWrapper",
     ]
 )
 

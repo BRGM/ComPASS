@@ -14,3 +14,4 @@
 namespace py = pybind11;
 
 void add_SolvePetsc_wrappers(py::module& module);
+void compute_ltog();

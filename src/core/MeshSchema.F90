@@ -9,7 +9,7 @@
 module MeshSchema
 
    use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
-   use InteroperabilityStructures, only: cpp_array_wrapper
+   use InteroperabilityStructures, only: cpp_array_wrapper, retrieve_csr_matrix, csr_matrix_wrapper
    use mpi
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
 
@@ -342,10 +342,35 @@ contains
 
    end subroutine retrieve_CSRData_injector
 
+   subroutine MeshSchema_part_info_by_rank(info, rank) &
+      bind(C, name="MeshSchema_part_info_by_rank")
+      type(PartInfo), intent(inout) :: info
+      integer(c_int), intent(in) :: rank
+
+      if (rank >= Ncpus) then
+         call CommonMPI_abort("Index Error : Retrieving PartInfo for a &
+                              proc rank greater than number of procs")
+      end if
+
+      info%ncpus = Ncpus
+      info%rank = rank
+      info%nodes%nb_owns = NbNodeOwn_Ncpus(rank + 1)
+      info%nodes%nb = NbNodeLocal_Ncpus(rank + 1)
+      info%fractures%nb_owns = NbFracOwn_Ncpus(rank + 1)
+      info%fractures%nb = NbFracLocal_Ncpus(rank + 1)
+      info%injectors%nb_owns = NbWellInjOwn_Ncpus(rank + 1)
+      info%injectors%nb = NbWellInjLocal_Ncpus(rank + 1)
+      info%producers%nb_owns = NbWellProdOwn_Ncpus(rank + 1)
+      info%producers%nb = NbWellProdLocal_Ncpus(rank + 1)
+
+   end subroutine MeshSchema_part_info_by_rank
+
    subroutine MeshSchema_part_info(info) &
       bind(C, name="MeshSchema_part_info")
       type(PartInfo), intent(out) :: info
 
+      info%ncpus = Ncpus
+      info%rank = commRank
       info%nodes%nb_owns = NbNodeOwn_Ncpus(commRank + 1)
       info%nodes%nb = NbNodeLocal_Ncpus(commRank + 1)
       info%fractures%nb_owns = NbFracOwn_Ncpus(commRank + 1)

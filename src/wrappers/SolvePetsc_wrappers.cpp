@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include "SolvePetsc_wrappers.h"
+
 #include <petscmat.h>
 #include <petscvec.h>
 
@@ -25,8 +27,10 @@
 // to disappear (one day) we keep it "simple" but not very portable.
 
 extern "C" {
-void retrieve_rowl_to_rowg(XArrayWrapper<int>&);
-void retrieve_coll_to_colg(XArrayWrapper<int>&);
+void retrieve_num_node_by_proc(CsrMatrixWrapper&);
+void retrieve_num_frac_by_proc(CsrMatrixWrapper&);
+void retrieve_num_well_inj_by_proc(CsrMatrixWrapper&);
+void retrieve_num_well_prod_by_proc(CsrMatrixWrapper&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
 void retrieve_nb_nodes_own(XArrayWrapper<int>&);
@@ -40,6 +44,127 @@ void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
 
 #include <iostream>
 
+void compute_ltog(std::vector<size_t>& rowl_to_rowg,
+                  std::vector<size_t>& coll_to_colg) {
+   CsrBlockMatrixWrapper JacA;
+   retrieve_jacobian(JacA);
+   const auto n = static_cast<std::size_t>(JacA.block_size);
+   PartInfo myrank_part_info;
+   MeshSchema_part_info(myrank_part_info);
+   const auto ncpus = myrank_part_info.ncpus;
+
+   int rowstart[ncpus];
+   int colstart[ncpus];
+   rowstart[0] = 0;
+   colstart[0] = rowstart[0];
+   PartInfo part_info[ncpus];
+   for (size_t i = 0; i < ncpus; i++) {
+      MeshSchema_part_info_by_rank(part_info[i], i);
+   }
+   size_t i;
+   for (i = 0; i < ncpus - 1; i++) {
+      rowstart[i + 1] =
+          rowstart[i] +
+          (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) * n +
+          part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
+      colstart[i + 1] = rowstart[i + 1];
+   }
+
+   // std::cout << "1" << std::endl;
+   const auto comm_rank = myrank_part_info.rank;
+   const auto nb_node_own = myrank_part_info.nodes.nb_owns;
+   const auto nb_node_local = myrank_part_info.nodes.nb;
+   const auto nb_frac_own = myrank_part_info.fractures.nb_owns;
+   const auto nb_frac_local = myrank_part_info.fractures.nb;
+   const auto nb_well_inj_own = myrank_part_info.injectors.nb_owns;
+   const auto nb_well_inj_local = myrank_part_info.injectors.nb;
+   const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
+   const auto nb_well_prod_local = myrank_part_info.producers.nb;
+
+   // std::cout << "2" << std::endl;
+   // std::cout << "3" << std::endl;
+   auto nblock_rowl = static_cast<std::size_t>(
+       nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own);
+   rowl_to_rowg.resize(nblock_rowl);
+   // ! node/frac
+   for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
+      // std::cout << "4" << std::endl;
+      rowl_to_rowg[i] = rowstart[comm_rank] + i * n;  // C indexing
+   }
+
+   // ! well
+   auto start = nb_node_own + nb_frac_own;
+   auto ndisp = rowstart[comm_rank] + (nb_node_own + nb_frac_own) * n;
+
+   for (size_t i = 0; i < nb_well_inj_own + nb_well_prod_own; i++) {
+      rowl_to_rowg[i + start] = ndisp + i;
+   }
+
+   coll_to_colg.resize(nb_node_local + nb_frac_local + nb_well_inj_local +
+                       nb_well_prod_local);
+   CsrMatrixWrapper NBP;
+   retrieve_num_node_by_proc(NBP);
+   auto nb = NBP.nb_rows;
+   CsrMatrixWrapper FBP;
+   retrieve_num_frac_by_proc(FBP);
+   CsrMatrixWrapper WIBP;
+   retrieve_num_well_inj_by_proc(WIBP);
+   CsrMatrixWrapper WPBP;
+   retrieve_num_well_prod_by_proc(WPBP);
+
+   // ! part node local in ColLtocolG
+   // Nb : nb_rows, data : Val, column : Num, row_offset : Pt
+   for (size_t i = 0; i < NBP.nb_rows; i++) {
+      for (size_t j = NBP.row_offset[i]; j < NBP.row_offset[i + 1]; j++) {
+         // ! j is in proc ipc
+         auto ipc = NBP.data[j];
+         coll_to_colg[j] = (NBP.column[j] - 1) * n + colstart[ipc];
+      }
+   }
+
+   // ! part frac in ColLtocolG
+   for (size_t i = 0; i < FBP.nb_rows; i++) {
+      for (size_t j = FBP.row_offset[i]; j < FBP.row_offset[i + 1]; j++) {
+         //       ! j is in proc ipc
+         auto ipc = FBP.data[j];
+         coll_to_colg[j + nb_node_local] = (FBP.column[j] - 1) * n +
+                                           colstart[ipc] +
+                                           part_info[ipc].nodes.nb_owns * n;
+      }
+   }
+
+   // ! part well inj in ColLtoColG
+   start = nb_node_local + nb_frac_local;
+   for (size_t i = 0; i < WIBP.nb_rows; i++) {
+      for (size_t j = WIBP.row_offset[i]; j < WIBP.row_offset[i + 1]; j++) {
+         //       ! j is in proc ipc
+         auto ipc = WIBP.data[j];
+         coll_to_colg[j + start] =
+             WIBP.column[j] - 1 + colstart[ipc] +
+             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
+                 n;
+         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
+         // std::endl;
+      }
+   }
+
+   // ! part well prod in ColLtoColG
+   start = nb_node_local + nb_frac_local + nb_well_inj_local;
+   for (size_t i = 0; i < WPBP.nb_rows; i++) {
+      for (size_t j = WPBP.row_offset[i]; j < WPBP.row_offset[i + 1]; j++) {
+         //  j is in proc ipc
+         auto ipc = WPBP.data[j];
+         coll_to_colg[j + start] =
+             WPBP.column[j] - 1 + colstart[ipc] +
+             (part_info[ipc].nodes.nb_owns + part_info[ipc].fractures.nb_owns) *
+                 n +
+             part_info[ipc].injectors.nb_owns;
+         // std::cout << j + start << "  " << coll_to_colg[j + start] <<
+         // std::endl;
+      }
+   }
+};
+
 void add_SolvePetsc_wrappers(py::module& module) {
    module.def("set_AMPI_cpp", [](py::object pyA) {
       auto A = cast_to_PETSc<Mat>(pyA);
@@ -48,10 +173,8 @@ void add_SolvePetsc_wrappers(py::module& module) {
       retrieve_jacobian(JacA);
       PartInfo part_info;
       MeshSchema_part_info(part_info);
-      XArrayWrapper<int> rlg;
-      XArrayWrapper<int> clg;
-      retrieve_rowl_to_rowg(rlg);
-      retrieve_coll_to_colg(clg);
+      std::vector<size_t> rlg, clg;
+      compute_ltog(rlg, clg);
 
       const auto n = static_cast<std::size_t>(JacA.block_size);
       const auto nb_node_own = part_info.nodes.nb_owns;
@@ -79,10 +202,9 @@ void add_SolvePetsc_wrappers(py::module& module) {
       for (std::size_t i = 0; i < nb_node_own + nb_frac_own; ++i) {
          for (auto offset = row_offset(i); offset < row_offset(i + 1);
               ++offset) {
-            auto row = rlg[i] - 1;  // 0-based in petsc
-            auto col =
-                clg[static_cast<std::size_t>(*(JacA.column + offset) - 1)] -
-                1;  // 0-based in petsc
+            auto row = rlg[i];
+            auto col = clg[static_cast<std::size_t>(*(JacA.column + offset) -
+                                                    1)];  // 0-based in petsc
             block_indices(row, idxm);
             block_indices(col, idxn);
 
@@ -107,9 +229,9 @@ void add_SolvePetsc_wrappers(py::module& module) {
            ++i) {
          for (auto offset = row_offset(i); offset < row_offset(i + 1);
               ++offset) {
-            auto row = rlg[i] - 1;
+            auto row = rlg[i];
             auto col =
-                clg[static_cast<std::size_t>(*(JacA.column + offset) - 1)] - 1;
+                clg[static_cast<std::size_t>(*(JacA.column + offset) - 1)];
 
             block_indices(row, idxm);
             block_indices(col, idxn);
@@ -132,7 +254,6 @@ void add_SolvePetsc_wrappers(py::module& module) {
       retrieve_jacobian(JacA);
       PartInfo part_info;
       MeshSchema_part_info(part_info);
-
       const auto nb_comp_thermique = JacA.block_size;
       const auto nb_node_own = part_info.nodes.nb_owns;
       const auto nb_node_local = part_info.nodes.nb;
@@ -150,6 +271,8 @@ void add_SolvePetsc_wrappers(py::module& module) {
       retrieve_nb_fractures_own(nb_frac_own_ncpus);
       retrieve_nb_wellinj_own(nb_well_inj_cpus);
       retrieve_nb_wellprod_own(nb_well_prod_cpus);
+
+      // compute_ltog();
 
       auto columns = JacA.column;
       auto row_offset = [&JacA](const std::size_t i) {
@@ -295,8 +418,9 @@ void add_SolvePetsc_wrappers(py::module& module) {
       retrieve_right_hand_side(JacRHS);
       PartInfo part_info;
       MeshSchema_part_info(part_info);
-      XArrayWrapper<int> rlg;
-      retrieve_rowl_to_rowg(rlg);
+      std::vector<size_t> rlg;
+      std::vector<size_t> clg;
+      compute_ltog(rlg, clg);
 
       const auto n = static_cast<std::size_t>(JacRHS.shape[1]);
       const auto nb_node_own = part_info.nodes.nb_owns;
@@ -316,7 +440,7 @@ void add_SolvePetsc_wrappers(py::module& module) {
 
       // Rows associated with node own and frac own
       for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
-         row = rlg[i] - 1;
+         row = rlg[i];
          block_indices(row, idxm);
          for (size_t j = 0; j < n; j++) {
             VecSetValue(RHS, idxm.data()[j], *(JacRHS.p + n * i + j),
@@ -329,7 +453,7 @@ void add_SolvePetsc_wrappers(py::module& module) {
       // JacRHS.p
       auto start = nb_node_own + nb_frac_own;
       for (size_t i = 0; i < nb_well_inj_own + nb_well_prod_own; i++) {
-         row = rlg[i + start] - 1;
+         row = rlg[i + start];
          block_indices(row, idxm);
          // VecSetValue takes in a global index, but JacRHS.p is a local
          // variable with block size n

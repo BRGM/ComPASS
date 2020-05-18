@@ -64,6 +64,7 @@ void add_SyncPetsc_wrappers(py::module& module) {
        .def_property_readonly("nb_ghosts", &PartElement::nb_ghosts);
 
    py::class_<PartInfo>(module, "PartInfo")
+       .def_readonly("ncpus", &PartInfo::ncpus)
        .def_readonly("nodes", &PartInfo::nodes)
        .def_readonly("fractures", &PartInfo::fractures)
        .def_readonly("injectors", &PartInfo::injectors)
