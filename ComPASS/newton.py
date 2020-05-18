@@ -9,6 +9,7 @@
 from collections import namedtuple
 import numpy as np
 
+from .build_petsc_matrix import *
 from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
@@ -105,7 +106,7 @@ class Newton:
         # FIXME: this is transitory
         self.simulation = simulation
         if solver_fmk is None:
-            solver_fmk = simulation.info.petsc
+            solver_fmk = simulation.info.linear_system
             assert solver_fmk is not None
         self.solver_fmk = solver_fmk
         self.tolerance = tol
@@ -149,7 +150,7 @@ class Newton:
         #        mpi.master_print('increment variables')
         ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(self.simulation.info.petsc.x)
+        ghosts_synchronizer.synchronize(self.simulation.info.linear_system.x)
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -190,7 +191,10 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
             kernel.Jacobian_ComputeJacSm(dt)
             kernel.SolvePetsc_SetUp()
+            solver_fmk.setUp(self.simulation)
+            # kernel.SolvePetsc_dump_system("f90")
             ksp_status = solver_fmk.solve()
+            # 1/0
             # mpi.master_print('KSP status', ksp_status)
             if not self.simulation.info.activate_direct_solver:
                 nb_lsolver_iterations = kernel.SolvePetsc_KspSolveIterationNumber()

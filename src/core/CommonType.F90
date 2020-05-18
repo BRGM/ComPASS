@@ -10,7 +10,7 @@ module CommonType
 
    ! This for arrays that are interfaced with python/C++
    use iso_c_binding, only: &
-      c_int, c_int8_t, c_char, c_double
+      c_int, c_int8_t, c_char, c_double !, c_size_t
 
    use mpi
 
@@ -112,10 +112,10 @@ module CommonType
 
    !> Standar type CSR with Pt, Num, and Val (3d double precision)
    type CSRArray2dble
-      integer :: Nb
-      integer, allocatable, dimension(:) :: Pt
-      integer, allocatable, dimension(:) :: Num
-      double precision, allocatable, dimension(:, :, :) :: val
+      integer(c_int) :: Nb
+      integer(c_int), dimension(:), pointer :: Pt
+      integer(c_int), dimension(:), pointer :: Num
+      real(c_double), dimension(:, :, :), pointer :: val
    end type CSRArray2dble
 
    !> Store data of Node about own/ghost; fractures and boundary conditions

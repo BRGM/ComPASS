@@ -66,6 +66,8 @@ common_wrapper = Wrapper(
         "WellInformation",
         "WellPerforations",
         "FluidProperties",
+        "BlockMatrix",
+        "PartitioningInformationWrapper",
     ]
 )
 
@@ -174,6 +176,8 @@ simulation_wrapper = Wrapper(
         "nb_faces_own",
         "nb_nodes_own",
         "nb_fractures_own",
+        "nb_wellinj_own",
+        "nb_wellprod_own",
         "all_thermal_sources",
         "cellthermalsource",
         "nodethermalsource",
@@ -235,6 +239,9 @@ simulation_wrapper = Wrapper(
         "NumFracbyProc",
         "NumWellInjbyProc",
         "NumWellProdbyProc",
+        "retrieve_jacobian",
+        "retrieve_right_hand_side",
+        "retrieve_partitioning",
     ]
 )
 

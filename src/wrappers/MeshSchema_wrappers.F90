@@ -18,6 +18,7 @@
           FaceToFracLocal, FracToFaceLocal, &
           NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
           NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
+          NbWellInjOwn_Ncpus, NbWellProdOwn_Ncpus, &
           XCellLocal, XFaceLocal, &
           NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
 
@@ -249,6 +250,29 @@
           end if
        end subroutine retrieve_nb_fractures_own
 
+       subroutine retrieve_nb_wellinj_own(cpp_array) &
+          bind(C, name="retrieve_nb_wellinj_own")
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+          call check_nb_own_array(NbWellInjOwn_Ncpus)
+          cpp_array%n = Ncpus
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
+          else
+             cpp_array%p = c_loc(NbWellInjOwn_Ncpus(1))
+          end if
+       end subroutine retrieve_nb_wellinj_own
+
+       subroutine retrieve_nb_wellprod_own(cpp_array) &
+          bind(C, name="retrieve_nb_wellprod_own")
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+          call check_nb_own_array(NbWellProdOwn_Ncpus)
+          cpp_array%n = Ncpus
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
+          else
+             cpp_array%p = c_loc(NbWellProdOwn_Ncpus(1))
+          end if
+       end subroutine retrieve_nb_wellprod_own
        subroutine retrieve_NumNodebyProc(coc) &
           bind(C, name="retrieve_NumNodebyProc")
           type(cpp_COC), intent(inout) :: coc

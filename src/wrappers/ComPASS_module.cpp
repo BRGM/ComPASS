@@ -15,6 +15,7 @@
 #include "GlobalMesh_wrappers.h"
 #include "GlobalVariables_wrappers.h"
 #include "IncCV_wrappers.h"
+#include "Jacobian_wrappers.h"
 #include "MeshSchema_wrappers.h"
 #include "MeshUtilities_wrappers.h"
 #include "Metis_wrapper.h"
@@ -50,5 +51,6 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_Metis_wrapper(module);
    add_SolvePetsc_wrappers(module);
    add_SyncPetsc_wrappers(module);
+   add_Jacobian_wrappers(module);
    add_VAGFrac_wrappers(module);
 }

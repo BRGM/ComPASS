@@ -13,7 +13,7 @@
 module SolvePetsc
 
    use iso_c_binding, only: c_bool, c_int, c_double, c_ptr, c_f_pointer
-
+   use mpi, only: MPI_Comm_size
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
    use CommonType, only: FamilyDOFIdCOC
    use DefModel, only: psprim, NbCompThermique, NbContexte
@@ -28,6 +28,13 @@ module SolvePetsc
 #endif
       NbFracLocal_Ncpus, NbCellLocal_Ncpus
    use Jacobian, only: JacA, Sm
+
+   use InteroperabilityStructures, only: &
+      partitioning_wrapper, &
+      retrieve_partitioning_information, &
+      retrieve_id_array, &
+      cpp_array_wrapper, &
+      csr_block_matrix_wrapper
 
    ! tmp
    use IncPrimSecd, only: NbIncTotalPrim_ctx
@@ -99,7 +106,7 @@ module SolvePetsc
       rowstart, &
       colstart
 
-   integer, allocatable, dimension(:), private :: &
+   integer(c_int), dimension(:), pointer :: &
       RowLToRowGBlock, &
       ColLToColGBlock, &
       RowLToRowG, &
@@ -156,6 +163,42 @@ module SolvePetsc
 #endif
 
 contains
+
+   subroutine retrieve_RowLToRowGBlock(a) &
+      bind(C, name="retrieve_RowLToRowGBlock")
+      type(cpp_array_wrapper), intent(inout) :: a
+      call retrieve_id_array(RowLToRowGBlock, a)
+   end subroutine retrieve_RowLToRowGBlock
+
+   subroutine retrieve_ColLToColGBlock(a) &
+      bind(C, name="retrieve_ColLToColGBlock")
+      type(cpp_array_wrapper), intent(inout) :: a
+      call retrieve_id_array(ColLToColGBlock, a)
+   end subroutine retrieve_ColLToColGBlock
+
+   subroutine retrieve_RowLToRowG(a) &
+      bind(C, name="retrieve_RowLToRowG")
+      type(cpp_array_wrapper), intent(inout) :: a
+      call retrieve_id_array(RowLToRowG, a)
+   end subroutine retrieve_RowLToRowG
+
+   subroutine retrieve_ColLToColG(a) &
+      bind(C, name="retrieve_ColLToColG")
+      type(cpp_array_wrapper), intent(inout) :: a
+      call retrieve_id_array(ColLToColG, a)
+   end subroutine retrieve_ColLToColG
+
+   subroutine retrieve_partitioning(part) &
+      bind(C, name="retrieve_partitioning")
+      type(partitioning_wrapper), intent(inout) :: part
+
+      call retrieve_partitioning_information(NbNodeOwn, NbFracOwn, &
+                                             NbNodeLocal, NbFracLocal, &
+                                             NbCompThermique, NbWellInjOwn, &
+                                             NbWellProdOwn, NbWellInjLocal, &
+                                             NbWellProdLocal, &
+                                             RowLToRowG, ColLToColG, part)
+   end subroutine retrieve_partitioning
 
 !< Create structure of mat and solver
    subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
@@ -448,6 +491,15 @@ contains
                  + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
       end do
       NcolG = NrowG
+      ! print*, 'f90 : NrowL', NrowL
+      ! print*, 'f90 : NcolL', NcolL
+      ! print*, 'f90 : NrowG', NrowG
+      ! print*, 'f90 : NcolG', NcolG
+      ! print*, 'f90 : NbNodeOwn_Ncpus', NbNodeOwn_Ncpus
+      ! print*, 'f90 : NbFracOwn_Ncpus', NbFracOwn_Ncpus
+      ! print*, 'f90 : NbCompThermique', NbCompThermique
+      ! print*, 'f90 : NbWellInjOwn_Ncpus', NbWellInjOwn_Ncpus
+      ! print*, 'f90 : NbWellProdOwn_Ncpus', NbWellProdOwn_Ncpus
 
       ! number of nonzeros per row in diag or off-diag portion
       allocate (d_nnz(NrowL))
@@ -553,14 +605,15 @@ contains
             else
                print *, "error in create ampi"
             end if
+            ! print*, "lj = ", lj
          end do
       end do
 
-      !write(*,*) 'proc', commRank, 'has', &
+      ! write(*,*) 'proc', commRank, 'has', &
       !            NbNodeOwn, 'nodes own', &
       !            NbFracOwn, 'fractures own', &
       !            NbCompThermique, 'components + thermal'
-      !write(*,*) 'create sparse matrix on proc', commRank, &
+      ! write(*,*) 'create sparse matrix on proc', commRank, &
       !           'with structure', &
       !            NrowL, '(out of', NrowG, ') x', &
       !            NcolL, '(out of', NcolG, ')'
@@ -602,10 +655,6 @@ contains
             row = RowLToRowG(i) - 1             ! 0-based in petsc
             col = ColLToColG(JacA%Num(j)) - 1 ! 0-based in petsc
 
-            ! if(commRank==0 .and. i==10) then
-            !    print*, i, j, row+1, col+1, JacA%Num(j)
-            ! end if
-
             ! col is node or frac, insert JacA%Val(:,:,j)
             if (JacA%Num(j) <= (NbNodeLocal + NbFracLocal)) then
 
@@ -618,7 +667,6 @@ contains
                CHKERRQ(Ierr)
 
             else ! col is wellinj or wellprod, insert JacA%Val(1,:,j)
-
                do s = 1, NbCompThermique
                   idxm(s) = row + s - 1
                end do
@@ -637,6 +685,7 @@ contains
       do i = (NbNodeOwn + NbFracOwn) + 1, (NbNodeOwn + NbFracOwn + NbWellInjOwn + NbWellProdOwn)
 
          do j = JacA%Pt(i) + 1, JacA%Pt(i + 1)
+            ! print*, "Boucle de puits: i,j = ",i, j, 'bloc: ', JacA%Val(:,:,j)
             !write(*,*) 'Well jacobian at local index', j, 'size', size(JacA%Val, 1), 'x', size(JacA%Val, 2)
             !write(*,*) JacA%Val(:,:,j)
             row = RowLToRowG(i) - 1             ! 0-based in petsc
@@ -657,7 +706,6 @@ contains
 
                idxm(1) = row
                idxn(1) = col
-
                call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
                CHKERRQ(Ierr)
             end if

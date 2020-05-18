@@ -85,6 +85,8 @@ void retrieve_nb_cells_own(XArrayWrapper<int>&);
 void retrieve_nb_faces_own(XArrayWrapper<int>&);
 void retrieve_nb_nodes_own(XArrayWrapper<int>&);
 void retrieve_nb_fractures_own(XArrayWrapper<int>&);
+void retrieve_nb_wellinj_own(XArrayWrapper<int>&);
+void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
 }
 
 #include "MeshUtilities_wrappers.h"
@@ -142,6 +144,8 @@ void add_mesh_utilities_wrappers(py::module& module) {
    add_array_wrapper(module, "nb_faces_own", retrieve_nb_faces_own);
    add_array_wrapper(module, "nb_nodes_own", retrieve_nb_nodes_own);
    add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
+   add_array_wrapper(module, "nb_wellinj_own", retrieve_nb_wellinj_own);
+   add_array_wrapper(module, "nb_wellprod_own", retrieve_nb_wellprod_own);
 #ifdef _THERMIQUE_
    add_array_wrapper(module, "all_thermal_sources", retrieve_allthermalsources);
    add_array_wrapper(module, "cellthermalsource", retrieve_cellthermalsource);

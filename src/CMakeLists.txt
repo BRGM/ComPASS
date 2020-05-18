@@ -151,6 +151,7 @@ set(WRAPPERS_SRCS
     IncCV_wrappers.h
     IncCV_wrappers.cpp
     IncCV_wrappers.F90
+    Jacobian_wrappers.cpp
     LocalMeshWrapper.F90
     MeshUtilities.h
     MeshSchema_wrappers.h

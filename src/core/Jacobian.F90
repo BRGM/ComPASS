@@ -14,6 +14,9 @@ module Jacobian
    !      -> Alignment -> Schur
 
    use iso_c_binding, only: c_double
+   use InteroperabilityStructures, only: &
+      csr_block_matrix_wrapper, retrieve_csr_block_matrix, &
+      cpp_array_wrapper_dim2, retrieve_double_array_dim2
    use mpi, only: MPI_Abort
    use CommonType, only: CSRArray2dble
    use CommonMPI, only: &
@@ -118,11 +121,11 @@ module Jacobian
    !           | A21, A22, 0,   0   | frac own
    !           | A31, 0,   A33, 0   | wellinj own,
    !           | A41, 0,   0,   A44 | wellprod own
-   type(CSRArray2dble), public :: JacBigA
-   type(CSRArray2dble), public :: JacA
+   type(CSRArray2dble), public, target :: JacBigA
+   type(CSRArray2dble), public, target :: JacA
 
-   ! second membre before and after Schur complement
-   double precision, allocatable, dimension(:, :), public :: &
+   ! right habd side before and after Schur complement
+   real(c_double), pointer, dimension(:, :), public :: &
       bigSm, Sm
 
    ! ipiv(:,k): pivot indices for cell k
@@ -136,12 +139,12 @@ module Jacobian
    public :: &
       Jacobian_StrucJacBigA, & !< non-zero structure of Jacobian before Schur
       Jacobian_StrucJacA, & !< non-zero structure of Jacobian after Schur
-      Jacobian_JacBigA_BigSm, & !< Jacobian and second member
+      Jacobian_JacBigA_BigSm, & !< Jacobian and right hand side
       Jacobian_Schur, & !< Schur complement
       Jacobian_free
 
    private :: &
-      ! the fill of Jacobian/Second membre is decomposed into three subroutines
+      ! the fill of Jacobian/ right hand side is decomposed into three subroutines
       !   (1) Jacobian_JacBigA_BigSm_accmolaire: term n_k(X_j^n)
       !   (2) Jacobian_JacBigA_BigSm_cell: loop of cell
       !      (2.1) nodes in cell
@@ -208,6 +211,30 @@ module Jacobian
 
 contains
 
+   subroutine retrieve_jacobian(A) &
+      bind(C, name="retrieve_jacobian")
+      type(csr_block_matrix_wrapper), intent(inout) :: A
+
+      call retrieve_csr_block_matrix(JacA, A)
+
+   end subroutine retrieve_jacobian
+
+   subroutine retrieve_right_hand_side(a) &
+      bind(C, name="retrieve_right_hand_side")
+      type(cpp_array_wrapper_dim2), intent(inout) :: a
+
+      call retrieve_double_array_dim2(Sm, a)
+
+   end subroutine retrieve_right_hand_side
+
+   subroutine retrieve_big_jacobian(A) &
+      bind(C, name="retrieve_big_jacobian")
+      type(csr_block_matrix_wrapper), intent(inout) :: A
+
+      call retrieve_csr_block_matrix(JacBigA, A)
+
+   end subroutine retrieve_big_jacobian
+
    subroutine dump_jacobian(specific_row, specific_col)
 
       integer, optional, intent(in) :: specific_row, specific_col
@@ -244,13 +271,13 @@ contains
       real(c_double), intent(in), value :: Delta_t
       integer :: errcode, Ierr
 
-      ! Jacobian and second member
+      ! Jacobian and right hand side
       call Jacobian_JacBigA_BigSm(Delta_t)
 
       ! Regularization of Jacobian
       call Jacobian_Regularization
 
-      ! Schur complement of Jacobian and second member
+      ! Schur complement of Jacobian and right hand side
       call Jacobian_Schur
 
       ! Alignment of Jacobian after Schur
@@ -272,7 +299,7 @@ contains
    !> \brief Fill BigSm with the residual values
    !!
    !!   If the node is dir, we suppose that the residu is 0,
-   !!     in other words, we set its second member as 0.
+   !!     in other words, we set its right hand side as 0.
    !!
    !!   The Jacobian corresponding to dir nodes are Id matrix,
    !!     setting bigSm(dirichlet)=0 or not has no influence mathematically,
@@ -317,14 +344,14 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm_init_from_residual
 
-   !> \brief fill Jacobian and second member before Schur: main subroutine
+   !> \brief fill Jacobian and right hand side before Schur: main subroutine
    subroutine Jacobian_JacBigA_BigSm(Delta_t)
 
       double precision, intent(in) :: Delta_t
 
       integer :: j, start, s, i, nz
 
-      !> 1. init second membre
+      !> 1. init right hand side
       call Jacobian_JacBigA_BigSm_init_from_residual
 
       JacBigA%Val(:, :, :) = 0.d0
@@ -4620,11 +4647,9 @@ contains
             call Jacobian_Alignment_man_row(k, rowk, IncNode(k)%ic)
 
          else if ((IdNodeLocal(k)%P .eq. "d") .and. (IdNodeLocal(k)%T .ne. "d")) then
-            call CommonMPI_abort('in manual alignment Jacobian &
-                                 mix Dir/Neu node are not implemented')
+            call CommonMPI_abort('in manual alignment Jacobian mix Dir/Neu node are not implemented')
          else if ((IdNodeLocal(k)%T .eq. "d") .and. (IdNodeLocal(k)%P .ne. "d")) then
-            call CommonMPI_abort('in manual alignment Jacobian &
-                                 mix Dir/Neu node are not implemented')
+            call CommonMPI_abort('in manual alignment Jacobian mix Dir/Neu node are not implemented')
          endif
       end do
 
@@ -4800,7 +4825,7 @@ contains
                   call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
                end if
 
-               ! second member
+               ! right hand side
                ! BigSm(:,i) = BigSm(:,i) - BigSm(:,rowmi)*JacBigA%Val(mi)/JacBigA%Val(mij)
                call dgemv('T', NbCompThermique, NbCompThermique, -1.d0, &
                           DB, NbCompThermique, BigSm(:, rowmi), 1, &

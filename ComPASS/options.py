@@ -34,8 +34,8 @@ class TimestepFlag(Flag):
         super().__init__()
         self.t = t
 
-    def __call__(self, n, t):
-        if t >= self.t:
+    def __call__(self, tick):
+        if tick.time >= self.t:
             self._status = True
 
 
@@ -43,24 +43,24 @@ class DumpLinearSystemTrigger:
     def __init__(self, flag):
         self.flag = flag
 
-    def __call__(self, n, t):
+    def __call__(self, tick):
         # Update flag
-        self.flag(n, t)
+        self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Dump linear system")
             # print(n,t, self.flag.n, self.flag.parent_flag.t)
             kernel = get_kernel()
             assert kernel is not None
-            kernel.SolvePetsc_dump_system("n%i_t%.3e" % (n, t))
+            kernel.SolvePetsc_dump_system("t=%.3e" % (tick.time))
 
 
 class InterruptTrigger:
     def __init__(self, flag):
         self.flag = flag
 
-    def __call__(self, n, t):
+    def __call__(self, tick):
         # Update flag
-        self.flag(n, t)
+        self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Kill execution")
             1 / 0

@@ -138,7 +138,7 @@ module MeshSchema
 #endif
 
    ! Well
-   integer, dimension(:), allocatable, protected :: &
+   integer, dimension(:), allocatable, target, protected :: &
       NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus
 
