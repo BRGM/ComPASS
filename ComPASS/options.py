@@ -40,18 +40,17 @@ class TimestepFlag(Flag):
 
 
 class DumpLinearSystemTrigger:
-    def __init__(self, flag):
+    def __init__(self, flag, petsc):
         self.flag = flag
+        self.petsc = petsc
 
     def __call__(self, tick):
         # Update flag
         self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Dump linear system")
-            # print(n,t, self.flag.n, self.flag.parent_flag.t)
-            kernel = get_kernel()
-            assert kernel is not None
-            kernel.SolvePetsc_dump_system("t=%.3e" % (tick.time))
+            assert self.petsc is not None
+            self.petsc.dump_LinearSystem()
 
 
 class InterruptTrigger:
@@ -66,20 +65,20 @@ class InterruptTrigger:
             1 / 0
 
 
-def get_callbacks_from_options():
-    """ Possible options : --dump_ls <time>
+def get_callbacks_from_options(newton):
+    """ Possible options : --dump_ls <time>,<newton_iteration>
                                   --> writes linear system in file in ASCII mode (Matrix and RHS)
-                           --kill <time>
+                           --kill <time>,<newton_iteration>
                                   --> kills execution
-    example : --dump_ls 1.5e6 --kill 1.5e6 """
-
+    example : --dump_ls 1.5e6,2 --kill 1.5e6,2 """
+    petsc = newton.solver_fmk
     callbacks = []
 
     dump_ls = get("--dump_ls")
     if dump_ls is not None:
         tdump = float(dump_ls)
         timeFlag = TimestepFlag(tdump)
-        dumpTrigger = DumpLinearSystemTrigger(timeFlag)
+        dumpTrigger = DumpLinearSystemTrigger(timeFlag, petsc)
         callbacks.append(dumpTrigger)
 
     kill = get("--kill")

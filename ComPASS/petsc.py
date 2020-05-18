@@ -55,12 +55,21 @@ class LinearSystem:
 
         simulation.set_RHS_cpp(self.RHS)
 
-    def dump_LinearSystem(self):
+    def dump_LinearSystem(self, binary=False):
 
-        viewer = PETSc.Viewer().createASCII("A_py.dat", "w", PETSc.COMM_WORLD)
-        self.A.view(viewer)
-        viewer.destroy()
+        if binary:
+            viewer = PETSc.Viewer().createBinary("A_binary.dat", "w", PETSc.COMM_WORLD)
+            self.A.view(viewer)
+            viewer.destroy()
 
-        viewer = PETSc.Viewer().createASCII("b_py.dat", "w", PETSc.COMM_WORLD)
-        self.RHS.view(viewer)
-        viewer.destroy()
+            viewer = PETSc.Viewer().createBinary("b_binary.dat", "w", PETSc.COMM_WORLD)
+            self.RHS.view(viewer)
+            viewer.destroy()
+        else:
+            viewer = PETSc.Viewer().createASCII("A.dat", "w", PETSc.COMM_WORLD)
+            self.A.view(viewer)
+            viewer.destroy()
+
+            viewer = PETSc.Viewer().createASCII("b.dat", "w", PETSc.COMM_WORLD)
+            self.RHS.view(viewer)
+            viewer.destroy()

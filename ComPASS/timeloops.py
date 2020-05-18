@@ -198,12 +198,11 @@ def standard_loop(
         else:
             ts_manager = TimeStepManager(initial_timestep)
     if iteration_callbacks is None:
-        iteration_callbacks = get_callbacks_from_options()
+        iteration_callbacks = get_callbacks_from_options(newton)
     else:
-        iteration_callbacks = (
-            tuple(callback for callback in iteration_callbacks)
-            + get_callbacks_from_options()
-        )
+        iteration_callbacks = tuple(
+            callback for callback in iteration_callbacks
+        ) + get_callbacks_from_options(newton)
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:
