@@ -49,6 +49,7 @@ class DumpLinearSystemTrigger:
         self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Dump linear system")
+            # print(n,t, self.flag.n, self.flag.parent_flag.t)
             assert self.petsc is not None
             self.petsc.dump_LinearSystem()
 
@@ -71,9 +72,9 @@ def get_callbacks_from_options(newton):
                            --kill <time>,<newton_iteration>
                                   --> kills execution
     example : --dump_ls 1.5e6,2 --kill 1.5e6,2 """
-    petsc = newton.solver_fmk
-    callbacks = []
 
+    callbacks = []
+    petsc = newton.solver_fmk
     dump_ls = get("--dump_ls")
     if dump_ls is not None:
         tdump = float(dump_ls)
