@@ -30,8 +30,6 @@ module SolvePetsc
    use Jacobian, only: JacA, Sm
 
    use InteroperabilityStructures, only: &
-      partitioning_wrapper, &
-      retrieve_partitioning_information, &
       retrieve_id_array, &
       cpp_array_wrapper, &
       csr_block_matrix_wrapper
@@ -163,12 +161,6 @@ module SolvePetsc
 #endif
 
 contains
-
-   subroutine retrieve_partitioning(part) &
-      bind(C, name="retrieve_partitioning")
-      type(partitioning_wrapper), intent(inout) :: part
-      call retrieve_partitioning_information(NbCompThermique, part)
-   end subroutine retrieve_partitioning
 
    subroutine retrieve_rowl_to_rowg(array_wrapper) &
       bind(C, name="retrieve_rowl_to_rowg")

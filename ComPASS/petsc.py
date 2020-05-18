@@ -13,16 +13,15 @@ class LinearSystem:
     Petsc objects
     """
 
-    def __init__(self, simulation):
+    def __init__(self):
 
-        self.simulation = simulation
         self.x = PETSc.Vec()
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
 
-    def createAMPI(self):
+    def createAMPI(self, simulation):
 
-        sizes, d_nnz, o_nnz = self.simulation.get_AMPI_nnz_cpp()
+        sizes, d_nnz, o_nnz = simulation.get_AMPI_nnz_cpp()
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
 
@@ -33,18 +32,18 @@ class LinearSystem:
 
         self.A.createAIJ(size=((n_rowl, n_rowg), (n_coll, n_colg)), nnz=(d_nnz, o_nnz))
 
-    def setAMPI(self):
+    def setAMPI(self, simulation):
 
-        self.simulation.set_AMPI_cpp(self.A)
+        simulation.set_AMPI_cpp(self.A)
 
-    def setVecs(self):
+    def setVecs(self, simulation):
 
         assert self.A.isAssembled(), "A must be assembled before calling setVecs"
 
         self.RHS = self.A.createVecs(side="right")
         self.x = self.A.createVecs(side="left")
 
-        self.simulation.set_RHS_cpp(self.RHS)
+        simulation.set_RHS_cpp(self.RHS)
 
     def dump_LinearSystem(self, basename="", binary=False):
 
@@ -93,41 +92,48 @@ class LinearSolver:
     A stucture that holds the PETSc KSP Object to solve the linear system
     """
 
-    def __init__(self, simulation, tol, maxit, restart=None):
+    def __init__(self, tol, maxit, restart=None):
         """
         :param tol: relative tolerance (for iterative solvers).
         :param maxit: maximum number of iterations (for iterative solvers).
         :param restart: number of iterations before a restart (for gmres like iterative solvers).
         """
-        self.lsystem = LinearSystem(simulation)
+        self.lsystem = LinearSystem()
         self.failures = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
         self.last_residual_history = []
+        self.activate_direct_solver = False
 
         comm = PETSc.COMM_WORLD
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.setUp()
         self.reset(tol, maxit, restart)
 
         def monitor(ksp, it, rnorm):
             self.last_residual_history.append((it, rnorm))
 
         self.ksp.setMonitor(monitor)
-
-    def setUp(self):
-
-        self.lsystem.createAMPI()
-        self.lsystem.setAMPI()
-        self.lsystem.setVecs()
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
-        # self.ksp.getPC().setFactorLevels(2)
+
+    def setUp(self, simulation):
+
+        self.lsystem.createAMPI(simulation)
+        self.lsystem.setAMPI(simulation)
+        self.lsystem.setVecs(simulation)
         self.ksp.setOperators(self.lsystem.A, self.lsystem.A)
+        if self.activate_direct_solver:
+            self.ksp.setType("preonly")
+            self.ksp.getPC().setType("lu")
+        else:
+            self.ksp.getPC().setFactorLevels(1)
         self.ksp.setFromOptions()
 
     def solve(self):
 
         self.last_residual_history = []
+        # print('Direct Solver', self.activate_direct_solver)
+        # print('KSP Type :', self.ksp.type)
+        # print('PS Type : ', self.ksp.getPC().type)
         self.ksp.solve(self.lsystem.RHS, self.lsystem.x)
         reason = self.ksp.getConvergedReason()
 
@@ -154,6 +160,7 @@ class LinearSolver:
         self.restart = restart or maxit
         self.ksp.setTolerances(rtol=self.rtol, max_it=self.maxit)
         self.ksp.setGMRESRestart(self.restart)
+        self.ksp.setFromOptions()
 
     def getSolution(self):
 

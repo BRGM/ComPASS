@@ -46,13 +46,14 @@ def try_timestep(
     except KspFailure as e:
         mpi.master_print(
             "KSP failure - with reason",
-            explain_reason(e.reason),
+            e.reason,
             "after",
-            kernel.SolvePetsc_KspSolveIterationNumber(),
+            newton.lsolver.ksp.getIterationNumber(),
             "iterations",
         )
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
-            kernel.SolvePetsc_dump_system("ksp_failure_%03d" % newton.lsolver.failures)
+            # kernel.SolvePetsc_dump_system('ksp_failure_%03d' % newton.lsolver.failures)
+            newton.lsystem.dump_LinearSystem(basename="ksp_failure_")
         if simulation_context and simulation_context.abort_on_ksp_failure:
             mpi.master_print(
                 "\nComPASS - Abortion requested on linear solver failure\n"

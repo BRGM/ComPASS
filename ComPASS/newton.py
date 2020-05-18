@@ -74,7 +74,7 @@ class Newton:
         """
         # FIXME: this is transitory
         self.simulation = simulation
-        self.lsolver = lsolver or LinearSolver(simulation, 1e-6, 150)
+        self.lsolver = lsolver or LinearSolver(1e-6, 150)
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.failures = 0
@@ -140,6 +140,8 @@ class Newton:
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
+        if self.simulation.info.activate_direct_solver:
+            self.lsolver.activate_direct_solver = True
         nb_lsolver_iterations = 0
         total_lsolver_iterations = 0
         self.init_iteration()
@@ -156,7 +158,7 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsolver.setUp()
+            lsolver.setUp(self.simulation)
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)

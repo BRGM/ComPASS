@@ -95,6 +95,11 @@ def store_T(iteration, time):
 
 # https://charms.gitlabpages.inria.fr/ComPASS/python_reference/ComPASS.html#ComPASS.timestep_management.TimeStepManager
 ts = TimeStepManager(initial_timestep=1 * hour, maximum_timestep=0.2 * output_period)
+
+simulation.info.activate_direct_solver = (
+    True  # This case fails with default iterative solvers in PETSc
+)
+
 standard_loop(
     simulation,
     final_time=final_time,
