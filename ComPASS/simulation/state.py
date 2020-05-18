@@ -4,7 +4,6 @@ class SimulationInfo:
         self.activate_direct_solver = False
         self.system = None
         self.ghosts_synchronizer = None
-        self.linear_system = None
 
 
 initialized = False

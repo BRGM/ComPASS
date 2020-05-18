@@ -74,7 +74,7 @@ def get_callbacks_from_options(newton):
     example : --dump_ls 1.5e6,2 --kill 1.5e6,2 """
 
     callbacks = []
-    petsc = newton.solver_fmk
+    petsc = newton.lsolver.lsystem
     dump_ls = get("--dump_ls")
     if dump_ls is not None:
         tdump = float(dump_ls)

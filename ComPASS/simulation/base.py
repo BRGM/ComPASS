@@ -22,7 +22,6 @@ from .. import newton
 from ..RawMesh import RawMesh
 from ..distributed_system import DistributedSystem
 from ..ghosts.synchronizer import Synchronizer
-from ..petsc import LinearSystem
 from .. import messages
 
 from .._kernel import get_kernel
@@ -41,19 +40,12 @@ class Properties:
     pass
 
 
-# FIXME: transient... to be set elsewhere
-def default_Newton():
-    get_kernel()
-    # Legacy parameters
-    # NB: you should remove 1 iteration in comparison with legacy values
-    assert state.info.linear_system is not None
-    return newton.Newton(
-        _simulation_object.self,
-        1e-5,
-        8,
-        newton.LinearSolver(1e-6, 150),
-        solver_fmk=state.info.linear_system,
-    )
+# # FIXME: transient... to be set elsewhere
+# def default_Newton():
+#     get_kernel()
+#     # Legacy parameters
+#     # NB: you should remove 1 iteration in comparison with legacy values
+#     return
 
 
 # FIXME: grid is kept for backward compatibility, should be deprecated
@@ -226,7 +218,6 @@ def init(
     system = DistributedSystem(kernel)
     state.info.system = system
     state.info.ghosts_synchronizer = Synchronizer(system)
-    state.info.linear_system = LinearSystem(system)
     mpi.synchronize()  # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     state.initialized = True

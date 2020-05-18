@@ -13,33 +13,7 @@ from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
-
-
-class LinearSolver:
-    """
-    A stucture that holds a few pareters for iterative solvers.
-
-    .. todo:: To be refactored to integrate direct solvers and much more...
-    """
-
-    def __init__(self, tol, maxit, restart=None):
-        """
-        :param tol: tolerance (for iterative solvers).
-        :param maxit: maximum number of iterations (for iterative solvers).
-        :param restart: number of iterations before a restart (for gmres like iterative solvers).
-        """
-        self.reset(tol, maxit, restart)
-        self.failures = 0
-        self.number_of_succesful_iterations = 0
-        self.number_of_useless_iterations = 0
-
-    def reset(self, tol, maxit, restart=None):
-        self.tolerance = tol
-        self.maximum_number_of_iterations = maxit
-        self.restart_iteration = maxit if restart is None else restart
-        get_kernel().SolvePetsc_Ksp_configuration(
-            self.tolerance, self.maximum_number_of_iterations, self.restart_iteration
-        )
+from .petsc import LinearSolver
 
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
@@ -90,27 +64,19 @@ class Newton:
     A structure that manages the Newton loop.
     """
 
-    def __init__(
-        self, simulation, tol, maxit, lsolver, convergence_scheme=None, solver_fmk=None
-    ):
+    def __init__(self, simulation, tol, maxit, lsolver=None, convergence_scheme=None):
         """
         :param simulation: The simulation object.
         :param tol: The tolerance used for convergence.
         :param maxit: The maximum number of newton iteration.
-        :param lsolver: The linear solver to be used (cf. :class:`ComPASS.newton.LinearSolver`).
-        :param covergence_scheme: The convergence scheme to be used (defaults to :class:`ComPASS.newton_convergence.Legacy`).
-
-        .. todo:: Document ``solver_fmk``.
+        :param lsolver: The linear solver to be used (cf. :class:`ComPASS.petsc.LinearSolver`).
+        :param convergence_scheme: The convergence scheme to be used (defaults to :class:`ComPASS.newton_convergence.Legacy`).
         """
         # FIXME: this is transitory
         self.simulation = simulation
-        if solver_fmk is None:
-            solver_fmk = simulation.info.linear_system
-            assert solver_fmk is not None
-        self.solver_fmk = solver_fmk
+        self.lsolver = lsolver or LinearSolver(1e-6, 150)
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
-        self.lsolver = lsolver
         self.failures = 0
         self.number_of_useful_linear_iterations = 0
         self.number_of_succesful_iterations = 0
@@ -149,7 +115,7 @@ class Newton:
         #        mpi.master_print('increment variables')
         ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(self.simulation.info.linear_system.x)
+        ghosts_synchronizer.synchronize(self.lsolver.getSolution())
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -171,7 +137,6 @@ class Newton:
         kernel = get_kernel()
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
-        solver_fmk = self.solver_fmk
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
@@ -190,10 +155,8 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            solver_fmk.setUp(
-                self.simulation
-            )  # Eventually this will replace SolvePetsc_SetUp()
-            ksp_status = solver_fmk.solve()
+            lsolver.setUp(self.simulation)
+            ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)
             if not self.simulation.info.activate_direct_solver:
@@ -211,7 +174,7 @@ class Newton:
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
                 )
-            solver_fmk.check_solution()
+            lsolver.checkSolution()
             lsolver.number_of_succesful_iterations += nb_lsolver_iterations
             self.increment()
             self.init_iteration()
