@@ -125,6 +125,7 @@ def standard_loop(
     output_before_start=True,
     output_after_loop=True,
     well_connections=None,
+    no_output=False,
 ):
     """
     Performs a standard timeloop.
@@ -165,6 +166,7 @@ def standard_loop(
     :param output_after_loop: A boolean to specify if an output should be dumped when the loop is finished (default is True).
     :param well_connections: Well connections to be synchronized at the end of each time loop.
                              It must be a :py:class:`WellDataConnections` (defaults to simulation.well_connections).
+    :param no_output: Flag that will prevent any output (defaults to False)
     :return: The time at the end of the time loop.
     """
     assert not (final_time is None and nitermax is None)
@@ -217,6 +219,8 @@ def standard_loop(
         shooter = Snapshooter(dumper)
 
     def output_actions(tick):
+        if no_output:
+            return
         t, n, _ = tick
         for callback in output_callbacks:
             callback(n, t)
