@@ -16,3 +16,10 @@ from ..utils.grid import (
     top_boundary,
     all_boundaries,
 )
+
+from .bc import (
+    set_global_dirichlet_nodes,
+    clear_dirichlet_nodes,
+    set_dirichlet_nodes,
+    reset_dirichlet_nodes,
+)

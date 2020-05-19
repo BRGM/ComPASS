@@ -172,7 +172,7 @@ def init(
         if fractures is not None:
             set_fractures(fractures)
         kernel.global_mesh_node_of_frac()
-        _process_dirichlet_nodes(
+        _simulation_object.self.set_global_dirichlet_nodes(
             call_if_callable(set_dirichlet_nodes),
             call_if_callable(set_pressure_dirichlet_nodes),
             call_if_callable(set_temperature_dirichlet_nodes)
@@ -558,40 +558,6 @@ def _petrophysics_statistics_on_global_mesh(fractures):
                 if location=='fracture':
                     buffer = buffer[fractures]
                 print(buffer.min(), '<=', location, property, '<=', buffer.max())
-
-
-def _process_dirichlet_nodes(
-    dirichlet_nodes,
-    pressure_dirichlet_nodes,
-    temperature_dirichlet_nodes
-):
-    kernel = get_kernel()
-    assert mpi.is_on_master_proc
-    info = np.rec.array(_sw.global_node_info(), copy=False)
-    _process_dirichlet_flags(
-        info.pressure, dirichlet_nodes, pressure_dirichlet_nodes
-    )
-    if _sw.has_energy_transfer_enabled():
-        _process_dirichlet_flags(
-            info.temperature, dirichlet_nodes, temperature_dirichlet_nodes
-        )
-    else:
-        if temperature_dirichlet_nodes is not None:
-            messages.error('You are setting temperature dirichlet nodes without energy transfer')        
-    kernel.global_mesh_count_dirichlet_nodes()
-
-
-def _process_dirichlet_flags(
-    dirichlet_flags, location1, location2
-):
-    assert mpi.is_on_master_proc
-    assert location1 is None or location2 is None
-    # Node information is reset first ('i' flag)
-    dirichlet_flags[:] = ord('i')
-    if location1 is not None:
-        dirichlet_flags[location1] = ord('d')
-    elif location2 is not None:
-        dirichlet_flags[location2] = ord('d')
 
 
 def _exit_eos_and_finalize():
