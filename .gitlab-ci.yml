@@ -47,8 +47,8 @@ check:
         # using only merge_requests
         # and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA
         # variables but the latest are not correclyt set
-        - git fetch origin v4.1
-        - merge_base=$(git merge-base origin/v4.1 HEAD)
+        - git fetch origin v4.2a
+        - merge_base=$(git merge-base origin/v4.2a HEAD)
         - changed_files=$(git diff --no-ext-diff --name-only ${merge_base}...HEAD)
         - echo "Changed files:" ${changed_files}
         - pre-commit run --files ${changed_files}
