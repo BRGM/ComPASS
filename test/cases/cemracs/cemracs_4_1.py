@@ -9,9 +9,7 @@
 import numpy as np
 
 import ComPASS
-from ComPASS.utils.wells import create_vertical_well
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.mpi as mpi
 from ComPASS.mpi import MPI # underlying mpi4py.MPI
@@ -63,7 +61,7 @@ grid = ComPASS.Grid(
 )
 
 def make_well():
-    well = create_vertical_well(simulation, (0, 0), rw)
+    well = simulation.create_vertical_well((0, 0), rw)
     if production:
         well.operate_on_flowrate = (Lz+(k_fracture/kres)*df)*qw , 0. * MPa
         well.produce()
@@ -132,8 +130,7 @@ io.write_mesh(
     },
 )
 
-standard_loop(
-    simulation,
+simulation.standard_loop(
     initial_timestep = 0.1 , final_time = 40, # year ,
     output_period = year,
 )
