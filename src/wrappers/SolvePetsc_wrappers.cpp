@@ -21,6 +21,7 @@
 
 extern "C" {
 
+void SolvePetsc_Init(int&, double&, bool&, bool&);
 void SolvePetsc_SetUp();
 int SolvePetsc_KspSolveIterationNumber();
 void SolvePetsc_KspSolveIterations(double*, int);
@@ -38,6 +39,7 @@ void compass_check_solution_(Vec*);
 #include "Petsc_caster.h"
 
 void add_SolvePetsc_wrappers(py::module& module) {
+   module.def("SolvePetsc_Init", &SolvePetsc_Init);
    module.def("SolvePetsc_SetUp", &SolvePetsc_SetUp);
    module.def("SolvePetsc_KspSolveIterationNumber",
               &SolvePetsc_KspSolveIterationNumber);

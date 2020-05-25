@@ -164,7 +164,8 @@ contains
 
 !< Create structure of mat and solver
    subroutine SolvePetsc_Init(kspitmax_in, ksptol_in, &
-                              activate_cpramg, activate_direct_solver)
+                              activate_cpramg, activate_direct_solver) &
+      bind(C, name="SolvePetsc_Init")
 
       integer, intent(in) :: kspitmax_in
       double precision, intent(in) :: ksptol_in
@@ -200,28 +201,28 @@ contains
       NBlockcolG = NBlockrowG
 
       call SolvePetsc_RowColStart
-      ! call SolvePetsc_CreateAmpi
-      ! call SolvePetsc_CreateSm
+      call SolvePetsc_CreateAmpi
+      call SolvePetsc_CreateSm
 
-      ! if(activate_cpramg.and..not.activate_direct_solver) then
-      !     call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
-      ! else
-      !     if(activate_direct_solver) then
-      !         call SolvePetsc_CreateKsp_direct_solver
-      !     else
-      !         call SolvePetsc_CreateKsp
-      !     endif
-      ! endif
+      if (activate_cpramg .and. .not. activate_direct_solver) then
+         call SolvePetsc_Init_cpramg_specific(kspitmax_in, ksptol_in)
+      else
+         if (activate_direct_solver) then
+            call SolvePetsc_CreateKsp_direct_solver
+         else
+            call SolvePetsc_CreateKsp
+         endif
+      endif
 
       ! compute RowLToRowG and ColLToColG
-      ! call SolvePetsc_LtoG
-      ! call SolvePetsc_LtoGBlock
+      call SolvePetsc_LtoG
+      call SolvePetsc_LtoGBlock
 
       ! delete row/col start
-      ! deallocate(rowstart)
-      ! deallocate(colstart)
-      ! deallocate(Blockrowstart)
-      ! deallocate(Blockcolstart)
+      deallocate (rowstart)
+      deallocate (colstart)
+      deallocate (Blockrowstart)
+      deallocate (Blockcolstart)
 
    end subroutine SolvePetsc_Init
 

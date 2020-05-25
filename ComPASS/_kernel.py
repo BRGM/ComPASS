@@ -269,6 +269,7 @@ _a_verifier = [
     "init_phase2_setup_solvers",
     "Residu_update_accumulation",
     "SolvePetsc_SetUp",
+    "SolvePetsc_Init",
     "SolvePetsc_KspSolveIterationNumber",
     "SolvePetsc_dump_system",
     "SolvePetsc_Ksp_configuration",
