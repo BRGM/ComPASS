@@ -179,10 +179,8 @@ contains
 
    end subroutine NN_init_phase2_setup_contexts
 
-   subroutine NN_init_phase2_setup_solvers(activate_cpramg, activate_direct_solver) &
+   subroutine NN_init_phase2_setup_solvers() &
       bind(C, name="init_phase2_setup_solvers")
-
-      logical(c_bool), intent(in), value :: activate_cpramg, activate_direct_solver
 
       ! unknowns allocate
       call IncCV_allocate
@@ -205,8 +203,6 @@ contains
       ! csr sturcture of Jacobian after Schur
       ! allocate memory of Jacobian and Sm after Schur
       call Jacobian_StrucJacA
-
-      ! call SolvePetsc_Init(KspNiterMax, KspTol, activate_cpramg, activate_direct_solver)
 
       ! allocate increment
       allocate (NewtonIncreNode &
@@ -265,13 +261,9 @@ contains
       deallocate (NewtonIncreCell)
       deallocate (NewtonIncreWellInj)
       deallocate (NewtonIncreWellProd)
-      if (allocated(KspHistory)) then
-         deallocate (KspHistory)
-      end if
       if (allocated(fd)) then
          deallocate (fd)
       end if
-
       call SolvePetsc_free
       call Jacobian_free
       call Flux_free

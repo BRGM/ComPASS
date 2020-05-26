@@ -19,7 +19,7 @@ void NN_finalize();
 void NN_init_phase2_partition(ArrayWrapper&);
 void init_phase2_build_local_mesh();
 void init_phase2_setup_contexts();
-void init_phase2_setup_solvers(bool, bool);
+void init_phase2_setup_solvers();
 }
 
 #include <pybind11/iostream.h>

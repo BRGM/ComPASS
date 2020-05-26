@@ -204,9 +204,7 @@ def init(
     kernel.init_phase2_build_local_mesh()
     kernel.init_phase2_setup_contexts()
     setup_VAG(properties)
-    kernel.init_phase2_setup_solvers(
-        state.info.activate_cpramg, state.info.activate_direct_solver
-    )
+    kernel.init_phase2_setup_solvers()
     system = DistributedSystem(kernel)
     state.info.system = system
     state.info.ghosts_synchronizer = Synchronizer(system)

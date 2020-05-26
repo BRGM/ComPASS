@@ -14,7 +14,7 @@ from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
 from .petsc import LinearSolver
-
+from .legacy_petsc import LegacyLinearSolver
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 
@@ -115,7 +115,7 @@ class Newton:
         #        mpi.master_print('increment variables')
         ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(self.lsolver.plsystem.x)
+        ghosts_synchronizer.synchronize(self.lsolver.get_solution())
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -139,21 +139,7 @@ class Newton:
         assert convergence_scheme is not None
         relative_residuals = []
         self.relative_residuals = relative_residuals
-
-        # Retrieving data from the Fortran core and setting up the solver
-        lsolver = self.lsolver  # The object that uses Petsc to solve the linear System
-        lsbuilder = (
-            self.simulation.LinearSystemBuilder()
-        )  # A wrapper object used to build the matrix and RHS
-        plsystem = (
-            lsolver.plsystem
-        )  # The actual PETSc Linear System used to compute the solution
-        plsystem.create(
-            lsbuilder.get_non_zeros()
-        )  # Allocating memory for the Petsc Mat and Vec objects
-        if self.simulation.info.activate_direct_solver:
-            lsolver.activate_direct_solver = True
-
+        lsolver = self.lsolver
         nb_lsolver_iterations = 0
         total_lsolver_iterations = 0
         self.init_iteration()
@@ -170,17 +156,12 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsbuilder.set_AMPI(
-                plsystem.A
-            )  # Setting the Mat values. This should change to plsystem.A = lsbuilder.A
-            lsbuilder.set_RHS(
-                plsystem.RHS
-            )  # Setting the RHS values. This should change to plsystem.RHS = lsbuilder.RHS
+            lsolver.set_values()
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)
-            if not self.simulation.info.activate_direct_solver:
-                nb_lsolver_iterations = lsolver.ksp.getIterationNumber()
+            if not lsolver.activate_direct_solver:
+                nb_lsolver_iterations = lsolver.get_iteration_number()
                 # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
                 total_lsolver_iterations += nb_lsolver_iterations
                 # mpi.master_print(
@@ -189,12 +170,12 @@ class Newton:
                 # )
             if ksp_status < 0:
                 lsolver.failures += 1
-                if not self.simulation.info.activate_direct_solver:
+                if not lsolver.activate_direct_solver:
                     lsolver.number_of_useless_iterations += nb_lsolver_iterations
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
                 )
-            plsystem.checkSolution()
+            lsolver.check_solution()
             lsolver.number_of_succesful_iterations += nb_lsolver_iterations
             self.increment()
             self.init_iteration()
@@ -252,4 +233,4 @@ class Newton:
 
 def default_Newton(simulation):
 
-    return Newton(simulation, 1e-5, 8, LinearSolver(1e-6, 150))
+    return Newton(simulation, 1e-5, 8, LegacyLinearSolver())

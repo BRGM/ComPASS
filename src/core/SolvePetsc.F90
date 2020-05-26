@@ -74,6 +74,7 @@ module SolvePetsc
 
    integer, private :: kspitmax          ! max nb of iterations
    double precision, private :: PetscKspTol   ! tolerance
+   logical :: SolvePetsc_isInitialized ! a switch
 
    ! vector contains history of convergence
    double precision, allocatable, dimension(:), private :: &
@@ -223,6 +224,8 @@ contains
       deallocate (colstart)
       deallocate (Blockrowstart)
       deallocate (Blockcolstart)
+
+      SolvePetsc_isInitialized = .True.
 
    end subroutine SolvePetsc_Init
 
@@ -1844,28 +1847,34 @@ contains
 
       PetscErrorCode :: Ierr
 
-      ! Destroy
-      ! call KSPDestroy(ksp_mpi, Ierr)
-      ! CHKERRQ(Ierr)
-      ! call MatDestroy(A_mpi, Ierr)
-      ! CHKERRQ(Ierr)
-
       ! free ksp convergence history vector
       if (allocated(kspHistory)) then
          deallocate (kspHistory)
       end if
-
+      ! free RowLToRowGBlock ColLToColGBlock
+      if (associated(RowLToRowGBlock)) then
+         deallocate (RowLToRowGBlock)
+      end if
+      if (associated(ColLToColGBlock)) then
+         deallocate (ColLToColGBlock)
+      end if
       ! free RowLToRowG ColLToColG
-      ! deallocate(RowLToRowGBlock)
-      ! deallocate(ColLToColGBlock)
-      !
-      ! deallocate(RowLToRowG)
-      ! deallocate(ColLToColG)
+      if (associated(RowLToRowG)) then
+         deallocate (RowLToRowG)
+      end if
+      if (associated(ColLToColG)) then
+         deallocate (ColLToColG)
+      end if
 
-      ! call VecDestroy(Sm_mpi, Ierr)
-      ! CHKERRQ(Ierr)
-      !  call VecDestroy(x_mpi, Ierr)
-      !  CHKERRQ(Ierr)
+      if (SolvePetsc_isInitialized .eqv. .true.) then
+         ! Destroy PETSc objects if they were created by SolvePetsc_Init
+         call KSPDestroy(ksp_mpi, Ierr)
+         CHKERRQ(Ierr)
+         call MatDestroy(A_mpi, Ierr)
+         CHKERRQ(Ierr)
+         call VecDestroy(Sm_mpi, Ierr)
+         CHKERRQ(Ierr)
+      end if
 
    end subroutine SolvePetsc_free
 

@@ -4,8 +4,6 @@ import sys
 petsc4py.init(sys.argv)
 from petsc4py import PETSc
 from . import mpi
-from ._kernel import get_kernel
-from . import mpi
 
 
 class PetscLinearSystem:
