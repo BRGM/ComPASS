@@ -327,8 +327,12 @@ contains
       call VecAssemblyEnd(AP2AP1v, Ierr)
       CHKERRQ(Ierr)
 
-      allocate (IsTprimNodeFracOwn(NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)))
-      allocate (IsTprimNodeFracLocal(NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)))
+      if (.not. allocated(IsTprimNodeFracOwn)) then
+         allocate (IsTprimNodeFracOwn(NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)))
+      end if
+      if (.not. allocated(IsTprimNodeFracLocal)) then
+         allocate (IsTprimNodeFracLocal(NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)))
+      end if
 
 #endif
 

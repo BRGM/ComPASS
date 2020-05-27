@@ -6,6 +6,8 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 # import ComPASS.mpi as mpi
 # from ComPASS.mpi import MPI # underlying mpi4py.MPI
@@ -31,7 +33,6 @@ Tres = degC2K(60)  # reservoir temperature
 ComPASS.set_output_directory_and_logfile(f"angular_sector_{nb_layers:02d}_layers")
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
-simulation.info.activate_direct_solver = True
 
 mesh = extruded_sector(R, theta, ds, np.tile(H / nb_layers, nb_layers))
 epsilon = 0.01 * ds[0]
@@ -104,7 +105,13 @@ def collect_timestep(tick):
     )
 
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 simulation.standard_loop(
+    newton=newton,
     initial_timestep=1,
     final_time=year,
     output_period=year,

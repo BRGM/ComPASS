@@ -19,7 +19,6 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
@@ -111,9 +110,6 @@ def set_initial_bc_values():
 # master_print('set initial and BC')
 set_initial_bc_values()
 
-# set linear solver properties
-newton = Newton(simulation, 1e-7, 15, LinearSolver(1e-6, 50))
-
 context = SimulationContext()
 context.abort_on_ksp_failure = False
 context.dump_system_on_ksp_failure = False
@@ -135,7 +131,6 @@ current_time = standard_loop(
     simulation,
     final_time=final_time,
     context=context,
-    newton=newton,
     time_step_manager=timestep,
     output_period=output_period,
 )

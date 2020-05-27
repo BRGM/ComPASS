@@ -9,6 +9,8 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.timeloops import TimeStepManager, Event
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 import ComPASS.mpi as mpi
 
 from utils import hydrostatic_pressure
@@ -43,7 +45,6 @@ idW1i, idW1p, idW2i, idW2p = range(4)
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
-simulation.info.activate_direct_solver = True
 # Waiting function to modify rock_volumetric heat capacity as function of rock
 simulation.set_rock_volumetric_heat_capacity(rho_rock * heat_capacity_rock)
 
@@ -208,7 +209,13 @@ if mpi.is_on_master_proc:
 
     now = process_time()
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 simulation.standard_loop(
+    newton=newton,
     time_step_manager=tsmger,
     final_time=t[-1],
     output_period=30 * day,

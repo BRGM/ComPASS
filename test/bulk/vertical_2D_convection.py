@@ -10,11 +10,10 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 simulation = ComPASS.load_eos("water2ph")
-# KSP failures with iterative solver
-simulation.info.activate_direct_solver = True
 final_time = 20 * year
 # maximum output period for small time step 1.5 year
 output_period = 1.5 * year
@@ -78,6 +77,14 @@ dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(X0)
 apply_linear_gradients(dirichlet, simulation.vertices()[:, 2])
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 simulation.standard_loop(
-    initial_timestep=1 * year, final_time=final_time, output_period=output_period,
+    initial_timestep=1 * year,
+    final_time=final_time,
+    newton=newton,
+    output_period=output_period,
 )

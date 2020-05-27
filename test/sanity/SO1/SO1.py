@@ -12,6 +12,8 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import TimeStepManager
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 p0 = 1.0 * bar
 T0_degC = 5.0
@@ -96,12 +98,14 @@ def store_T(iteration, time):
 # https://charms.gitlabpages.inria.fr/ComPASS/python_reference/ComPASS.html#ComPASS.timestep_management.TimeStepManager
 ts = TimeStepManager(initial_timestep=1 * hour, maximum_timestep=0.2 * output_period)
 
-simulation.info.activate_direct_solver = (
-    True  # This case fails with default iterative solvers in PETSc
-)
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
 
 standard_loop(
     simulation,
+    newton=newton,
     final_time=final_time,
     output_period=output_period,
     output_callbacks=[store_T],

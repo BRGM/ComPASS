@@ -40,7 +40,6 @@ import MeshTools.vtkwriters as vtkw
 from ComPASS.utils.wells import create_vertical_well
 import GROUPS as groups
 import ComPASS.mpi as mpi
-from ComPASS.newton import Newton, LinearSolver
 from ComPASS.simulation_context import SimulationContext
 
 
@@ -334,7 +333,6 @@ MT.to_vtu(
 ### set linear solver properties
 ##############################################################
 # save_Tp_OP123 = []
-newton = Newton(1e-7, 15, LinearSolver(1e-6, 50))
 
 context = SimulationContext()
 context.abort_on_ksp_failure = False
@@ -356,7 +354,6 @@ end_of_simu = standard_loop(
     final_time=final_time,
     output_period=output_period,
     context=context,
-    newton=newton,
     time_step_manager=timestep,
     # iteration_callbacks = [graph_frac]
     # output_callbacks=[graph_frac]

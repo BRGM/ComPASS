@@ -16,7 +16,8 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
@@ -53,8 +54,6 @@ simulation = ComPASS.load_eos("diphasic")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
-
-simulation.info.activate_direct_solver = True
 
 gas_context = simulation.Context.gas
 liquid_context = simulation.Context.liquid
@@ -180,9 +179,6 @@ sys.stdout.write("set Neumann BC" + "\n")
 set_variable_boundary_heat_flux()
 sys.stdout.flush()
 
-# set linear solver properties
-newton = Newton(simulation, 1e-5, 10, LinearSolver(1e-6, 50))
-
 context = SimulationContext()
 context.abort_on_ksp_failure = False
 context.dump_system_on_ksp_failure = False
@@ -199,6 +195,10 @@ timestep = TimeStepManager(
 final_time = 300.0 * year
 output_period = 0.01 * final_time
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
 
 current_time = standard_loop(
     simulation,

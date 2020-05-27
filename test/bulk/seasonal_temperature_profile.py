@@ -11,6 +11,8 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 from ComPASS.timestep_management import FixedTimeStep
 
 
@@ -30,7 +32,6 @@ nx, ny, nz = 1, 1, 200  # discretization
 dz = H / nz
 
 simulation = ComPASS.load_eos("linear_water")
-simulation.info.activate_direct_solver = True
 simulation.set_rock_volumetric_heat_capacity(rhor * cpr)
 fluid_properties = simulation.get_fluid_properties()
 fluid_properties.volumetric_heat_capacity = rhor * cpr
@@ -86,10 +87,16 @@ def change_surface_temperature(n, t):
     dirichlet_T[dirichlet_nodes] = Tmean + deltaT * np.sin(t * (2 * np.pi / year))
 
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 final_time = 5 * year
 output_period = year / 12
 standard_loop(
     simulation,
+    newton=newton,
     final_time=final_time,
     time_step_manager=FixedTimeStep(5.0 * day),
     output_period=output_period,

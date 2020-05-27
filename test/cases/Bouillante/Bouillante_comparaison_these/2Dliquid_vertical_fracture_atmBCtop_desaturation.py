@@ -16,10 +16,10 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
-from ComPASS.newton import Newton, LinearSolver
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
-simulation.info.activate_direct_solver = True
 
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 p0 = 1.0 * bar  # initial reservoir pressure
@@ -132,9 +132,6 @@ def set_FreeFlow_state(state):
 
 set_FreeFlow_state(simulation.node_states())
 
-# set linear solver properties
-newton = Newton(simulation, 1e-6, 35, LinearSolver(1e-6, 50))
-
 
 final_time = 300 * year
 output_period = 0.05 * final_time
@@ -145,6 +142,11 @@ timestep = TimeStepManager(
     increase_factor=1.3,
     decrease_factor=0.2,
 )
+
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
 
 standard_loop(
     simulation,

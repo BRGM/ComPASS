@@ -11,6 +11,8 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 np.random.seed(12345)  # Set the seed to have always the same pattern
 nb_random_wells = 2
@@ -40,7 +42,6 @@ pressure_gradient = lambda x, y: p_origin + gradp * x
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
-simulation.info.activate_direct_solver = True
 
 
 def hydrostatic_pressure(zbottom, ztop, nz, nbsteps=100):
@@ -141,10 +142,16 @@ set_pT_distribution(dirichlet, simulation.vertices())
 for wid in range(nb_random_wells):
     simulation.close_well(wid)
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 final_time = 500 * year
 output_period = 0.1 * final_time
 standard_loop(
     simulation,
+    newton=newton,
     final_time=final_time,
     time_step_manager=TimeStepManager(1 * year, output_period),
     output_period=output_period,

@@ -10,6 +10,9 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
+from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.mpi as mpi
 from ComPASS.mpi import MPI  # underlying mpi4py.MPI
@@ -52,8 +55,6 @@ assert fluid_properties.compressibility == 0
 assert fluid_properties.thermal_expansivity == 0
 # fluid_properties.volumetric_heat_capacity = rhor*cpr # not relevant here - use default value
 # simulation.set_rock_volumetric_heat_capacity(rhor*cpr) # not relevant here - use default value
-
-simulation.info.activate_direct_solver = True
 
 simulation.set_gravity(0)
 simulation.set_fracture_thickness(df)
@@ -143,8 +144,17 @@ io.write_mesh(
     },
 )
 
-simulation.standard_loop(
-    initial_timestep=0.1, final_time=40, output_period=year,  # year ,
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
+standard_loop(
+    simulation,
+    newton=newton,
+    initial_timestep=0.1,
+    final_time=40,
+    output_period=year,  # year ,
 )
 
 rank = mpi.proc_rank

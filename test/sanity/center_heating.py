@@ -12,7 +12,6 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
 import MeshTools as MT
 import MeshTools.vtkwriters as vtkw
 
@@ -103,8 +102,6 @@ def set_dirichlet_states():
 
 set_dirichlet_states()
 
-newton = Newton(1e-5, 3, LinearSolver(1e-8, 150))
-
 context = SimulationContext()
 context.abort_on_ksp_failure = False
 context.dump_system_on_ksp_failure = False
@@ -117,7 +114,6 @@ standard_loop(
     output_period=0.1 * final_time,
     # nitermax=1,
     context=context,
-    newton=newton,
 )
 
 

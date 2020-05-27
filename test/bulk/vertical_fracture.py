@@ -11,10 +11,10 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
-
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
 simulation = ComPASS.load_eos("water2ph")
-simulation.info.activate_direct_solver = True
 
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
@@ -83,10 +83,16 @@ def set_boundary_fluxes():
 
 set_boundary_fluxes()
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 final_time = 1 * day
 output_period = 0.1 * final_time
 standard_loop(
     simulation,
+    newton=newton,
     final_time=final_time,
     time_step_manager=TimeStepManager(100, output_period),
     output_period=output_period,

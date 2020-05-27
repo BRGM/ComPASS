@@ -12,7 +12,6 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
 
 
 # initial reservoir pressure

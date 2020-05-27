@@ -12,13 +12,11 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 import MeshTools as MT
 import MeshTools.utils as MU
 
-# iterative solvers tend to fail
-# or at least need small timestep
-ComPASS.activate_direct_solver = True
 
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
@@ -91,7 +89,10 @@ def set_boundary_heat_flux():
 
 set_boundary_heat_flux()
 
-newton = Newton(1e-5, 10, LinearSolver(1e-8, 150))
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
 
 context = SimulationContext()
 context.abort_on_ksp_failure = True

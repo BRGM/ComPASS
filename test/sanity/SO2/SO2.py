@@ -23,8 +23,9 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
+from ComPASS.newton import Newton
+from ComPASS.legacy_petsc import LegacyLinearSolver
 
-ComPASS.activate_direct_solver = True
 ComPASS.load_eos("linear_water")
 
 p_reservoir = 0  # no flow - linear water eos
@@ -107,9 +108,15 @@ ComPASS.init(
 set_initial_values()
 set_boundary_conditions()
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = LegacyLinearSolver(activate_direct_solver=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 output_period = final_time / nb_outputs
 standard_loop(
     final_time=final_time,
+    newton=newton,
     output_period=output_period,
     time_step_manager=TimeStepManager(final_time / (10 * nb_steps), output_period),
 )
