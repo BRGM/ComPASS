@@ -92,13 +92,12 @@ class LinearSolver:
     A stucture that holds the PETSc KSP Object to solve the linear system
     """
 
-    def __init__(self, tol, maxit, restart=None):
+    def __init__(self, simulation, tol=1e-6, maxit=150, restart=None):
         """
         :param tol: relative tolerance (for iterative solvers).
         :param maxit: maximum number of iterations (for iterative solvers).
         :param restart: number of iterations before a restart (for gmres like iterative solvers).
         """
-        self.plsystem = PetscLinearSystem()
         self.failures = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
@@ -108,18 +107,13 @@ class LinearSolver:
         self.maxit = maxit
         self.restart = restart
 
+        self.plsystem = PetscLinearSystem()
+        self.lsbuilder = simulation.LinearSystemBuilder()
+        self.plsystem.create(self.lsbuilder.get_non_zeros())
+
         comm = PETSc.COMM_WORLD
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.reset(self.rtol, self.maxit, self.restart)
-
-        def monitor(ksp, it, rnorm):
-            self.last_residual_history.append((it, rnorm))
-
-        self.ksp.setMonitor(monitor)
-        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
-
-    def solve(self):
-
+        self.set(self.rtol, self.maxit, self.restart)
         self.last_residual_history = []
         self.ksp.setOperators(self.plsystem.A, self.plsystem.A)
         if self.activate_direct_solver:
@@ -128,16 +122,47 @@ class LinearSolver:
         else:
             self.ksp.getPC().setFactorLevels(1)
         self.ksp.setFromOptions()
+
+        def monitor(ksp, it, rnorm):
+            self.last_residual_history.append((it, rnorm))
+
+        self.ksp.setMonitor(monitor)
+        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
+
+    def set_values(self):
+
+        self.lsbuilder.set_AMPI(self.plsystem.A)
+        self.lsbuilder.set_RHS(self.plsystem.RHS)
+
+    def solve(self):
+
         self.ksp.solve(self.plsystem.RHS, self.plsystem.x)
         reason = self.ksp.getConvergedReason()
 
         return reason
 
-    def reset(self, tol, maxit, restart=None):
+    def get_iteration_number(self):
 
-        self.rtol = tol
-        self.maxit = maxit
-        self.restart = restart or maxit
-        self.ksp.setTolerances(rtol=self.rtol, max_it=self.maxit)
-        self.ksp.setGMRESRestart(self.restart)
-        self.ksp.setFromOptions()
+        return self.ksp.getIterationNumber()
+
+    def check_solution(self):
+
+        self.plsystem.checkSolution()
+
+    def dump_system(self, basename=""):
+
+        self.plsystem.dump(basename=basename)
+
+    def get_solution(self):
+
+        return self.plsystem.x
+
+    def set(self, tol=None, maxit=None, restart=None):
+
+        self.rtol = tol or self.rtol
+        self.maxit = maxit or self.maxit
+        self.restart = restart or self.maxit
+        if tol or maxit:
+            self.ksp.setTolerances(rtol=self.rtol, max_it=self.maxit)
+        if restart:
+            self.ksp.setGMRESRestart(self.restart)

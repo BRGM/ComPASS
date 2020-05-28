@@ -145,7 +145,7 @@ timestep = TimeStepManager(
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = LegacyLinearSolver(activate_direct_solver=True)
+lsolver = LegacyLinearSolver(simulation, activate_direct_solver=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 standard_loop(

@@ -160,7 +160,7 @@ def make_one_timestep(t, dt, cTold, c1old):
     ts_manager = FixedTimeStep(dt)
     # ts_manager = TimeStepManager(initial_timestep=720,)
     newton = ComPASS.newton.Newton(
-        simulation, 1e-5, 20, ComPASS.newton.LegacyLinearSolver(1e-6, 150)
+        simulation, 1e-5, 20, ComPASS.newton.LegacyLinearSolver(simulation, 1e-6, 150)
     )  # simulation.default_Newton() #
     context = SimulationContext()
     # do cT first (linear)

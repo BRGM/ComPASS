@@ -233,4 +233,4 @@ class Newton:
 
 def default_Newton(simulation):
 
-    return Newton(simulation, 1e-5, 8, LegacyLinearSolver())
+    return Newton(simulation, 1e-5, 8, LegacyLinearSolver(simulation))

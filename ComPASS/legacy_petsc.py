@@ -1,5 +1,4 @@
 from ._kernel import get_kernel
-from .simulation import state
 import petsc4py
 import sys
 
@@ -15,6 +14,7 @@ class LegacyLinearSolver:
 
     def __init__(
         self,
+        simulation,
         tol=1e-6,
         maxit=150,
         restart=None,
@@ -33,7 +33,12 @@ class LegacyLinearSolver:
         self.kernel = get_kernel()
 
         x = PETSc.Vec()
-        x.createMPI((state.info.system.local_nb_cols, state.info.system.global_nb_cols))
+        x.createMPI(
+            (
+                simulation.info.system.local_nb_cols,
+                simulation.info.system.global_nb_cols,
+            )
+        )
         x.set(0)
         x.assemblyBegin()
         x.assemblyEnd()
