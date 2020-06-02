@@ -21,6 +21,7 @@ class LegacyLinearSolver:
         restart=None,
         activate_cpramg=True,
         activate_direct_solver=False,
+        comm=None,
     ):
 
         self.failures = 0
@@ -49,7 +50,7 @@ class LegacyLinearSolver:
             self.maxit, self.tol, self.activate_cpramg, self.activate_direct_solver
         )
 
-    def set_values(self):
+    def setup_system_from_jacobian(self):
 
         self.kernel.SolvePetsc_SetUp()
 
@@ -61,7 +62,7 @@ class LegacyLinearSolver:
 
         return self.kernel.SolvePetsc_KspSolveIterationNumber()
 
-    def check_solution(self):
+    def check_residual_norm(self):
 
         self.kernel.SolvePetsc_check_solution(self.x)
 
@@ -77,7 +78,7 @@ class LegacyLinearSolver:
 
         return self.x
 
-    def set(self, tol=None, maxit=None, restart=None):
+    def set_parameters(self, tol=None, maxit=None, restart=None):
 
         self.tol = tol or self.tol
         self.maxit = maxit or self.maxit

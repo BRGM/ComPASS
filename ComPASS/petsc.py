@@ -41,7 +41,7 @@ class PetscLinearSystem:
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")
 
-    def checkSolution(self):
+    def check_residual_norm(self):
 
         y = self.RHS.duplicate()
         self.RHS.copy(y)  # y = b
@@ -62,7 +62,16 @@ class LinearSolver:
     A stucture that holds the PETSc KSP Object to solve the linear system
     """
 
-    def __init__(self, simulation, tol=1e-6, maxit=150, restart=None):
+    def __init__(
+        self,
+        simulation,
+        tol=1e-6,
+        maxit=150,
+        restart=None,
+        activate_cpramg=True,
+        activate_direct_solver=False,
+        comm=PETSc.COMM_WORLD,
+    ):
         """
         :param tol: relative tolerance (for iterative solvers).
         :param maxit: maximum number of iterations (for iterative solvers).
@@ -72,20 +81,20 @@ class LinearSolver:
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
         self.last_residual_history = []
-        self.activate_direct_solver = False
+        self.activate_cpramg = activate_cpramg
+        self.activate_direct_solver = activate_direct_solver
         self.rtol = tol
         self.maxit = maxit
         self.restart = restart
 
-        self.plsystem = PetscLinearSystem()
+        self.linear_system = PetscLinearSystem()
         self.lsbuilder = simulation.LinearSystemBuilder()
-        self.plsystem.create(self.lsbuilder.get_non_zeros())
+        self.linear_system.create(self.lsbuilder.get_non_zeros())
 
-        comm = PETSc.COMM_WORLD
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.set(self.rtol, self.maxit, self.restart)
+        self.set_parameters(self.rtol, self.maxit, self.restart)
         self.last_residual_history = []
-        self.ksp.setOperators(self.plsystem.A, self.plsystem.A)
+        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         if self.activate_direct_solver:
             self.ksp.setType("preonly")
             self.ksp.getPC().setType("lu")
@@ -99,14 +108,14 @@ class LinearSolver:
         self.ksp.setMonitor(monitor)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
 
-    def set_values(self):
+    def setup_system_from_jacobian(self):
 
-        self.lsbuilder.set_AMPI(self.plsystem.A)
-        self.lsbuilder.set_RHS(self.plsystem.RHS)
+        self.lsbuilder.set_AMPI(self.linear_system.A)
+        self.lsbuilder.set_RHS(self.linear_system.RHS)
 
     def solve(self):
 
-        self.ksp.solve(self.plsystem.RHS, self.plsystem.x)
+        self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
         reason = self.ksp.getConvergedReason()
 
         return reason
@@ -115,9 +124,9 @@ class LinearSolver:
 
         return self.ksp.getIterationNumber()
 
-    def check_solution(self):
+    def check_residual_norm(self):
 
-        self.plsystem.checkSolution()
+        self.linear_system.check_residual_norm()
 
     def dump_system(self, basename="", binary=False, comm=PETSc.COMM_WORLD):
         """
@@ -131,13 +140,13 @@ class LinearSolver:
         makeviewer = (
             PETSc.Viewer().createBinary if binary else PETSc.Viewer().createASCII
         )
-        self.plsystem._dump(basename, makeviewer, comm)
+        self.linear_system._dump(basename, makeviewer, comm)
 
     def get_solution(self):
 
-        return self.plsystem.x
+        return self.linear_system.x
 
-    def set(self, tol=None, maxit=None, restart=None):
+    def set_parameters(self, tol=None, maxit=None, restart=None):
 
         self.rtol = tol or self.rtol
         self.maxit = maxit or self.maxit

@@ -156,7 +156,7 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsolver.set_values()
+            lsolver.setup_system_from_jacobian()
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)
@@ -175,7 +175,7 @@ class Newton:
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
                 )
-            lsolver.check_solution()
+            lsolver.check_residual_norm()
             lsolver.number_of_succesful_iterations += nb_lsolver_iterations
             self.increment()
             self.init_iteration()
