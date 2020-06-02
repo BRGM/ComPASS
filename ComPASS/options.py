@@ -40,16 +40,17 @@ class TimestepFlag(Flag):
 
 
 class DumpLinearSystemTrigger:
-    def __init__(self, dump_function, flag):
+    def __init__(self, dump_function, flag, binary=False):
         self.flag = flag
         self.dump_function = dump_function
+        self.binary = binary
 
     def __call__(self, tick):
         # Update flag
         self.flag(tick)
         if self.flag.on:
             print(">" * 30, "Dump linear system")
-            self.dump_function(basename="t=%e_" % tick.time)
+            self.dump_function(basename="t=%e_" % tick.time, binary=self.binary)
 
 
 class InterruptTrigger:
@@ -66,7 +67,9 @@ class InterruptTrigger:
 
 def get_callbacks_from_options(newton):
     """ Possible options : --dump_ls <time>
-                                  --> writes linear system in file in ASCII mode (Matrix and RHS)
+                                  --> writes linear system in file in ASCII mode
+                           --dump_ls_binary <time>
+                                  --> writes linear system in file in binary mode (not available with Legacy implementation)
                            --kill <time>
                                   --> kills execution
     example : --dump_ls 1.5e6 --kill 1.5e6 """
@@ -78,6 +81,15 @@ def get_callbacks_from_options(newton):
         tdump = float(dump_ls)
         timeFlag = TimestepFlag(tdump)
         dumpTrigger = DumpLinearSystemTrigger(lsolver.dump_system, timeFlag)
+        callbacks.append(dumpTrigger)
+
+    dump_ls = get("--dump_ls_binary")
+    if dump_ls is not None:
+        tdump = float(dump_ls)
+        timeFlag = TimestepFlag(tdump)
+        dumpTrigger = DumpLinearSystemTrigger(
+            lsolver.dump_system, timeFlag, binary=True
+        )
         callbacks.append(dumpTrigger)
 
     kill = get("--kill")

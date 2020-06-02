@@ -3,6 +3,7 @@ import petsc4py
 import sys
 
 petsc4py.init()
+from . import mpi
 from petsc4py import PETSc
 
 
@@ -64,8 +65,12 @@ class LegacyLinearSolver:
 
         self.kernel.SolvePetsc_check_solution(self.x)
 
-    def dump_system(self, basename=""):
+    def dump_system(self, basename="", binary=None, comm=None):
 
+        if binary == True:
+            mpi.master_print(
+                "Binary_dump is not available in the legacy linear solver\nPerforming an ASCII dump instead"
+            )
         self.kernel.SolvePetsc_dump_system(basename)
 
     def get_solution(self):

@@ -2,8 +2,8 @@ import petsc4py
 import sys
 
 petsc4py.init(sys.argv)
-from petsc4py import PETSc
 from . import mpi
+from petsc4py import PETSc
 
 
 class PetscLinearSystem:
@@ -31,45 +31,15 @@ class PetscLinearSystem:
         self.x.createMPI((n_rowl, n_rowg))
         self.RHS.createMPI((n_rowl, n_rowg))
 
-    def dump(self, basename="", binary=False):
+    def _dump(self, basename, makeviewer, comm):
+        def dump_item(item, name):
+            viewer = makeviewer(basename + name + ".dat", "w", comm)
+            item.view(viewer)
+            viewer.destroy
 
-        if binary:
-            viewer = PETSc.Viewer().createBinary(
-                basename + "A_binary.dat", "w", PETSc.COMM_WORLD
-            )
-            self.A.view(viewer)
-            viewer.destroy()
-
-            viewer = PETSc.Viewer().createBinary(
-                basename + "b_binary.dat", "w", PETSc.COMM_WORLD
-            )
-            self.RHS.view(viewer)
-            viewer.destroy()
-
-            viewer = PETSc.Viewer().createBinary(
-                basename + "x.dat", "w", PETSc.COMM_WORLD
-            )
-            self.x.view(viewer)
-            viewer.destroy()
-
-        else:
-            viewer = PETSc.Viewer().createASCII(
-                basename + "A.dat", "w", PETSc.COMM_WORLD
-            )
-            self.A.view(viewer)
-            viewer.destroy()
-
-            viewer = PETSc.Viewer().createASCII(
-                basename + "b.dat", "w", PETSc.COMM_WORLD
-            )
-            self.RHS.view(viewer)
-            viewer.destroy()
-
-            viewer = PETSc.Viewer().createASCII(
-                basename + "x.dat", "w", PETSc.COMM_WORLD
-            )
-            self.x.view(viewer)
-            viewer.destroy()
+        dump_item(self.A, "A")
+        dump_item(self.RHS, "RHS")
+        dump_item(self.x, "x")
 
     def checkSolution(self):
 
@@ -149,9 +119,19 @@ class LinearSolver:
 
         self.plsystem.checkSolution()
 
-    def dump_system(self, basename=""):
+    def dump_system(self, basename="", binary=False, comm=PETSc.COMM_WORLD):
+        """
+        Writes the linear system (Matrix, solution and RHS) in three different files
 
-        self.plsystem.dump(basename=basename)
+        :param basename: common part of the file names
+        :param binary: if False, writes the files in ASCII format (good for text display)
+                       if True, uses the binary format of PETSc (faster, good for loading the PETSc Object in an external script)
+        :comm: MPI communicator
+        """
+        makeviewer = (
+            PETSc.Viewer().createBinary if binary else PETSc.Viewer().createASCII
+        )
+        self.plsystem._dump(basename, makeviewer, comm)
 
     def get_solution(self):
 
