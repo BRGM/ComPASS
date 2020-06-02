@@ -55,15 +55,14 @@ LinearSystemBuilder::LinearSystemBuilder() {
    compute_ltog();
 };
 
+/** A function that computes the d_nnz and o_nnz arrays
+  d_nnz : array containing the number of nonzeros in the various rows
+          of the DIAGONAL portion of the local submatrix (different for each
+  row) o_nnz : array containing the number of nonzeros in the various rows of
+  the OFF-DIAGONAL portion of the local submatrix (different for each row) See :
+  https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Mat/MatCreateAIJ.html#MatCreateAIJ
+*/
 void LinearSystemBuilder::compute_nonzeros() {
-   // A function that computes the d_nnz and o_nnz arrays
-   // d_nnz : array containing the number of nonzeros in the various rows
-   //         of the DIAGONAL portion of the local submatrix (different for each
-   //         row)
-   // o_nnz : array containing the number of nonzeros in the various rows
-   //         of the OFF-DIAGONAL portion of the local submatrix (different for
-   //         each row)
-   //  https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Mat/MatCreateAIJ.html#MatCreateAIJ
    const auto nb_comp_thermique = JacA.block_size;
    const auto ncpus = myrank_part_info.ncpus;
    const auto nb_node_own = myrank_part_info.nodes.nb_owns;
@@ -198,12 +197,13 @@ void LinearSystemBuilder::compute_nonzeros() {
    }
 };
 
+/** A function that computes the local to global index arrays
+    If i is the local index of a row in the local submatrix
+    then rowl_to_rowg[i] is the global index of that row in the matrix
+    If j is the local index of a column in the local submatrix
+    then coll_to_colg[j] is the global index of that column in the matrix
+*/
 void LinearSystemBuilder::compute_ltog() {
-   // A function that computes the local to global index arrays
-   // If i is the local index of a row in the local submatrix
-   // then rowl_to_rowg[i] is the global index of that row in the matrix
-   // If j is the local index of a column in the local submatrix
-   // then coll_to_colg[j] is the global index of that column in the matrix
    const auto ncpus = myrank_part_info.ncpus;
    const auto n = static_cast<std::size_t>(JacA.block_size);
    int rowstart[ncpus];
@@ -303,10 +303,11 @@ void LinearSystemBuilder::compute_ltog() {
    }
 };
 
+/** A function that sets the nonzeros entries in the Petsc matrix
+   using the JacA.block_data array computed in the Fortran core.
+   This is done in the C++ layer for increased performance
+*/
 void LinearSystemBuilder::set_AMPI(py::object pyA) {
-   // A function that sets the nonzeros entries in the Petsc matrix
-   // using the JacA.block_data array computed in the Fortran core.
-   // This is done in the C++ layer for increased performance
    auto A = cast_to_PETSc<Mat>(pyA);
 
    const auto n = static_cast<std::size_t>(JacA.block_size);
@@ -381,10 +382,11 @@ void LinearSystemBuilder::set_AMPI(py::object pyA) {
    MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
 };
 
+/** A function that sets the nonzeros entries in the Petsc vector RHS
+    using the JacRHS.p array computed in the Fortran core.
+    This is done in the C++ layer for increased performance
+*/
 void LinearSystemBuilder::set_RHS(py::object pyRHS) {
-   // A function that sets the nonzeros entries in the Petsc vector RHS
-   // using the JacRHS.p array computed in the Fortran core.
-   // This is done in the C++ layer for increased performance
    auto RHS = cast_to_PETSc<Vec>(pyRHS);
 
    const auto n = static_cast<std::size_t>(JacRHS.shape[1]);

@@ -23,7 +23,15 @@ class LegacyLinearSolver:
         activate_direct_solver=False,
         comm=None,
     ):
-
+        """
+        :param simulation: an initialised simulation object to get the data from
+        :param tol: relative tolerance (for iterative solvers).
+        :param maxit: maximum number of iterations (for iterative solvers).
+        :param restart: number of iterations before a restart (for gmres like iterative solvers).
+        :param activate_cpramg: CPR-AMG preconditioner activator
+        :param activate_direct_solver: direct solver activator
+        :param comm: MPI communicator
+        """
         self.failures = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
@@ -63,11 +71,19 @@ class LegacyLinearSolver:
         return self.kernel.SolvePetsc_KspSolveIterationNumber()
 
     def check_residual_norm(self):
-
+        """
+        Displays the residual norm (1-Norm, 2-Norm and infinity norm) for convergence check
+        """
         self.kernel.SolvePetsc_check_solution(self.x)
 
     def dump_system(self, basename="", binary=None, comm=None):
+        """
+        Writes the linear system (Matrix, solution and RHS) in three different ASCII files
 
+        :param basename: common part of the file names
+        :param binary: for compatibility; not available for legacy linear solving
+        :param comm: for compatibility; not available for legacy linear solving
+        """
         if binary == True:
             mpi.master_print(
                 "Binary_dump is not available in the legacy linear solver\nPerforming an ASCII dump instead"

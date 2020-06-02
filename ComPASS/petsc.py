@@ -20,6 +20,10 @@ class PetscLinearSystem:
 
     def create(self, nonzeros):
 
+        """
+        Allocate memory for the PETSc structures using the 'create' functions
+        """
+
         (sizes, d_nnz, o_nnz) = nonzeros
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
@@ -43,6 +47,10 @@ class PetscLinearSystem:
 
     def check_residual_norm(self):
 
+        """
+        Displays the residual norm (1-Norm, 2-Norm and infinity norm) for convergence check
+        """
+
         y = self.RHS.duplicate()
         self.RHS.copy(y)  # y = b
         y.scale(-1.0)  # y = -b
@@ -59,7 +67,7 @@ class PetscLinearSystem:
 class LinearSolver:
 
     """
-    A stucture that holds the PETSc KSP Object to solve the linear system
+    A structure that holds the PETSc KSP Object to solve the linear system
     """
 
     def __init__(
@@ -73,9 +81,13 @@ class LinearSolver:
         comm=PETSc.COMM_WORLD,
     ):
         """
+        :param simulation: an initialised simulation object to get the data from
         :param tol: relative tolerance (for iterative solvers).
         :param maxit: maximum number of iterations (for iterative solvers).
         :param restart: number of iterations before a restart (for gmres like iterative solvers).
+        :param activate_cpramg: CPR-AMG preconditioner activator
+        :param activate_direct_solver: direct solver activator
+        :param comm: MPI communicator
         """
         self.failures = 0
         self.number_of_succesful_iterations = 0
