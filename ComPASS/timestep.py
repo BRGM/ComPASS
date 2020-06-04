@@ -52,8 +52,7 @@ def try_timestep(
             "iterations",
         )
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
-            # kernel.SolvePetsc_dump_system('ksp_failure_%03d' % newton.lsolver.failures)
-            newton.lsolver.dump_system(basename="ksp_failure_")
+            newton.lsolver.linear_system.dump_ascii(basename="ksp_failure_")
         if simulation_context and simulation_context.abort_on_ksp_failure:
             mpi.master_print(
                 "\nComPASS - Abortion requested on linear solver failure\n"

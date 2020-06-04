@@ -12,19 +12,14 @@ class PetscLinearSystem:
     Petsc objects
     """
 
-    def __init__(self):
+    def __init__(self, simulation):
 
         self.x = PETSc.Vec()
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
 
-    def create(self, nonzeros):
-
-        """
-        Allocate memory for the PETSc structures using the 'create' functions
-        """
-
-        (sizes, d_nnz, o_nnz) = nonzeros
+        self.lsbuilder = simulation.LinearSystemBuilder()
+        (sizes, d_nnz, o_nnz) = self.lsbuilder.get_non_zeros()
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
 
@@ -35,7 +30,33 @@ class PetscLinearSystem:
         self.x.createMPI((n_rowl, n_rowg))
         self.RHS.createMPI((n_rowl, n_rowg))
 
-    def _dump(self, basename, makeviewer, comm):
+    def dump_ascii(self, basename, comm=PETSc.COMM_WORLD):
+        """
+        Writes the linear system (Matrix, solution and RHS) in three different files in ASCII format
+
+        :param basename: common part of the file names
+        :comm: MPI communicator
+        """
+        makeviewer = PETSc.Viewer().createASCII
+
+        def dump_item(item, name):
+            viewer = makeviewer(basename + name + ".dat", "w", comm)
+            item.view(viewer)
+            viewer.destroy
+
+        dump_item(self.A, "A")
+        dump_item(self.RHS, "RHS")
+        dump_item(self.x, "x")
+
+    def dump_binary(self, basename="", comm=PETSc.COMM_WORLD):
+        """
+                Writes the linear system (Matrix, solution and RHS) in three different files in binary format
+
+                :param basename: common part of the file names
+                :comm: MPI communicator
+                """
+        makeviewer = PETSc.Viewer().createBinary
+
         def dump_item(item, name):
             viewer = makeviewer(basename + name + ".dat", "w", comm)
             item.view(viewer)
@@ -63,6 +84,11 @@ class PetscLinearSystem:
         norm = y.norm(PETSc.NormType.NORM_INFINITY)
         mpi.master_print("  Infinity norm", norm)
 
+    def set_from_jacobian(self):
+
+        self.lsbuilder.set_AMPI(self.A)
+        self.lsbuilder.set_RHS(self.RHS)
+
 
 class LinearSolver:
 
@@ -78,6 +104,7 @@ class LinearSolver:
         restart=None,
         activate_cpramg=True,
         activate_direct_solver=False,
+        linear_system=None,
         comm=PETSc.COMM_WORLD,
     ):
         """
@@ -98,10 +125,7 @@ class LinearSolver:
         self.rtol = tol
         self.maxit = maxit
         self.restart = restart
-
-        self.linear_system = PetscLinearSystem()
-        self.lsbuilder = simulation.LinearSystemBuilder()
-        self.linear_system.create(self.lsbuilder.get_non_zeros())
+        self.linear_system = linear_system or PetscLinearSystem(simulation)
 
         self.ksp = PETSc.KSP().create(comm=comm)
         self.set_parameters(self.rtol, self.maxit, self.restart)
@@ -120,11 +144,6 @@ class LinearSolver:
         self.ksp.setMonitor(monitor)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
 
-    def setup_system_from_jacobian(self):
-
-        self.lsbuilder.set_AMPI(self.linear_system.A)
-        self.lsbuilder.set_RHS(self.linear_system.RHS)
-
     def solve(self):
 
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
@@ -135,28 +154,6 @@ class LinearSolver:
     def get_iteration_number(self):
 
         return self.ksp.getIterationNumber()
-
-    def check_residual_norm(self):
-
-        self.linear_system.check_residual_norm()
-
-    def dump_system(self, basename="", binary=False, comm=PETSc.COMM_WORLD):
-        """
-        Writes the linear system (Matrix, solution and RHS) in three different files
-
-        :param basename: common part of the file names
-        :param binary: if False, writes the files in ASCII format (good for text display)
-                       if True, uses the binary format of PETSc (faster, good for loading the PETSc Object in an external script)
-        :comm: MPI communicator
-        """
-        makeviewer = (
-            PETSc.Viewer().createBinary if binary else PETSc.Viewer().createASCII
-        )
-        self.linear_system._dump(basename, makeviewer, comm)
-
-    def get_solution(self):
-
-        return self.linear_system.x
 
     def set_parameters(self, tol=None, maxit=None, restart=None):
 

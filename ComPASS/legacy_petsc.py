@@ -7,6 +7,56 @@ from . import mpi
 from petsc4py import PETSc
 
 
+class LegacyLinearSystem:
+    """
+    A ghost structure used to mimic the PetscLinearSystem class
+    """
+
+    def __init__(self, simulation):
+
+        x = PETSc.Vec()
+        x.createMPI(
+            (
+                simulation.info.system.local_nb_cols,
+                simulation.info.system.global_nb_cols,
+            )
+        )
+        x.set(0)
+        x.assemblyBegin()
+        x.assemblyEnd()
+        self.x = x
+        self.kernel = get_kernel()
+
+    def check_residual_norm(self):
+
+        self.kernel.SolvePetsc_check_solution(self.x)
+
+    def set_from_jacobian(self):
+
+        self.kernel.SolvePetsc_SetUp()
+
+    def dump_ascii(self, basename="", comm=PETSc.COMM_WORLD):
+
+        """
+        Writes the linear system (Matrix, solution and RHS) in three different files in ASCII format
+
+        :param basename: common part of the file names
+        :comm: MPI communicator
+        """
+
+        self.kernel.SolvePetsc_dump_system(basename)
+        viewer = PETSc.Viewer().createASCII(basename + "x" + ".dat", "w", comm)
+        self.x.view(viewer)
+        viewer.destroy
+
+    def dump_binary(self, basename="", comm=PETSc.COMM_WORLD):
+
+        mpi.master_print(
+            "Binary_dump is not available in the legacy linear solver\nPerforming an ASCII dump instead"
+        )
+        self.dump_ascii(basename, comm=PETSc.COMM_WORLD)
+
+
 class LegacyLinearSolver:
     """
     A structure used to call the fortran
@@ -23,15 +73,7 @@ class LegacyLinearSolver:
         activate_direct_solver=False,
         comm=None,
     ):
-        """
-        :param simulation: an initialised simulation object to get the data from
-        :param tol: relative tolerance (for iterative solvers).
-        :param maxit: maximum number of iterations (for iterative solvers).
-        :param restart: number of iterations before a restart (for gmres like iterative solvers).
-        :param activate_cpramg: CPR-AMG preconditioner activator
-        :param activate_direct_solver: direct solver activator
-        :param comm: MPI communicator
-        """
+
         self.failures = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
@@ -40,59 +82,19 @@ class LegacyLinearSolver:
         self.tol = tol
         self.maxit = maxit
         self.restart = restart or maxit
+        self.linear_system = LegacyLinearSystem(simulation)
         self.kernel = get_kernel()
-
-        x = PETSc.Vec()
-        x.createMPI(
-            (
-                simulation.info.system.local_nb_cols,
-                simulation.info.system.global_nb_cols,
-            )
-        )
-        x.set(0)
-        x.assemblyBegin()
-        x.assemblyEnd()
-        self.x = x
-
         self.kernel.SolvePetsc_Init(
             self.maxit, self.tol, self.activate_cpramg, self.activate_direct_solver
         )
 
-    def setup_system_from_jacobian(self):
-
-        self.kernel.SolvePetsc_SetUp()
-
     def solve(self):
 
-        return self.kernel.SolvePetsc_ksp_solve(self.x)
+        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
 
     def get_iteration_number(self):
 
         return self.kernel.SolvePetsc_KspSolveIterationNumber()
-
-    def check_residual_norm(self):
-        """
-        Displays the residual norm (1-Norm, 2-Norm and infinity norm) for convergence check
-        """
-        self.kernel.SolvePetsc_check_solution(self.x)
-
-    def dump_system(self, basename="", binary=None, comm=None):
-        """
-        Writes the linear system (Matrix, solution and RHS) in three different ASCII files
-
-        :param basename: common part of the file names
-        :param binary: for compatibility; not available for legacy linear solving
-        :param comm: for compatibility; not available for legacy linear solving
-        """
-        if binary == True:
-            mpi.master_print(
-                "Binary_dump is not available in the legacy linear solver\nPerforming an ASCII dump instead"
-            )
-        self.kernel.SolvePetsc_dump_system(basename)
-
-    def get_solution(self):
-
-        return self.x
 
     def set_parameters(self, tol=None, maxit=None, restart=None):
 

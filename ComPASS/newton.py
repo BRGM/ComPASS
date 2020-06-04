@@ -115,7 +115,7 @@ class Newton:
         #        mpi.master_print('increment variables')
         ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(self.lsolver.get_solution())
+        ghosts_synchronizer.synchronize(self.lsolver.linear_system.x)
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -156,7 +156,7 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             kernel.Jacobian_ComputeJacSm(dt)
-            lsolver.setup_system_from_jacobian()
+            lsolver.linear_system.set_from_jacobian()
             ksp_status = lsolver.solve()
 
             mpi.master_print("KSP status", ksp_status)
@@ -175,7 +175,7 @@ class Newton:
                 raise KspFailure(
                     NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
                 )
-            lsolver.check_residual_norm()
+            lsolver.linear_system.check_residual_norm()
             lsolver.number_of_succesful_iterations += nb_lsolver_iterations
             self.increment()
             self.init_iteration()
