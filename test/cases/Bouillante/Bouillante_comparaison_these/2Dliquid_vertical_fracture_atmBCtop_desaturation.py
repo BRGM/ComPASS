@@ -17,7 +17,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.newton import Newton
-from ComPASS.legacy_petsc import LegacyLinearSolver
+from ComPASS.legacy_petsc import *
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 
@@ -145,7 +145,7 @@ timestep = TimeStepManager(
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = LegacyLinearSolver(simulation, activate_direct_solver=True)
+lsolver = LegacyDirectSolver(LegacyLinearSystem(simulation))
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 standard_loop(

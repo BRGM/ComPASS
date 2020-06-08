@@ -15,7 +15,7 @@ import ComPASS.timestep as timestep
 from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, LinearSolver
+from ComPASS.newton import Newton, default_linear_solver
 import ComPASS.mpi as mpi
 import matplotlib.pyplot as plt
 import scipy.sparse as sps
@@ -365,7 +365,10 @@ class Transport(object):
         compute_all_concentrations = True
 
         newton = Newton(
-            self.simulation, 1e-5, 30, LinearSolver(1e-6, 150)
+            self.simulation,
+            1e-5,
+            30,
+            LegacyIterativeSolver(LegacyLinearSystem(self.simulation), 1e-6, 150),
         )  # self.simulation.default_Newton()
         context = SimulationContext()
         # self.plot_pressure()

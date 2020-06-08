@@ -19,7 +19,7 @@ from ComPASS.utils.units import *
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 import ComPASS.timestep as timestep
 from ComPASS.simulation_context import SimulationContext
-
+from ComPASS.newton import default_linear_solver
 from scipy.optimize import newton_krylov
 import numpy as np
 
@@ -160,7 +160,7 @@ def make_one_timestep(t, dt, cTold, c1old):
     ts_manager = FixedTimeStep(dt)
     # ts_manager = TimeStepManager(initial_timestep=720,)
     newton = ComPASS.newton.Newton(
-        simulation, 1e-5, 20, ComPASS.newton.LegacyLinearSolver(simulation, 1e-6, 150)
+        simulation, 1e-5, 20, default_linear_solver(simulation)
     )  # simulation.default_Newton() #
     context = SimulationContext()
     # do cT first (linear)

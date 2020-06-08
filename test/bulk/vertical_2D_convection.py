@@ -10,8 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.newton import Newton
-from ComPASS.legacy_petsc import LegacyLinearSolver
+from ComPASS.newton import Newton, default_direct_solver
 
 simulation = ComPASS.load_eos("water2ph")
 final_time = 20 * year
@@ -79,7 +78,7 @@ apply_linear_gradients(dirichlet, simulation.vertices()[:, 2])
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = LegacyLinearSolver(simulation, activate_direct_solver=True)
+lsolver = default_direct_solver(simulation)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(

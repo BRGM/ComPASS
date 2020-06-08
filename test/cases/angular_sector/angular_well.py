@@ -6,8 +6,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.newton import Newton
-from ComPASS.legacy_petsc import LegacyLinearSolver
+from ComPASS.newton import Newton, default_direct_solver
 
 # import ComPASS.mpi as mpi
 # from ComPASS.mpi import MPI # underlying mpi4py.MPI
@@ -107,7 +106,7 @@ def collect_timestep(tick):
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = LegacyLinearSolver(simulation, activate_direct_solver=True)
+lsolver = default_direct_solver(simulation)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(

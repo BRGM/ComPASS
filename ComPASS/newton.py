@@ -13,8 +13,7 @@ from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
-from .petsc import LinearSolver
-from .legacy_petsc import LegacyLinearSolver
+from .legacy_linear_solver import default_linear_solver, default_direct_solver
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 
@@ -233,4 +232,4 @@ class Newton:
 
 def default_Newton(simulation):
 
-    return Newton(simulation, 1e-5, 8, LegacyLinearSolver(simulation))
+    return Newton(simulation, 1e-5, 8, default_linear_solver(simulation))

@@ -18,8 +18,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton
-from ComPASS.legacy_petsc import LegacyLinearSolver
+from ComPASS.newton import Newton, default_direct_solver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
@@ -143,7 +142,7 @@ timestep = TimeStepManager(
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = LegacyLinearSolver(simulation, activate_direct_solver=True)
+lsolver = default_direct_solver(simulation)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 final_time = 1000.0 * year

@@ -13,7 +13,9 @@ class PetscLinearSystem:
     """
 
     def __init__(self, simulation):
-
+        """
+        :param simulation: an initialised simulation object to get the data from
+        """
         self.x = PETSc.Vec()
         self.A = PETSc.Mat()
         self.RHS = PETSc.Vec()
@@ -91,58 +93,33 @@ class PetscLinearSystem:
 
 
 class LinearSolver:
-
     """
-    A structure that holds the PETSc KSP Object to solve the linear system
+    A base structure to hold the common parameters of ComPASS linear solvers
     """
 
-    def __init__(
-        self,
-        simulation,
-        tol=1e-6,
-        maxit=150,
-        restart=None,
-        activate_cpramg=True,
-        activate_direct_solver=False,
-        linear_system=None,
-        comm=PETSc.COMM_WORLD,
-    ):
+    def __init__(self, linear_system):
         """
-        :param simulation: an initialised simulation object to get the data from
-        :param tol: relative tolerance (for iterative solvers).
-        :param maxit: maximum number of iterations (for iterative solvers).
-        :param restart: number of iterations before a restart (for gmres like iterative solvers).
-        :param activate_cpramg: CPR-AMG preconditioner activator
-        :param activate_direct_solver: direct solver activator
-        :param comm: MPI communicator
+        :param linear_system: the linear system structure
         """
         self.failures = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
-        self.last_residual_history = []
-        self.activate_cpramg = activate_cpramg
-        self.activate_direct_solver = activate_direct_solver
-        self.rtol = tol
-        self.maxit = maxit
-        self.restart = restart
-        self.linear_system = linear_system or PetscLinearSystem(simulation)
+        self.linear_system = linear_system
 
+
+class PetscLinearSolver(LinearSolver):
+    """
+    A base structure to manage the common objects and methods of PETSc linear solvers
+    """
+
+    def __init__(self, linear_system, comm):
+
+        """
+        :param comm: MPI communicator
+        """
+        super().__init__(linear_system)
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.set_parameters(self.rtol, self.maxit, self.restart)
-        self.last_residual_history = []
         self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
-        if self.activate_direct_solver:
-            self.ksp.setType("preonly")
-            self.ksp.getPC().setType("lu")
-        else:
-            self.ksp.getPC().setFactorLevels(1)
-        self.ksp.setFromOptions()
-
-        def monitor(ksp, it, rnorm):
-            self.last_residual_history.append((it, rnorm))
-
-        self.ksp.setMonitor(monitor)
-        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
 
     def solve(self):
 
@@ -155,6 +132,39 @@ class LinearSolver:
 
         return self.ksp.getIterationNumber()
 
+
+class PetscIterativeSolver(PetscLinearSolver):
+
+    """
+    A structure that holds an iterative PETSc KSP Object to solve the linear system
+    """
+
+    def __init__(
+        self,
+        linear_system,
+        tol=1e-6,
+        maxit=150,
+        restart=None,
+        activate_cpramg=True,
+        comm=PETSc.COMM_WORLD,
+    ):
+        """
+        :param tol: relative tolerance (for iterative solvers).
+        :param maxit: maximum number of iterations (for iterative solvers).
+        :param restart: number of iterations before a restart (for gmres like iterative solvers).
+        """
+
+        super().__init__(linear_system, comm)
+        self.last_residual_history = []
+        self.activate_cpramg = activate_cpramg
+        self.activate_direct_solver = False
+        self.rtol = tol
+        self.maxit = maxit
+        self.restart = restart
+        self.set_parameters(self.rtol, self.maxit, self.restart)
+        self.ksp.getPC().setFactorLevels(1)
+        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
+
     def set_parameters(self, tol=None, maxit=None, restart=None):
 
         self.rtol = tol or self.rtol
@@ -164,3 +174,21 @@ class LinearSolver:
             self.ksp.setTolerances(rtol=self.rtol, max_it=self.maxit)
         if restart:
             self.ksp.setGMRESRestart(self.restart)
+
+
+class PetscDirectSolver(PetscLinearSolver):
+    """
+    A structure that holds a direct PETSc KSP Object to solve the linear system
+    """
+
+    def __init__(
+        self, linear_system, comm=PETSc.COMM_WORLD,
+    ):
+
+        super().__init__(linear_system, comm)
+        self.activate_direct_solver = True
+        self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
+        self.ksp.setType("preonly")
+        self.ksp.getPC().setType("lu")
+        self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
