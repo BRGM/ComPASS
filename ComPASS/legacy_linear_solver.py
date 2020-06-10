@@ -1,11 +1,5 @@
+from ComPASS.linear_solver import *
 from ._kernel import get_kernel
-import petsc4py
-import sys
-from ComPASS.linear_solver import LinearSolver
-
-petsc4py.init()
-from . import mpi
-from petsc4py import PETSc
 
 
 class LegacyLinearSystem:
@@ -83,31 +77,50 @@ class LegacyLinearSolver(LinearSolver):
 
 class LegacyIterativeSolver(LegacyLinearSolver):
     def __init__(
-        self,
-        linear_system,
-        tol=1e-6,
-        maxit=150,
-        restart=None,
-        activate_cpramg=True,
-        comm=None,
+        self, linear_system, settings, activate_cpramg=True, comm=None,
     ):
+        """
+        :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
+        """
         super().__init__(linear_system, comm)
-        self.tol = tol
-        self.maxit = maxit
-        self.restart = restart or maxit
         self.activate_direct_solver = False
         self.activate_cpramg = activate_cpramg
+        self.settings = (
+            settings._asdict()
+        )  # Is there a better way than storing it as a dictionary ?
         self.kernel.SolvePetsc_Init(
-            self.maxit, self.tol, self.activate_cpramg, self.activate_direct_solver
+            settings.max_iterations,
+            settings.tolerance,
+            self.activate_cpramg,
+            self.activate_direct_solver,
         )
 
-    def set_parameters(self, tol=None, maxit=None, restart=None):
+    def make_setter(name):
+        def setter(self, value):
+            self.settings[name] = value
+            self.kernel.SolvePetsc_Ksp_configuration(
+                self.settings["tolerance"],
+                self.settings["max_iterations"],
+                self.settings["gmres_restart"],
+            )
 
-        self.tol = tol or self.tol
-        self.maxit = maxit or self.maxit
-        self.restart = restart or self.restart
-        if (tol or maxit or restart) and (not self.activate_direct_solver):
-            self.kernel.SolvePetsc_Ksp_configuration(self.tol, self.maxit, self.restart)
+        return setter
+
+    tolerance = property(
+        fget=lambda self: self.settings["tolerance"],
+        fset=make_setter("tolerance"),
+        doc="Relative decrease in the residual norm required for convergence",
+    )
+    max_iterations = property(
+        fget=lambda self: self.settings["max_iterations"],
+        fset=make_setter("max_iterations"),
+        doc="Maximum number of iterations accepted before convergence failure",
+    )
+    gmres_restart = property(
+        fget=lambda self: self.settings["gmres_restart"],
+        fset=make_setter("gmres_restart"),
+        doc="Number of iterations at which GMRES restarts",
+    )
 
 
 class LegacyDirectSolver(LegacyLinearSolver):
@@ -122,7 +135,9 @@ class LegacyDirectSolver(LegacyLinearSolver):
 
 def default_linear_solver(simulation):
 
-    return LegacyIterativeSolver(LegacyLinearSystem(simulation))
+    return LegacyIterativeSolver(
+        LegacyLinearSystem(simulation), IterativeSolverSettings(1.0e-6, 150, 30)
+    )
 
 
 def default_direct_solver(simulation):

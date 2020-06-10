@@ -4,6 +4,13 @@ import sys
 petsc4py.init(sys.argv)
 from . import mpi
 from petsc4py import PETSc
+from collections import namedtuple
+
+IterativeSolverSettings = namedtuple(
+    "IterativeSolverSettings",
+    ["tolerance", "max_iterations", "gmres_restart"],
+    defaults=[None],
+)
 
 
 class PetscLinearSystem:
@@ -140,40 +147,34 @@ class PetscIterativeSolver(PetscLinearSolver):
     """
 
     def __init__(
-        self,
-        linear_system,
-        tol=1e-6,
-        maxit=150,
-        restart=None,
-        activate_cpramg=True,
-        comm=PETSc.COMM_WORLD,
+        self, linear_system, settings, activate_cpramg=True, comm=PETSc.COMM_WORLD,
     ):
         """
-        :param tol: relative tolerance (for iterative solvers).
-        :param maxit: maximum number of iterations (for iterative solvers).
-        :param restart: number of iterations before a restart (for gmres like iterative solvers).
+        :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
         """
 
         super().__init__(linear_system, comm)
-        self.last_residual_history = []
         self.activate_cpramg = activate_cpramg
         self.activate_direct_solver = False
-        self.rtol = tol
-        self.maxit = maxit
-        self.restart = restart
-        self.set_parameters(self.rtol, self.maxit, self.restart)
         self.ksp.getPC().setFactorLevels(1)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
+        self.tolerance, self.max_iterations, self.gmres_restart = settings[:]
 
-    def set_parameters(self, tol=None, maxit=None, restart=None):
-
-        self.rtol = tol or self.rtol
-        self.maxit = maxit or self.maxit
-        self.restart = restart or self.maxit
-        if tol or maxit:
-            self.ksp.setTolerances(rtol=self.rtol, max_it=self.maxit)
-        if restart:
-            self.ksp.setGMRESRestart(self.restart)
+    tolerance = property(
+        fget=lambda self: self.ksp.rtol,
+        fset=lambda self, value: self.ksp.setTolerances(rtol=value),
+        doc="Relative decrease in the residual norm required for convergence",
+    )
+    max_iterations = property(
+        fget=lambda self: self.ksp.max_it,
+        fset=lambda self, value: self.ksp.setTolerances(max_it=value),
+        doc="Maximum number of iterations accepted before convergence failure",
+    )
+    gmres_restart = property(
+        fget=None,  # gmres_restart is not available in petsc4py  :(
+        fset=lambda self, value: self.ksp.setGMRESRestart(value),
+        doc="Number of iterations at which GMRES restarts",
+    )
 
 
 class PetscDirectSolver(PetscLinearSolver):
@@ -187,8 +188,6 @@ class PetscDirectSolver(PetscLinearSolver):
 
         super().__init__(linear_system, comm)
         self.activate_direct_solver = True
-        self.ksp = PETSc.KSP().create(comm=comm)
-        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         self.ksp.setType("preonly")
         self.ksp.getPC().setType("lu")
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
