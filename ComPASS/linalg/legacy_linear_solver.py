@@ -1,5 +1,19 @@
-from ComPASS.linear_solver import *
-from ._kernel import get_kernel
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
+import petsc4py
+import sys
+
+petsc4py.init(sys.argv)
+from .. import mpi
+from petsc4py import PETSc
+from .solver import *
+from .._kernel import get_kernel
 
 
 class LegacyLinearSystem:
@@ -52,41 +66,24 @@ class LegacyLinearSystem:
         self.dump_ascii(basename, comm=PETSc.COMM_WORLD)
 
 
-class LegacyLinearSolver(LinearSolver):
+class LegacyIterativeSolver(IterativeSolver):
     """
     A structure used to call the fortran
     core functions for linear system solving
     """
 
     def __init__(
-        self, linear_system, comm=None,
-    ):
-
-        super().__init__(linear_system)
-        self.linear_system = linear_system
-        self.kernel = get_kernel()
-
-    def solve(self):
-
-        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
-
-    def get_iteration_number(self):
-
-        return self.kernel.SolvePetsc_KspSolveIterationNumber()
-
-
-class LegacyIterativeSolver(LegacyLinearSolver):
-    def __init__(
-        self, linear_system, settings, activate_cpramg=True, comm=None,
+        self, linear_system, settings, activate_cpramg=True,
     ):
         """
         :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
         """
-        super().__init__(linear_system, comm)
+        super().__init__(linear_system, settings)
+        self.kernel = get_kernel()
         self.activate_direct_solver = False
         self.activate_cpramg = activate_cpramg
         self.settings = (
-            settings._asdict()
+            self.settings._asdict()
         )  # Is there a better way than storing it as a dictionary ?
         self.kernel.SolvePetsc_Init(
             settings.max_iterations,
@@ -122,15 +119,33 @@ class LegacyIterativeSolver(LegacyLinearSolver):
         doc="Number of iterations at which GMRES restarts",
     )
 
+    def solve(self):
 
-class LegacyDirectSolver(LegacyLinearSolver):
+        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+
+    def get_iteration_number(self):
+
+        return self.kernel.SolvePetsc_KspSolveIterationNumber()
+
+
+class LegacyDirectSolver(DirectSolver):
     def __init__(
         self, linear_system, comm=None,
     ):
-        super().__init__(linear_system, comm)
+        super().__init__(linear_system)
+        self.linear_system = linear_system
+        self.kernel = get_kernel()
         self.activate_direct_solver = True
         self.activate_cpramg = False
         self.kernel.SolvePetsc_Init(0, 0.0, False, self.activate_direct_solver)
+
+    def solve(self):
+
+        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+
+    def get_iteration_number(self):
+        # FIXME THIS METHOD HAS TO GO AWAY
+        return self.kernel.SolvePetsc_KspSolveIterationNumber()
 
 
 def default_linear_solver(simulation):

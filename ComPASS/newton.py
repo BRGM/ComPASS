@@ -13,7 +13,10 @@ from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
-from .legacy_linear_solver import default_linear_solver, default_direct_solver
+from .linalg.legacy_linear_solver import (
+    default_linear_solver,
+    default_direct_solver,
+)
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 

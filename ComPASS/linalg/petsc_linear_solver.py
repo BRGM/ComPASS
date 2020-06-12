@@ -1,16 +1,18 @@
+#
+# This file is part of ComPASS.
+#
+# ComPASS is free software: you can redistribute it and/or modify it under both the terms
+# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
+# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
+#
+
 import petsc4py
 import sys
 
 petsc4py.init(sys.argv)
-from . import mpi
+from .. import mpi
+from .solver import *
 from petsc4py import PETSc
-from collections import namedtuple
-
-IterativeSolverSettings = namedtuple(
-    "IterativeSolverSettings",
-    ["tolerance", "max_iterations", "gmres_restart"],
-    defaults=[None],
-)
 
 
 class PetscLinearSystem:
@@ -99,66 +101,22 @@ class PetscLinearSystem:
         self.lsbuilder.set_RHS(self.RHS)
 
 
-class LinearSolver:
-    """
-    A base structure to hold the common parameters of ComPASS linear solvers
-    """
-
-    def __init__(self, linear_system):
-        """
-        :param linear_system: the linear system structure
-        """
-        self.failures = 0
-        self.number_of_succesful_iterations = 0
-        self.number_of_useless_iterations = 0
-        self.linear_system = linear_system
-
-
-class PetscLinearSolver(LinearSolver):
-    """
-    A base structure to manage the common objects and methods of PETSc linear solvers
-    """
-
-    def __init__(self, linear_system, comm):
-
-        """
-        :param comm: MPI communicator
-        """
-        super().__init__(linear_system)
-        self.ksp = PETSc.KSP().create(comm=comm)
-        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
-
-    def solve(self):
-
-        self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
-        reason = self.ksp.getConvergedReason()
-
-        return reason
-
-    def get_iteration_number(self):
-
-        return self.ksp.getIterationNumber()
-
-
-class PetscIterativeSolver(PetscLinearSolver):
+class PetscIterativeSolver(IterativeSolver):
 
     """
     A structure that holds an iterative PETSc KSP Object to solve the linear system
     """
 
     def __init__(
-        self, linear_system, settings, activate_cpramg=True, comm=PETSc.COMM_WORLD,
+        self, linear_system, settings, comm=PETSc.COMM_WORLD,
     ):
-        """
-        :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
-        """
 
-        super().__init__(linear_system, comm)
-        self.activate_cpramg = activate_cpramg
-        self.activate_direct_solver = False
+        super().__init__(linear_system, settings)
+        self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         self.ksp.getPC().setFactorLevels(1)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
-        self.tolerance, self.max_iterations, self.gmres_restart = settings[:]
+        self.tolerance, self.max_iterations, self.gmres_restart = self.settings[:]
 
     tolerance = property(
         fget=lambda self: self.ksp.rtol,
@@ -176,8 +134,19 @@ class PetscIterativeSolver(PetscLinearSolver):
         doc="Number of iterations at which GMRES restarts",
     )
 
+    def solve(self):
 
-class PetscDirectSolver(PetscLinearSolver):
+        self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
+        reason = self.ksp.getConvergedReason()
+
+        return reason
+
+    def get_iteration_number(self):
+
+        return self.ksp.getIterationNumber()
+
+
+class PetscDirectSolver(DirectSolver):
     """
     A structure that holds a direct PETSc KSP Object to solve the linear system
     """
@@ -186,8 +155,20 @@ class PetscDirectSolver(PetscLinearSolver):
         self, linear_system, comm=PETSc.COMM_WORLD,
     ):
 
-        super().__init__(linear_system, comm)
-        self.activate_direct_solver = True
+        super().__init__(linear_system)
+        self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         self.ksp.setType("preonly")
         self.ksp.getPC().setType("lu")
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
+
+    def solve(self):
+
+        self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
+        reason = self.ksp.getConvergedReason()
+
+        return reason
+
+    def get_iteration_number(self):
+        # FIXME THIS METHOD HAS TO GO AWAY
+        return self.ksp.getIterationNumber()

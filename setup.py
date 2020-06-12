@@ -134,6 +134,7 @@ setup(
         "ComPASS.eos",
         "ComPASS.ghosts",
         "ComPASS.io",
+        "ComPASS.linalg",
         "ComPASS.utils",
         "ComPASS.simulation",
         "ComPASS.wells",
