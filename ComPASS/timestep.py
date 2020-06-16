@@ -9,7 +9,7 @@
 from petsc4py import PETSc
 
 from . import mpi
-from .newton import KspFailure, IterationExhaustion, NewtonFailure
+from .newton import IterationExhaustion, NewtonFailure, LinearSolverFailure
 from .utils.units import time_string
 from ._kernel import get_kernel
 
@@ -43,14 +43,8 @@ def try_timestep(
         mpi.master_print("trying newton with timestep:", time_string(deltat))
         iterations = newton.loop(deltat)
         mpi.master_print(iterations)
-    except KspFailure as e:
-        mpi.master_print(
-            "KSP failure - with reason",
-            e.reason,
-            "after",
-            newton.lsolver.get_iteration_number(),
-            "iterations",
-        )
+    except LinearSolverFailure as e:
+        mpi.master_print(e)
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
             newton.lsolver.linear_system.dump_ascii(basename="ksp_failure_")
         if simulation_context and simulation_context.abort_on_ksp_failure:

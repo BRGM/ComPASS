@@ -17,6 +17,7 @@ from .linalg.legacy_linear_solver import (
     default_linear_solver,
     default_direct_solver,
 )
+from .linalg.exceptions import LinearSolverFailure
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 
@@ -24,12 +25,6 @@ NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iteratio
 class NewtonFailure(Exception):
     def __init__(self, status):
         self.status = status
-
-
-class KspFailure(NewtonFailure):
-    def __init__(self, status, reason):
-        super().__init__(status)
-        self.reason = reason
 
 
 class IterationExhaustion(NewtonFailure):
@@ -112,12 +107,12 @@ class Newton:
             kernel.Flux_FourierFlux_Cell()
             kernel.Flux_FourierFlux_Frac()
 
-    def increment(self):
+    def increment(self, x):
         kernel = get_kernel()
         #        mpi.master_print('increment variables')
         ghosts_synchronizer = self.simulation.info.ghosts_synchronizer
         assert ghosts_synchronizer is not None
-        ghosts_synchronizer.synchronize(self.lsolver.linear_system.x)
+        ghosts_synchronizer.synchronize(x)
         # mpi.master_print('retrieve solutions')
         ghosts_synchronizer.retrieve_solution(self.increments)
         # mpi.master_print('nodes increment shape', self.increments.nodes().shape)
@@ -142,7 +137,6 @@ class Newton:
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
-        nb_lsolver_iterations = 0
         total_lsolver_iterations = 0
         self.init_iteration()
         # CHECKME: does this need to be done after newton_init_iteration?
@@ -159,27 +153,15 @@ class Newton:
 
             kernel.Jacobian_ComputeJacSm(dt)
             lsolver.linear_system.set_from_jacobian()
-            ksp_status = lsolver.solve()
 
-            mpi.master_print("KSP status", ksp_status)
-            if not lsolver.activate_direct_solver:
-                nb_lsolver_iterations = lsolver.get_iteration_number()
-                # mpi.master_print('with', nb_lsolver_iterations, 'linear iterations')
-                total_lsolver_iterations += nb_lsolver_iterations
-                # mpi.master_print(
-                #    'linear iterations:',
-                #    lsolver.last_residual_history,
-                # )
-            if ksp_status < 0:
-                lsolver.failures += 1
-                if not lsolver.activate_direct_solver:
-                    lsolver.number_of_useless_iterations += nb_lsolver_iterations
-                raise KspFailure(
-                    NewtonStatus(iteration, total_lsolver_iterations), ksp_status,
-                )
-            lsolver.linear_system.check_residual_norm()
-            lsolver.number_of_succesful_iterations += nb_lsolver_iterations
-            self.increment()
+            try:
+                x, nit, ls_status = lsolver.solve()
+            except LinearSolverFailure as e:
+                raise e
+
+            mpi.master_print("Linear solver status :", ls_status)
+            total_lsolver_iterations += nit if nit is not None else 0
+            self.increment(x)
             self.init_iteration()
             kernel.Residu_compute(dt)
             relative_residuals.append(convergence_scheme.relative_norm())

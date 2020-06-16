@@ -14,6 +14,7 @@ from .. import mpi
 from petsc4py import PETSc
 from .solver import *
 from .._kernel import get_kernel
+from .exceptions import IterativeSolverFailure, DirectSolverFailure
 
 
 class LegacyLinearSystem:
@@ -80,16 +81,12 @@ class LegacyIterativeSolver(IterativeSolver):
         """
         super().__init__(linear_system, settings)
         self.kernel = get_kernel()
-        self.activate_direct_solver = False
         self.activate_cpramg = activate_cpramg
         self.settings = (
             self.settings._asdict()
         )  # Is there a better way than storing it as a dictionary ?
         self.kernel.SolvePetsc_Init(
-            settings.max_iterations,
-            settings.tolerance,
-            self.activate_cpramg,
-            self.activate_direct_solver,
+            settings.max_iterations, settings.tolerance, self.activate_cpramg, False,
         )
 
     def make_setter(name):
@@ -121,11 +118,18 @@ class LegacyIterativeSolver(IterativeSolver):
 
     def solve(self):
 
-        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        nit = self.kernel.SolvePetsc_KspSolveIterationNumber()
 
-    def get_iteration_number(self):
+        if ksp_reason < 0:
+            self.number_of_unsuccessful_iterations += nit
+            raise IterativeSolverFailure(
+                f"Legacy KSP object returned error code: {ksp_reason}", nit
+            )
+        else:
+            self.number_of_successful_iterations += nit
 
-        return self.kernel.SolvePetsc_KspSolveIterationNumber()
+        return self.linear_system.x, nit, ksp_reason
 
 
 class LegacyDirectSolver(DirectSolver):
@@ -135,17 +139,20 @@ class LegacyDirectSolver(DirectSolver):
         super().__init__(linear_system)
         self.linear_system = linear_system
         self.kernel = get_kernel()
-        self.activate_direct_solver = True
         self.activate_cpramg = False
-        self.kernel.SolvePetsc_Init(0, 0.0, False, self.activate_direct_solver)
+        self.kernel.SolvePetsc_Init(0, 0.0, False, True)
 
     def solve(self):
 
-        return self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        nit = None
 
-    def get_iteration_number(self):
-        # FIXME THIS METHOD HAS TO GO AWAY
-        return self.kernel.SolvePetsc_KspSolveIterationNumber()
+        if ksp_reason < 0:
+            raise DirectSolverFailure(
+                f"Legacy KSP object returned error code: {ksp_reason}"
+            )
+
+        return self.linear_system.x, nit, ksp_reason
 
 
 def default_linear_solver(simulation):

@@ -25,15 +25,12 @@ class LinearSolver:
         :param linear_system: the linear system structure
         """
         self.failures = 0
-        self.number_of_succesful_iterations = 0
-        self.number_of_useless_iterations = 0
         self.linear_system = linear_system
 
 
 class DirectSolver(LinearSolver):
     def __init__(self, linear_system):
         super().__init__(linear_system)
-        self.activate_direct_solver = True
 
 
 class IterativeSolver(LinearSolver):
@@ -42,5 +39,6 @@ class IterativeSolver(LinearSolver):
         :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
         """
         super().__init__(linear_system)
+        self.number_of_successful_iterations = 0
+        self.number_of_unsuccessful_iterations = 0
         self.settings = settings
-        self.activate_direct_solver = False

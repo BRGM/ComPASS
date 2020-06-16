@@ -13,6 +13,7 @@ petsc4py.init(sys.argv)
 from .. import mpi
 from .solver import *
 from petsc4py import PETSc
+from .exceptions import IterativeSolverFailure, DirectSolverFailure
 
 
 class PetscLinearSystem:
@@ -137,13 +138,18 @@ class PetscIterativeSolver(IterativeSolver):
     def solve(self):
 
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
-        reason = self.ksp.getConvergedReason()
+        ksp_reason = self.ksp.getConvergedReason()
+        nit = self.ksp.getIterationNumber()
 
-        return reason
+        if ksp_reason < 0:
+            self.number_of_unsuccessful_iterations += nit
+            raise IterativeSolverFailure(
+                "Petsc KSP object returned error code: %s" % ksp_reason, nit
+            )
+        else:
+            self.number_of_successful_iterations += nit
 
-    def get_iteration_number(self):
-
-        return self.ksp.getIterationNumber()
+        return self.linear_system.x, nit, ksp_reason
 
 
 class PetscDirectSolver(DirectSolver):
@@ -165,10 +171,11 @@ class PetscDirectSolver(DirectSolver):
     def solve(self):
 
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
-        reason = self.ksp.getConvergedReason()
+        ksp_reason = self.ksp.getConvergedReason()
 
-        return reason
+        if ksp_reason < 0:
+            raise DirectSolverFailure(
+                "Petsc KSP object returned error code: %s" % ksp_reason
+            )
 
-    def get_iteration_number(self):
-        # FIXME THIS METHOD HAS TO GO AWAY
-        return self.ksp.getIterationNumber()
+        return self.linear_system.x, None, ksp_reason
