@@ -13,10 +13,7 @@ from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
-from .linalg.legacy_linear_solver import (
-    default_linear_solver,
-    default_direct_solver,
-)
+from .linalg.factory import linear_solver
 from .linalg.exceptions import LinearSolverFailure
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
@@ -216,5 +213,9 @@ class Newton:
 
 
 def default_Newton(simulation):
-
-    return Newton(simulation, 1e-5, 8, default_linear_solver(simulation))
+    # The default lsolver is a legacy iterative solver
+    # which uses the CPR-AMG preconditioner
+    default_lsolver = linear_solver(
+        simulation, legacy=True, direct=False, activate_cpramg=True
+    )
+    return Newton(simulation, 1e-5, 8, default_lsolver)

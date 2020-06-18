@@ -12,7 +12,7 @@ import sys
 petsc4py.init(sys.argv)
 from .. import mpi
 from petsc4py import PETSc
-from .solver import *
+from .solver import IterativeSolver, DirectSolver, IterativeSolverSettings
 from .._kernel import get_kernel
 from .exceptions import IterativeSolverFailure, DirectSolverFailure
 
@@ -95,7 +95,7 @@ class LegacyIterativeSolver(IterativeSolver):
             self.kernel.SolvePetsc_Ksp_configuration(
                 self.settings["tolerance"],
                 self.settings["max_iterations"],
-                self.settings["gmres_restart"],
+                self.settings["restart_size"],
             )
 
         return setter
@@ -110,9 +110,9 @@ class LegacyIterativeSolver(IterativeSolver):
         fset=make_setter("max_iterations"),
         doc="Maximum number of iterations accepted before convergence failure",
     )
-    gmres_restart = property(
-        fget=lambda self: self.settings["gmres_restart"],
-        fset=make_setter("gmres_restart"),
+    restart_size = property(
+        fget=lambda self: self.settings["restart_size"],
+        fset=make_setter("restart_size"),
         doc="Number of iterations at which GMRES restarts",
     )
 
@@ -153,15 +153,3 @@ class LegacyDirectSolver(DirectSolver):
             )
 
         return self.linear_system.x, nit, ksp_reason
-
-
-def default_linear_solver(simulation):
-
-    return LegacyIterativeSolver(
-        LegacyLinearSystem(simulation), IterativeSolverSettings(1.0e-6, 150, 30)
-    )
-
-
-def default_direct_solver(simulation):
-
-    return LegacyDirectSolver(LegacyLinearSystem(simulation))

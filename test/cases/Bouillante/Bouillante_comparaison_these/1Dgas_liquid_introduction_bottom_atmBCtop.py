@@ -19,7 +19,8 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, default_direct_solver
+from ComPASS.newton import Newton
+from ComPASS.linalg.factory import linear_solver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
@@ -155,7 +156,7 @@ output_period = 0.1 * final_time
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = default_direct_solver(simulation)
+lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 current_time = standard_loop(

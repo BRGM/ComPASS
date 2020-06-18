@@ -11,7 +11,8 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
-from ComPASS.newton import Newton, default_direct_solver
+from ComPASS.linalg.factory import linear_solver
+from ComPASS.newton import Newton
 
 np.random.seed(12345)  # Set the seed to have always the same pattern
 nb_random_wells = 2
@@ -143,7 +144,7 @@ for wid in range(nb_random_wells):
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = default_direct_solver(simulation)
+lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 final_time = 500 * year

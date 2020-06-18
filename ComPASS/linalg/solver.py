@@ -10,8 +10,8 @@ from collections import namedtuple
 
 IterativeSolverSettings = namedtuple(
     "IterativeSolverSettings",
-    ["tolerance", "max_iterations", "gmres_restart"],
-    defaults=[None],
+    ["tolerance", "max_iterations", "restart_size"],
+    defaults=[None, None, None],
 )
 
 

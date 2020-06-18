@@ -19,7 +19,7 @@ from ComPASS.utils.units import *
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 import ComPASS.timestep as timestep
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import default_linear_solver
+from ComPASS.linalg.factory import linear_solver
 from scipy.optimize import newton_krylov
 import numpy as np
 
@@ -158,10 +158,11 @@ def clear_source_term():
 def make_one_timestep(t, dt, cTold, c1old):
 
     ts_manager = FixedTimeStep(dt)
-    # ts_manager = TimeStepManager(initial_timestep=720,)
-    newton = ComPASS.newton.Newton(
-        simulation, 1e-5, 20, default_linear_solver(simulation)
-    )  # simulation.default_Newton() #
+    # For this specific script the linear solver legacy version is deactivated.
+    # Linear solving is carried out by PETSc using petsc4py
+    # This is shown as an example and can be switched off by setting legacy=True
+    lsolver = linear_solver(simulation, legacy=False)
+    newton = ComPASS.newton.Newton(simulation, 1e-5, 20, lsolver)
     context = SimulationContext()
     # do cT first (linear)
     set_concentrations(cTold)

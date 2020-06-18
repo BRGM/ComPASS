@@ -15,7 +15,8 @@ import ComPASS.timestep as timestep
 from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.simulation_context import SimulationContext
-from ComPASS.newton import Newton, default_linear_solver
+from ComPASS.newton import Newton
+from ComPASS.linalg import linear_solver
 import ComPASS.mpi as mpi
 import matplotlib.pyplot as plt
 import scipy.sparse as sps
@@ -368,8 +369,8 @@ class Transport(object):
             self.simulation,
             1e-5,
             30,
-            LegacyIterativeSolver(LegacyLinearSystem(self.simulation), 1e-6, 150),
-        )  # self.simulation.default_Newton()
+            linear_solver(simulation, legacy=True, tolerance=1e-6, max_iterations=150),
+        )
         context = SimulationContext()
         # self.plot_pressure()
 

@@ -9,7 +9,8 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.timeloops import TimeStepManager, Event
-from ComPASS.newton import Newton, default_direct_solver
+from ComPASS.newton import Newton
+from ComPASS.linalg.factory import linear_solver
 import ComPASS.mpi as mpi
 
 from utils import hydrostatic_pressure
@@ -210,7 +211,7 @@ if mpi.is_on_master_proc:
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = default_direct_solver(simulation)
+lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(
