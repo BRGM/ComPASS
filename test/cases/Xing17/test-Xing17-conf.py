@@ -7,16 +7,17 @@
 #
 
 import numpy as np
+
 try:
     from scipy.integrate import ode
 except ImportError:
-    print('Install scipy for ode or implement a simple numerical integration routine.')
+    print("Install scipy for ode or implement a simple numerical integration routine.")
     raise
 
 import ComPASS
 from ComPASS.utils.units import *
 
-ComPASS.load_eos('water2ph')
+ComPASS.load_eos("water2ph")
 
 H = 3 * km
 depth_boiling = 1.5 * km
@@ -25,12 +26,26 @@ depth = np.linspace(0, depth_boiling, 200)
 g = ComPASS.get_gravity()
 dpdz = lambda _, p: ComPASS.liquid_molar_density(p, ComPASS.Tsat(p)) * g
 p = [1 * bar]
-r = ode(dpdz).set_integrator('lsoda')
+r = ode(dpdz).set_integrator("lsoda")
 r.set_initial_value(p[0], depth[0])
 p.extend([float(r.integrate(di)) for di in depth[1:]])
 p = np.array(p)
 Tsat = ComPASS.Tsat(p)
 pdb, Tdb = p[-1], Tsat[-1]
-print('boiling point-depth conditions at ', depth[-1], 'm:', pdb/MPa, 'MPa', K2degC(Tdb), 'degC')
+print(
+    "boiling point-depth conditions at ",
+    depth[-1],
+    "m:",
+    pdb / MPa,
+    "MPa",
+    K2degC(Tdb),
+    "degC",
+)
 rho = ComPASS.liquid_molar_density(pdb, Tdb)
-print('bottom hydrostatic conditions', (pdb + rho*g*(H-depth[-1]))/MPa, 'MPa', K2degC(Tdb), 'degC')
+print(
+    "bottom hydrostatic conditions",
+    (pdb + rho * g * (H - depth[-1])) / MPa,
+    "MPa",
+    K2degC(Tdb),
+    "degC",
+)

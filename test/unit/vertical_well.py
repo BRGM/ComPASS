@@ -142,10 +142,7 @@ io.write_mesh(
 )
 
 simulation.standard_loop(
-    initial_timestep=1,
-    final_time=year,
-    output_period=year / 12,
-    nitermax=1,
+    initial_timestep=1, final_time=year, output_period=year / 12, nitermax=1,
 )
 
 

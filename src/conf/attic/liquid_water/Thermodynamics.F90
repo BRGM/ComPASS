@@ -22,7 +22,6 @@ module Thermodynamics
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
 
-   
    implicit none
 
    public :: &
@@ -51,10 +50,10 @@ contains
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       integer :: errcode, Ierr
-      
-		write(*,*) "Should never be called with a single component."
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      
+
+      write (*, *) "Should never be called with a single component."
+      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
    end subroutine f_Fugacity
 
    ! Densite molaire
@@ -95,7 +94,7 @@ contains
       ds = (a + b*T*2.d0)*(1.d0 + 6.51d-4*Cs)
 
       cw = (1.d0 + 5.d-2*rs) &
-          *(a1 + a2*P + T*(b1 + b2*P) + T**2*(c1 + c2*P))
+           *(a1 + a2*P + T*(b1 + b2*P) + T**2*(c1 + c2*P))
 
       dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
       dcwt = (1.d0 + 5.d-2*rs)*((b1 + b2*P) + T*2.d0*(c1 + c2*P))
@@ -146,10 +145,10 @@ contains
       Cs = 0.04d0
       a = 1.d0 + Cs*1.34d0 + 6.12d0*Cs**2
       ss = 0.021482*(T - 273.d0 - 8.435d0 &
-          + sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
+                     + sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
       ss = ss - 1.2
       ds = 0.021482d0*(1.d0 + (T - 273.d0 - 8.435d0) &
-          /sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
+                       /sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
 
       f = 1.d-3*a/ss
       dPf = 0.d0
@@ -170,8 +169,8 @@ contains
       ! output
       real(c_double), intent(out) :: f, DSf(NbPhase)
 
-         f = 1.d0
-         dSf = 0.d0
+      f = 1.d0
+      dSf = 0.d0
 
    end subroutine f_PermRel
 

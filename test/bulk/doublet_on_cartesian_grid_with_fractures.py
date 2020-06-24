@@ -35,6 +35,7 @@ simulation.set_gravity(0)
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
+
 def fractures_factory(grid):
     def select_fractures():
         face_centers = simulation.compute_global_face_centers()
@@ -44,6 +45,7 @@ def fractures_factory(grid):
         return np.abs(face_centers[:, 2] - zfrac) < 0.25 * dz
 
     return select_fractures
+
 
 def wells_factory(grid):
     def make_wells():
@@ -58,6 +60,7 @@ def wells_factory(grid):
         return (producer, injector)
 
     return make_wells
+
 
 simulation.init(
     mesh=grid,

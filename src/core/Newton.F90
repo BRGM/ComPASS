@@ -17,7 +17,7 @@ module Newton
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
 
    implicit none
-   
+
    type, bind(C) :: Newton_increments_pointers
       type(c_ptr) :: nodes
       type(c_ptr) :: fractures

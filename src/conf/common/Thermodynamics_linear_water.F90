@@ -54,14 +54,14 @@ contains
 
    end function get_fluid_properties
 
-  ! Fugacity coefficients
-  !< rt is the rocktype identifier
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< icp component identifier
-  !< P is the reference pressure
-  !< T is the temperature
-  !< C is the phase molar frcations
-  !< S is all the saturations
+   ! Fugacity coefficients
+   !< rt is the rocktype identifier
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< icp component identifier
+   !< P is the reference pressure
+   !< T is the temperature
+   !< C is the phase molar frcations
+   !< S is all the saturations
    subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
@@ -80,11 +80,11 @@ contains
    end subroutine f_Fugacity
 
    ! Densite molaire
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
    subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
@@ -96,22 +96,22 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      f = fluid_properties%specific_mass                                                        &
-        * exp(fluid_properties%compressibility*(P - fluid_properties%reference_pressure))       &
-        * exp(fluid_properties%thermal_expansivity*(T - fluid_properties%reference_temperature))
-      dPf = f * fluid_properties%compressibility
-      dTf = f * fluid_properties%thermal_expansivity
+      f = fluid_properties%specific_mass &
+          *exp(fluid_properties%compressibility*(P - fluid_properties%reference_pressure)) &
+          *exp(fluid_properties%thermal_expansivity*(T - fluid_properties%reference_temperature))
+      dPf = f*fluid_properties%compressibility
+      dTf = f*fluid_properties%thermal_expansivity
       dCf(:) = 0.d0
       dSf(:) = 0.d0
 
    end subroutine f_DensiteMolaire
 
    ! Densite Massique
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
    subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -125,11 +125,11 @@ contains
 
    end subroutine f_DensiteMassique
 
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is the Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is the Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
    subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
@@ -149,9 +149,9 @@ contains
    end subroutine f_Viscosite
 
    ! Permeabilites
-  !< rt is the rocktype identifier
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< S is all the saturations
+   !< rt is the rocktype identifier
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< S is all the saturations
    subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
@@ -167,10 +167,10 @@ contains
 
    end subroutine f_PermRel
 
-  ! P(iph) = Pref + f_PressionCapillaire(iph)
-  !< rt is the rocktype identifier
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< S is all the saturations
+   ! P(iph) = Pref + f_PressionCapillaire(iph)
+   !< rt is the rocktype identifier
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< S is all the saturations
    subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
@@ -187,11 +187,11 @@ contains
    end subroutine f_PressionCapillaire
 
    ! EnergieInterne
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is the Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is the Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
    subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
@@ -206,11 +206,11 @@ contains
    end subroutine f_EnergieInterne
 
    ! Enthalpie
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is the Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is the Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
    subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
@@ -222,7 +222,7 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      f = fluid_properties%volumetric_heat_capacity * T
+      f = fluid_properties%volumetric_heat_capacity*T
       dPf = 0.d0
       dTf = fluid_properties%volumetric_heat_capacity
       dCf(:) = 0.d0
@@ -230,30 +230,30 @@ contains
 
    end subroutine f_Enthalpie
 
-  ! Specific Enthalpy (used in FreeFlow)
-  !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-  !< P is the Reference Pressure
-  !< T is the Temperature
-  !< C is the phase molar fractions
-  !< S is all the saturations
-  subroutine f_SpecificEnthalpy(iph,P,T,C,S,f,dPf,dTf,dCf,dSf) &
+   ! Specific Enthalpy (used in FreeFlow)
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is the Reference Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   !< S is all the saturations
+   subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 
-    ! input
-    integer(c_int), value, intent(in) :: iph
-    real(c_double), value, intent(in) :: P, T
-    real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      ! input
+      integer(c_int), value, intent(in) :: iph
+      real(c_double), value, intent(in) :: P, T
+      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
 
-    ! output
-    real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
-                                  dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+      ! output
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
+                                     dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
 
-    f(:) = fluid_properties%volumetric_heat_capacity * T
-    dPf = 0.d0
-    dTf(:) = fluid_properties%volumetric_heat_capacity
-    dCf = 0.d0
-    dSf = 0.d0
+      f(:) = fluid_properties%volumetric_heat_capacity*T
+      dPf = 0.d0
+      dTf(:) = fluid_properties%volumetric_heat_capacity
+      dCf = 0.d0
+      dSf = 0.d0
 
-  end subroutine f_SpecificEnthalpy
+   end subroutine f_SpecificEnthalpy
 
 end module Thermodynamics

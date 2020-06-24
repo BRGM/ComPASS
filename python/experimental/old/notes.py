@@ -86,7 +86,7 @@ ZoneMap.set(zone, value)
 1 - accorder le partitionnement du zone manager en accord avec son nouveau
     domaine: il suffit de construire la zone correspondante
 
-2 - 
+2 -
 
 
 """

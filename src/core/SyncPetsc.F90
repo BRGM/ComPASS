@@ -18,7 +18,7 @@ module SyncPetsc
       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
       NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
       NbFracLocal_Ncpus, NbCellLocal_Ncpus
-    
+
    implicit none
 
    type, bind(C) :: MatrixSize
@@ -40,9 +40,9 @@ contains
       nc = 0
       do i = 1, Ncpus
          nr = nr + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i))*NbCompThermique &
-                   + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
+              + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
          nc = nc + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i))*NbCompThermique &
-                   + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+              + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
       end do
       matrix_size%nbrows = nr
       matrix_size%nbcols = nc
@@ -52,14 +52,14 @@ contains
    subroutine SyncPetsc_local_matrix_size(matrix_size) &
       bind(C, name="SyncPetsc_local_matrix_size")
       type(MatrixSize), intent(out) :: matrix_size
-      
+
       matrix_size%nbrows = (NbNodeLocal_Ncpus(commRank + 1) &
-      + NbFracLocal_Ncpus(commRank + 1))*NbCompThermique &
-      + NbWellInjLocal_Ncpus(commRank + 1) + NbWellProdLocal_Ncpus(commRank + 1)
+                            + NbFracLocal_Ncpus(commRank + 1))*NbCompThermique &
+                           + NbWellInjLocal_Ncpus(commRank + 1) + NbWellProdLocal_Ncpus(commRank + 1)
       matrix_size%nbcols = (NbNodeOwn_Ncpus(commRank + 1) &
-      + NbFracOwn_Ncpus(commRank + 1))*NbCompThermique &
-      + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1)
-      
+                            + NbFracOwn_Ncpus(commRank + 1))*NbCompThermique &
+                           + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1)
+
    end subroutine SyncPetsc_local_matrix_size
 
    ! ! FIXME: this could be refactored (several times the same thing...)
@@ -77,7 +77,7 @@ contains
 
    !    ! number of node and frac in the procs before commRank
    !    allocate(NbSumRow(Ncpus))
-      
+
    !    NbSumRow(:) = 0
    !    do i=1, Ncpus-1
    !       NbSumRow(i+1) = NbSumRow(i) &
@@ -119,10 +119,10 @@ contains
 
       integer i
       ok = .false.
-      if(size(dof_family%ids)<nb_owns) return
-      do i=1, nb_owns
-         if(dof_family%ids(i)%proc/=commRank) then
-            write(*,*) "inconsistent node proc"
+      if (size(dof_family%ids) < nb_owns) return
+      do i = 1, nb_owns
+         if (dof_family%ids(i)%proc /= commRank) then
+            write (*, *) "inconsistent node proc"
             return
          end if
       end do
@@ -132,76 +132,76 @@ contains
    ! FIXME: this could be refactored (several times the same thing...)
    subroutine SyncPetsc_colnum(ColNum)
 
-         integer, dimension(:), intent(out) :: ColNum
+      integer, dimension(:), intent(out) :: ColNum
 
-         integer :: i, local_col_offset, global_col_offset(NCpus)
-         integer :: NbNodeLocal, NbNodeOwn, NbFracLocal, NbFracOwn
-         integer :: NbWellInjLocal, NbWellInjOwn, NbWellProdLocal, NbWellProdOwn
-   
-         NbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
-         NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
-         NbFracLocal = NbFracLocal_Ncpus(commRank + 1)
-         NbFracOwn = NbFracOwn_Ncpus(commRank + 1)
-         NbWellInjLocal = NbWellInjLocal_Ncpus(commRank + 1)
-         NbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
-         NbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
-         NbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
+      integer :: i, local_col_offset, global_col_offset(NCpus)
+      integer :: NbNodeLocal, NbNodeOwn, NbFracLocal, NbFracOwn
+      integer :: NbWellInjLocal, NbWellInjOwn, NbWellProdLocal, NbWellProdOwn
 
-         local_col_offset = 0
-         global_col_offset = 0
-         if(Ncpus>1) then
-            do i=1, Ncpus-1
-               global_col_offset(i+1) = global_col_offset(i) &
-                  + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i)) * NbCompThermique &
-                  + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
-            end do
-         end if
+      NbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
+      NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
+      NbFracLocal = NbFracLocal_Ncpus(commRank + 1)
+      NbFracOwn = NbFracOwn_Ncpus(commRank + 1)
+      NbWellInjLocal = NbWellInjLocal_Ncpus(commRank + 1)
+      NbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
+      NbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
+      NbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
+
+      local_col_offset = 0
+      global_col_offset = 0
+      if (Ncpus > 1) then
+         do i = 1, Ncpus - 1
+            global_col_offset(i + 1) = global_col_offset(i) &
+                                       + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i))*NbCompThermique &
+                                       + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+         end do
+      end if
 
 #ifndef NDEBUG
-         if(size(NumNodebyProc%ids)/=NbNodeLocal) &
-            call CommonMPI_abort("Inconsistent number of node dofs")
-         if(.not.check_dof_family(NumNodebyProc, NbNodeOwn)) &
-            call CommonMPI_abort("Inconsistent node family")
+      if (size(NumNodebyProc%ids) /= NbNodeLocal) &
+         call CommonMPI_abort("Inconsistent number of node dofs")
+      if (.not. check_dof_family(NumNodebyProc, NbNodeOwn)) &
+         call CommonMPI_abort("Inconsistent node family")
 #endif
-         call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumNodebyProc, NbCompThermique, ColNum)
-         local_col_offset = local_col_offset + NbNodeLocal * NbCompThermique
-         global_col_offset = global_col_offset + NbCompThermique * NbNodeOwn_Ncpus
+      call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumNodebyProc, NbCompThermique, ColNum)
+      local_col_offset = local_col_offset + NbNodeLocal*NbCompThermique
+      global_col_offset = global_col_offset + NbCompThermique*NbNodeOwn_Ncpus
 
-         if(NbFracLocal>0) then
+      if (NbFracLocal > 0) then
 #ifndef NDEBUG
-            if(size(NumFracbyProc%ids)/=NbFracLocal) &
-               call CommonMPI_abort("Inconsistent number of Frac dofs")
-            if(.not.check_dof_family(NumFracbyProc, NbFracOwn)) &
-               call CommonMPI_abort("Inconsistent Frac family")
+         if (size(NumFracbyProc%ids) /= NbFracLocal) &
+            call CommonMPI_abort("Inconsistent number of Frac dofs")
+         if (.not. check_dof_family(NumFracbyProc, NbFracOwn)) &
+            call CommonMPI_abort("Inconsistent Frac family")
 #endif
-            call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumFracbyProc, NbCompThermique, ColNum)
-            local_col_offset = local_col_offset + NbFracLocal * NbCompThermique
-         end if
-         global_col_offset = global_col_offset + NbCompThermique * NbFracOwn_Ncpus
+         call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumFracbyProc, NbCompThermique, ColNum)
+         local_col_offset = local_col_offset + NbFracLocal*NbCompThermique
+      end if
+      global_col_offset = global_col_offset + NbCompThermique*NbFracOwn_Ncpus
 
-         if(NbWellInjLocal>0) then
+      if (NbWellInjLocal > 0) then
 #ifndef NDEBUG
-            if(size(NumWellInjbyProc%ids)/=NbWellInjLocal) &
-               call CommonMPI_abort("Inconsistent number of WellInj dofs")
-            if(.not.check_dof_family(NumWellInjbyProc, NbWellInjOwn)) &
-               call CommonMPI_abort("Inconsistent WellInj family")
+         if (size(NumWellInjbyProc%ids) /= NbWellInjLocal) &
+            call CommonMPI_abort("Inconsistent number of WellInj dofs")
+         if (.not. check_dof_family(NumWellInjbyProc, NbWellInjOwn)) &
+            call CommonMPI_abort("Inconsistent WellInj family")
 #endif
-            call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumWellInjbyProc, 1, ColNum)
-            local_col_offset = local_col_offset + 1 * NbWellInjLocal
-         endif
-         global_col_offset = global_col_offset + 1 * NbWellInjOwn_Ncpus
+         call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumWellInjbyProc, 1, ColNum)
+         local_col_offset = local_col_offset + 1*NbWellInjLocal
+      endif
+      global_col_offset = global_col_offset + 1*NbWellInjOwn_Ncpus
 
-         if(NbWellProdLocal>0) then
+      if (NbWellProdLocal > 0) then
 #ifndef NDEBUG
-            if(size(NumWellProdbyProc%ids)/=NbWellProdLocal) &
-               call CommonMPI_abort("Inconsistent number of WellProd dofs")
-            if(.not.check_dof_family(NumWellProdbyProc, NbWellProdOwn)) &
-               call CommonMPI_abort("Inconsistent WellProd family")
+         if (size(NumWellProdbyProc%ids) /= NbWellProdLocal) &
+            call CommonMPI_abort("Inconsistent number of WellProd dofs")
+         if (.not. check_dof_family(NumWellProdbyProc, NbWellProdOwn)) &
+            call CommonMPI_abort("Inconsistent WellProd family")
 #endif
-            call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumWellProdbyProc, 1, ColNum)
-            ! local_col_offset = local_col_offset + 1 * NbWellProdLocal
-         end if
-         ! global_col_offset = global_col_offset + 1 * NbWellProdOwn_Ncpus
+         call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumWellProdbyProc, 1, ColNum)
+         ! local_col_offset = local_col_offset + 1 * NbWellProdLocal
+      end if
+      ! global_col_offset = global_col_offset + 1 * NbWellProdOwn_Ncpus
 
    end subroutine SyncPetsc_colnum
 
@@ -215,11 +215,11 @@ contains
       integer :: i, s, n, proc, local_id
 
       n = size(dof_family%ids)
-      do i=1, n
+      do i = 1, n
          proc = dof_family%ids(i)%proc
          local_id = dof_family%ids(i)%local_id
-         do s=1, dof_size
-            col_map(local_col_offset + (i-1)*dof_size + s) = global_col_offset(proc+1) + (local_id-1)*dof_size + s
+         do s = 1, dof_size
+            col_map(local_col_offset + (i - 1)*dof_size + s) = global_col_offset(proc + 1) + (local_id - 1)*dof_size + s
          end do
       end do
 
@@ -231,12 +231,12 @@ contains
       integer(c_size_t), value, intent(in) :: nColNum
       type(MatrixSize) :: matrix_size
       integer(c_int), pointer :: pColNum(:)
-      
+
       call SyncPetsc_local_matrix_size(matrix_size)
-      if(matrix_size%nbrows/=nColNum) then
+      if (matrix_size%nbrows /= nColNum) then
          call CommonMPI_abort('Wrong local matrix sizes in SyncPetsc_colnum')
       end if
-      call c_f_pointer(ColNum, pColNum, (/ nColNum /))
+      call c_f_pointer(ColNum, pColNum, (/nColNum/))
       call SyncPetsc_colnum(pColNum)
 
    end subroutine SyncPetsc_colnum_from_C
@@ -250,20 +250,20 @@ subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
 #else
 #include <petsc/finclude/petsc.h>
 #endif
-   
+
    use petsc
 
    use CommonMPI, only: commRank
-   use Newton, only: Newton_increments, Newton_pointers_to_values, Newton_increments_pointers 
+   use Newton, only: Newton_increments, Newton_pointers_to_values, Newton_increments_pointers
    use DefModel, only: NbCompThermique !, psprim, NbContexte
    use MeshSchema, only: &
       NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
       NbNodeLocal_Ncpus, NbFracLocal_Ncpus
-  
+
    implicit none
 
    Vec, intent(inout) :: x_s
-   type(Newton_increments_pointers), intent(in), value :: increments_pointers      
+   type(Newton_increments_pointers), intent(in), value :: increments_pointers
    type(Newton_increments) :: increments
    integer :: i, j, start
    integer :: NbNodeLocal, NbFracLocal
@@ -272,7 +272,7 @@ subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
 
    NbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
    NbFracLocal = NbFracLocal_Ncpus(commRank + 1)
-   
+
    call Newton_pointers_to_values(increments_pointers, increments)
 
    ! get values from x_s

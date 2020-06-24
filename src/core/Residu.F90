@@ -120,30 +120,30 @@ contains
    subroutine Residu_associate_pointers( &
       nodes, fractures, cells, injectors, producers, &
       nodes_accumulation, fractures_accumulation, cells_accumulation &
-   ) &
-   bind(C, name="Residu_associate_pointers")
-   
+      ) &
+      bind(C, name="Residu_associate_pointers")
+
       type(cpp_array_wrapper), intent(in), value :: &
          nodes, cells, fractures, injectors, producers, &
          nodes_accumulation, cells_accumulation, fractures_accumulation
-   
-      if(nodes%n/=NbNodeLocal_Ncpus(commRank + 1) * NbCompThermique) &
+
+      if (nodes%n /= NbNodeLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent nodes residual size')
-      if(nodes_accumulation%n/=NbNodeLocal_Ncpus(commRank + 1) * NbCompThermique) &
+      if (nodes_accumulation%n /= NbNodeLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent accumulation nodes size')
-      if(cells%n/=NbCellLocal_Ncpus(commRank + 1) * NbCompThermique) &
+      if (cells%n /= NbCellLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent cells residual size')
-      if(cells_accumulation%n/=NbCellLocal_Ncpus(commRank + 1) * NbCompThermique) &
+      if (cells_accumulation%n /= NbCellLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent residual accumulation cells size')
-      if(fractures%n/=NbFracLocal_Ncpus(commRank + 1) * NbCompThermique) &
+      if (fractures%n /= NbFracLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent residual fractures size')
-      if(fractures_accumulation%n/=NbFracLocal_Ncpus(commRank + 1) * NbCompThermique) &
+      if (fractures_accumulation%n /= NbFracLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent residual accumulation fractures size')
-      if(injectors%n/=NbWellInjLocal_Ncpus(commRank + 1)) &
+      if (injectors%n /= NbWellInjLocal_Ncpus(commRank + 1)) &
          call CommonMPI_abort('inconsistent injectors residual size')
-      if(producers%n/=NbWellProdLocal_Ncpus(commRank + 1)) &
+      if (producers%n /= NbWellProdLocal_Ncpus(commRank + 1)) &
          call CommonMPI_abort('inconsistent producers residual size')
-   
+
       call c_f_pointer(nodes%p, ResiduNode, [NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)])
       call c_f_pointer(cells%p, ResiduCell, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
       call c_f_pointer(fractures%p, ResiduFrac, [NbCompThermique, NbFracLocal_Ncpus(commRank + 1)])
@@ -152,7 +152,7 @@ contains
       call c_f_pointer(nodes_accumulation%p, AccVolNode_1, [NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)])
       call c_f_pointer(cells_accumulation%p, AccVolCell_1, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
       call c_f_pointer(fractures_accumulation%p, AccVolFrac_1, [NbCompThermique, NbFracLocal_Ncpus(commRank + 1)])
-   
+
    end subroutine Residu_associate_pointers
 
    !> \brief Clear ResiduCell/Frac/Node/Well
@@ -165,7 +165,6 @@ contains
       ResiduWellProd(:) = 0.d0
 
    end subroutine Residu_clear_residuals
-
 
    !> \brief Newton is initialized with the unknown at time step n-1
    !! What about Ctilde ?????? shoud be 0 at the beginning of the time step
@@ -250,7 +249,7 @@ contains
 
    end subroutine Residu_compute
 
-   !> \brief Clear the residu of Dirichlet nodes 
+   !> \brief Clear the residu of Dirichlet nodes
    !! (distinction between P and T)
    subroutine Residu_reset_Dirichlet_nodes
 
@@ -320,17 +319,17 @@ contains
                ! FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1 (MCP...)
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
                   IncAll(k)%AccVol(icp) = IncAll(k)%AccVol(icp) &
-                                           + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, m, k)
+                                          + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, m, k)
                end if
             end do
 #ifdef _THERMIQUE_
             IncAll(k)%AccVol(NbComp + 1) = IncAll(k)%AccVol(NbComp + 1) &
-                                            + PoroVolFourier%values(k)*DensiteMolaireEnergieInterneSat%values(m, k)
+                                           + PoroVolFourier%values(k)*DensiteMolaireEnergieInterneSat%values(m, k)
 #endif
          end do ! end of phase m
 #ifdef _THERMIQUE_
          IncAll(k)%AccVol(NbComp + 1) = IncAll(k)%AccVol(NbComp + 1) &
-                                         + Poro_1VolFourier%values(k)*CpRoche*IncAll(k)%Temperature
+                                        + Poro_1VolFourier%values(k)*CpRoche*IncAll(k)%Temperature
 #endif
       end do
 
@@ -600,20 +599,20 @@ contains
       type(WellData_type), intent(inout) :: well_data
 
 !#ifndef NDEBUG
-        double precision :: T
-        logical :: converged
+      double precision :: T
+      logical :: converged
 !#endif
 
       well_data%actual_mass_flowrate = qw
       well_data%actual_energy_flowrate = qe
       well_data%actual_pressure = well_head_perforation%Pression
 !      well_data%actual_temperature = well_head_perforation%Temperature
-      
+
 !#ifndef NDEBUG
       ! WARNING: well_data%actual_temperature must be set to a consistent number...
       T = well_data%actual_temperature
       call DefFlashWells_solve_for_temperature(qe, well_head_perforation%Pression, T, qw, converged)
-      if(.not.converged) &
+      if (.not. converged) &
          !write(*,*) "WARNING: Conversion from enthalpy to temperature diverged."
          call CommonMPI_abort("WARNING: Conversion from enthalpy to temperature diverged.")
       !   if(abs(T-well_data%actual_temperature)>1e-3) then
@@ -631,7 +630,7 @@ contains
 
       double precision :: Flux_ks(NbComp), FluxT_ks
       double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, qe, Ps_Pws
-      logical  something_is_produced,  something_is_injected
+      logical something_is_produced, something_is_injected
 
       ! Injection well
       ! It is possible that one ghost well contains some own nodes,
@@ -663,7 +662,7 @@ contains
 
             ! Flux q_{w,s,i} and q_{w,s,e}
             Ps_Pws = Ps - Pws
-            if (Ps_Pws < 0.d0)  then
+            if (Ps_Pws < 0.d0) then
                something_is_injected = .true.
                Flux_ks = DensiteMolaireKrViscoCompWellInj(:, s)*WIDws*Ps_Pws
 #ifdef _THERMIQUE_
@@ -681,7 +680,7 @@ contains
          end do ! end of node s in injection well k
 
          ! FIXME: Init actual temperature
-         s =  NodebyWellInjLocal%Pt(k + 1) ! well head
+         s = NodebyWellInjLocal%Pt(k + 1) ! well head
          DataWellInjLocal(k)%actual_temperature = IncNode(NodebyWellInjLocal%Num(s))%Temperature
          call collect_wellhead_information(PerfoWellInj(s), qw, qe, DataWellInjLocal(k))
 
@@ -745,7 +744,7 @@ contains
          end do ! end of node s in production well k
 
          ! FIXME: Init actual temperature
-         s =  NodebyWellProdLocal%Pt(k + 1) ! well head
+         s = NodebyWellProdLocal%Pt(k + 1) ! well head
          DataWellProdLocal(k)%actual_temperature = IncNode(NodebyWellProdLocal%Num(s))%Temperature
          call collect_wellhead_information(PerfoWellProd(NodebyWellProdLocal%Pt(k + 1)), qw, qe, DataWellProdLocal(k))
 
@@ -769,69 +768,69 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
    subroutine Residu_add_flux_contributions_FF_node
 
-    integer :: nums, m, mph, icp
-    double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate
+      integer :: nums, m, mph, icp
+      double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate
 
-    do nums=1, NbNodeOwn_Ncpus(commRank+1)
+      do nums = 1, NbNodeOwn_Ncpus(commRank + 1)
 
-      if(IdFFNodeLocal(nums)) then ! loop over freeflow dof only, avoid reservoir node
+         if (IdFFNodeLocal(nums)) then ! loop over freeflow dof only, avoid reservoir node
 
-         Flux_FreeFlow(:) = 0.d0
-         FluxT_FreeFlow = 0.d0
+            Flux_FreeFlow(:) = 0.d0
+            FluxT_FreeFlow = 0.d0
 
-         do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
-            mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
+               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-            FreeFlowMolarFlowrate = IncNode(nums)%FreeFlow_flowrate(mph)
+               FreeFlowMolarFlowrate = IncNode(nums)%FreeFlow_flowrate(mph)
 
-            if(FreeFlowMolarFlowrate>=0.d0) then
+               if (FreeFlowMolarFlowrate >= 0.d0) then
 
-               do icp=1, NbComp
-                  if(MCP(icp,mph)==1) then ! \cap P_i
+                  do icp = 1, NbComp
+                     if (MCP(icp, mph) == 1) then ! \cap P_i
 
-                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums) * ( &
-                             FreeFlowMolarFlowrateCompNode(icp,m,nums) &
-                           + FreeFlowHmCompNode(icp,m,nums) &
-                           + atm_comp(icp,mph) * rain_flux(mph) )! rain source term (rain_flux(gas)=0)
-                  end if
-               end do ! end of icp
+                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums)*( &
+                                             FreeFlowMolarFlowrateCompNode(icp, m, nums) &
+                                             + FreeFlowHmCompNode(icp, m, nums) &
+                                             + atm_comp(icp, mph)*rain_flux(mph))! rain source term (rain_flux(gas)=0)
+                     end if
+                  end do ! end of icp
 #ifdef _THERMIQUE_
-               FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums) * ( &
-                       FreeFlowMolarFlowrateEnthalpieNode(m,nums) &
-                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
+                  FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums)*( &
+                                   FreeFlowMolarFlowrateEnthalpieNode(m, nums) &
+                                   + AtmEnthalpieNode(m, nums)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
 #endif
 
-            else ! FreeFlowMolarFlowrate<0.d0
-            ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
-         
-               do icp=1, NbComp
-                  if(MCP(icp,mph)==1) then ! \cap P_i
-         
-                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums) * ( &
-                                FreeFlowMolarFlowrate * atm_comp(icp,mph) &
-                              + FreeFlowHmCompNode(icp,m,nums) &
-                              + atm_comp(icp,mph) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
-                  end if
-               end do ! end of icp
+               else ! FreeFlowMolarFlowrate<0.d0
+                  ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+
+                  do icp = 1, NbComp
+                     if (MCP(icp, mph) == 1) then ! \cap P_i
+
+                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums)*( &
+                                             FreeFlowMolarFlowrate*atm_comp(icp, mph) &
+                                             + FreeFlowHmCompNode(icp, m, nums) &
+                                             + atm_comp(icp, mph)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
+                     end if
+                  end do ! end of icp
 #ifdef _THERMIQUE_
-               FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums) * ( &
-                       FreeFlowMolarFlowrate * AtmEnthalpieNode(m,nums) &
-                     + AtmEnthalpieNode(m,nums) * rain_flux(mph) ) ! rain source term (rain_flux(gas)=0)
+                  FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums)*( &
+                                   FreeFlowMolarFlowrate*AtmEnthalpieNode(m, nums) &
+                                   + AtmEnthalpieNode(m, nums)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
 #endif
-            endif ! sign of FreeFlowMolarFlowrate
-         enddo ! m
+               endif ! sign of FreeFlowMolarFlowrate
+            enddo ! m
 
 #ifdef _THERMIQUE_
-         FluxT_FreeFlow = FluxT_FreeFlow &
-               + SurfFreeFlowLocal(nums) * FreeFlowHTTemperatureNetRadiationNode(nums)
-         ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_FreeFlow
+            FluxT_FreeFlow = FluxT_FreeFlow &
+                             + SurfFreeFlowLocal(nums)*FreeFlowHTTemperatureNetRadiationNode(nums)
+            ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_FreeFlow
 #endif
 
-         ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_FreeFlow(1:NbComp)
+            ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_FreeFlow(1:NbComp)
 
-      endif ! avoid reservoir node
+         endif ! avoid reservoir node
 
-   enddo ! node nums
+      enddo ! node nums
 
    end subroutine Residu_add_flux_contributions_FF_node
 #endif

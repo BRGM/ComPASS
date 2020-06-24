@@ -24,5 +24,6 @@ repos:
     rev: v0.6.10
     hooks:
     - id: cmake-format
-      args: ['-i', '--dangle-parens', '--dangle-align=prefix']
+      additional_dependencies: [pyyaml]
+      args: ['-i']
 #    - id: cmake-lint

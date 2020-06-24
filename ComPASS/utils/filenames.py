@@ -9,16 +9,18 @@
 import os
 from .. import mpi
 
-default_case_name = 'compass'
+default_case_name = "compass"
+
 
 def create_directories(path):
     if mpi.is_on_master_proc:
         if not os.path.exists(path):
             os.makedirs(path)
         assert os.path.isdir(path)
-    #IMPROVE: depending on the way I/O are handled synchronization is not
+    # IMPROVE: depending on the way I/O are handled synchronization is not
     #         necessary here
-    mpi.synchronize() # wait for every process to synchronize
+    mpi.synchronize()  # wait for every process to synchronize
+
 
 def output_directory(case_name=None, rootname=None):
     if rootname is None:
@@ -27,16 +29,17 @@ def output_directory(case_name=None, rootname=None):
         case_name = default_case_name
     else:
         case_name = os.path.splitext(os.path.basename(case_name))[0]
-    output = os.path.join('output-' + os.path.splitext(os.path.basename(case_name))[0])
+    output = os.path.join("output-" + os.path.splitext(os.path.basename(case_name))[0])
     output = os.path.abspath(output)
     # master proc manages directory creation
     create_directories(output)
     return output
+
 
 def output_directory_and_logfile(case_name=None):
     output = output_directory(case_name)
     if case_name is None:
         case_name = default_case_name
     case_name = os.path.splitext(os.path.basename(case_name))[0]
-    logfile = os.path.join(output, case_name + '.log')
+    logfile = os.path.join(output, case_name + ".log")
     return output, logfile

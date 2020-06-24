@@ -13,7 +13,6 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlashWells
 
-
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
    use iso_c_binding
    use mpi
@@ -36,7 +35,7 @@ module DefFlashWells
    use IncPrimSecd
 #else
    use CommonType, only: CSRdble
-   use CommonMPI, only: commRank,CommonMPI_abort
+   use CommonMPI, only: commRank, CommonMPI_abort
    use GlobalMesh, only: NodeRocktype
    use IncCVWells, only: &
       PerfoWellInj, &
@@ -496,7 +495,7 @@ contains
          Ts = IncNode(nums)%Temperature ! Ts: Temperature in matrix
          Sat(:) = IncNode(nums)%Saturation(:) ! Sat in matrix
          rt = NodeRocktype(:, s)
-         Ps = IncNode(nums)%Pression ! Ps: Reference Pressure in matrix 
+         Ps = IncNode(nums)%Pression ! Ps: Reference Pressure in matrix
 
          ! loop over alpha in Q_s
          do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -602,10 +601,10 @@ contains
                IncPressionWellInj(num_Well) = DataWellInjLocal(num_Well)%PressionMax ! Pw = PwMax
 
 #ifdef COMPASS_LOG_WELL_INFO
-               write(*,*) '[Well-Monitoring] Injector has changed to pressure mode, well number: ', num_Well 
+               write (*, *) '[Well-Monitoring] Injector has changed to pressure mode, well number: ', num_Well
 #endif
-               
-    endif
+
+            endif
 
          else if (DataWellInjLocal(num_Well)%IndWell == 'p') then ! pressure mode
 
@@ -621,9 +620,9 @@ contains
                DataWellInjLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
 
 #ifdef COMPASS_LOG_WELL_INFO
-               write(*,*) '[Well-Monitoring] Injector has changed to flowrate mode, well number: ', num_Well
-#endif              
-               
+               write (*, *) '[Well-Monitoring] Injector has changed to flowrate mode, well number: ', num_Well
+#endif
+
             endif
          else
 
@@ -659,9 +658,9 @@ contains
                IncPressionWellProd(num_Well) = DataWellProdLocal(num_Well)%PressionMin ! Pw = PwMin
 
 #ifdef COMPASS_LOG_WELL_INFO
-               write(*,*) '[Well-Monitoring] Producer has changed to pressure mode, well number: ', num_Well
-#endif               
-               
+               write (*, *) '[Well-Monitoring] Producer has changed to pressure mode, well number: ', num_Well
+#endif
+
             endif
 
          else if (DataWellProdLocal(num_Well)%IndWell == 'p') then ! pressure mode
@@ -677,9 +676,9 @@ contains
                DataWellProdLocal(num_Well)%IndWell = 'f' ! change to flowrate mode
 
 #ifdef COMPASS_LOG_WELL_INFO
-               write(*,*) '[Well-Monitoring] Producer has changed to flowrate mode, well number: ', num_Well
-#endif               
-               
+               write (*, *) '[Well-Monitoring] Producer has changed to flowrate mode, well number: ', num_Well
+#endif
+
             endif
          else
 
@@ -704,7 +703,7 @@ contains
       double precision:: Flux_ks(NbComp), FluxT_ks
 
       ! nodes of well k
-      ! looping from head to queue, recall the numbering of parents & sons, parents_idxs are greater that their sons_idxs      
+      ! looping from head to queue, recall the numbering of parents & sons, parents_idxs are greater that their sons_idxs
       do s = NodebyWellProdLocal%Pt(num_Well) + 1, NodebyWellProdLocal%Pt(num_Well + 1)
          nums = NodebyWellProdLocal%Num(s)
 
@@ -833,12 +832,12 @@ contains
          deltaPs = Ps - Pws
          if (deltaPs < 0.d0) then
 #ifndef NDEBUG
-            if(NbPhasePresente_ctx(IncNode(nums)%ic)/=1) &
+            if (NbPhasePresente_ctx(IncNode(nums)%ic) /= 1) &
                call CommonMPI_abort("Injectors are supposed to be monophasic.")
 #endif
-            qws = NodeDatabyWellInjLocal%Val(s)%WID * deltaPs
+            qws = NodeDatabyWellInjLocal%Val(s)%WID*deltaPs
             do icp = 1, NbComp
-               Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s) * qws
+               Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*qws
             end do
             Qw = Qw + sum(Flux_ks)
          end if
@@ -855,20 +854,20 @@ contains
 
       double precision :: H, ResT, dHdP, dHdT, Sat(NbPhase), dHdC(NbComp), dHdS(NbPhase)
       double precision :: dummyCi(NbComp), dummySat(NbPhase) ! not used by f_Enthalpie !
-      integer :: i 
-      
+      integer :: i
+
       converged = .false.
       do i = 1, WellsNewtonMaxiter
          call f_Enthalpie(LIQUID_PHASE, p, T, dummyCi, dummySat, H, dHdP, dHdT, dHdC, dHdS)
-         ResT = E - H * n ! residual
+         ResT = E - H*n ! residual
          if (abs(ResT) < WellsNewtonTol) then
             converged = .true.
             exit
          else
-            T = T + ResT / (dHdT * n)
+            T = T + ResT/(dHdT*n)
          end if
       end do
-   
+
    end subroutine DefFlashWells_solve_for_temperature
 
    !! \brief Execute the flash to determine T and the molar fractions
@@ -901,7 +900,7 @@ contains
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1
 
-            Pws = PerfoWellProd(s)%Pression 
+            Pws = PerfoWellProd(s)%Pression
 
             ! Newton method to compute T: R = E-Enthalpie*n = 0
             E = sumnrjFluxProd(s) ! energy
@@ -914,11 +913,11 @@ contains
             ! initialize newton with reservoir temperature
             T = IncNode(NodebyWellProdLocal%Num(s))%Temperature
             call DefFlashWells_solve_for_temperature(E, Pws, T, sumni, converged)
-            if (.not.converged) then
+            if (.not. converged) then
                print *, "Warning: Newton in DefFlashWells_TimeFlashSinglePhaseProd has not converged"
                print *, "Residu is", abs(ResT), "k= ", k, "s= ", s
             end if
-      
+
             ! update PhysPerfoWell
             PerfoWellProd(s)%Temperature = T
             call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, Sat, rhoMean, &

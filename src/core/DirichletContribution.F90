@@ -8,63 +8,63 @@
 
 module DirichletContribution
 
-    use CommonMPI, only: commRank
-    use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode
-    use MeshSchema, only: IdNodeLocal, NbNodeLocal_Ncpus
+   use CommonMPI, only: commRank
+   use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode
+   use MeshSchema, only: IdNodeLocal, NbNodeLocal_Ncpus
 
-    implicit none
+   implicit none
 
-    TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: &
-        IncNodeDirBC !< Dirichlet boundary unknowns for current time step (size NbNodeLocal)
+   TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: &
+      IncNodeDirBC !< Dirichlet boundary unknowns for current time step (size NbNodeLocal)
 
-    public :: &
-        DirichletContribution_allocate, &
-        DirichletContribution_free, &
-        DirichletContribution_update
+   public :: &
+      DirichletContribution_allocate, &
+      DirichletContribution_free, &
+      DirichletContribution_update
 
-    contains
+contains
 
-    !> \brief Allocate vector with Dirichlet contributions
-    subroutine DirichletContribution_allocate
+   !> \brief Allocate vector with Dirichlet contributions
+   subroutine DirichletContribution_allocate
 
-        allocate (IncNodeDirBC(NbNodeLocal_Ncpus(commRank + 1)))
+      allocate (IncNodeDirBC(NbNodeLocal_Ncpus(commRank + 1)))
 
-    end subroutine DirichletContribution_allocate
+   end subroutine DirichletContribution_allocate
 
-    !> \brief Deallocate vector with Dirichlet contributions
-    subroutine DirichletContribution_free
+   !> \brief Deallocate vector with Dirichlet contributions
+   subroutine DirichletContribution_free
 
-        deallocate (IncNodeDirBC)
+      deallocate (IncNodeDirBC)
 
-    end subroutine DirichletContribution_free
+   end subroutine DirichletContribution_free
 
-    subroutine DirichletContribution_update() &
-        bind(C, name="DirichletContribution_update")
+   subroutine DirichletContribution_update() &
+      bind(C, name="DirichletContribution_update")
 
-        integer :: k
+      integer :: k
 
-        do k = 1, NbNodeLocal_Ncpus(commRank + 1)
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1)
 
-            ! Can not use "=" of the two structures
-            ! because Dirichlet can be on Pressure only or Temperature only
-            if (IdNodeLocal(k)%P == "d") then
-                IncNode(k)%ic = IncNodeDirBC(k)%ic
-                IncNode(k)%Pression = IncNodeDirBC(k)%Pression
-                IncNode(k)%Saturation(:) = IncNodeDirBC(k)%Saturation(:)
-                IncNode(k)%Comp(:, :) = IncNodeDirBC(k)%Comp(:, :)
-            end if
+         ! Can not use "=" of the two structures
+         ! because Dirichlet can be on Pressure only or Temperature only
+         if (IdNodeLocal(k)%P == "d") then
+            IncNode(k)%ic = IncNodeDirBC(k)%ic
+            IncNode(k)%Pression = IncNodeDirBC(k)%Pression
+            IncNode(k)%Saturation(:) = IncNodeDirBC(k)%Saturation(:)
+            IncNode(k)%Comp(:, :) = IncNodeDirBC(k)%Comp(:, :)
+         end if
 
 #ifdef _THERMIQUE_
 
-            if (IdNodeLocal(k)%T == "d") then
-                IncNode(k)%ic = IncNodeDirBC(k)%ic
-                IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
-            end if
+         if (IdNodeLocal(k)%T == "d") then
+            IncNode(k)%ic = IncNodeDirBC(k)%ic
+            IncNode(k)%Temperature = IncNodeDirBC(k)%Temperature
+         end if
 
 #endif
 
-        end do
+      end do
 
-    end subroutine DirichletContribution_update
+   end subroutine DirichletContribution_update
 
 end module DirichletContribution

@@ -8,259 +8,259 @@
 
 module IncCVReservoir
 
-    use iso_c_binding, only: c_int, c_double, c_size_t
-    use mpi, only: MPI_DOUBLE, MPI_MIN
-    use mpi !, only: MPI_Allreduce ! FIXME: otherwise MPI_Allreduce not found on some platform
+   use iso_c_binding, only: c_int, c_double, c_size_t
+   use mpi, only: MPI_DOUBLE, MPI_MIN
+   use mpi !, only: MPI_Allreduce ! FIXME: otherwise MPI_Allreduce not found on some platform
 
-    use CommonMPI, only: ComPASS_COMM_WORLD, commRank
+   use CommonMPI, only: ComPASS_COMM_WORLD, commRank
 
-    use DefModel, only: &
-       NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
-       NbCompThermique, NbIncTotalMax, &
-       NumPhasePresente_ctx, NbPhasePresente_ctx, &
-       IndThermique, MCP
+   use DefModel, only: &
+      NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
+      NbCompThermique, NbIncTotalMax, &
+      NumPhasePresente_ctx, NbPhasePresente_ctx, &
+      IndThermique, MCP
 
-    use MeshSchema, only: &
-       IdNodeLocal, &
+   use MeshSchema, only: &
+      IdNodeLocal, &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-       IdFFNodeLocal, &
+      IdFFNodeLocal, &
 #endif
-       NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
-       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
-       SubArrayInfo, MeshSchema_subarrays_info
+      NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
+      NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
+      SubArrayInfo, MeshSchema_subarrays_info
 
-    use NumbyContext, only: &
-       NbIncPTC_ctx, NbIncTotal_ctx, &
-       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-       NumCompCtilde_ctx, NbCompCtilde_ctx
+   use NumbyContext, only: &
+      NbIncPTC_ctx, NbIncTotal_ctx, &
+      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
+      NumCompCtilde_ctx, NbCompCtilde_ctx
 
-    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
-    use SchemeParameters, only: &
-       NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, &
-       eps
+   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
+   use SchemeParameters, only: &
+      NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, &
+      eps
 
-    implicit none
+   implicit none
 
-    !> \brief Unknown for Degree Of Freedom (including thermal). 
-    !! DOF can be Cell, Fracture Face or Node.
-    !! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
-    !! to have the same structures in C++ and Python.
-    type, bind(C) :: TYPE_IncCVReservoir
-        integer(c_int) :: ic !< context: index of the set of present phase(s)
-        real(c_double) :: & !< values of Inc
-        Pression, & !< Reference Pressure of the element
-        Temperature, & !< Temperature of the element
-        Comp(NbComp, NbPhase), & !< Molar composition of the element
-        Saturation(NbPhase), & !< Saturation of the element
-        AccVol(NbCompThermique) !< Accumulation term integrated over volume
+   !> \brief Unknown for Degree Of Freedom (including thermal).
+   !! DOF can be Cell, Fracture Face or Node.
+   !! if this Type is modified, mandatory to modify file wrappers/IncCV_wrappers.cpp
+   !! to have the same structures in C++ and Python.
+   type, bind(C) :: TYPE_IncCVReservoir
+      integer(c_int) :: ic !< context: index of the set of present phase(s)
+      real(c_double) :: & !< values of Inc
+         Pression, & !< Reference Pressure of the element
+         Temperature, & !< Temperature of the element
+         Comp(NbComp, NbPhase), & !< Molar composition of the element
+         Saturation(NbPhase), & !< Saturation of the element
+         AccVol(NbCompThermique) !< Accumulation term integrated over volume
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-        ! values of Inc for the soil-atmosphere boundary coundition
-        real(c_double) :: FreeFlow_flowrate(NbPhase) !< molar flowrate in the freeflow (atmosphere) at the interface
+      ! values of Inc for the soil-atmosphere boundary coundition
+      real(c_double) :: FreeFlow_flowrate(NbPhase) !< molar flowrate in the freeflow (atmosphere) at the interface
 #endif
-    end TYPE TYPE_IncCVReservoir
+   end TYPE TYPE_IncCVReservoir
 
-    !> \brief  to allow = between two TYPE_IncCVReservoir
-    interface assignment(=)
-    module procedure assign_type_inccv
-    end interface assignment(=)
+   !> \brief  to allow = between two TYPE_IncCVReservoir
+   interface assignment(=)
+      module procedure assign_type_inccv
+   end interface assignment(=)
 
-    ! Inc for current time step: cell, fracture faces and nodes
-    type(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: IncAll
-    type(TYPE_IncCVReservoir), dimension(:), pointer, public :: &
-        IncCell, & !< Cell unknowns for current time step
-        IncFrac, & !< Fracture Face unknowns for current time step
-        IncNode !< Node unknowns for current time step
+   ! Inc for current time step: cell, fracture faces and nodes
+   type(TYPE_IncCVReservoir), allocatable, dimension(:), target, public :: IncAll
+   type(TYPE_IncCVReservoir), dimension(:), pointer, public :: &
+      IncCell, & !< Cell unknowns for current time step
+      IncFrac, & !< Fracture Face unknowns for current time step
+      IncNode !< Node unknowns for current time step
 
-    ! Inc for previous time step: current time step - 1
-    TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), public :: &
-        IncCellPreviousTimeStep, & !< Cell unknowns for previous time step
-    IncFracPreviousTimeStep, & !< Fracture Face unknowns for previous time step
-    IncNodePreviousTimeStep !< Node unknowns for previous time step
+   ! Inc for previous time step: current time step - 1
+   TYPE(TYPE_IncCVReservoir), allocatable, dimension(:), public :: &
+      IncCellPreviousTimeStep, & !< Cell unknowns for previous time step
+      IncFracPreviousTimeStep, & !< Fracture Face unknowns for previous time step
+      IncNodePreviousTimeStep !< Node unknowns for previous time step
 
-    public :: &
-        IncCVReservoir_allocate, &
-        IncCVReservoir_NewtonRelax, &
-        IncCVReservoir_NewtonIncrement, &
-        IncCVReservoir_LoadIncPreviousTimeStep, &
-        IncCVReservoir_SaveIncPreviousTimeStep, &
-        IncCVReservoir_free
+   public :: &
+      IncCVReservoir_allocate, &
+      IncCVReservoir_NewtonRelax, &
+      IncCVReservoir_NewtonIncrement, &
+      IncCVReservoir_LoadIncPreviousTimeStep, &
+      IncCVReservoir_SaveIncPreviousTimeStep, &
+      IncCVReservoir_free
 
-private :: &
-        IncCVReservoir_NewtonIncrement_reservoir
+   private :: &
+      IncCVReservoir_NewtonIncrement_reservoir
 
-    contains
+contains
 
 #ifndef NDEBUG
 
-subroutine dump_incv_info() &
-    bind(C, name="dump_incv_info")
-    integer(c_size_t) :: k, n
-    type(SubArrayInfo) :: info
-    
-    call MeshSchema_subarrays_info(info)
-    
-    n = info%nb%nodes + info%nb%fractures + info%nb%cells
-    write(*,*) info%nb%nodes, "nodes"
-    write(*,*) info%nb%fractures, "fractures"
-    write(*,*) info%nb%cells, "cells"
-    write(*,*) "-->", n, "dofs"
-    write(*,*) "%% - IncAll"
-    do k=1, n
-        write(*,*) "context", k, ":", IncAll(k)%ic
-    end do
-    write(*,*) "%% - IncNode"
-    do k=1, size(IncNode)
-        write(*,*) "context node", k, ":", IncNode(k)%ic
-    end do
-    write(*,*) "%% - IncCell"
-    do k=1, size(IncCell)
-        write(*,*) "context cell", k, ":", IncCell(k)%ic
-    end do
-    write(*,*) "%% - IncFrac"
-    do k=1, size(IncFrac)
-        write(*,*) "context fracture", k, ":", IncFrac(k)%ic
-    end do
-    
+   subroutine dump_incv_info() &
+      bind(C, name="dump_incv_info")
+      integer(c_size_t) :: k, n
+      type(SubArrayInfo) :: info
+
+      call MeshSchema_subarrays_info(info)
+
+      n = info%nb%nodes + info%nb%fractures + info%nb%cells
+      write (*, *) info%nb%nodes, "nodes"
+      write (*, *) info%nb%fractures, "fractures"
+      write (*, *) info%nb%cells, "cells"
+      write (*, *) "-->", n, "dofs"
+      write (*, *) "%% - IncAll"
+      do k = 1, n
+         write (*, *) "context", k, ":", IncAll(k)%ic
+      end do
+      write (*, *) "%% - IncNode"
+      do k = 1, size(IncNode)
+         write (*, *) "context node", k, ":", IncNode(k)%ic
+      end do
+      write (*, *) "%% - IncCell"
+      do k = 1, size(IncCell)
+         write (*, *) "context cell", k, ":", IncCell(k)%ic
+      end do
+      write (*, *) "%% - IncFrac"
+      do k = 1, size(IncFrac)
+         write (*, *) "context fracture", k, ":", IncFrac(k)%ic
+      end do
+
    end subroutine dump_incv_info
 
 #endif
 
-    !> \brief Define operator = between two TYPE_IncCV:  inc2=inc1
-    subroutine assign_type_inccv(inc2, inc1)
+   !> \brief Define operator = between two TYPE_IncCV:  inc2=inc1
+   subroutine assign_type_inccv(inc2, inc1)
 
-    type(TYPE_IncCVReservoir), intent(in) :: inc1
-    type(TYPE_IncCVReservoir), intent(out) :: inc2
+      type(TYPE_IncCVReservoir), intent(in) :: inc1
+      type(TYPE_IncCVReservoir), intent(out) :: inc2
 
-    inc2%ic = inc1%ic
+      inc2%ic = inc1%ic
 
-    inc2%Pression = inc1%Pression
+      inc2%Pression = inc1%Pression
 #ifdef _THERMIQUE_
-    inc2%Temperature = inc1%Temperature
+      inc2%Temperature = inc1%Temperature
 #endif
-    inc2%Comp(:, :) = inc1%Comp(:, :)
-    inc2%Saturation(:) = inc1%Saturation(:)
-    inc2%AccVol(:) = inc1%AccVol(:)
+      inc2%Comp(:, :) = inc1%Comp(:, :)
+      inc2%Saturation(:) = inc1%Saturation(:)
+      inc2%AccVol(:) = inc1%AccVol(:)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    inc2%FreeFlow_flowrate(:) = inc1%FreeFlow_flowrate(:)
+      inc2%FreeFlow_flowrate(:) = inc1%FreeFlow_flowrate(:)
 #endif
-    end subroutine assign_type_inccv
+   end subroutine assign_type_inccv
 
-    !> \brief Allocate unknowns vectors
-    subroutine IncCVReservoir_allocate
-    
-        type(SubArrayInfo) :: info
-        
-        call MeshSchema_subarrays_info(info)
-            
-        allocate(IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
-        IncNode => IncAll(info%offset%nodes:info%offset%nodes-1+info%nb%nodes)
-        IncFrac => IncAll(info%offset%fractures:info%offset%fractures-1+info%nb%fractures)
-        IncCell => IncAll(info%offset%cells:info%offset%cells-1+info%nb%cells)
+   !> \brief Allocate unknowns vectors
+   subroutine IncCVReservoir_allocate
 
-        allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
-        allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
-        allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
+      type(SubArrayInfo) :: info
 
-    end subroutine IncCVReservoir_allocate
+      call MeshSchema_subarrays_info(info)
 
-    !> \brief Deallocate unknowns vectors
-    subroutine IncCVReservoir_free
+      allocate (IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
+      IncNode => IncAll(info%offset%nodes:info%offset%nodes - 1 + info%nb%nodes)
+      IncFrac => IncAll(info%offset%fractures:info%offset%fractures - 1 + info%nb%fractures)
+      IncCell => IncAll(info%offset%cells:info%offset%cells - 1 + info%nb%cells)
 
-        nullify(IncNode, IncFrac, IncCell)
-        deallocate(IncAll)
+      allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
+      allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
+      allocate (IncNodePreviousTimeStep(NbNodeLocal_Ncpus(commRank + 1)))
 
-        deallocate (IncCellPreviousTimeStep)
-        deallocate (IncFracPreviousTimeStep)
-        deallocate (IncNodePreviousTimeStep)
+   end subroutine IncCVReservoir_allocate
 
-    end subroutine IncCVReservoir_free
+   !> \brief Deallocate unknowns vectors
+   subroutine IncCVReservoir_free
 
-    !> \brief Loops over nodes, fracs and cells to increment the unknowns
-    subroutine IncCVReservoir_NewtonIncrement( &
-        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
-        relax)
+      nullify (IncNode, IncFrac, IncCell)
+      deallocate (IncAll)
 
-    double precision, dimension(:, :), intent(in) :: &
-        NewtonIncreNode, &
-        NewtonIncreFrac, &
-        NewtonIncreCell
+      deallocate (IncCellPreviousTimeStep)
+      deallocate (IncFracPreviousTimeStep)
+      deallocate (IncNodePreviousTimeStep)
 
-    double precision, intent(in) :: relax
+   end subroutine IncCVReservoir_free
 
-    integer :: k
+   !> \brief Loops over nodes, fracs and cells to increment the unknowns
+   subroutine IncCVReservoir_NewtonIncrement( &
+      NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, &
+      relax)
 
-    ! nodes
-    do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-        call IncCVReservoir_NewtonIncrement_reservoir(IncNode(k), NewtonIncreNode(:, k), relax)
-    end do
+      double precision, dimension(:, :), intent(in) :: &
+         NewtonIncreNode, &
+         NewtonIncreFrac, &
+         NewtonIncreCell
 
-    ! fracture faces
-    do k = 1, NbFracLocal_Ncpus(commRank + 1)
-        call IncCVReservoir_NewtonIncrement_reservoir(IncFrac(k), NewtonIncreFrac(:, k), relax)
-    end do
+      double precision, intent(in) :: relax
 
-    ! cells
-    do k = 1, NbCellLocal_Ncpus(commRank + 1)
-        call IncCVReservoir_NewtonIncrement_reservoir(IncCell(k), NewtonIncreCell(:, k), relax)
-        !     write(*,*) ' increment cell ',k,NewtonIncreCell(:,k)
-    end do
+      integer :: k
 
-    end subroutine IncCVReservoir_NewtonIncrement
+      ! nodes
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1)
+         call IncCVReservoir_NewtonIncrement_reservoir(IncNode(k), NewtonIncreNode(:, k), relax)
+      end do
 
-  function IncCVReservoir_NewtonRelax_C(increments_pointers) &
-     result(relaxation) &
-     bind(C, name="IncCVReservoir_NewtonRelax")
+      ! fracture faces
+      do k = 1, NbFracLocal_Ncpus(commRank + 1)
+         call IncCVReservoir_NewtonIncrement_reservoir(IncFrac(k), NewtonIncreFrac(:, k), relax)
+      end do
 
-    type(Newton_increments_pointers), intent(in), value :: increments_pointers
-    real(c_double) :: relaxation
-    type(Newton_increments) :: increments
-    
-    call Newton_pointers_to_values(increments_pointers, increments)
-    call IncCVReservoir_NewtonRelax( &
-       increments%nodes, increments%fractures, increments%cells, relaxation &
-    )
+      ! cells
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
+         call IncCVReservoir_NewtonIncrement_reservoir(IncCell(k), NewtonIncreCell(:, k), relax)
+         !     write(*,*) ' increment cell ',k,NewtonIncreCell(:,k)
+      end do
 
-  end function IncCVReservoir_NewtonRelax_C
+   end subroutine IncCVReservoir_NewtonIncrement
 
-    !> \brief Compute relaxation in Newton.
-    !!
-    !! relax = min(1, IncreObj/NewtonIncreObjMax) <br>
-    !! where IncreObj is set by the user in SchemeParameters.F90 <br>
-    !! and NewtonIncreObjMax is the maximum of the Nemton increment
-    !! in current iteration
-    subroutine IncCVReservoir_NewtonRelax( &
-        NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax &
-    )
+   function IncCVReservoir_NewtonRelax_C(increments_pointers) &
+      result(relaxation) &
+      bind(C, name="IncCVReservoir_NewtonRelax")
 
-    real(c_double), dimension(:, :), intent(in) :: &
-        NewtonIncreNode, &
-        NewtonIncreFrac, &
-        NewtonIncreCell
+      type(Newton_increments_pointers), intent(in), value :: increments_pointers
+      real(c_double) :: relaxation
+      type(Newton_increments) :: increments
 
-    real(c_double), intent(out) :: relax
+      call Newton_pointers_to_values(increments_pointers, increments)
+      call IncCVReservoir_NewtonRelax( &
+         increments%nodes, increments%fractures, increments%cells, relaxation &
+         )
 
-    double precision :: &
-        incremaxlocal_P, &
-        incremaxlocal_T, &
-        incremaxlocal_C(NbComp, NbPhase), &
-        incremaxlocal_S(NbPhase), &
-        relaxlocal
+   end function IncCVReservoir_NewtonRelax_C
 
-    integer :: k, i, ic, iph, icp, j, Ierr
-    integer :: NbIncPTC
+   !> \brief Compute relaxation in Newton.
+   !!
+   !! relax = min(1, IncreObj/NewtonIncreObjMax) <br>
+   !! where IncreObj is set by the user in SchemeParameters.F90 <br>
+   !! and NewtonIncreObjMax is the maximum of the Nemton increment
+   !! in current iteration
+   subroutine IncCVReservoir_NewtonRelax( &
+      NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax &
+      )
 
-    incremaxlocal_P = 0.d0
+      real(c_double), dimension(:, :), intent(in) :: &
+         NewtonIncreNode, &
+         NewtonIncreFrac, &
+         NewtonIncreCell
+
+      real(c_double), intent(out) :: relax
+
+      double precision :: &
+         incremaxlocal_P, &
+         incremaxlocal_T, &
+         incremaxlocal_C(NbComp, NbPhase), &
+         incremaxlocal_S(NbPhase), &
+         relaxlocal
+
+      integer :: k, i, ic, iph, icp, j, Ierr
+      integer :: NbIncPTC
+
+      incremaxlocal_P = 0.d0
 
 #ifdef _THERMIQUE_
-    incremaxlocal_T = 0.d0
+      incremaxlocal_T = 0.d0
 #endif
-    incremaxlocal_C(:, :) = 0.d0
-    incremaxlocal_S(:) = 0.d0
+      incremaxlocal_C(:, :) = 0.d0
+      incremaxlocal_S(:) = 0.d0
 
-    ! max Newton increment node
-    do k = 1, NbNodeOwn_Ncpus(commRank + 1)
+      ! max Newton increment node
+      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
 
-        if (IdNodeLocal(k)%P /= "d") then
+         if (IdNodeLocal(k)%P /= "d") then
 
             ic = IncNode(k)%ic
             NbIncPTC = NbIncPTC_ctx(ic)
@@ -268,300 +268,300 @@ subroutine dump_incv_info() &
             incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreNode(1, k)))
 
             do i = 2 + IndThermique, NbIncPTC
-                icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
-                iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
+               icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
+               iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
 
-                incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreNode(i, k)))
+               incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreNode(i, k)))
             enddo
 
             do i = 1, NbPhasePresente_ctx(ic)
-                iph = NumPhasePresente_ctx(i, ic)
+               iph = NumPhasePresente_ctx(i, ic)
 
-                incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreNode(iph + NbIncPTC, k)))
+               incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreNode(iph + NbIncPTC, k)))
             end do
-        end if
+         end if
 
 #ifdef _THERMIQUE_
-        if (IdNodeLocal(k)%T /= "d") then
+         if (IdNodeLocal(k)%T /= "d") then
             incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreNode(2, k)))
-        end if
+         end if
 #endif
 
-    end do
+      end do
 
-    ! max Newton increment fracture face
-    do k = 1, NbFracOwn_Ncpus(commRank + 1)
+      ! max Newton increment fracture face
+      do k = 1, NbFracOwn_Ncpus(commRank + 1)
 
-        ic = IncFrac(k)%ic
-        NbIncPTC = NbIncPTC_ctx(ic)
+         ic = IncFrac(k)%ic
+         NbIncPTC = NbIncPTC_ctx(ic)
 
-        incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreFrac(1, k)))
+         incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreFrac(1, k)))
 
 #ifdef _THERMIQUE_
-        incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreFrac(2, k)))
+         incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreFrac(2, k)))
 #endif
 
-        do i = 2 + IndThermique, NbIncPTC
+         do i = 2 + IndThermique, NbIncPTC
             icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
             iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
 
             incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreFrac(i, k)))
-        enddo
+         enddo
 
-        do i = 1, NbPhasePresente_ctx(ic)
+         do i = 1, NbPhasePresente_ctx(ic)
             iph = NumPhasePresente_ctx(i, ic)
 
             incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreFrac(iph + NbIncPTC, k)))
-        end do
-    end do
+         end do
+      end do
 
-    ! max Newton increment cell
-    do k = 1, NbCellOwn_Ncpus(commRank + 1)
+      ! max Newton increment cell
+      do k = 1, NbCellOwn_Ncpus(commRank + 1)
 
-        ic = IncCell(k)%ic
-        NbIncPTC = NbIncPTC_ctx(ic)
+         ic = IncCell(k)%ic
+         NbIncPTC = NbIncPTC_ctx(ic)
 
-        incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreCell(1, k)))
+         incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreCell(1, k)))
 
 #ifdef _THERMIQUE_
-        incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreCell(2, k)))
+         incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreCell(2, k)))
 #endif
 
-        do i = 2 + IndThermique, NbIncPTC
+         do i = 2 + IndThermique, NbIncPTC
             icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
             iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
 
             incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreCell(i, k)))
-        enddo
+         enddo
 
-        do i = 1, NbPhasePresente_ctx(ic)
+         do i = 1, NbPhasePresente_ctx(ic)
             iph = NumPhasePresente_ctx(i, ic)
 
             incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreCell(iph + NbIncPTC, k)))
-        end do
-    end do
+         end do
+      end do
 
-    ! relax local = min(1, increobj/incremax)
-    relaxlocal = min(1.d0, NewtonIncreObj_P/incremaxlocal_P) ! P
+      ! relax local = min(1, increobj/incremax)
+      relaxlocal = min(1.d0, NewtonIncreObj_P/incremaxlocal_P) ! P
 
 #ifdef _THERMIQUE_
-    relaxlocal = min(relaxlocal, NewtonIncreObj_T/incremaxlocal_T) ! T
+      relaxlocal = min(relaxlocal, NewtonIncreObj_T/incremaxlocal_T) ! T
 #endif
 
-    do i = 1, NbPhase ! C_i^alpha
-        do j = 1, NbComp
+      do i = 1, NbPhase ! C_i^alpha
+         do j = 1, NbComp
 
             if (MCP(j, i) == 1 .and. abs(incremaxlocal_C(j, i)) > eps) then
-                relaxlocal = min(relaxlocal, NewtonIncreObj_C/incremaxlocal_C(j, i))
+               relaxlocal = min(relaxlocal, NewtonIncreObj_C/incremaxlocal_C(j, i))
             end if
-        end do
-    end do
+         end do
+      end do
 
-    do i = 1, NbPhase ! S^alpha
-        if (abs(incremaxlocal_S(i)) > eps) then
+      do i = 1, NbPhase ! S^alpha
+         if (abs(incremaxlocal_S(i)) > eps) then
             relaxlocal = min(relaxlocal, NewtonIncreObj_S/incremaxlocal_S(i))
-        end if
-    end do
+         end if
+      end do
 
-    ! relax global
-    call MPI_Allreduce(relaxlocal, relax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+      ! relax global
+      call MPI_Allreduce(relaxlocal, relax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
 
-    ! pmaxlocal = increobj_P/incremaxlocal_P
-    ! !tmaxlocal = increobj_T/incremaxlocal_T
-    ! do i=1, NbPhase
-    !    smaxlocal(i) = increobj_S/incremaxlocal_S(i)
-    ! end do
+      ! pmaxlocal = increobj_P/incremaxlocal_P
+      ! !tmaxlocal = increobj_T/incremaxlocal_T
+      ! do i=1, NbPhase
+      !    smaxlocal(i) = increobj_S/incremaxlocal_S(i)
+      ! end do
 
-    ! call MPI_Allreduce(pmaxlocal, pmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-    ! call MPI_Allreduce(tmaxlocal, tmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-    ! call MPI_Allreduce(smaxlocal, smax, NbPhase, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Allreduce(pmaxlocal, pmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Allreduce(tmaxlocal, tmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Allreduce(smaxlocal, smax, NbPhase, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
 
-    ! if(commRank==0) then
-    !    write(*,'(F16.5,F16.5,F16.5)',advance="no"), pmax, smax(:)
-    ! end if
+      ! if(commRank==0) then
+      !    write(*,'(F16.5,F16.5,F16.5)',advance="no"), pmax, smax(:)
+      ! end if
 
-    end subroutine IncCVReservoir_NewtonRelax
+   end subroutine IncCVReservoir_NewtonRelax
 
-    !> \brief Realize Newton increment of each control volume           <br>
-    !! NOMBERING IS FIXED:                                              <br>
-    !!  Pressure=1,                                                     <br>
-    !!  Temperature=2,                                                   <br>
-    !!  Molar fraction of present component (without Ctilde),           <br>
-    !!  Saturation of present phase,                                     <br>
-    !!  Molar fraction only present in absent phase: Ctilde (put into inc%AccVol(icp) ???)
-    subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax)
+   !> \brief Realize Newton increment of each control volume           <br>
+   !! NOMBERING IS FIXED:                                              <br>
+   !!  Pressure=1,                                                     <br>
+   !!  Temperature=2,                                                   <br>
+   !!  Molar fraction of present component (without Ctilde),           <br>
+   !!  Saturation of present phase,                                     <br>
+   !!  Molar fraction only present in absent phase: Ctilde (put into inc%AccVol(icp) ???)
+   subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax)
 
-    type(TYPE_IncCVReservoir), intent(inout) :: inc
-    double precision, intent(in) :: incre(NbIncTotalMax), relax
+      type(TYPE_IncCVReservoir), intent(inout) :: inc
+      double precision, intent(in) :: incre(NbIncTotalMax), relax
 
-    integer :: i, icp, iph
-    integer :: NbIncPTC, NbIncTotal, NbPhasePresente
-    integer :: ic
+      integer :: i, icp, iph
+      integer :: NbIncPTC, NbIncTotal, NbPhasePresente
+      integer :: ic
 
-    ic = inc%ic
-    NbIncPTC = NbIncPTC_ctx(ic)
-    NbIncTotal = NbIncTotal_ctx(ic)
-    NbPhasePresente = NbPhasePresente_ctx(ic)
+      ic = inc%ic
+      NbIncPTC = NbIncPTC_ctx(ic)
+      NbIncTotal = NbIncTotal_ctx(ic)
+      NbPhasePresente = NbPhasePresente_ctx(ic)
 
-    ! increment Pressure
-    inc%Pression = inc%Pression + relax*incre(1)
+      ! increment Pressure
+      inc%Pression = inc%Pression + relax*incre(1)
 
-    !    write(*,*)' increment P ',relax,incre(1)
+      !    write(*,*)' increment P ',relax,incre(1)
 
 #ifdef _THERMIQUE_
 
-    ! increment Temperature
-    inc%Temperature = inc%Temperature + relax*incre(2)
+      ! increment Temperature
+      inc%Temperature = inc%Temperature + relax*incre(2)
 #endif
 
-    ! increment comp
-    do i = 2 + IndThermique, NbIncPTC
+      ! increment comp
+      do i = 2 + IndThermique, NbIncPTC
 
-        icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
-        iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
-        inc%Comp(icp, iph) = inc%Comp(icp, iph) + relax*incre(i)
-    enddo
+         icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
+         iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
+         inc%Comp(icp, iph) = inc%Comp(icp, iph) + relax*incre(i)
+      enddo
 
-    ! increment saturation
-    do i = 1, NbPhasePresente
-        iph = NumPhasePresente_ctx(i, ic)
+      ! increment saturation
+      do i = 1, NbPhasePresente
+         iph = NumPhasePresente_ctx(i, ic)
 
-        inc%Saturation(iph) = inc%Saturation(iph) + relax*incre(iph + NbIncPTC)
-    end do
+         inc%Saturation(iph) = inc%Saturation(iph) + relax*incre(iph + NbIncPTC)
+      end do
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    ! increment freeflow molar flowrate
-    if (ic>=2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
-        do i = 1, NbPhasePresente
+      ! increment freeflow molar flowrate
+      if (ic >= 2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
+         do i = 1, NbPhasePresente
             iph = NumPhasePresente_ctx(i, ic)
 
             inc%FreeFlow_flowrate(iph) = inc%FreeFlow_flowrate(iph) + relax*incre(iph + NbIncPTC + NbPhasePresente)
-        enddo
-    endif
+         enddo
+      endif
 #endif
 
-    ! Contribution to Ctilde (to test appearance of phase)
-    do i = 1, NbCompCtilde_ctx(ic)
-        icp = NumCompCtilde_ctx(i, ic)
-        inc%AccVol(icp) = incre(NbIncTotal + i)
-    end do
+      ! Contribution to Ctilde (to test appearance of phase)
+      do i = 1, NbCompCtilde_ctx(ic)
+         icp = NumCompCtilde_ctx(i, ic)
+         inc%AccVol(icp) = incre(NbIncTotal + i)
+      end do
 
-    end subroutine IncCVReservoir_NewtonIncrement_reservoir
+   end subroutine IncCVReservoir_NewtonIncrement_reservoir
 
-    !> \brief Save current status if it is necessary to start again current time iteration.
-    !!
-    !! Copy IncObj to IncObjPreviousTimeStep
-    subroutine IncCVReservoir_SaveIncPreviousTimeStep
+   !> \brief Save current status if it is necessary to start again current time iteration.
+   !!
+   !! Copy IncObj to IncObjPreviousTimeStep
+   subroutine IncCVReservoir_SaveIncPreviousTimeStep
 
-    integer :: k
+      integer :: k
 
-    ! save current status
-    do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-        IncNodePreviousTimeStep(k) = IncNode(k)
-    end do
-    do k = 1, NbFracLocal_Ncpus(commRank + 1)
-        IncFracPreviousTimeStep(k) = IncFrac(k)
-    end do
-    do k = 1, NbCellLocal_Ncpus(commRank + 1)
-        IncCellPreviousTimeStep(k) = IncCell(k)
-    end do
+      ! save current status
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1)
+         IncNodePreviousTimeStep(k) = IncNode(k)
+      end do
+      do k = 1, NbFracLocal_Ncpus(commRank + 1)
+         IncFracPreviousTimeStep(k) = IncFrac(k)
+      end do
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
+         IncCellPreviousTimeStep(k) = IncCell(k)
+      end do
 
-    end subroutine IncCVReservoir_SaveIncPreviousTimeStep
+   end subroutine IncCVReservoir_SaveIncPreviousTimeStep
 
-    !> \brief Load previous status to start again current time iteration.
-    !!
-    !! Copy IncObjPreviousTimeStep to IncObj
-    subroutine IncCVReservoir_LoadIncPreviousTimeStep
+   !> \brief Load previous status to start again current time iteration.
+   !!
+   !! Copy IncObjPreviousTimeStep to IncObj
+   subroutine IncCVReservoir_LoadIncPreviousTimeStep
 
-    integer :: k
+      integer :: k
 
-    do k = 1, NbNodeLocal_Ncpus(commRank + 1)
-        IncNode(k) = IncNodePreviousTimeStep(k)
-    end do
-    do k = 1, NbFracLocal_Ncpus(commRank + 1)
-        IncFrac(k) = IncFracPreviousTimeStep(k)
-    end do
-    do k = 1, NbCellLocal_Ncpus(commRank + 1)
-        IncCell(k) = IncCellPreviousTimeStep(k)
-    end do
+      do k = 1, NbNodeLocal_Ncpus(commRank + 1)
+         IncNode(k) = IncNodePreviousTimeStep(k)
+      end do
+      do k = 1, NbFracLocal_Ncpus(commRank + 1)
+         IncFrac(k) = IncFracPreviousTimeStep(k)
+      end do
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
+         IncCell(k) = IncCellPreviousTimeStep(k)
+      end do
 
-    end subroutine IncCVReservoir_LoadIncPreviousTimeStep
+   end subroutine IncCVReservoir_LoadIncPreviousTimeStep
 
-    !> \brief Transform IncCVReservoir format to a vector,
-    !! necessary for visualization.
-    !!
-    !! Transform Inc into output vector datavisu
-    !! The structure of the vector is                                                 <br>
-    !!   (Pressure, Temperature,                                                      <br>
-    !!        Comp(1), ... , Comp(n),                                                 <br>
-    !!            Saturation(1), ..., Saturation(n))
-    SUBROUTINE IncCVReservoir_ToVec_cv(NbIncOwn, Inc, datavisu)
+   !> \brief Transform IncCVReservoir format to a vector,
+   !! necessary for visualization.
+   !!
+   !! Transform Inc into output vector datavisu
+   !! The structure of the vector is                                                 <br>
+   !!   (Pressure, Temperature,                                                      <br>
+   !!        Comp(1), ... , Comp(n),                                                 <br>
+   !!            Saturation(1), ..., Saturation(n))
+   SUBROUTINE IncCVReservoir_ToVec_cv(NbIncOwn, Inc, datavisu)
 
-    INTEGER, INTENT(IN) :: NbIncOwn
-    TYPE(Type_IncCVReservoir), DIMENSION(:), INTENT(IN) :: Inc
-    DOUBLE PRECISION, DIMENSION(:), INTENT(OUT) :: datavisu
+      INTEGER, INTENT(IN) :: NbIncOwn
+      TYPE(Type_IncCVReservoir), DIMENSION(:), INTENT(IN) :: Inc
+      DOUBLE PRECISION, DIMENSION(:), INTENT(OUT) :: datavisu
 
-    integer :: i_data, j_data
-    integer :: i, j
+      integer :: i_data, j_data
+      integer :: i, j
 
-    ! Pressure
-    i_data = 1
-    j_data = NbIncOwn
+      ! Pressure
+      i_data = 1
+      j_data = NbIncOwn
 
-    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Pression
+      datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Pression
 
-    ! Temperature
+      ! Temperature
 #ifdef _THERMIQUE_
-    i_data = j_data + 1
-    j_data = j_data + NbIncOwn
-    datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Temperature
+      i_data = j_data + 1
+      j_data = j_data + NbIncOwn
+      datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Temperature
 #endif
 
-    ! Comp
-    DO j = 1, NbPhase
-        DO i = 1, NbComp
+      ! Comp
+      DO j = 1, NbPhase
+         DO i = 1, NbComp
 
             IF (MCP(i, j) == 1) THEN
-                i_data = j_data + 1
-                j_data = j_data + NbIncOwn
-                datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Comp(i, j)
+               i_data = j_data + 1
+               j_data = j_data + NbIncOwn
+               datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Comp(i, j)
             ENDIF
-        ENDDO
-    ENDDO
+         ENDDO
+      ENDDO
 
-    ! Saturation
-    DO i = 1, NbPhase
-        i_data = j_data + 1
-        j_data = j_data + NbIncOwn
-        datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Saturation(i)
-    ENDDO
-    ENDSUBROUTINE IncCVReservoir_ToVec_cv
+      ! Saturation
+      DO i = 1, NbPhase
+         i_data = j_data + 1
+         j_data = j_data + NbIncOwn
+         datavisu(i_data:j_data) = Inc(1:NbIncOwn)%Saturation(i)
+      ENDDO
+   ENDSUBROUTINE IncCVReservoir_ToVec_cv
 
-    SUBROUTINE IncCVReservoir_ToVec( &
-        datavisucell, &
-        datavisufrac, &
-        datavisunode, &
-        datavisuwellinj, &
-        datavisuwellprod)
+   SUBROUTINE IncCVReservoir_ToVec( &
+      datavisucell, &
+      datavisufrac, &
+      datavisunode, &
+      datavisuwellinj, &
+      datavisuwellprod)
 
-    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisucell
-    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisufrac
-    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisunode
-    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellinj
-    DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellprod
+      DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisucell
+      DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisufrac
+      DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisunode
+      DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellinj
+      DOUBLE PRECISION, DIMENSION(:), INTENT(INOUT) :: datavisuwellprod
 
-    INTEGER :: NbCellOwn, NbFracOwn, NbNodeOwn
+      INTEGER :: NbCellOwn, NbFracOwn, NbNodeOwn
 
-    NbCellOwn = NbCellOwn_Ncpus(commRank + 1)
-    NbFracOwn = NbFracOwn_Ncpus(commRank + 1)
-    NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
+      NbCellOwn = NbCellOwn_Ncpus(commRank + 1)
+      NbFracOwn = NbFracOwn_Ncpus(commRank + 1)
+      NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
 
-    CALL IncCVReservoir_ToVec_cv(NbCellOwn, IncCell, datavisucell)
-    CALL IncCVReservoir_ToVec_cv(NbFracOwn, IncFrac, datavisufrac)
-    CALL IncCVReservoir_ToVec_cv(NbNodeOwn, IncNode, datavisunode)
+      CALL IncCVReservoir_ToVec_cv(NbCellOwn, IncCell, datavisucell)
+      CALL IncCVReservoir_ToVec_cv(NbFracOwn, IncFrac, datavisufrac)
+      CALL IncCVReservoir_ToVec_cv(NbNodeOwn, IncNode, datavisunode)
 
-    datavisuwellinj = 1.d0 ! not implemented
-    datavisuwellprod = 1.d0 ! not implemented
-    ENDSUBROUTINE IncCVReservoir_ToVec
+      datavisuwellinj = 1.d0 ! not implemented
+      datavisuwellprod = 1.d0 ! not implemented
+   ENDSUBROUTINE IncCVReservoir_ToVec
 
-    end module IncCVReservoir
+end module IncCVReservoir

@@ -1,7 +1,7 @@
 """ Tools for managing subsets of indices
 """
 
-__all__ = ['ZoneManager', 'Zone', 'Zict']
+__all__ = ["ZoneManager", "Zone", "Zict"]
 
 
 import numpy as np
@@ -49,10 +49,13 @@ class Zone(object):
 
     See also: ZoneManager
     """
+
     def __new__(cls):
         if cls is Zone:
-            raise TypeError("Can't directly instantiate Zone class: "
-                            "see ZoneManager to produce Zone instances.")
+            raise TypeError(
+                "Can't directly instantiate Zone class: "
+                "see ZoneManager to produce Zone instances."
+            )
         return super(Zone, cls).__new__(cls)
 
     def __init__(self):
@@ -228,6 +231,7 @@ class ZoneManager(object):
 
     See also: Zone
     """
+
     # TODO: est-il pertinent d'ajouter une methode 'repack_partition()'
     #       dont le but serait de passer sur la partition maximal respectant
     #       self._zones ?
@@ -248,8 +252,9 @@ class ZoneManager(object):
         self._size = size
         # all instances of zones that the manager will manage will be of
         # instances of a specific subclass of Zone that is created here
-        self._zone_cls = type('Zone(%s)' % (self), (Zone,),
-                              {'_manager': self, '__doc__': Zone.__doc__})
+        self._zone_cls = type(
+            "Zone(%s)" % (self), (Zone,), {"_manager": self, "__doc__": Zone.__doc__}
+        )
         self._zones = weakref.WeakSet()
         self._partition_callbacks = weakref.WeakKeyDictionary()
         self._namedzones = dict()
@@ -259,7 +264,7 @@ class ZoneManager(object):
         # init partition and the first zone 'whole'
         self._partition = (indices,)
         # create a first zone which is the whole universe
-        self.register(self._create_new_zone([0]), 'whole')
+        self.register(self._create_new_zone([0]), "whole")
 
     def _find_zone_by_block_ids(self, ids):
         "return the managed zone matching `ids` else None"
@@ -284,17 +289,16 @@ class ZoneManager(object):
     def register(self, zone, name):
         "Register zone as name."
         if name in self._namedzones:
-            raise KeyError('name (=%s) is already used.' % name)
+            raise KeyError("name (=%s) is already used." % name)
         if not isinstance(zone, self._zone_cls):
-            raise ValueError('Wrong zone type.')
+            raise ValueError("Wrong zone type.")
         self._namedzones[name] = zone
 
     def iterblocks(self):
         """Returns an iterator over blocks constitutiong the partition.
         When the block does not exist as a managed zone, a new managed zone
         will be created."""
-        return (self._create_new_zone([i])
-                for i in range(len(self._partition)))
+        return (self._create_new_zone([i]) for i in range(len(self._partition)))
 
     @property
     def size(self):
@@ -330,13 +334,12 @@ class ZoneManager(object):
         this methods.
         """
         # Delegation of read-only dict behavior to _namedzones
-        if attr in {'keys', 'values', 'items', 'iterkeys',
-                    'itervalues', 'iteritems'}:
+        if attr in {"keys", "values", "items", "iterkeys", "itervalues", "iteritems"}:
             return getattr(self._namedzones, attr)
         else:
             raise AttributeError(
-                "'%s' object has no attribute '%s'"
-                % (self.__class__.__name__, attr))
+                "'%s' object has no attribute '%s'" % (self.__class__.__name__, attr)
+            )
 
     def check_consistency(self, indices, flag):
         """ Check if indices are in the range of manager's indices.
@@ -387,10 +390,10 @@ class ZoneManager(object):
             local_map = list()
             intersect = np.intersect1d(part, indices)
             difference = np.setdiff1d(part, indices)
-            #TODO: is the following more efficient (cpu? memory?)
-            #footprint = np.in1d(part, indices, assume_unique=True)
-            #intersection = part[footprint]
-            #difference = part[np.logical_not(footprint)]
+            # TODO: is the following more efficient (cpu? memory?)
+            # footprint = np.in1d(part, indices, assume_unique=True)
+            # intersection = part[footprint]
+            # difference = part[np.logical_not(footprint)]
             #
             if intersect.size != 0:
                 intersect.setflags(write=False)
@@ -403,7 +406,7 @@ class ZoneManager(object):
                 new_partition.append(difference)
                 local_map.append(count)
                 count += 1
-            assert(local_map)  # logic wants it is always true, but who knows.
+            assert local_map  # logic wants it is always true, but who knows.
             map_.append(local_map)
         # store new partition
         self._partition = tuple(new_partition)
@@ -429,7 +432,7 @@ class ZoneManager(object):
         """
         if not callable(func):
             raise TypeError
-        other = getattr(func, '__self__', None)
+        other = getattr(func, "__self__", None)
         if other is None:
             self._partition_callbacks[func] = None
         else:
@@ -444,7 +447,7 @@ class ZoneManager(object):
         """
         if not callable(func):
             raise TypeError
-        other = getattr(func, '__self__', None)
+        other = getattr(func, "__self__", None)
         if other is None:
             self._partition_callbacks.pop(func, None)
         elif self._partition_callbacks.get(other, None) == func.__name__:
@@ -463,7 +466,6 @@ class ZoneManager(object):
 
 # TODO: zict[manager] devrait être équivalent à zict[manager['whole']]
 #       aussi, manager['whole'] c'est nul, il faudrait un attribut
-
 
 
 class Zict(dict):
@@ -487,6 +489,7 @@ class Zict(dict):
 
     See also: Zone, ZoneManager
     """
+
     def __init__(self, E=(), **F):
         "Create an empty zict=Zict() then set zict.update(E,**F)"
         dict.__init__(self)
@@ -524,8 +527,10 @@ class Zict(dict):
         """
         # key must be Zone instance
         if not isinstance(key, Zone):
-            raise KeyError("key of %s instance must be a %s instance"
-                           % (self.__class__.__name__, Zone.__name__))
+            raise KeyError(
+                "key of %s instance must be a %s instance"
+                % (self.__class__.__name__, Zone.__name__)
+            )
         # ignore empty zone
         if not key:
             return
@@ -621,8 +626,8 @@ class Zict(dict):
             for each arguments, especially when keys (ie. zones) are
             not dijoints. But this order can not always be predicted.
         """
-        if hasattr(E, 'keys'):
-            if hasattr(E, 'items'):
+        if hasattr(E, "keys"):
+            if hasattr(E, "items"):
                 for (k, v) in E.items():
                     self[k] = v
             else:
@@ -638,7 +643,7 @@ class Zict(dict):
         if self._manager is None:
             return
         if zone is None:
-            zone = self._manager['whole']
+            zone = self._manager["whole"]
         keys = list(self.keys())
         for k in keys:
             if k <= zone:
@@ -653,8 +658,7 @@ class Zict(dict):
         KeyError is raised.
         """
         if len(default) > 1:
-            TypeError("pop expected at most 3 arguments, got %i"
-                      % (len(default) + 2))
+            TypeError("pop expected at most 3 arguments, got %i" % (len(default) + 2))
         if default:
             value = self.get(key, default[0])
             try:

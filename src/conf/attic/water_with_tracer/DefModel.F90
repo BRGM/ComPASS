@@ -31,7 +31,6 @@ module DefModel
       MCP = transpose(reshape( &
                       (/1, 1/), (/NbPhase, NbComp/)))
 
-
    !FIXME: this is used for wells which are monophasic
    integer, parameter :: LIQUID_PHASE = 1
 
@@ -63,10 +62,10 @@ module DefModel
 
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
-  ! WARNING
-  ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
-  ! P est forcement primaire et en numero 1
-  ! Si T est primaire elle doit etre en numero 2
+   ! WARNING
+   ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
+   ! P est forcement primaire et en numero 1
+   ! Si T est primaire elle doit etre en numero 2
    ! pschoice=2: Glouton method
    !     the matrix psprim and pssecd are defined formally for compile
    ! pschoise=3: Gauss method
@@ -75,12 +74,12 @@ module DefModel
    integer, parameter :: pschoice = 1
 
 #ifdef _THERMIQUE_
-   integer, parameter :: P=1, T=2, Cw=3, Ct=4, Sl=5
+   integer, parameter :: P = 1, T = 2, Cw = 3, Ct = 4, Sl = 5
 #else
-   integer, parameter :: P=1, T=-1, Cw=2, Ct=3, Sl=4
+   integer, parameter :: P = 1, T = -1, Cw = 2, Ct = 3, Sl = 4
 #endif
    private :: P, T, Cw, Ct, Sl
-   
+
    integer, parameter, dimension(NbIncPTCSPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
@@ -90,7 +89,7 @@ module DefModel
 #endif
                        /), (/NbIncPTCSPrimMax, NbContexte/))
 
-  ! Sum Salpha =1 was already eliminated
+   ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbIncPTCSecondMax, NbContexte) :: &
       pssecd = reshape((/ &
@@ -99,11 +98,11 @@ module DefModel
 
    ! ! ****** Alignment method ****** ! !
 
-  ! Used in module Jacobian.F90
-  ! The idea is to have postive diagonal using linear combinations
-  ! (alternative is to used inverse of block = LC of)
-  ! good for LU O (pas bonne pour amg)
-  ! not used if not preconditionner (but avoid pivoting)
+   ! Used in module Jacobian.F90
+   ! The idea is to have postive diagonal using linear combinations
+   ! (alternative is to used inverse of block = LC of)
+   ! good for LU O (pas bonne pour amg)
+   ! not used if not preconditionner (but avoid pivoting)
    ! aligmethod=1, manually
    !     it is necessary to give a three-dimension matrix: aligmat
    !     aligmat(:,:,ic) is the alignment matrix for context ic
@@ -120,13 +119,13 @@ module DefModel
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ &
 #ifdef _THERMIQUE_
-            1.d0, 1.d0, 0.d0,  & ! only one context
-            0.d0, 0.d0, 1.d0,  &
-            0.d0, 1.d0, 0.d0   &
+                        1.d0, 1.d0, 0.d0, & ! only one context
+                        0.d0, 0.d0, 1.d0, &
+                        0.d0, 1.d0, 0.d0 &
 #else
-            1.d0, 1.d0,  & ! only one context
-            0.d0, 1.d0   &
+                        1.d0, 1.d0, & ! only one context
+                        0.d0, 1.d0 &
 #endif
-/), (/NbCompThermique, NbCompThermique, NbContexte/))
+                        /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 end module DefModel

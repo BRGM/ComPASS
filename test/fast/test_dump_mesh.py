@@ -13,19 +13,17 @@ import ComPASS.debug_utils
 
 def test_dump_mesh():
 
-    simulation = ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos("water2ph")
     ComPASS.set_output_directory_and_logfile(__file__)
-    simulation.lock_context(2) # not useful here but just as a strict replacement of liquid_water eos
+    simulation.lock_context(
+        2
+    )  # not useful here but just as a strict replacement of liquid_water eos
 
-    Lx, Ly, Lz = 3000., 2000., 100.
-    Ox, Oy, Oz = -1500., -1000., -1600.
+    Lx, Ly, Lz = 3000.0, 2000.0, 100.0
+    Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
     nx, ny, nz = 9, 6, 4
 
-    grid = ComPASS.Grid(
-        shape = (nx, ny, nz),
-        extent = (Lx, Ly, Lz),
-        origin = (Ox, Oy, Oz),
-    )
+    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
     def set_dirichlet():
         vertices = simulation.global_vertices()
@@ -41,18 +39,18 @@ def test_dump_mesh():
         simulation.global_faceflags()[:] = np.floor(face_centers[:, 0])
         simulation.global_cellflags()[:] = np.floor(cell_centers[:, 0])
 
-
     simulation.init(
-        mesh = grid,
-        cell_porosity = 0.1,
-        cell_permeability = 1e-12,
-        cell_thermal_conductivity = 2,
-        set_global_flags = set_flags,
-        set_dirichlet_nodes = set_dirichlet,
+        mesh=grid,
+        cell_porosity=0.1,
+        cell_permeability=1e-12,
+        cell_thermal_conductivity=2,
+        set_global_flags=set_flags,
+        set_dirichlet_nodes=set_dirichlet,
     )
 
     simulation.debug_utils_dump_mesh_info()
     ComPASS.debug_utils.extract_all_meshes()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_dump_mesh()

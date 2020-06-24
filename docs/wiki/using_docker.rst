@@ -102,7 +102,7 @@ When connecting to boot2docker you may end up with a qwerty keyboard layout.
 
 To change it use the solution `here <https://stackoverflow.com/questions/31327923/change-keyboard-layout-boot2docker-tinycore>`_.
 
-When logged as ``docker`` user (default password ``tcuser``\ ) do: 
+When logged as ``docker`` user (default password ``tcuser``\ ) do:
 
 .. code-block:: bash
 
@@ -179,13 +179,13 @@ with the `-v <https://docs.docker.com/engine/reference/commandline/run/#mount-vo
 The previous command will launch the python interpreter that is used to run script (i.e. from which you can import the ComPASS python module).
 
 The following example suppose that the script ``vertical_column.py`` is in your current working directory
-(cf. the ``$PWD`` variable passed to the -v mapping option). 
+(cf. the ``$PWD`` variable passed to the -v mapping option).
 
 .. code-block:: shell
 
    docker run -it -v $PWD:/localfs compass vertical_column.py
 
-You may then postprocess outputs using the postprocess script. 
+You may then postprocess outputs using the postprocess script.
 Beware that options passed to the postprocess script must be passed using the MS dos way,
 i.e. prepending them with a slah (/) instead of a minus sign (-).
 This is a temporary syntax.
@@ -205,7 +205,7 @@ And this other one will postprocess result in ``output-vertical_column`` directo
 Advanced options
 ----------------
 
-When mounting a volume you may experience problems if your host uid is not the user uid. In this case use the ``--compass-uid`` option. 
+When mounting a volume you may experience problems if your host uid is not the user uid. In this case use the ``--compass-uid`` option.
 
 .. code-block:: shell
 

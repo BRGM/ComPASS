@@ -138,4 +138,3 @@ frozenset({0})
 
 >>> mng._partition
 (array([4, 3, 2]), array([1, 0]))
-

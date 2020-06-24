@@ -22,10 +22,10 @@ module DefModel
       NbComp = ComPASS_NUMBER_OF_COMPONENTS, &
       NbPhase = ComPASS_NUMBER_OF_PHASES
 
-    !FIXME: Asssume that the latest phase is the liquid phase
-    integer, parameter :: LIQUID_PHASE = NbPhase
+   !FIXME: Asssume that the latest phase is the liquid phase
+   integer, parameter :: LIQUID_PHASE = NbPhase
 
-    integer, parameter :: &
+   integer, parameter :: &
       NbContexte = 2**NbPhase - 1
 
    ! MCP

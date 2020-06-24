@@ -1,8 +1,8 @@
 
 # this file has to be sourced (export)
-# and is relying to the LOCAL environment variable pointing to a directory 
-# where you have read/write access and where all third parties libraries 
-# have already been downloaded (cf. get-sources script) and will be installed 
+# and is relying to the LOCAL environment variable pointing to a directory
+# where you have read/write access and where all third parties libraries
+# have already been downloaded (cf. get-sources script) and will be installed
 
 unset PATH LIBRARY_PATH LD_LIBRARY_PATH LD_RUN_PATH CPATH C_INCLUDE_PATH PKG_CONFIG_PATH CPLUS_INCLUDE_PATH INCLUDE
 export LOCAL=/home/lopez/local
@@ -69,12 +69,12 @@ export target=mpich-3.2
 export builddir=${LOCAL}/build/${target}
 mkdir -p ${builddir}
 pushd ${builddir}
-../../src/${target}/configure --prefix=${LOCAL} --enable-cxx --enable-fortran 
+../../src/${target}/configure --prefix=${LOCAL} --enable-cxx --enable-fortran
 make -j24 install
 popd
 
 
-../../src/mpich-3.2/configure --prefix=${LOCAL} 
+../../src/mpich-3.2/configure --prefix=${LOCAL}
 
 # install Anaconda
 # /bin/bash Anaconda3-4.3.1-Linux-x86_64.sh
@@ -136,4 +136,3 @@ export BOOST_ROOT=${LOCAL}/src/boost-1.64.0
 
 # Compilation ComPASS
 CC=mpicc CXX=mpicxx FC=mpif90 ccmake ../ComPASS -DCMAKE_BUILD_TYPE="Release"
-

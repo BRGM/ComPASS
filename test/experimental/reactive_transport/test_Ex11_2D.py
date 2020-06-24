@@ -1,4 +1,3 @@
-
 import chemistry as ch
 import transport as tr
 import coupling as cp
@@ -45,12 +44,12 @@ onecomp = True
 exact_sol = True
 
 pleft, pright = 0.277778e-05 * 0.12, 0  # 0.277778e-05*Lx, 0
-CL, CR = [6e-4, 0.0, 1.2e-3, 0.0], T0 #[0, 0.0, 0, 0.0]
+CL, CR = [6e-4, 0.0, 1.2e-3, 0.0], T0  # [0, 0.0, 0, 0.0]
 
 # ======================= Geometry data =====================================#
-a = 0.005  #0.0075  #0.003  # 0.005  #
+a = 0.005  # 0.0075  #0.003  # 0.005  #
 Lx, Ly, Lz = 0.12, 0.015, 0.003  # 0.1, 0.015, 0.003
-nx, ny, nz = 42, 15, 1  #60, 10, 1
+nx, ny, nz = 42, 15, 1  # 60, 10, 1
 
 # ===================== Chemical data recovery ==============================#
 Chobj = ch.Chemistry(T0, W0, c0, s0, S, A, B, logKx, logKy, impflag, fictflag)
@@ -85,7 +84,7 @@ Trobj = tr.Transport(
 # ===================== The simulation parameters  ==========================#
 t = 0  # initial time
 dt = 360  #  720 #tr.final_time/1e3
-final_time = 24*3600 #12000 #72000  # 20 heures #29160 #
+final_time = 24 * 3600  # 12000 #72000  # 20 heures #29160 #
 
 ts_manager = FixedTimeStep(dt)
 # ts_manager = TimeStepManager(initial_timestep=720,)
@@ -98,7 +97,7 @@ xr = 0.08
 meth = cp.formulation(nom="meth_F")  #  meth_CF, meth_CFT
 
 # ===================== Init coupled vectors T, C, F ========================#
-evol = cp.Coupling(Chobj, Trobj) #, nb_time_steps)
+evol = cp.Coupling(Chobj, Trobj)  # , nb_time_steps)
 
 # ===================== The simulation time loop  ===$=======================#
 Csol = evol.Simul_time_loop(t, final_time, ts_manager, meth, Chobj, Trobj)

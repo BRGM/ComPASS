@@ -134,10 +134,7 @@ class TypedItems(Setter, Getter):
             p_remains -= p_zone
             zone_content = zone.content
             ii = np.searchsorted(key_content, zone_content)
-            value_as_array = (
-                isinstance(value, np.ndarray)
-                and value.ndim > dtype.ndim
-            )
+            value_as_array = isinstance(value, np.ndarray) and value.ndim > dtype.ndim
             if value_as_array:
                 jj = np.searchsorted(orig_zone.content, zone_content)
                 res[ii] = value[jj]

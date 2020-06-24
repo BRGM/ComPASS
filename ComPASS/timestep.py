@@ -15,8 +15,9 @@ from ._kernel import get_kernel
 
 # FIXME: computation time spent is to measured at the caller site
 # comptime_start = MPI_WTIME()
-#comptime_timestep = MPI_WTIME() - comptime_start # this is to be measureed externally (on the caller side)
-#comptime_total = comptime_total + comptime_timestep # this is to be measured externally (on the caller side)
+# comptime_timestep = MPI_WTIME() - comptime_start # this is to be measureed externally (on the caller side)
+# comptime_total = comptime_total + comptime_timestep # this is to be measured externally (on the caller side)
+
 
 class AllAttemptsFailed(Exception):
     def __init__(self, attempts):
@@ -24,9 +25,11 @@ class AllAttemptsFailed(Exception):
 
 
 def explain_reason(reason):
-    possible_reasons = [ name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__") ] 
+    possible_reasons = [
+        name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
+    ]
     for name in possible_reasons:
-        if getattr(PETSc.KSP.ConvergedReason, name)==reason:
+        if getattr(PETSc.KSP.ConvergedReason, name) == reason:
             return name
 
 
@@ -37,26 +40,32 @@ def try_timestep(
     kernel = get_kernel()
     kernel.IncCV_SaveIncPreviousTimeStep()
     try:
-        mpi.master_print('trying newton with timestep:', time_string(deltat))
+        mpi.master_print("trying newton with timestep:", time_string(deltat))
         iterations = newton.loop(deltat)
         mpi.master_print(iterations)
-    except KspFailure as e:        
+    except KspFailure as e:
         mpi.master_print(
-            'KSP failure - with reason', explain_reason(e.reason), 'after',
-            kernel.SolvePetsc_KspSolveIterationNumber(), 'iterations'
+            "KSP failure - with reason",
+            explain_reason(e.reason),
+            "after",
+            kernel.SolvePetsc_KspSolveIterationNumber(),
+            "iterations",
         )
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
-            kernel.SolvePetsc_dump_system('ksp_failure_%03d' % newton.lsolver.failures)
+            kernel.SolvePetsc_dump_system("ksp_failure_%03d" % newton.lsolver.failures)
         if simulation_context and simulation_context.abort_on_ksp_failure:
-            mpi.master_print('\nComPASS - Abortion requested on linear solver failure\n')
+            mpi.master_print(
+                "\nComPASS - Abortion requested on linear solver failure\n"
+            )
             mpi.abort()
-        return False 
+        return False
     except IterationExhaustion as e:
         if simulation_context and simulation_context.abort_on_newton_failure:
-            mpi.master_print('\nComPASS - Abortion requested on newton failure\n')
+            mpi.master_print("\nComPASS - Abortion requested on newton failure\n")
             mpi.abort()
         return False
     return True
+
 
 def make_one_timestep(
     newton, timesteps, simulation_context=None,
@@ -64,11 +73,11 @@ def make_one_timestep(
     attempts = []
     for deltat in timesteps:
         if try_timestep(deltat, newton, simulation_context):
-            mpi.master_print('Success with timestep: ', time_string(deltat))
+            mpi.master_print("Success with timestep: ", time_string(deltat))
             break
         attempts.append(deltat)
-        mpi.master_print('Failure with timestep: ', time_string(deltat))
-        newton.failures+= 1   
+        mpi.master_print("Failure with timestep: ", time_string(deltat))
+        newton.failures += 1
         newton.reset_loop()
     else:
         raise AllAttemptsFailed(attempts)
@@ -76,5 +85,5 @@ def make_one_timestep(
     kernel = get_kernel()
     kernel.DefFlashWells_TimeFlash()
     kernel.IncCVWells_UpdatePressureDrop()
-   
+
     return deltat

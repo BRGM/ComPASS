@@ -1,4 +1,4 @@
-About ComPASS 
+About ComPASS
 =============
 
 .. include:: README.rst

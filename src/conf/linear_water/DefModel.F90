@@ -23,12 +23,12 @@ module DefModel
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
    integer, parameter :: NbContexte = 1
 
-  ! Number of phases that are present in each context
-  integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ 1 /)
-  ! Phase(s) that is/are present in each context
-  ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
-  integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
-    transpose(reshape((/ 1 /), (/NbContexte, NbPhase/)))
+   ! Number of phases that are present in each context
+   integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/1/)
+   ! Phase(s) that is/are present in each context
+   ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
+   integer, parameter, dimension(NbPhase, NbContexte) :: NumPhasePresente_ctx = &
+                                                         transpose(reshape((/1/), (/NbContexte, NbPhase/)))
 
    !FIXME: Asssume that the latest phase is the liquid phase
    integer, parameter :: LIQUID_PHASE = NbPhase
@@ -47,10 +47,10 @@ module DefModel
 #endif
 
 #include "../common/DefModel_constants.F90"
-    ! FIXME: NbIncTotalMax is duplicated l.46 in src/wrappers/NewtonIncrements.h
-  integer, parameter :: &
-       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-       NbIncTotalMax     = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
+   ! FIXME: NbIncTotalMax is duplicated l.46 in src/wrappers/NewtonIncrements.h
+   integer, parameter :: &
+      NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
+      NbIncTotalMax = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
 
    ! ! ****** How to choose primary variables ****** ! !
 
@@ -67,18 +67,18 @@ module DefModel
 
    ! it is generaly not possible to define flags for the index because the numbering depends on the context (here only one context).
 #ifdef _THERMIQUE_
-   integer, parameter :: P=1, T=2, C=3, S=4
+   integer, parameter :: P = 1, T = 2, C = 3, S = 4
 #else
-   integer, parameter :: P=1, T=0, C=2, S=3
+   integer, parameter :: P = 1, T = 0, C = 2, S = 3
 #endif
    private :: P, T, C, S
-   
+
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
-                       P, T & ! only one context ic=1 
+                       P, T & ! only one context ic=1
 #else
-                       P    & ! only one context ic=1
+                       P & ! only one context ic=1
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
@@ -86,9 +86,9 @@ module DefModel
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
-                       C  & ! only one context ic=1
+                       C & ! only one context ic=1
 #else
-                       C  & ! only one context ic=1
+                       C & ! only one context ic=1
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
@@ -116,7 +116,7 @@ module DefModel
       aligmat = reshape((/ & ! NOT USED because aligmethod = 2
 #ifdef _THERMIQUE_
                         1.d0, 0.d0, & ! only one context ic=1    P: sum(component conservation)
-                        0.d0, 1.d0  & !                          T: energy conservation
+                        0.d0, 1.d0 & !                          T: energy conservation
 #else
                         1.d0 &        ! only one context ic=1    P: sum(component conservation)
 #endif

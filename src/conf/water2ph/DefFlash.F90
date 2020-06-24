@@ -46,7 +46,7 @@ contains
 
       context = inc%ic
 
-      if(locked_context(context)) return
+      if (locked_context(context)) return
 
       if (context == GAS_CONTEXT) then
 
@@ -75,10 +75,10 @@ contains
       else if (context == DIPHASIC_CONTEXT) then
 
 #ifndef _THERMIQUE_
-         write(*,*) 'ERROR: Diphasic context is meaningless without energy transfer!'
+         write (*, *) 'ERROR: Diphasic context is meaningless without energy transfer!'
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
 #endif
-          
+
          call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 

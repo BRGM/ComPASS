@@ -8,7 +8,7 @@
 
 module DebugUtils
 
-  use CommonMPI, only: commRank
+   use CommonMPI, only: commRank
 
    use MeshSchema, only: &
       NbFracLocal_Ncpus, &
@@ -43,7 +43,7 @@ contains
    end function DebugUtils_is_own_frac_node
 
    subroutine DebugUtils_dump_mesh_info() &
-       bind(C, name = "debug_utils_dump_mesh_info")
+      bind(C, name="debug_utils_dump_mesh_info")
 
       character(len=1024) :: filename
       integer :: k, Ierr, errcode
@@ -66,7 +66,7 @@ contains
       open (unit=24, file=trim(filename), status='REPLACE')
       do k = 1, size(IdNodeLocal)
          write (24, *) IdNodeLocal(k)%proc, ' ', IdNodeLocal(k)%frac, ' ', &
-                       IdNodeLocal(k)%P,    ' ', IdNodeLocal(k)%T
+            IdNodeLocal(k)%P, ' ', IdNodeLocal(k)%T
       end do
       close (24)
 

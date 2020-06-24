@@ -18,28 +18,32 @@ import MeshTools.vtkwriters as vtkw
 import gmsh_reader
 
 
-ComPASS.load_eos('diphasic')
+ComPASS.load_eos("diphasic")
 
-filename = 'case-tests/andra/andra_box.msh'
+filename = "case-tests/andra/andra_box.msh"
 
 nodes, elements = gmsh_reader.retrieve_mesh_elements(filename)
 
 
 # grep 2d element
-face = [elt for elt, tag in elements
-        if type(elt) in (MT.Triangle, MT.Quad)]
+face = [elt for elt, tag in elements if type(elt) in (MT.Triangle, MT.Quad)]
 
-face_tag = [tag for elt, tag in elements
-        if type(elt) in (MT.Triangle, MT.Quad)]
+face_tag = [tag for elt, tag in elements if type(elt) in (MT.Triangle, MT.Quad)]
 face_tag = np.array([tag[0] for tag in face_tag])
 
 
 # grep 3d element
-cell = [elt for elt, tag in elements
-        if type(elt) in (MT.Tetrahedron, MT.Wedge, MT.Hexahedron)]
+cell = [
+    elt
+    for elt, tag in elements
+    if type(elt) in (MT.Tetrahedron, MT.Wedge, MT.Hexahedron)
+]
 
-cell_tag = [tag for elt, tag in elements
-        if type(elt) in (MT.Tetrahedron, MT.Wedge, MT.Hexahedron)]
+cell_tag = [
+    tag
+    for elt, tag in elements
+    if type(elt) in (MT.Tetrahedron, MT.Wedge, MT.Hexahedron)
+]
 cell_tag = np.array([tag[0] for tag in cell_tag])
 
 
@@ -62,11 +66,11 @@ def set_physical_flags():
     nodeflags[:] = 0
 
     bottom_flag = 1
-    bottom_node = [abs(z-z_min) < eps for x, y, z in nodes]
+    bottom_node = [abs(z - z_min) < eps for x, y, z in nodes]
     nodeflags[bottom_node] = bottom_flag
 
     top_flag = 2
-    top_node = [abs(z-z_max) < eps for x, y, z in nodes]
+    top_node = [abs(z - z_max) < eps for x, y, z in nodes]
     nodeflags[top_node] = top_flag
 
 
@@ -87,17 +91,13 @@ ComPASS.set_output_directory_and_logfile(__file__)
 
 
 ComPASS.init(
-    mesh = mesh,
-    set_global_rocktype = select_global_rocktype,
-    set_global_flags = set_physical_flags,
-    set_dirichlet_nodes = select_dirichlet_nodes
+    mesh=mesh,
+    set_global_rocktype=select_global_rocktype,
+    set_global_flags=set_physical_flags,
+    set_dirichlet_nodes=select_dirichlet_nodes,
 )
-#set_initial_values()
-#set_boundary_conditions()
+# set_initial_values()
+# set_boundary_conditions()
 
 
-standard_loop(
-     initial_timestep = 1000,
-     output_every = 1,
-     final_time = 200 * year)
-
+standard_loop(initial_timestep=1000, output_every=1, final_time=200 * year)

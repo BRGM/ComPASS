@@ -53,16 +53,20 @@ def mesh_2(R=1000, theta=np.pi / 6, ds=None, clean_mesh=True):
 
     vertices, triangles = Mesh_2.as_arrays(cdt)
 
-    if clean_mesh: # FIXME: we should use CGAL Epeck kernel to generate the mesh
-        threshold = (0.1*ds_O)**2
+    if clean_mesh:  # FIXME: we should use CGAL Epeck kernel to generate the mesh
+        threshold = (0.1 * ds_O) ** 2
         x, y = [vertices[:, j] for j in range(2)]
         A, B, C = [triangles[:, j] for j in range(3)]
-        area = 0.5 * np.fabs((x[B] - x[A]) * (y[C] - y[A]) - (y[B] - y[A]) * (x[C] - x[A]))
-        kept_triangles = np.nonzero(area>threshold)[0]
-        kept_vertices, new_triangles = np.unique(triangles[kept_triangles], return_inverse=True)
+        area = 0.5 * np.fabs(
+            (x[B] - x[A]) * (y[C] - y[A]) - (y[B] - y[A]) * (x[C] - x[A])
+        )
+        kept_triangles = np.nonzero(area > threshold)[0]
+        kept_vertices, new_triangles = np.unique(
+            triangles[kept_triangles], return_inverse=True
+        )
         new_triangles.shape = -1, 3
         vertices, triangles = vertices[kept_vertices], new_triangles
-    
+
     return vertices, triangles
 
 
@@ -73,7 +77,7 @@ def extruded_sector(R=1000, theta=np.pi / 6, ds=None, layer_thicknesses=None):
     :param theta: angle of the angular sector (in radians)
     :ds: may be a float with the target edge size or a pair with
          the target edge size around the origin and at the boundary
-    :layer_thicknesses: a sequence of layer thicknesses 
+    :layer_thicknesses: a sequence of layer thicknesses
     :returns: a MeshTools mesh object
     """
 

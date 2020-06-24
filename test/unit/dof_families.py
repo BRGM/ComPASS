@@ -12,16 +12,16 @@ import ComPASS
 
 nx, ny, nz = 5, 5, 1
 
-simulation = ComPASS.load_eos('water2ph')
+simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape = (nx, ny, nz))
+grid = ComPASS.Grid(shape=(nx, ny, nz))
 
 simulation.init(
     mesh=grid,
-    cell_porosity=0.5, # dummy value
-    cell_permeability=1, # dummy value
-    cell_thermal_conductivity=1, # dummy value
+    cell_porosity=0.5,  # dummy value
+    cell_permeability=1,  # dummy value
+    cell_thermal_conductivity=1,  # dummy value
 )
 
 print(simulation.NumNodebyProc().as_array())

@@ -2,10 +2,10 @@
 
 # This is a template file to be used if you need to tweak compilation options
 # In such situation rename this file to config.cmake in this directory
-# and uncomment and edit the lines that are relevant to your needs.  
+# and uncomment and edit the lines that are relevant to your needs.
 # You can also add new lines to override any variable that is in the cmake CACHE.
 
-# The setup.py script, located in the top-level directory 
+# The setup.py script, located in the top-level directory
 # will check for an existing cmake/config.cmake file, and if present,
 # it will pass it to cmake through the "-C" options to override cache variables
 # (cf. https://cmake.org/cmake/help/latest/manual/cmake.1.html)
@@ -15,14 +15,14 @@
 # One of the advantages of defining a config.cmake file is that you can
 # preserve specific configurations even when removing the build directory and the
 # CMakeCache.txt file it contains.
-# You can also have different files e.g. config-devel.cmake, config-release.cmake... 
+# You can also have different files e.g. config-devel.cmake, config-release.cmake...
 # and switch between configurations modifying a symbolic link to config.cmake
 
 #
 # WARNING - Setting CMake compilers
 #
 # It is NOT recommended to set CMake compilers using this file.
-# CMake prohibits to change the compiler after the CMake step and 
+# CMake prohibits to change the compiler after the CMake step and
 # it also prohibits that the compiler variable value includes any flags.
 # Trying to change a compiler will delete the cache and you would loose
 # all previous settings.
@@ -31,7 +31,7 @@
 # variables, e.g.:
 # CC=mpicc cmake ..
 # either setting the CMAKE_<LANG>_COMPILER variables
-# using the -D options of the cmake executable e.g.: 
+# using the -D options of the cmake executable e.g.:
 # cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_Fortran_COMPILER=mpif90 ..
 
 #
@@ -44,8 +44,8 @@
 # SCOREP_WRAPPER=off CC=scorep-mpicc CXX=scorep-mpicxx FC=scorep-mpif90
 # will setup cmake to instrument all files with scorep.
 # The cmake script will also detect the presence of the scorep instrumentation
-# testing the compiler name and if present will compile an instrumented wrapper 
-# for the python interpreter. 
+# testing the compiler name and if present will compile an instrumented wrapper
+# for the python interpreter.
 
 # -----------------------------------------------------------------------------
 

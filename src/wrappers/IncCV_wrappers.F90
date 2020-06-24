@@ -6,7 +6,6 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-
     module IncCVWrapper
 
        use, intrinsic :: iso_c_binding
@@ -62,20 +61,20 @@
           integer(c_size_t) :: n
 
           if (.not. allocated(states)) then
-              cpp_array%p = C_NULL_PTR
-              cpp_array%n = 0
+             cpp_array%p = C_NULL_PTR
+             cpp_array%n = 0
           else
-              n = size(states)
-              cpp_array%n = n
-              if (n==0) then
+             n = size(states)
+             cpp_array%n = n
+             if (n == 0) then
 #ifdef TRACK_ZERO_SIZE_ARRAY
-                  ! FIXME: Remove comment
-                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+                ! FIXME: Remove comment
+                write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
-                  cpp_array%p = C_NULL_PTR
-              else
-                  cpp_array%p = c_loc(states(1))
-              end if
+                cpp_array%p = C_NULL_PTR
+             else
+                cpp_array%p = c_loc(states(1))
+             end if
           end if
 
        end subroutine retrieve_state_array
@@ -87,20 +86,20 @@
           integer(c_size_t) :: n
 
           if (.not. associated(states)) then
-              cpp_array%p = C_NULL_PTR
-              cpp_array%n = 0
+             cpp_array%p = C_NULL_PTR
+             cpp_array%n = 0
           else
-              n = size(states)
-              cpp_array%n = n
-              if (n==0) then
+             n = size(states)
+             cpp_array%n = n
+             if (n == 0) then
 #ifdef TRACK_ZERO_SIZE_ARRAY
-                  ! FIXME: Remove comment
-                  write(*,*) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+                ! FIXME: Remove comment
+                write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
 #endif
-                  cpp_array%p = C_NULL_PTR
-              else
-                  cpp_array%p = c_loc(states(1))
-              end if
+                cpp_array%p = C_NULL_PTR
+             else
+                cpp_array%p = c_loc(states(1))
+             end if
           end if
 
        end subroutine retrieve_pointed_state_array
@@ -116,9 +115,9 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
           call retrieve_state_array(IncNodeDirBC, cpp_array)
-          nb_owns = NbNodeOwn_Ncpus(commRank+1)
-          if(cpp_array%n<nb_owns) &
-            call CommonMPI_abort("inconsistent node sizes")
+          nb_owns = NbNodeOwn_Ncpus(commRank + 1)
+          if (cpp_array%n < nb_owns) &
+             call CommonMPI_abort("inconsistent node sizes")
           cpp_array%n = nb_owns
        end subroutine retrieve_own_dirichlet_node_states
 
@@ -139,9 +138,9 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
           call retrieve_pointed_state_array(IncNode, cpp_array)
-          nb_owns = NbNodeOwn_Ncpus(commRank+1)
-          if(cpp_array%n<nb_owns) &
-            call CommonMPI_abort("inconsistent node sizes")
+          nb_owns = NbNodeOwn_Ncpus(commRank + 1)
+          if (cpp_array%n < nb_owns) &
+             call CommonMPI_abort("inconsistent node sizes")
           cpp_array%n = nb_owns
        end subroutine retrieve_own_node_states
 
@@ -156,9 +155,9 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
           call retrieve_pointed_state_array(IncFrac, cpp_array)
-          nb_owns = NbFracOwn_Ncpus(commRank+1)
-          if(cpp_array%n<nb_owns) &
-            call CommonMPI_abort("inconsistent node sizes")
+          nb_owns = NbFracOwn_Ncpus(commRank + 1)
+          if (cpp_array%n < nb_owns) &
+             call CommonMPI_abort("inconsistent node sizes")
           cpp_array%n = nb_owns
        end subroutine retrieve_own_fracture_states
 
@@ -173,9 +172,9 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           integer(c_size_t) :: nb_owns = 0
           call retrieve_pointed_state_array(IncCell, cpp_array)
-          nb_owns = NbCellOwn_Ncpus(commRank+1)
-          if(cpp_array%n<nb_owns) &
-            call CommonMPI_abort("inconsistent node sizes")
+          nb_owns = NbCellOwn_Ncpus(commRank + 1)
+          if (cpp_array%n < nb_owns) &
+             call CommonMPI_abort("inconsistent node sizes")
           cpp_array%n = nb_owns
        end subroutine retrieve_own_cell_states
 
@@ -192,4 +191,3 @@
        end subroutine retrieve_production_whp
 
     end module IncCVWrapper
-

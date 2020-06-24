@@ -24,7 +24,9 @@ H = 1000  # height of the well
 nv = 50  # number of vertical layers
 hns = 1  # half the number of cells along basis side
 rw = 0.1  # well radius
-ptop = 10 * MPa  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
+ptop = (
+    10 * MPa
+)  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
 Ttop = degC2K(130)  # temperature at the top of the reservoir
 vgradT = 170 / km  # degrees per km - to reach 300 degC at the bottom
 geotherm = lambda zeta: Ttop + vgradT * (H - zeta)
@@ -120,10 +122,10 @@ standard_loop(
     # nitermax=1,
 )
 
-master_print("\n", "-"*10, "closing the well", "-"*10)
+master_print("\n", "-" * 10, "closing the well", "-" * 10)
 
 producers_data = list(simulation.producers_data())
-assert len(producers_data)==1
+assert len(producers_data) == 1
 producers_data[0].imposed_flowrate = 0
 
 

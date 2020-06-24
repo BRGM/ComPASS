@@ -356,4 +356,3 @@ manière concertée avec tous les développeurs intervenant sur le code,
 pour qu'ils repartent de la
 
 .. |différence fast forward no fast forward| image:: http://www.dynamic-mess.com/Media/Images/git-ff.jpg
-

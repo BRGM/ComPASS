@@ -180,8 +180,8 @@ def well_production_history(simulation, wid, history, verbose=True):
             if data is not None:
                 if data.is_closed:
                     data.open()
-                assert data.operating_code=='f'
-                assert qw>0
+                assert data.operating_code == "f"
+                assert qw > 0
                 data.imposed_flowrate = qw
 
         return action
@@ -218,8 +218,8 @@ def well_injection_history(simulation, wid, history, verbose=True):
             if data is not None:
                 if data.is_closed:
                     data.open()
-                assert data.operating_code=='f'
-                assert qw<0 and T>273.15 # 0°C
+                assert data.operating_code == "f"
+                assert qw < 0 and T > 273.15  # 0°C
                 data.imposed_flowrate = qw
                 data.injection_temperature = T
 

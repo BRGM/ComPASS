@@ -8,7 +8,7 @@
 # Detente en gaz 1D
 # Avec une physique trop simplifiée (énergie interne = enthalpie)
 # la temperature restait constante en temps.
-# En ajoutant energie interne = enthalpie - Pression, on met un couplage entre la temperature et 
+# En ajoutant energie interne = enthalpie - Pression, on met un couplage entre la temperature et
 # la pression, ce qui fait varier la temperature dans ce cas test.
 
 
@@ -23,30 +23,30 @@ from ComPASS.newton import Newton, LinearSolver
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
-Lz=4000.
-nz=200
-dz=Lz/nz
-Lx=40.
-Ly = 1.
-Ox, Oy, Oz = 0.,     0.,    -3000.
+Lz = 4000.0
+nz = 200
+dz = Lz / nz
+Lx = 40.0
+Ly = 1.0
+Ox, Oy, Oz = 0.0, 0.0, -3000.0
 nx = 2
 ny = 1
-Topz = Oz+Lz
+Topz = Oz + Lz
 
-omega_reservoir = 0.35            # reservoir porosity
-k_reservoir = 1E-12 * np.eye(3)   # reservoir permeability in m^2, 1D = 10^-12 m^
-cell_thermal_cond = 0.            # reservoir thermal conductivity
-pall = 1.E6                       # initial Pressure
-pbot_dir = 1.E5                   # bottom Pressure
-Tall = 700.                       # initial Temperature
-Tbot_dir = 700.                   # bottom Temperature
-gravity = 0.
-CpRoche = 0.
+omega_reservoir = 0.35  # reservoir porosity
+k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
+cell_thermal_cond = 0.0  # reservoir thermal conductivity
+pall = 1.0e6  # initial Pressure
+pbot_dir = 1.0e5  # bottom Pressure
+Tall = 700.0  # initial Temperature
+Tbot_dir = 700.0  # bottom Temperature
+gravity = 0.0
+CpRoche = 0.0
 
 
 bot_flag = 4
 
-simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
+simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
@@ -54,56 +54,59 @@ ComPASS.set_output_directory_and_logfile(__file__)
 gas_context = simulation.Context.gas
 
 if ComPASS.mpi.is_on_master_proc:
-    
-    grid = ComPASS.Grid(
-        shape = (nx, ny, nz),
-        extent = (Lx, Ly, Lz),
-        origin = (Ox, Oy, Oz),
-    )
-    
+
+    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+
     def Dirichlet_node():
         vertices = np.rec.array(simulation.global_vertices())
-        return (vertices[:,2] <= Oz)
-    
+        return vertices[:, 2] <= Oz
+
     def set_global_flags():
         vertices = np.rec.array(simulation.global_vertices())
         nodeflags = simulation.global_nodeflags()
-        nodeflags[vertices[:,2]<=Oz] = bot_flag
+        nodeflags[vertices[:, 2] <= Oz] = bot_flag
+
 
 if not ComPASS.mpi.is_on_master_proc:
-    grid = Dirichlet_node =  omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
+    grid = (
+        Dirichlet_node
+    ) = omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
 
 simulation.init(
-    mesh = grid,
-    set_dirichlet_nodes = Dirichlet_node,
-    cell_porosity = omega_reservoir,
-    cell_permeability = k_reservoir,
-    cell_thermal_conductivity = cell_thermal_cond,
-    set_global_flags = set_global_flags,
+    mesh=grid,
+    set_dirichlet_nodes=Dirichlet_node,
+    cell_porosity=omega_reservoir,
+    cell_permeability=k_reservoir,
+    cell_thermal_conductivity=cell_thermal_cond,
+    set_global_flags=set_global_flags,
 )
 
 # master_print('Maillage distribue')
 
+
 def set_Dirichlet_state(state):
     node_flags = simulation.nodeflags()
     # bottom
-    state.context[node_flags==bot_flag] = gas_context
-    state.p[node_flags==bot_flag] = pbot_dir
-    state.T[node_flags==bot_flag] = Tbot_dir
-    state.S[node_flags==bot_flag] = [1, 0]
-    state.C[node_flags==bot_flag] = [[ 0.8, 0.2], [0, 1.]]
+    state.context[node_flags == bot_flag] = gas_context
+    state.p[node_flags == bot_flag] = pbot_dir
+    state.T[node_flags == bot_flag] = Tbot_dir
+    state.S[node_flags == bot_flag] = [1, 0]
+    state.C[node_flags == bot_flag] = [[0.8, 0.2], [0, 1.0]]
+
 
 def set_states(state):
     state.context[:] = gas_context
     state.p[:] = pall
     state.T[:] = Tall
     state.S[:] = [1, 0]
-    state.C[:] = [[ 0.8, 0.2], [0, 1.]]
+    state.C[:] = [[0.8, 0.2], [0, 1.0]]
+
 
 def set_initial_bc_values():
     set_states(simulation.node_states())
     set_states(simulation.cell_states())
     set_Dirichlet_state(simulation.dirichlet_node_states())
+
 
 # master_print('set initial and BC')
 set_initial_bc_values()
@@ -112,23 +115,29 @@ set_initial_bc_values()
 newton = Newton(simulation, 1e-7, 15, LinearSolver(1e-6, 50))
 
 context = SimulationContext()
-context.abort_on_ksp_failure = False 
+context.abort_on_ksp_failure = False
 context.dump_system_on_ksp_failure = False
-context.abort_on_newton_failure = False 
+context.abort_on_newton_failure = False
 
-timestep = TimeStepManager(initial_timestep = 100.,
-minimum_timestep = 1E-1, maximum_timestep = 50.*year,
-increase_factor = 1.2, decrease_factor = 0.2,
+timestep = TimeStepManager(
+    initial_timestep=100.0,
+    minimum_timestep=1e-1,
+    maximum_timestep=50.0 * year,
+    increase_factor=1.2,
+    decrease_factor=0.2,
 )
 
-final_time = 1000. * year
+final_time = 1000.0 * year
 output_period = 0.01 * final_time
 
 
-current_time = standard_loop(simulation, final_time = final_time,
-context=context, newton=newton,
-time_step_manager = timestep,
-output_period = output_period, 
+current_time = standard_loop(
+    simulation,
+    final_time=final_time,
+    context=context,
+    newton=newton,
+    time_step_manager=timestep,
+    output_period=output_period,
 )
 
-print('time after the time loop', current_time/year, 'years')
+print("time after the time loop", current_time / year, "years")

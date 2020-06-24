@@ -1,11 +1,10 @@
-
 import copy
 import numpy as np
 from index_zoning import ZoneManager, Zone, Zict, ZoneMap
 from distribute import ZoneArrayItem
 
 
-class PropertyBase():
+class PropertyBase:
     def __init__(self, doc=None):
         self._data = dict()
         self._everywhere = None
@@ -25,7 +24,7 @@ class PropertyBase():
     def _set_everywhere(self, value):
         self._everywhere = value
         for manager in self._data:
-            self[manager['whole']] = value
+            self[manager["whole"]] = value
 
     def _get_data(self, manager):
         try:
@@ -37,13 +36,13 @@ class PropertyBase():
         data = ZoneMap(manager)
         if self.everywhere is not None:
             # data[manager['whole']] = manager['whole'], self.everywhere
-            data.set(manager['whole'], (manager['whole'], self.everywhere))
+            data.set(manager["whole"], (manager["whole"], self.everywhere))
         self._data[manager] = data
         return data
 
     def _get_zone(self, key):
         if isinstance(key, ZoneManager):
-            return key['whole']
+            return key["whole"]
         assert isinstance(key, Zone)
         return key
 
@@ -65,9 +64,12 @@ class PropertyBase():
     def __get__(self, obj, owner):
         if obj is None:
             return self
-        name = next(name for cls in type(obj).mro()
-                         for name, val in vars(cls).items()
-                         if val is self)
+        name = next(
+            name
+            for cls in type(obj).mro()
+            for name, val in vars(cls).items()
+            if val is self
+        )
         if name in obj.__dict__:
             return obj.__dict__[name]
         attr = obj.__dict__[name] = self._new()
@@ -76,7 +78,6 @@ class PropertyBase():
     def __set__(self, obj, value):
         attr = self.__get__(obj, type(obj))
         attr.everywhere = value
-
 
 
 class ArrayProperty(PropertyBase):
@@ -102,8 +103,9 @@ class ArrayProperty(PropertyBase):
         value = self.type(value)
         # if value.shape != self.dtype.shape:
         if self.is_array(value):
-            raise ValueError('value shape must be %s, not %s'
-                             % (self.dtype.shape, value.shape))
+            raise ValueError(
+                "value shape must be %s, not %s" % (self.dtype.shape, value.shape)
+            )
         super()._set_everywhere(value)
 
     def __setitem__(self, key, value):
@@ -112,8 +114,10 @@ class ArrayProperty(PropertyBase):
         arr_shape = (len(key),) + self.dtype.shape
         # if value.shape != self.dtype.shape and value.shape != arr_shape:
         if self.is_array(value) and value.shape != arr_shape:
-            raise ValueError("value shape must be %s or %s, not %s"
-                             % (self.dtype.shape, arr_shape, value.shape))
+            raise ValueError(
+                "value shape must be %s or %s, not %s"
+                % (self.dtype.shape, arr_shape, value.shape)
+            )
         item = ZoneArrayItem(key, value, self.is_array(value))
         super().__setitem__(key, item)
 
@@ -121,7 +125,7 @@ class ArrayProperty(PropertyBase):
         key = self._get_zone(key)
         data = self._get_data(key.manager)
         if key.difference(*data.keys()):
-            raise KeyError('data not available for the entire zone')
+            raise KeyError("data not available for the entire zone")
         idx = key.content()
         res = np.empty(len(key), self.dtype)
         for zone, (orig_zone, value) in data.items():
@@ -145,14 +149,14 @@ class ArrayProperty(PropertyBase):
 #############################################################################
 
 
-class Vector():
+class Vector:
     def __init__(self, size, item_dtype=np.float64):
         assert isinstance(size, int)
         self._size = size
         self._item_dtype = np.dtype(item_dtype)
 
     def __repr__(self):
-        return '%s(%s, %s)' % (type(self).__name__, self.size, self.item_dtype)
+        return "%s(%s, %s)" % (type(self).__name__, self.size, self.item_dtype)
 
     @property
     def item_dtype(self):
@@ -175,7 +179,7 @@ class Vector():
                 raise err
             return value
         elif value.ndim == 2:
-            if value.shape[-dtype.ndim:] == dtype.shape:
+            if value.shape[-dtype.ndim :] == dtype.shape:
                 return value
             return self(np.moveaxis(value, -1, 0))
         raise err
@@ -197,7 +201,7 @@ class Tensor(Vector):
             return res
         elif value.ndim == 1:
             pass
-            res = np.zeros(value.shape+dtype.shape, dtype=self.item_dtype)
+            res = np.zeros(value.shape + dtype.shape, dtype=self.item_dtype)
             for i in range(self.size):
                 res[:, i, i] = value
             return res
@@ -206,7 +210,7 @@ class Tensor(Vector):
                 raise err
             return value
         elif value.ndim == 3:
-            if value.shape[-dtype.ndim:] == dtype.shape:
+            if value.shape[-dtype.ndim :] == dtype.shape:
                 return value
             return self(np.moveaxis(value, -1, 0))
         raise err

@@ -13,28 +13,32 @@ import ComPASS
 def test_access_vertices():
 
     ComPASS.set_output_directory_and_logfile(__file__)
-    simulation = ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos("water2ph")
 
     nx, ny, nz = 3, 2, 1
 
-    grid = ComPASS.Grid(
-        shape = (nx, ny, nz),
-    )
+    grid = ComPASS.Grid(shape=(nx, ny, nz),)
 
     def dirichlet_nodes():
         vertices = simulation.global_vertices()
-        newz = 10.
+        newz = 10.0
         z = vertices[:, 2]
-        z[z!=0] = newz
-        assert np.all(np.logical_or(simulation.global_vertices()[:, 2] == 0, simulation.global_vertices()[:, 2] == newz))
+        z[z != 0] = newz
+        assert np.all(
+            np.logical_or(
+                simulation.global_vertices()[:, 2] == 0,
+                simulation.global_vertices()[:, 2] == newz,
+            )
+        )
 
     simulation.init(
-        mesh = grid,
-        set_dirichlet_nodes = dirichlet_nodes,
-        cell_porosity = 0.1,
-        cell_permeability = 1.E-12,
-        cell_thermal_conductivity = 2.,
+        mesh=grid,
+        set_dirichlet_nodes=dirichlet_nodes,
+        cell_porosity=0.1,
+        cell_permeability=1.0e-12,
+        cell_thermal_conductivity=2.0,
     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_access_vertices()

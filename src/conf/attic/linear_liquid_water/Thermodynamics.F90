@@ -17,7 +17,7 @@ module Thermodynamics
    use mpi, only: MPI_Abort
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
-   
+
    implicit none
 
    public :: &
@@ -48,10 +48,10 @@ contains
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       integer :: errcode, Ierr
-      
-		write(*,*) "Should never be called with a single component."
-        call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      
+
+      write (*, *) "Should never be called with a single component."
+      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+
    end subroutine f_Fugacity
 
    ! Densite molaire
@@ -139,8 +139,8 @@ contains
       ! output
       real(c_double), intent(out) :: f, DSf(NbPhase)
 
-         f = 1.d0
-         dSf = 0.d0
+      f = 1.d0
+      dSf = 0.d0
 
    end subroutine f_PermRel
 

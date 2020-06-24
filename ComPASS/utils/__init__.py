@@ -6,6 +6,6 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-__all__ = ['units', 'filenames']
+__all__ = ["units", "filenames"]
 
 from .filenames import create_directories

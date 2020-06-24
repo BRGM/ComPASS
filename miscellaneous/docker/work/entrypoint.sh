@@ -27,7 +27,6 @@ source $CUSTSHELL
 mkdir -p /localfs
 chown ${COMPASS_USER}:${COMPASS_USER} /localfs
 
-echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER` 
- 
-su-exec compass `cat $SIMSCRIPT`
+echo "You are running a ComPASS container as user" $COMPASS_USER "with UID" `id -u $COMPASS_USER`
 
+su-exec compass `cat $SIMSCRIPT`

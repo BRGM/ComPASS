@@ -19,23 +19,24 @@
 # }
 
 import numpy as np
+
 # from ComPASS.utils.units import deg2C
 # from ComPASS.timeloops import standard_loop, TimeStepManager
 
 # degK2C = lambda T: T - 273.15
 # degC2K = lambda T: T + 273.15
 
-class MA2_analytical:
 
+class MA2_analytical:
     def __init__(
         self,
-        omega = 1.,                  # porosity (fluid only)
-        b = 1.,                      # wall thickness (m)
-        L = 4.,                      # wall length (m)
-        QE = 30.,                    # lateral heat flux (W/m2)
-        TL = 25.,                    # initial and imposed right temperature
-        specific_heat = 1.8E6,       # specific heat (J/m3/K)
-        thermal_conductivity = 5.5,  # thermal conductivity (W/m/K)
+        omega=1.0,  # porosity (fluid only)
+        b=1.0,  # wall thickness (m)
+        L=4.0,  # wall length (m)
+        QE=30.0,  # lateral heat flux (W/m2)
+        TL=25.0,  # initial and imposed right temperature
+        specific_heat=1.8e6,  # specific heat (J/m3/K)
+        thermal_conductivity=5.5,  # thermal conductivity (W/m/K)
     ):
         self.omega = omega
         self.b = b
@@ -46,24 +47,20 @@ class MA2_analytical:
         self.thermal_conductivity = thermal_conductivity
         self.D = thermal_conductivity / specific_heat
 
-    def __call__(self, x, t, precision = 1E-10):
+    def __call__(self, x, t, precision=1e-10):
         assert precision > 0
         D = self.D
         L = self.L
         TL = self.TL
         QE = self.QE
         thcond = self.thermal_conductivity
-        td = np.reshape(
-            (D * np.asarray(t, dtype=np.double) ) / (4 * L**2),
-            (-1, 1)
-        )
+        td = np.reshape((D * np.asarray(t, dtype=np.double)) / (4 * L ** 2), (-1, 1))
         xd = np.ravel(np.asarray(x, dtype=np.double)) / L
         Td = 1 - np.tile(xd, (td.shape[0], 1))
-# Solution by D. Thiéry - there are errors here
-        n = int((1 + np.sqrt(8 / (np.pi**2 * precision))) / 2) + 1
+        # Solution by D. Thiéry - there are errors here
+        n = int((1 + np.sqrt(8 / (np.pi ** 2 * precision))) / 2) + 1
         for k in range(n):
             w = (2 * (k + 1) - 1) * np.pi
-            Td+= ( 8 / w**2 ) * np.cos(0.5 * w * xd) * np.exp(-(w**2) * td)
+            Td += (8 / w ** 2) * np.cos(0.5 * w * xd) * np.exp(-(w ** 2) * td)
 
         return TL + ((QE * L) / thcond) * Td
-

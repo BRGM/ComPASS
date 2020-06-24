@@ -62,6 +62,5 @@ current_time = standard_loop(
 )
 
 # simulation results can be directly postprocessed here
-#from ComPASS.postprocess import postprocess
-#postprocess(simulation.runtime.output_directory)
-
+# from ComPASS.postprocess import postprocess
+# postprocess(simulation.runtime.output_directory)

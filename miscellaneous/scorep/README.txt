@@ -13,4 +13,4 @@ For the time being this can be achieved in two ways:
 - either the OLD_CMAKE_INSTALL option with cmake/with-scorep cmake ...
 - either use two steps:
   1/ cmake/with-scorep pip install -e .
-  2/ locate the build directory (usually build/temp-xxxxxx) and from there do : make clean and make install 
+  2/ locate the build directory (usually build/temp-xxxxxx) and from there do : make clean and make install

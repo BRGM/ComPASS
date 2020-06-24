@@ -1,9 +1,9 @@
-These repositories have docker files that are used to generate 
+These repositories have docker files that are used to generate
 several environments to work with ComPASS:
   - *build-environment* is designed to compile ComPASS,
   - *run-environment* is designed to run ComPASS, the compiled version of the
 ComPASS modules are generated using the *build-environment* and installed into
-this container which is designed to be as slim as possible to produce 
+this container which is designed to be as slim as possible to produce
 the images generated at each commit and can be pulled
 from the registry (cf. `Dockerfile` in the root directory of ComPASS source),
   - *work-environment* is designed to compile, modify and run ComPASS from a
@@ -27,5 +27,3 @@ docker login registry.gitlab.inria.fr
 ```
 
 then run `/bin/bash generate_environments.bash`
-
-

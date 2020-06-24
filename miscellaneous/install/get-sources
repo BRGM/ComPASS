@@ -1,6 +1,6 @@
 # this file has to be sourced (export)
-# and is relying to the LOCAL environment variable pointing to a directory 
-# where you have read/write access and where all third parties will be downloaded 
+# and is relying to the LOCAL environment variable pointing to a directory
+# where you have read/write access and where all third parties will be downloaded
 
 mkdir -p ${LOCAL}/src
 

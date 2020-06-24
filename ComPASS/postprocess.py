@@ -71,7 +71,9 @@ class PostProcessor:
         create_directories(self.paraview_directory)
         self.vtu_directory = os.path.join(self.paraview_directory, "vtu")
         create_directories(self.vtu_directory)
-        self.pvwells_directory = self.vtu_directory # everything in the same vtu directory
+        self.pvwells_directory = (
+            self.vtu_directory
+        )  # everything in the same vtu directory
         create_directories(self.pvwells_directory)
         self.distribution = MeshDistribution(
             self.dumper.to_output_directory("own_elements")
@@ -322,7 +324,9 @@ class PostProcessor:
 
     def collect_wells(self, convert_temperature):
         # FIXME: temperature conversion is not available (cf. gitlab issue #205)
-        well_ids = np.loadtxt(self.dumper.to_output_directory('well_ids'), ndmin=1, dtype=np.uint64)
+        well_ids = np.loadtxt(
+            self.dumper.to_output_directory("well_ids"), ndmin=1, dtype=np.uint64
+        )
         snapshots = self.collect_snapshots()
         for well in well_ids:
             pvd = {}
@@ -345,15 +349,19 @@ class PostProcessor:
 
 
 def postprocess(
-    directory, collect_procs_id=False, collect_states=True, convert_temperature=True, collect_wells=True
+    directory,
+    collect_procs_id=False,
+    collect_states=True,
+    convert_temperature=True,
+    collect_wells=True,
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)
-    
+
     :param directory: directory to process
     :param collect_procs_id: boolean flag to collect procs ids and output mesh partitioning
     :param collect_states: boolean flag to collect physical states
     :param convert_temperature: boolean flag to convert Kelvin to Celsius degrees
-    
+
     """
     directory = Path(directory)
     print("processing results in", directory)
@@ -373,7 +381,7 @@ def postprocess(
                 print("Well temperature is output in Celsius degree")
                 print("          (cf. gitlab issue #205)")
                 print()
-                print("********************************************")                
+                print("********************************************")
             pp.collect_wells(convert_temperature)
             something_done = True
     if not something_done:

@@ -10,7 +10,7 @@
 # Homogeneous Neumann at all BC
 # no gravity
 # the left half is initiated with liquid,
-#   the right half with linear Sg between 0 at Lx/2 and 1 at Lx 
+#   the right half with linear Sg between 0 at Lx/2 and 1 at Lx
 
 import ComPASS
 import numpy as np
@@ -27,7 +27,7 @@ from ComPASS.mpi import master_print
 Lx = 1000.0
 nx = 200
 dx = Lx / nx
-Lz = Ly =  dx
+Lz = Ly = dx
 Ox, Oy, Oz = 0.0, 0.0, 0.0
 nz = ny = 1
 
@@ -38,7 +38,7 @@ Ptop = 1.0e5  # porous top Pressure
 Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
 CpRoche = 2.0e6
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
-Sg_right = 1.
+Sg_right = 1.0
 
 simulation = ComPASS.load_eos("immiscible2ph")
 simulation.set_gravity(0)
@@ -62,6 +62,7 @@ simulation.init(
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=cell_thermal_cond,
 )
+
 
 def set_states(state, x):
     left = x <= Lx / 2.0
@@ -93,9 +94,9 @@ set_variable_initial_bc_values()
 newton = Newton(simulation, 1e-7, 12, LinearSolver(1e-6, 50))
 
 timestep = TimeStepManager(
-    initial_timestep=100.,
+    initial_timestep=100.0,
     minimum_timestep=1e-3,
-    maximum_timestep=10. * year,
+    maximum_timestep=10.0 * year,
     increase_factor=1.2,
     decrease_factor=0.2,
 )

@@ -18,19 +18,19 @@ from ComPASS.timeloops import standard_loop
 import ComPASS.mpi
 
 
-omega_reservoir = 0.35            # reservoir porosity  .1
-k_reservoir = 1E-12               # reservoir permeability in m^2
-cell_thermal_cond = 2.            # reservoir thermal conductivity
-p0 = 0.1 * MPa                    # top Pressure
-T0 = degC2K(20)                   # top Temperature
-CpRoche = 2.E6
-gravity = 10.
+omega_reservoir = 0.35  # reservoir porosity  .1
+k_reservoir = 1e-12  # reservoir permeability in m^2
+cell_thermal_cond = 2.0  # reservoir thermal conductivity
+p0 = 0.1 * MPa  # top Pressure
+T0 = degC2K(20)  # top Temperature
+CpRoche = 2.0e6
+gravity = 10.0
 bottom_heat_flux = 0.1
-geotherm = 0.02 #bottom_heat_flux / cell_thermal_cond # gradient Temperature/m
+geotherm = 0.02  # bottom_heat_flux / cell_thermal_cond # gradient Temperature/m
 
 
-Lx, Ly, Lz = 100., 100., 1.E3
-Ox, Oy, Oz = 0., 0., 0.
+Lx, Ly, Lz = 100.0, 100.0, 1.0e3
+Ox, Oy, Oz = 0.0, 0.0, 0.0
 nx, ny, nz = 8, 8, 20
 
 gas_flag = 1
@@ -41,95 +41,103 @@ liquid_context = 2
 diphasic_context = 3
 
 
-ComPASS.load_eos('diphasic')
+ComPASS.load_eos("diphasic")
 ComPASS.set_gravity(gravity)
 ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if ComPASS.mpi.is_on_master_proc:
-    
-    grid = ComPASS.Grid(
-        shape = (nx, ny, nz),
-        extent = (Lx, Ly, Lz),
-        origin = (Ox, Oy, Oz),
-    )
-    
+
+    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+
     def set_global_flags():
-        boundary = Lz/3.
+        boundary = Lz / 3.0
         vertices = np.rec.array(ComPASS.global_vertices())
         nodeflags = ComPASS.global_nodeflags()
         nodeflags[:] = 0
-        nodeflags[vertices[:,2]-Oz >= boundary] = liquid_flag
-        nodeflags[vertices[:,2]-Oz < boundary] = gas_flag
-        
+        nodeflags[vertices[:, 2] - Oz >= boundary] = liquid_flag
+        nodeflags[vertices[:, 2] - Oz < boundary] = gas_flag
+
         cell_centers = np.rec.array(ComPASS.compute_global_cell_centers())
         cellflags = ComPASS.global_cellflags()
         cellflags[:] = 0
-        cellflags[cell_centers[:,2]-Oz >= boundary] = liquid_flag
-        cellflags[cell_centers[:,2]-Oz < boundary] = gas_flag
+        cellflags[cell_centers[:, 2] - Oz >= boundary] = liquid_flag
+        cellflags[cell_centers[:, 2] - Oz < boundary] = gas_flag
 
 
 if not ComPASS.mpi.is_on_master_proc:
     grid = set_global_flags = None
 
 ComPASS.init(
-    mesh = grid,
-    cell_porosity = omega_reservoir,
-    cell_permeability = k_reservoir,
-    cell_thermal_conductivity = cell_thermal_cond,
-    set_global_flags = set_global_flags,
+    mesh=grid,
+    cell_porosity=omega_reservoir,
+    cell_permeability=k_reservoir,
+    cell_thermal_conductivity=cell_thermal_cond,
+    set_global_flags=set_global_flags,
 )
 
-sys.stdout.write('Maillage distribue' + '\n')
+sys.stdout.write("Maillage distribue" + "\n")
 sys.stdout.flush()
 
 
 def to_array(xyz):
-    array = np.zeros((xyz.shape[0],3))
+    array = np.zeros((xyz.shape[0], 3))
     for i, elt in enumerate(xyz):
-        array[i] = np.fromiter(elt,dtype=np.float)
+        array[i] = np.fromiter(elt, dtype=np.float)
     return array
 
+
 def lininterp(depths, top, gradient):
-    return top + (gradient)*(depths)
+    return top + (gradient) * (depths)
 
 
 def set_states(state, flag, depths):
-    state.context[flag==gas_flag] = gas_context
-    state.p[flag==gas_flag] = lininterp(depths[flag==gas_flag], p0, 800.*gravity)
-    state.T[flag==gas_flag] = lininterp(depths[flag==gas_flag], T0, geotherm)
-    state.S[flag==gas_flag] = [1, 0]
-    state.C[flag==gas_flag] = [[ .9, .1], [0., 1.]]
-    
-    state.context[flag==liquid_flag] = liquid_context
-    state.p[flag==liquid_flag] = lininterp(depths[flag==liquid_flag], p0, 800.*gravity)
-    state.T[flag==liquid_flag] = lininterp(depths[flag==liquid_flag], T0, geotherm)
-    state.S[flag==liquid_flag] = [0, 1]
-    state.C[flag==liquid_flag] = [[ 1., 0.], [1.E-5, 1.-1.E-5]]
+    state.context[flag == gas_flag] = gas_context
+    state.p[flag == gas_flag] = lininterp(depths[flag == gas_flag], p0, 800.0 * gravity)
+    state.T[flag == gas_flag] = lininterp(depths[flag == gas_flag], T0, geotherm)
+    state.S[flag == gas_flag] = [1, 0]
+    state.C[flag == gas_flag] = [[0.9, 0.1], [0.0, 1.0]]
+
+    state.context[flag == liquid_flag] = liquid_context
+    state.p[flag == liquid_flag] = lininterp(
+        depths[flag == liquid_flag], p0, 800.0 * gravity
+    )
+    state.T[flag == liquid_flag] = lininterp(depths[flag == liquid_flag], T0, geotherm)
+    state.S[flag == liquid_flag] = [0, 1]
+    state.C[flag == liquid_flag] = [[1.0, 0.0], [1.0e-5, 1.0 - 1.0e-5]]
+
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), ComPASS.nodeflags(), Oz+Lz-ComPASS.vertices()[:,2])
-    set_states(ComPASS.cell_states(), ComPASS.cellflags(), Oz+Lz-ComPASS.compute_cell_centers()[:,2])
+    set_states(
+        ComPASS.node_states(), ComPASS.nodeflags(), Oz + Lz - ComPASS.vertices()[:, 2]
+    )
+    set_states(
+        ComPASS.cell_states(),
+        ComPASS.cellflags(),
+        Oz + Lz - ComPASS.compute_cell_centers()[:, 2],
+    )
 
 
-sys.stdout.write('set initial and BC' + '\n')
+sys.stdout.write("set initial and BC" + "\n")
 set_variable_initial_bc_values()
 sys.stdout.flush()
 
 
-init_dt = .01 # * hour
-final_time = 100. * year
+init_dt = 0.01  # * hour
+final_time = 100.0 * year
 output_period = 0.01 * final_time
-ComPASS.set_maximum_timestep(.7*year)
+ComPASS.set_maximum_timestep(0.7 * year)
 
 
-def ma_fonction(it_timestep,time):
-    if(it_timestep>1):
+def ma_fonction(it_timestep, time):
+    if it_timestep > 1:
         ComPASS.mpi.abort()
 
 
-standard_loop(initial_timestep = init_dt, final_time = final_time, output_every=20,
-#iteration_callbacks=[ma_fonction],
-#output_period = output_period, specific_outputs=[1. * day], output_every=20,
+standard_loop(
+    initial_timestep=init_dt,
+    final_time=final_time,
+    output_every=20,
+    # iteration_callbacks=[ma_fonction],
+    # output_period = output_period, specific_outputs=[1. * day], output_every=20,
 )
-

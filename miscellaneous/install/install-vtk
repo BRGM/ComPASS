@@ -1,7 +1,7 @@
 # this file has to be sourced (export)
-# and is relying to the LOCAL environment variable pointing to a directory 
-# where you have read/write access and where all third parties libraries 
-# have already been downloaded (cf. get-sources script) and will be installed 
+# and is relying to the LOCAL environment variable pointing to a directory
+# where you have read/write access and where all third parties libraries
+# have already been downloaded (cf. get-sources script) and will be installed
 
 export target=vtk-7.1.1
 

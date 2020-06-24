@@ -1,5 +1,3 @@
-
-
 class SimulationContext:
     """
     A structure that holds global parameter.

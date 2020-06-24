@@ -12,7 +12,7 @@
        use mpi, only: MPI_abort
 
        use CommonTypesWrapper, only: cpp_COC, cpp_array_wrapper, &
-         retrieve_coc
+                                     retrieve_coc
        use CommonType, only: CSR
 
        use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
@@ -34,9 +34,9 @@
           NodebyFractureLocal, FacebyCellLocal, NodebyCellLocal, NodebyFaceLocal
 
        use GlobalMesh, only: &
-         GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype, &
-         GlobalMesh_Make_post_read_well_connectivity_and_ip, &
-         GlobalMesh_Build_cartesian_grid
+          GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype, &
+          GlobalMesh_Make_post_read_well_connectivity_and_ip, &
+          GlobalMesh_Build_cartesian_grid
 
        use DefWell, only: DefWell_Make_ComputeWellIndex
 
@@ -46,12 +46,12 @@
 
        type, bind(C) :: cpp_MeshConnectivity
           type(cpp_COC) :: NodebyCell
-          type(cpp_COC) :: NodebyFace 
-          type(cpp_COC) :: FacebyNode 
-          type(cpp_COC) :: FacebyCell 
-          type(cpp_COC) :: CellbyNode 
-          type(cpp_COC) :: CellbyFace 
-          type(cpp_COC) :: CellbyCell 
+          type(cpp_COC) :: NodebyFace
+          type(cpp_COC) :: FacebyNode
+          type(cpp_COC) :: FacebyCell
+          type(cpp_COC) :: CellbyNode
+          type(cpp_COC) :: CellbyFace
+          type(cpp_COC) :: CellbyCell
        end type cpp_MeshConnectivity
 
        public :: &
@@ -348,7 +348,7 @@
              call CommonMPI_abort("global values must be read by master process")
           if (.not. allocated(CellThermalSource)) &
              call CommonMPI_abort("cell heat sources are not allocated")
-          if (size(CellThermalSource)/=NbCell) &
+          if (size(CellThermalSource) /= NbCell) &
              call CommonMPI_abort("cell heat sources have inconsistent size")
 
           cpp_array%p = c_loc(CellThermalSource(1))
@@ -526,11 +526,11 @@
           cpp_array%p = c_loc(CondThermalFrac(1))
           cpp_array%n = size(CondThermalFrac)
 
-          end subroutine retrieve_global_fracture_thermal_conductivity
+       end subroutine retrieve_global_fracture_thermal_conductivity
 
 #endif
 
-        subroutine retrieve_global_id_node(cpp_array) &
+       subroutine retrieve_global_id_node(cpp_array) &
           bind(C, name="retrieve_global_id_node")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -614,12 +614,12 @@
           call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
        end subroutine GlobalMesh_build_cartesian_grid_from_C
-             
+
        subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C() &
           bind(C, name="GlobalMesh_make_post_read_well_connectivity_and_ip")
-       
+
           call GlobalMesh_Make_post_read_well_connectivity_and_ip
-       
+
        end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C
 
        function check_mesh_allocation() result(status)

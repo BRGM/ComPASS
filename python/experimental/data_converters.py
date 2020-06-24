@@ -5,13 +5,13 @@ import numpy as np
 def flatten_dtype(dtype):
     " return the corresponding flat sub-array dtype "
     dtype = np.dtype(dtype)
-    shape = () 
-    while True: 
-        sdt = dtype.subdtype 
-        if sdt is None: 
+    shape = ()
+    while True:
+        sdt = dtype.subdtype
+        if sdt is None:
             return np.dtype((dtype, shape))
-        dtype, sub_shape = sdt 
-        shape += sub_shape  
+        dtype, sub_shape = sdt
+        shape += sub_shape
 
 
 class SubArray:
@@ -28,10 +28,8 @@ class SubArray:
     def __call__(self, value):
         dtype = self.dtype
         value = np.asarray(value, dtype=dtype.base)
-        if value.shape[-dtype.ndim:] != dtype.shape:
-            raise ValueError(
-                f"shape {value.shape} not compatible with {dtype.shape}"
-            )
+        if value.shape[-dtype.ndim :] != dtype.shape:
+            raise ValueError(f"shape {value.shape} not compatible with {dtype.shape}")
         return value
 
     def __repr__(self):
@@ -50,7 +48,7 @@ class Tensor(SubArray):
     def __call__(self, value):
         dtype = self.dtype
         shape = np.shape(value)
-        if shape[-dtype.ndim:] != dtype.shape:
+        if shape[-dtype.ndim :] != dtype.shape:
             new_value = np.zeros(shape + dtype.shape, dtype.base)
             for i in range(dtype.shape[-1]):
                 new_value[..., i, i] = value
@@ -76,7 +74,7 @@ def vector(size, dtype=None):
             if value.shape != dtype.shape:
                 raise ValueError(f"can't convert data in vector({size})")
             return value
-        elif value.shape[-dtype.ndim:] == dtype.shape:
+        elif value.shape[-dtype.ndim :] == dtype.shape:
             return value
             # return convert(np.moveaxis(value, -1, 0))
         raise ValueError(f"can't convert data in vector({size})")

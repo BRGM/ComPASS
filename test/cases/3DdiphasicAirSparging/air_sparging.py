@@ -56,9 +56,9 @@ p_atm = 1 * bar  # top pressure
 Tall = degC2K(30)
 
 qmass_inj = 5.0 / 3600.0  # 5m^3/h
-pure_phase_molar_fraction = [[1., 0.], [0., 1.0]]
+pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 liq_molar_fraction_inj = pure_phase_molar_fraction
-Sg_top = 1.
+Sg_top = 1.0
 # # vDarcy = 4E-1 # m/s                         # qmass = velocity[m/s]*Section[m2]*Massevol
 # # qmass_vdh = (40/3600)*997
 # # qmass = (1/3600)*997 #                     # m3/h*density : qmass[kg/s]
@@ -206,6 +206,7 @@ def lininterp(depths, top, gradient):
     assert np.all(depths) >= 0, "depths is not positif"
     return top + (gradient) * (depths)
 
+
 def set_states(state, z, mask=True):
     lower = z <= 0
     upper = np.logical_not(lower)
@@ -229,16 +230,17 @@ def set_states(state, z, mask=True):
     state.S[upper, 1] = 1 - state.S[upper, 0]  # liquid
     state.C[upper] = pure_phase_molar_fraction
 
+
 def set_Dirichlet_state(state, z):
     node_flags = ComPASS.nodeflags()
     # top nodes
     state.context[node_flags == Topflag] = gas_context
     state.p[node_flags == Topflag] = p_atm
     state.T[node_flags == Topflag] = Tall
-    state.S[node_flags == Topflag] = [Sg_top, 1-Sg_top]
+    state.S[node_flags == Topflag] = [Sg_top, 1 - Sg_top]
     state.C[node_flags == Topflag] = pure_phase_molar_fraction
     # Extern nodes
-    set_states(state,z,node_flags == Externflag)
+    set_states(state, z, node_flags == Externflag)
 
 
 def set_Neumann_fluxes():
@@ -274,16 +276,16 @@ MT.to_vtu(
     pointdata={
         "P": np.ascontiguousarray(ComPASS.node_states().p),
         "T": np.ascontiguousarray(ComPASS.node_states().T),
-        "Sg": np.ascontiguousarray(ComPASS.node_states().S[:,0]),
-        "Cag": np.ascontiguousarray(ComPASS.node_states().C[:,0,0]),
-        "Cwl": np.ascontiguousarray(ComPASS.node_states().C[:,-1,-1]),
+        "Sg": np.ascontiguousarray(ComPASS.node_states().S[:, 0]),
+        "Cag": np.ascontiguousarray(ComPASS.node_states().C[:, 0, 0]),
+        "Cwl": np.ascontiguousarray(ComPASS.node_states().C[:, -1, -1]),
     },
     celldata={
         "P": np.ascontiguousarray(ComPASS.cell_states().p),
         "T": np.ascontiguousarray(ComPASS.cell_states().T),
-        "Sg": np.ascontiguousarray(ComPASS.cell_states().S[:,0]),
-        "Cag": np.ascontiguousarray(ComPASS.cell_states().C[:,0,0]),
-        "Cwl": np.ascontiguousarray(ComPASS.cell_states().C[:,-1,-1]),
+        "Sg": np.ascontiguousarray(ComPASS.cell_states().S[:, 0]),
+        "Cag": np.ascontiguousarray(ComPASS.cell_states().C[:, 0, 0]),
+        "Cwl": np.ascontiguousarray(ComPASS.cell_states().C[:, -1, -1]),
     },
 )
 

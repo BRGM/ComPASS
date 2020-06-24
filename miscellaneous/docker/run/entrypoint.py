@@ -2,7 +2,7 @@ import sys
 import os
 from pathlib import Path
 import click
-import psutil 
+import psutil
 
 
 def write_customization_file(filename, uid=None):
@@ -90,7 +90,7 @@ def bash(session_script, cmd):
     has double quotes use simple quote to escape them."""
     session_script = session_script
     with session_script as f:
-        if len(cmd)>0:
+        if len(cmd) > 0:
             print(" ".join(cmd), file=f)
 
 

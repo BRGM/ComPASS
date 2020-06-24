@@ -10,7 +10,7 @@
 # Homogeneous Neumann at all BC
 # no gravity
 # the left half is initiated with liquid,
-#   the right half with linear Sg between 0 at Lx/2 and 1 at Lx 
+#   the right half with linear Sg between 0 at Lx/2 and 1 at Lx
 
 import ComPASS
 import numpy as np
@@ -27,7 +27,7 @@ from ComPASS.mpi import master_print
 Lx = 1000.0
 nx = 200
 dx = Lx / nx
-Lz = Ly =  dx
+Lz = Ly = dx
 Ox, Oy, Oz = 0.0, 0.0, 0.0
 nz = ny = 1
 
@@ -62,6 +62,7 @@ simulation.init(
     cell_thermal_conductivity=cell_thermal_cond,
 )
 
+
 def set_states(state, x):
     left = x <= Lx / 2.0
     right = np.logical_not(left)
@@ -91,9 +92,9 @@ set_variable_initial_bc_values()
 newton = Newton(simulation, 1e-7, 12, LinearSolver(1e-6, 50))
 
 timestep = TimeStepManager(
-    initial_timestep=100.,
+    initial_timestep=100.0,
     minimum_timestep=1e-3,
-    maximum_timestep=10. * year,
+    maximum_timestep=10.0 * year,
     increase_factor=1.2,
     decrease_factor=0.5,
 )

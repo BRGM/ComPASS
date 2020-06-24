@@ -8,283 +8,283 @@
 
 module MeshSchema
 
-  use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
-  use InteroperabilityStructures, only: cpp_array_wrapper
-  use mpi
-  use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
+   use InteroperabilityStructures, only: cpp_array_wrapper
+   use mpi
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
 
-  use CommonType, only: &
-    Type_IdNode, CSR, &
-    VALSIZE_NB, VALSIZE_NNZ, VALSIZE_ZERO, &
-    FamilyDOFId, FamilyDOFIdCOC, check_FamilyDOFIdCOC, create_FamilyDOFId_MPI_struct, &
-    CommonType_deallocCSR, CommonType_csrcopy, free_ComPASS_struct
-  use DefModel, only: IndThermique, NbPhase, NbComp
+   use CommonType, only: &
+      Type_IdNode, CSR, &
+      VALSIZE_NB, VALSIZE_NNZ, VALSIZE_ZERO, &
+      FamilyDOFId, FamilyDOFIdCOC, check_FamilyDOFIdCOC, create_FamilyDOFId_MPI_struct, &
+      CommonType_deallocCSR, CommonType_csrcopy, free_ComPASS_struct
+   use DefModel, only: IndThermique, NbPhase, NbComp
 
-  use DefWell, only: &
-     TYPE_CSRDataNodeWell, PerforationDataCSR_wrapper, WellData_type, &
-     DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
-     DefWell_deallocCSRDataWell
+   use DefWell, only: &
+      TYPE_CSRDataNodeWell, PerforationDataCSR_wrapper, WellData_type, &
+      DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
+      DefWell_deallocCSRDataWell
 
-  use MeshInfo, only : &
-    PartInfo
+   use MeshInfo, only: &
+      PartInfo
 
-  use LocalMesh, only: &
-    XNodeRes_Ncpus, &
-    meshSizeS_xmin, meshSizeS_xmax, meshSizeS_ymin, meshSizeS_ymax, meshSizeS_zmin, meshSizeS_zmax, &
-    NodeFlags_Ncpus, CellFlags_Ncpus, FaceFlags_Ncpus, &
-    CellTypes_Ncpus, FaceTypes_Ncpus, &
-    NodeRocktype_Ncpus, CellRocktype_Ncpus, FracRocktype_Ncpus, &
-    NbCellResS_Ncpus, NbFaceResS_Ncpus, NbNodeResS_Ncpus, NbFracResS_Ncpus, &
-    NbCellOwnS_Ncpus, NbFaceOwnS_Ncpus, NbNodeOwnS_Ncpus, NbFracOwnS_Ncpus, &
-    NbWellInjResS_Ncpus, NbWellProdResS_Ncpus, &
-    NbWellInjOwnS_Ncpus, NbWellProdOwnS_Ncpus, &
-    DataWellInjRes_Ncpus, DataWellProdRes_Ncpus, &
-    IdCellRes_Ncpus, IdFaceRes_Ncpus, IdNodeRes_Ncpus, &
-    FracToFaceLocal_Ncpus, FaceToFracLocal_Ncpus, &
-    PorositeCell_Ncpus, PorositeFrac_Ncpus, &
-    PermCellLocal_Ncpus, PermFracLocal_Ncpus, &
-    CondThermalCellLocal_Ncpus, CondThermalFracLocal_Ncpus, &
-    CellThermalSource_Ncpus, FracThermalSource_Ncpus, &
-    NodebyNodeOwn_Ncpus, FracbyNodeOwn_Ncpus, CellbyNodeOwn_Ncpus, &
-    NodebyFracOwn_Ncpus, CellbyFracOwn_Ncpus, FracbyFracOwn_Ncpus, &
-    FacebyCellLocal_Ncpus, FracbyCellLocal_Ncpus, NodebyCellLocal_Ncpus, NodebyFaceLocal_Ncpus, &
-    WellInjbyNodeOwn_Ncpus, WellProdbyNodeOwn_Ncpus, &
-    NodebyWellInjLocal_Ncpus, NodebyWellProdLocal_Ncpus, &
-    NumNodebyProc_Ncpus, NumFracbyProc_Ncpus, &
-    NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
-    NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
-
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-  use LocalMesh, only: IdFFNodeRes_Ncpus
-#endif
-
-  implicit none
-
-  ! 1. Mesh Info
-  integer(c_int), allocatable, dimension(:), target, public :: &
-       NbCellLocal_Ncpus, NbCellOwn_Ncpus, &
-       NbFaceLocal_Ncpus, NbFaceOwn_Ncpus, &
-       NbNodeLocal_Ncpus, NbNodeOwn_Ncpus, &
-       NbFracLocal_Ncpus, NbFracOwn_Ncpus
-
-  double precision, protected :: &
-       meshSize_xmax, & !< Global size of mesh xmax, known by all CPUs
-       meshSize_xmin, & !< Global size of mesh xmin, known by all CPUs
-       meshSize_ymax, & !< Global size of mesh ymax, known by all CPUs
-       meshSize_ymin, & !< Global size of mesh ymin, known by all CPUs
-       meshSize_zmax, & !< Global size of mesh zmax, known by all CPUs
-       meshSize_zmin    !< Global size of mesh zmin, known by all CPUs
-
-  ! 2. Mesh and connectivity
-  !    Used to (1) calcul Transmissivities: TkLocal and TkFracLocal
-  !            (2) Assembly
-  type(CSR), public :: & 
-       NodebyNodeOwn, &   ! (1)
-       FracbyNodeOwn, &   ! (1)
-       CellbyNodeOwn, &   ! (1)
-                                !
-       NodebyFracOwn, &   ! (1)
-                          ! WARNING these are not the fracture nodes but the set of nodes 
-                          !         of the two cells on each side of the fracture
-       CellbyFracOwn, &   ! (1)
-       FracbyFracOwn, &   ! (1)
-                                ! 
-       FacebyCellLocal, & ! (1,2)
-       FracbyCellLocal, & ! (1,2)
-       NodebyCellLocal, & ! (1,2)
-                                !
-       NodebyFaceLocal, & ! (1,2)
-       NodebyFractureLocal
-  
-  ! Number of Edges by Well
-  integer, allocatable, dimension(:), protected :: &
-       NbEdgebyWellInjLocal, &
-       NbEdgebyWellProdLocal
-
-  ! Num (local) of Nodes by Edge by Well local (own+ghost)
-  integer, allocatable, dimension(:,:,:), protected :: &
-       NumNodebyEdgebyWellInjLocal, &
-       NumNodebyEdgebyWellProdLocal
-
-  ! 3. X node
-  double precision, allocatable, dimension(:,:), target :: &
-       XNodeLocal
-  
-  integer(c_int), allocatable, dimension(:), target :: &
-       NodeFlagsLocal, &
-       CellFlagsLocal, &
-       FaceFlagsLocal
-  
-  integer(c_int8_t), allocatable, dimension(:), target :: &
-       CellTypesLocal, &
-       FaceTypesLocal
-  
-  integer(c_int), allocatable, dimension(:,:), target :: &
-       NodeRocktypeLocal, &
-       CellRocktypeLocal, &
-       FracRocktypeLocal
-  
-  ! 4. IdCell/IdFace/IdNode
-  integer, allocatable, dimension(:), protected :: &
-       IdCellLocal, &
-       IdFaceLocal
-
-  type(Type_IdNode), allocatable, dimension(:), target :: &
-       IdNodeLocal
+   use LocalMesh, only: &
+      XNodeRes_Ncpus, &
+      meshSizeS_xmin, meshSizeS_xmax, meshSizeS_ymin, meshSizeS_ymax, meshSizeS_zmin, meshSizeS_zmax, &
+      NodeFlags_Ncpus, CellFlags_Ncpus, FaceFlags_Ncpus, &
+      CellTypes_Ncpus, FaceTypes_Ncpus, &
+      NodeRocktype_Ncpus, CellRocktype_Ncpus, FracRocktype_Ncpus, &
+      NbCellResS_Ncpus, NbFaceResS_Ncpus, NbNodeResS_Ncpus, NbFracResS_Ncpus, &
+      NbCellOwnS_Ncpus, NbFaceOwnS_Ncpus, NbNodeOwnS_Ncpus, NbFracOwnS_Ncpus, &
+      NbWellInjResS_Ncpus, NbWellProdResS_Ncpus, &
+      NbWellInjOwnS_Ncpus, NbWellProdOwnS_Ncpus, &
+      DataWellInjRes_Ncpus, DataWellProdRes_Ncpus, &
+      IdCellRes_Ncpus, IdFaceRes_Ncpus, IdNodeRes_Ncpus, &
+      FracToFaceLocal_Ncpus, FaceToFracLocal_Ncpus, &
+      PorositeCell_Ncpus, PorositeFrac_Ncpus, &
+      PermCellLocal_Ncpus, PermFracLocal_Ncpus, &
+      CondThermalCellLocal_Ncpus, CondThermalFracLocal_Ncpus, &
+      CellThermalSource_Ncpus, FracThermalSource_Ncpus, &
+      NodebyNodeOwn_Ncpus, FracbyNodeOwn_Ncpus, CellbyNodeOwn_Ncpus, &
+      NodebyFracOwn_Ncpus, CellbyFracOwn_Ncpus, FracbyFracOwn_Ncpus, &
+      FacebyCellLocal_Ncpus, FracbyCellLocal_Ncpus, NodebyCellLocal_Ncpus, NodebyFaceLocal_Ncpus, &
+      WellInjbyNodeOwn_Ncpus, WellProdbyNodeOwn_Ncpus, &
+      NodebyWellInjLocal_Ncpus, NodebyWellProdLocal_Ncpus, &
+      NumNodebyProc_Ncpus, NumFracbyProc_Ncpus, &
+      NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
+      NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-  logical, allocatable, dimension(:), target :: &
-       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
+   use LocalMesh, only: IdFFNodeRes_Ncpus
 #endif
 
-  ! Well 
-  integer, dimension(:), allocatable, protected :: &
-       NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
-       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus
+   implicit none
 
-  ! Well connectivity in local 
-  type(CSR), protected :: &
-       NodebyWellInjLocal, &
-       NodebyWellProdLocal
+   ! 1. Mesh Info
+   integer(c_int), allocatable, dimension(:), target, public :: &
+      NbCellLocal_Ncpus, NbCellOwn_Ncpus, &
+      NbFaceLocal_Ncpus, NbFaceOwn_Ncpus, &
+      NbNodeLocal_Ncpus, NbNodeOwn_Ncpus, &
+      NbFracLocal_Ncpus, NbFracOwn_Ncpus
 
-  type(WellData_type), allocatable, dimension(:), target, public :: &
-       DataWellInjLocal, & !< Data of injection well (Radius,...) for local well
-       DataWellProdLocal !< Data of production well (Radius,...) for local well
+   double precision, protected :: &
+      meshSize_xmax, & !< Global size of mesh xmax, known by all CPUs
+      meshSize_xmin, & !< Global size of mesh xmin, known by all CPUs
+      meshSize_ymax, & !< Global size of mesh ymax, known by all CPUs
+      meshSize_ymin, & !< Global size of mesh ymin, known by all CPUs
+      meshSize_zmax, & !< Global size of mesh zmax, known by all CPUs
+      meshSize_zmin    !< Global size of mesh zmin, known by all CPUs
 
-  ! Data in nodes of wells
-  type(TYPE_CSRDataNodeWell), protected :: &
-       NodeDatabyWellInjLocal, &
-       NodeDatabyWellProdLocal
+   ! 2. Mesh and connectivity
+   !    Used to (1) calcul Transmissivities: TkLocal and TkFracLocal
+   !            (2) Assembly
+   type(CSR), public :: &
+      NodebyNodeOwn, &   ! (1)
+      FracbyNodeOwn, &   ! (1)
+      CellbyNodeOwn, &   ! (1)
+      !
+      NodebyFracOwn, &   ! (1)
+      ! WARNING these are not the fracture nodes but the set of nodes
+      !         of the two cells on each side of the fracture
+      CellbyFracOwn, &   ! (1)
+      FracbyFracOwn, &   ! (1)
+      !
+      FacebyCellLocal, & ! (1,2)
+      FracbyCellLocal, & ! (1,2)
+      NodebyCellLocal, & ! (1,2)
+      !
+      NodebyFaceLocal, & ! (1,2)
+      NodebyFractureLocal
 
-  !! The follwoing vectors are used for the strucutre of Jacobian
-  type(CSR), protected :: &
-       WellInjbyNodeOwn, &  ! numero (local) of well inj connected to this node own
-       WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
+   ! Number of Edges by Well
+   integer, allocatable, dimension(:), protected :: &
+      NbEdgebyWellInjLocal, &
+      NbEdgebyWellProdLocal
 
-  ! 5. Frac to Face, Face to Frac 
-  integer(c_int), allocatable, dimension(:), target :: &
-       FracToFaceLocal, &
-       FaceToFracLocal
+   ! Num (local) of Nodes by Edge by Well local (own+ghost)
+   integer, allocatable, dimension(:, :, :), protected :: &
+      NumNodebyEdgebyWellInjLocal, &
+      NumNodebyEdgebyWellProdLocal
 
-  ! 6. NumNodebyProc, NumFracbyProc
-  type(FamilyDOFIdCOC), protected:: &
-       NumNodebyProc,    &
-       NumFracbyProc,    &
-       NumWellInjbyProc, &
-       NumWellProdbyProc
+   ! 3. X node
+   double precision, allocatable, dimension(:, :), target :: &
+      XNodeLocal
 
-  ! 7. XCellLocal, XFaceLocal
-  real(c_double), dimension(:,:), allocatable, public, target :: &
-       XCellLocal,&     ! center of cell
-       XFaceLocal       ! center of frac
+   integer(c_int), allocatable, dimension(:), target :: &
+      NodeFlagsLocal, &
+      CellFlagsLocal, &
+      FaceFlagsLocal
 
-  ! 8. VolCellLocal, SurfFreeFlowLocal, SurfFracLocal
-  double precision, dimension(:), allocatable, protected :: &
-       VolCellLocal, &      ! vol of cell
-       SurfFreeFlowLocal, & ! surf of faces allocated to each freeflow node
-       SurfFracLocal        ! surf of frac face
+   integer(c_int8_t), allocatable, dimension(:), target :: &
+      CellTypesLocal, &
+      FaceTypesLocal
 
-  ! 9. max number of nodes/frac in a cell 
-  integer, protected :: & 
-       NbNodeCellMax, &
-       NbFracCellMax, &
-       NbNodeFaceMax
+   integer(c_int), allocatable, dimension(:, :), target :: &
+      NodeRocktypeLocal, &
+      CellRocktypeLocal, &
+      FracRocktypeLocal
 
-  ! 10. Porosity
-  real(c_double), dimension(:), allocatable, target :: &
-       PorositeCellLocal, &
-       PorositeFracLocal
-  ! permeability
-  real(c_double), dimension(:,:,:), allocatable, target :: &
-       PermCellLocal
-  real(c_double), dimension(:), allocatable, target :: &
-       PermFracLocal
+   ! 4. IdCell/IdFace/IdNode
+   integer, allocatable, dimension(:), protected :: &
+      IdCellLocal, &
+      IdFaceLocal
+
+   type(Type_IdNode), allocatable, dimension(:), target :: &
+      IdNodeLocal
+
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+   logical, allocatable, dimension(:), target :: &
+      IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
+#endif
+
+   ! Well
+   integer, dimension(:), allocatable, protected :: &
+      NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
+      NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus
+
+   ! Well connectivity in local
+   type(CSR), protected :: &
+      NodebyWellInjLocal, &
+      NodebyWellProdLocal
+
+   type(WellData_type), allocatable, dimension(:), target, public :: &
+      DataWellInjLocal, & !< Data of injection well (Radius,...) for local well
+      DataWellProdLocal !< Data of production well (Radius,...) for local well
+
+   ! Data in nodes of wells
+   type(TYPE_CSRDataNodeWell), protected :: &
+      NodeDatabyWellInjLocal, &
+      NodeDatabyWellProdLocal
+
+   !! The follwoing vectors are used for the strucutre of Jacobian
+   type(CSR), protected :: &
+      WellInjbyNodeOwn, &  ! numero (local) of well inj connected to this node own
+      WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
+
+   ! 5. Frac to Face, Face to Frac
+   integer(c_int), allocatable, dimension(:), target :: &
+      FracToFaceLocal, &
+      FaceToFracLocal
+
+   ! 6. NumNodebyProc, NumFracbyProc
+   type(FamilyDOFIdCOC), protected:: &
+      NumNodebyProc, &
+      NumFracbyProc, &
+      NumWellInjbyProc, &
+      NumWellProdbyProc
+
+   ! 7. XCellLocal, XFaceLocal
+   real(c_double), dimension(:, :), allocatable, public, target :: &
+      XCellLocal, &     ! center of cell
+      XFaceLocal       ! center of frac
+
+   ! 8. VolCellLocal, SurfFreeFlowLocal, SurfFracLocal
+   double precision, dimension(:), allocatable, protected :: &
+      VolCellLocal, &      ! vol of cell
+      SurfFreeFlowLocal, & ! surf of faces allocated to each freeflow node
+      SurfFracLocal        ! surf of frac face
+
+   ! 9. max number of nodes/frac in a cell
+   integer, protected :: &
+      NbNodeCellMax, &
+      NbFracCellMax, &
+      NbNodeFaceMax
+
+   ! 10. Porosity
+   real(c_double), dimension(:), allocatable, target :: &
+      PorositeCellLocal, &
+      PorositeFracLocal
+   ! permeability
+   real(c_double), dimension(:, :, :), allocatable, target :: &
+      PermCellLocal
+   real(c_double), dimension(:), allocatable, target :: &
+      PermFracLocal
 
 #ifdef _THERMIQUE_
-  ! Thermal conductivity
-  real(c_double), dimension(:,:,:), allocatable, target :: &
-       CondThermalCellLocal
-  real(c_double), dimension(:), allocatable, target :: &
-       CondThermalFracLocal
+   ! Thermal conductivity
+   real(c_double), dimension(:, :, :), allocatable, target :: &
+      CondThermalCellLocal
+   real(c_double), dimension(:), allocatable, target :: &
+      CondThermalFracLocal
 #endif
 
 #ifdef _THERMIQUE_
-  ! Thermal source
-  real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: CellThermalSourceLocal
-  real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: FracThermalSourceLocal
+   ! Thermal source
+   real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: CellThermalSourceLocal
+   real(c_double), DIMENSION(:), ALLOCATABLE, PUBLIC, target :: FracThermalSourceLocal
 #endif
 
-  ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
-  integer, private :: MPI_DATANODEWELL
+   ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
+   integer, private :: MPI_DATANODEWELL
 
-    type SubArraySizes      
-        integer(c_size_t) :: nodes, fractures, cells
-    end type SubArraySizes
+   type SubArraySizes
+      integer(c_size_t) :: nodes, fractures, cells
+   end type SubArraySizes
 
-    type SubArrayOffsets        
-        integer(c_size_t) :: nodes, fractures, cells
-    end type SubArrayOffsets
+   type SubArrayOffsets
+      integer(c_size_t) :: nodes, fractures, cells
+   end type SubArrayOffsets
 
-    type SubArrayInfo
-        type(SubArraySizes) :: nb
-        type(SubArrayOffsets) :: offset
-    end type SubArrayInfo
-    
-    type SubArrayView
-        real(c_double), pointer, dimension(:) :: nodes, fractures, cells
-    end type SubArrayView
-    
-    type DOFFamilyArray
-        real(c_double), allocatable, dimension(:) :: values
-        real(c_double), pointer, dimension(:) :: nodes, fractures, cells
-    end type DOFFamilyArray
-    
-    ! FIXME: use parametrized types
-    type PhaseDOFFamilyArray
-        real(c_double), allocatable, dimension(:, :) :: values
-        real(c_double), pointer, dimension(:, :) :: nodes, fractures, cells
-    end type PhaseDOFFamilyArray
+   type SubArrayInfo
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
+   end type SubArrayInfo
 
-    ! FIXME: use parametrized types
-    type CompPhaseDOFFamilyArray
-        real(c_double), allocatable, dimension(:, :, :) :: values
-        real(c_double), pointer, dimension(:, :, :) :: nodes, fractures, cells
-    end type CompPhaseDOFFamilyArray
+   type SubArrayView
+      real(c_double), pointer, dimension(:) :: nodes, fractures, cells
+   end type SubArrayView
 
-  private :: &
-       MeshSchema_csrsend, &   ! send csr
-       MeshSchema_csrrecv, &   ! recv csr
-       MeshSchema_csrdatawellsend, & ! send csrdatawell
-       MeshSchema_csrdatawellrecv, & ! recv csrdatawell
-                                !
-       MeshSchema_sendrecv,                 &
-       MeshSchema_NumNodebyEdgebyWellLocal, &
-       MeshSchema_XCellLocal,               &
-       MeshSchema_VolCellLocal,             &
-       MeshSchema_XFaceLocal,               &
+   type DOFFamilyArray
+      real(c_double), allocatable, dimension(:) :: values
+      real(c_double), pointer, dimension(:) :: nodes, fractures, cells
+   end type DOFFamilyArray
+
+   ! FIXME: use parametrized types
+   type PhaseDOFFamilyArray
+      real(c_double), allocatable, dimension(:, :) :: values
+      real(c_double), pointer, dimension(:, :) :: nodes, fractures, cells
+   end type PhaseDOFFamilyArray
+
+   ! FIXME: use parametrized types
+   type CompPhaseDOFFamilyArray
+      real(c_double), allocatable, dimension(:, :, :) :: values
+      real(c_double), pointer, dimension(:, :, :) :: nodes, fractures, cells
+   end type CompPhaseDOFFamilyArray
+
+   private :: &
+      MeshSchema_csrsend, &   ! send csr
+      MeshSchema_csrrecv, &   ! recv csr
+      MeshSchema_csrdatawellsend, & ! send csrdatawell
+      MeshSchema_csrdatawellrecv, & ! recv csrdatawell
+      !
+      MeshSchema_sendrecv, &
+      MeshSchema_NumNodebyEdgebyWellLocal, &
+      MeshSchema_XCellLocal, &
+      MeshSchema_VolCellLocal, &
+      MeshSchema_XFaceLocal, &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-       MeshSchema_SurfFreeFlowLocal,        &
+      MeshSchema_SurfFreeFlowLocal, &
 #endif
-       MeshSchema_SurfFracLocal,            &
-       MeshSchema_NbNodeCellMax,            &
-       MeshSchema_NbNodeFaceMax,            &
-       MeshSchema_local_face_surface_from_nodes
+      MeshSchema_SurfFracLocal, &
+      MeshSchema_NbNodeCellMax, &
+      MeshSchema_NbNodeFaceMax, &
+      MeshSchema_local_face_surface_from_nodes
 
-  public :: &
-       MeshSchema_make, &
-       MeshSchema_Free, &
-       MeshSchema_triangle_area, &
-       MeshSchema_local_face_surface, &  
-       get_injectors_data, nb_injectors, &
-       get_producers_data, nb_producers, &
-       MeshSchema_subarrays_sizes, &
-       MeshSchema_subarrays_offsets, &
-       MeshSchema_subarrays_info, &
-       MeshSchema_subarrays_views, &
-       MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
-       MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
-       MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray, &
-       MeshSchema_part_info
+   public :: &
+      MeshSchema_make, &
+      MeshSchema_Free, &
+      MeshSchema_triangle_area, &
+      MeshSchema_local_face_surface, &
+      get_injectors_data, nb_injectors, &
+      get_producers_data, nb_producers, &
+      MeshSchema_subarrays_sizes, &
+      MeshSchema_subarrays_offsets, &
+      MeshSchema_subarrays_info, &
+      MeshSchema_subarrays_views, &
+      MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
+      MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
+      MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray, &
+      MeshSchema_part_info
 
 contains
 
@@ -292,16 +292,16 @@ contains
       type(TYPE_CSRDataNodeWell), intent(in) :: data
       type(PerforationDataCSR_wrapper), intent(inout) :: wrapper
 
-      if(.not.(associated(data%Pt).and.associated(data%Num).and.associated(data%Val))) then
-         write(*,*) ""
-         write(*,*) " WARNING - Some well pointers are not associated!"
-         if(.not.(associated(data%Pt))) &
-            write(*,*) "    Pt is not associated!"
-            if(.not.(associated(data%Num))) &
-            write(*,*) "    Num is not associated!"
-            if(.not.(associated(data%Val))) &
-            write(*,*) "    Val is not associated!"
-         write(*,*) ""
+      if (.not. (associated(data%Pt) .and. associated(data%Num) .and. associated(data%Val))) then
+         write (*, *) ""
+         write (*, *) " WARNING - Some well pointers are not associated!"
+         if (.not. (associated(data%Pt))) &
+            write (*, *) "    Pt is not associated!"
+         if (.not. (associated(data%Num))) &
+            write (*, *) "    Num is not associated!"
+         if (.not. (associated(data%Val))) &
+            write (*, *) "    Val is not associated!"
+         write (*, *) ""
          wrapper%nb_wells = 0
          wrapper%well_offset = c_null_ptr
          wrapper%node_vertex = c_null_ptr
@@ -309,14 +309,14 @@ contains
          return
       endif
 
-      if(data%Nb+1/=size(data%Pt)) then
-         write(*,*) " WARNING - Inconsistent Pt in CSRDataNodeWell!"
-         write(*,*) " Nb =", data%Nb, " Pt size =", size(data%Pt)
+      if (data%Nb + 1 /= size(data%Pt)) then
+         write (*, *) " WARNING - Inconsistent Pt in CSRDataNodeWell!"
+         write (*, *) " Nb =", data%Nb, " Pt size =", size(data%Pt)
          call CommonMPI_abort("Inconsistent Pt in CSRDataNodeWell")
       end if
-      if(data%Pt(data%Nb+1)/=size(data%Num)) &
+      if (data%Pt(data%Nb + 1) /= size(data%Num)) &
          call CommonMPI_abort("Inconsistent Num in CSRDataNodeWell")
-      if(data%Pt(data%Nb+1)/=size(data%Val)) &
+      if (data%Pt(data%Nb + 1) /= size(data%Val)) &
          call CommonMPI_abort("Inconsistent Val in CSRDataNodeWell")
 
       wrapper%nb_wells = data%Nb
@@ -324,7 +324,7 @@ contains
       wrapper%node_vertex = c_loc(data%Num(1))
       wrapper%data = c_loc(data%Val(1))
 
-   end subroutine retrieve_CSRDataNodeWell 
+   end subroutine retrieve_CSRDataNodeWell
 
    subroutine retrieve_CSRData_producer(wrapper) &
       bind(C, name="retrieve_CSRData_producer")
@@ -347,78 +347,78 @@ contains
       type(PartInfo), intent(out) :: info
 
       info%nodes%nb_owns = NbNodeOwn_Ncpus(commRank + 1)
-      info%nodes%nb      = NbNodeLocal_Ncpus(commRank + 1)
+      info%nodes%nb = NbNodeLocal_Ncpus(commRank + 1)
       info%fractures%nb_owns = NbFracOwn_Ncpus(commRank + 1)
-      info%fractures%nb      = NbFracLocal_Ncpus(commRank + 1)
+      info%fractures%nb = NbFracLocal_Ncpus(commRank + 1)
       info%injectors%nb_owns = NbWellInjOwn_Ncpus(commRank + 1)
-      info%injectors%nb      = NbWellInjLocal_Ncpus(commRank + 1)
+      info%injectors%nb = NbWellInjLocal_Ncpus(commRank + 1)
       info%producers%nb_owns = NbWellProdOwn_Ncpus(commRank + 1)
-      info%producers%nb      = NbWellProdLocal_Ncpus(commRank + 1)
+      info%producers%nb = NbWellProdLocal_Ncpus(commRank + 1)
 
    end subroutine MeshSchema_part_info
 
-    subroutine MeshSchema_subarrays_sizes(sizes)
-        type(SubArraySizes), intent(out) :: sizes
-        
-        sizes%nodes = NbNodeLocal_Ncpus(commRank + 1)
-        sizes%fractures = NbFracLocal_Ncpus(commRank + 1)
-        sizes%cells = NbCellLocal_Ncpus(commRank + 1)
+   subroutine MeshSchema_subarrays_sizes(sizes)
+      type(SubArraySizes), intent(out) :: sizes
 
-    end subroutine MeshSchema_subarrays_sizes
+      sizes%nodes = NbNodeLocal_Ncpus(commRank + 1)
+      sizes%fractures = NbFracLocal_Ncpus(commRank + 1)
+      sizes%cells = NbCellLocal_Ncpus(commRank + 1)
 
-    subroutine MeshSchema_subarrays_offsets(offsets)
-        type(SubArrayOffsets), intent(out) :: offsets
-        type(SubArraySizes) :: nb
-        
-        call MeshSchema_subarrays_compute_info(nb, offsets)
+   end subroutine MeshSchema_subarrays_sizes
 
-    end subroutine MeshSchema_subarrays_offsets
-    
-    subroutine MeshSchema_subarrays_compute_info(nb, offsets)
-        type(SubArraySizes), intent(out) :: nb
-        type(SubArrayOffsets), intent(out) :: offsets
-        
-        call MeshSchema_subarrays_sizes(nb)
-        offsets%nodes = 1
-        offsets%fractures = offsets%nodes + nb%nodes
-        offsets%cells = offsets%fractures + nb%fractures
+   subroutine MeshSchema_subarrays_offsets(offsets)
+      type(SubArrayOffsets), intent(out) :: offsets
+      type(SubArraySizes) :: nb
 
-    end subroutine MeshSchema_subarrays_compute_info
-    
-    subroutine MeshSchema_subarrays_info(info)
-        type(SubArrayInfo), intent(out) :: info
-        
-        call MeshSchema_subarrays_compute_info(info%nb, info%offset)
+      call MeshSchema_subarrays_compute_info(nb, offsets)
 
-    end subroutine MeshSchema_subarrays_info
+   end subroutine MeshSchema_subarrays_offsets
 
-    subroutine MeshSchema_subarrays_views(a, views)
-        real(c_double), allocatable, dimension(:), target, intent(in) :: a
-        type(SubArrayView), intent(out) :: views
-        
-        type(SubArraySizes) :: nb
-        type(SubArrayOffsets) :: offset
-        
-        call MeshSchema_subarrays_compute_info(nb, offset)
+   subroutine MeshSchema_subarrays_compute_info(nb, offsets)
+      type(SubArraySizes), intent(out) :: nb
+      type(SubArrayOffsets), intent(out) :: offsets
 
-        if(.not.allocated(a)) &
-            call CommonMPI_abort('MeshSchema_subarrays_views: unallocated array')
-        if(size(a)/=nb%nodes+nb%fractures+nb%cells) &
-            call CommonMPI_abort('MeshSchema_subarrays_views: unconsistent sizes')
-            
-        views%nodes => a(offset%nodes:offset%nodes-1+nb%nodes)
-        views%fractures => a(offset%fractures:offset%fractures-1+nb%fractures)
-        views%cells => a(offset%cells:offset%cells-1+nb%cells)
+      call MeshSchema_subarrays_sizes(nb)
+      offsets%nodes = 1
+      offsets%fractures = offsets%nodes + nb%nodes
+      offsets%cells = offsets%fractures + nb%fractures
 
-    end subroutine MeshSchema_subarrays_views
+   end subroutine MeshSchema_subarrays_compute_info
 
-    subroutine MeshSchema_retrieve_local_cell_permeability(buffer) &
+   subroutine MeshSchema_subarrays_info(info)
+      type(SubArrayInfo), intent(out) :: info
+
+      call MeshSchema_subarrays_compute_info(info%nb, info%offset)
+
+   end subroutine MeshSchema_subarrays_info
+
+   subroutine MeshSchema_subarrays_views(a, views)
+      real(c_double), allocatable, dimension(:), target, intent(in) :: a
+      type(SubArrayView), intent(out) :: views
+
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
+
+      call MeshSchema_subarrays_compute_info(nb, offset)
+
+      if (.not. allocated(a)) &
+         call CommonMPI_abort('MeshSchema_subarrays_views: unallocated array')
+      if (size(a) /= nb%nodes + nb%fractures + nb%cells) &
+         call CommonMPI_abort('MeshSchema_subarrays_views: unconsistent sizes')
+
+      views%nodes => a(offset%nodes:offset%nodes - 1 + nb%nodes)
+      views%fractures => a(offset%fractures:offset%fractures - 1 + nb%fractures)
+      views%cells => a(offset%cells:offset%cells - 1 + nb%cells)
+
+   end subroutine MeshSchema_subarrays_views
+
+   subroutine MeshSchema_retrieve_local_cell_permeability(buffer) &
       bind(C, name="retrieve_cell_permeability")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(PermCellLocal))) &
+      if (.not. (allocated(PermCellLocal))) &
          call CommonMPI_abort("PermCellLocal is not allocated")
-      buffer%p = c_loc(PermCellLocal(1,1,1))
+      buffer%p = c_loc(PermCellLocal(1, 1, 1))
       buffer%n = size(PermCellLocal, 3, c_size_t)
 
    end subroutine MeshSchema_retrieve_local_cell_permeability
@@ -427,7 +427,7 @@ contains
       bind(C, name="retrieve_fracture_permeability")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(PermFracLocal))) &
+      if (.not. (allocated(PermFracLocal))) &
          call CommonMPI_abort("PermFracLocal is not allocated")
       buffer%p = c_loc(PermFracLocal(1))
       buffer%n = size(PermFracLocal, 1, c_size_t)
@@ -436,13 +436,13 @@ contains
 
 #ifdef _THERMIQUE_
 
-  subroutine MeshSchema_retrieve_local_cell_thermal_conductivity(buffer) &
+   subroutine MeshSchema_retrieve_local_cell_thermal_conductivity(buffer) &
       bind(C, name="retrieve_cell_thermal_conductivity")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(CondThermalCellLocal))) &
+      if (.not. (allocated(CondThermalCellLocal))) &
          call CommonMPI_abort("CondThermalCellLocal is not allocated")
-      buffer%p = c_loc(CondThermalCellLocal(1,1,1))
+      buffer%p = c_loc(CondThermalCellLocal(1, 1, 1))
       buffer%n = size(CondThermalCellLocal, 3, c_size_t)
 
    end subroutine MeshSchema_retrieve_local_cell_thermal_conductivity
@@ -451,7 +451,7 @@ contains
       bind(C, name="retrieve_fracture_thermal_conductivity")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(CondThermalFracLocal))) &
+      if (.not. (allocated(CondThermalFracLocal))) &
          call CommonMPI_abort("CondThermalFracLocal is not allocated")
       buffer%p = c_loc(CondThermalFracLocal(1))
       buffer%n = size(CondThermalFracLocal, 1, c_size_t)
@@ -464,7 +464,7 @@ contains
       bind(C, name="retrieve_cell_porosity")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(PorositeCellLocal))) &
+      if (.not. (allocated(PorositeCellLocal))) &
          call CommonMPI_abort("PorositeCellLocal is not allocated")
       buffer%p = c_loc(PorositeCellLocal(1))
       buffer%n = size(PorositeCellLocal, 1, c_size_t)
@@ -475,155 +475,153 @@ contains
       bind(C, name="retrieve_fracture_porosity")
       type(cpp_array_wrapper), intent(inout) :: buffer
 
-      if(.not.(allocated(PorositeFracLocal))) &
+      if (.not. (allocated(PorositeFracLocal))) &
          call CommonMPI_abort("PorositeFracLocal is not allocated")
       buffer%p = c_loc(PorositeFracLocal(1))
       buffer%n = size(PorositeFracLocal, 1, c_size_t)
 
    end subroutine MeshSchema_retrieve_local_fracture_porosity
 
-  subroutine MeshSchema_allocate_DOFFamilyArray(a)
-        type(DOFFamilyArray), target, intent(inout) :: a
-        
-        type(SubArraySizes) :: nb
-        type(SubArrayOffsets) :: offset
-        
-        if(allocated(a%values)) &
-            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-    
-        call MeshSchema_subarrays_compute_info(nb, offset)
+   subroutine MeshSchema_allocate_DOFFamilyArray(a)
+      type(DOFFamilyArray), target, intent(inout) :: a
 
-        allocate(a%values(nb%nodes+nb%fractures+nb%cells))
-        nullify(a%nodes, a%fractures, a%cells)
-        a%nodes => a%values(offset%nodes:offset%nodes-1+nb%nodes)
-        a%fractures => a%values(offset%fractures:offset%fractures-1+nb%fractures)
-        a%cells => a%values(offset%cells:offset%cells-1+nb%cells)
-    
-    end subroutine MeshSchema_allocate_DOFFamilyArray
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
 
-    subroutine MeshSchema_free_DOFFamilyArray(a)
-        type(DOFFamilyArray), intent(inout) :: a
-        
-        if(allocated(a%values)) deallocate(a%values)
-        nullify(a%nodes, a%fractures, a%cells)
-    
-    end subroutine MeshSchema_free_DOFFamilyArray
+      if (allocated(a%values)) &
+         call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
 
-    subroutine MeshSchema_allocate_PhaseDOFFamilyArray(a)
-        type(PhaseDOFFamilyArray), target, intent(inout) :: a
-        
-        type(SubArraySizes) :: nb
-        type(SubArrayOffsets) :: offset
-        
-        if(allocated(a%values)) &
-            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-    
-        call MeshSchema_subarrays_compute_info(nb, offset)
+      call MeshSchema_subarrays_compute_info(nb, offset)
 
-        allocate(a%values(NbPhase, nb%nodes+nb%fractures+nb%cells))
-        nullify(a%nodes, a%fractures, a%cells)
-        a%nodes => a%values(:, offset%nodes:offset%nodes-1+nb%nodes)
-        a%fractures => a%values(:, offset%fractures:offset%fractures-1+nb%fractures)
-        a%cells => a%values(:, offset%cells:offset%cells-1+nb%cells)
-    
-    end subroutine MeshSchema_allocate_PhaseDOFFamilyArray
+      allocate (a%values(nb%nodes + nb%fractures + nb%cells))
+      nullify (a%nodes, a%fractures, a%cells)
+      a%nodes => a%values(offset%nodes:offset%nodes - 1 + nb%nodes)
+      a%fractures => a%values(offset%fractures:offset%fractures - 1 + nb%fractures)
+      a%cells => a%values(offset%cells:offset%cells - 1 + nb%cells)
 
-    subroutine MeshSchema_free_PhaseDOFFamilyArray(a)
-        type(PhaseDOFFamilyArray), intent(inout) :: a
-        
-        if(allocated(a%values)) deallocate(a%values)
-        nullify(a%nodes, a%fractures, a%cells)
-    
-    end subroutine MeshSchema_free_PhaseDOFFamilyArray
+   end subroutine MeshSchema_allocate_DOFFamilyArray
 
-    subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray(a)
-        type(CompPhaseDOFFamilyArray), target, intent(inout) :: a
-        
-        type(SubArraySizes) :: nb
-        type(SubArrayOffsets) :: offset
-        
-        if(allocated(a%values)) &
-            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-    
-        call MeshSchema_subarrays_compute_info(nb, offset)
+   subroutine MeshSchema_free_DOFFamilyArray(a)
+      type(DOFFamilyArray), intent(inout) :: a
 
-        allocate(a%values(NbComp, NbPhase, nb%nodes+nb%fractures+nb%cells))
-        nullify(a%nodes, a%fractures, a%cells)
-        a%nodes => a%values(:, :, offset%nodes:offset%nodes-1+nb%nodes)
-        a%fractures => a%values(:, :, offset%fractures:offset%fractures-1+nb%fractures)
-        a%cells => a%values(:, :, offset%cells:offset%cells-1+nb%cells)
-    
-    end subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray
+      if (allocated(a%values)) deallocate (a%values)
+      nullify (a%nodes, a%fractures, a%cells)
 
-    subroutine MeshSchema_free_CompPhaseDOFFamilyArray(a)
-        type(CompPhaseDOFFamilyArray), intent(inout) :: a
-        
-        if(allocated(a%values)) deallocate(a%values)
-        nullify(a%nodes, a%fractures, a%cells)
-    
-    end subroutine MeshSchema_free_CompPhaseDOFFamilyArray
+   end subroutine MeshSchema_free_DOFFamilyArray
 
-    function get_injectors_data() result(p) &
-        bind(C, name="get_injectors_data")
+   subroutine MeshSchema_allocate_PhaseDOFFamilyArray(a)
+      type(PhaseDOFFamilyArray), target, intent(inout) :: a
 
-    type(c_ptr) :: p
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
 
-    if(allocated(DataWellInjLocal).and.size(DataWellInjLocal, 1)>0) then
-        p = c_loc(DataWellInjLocal(1))
-    else
-        p = c_null_ptr
-    end if
+      if (allocated(a%values)) &
+         call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
 
-    end function get_injectors_data
+      call MeshSchema_subarrays_compute_info(nb, offset)
 
+      allocate (a%values(NbPhase, nb%nodes + nb%fractures + nb%cells))
+      nullify (a%nodes, a%fractures, a%cells)
+      a%nodes => a%values(:, offset%nodes:offset%nodes - 1 + nb%nodes)
+      a%fractures => a%values(:, offset%fractures:offset%fractures - 1 + nb%fractures)
+      a%cells => a%values(:, offset%cells:offset%cells - 1 + nb%cells)
 
-    function nb_injectors() result(n) &
-        bind(C, name="nb_injectors")
+   end subroutine MeshSchema_allocate_PhaseDOFFamilyArray
 
-    integer(c_size_t) :: n
+   subroutine MeshSchema_free_PhaseDOFFamilyArray(a)
+      type(PhaseDOFFamilyArray), intent(inout) :: a
 
-    if(allocated(DataWellInjLocal)) then
-        if(.not.allocated(NbWellInjLocal_Ncpus)) &
-             call CommonMPI_abort("NbWellInjLocal_Ncpus not allocated.")
-        if(NbWellInjLocal_Ncpus(commRank + 1)/=size(DataWellInjLocal, 1)) &
-             call CommonMPI_abort("NbWellInjLocal_Ncpus inconsistency")
-        n = size(DataWellInjLocal, 1)
-    else
-        n = 0
-    end if
+      if (allocated(a%values)) deallocate (a%values)
+      nullify (a%nodes, a%fractures, a%cells)
 
-    end function nb_injectors
+   end subroutine MeshSchema_free_PhaseDOFFamilyArray
 
-    function get_producers_data() result(p) &
-        bind(C, name="get_producers_data")
+   subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray(a)
+      type(CompPhaseDOFFamilyArray), target, intent(inout) :: a
 
-    type(c_ptr) :: p
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
 
-    if(allocated(DataWellProdLocal).and.size(DataWellProdLocal, 1)>0) then
-        p = c_loc(DataWellProdLocal(1))
-    else
-        p = c_null_ptr
-    end if
+      if (allocated(a%values)) &
+         call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
 
-    end function get_producers_data
+      call MeshSchema_subarrays_compute_info(nb, offset)
 
+      allocate (a%values(NbComp, NbPhase, nb%nodes + nb%fractures + nb%cells))
+      nullify (a%nodes, a%fractures, a%cells)
+      a%nodes => a%values(:, :, offset%nodes:offset%nodes - 1 + nb%nodes)
+      a%fractures => a%values(:, :, offset%fractures:offset%fractures - 1 + nb%fractures)
+      a%cells => a%values(:, :, offset%cells:offset%cells - 1 + nb%cells)
 
-    function nb_producers() result(n) &
-        bind(C, name="nb_producers")
+   end subroutine MeshSchema_allocate_CompPhaseDOFFamilyArray
 
-    integer(c_size_t) :: n
+   subroutine MeshSchema_free_CompPhaseDOFFamilyArray(a)
+      type(CompPhaseDOFFamilyArray), intent(inout) :: a
 
-    if(allocated(DataWellProdLocal)) then
-        if(.not.allocated(NbWellProdLocal_Ncpus)) &
-             call CommonMPI_abort("NbWellProdLocal_Ncpus not allocated.")
-        if(NbWellProdLocal_Ncpus(commRank + 1)/=size(DataWellProdLocal, 1)) &
-             call CommonMPI_abort("NbWellProdLocal_Ncpus inconsistency")
-        n = size(DataWellProdLocal, 1)
-    else
-        n = 0
-    end if
+      if (allocated(a%values)) deallocate (a%values)
+      nullify (a%nodes, a%fractures, a%cells)
 
-    end function nb_producers
+   end subroutine MeshSchema_free_CompPhaseDOFFamilyArray
+
+   function get_injectors_data() result(p) &
+      bind(C, name="get_injectors_data")
+
+      type(c_ptr) :: p
+
+      if (allocated(DataWellInjLocal) .and. size(DataWellInjLocal, 1) > 0) then
+         p = c_loc(DataWellInjLocal(1))
+      else
+         p = c_null_ptr
+      end if
+
+   end function get_injectors_data
+
+   function nb_injectors() result(n) &
+      bind(C, name="nb_injectors")
+
+      integer(c_size_t) :: n
+
+      if (allocated(DataWellInjLocal)) then
+         if (.not. allocated(NbWellInjLocal_Ncpus)) &
+            call CommonMPI_abort("NbWellInjLocal_Ncpus not allocated.")
+         if (NbWellInjLocal_Ncpus(commRank + 1) /= size(DataWellInjLocal, 1)) &
+            call CommonMPI_abort("NbWellInjLocal_Ncpus inconsistency")
+         n = size(DataWellInjLocal, 1)
+      else
+         n = 0
+      end if
+
+   end function nb_injectors
+
+   function get_producers_data() result(p) &
+      bind(C, name="get_producers_data")
+
+      type(c_ptr) :: p
+
+      if (allocated(DataWellProdLocal) .and. size(DataWellProdLocal, 1) > 0) then
+         p = c_loc(DataWellProdLocal(1))
+      else
+         p = c_null_ptr
+      end if
+
+   end function get_producers_data
+
+   function nb_producers() result(n) &
+      bind(C, name="nb_producers")
+
+      integer(c_size_t) :: n
+
+      if (allocated(DataWellProdLocal)) then
+         if (.not. allocated(NbWellProdLocal_Ncpus)) &
+            call CommonMPI_abort("NbWellProdLocal_Ncpus not allocated.")
+         if (NbWellProdLocal_Ncpus(commRank + 1) /= size(DataWellProdLocal, 1)) &
+            call CommonMPI_abort("NbWellProdLocal_Ncpus inconsistency")
+         n = size(DataWellProdLocal, 1)
+      else
+         n = 0
+      end if
+
+   end function nb_producers
 
    function number_of_nodes() result(n) &
       bind(C, name="number_of_nodes")
@@ -673,1614 +671,1599 @@ contains
       n = NbWellProdOwn_Ncpus(commRank + 1)
    end function number_of_own_producers
 
-        
-    subroutine MeshSchema_make
+   subroutine MeshSchema_make
 
-    call MeshSchema_sendrecv
-    call MeshSchema_collect_fracture_nodes
+      call MeshSchema_sendrecv
+      call MeshSchema_collect_fracture_nodes
 
+      ! List of Edge (local number of nodes) by local Well (own+ghost)
+      call MeshSchema_NumNodebyEdgebyWellLocal
 
-    ! List of Edge (local number of nodes) by local Well (own+ghost)
-    call MeshSchema_NumNodebyEdgebyWellLocal
+      ! XCellLocal and XFaceLocal
+      call MeshSchema_XCellLocal
+      call MeshSchema_XFaceLocal
 
-    ! XCellLocal and XFaceLocal
-    call MeshSchema_XCellLocal
-    call MeshSchema_XFaceLocal
-
-    ! VolCellLocal and SurfFraclocal
-    call MeshSchema_VolCellLocal
+      ! VolCellLocal and SurfFraclocal
+      call MeshSchema_VolCellLocal
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    call MeshSchema_SurfFreeFlowLocal
+      call MeshSchema_SurfFreeFlowLocal
 #endif
-    call MeshSchema_SurfFracLocal
-
-    call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell 
-    call MeshSchema_NbFracCellMax ! max nb of frac in a cell
-    call MeshSchema_NbNodeFaceMax ! max nb of nodes in a frac
-
-  end subroutine MeshSchema_make
-
-
-  ! send/receive (commRank>=1)
-  ! or copy (commRank=0) 
-  subroutine MeshSchema_sendrecv
-
-    integer :: dest, Ierr, i, j, Nb
-    integer stat(MPI_STATUS_SIZE)
-
-    integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
-    integer :: blocklen(4), arraytype(4)
-    integer(kind=MPI_ADDRESS_KIND) ::disp(4)
-
-    integer :: MPI_WELLDATA_ID
-    
-    ! ************************************* !
-
-    ! Send Nb*
-
-    if (commRank==0) then
-
-       do dest=1,Ncpus-1
-
-          ! Nb*ResS_Ncpus
-          call MPI_Send(NbCellResS_Ncpus, Ncpus, MPI_INTEGER, dest, 11, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbFaceResS_Ncpus, Ncpus, MPI_INTEGER, dest, 12, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbNodeResS_Ncpus, Ncpus, MPI_INTEGER, dest, 13, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbFracResS_Ncpus, Ncpus, MPI_INTEGER, dest, 14, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbWellInjResS_Ncpus, Ncpus, MPI_INTEGER, dest, 141, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbWellProdResS_Ncpus, Ncpus, MPI_INTEGER, dest, 142, ComPASS_COMM_WORLD, Ierr)
-
-
-          ! Nb*OwnS_Ncpus
-          call MPI_Send(NbCellOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 15, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbFaceOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 16, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbNodeOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 17, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbFracOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 18, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbWellInjOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 181, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(NbWellProdOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 182, ComPASS_COMM_WORLD, Ierr)
-
-       end do
-
-       allocate(NbCellLocal_Ncpus(Ncpus))
-       allocate(NbFaceLocal_Ncpus(Ncpus))
-       allocate(NbNodeLocal_Ncpus(Ncpus))
-       allocate(NbFracLocal_Ncpus(Ncpus))
-       allocate(NbWellInjLocal_Ncpus(Ncpus))
-       allocate(NbWellProdLocal_Ncpus(Ncpus))
-
-       allocate(NbCellOwn_Ncpus(Ncpus))
-       allocate(NbFaceOwn_Ncpus(Ncpus))
-       allocate(NbNodeOwn_Ncpus(Ncpus))
-       allocate(NbFracOwn_Ncpus(Ncpus))
-       allocate(NbWellInjOwn_Ncpus(Ncpus))
-       allocate(NbWellProdOwn_Ncpus(Ncpus))
-
-       NbCellLocal_Ncpus(:) = NbCellResS_Ncpus(:)
-       NbFaceLocal_Ncpus(:) = NbFaceResS_Ncpus(:)
-       NbNodeLocal_Ncpus(:) = NbNodeResS_Ncpus(:)
-       NbFracLocal_Ncpus(:) = NbFracResS_Ncpus(:)
-       NbWellInjLocal_Ncpus(:) = NbWellInjResS_Ncpus(:)
-       NbWellProdLocal_Ncpus(:) = NbWellProdResS_Ncpus(:)
-       
-       NbCellOwn_Ncpus(:) = NbCellOwnS_Ncpus(:)
-       NbFaceOwn_Ncpus(:) = NbFaceOwnS_Ncpus(:)
-       NbNodeOwn_Ncpus(:) = NbNodeOwnS_Ncpus(:)
-       NbFracOwn_Ncpus(:) = NbFracOwnS_Ncpus(:)
-       NbWellInjOwn_Ncpus(:) = NbWellInjOwnS_Ncpus(:)
-       NbWellProdOwn_Ncpus(:) = NbWellProdOwnS_Ncpus(:)
-
-    else
-       allocate(NbCellLocal_Ncpus(Ncpus))
-       allocate(NbFaceLocal_Ncpus(Ncpus))
-       allocate(NbNodeLocal_Ncpus(Ncpus))
-       allocate(NbFracLocal_Ncpus(Ncpus))
-       allocate(NbWellInjLocal_Ncpus(Ncpus))
-       allocate(NbWellProdLocal_Ncpus(Ncpus))
-
-       allocate(NbCellOwn_Ncpus(Ncpus))
-       allocate(NbFaceOwn_Ncpus(Ncpus))
-       allocate(NbNodeOwn_Ncpus(Ncpus))
-       allocate(NbFracOwn_Ncpus(Ncpus))
-       allocate(NbWellInjOwn_Ncpus(Ncpus))
-       allocate(NbWellProdOwn_Ncpus(Ncpus))
-
-       ! Nb*ResS_Ncpus
-       call MPI_recv(NbCellLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbFaceLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbNodeLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbFracLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbWellInjLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 141, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbWellProdLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 142, ComPASS_COMM_WORLD, stat, Ierr)
-
-       ! Nb*OwnS_Ncpus
-       call MPI_Recv(NbCellOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbFaceOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbNodeOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 17, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbFracOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 18, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbWellInjOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 181, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_Recv(NbWellProdOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 182, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    !write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
-    !write(*,*) 'on proc', commRank, ':', NbWellProdOwn_Ncpus, 'producers'
-    
-    if(commRank==0) then
-       deallocate(NbCellResS_Ncpus)
-       deallocate(NbFaceResS_Ncpus)
-       deallocate(NbNodeResS_Ncpus)
-       deallocate(NbFracResS_Ncpus)
-       deallocate(NbWellInjResS_Ncpus)
-       deallocate(NbWellProdResS_Ncpus)
-       deallocate(NbCellOwnS_Ncpus)
-       deallocate(NbFaceOwnS_Ncpus)
-       deallocate(NbNodeOwnS_Ncpus)
-       deallocate(NbFracOwnS_Ncpus)
-       deallocate(NbWellInjOwnS_Ncpus)
-       deallocate(NbWellProdOwnS_Ncpus)
-    end if
-
-
-    ! Send mesh size
-    if (commRank==0) then
-
-       do dest=1,Ncpus-1
-
-          ! meshSize_*max, meshSize_*min
-          call MPI_Send(meshSizeS_xmax, 1, MPI_DOUBLE, dest, 11, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(meshSizeS_xmin, 1, MPI_DOUBLE, dest, 12, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(meshSizeS_ymax, 1, MPI_DOUBLE, dest, 13, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(meshSizeS_ymin, 1, MPI_DOUBLE, dest, 14, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(meshSizeS_zmax, 1, MPI_DOUBLE, dest, 15, ComPASS_COMM_WORLD, Ierr)
-          call MPI_Send(meshSizeS_zmin, 1, MPI_DOUBLE, dest, 16, ComPASS_COMM_WORLD, Ierr)
-       end do
-
-       meshSize_xmax = meshSizeS_xmax
-       meshSize_xmin = meshSizeS_xmin
-       meshSize_ymax = meshSizeS_ymax
-       meshSize_ymin = meshSizeS_ymin
-       meshSize_zmax = meshSizeS_zmax
-       meshSize_zmin = meshSizeS_zmin
-    else
-
-       call MPI_recv(meshSize_xmax, 1, MPI_DOUBLE, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_recv(meshSize_xmin, 1, MPI_DOUBLE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_recv(meshSize_ymax, 1, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_recv(meshSize_ymin, 1, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_recv(meshSize_zmax, 1, MPI_DOUBLE, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
-       call MPI_recv(meshSize_zmin, 1, MPI_DOUBLE, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    ! **************************************** !
-
-    ! Send XNodeRes_Ncpus to XNodeLocal
-    if (commRank==0) then
-
-       do i=1,Ncpus-1
-          call MPI_Send(XNodeRes_Ncpus(i+1)%Array2d, NbNodeLocal_Ncpus(i+1)*3, MPI_DOUBLE, i, 21, ComPASS_COMM_WORLD, Ierr)
-       end do
-
-       allocate(XNodeLocal(3,NbNodeLocal_Ncpus(1)) )
-       do j=1,NbNodeLocal_Ncpus(1)
-          XNodeLocal(1,j) = XNodeRes_Ncpus(1)%Array2d(1,j)
-          XNodeLocal(2,j) = XNodeRes_Ncpus(1)%Array2d(2,j)
-          XNodeLocal(3,j) = XNodeRes_Ncpus(1)%Array2d(3,j)
-       end do
-
-    else
-       allocate(XNodeLocal(3,NbNodeLocal_Ncpus(commRank+1)) )
-       call MPI_Recv(XNodeLocal,  NbNodeLocal_Ncpus(commRank+1)*3, MPI_DOUBLE, 0, 21, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(XNodeRes_Ncpus(i)%Array2d)
-       end do
-       deallocate(XNodeRes_Ncpus)
-    end if
-
-    ! Send flags    
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send(NodeFlags_Ncpus(i+1)%Val, NbNodeLocal_Ncpus(i+1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
-       NodeFlagsLocal = NodeFlags_Ncpus(1)%Val    
-    else
-       allocate(NodeFlagsLocal(NbNodeLocal_Ncpus(commRank+1)))
-       call MPI_Recv(NodeFlagsLocal, NbNodeLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send(CellFlags_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(CellFlagsLocal(NbCellLocal_Ncpus(1)))
-       CellFlagsLocal = CellFlags_Ncpus(1)%Val    
-    else
-       allocate(CellFlagsLocal(NbCellLocal_Ncpus(commRank+1)))
-       call MPI_Recv(CellFlagsLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send(FaceFlags_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER, i, 24, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(1)))
-       FaceFlagsLocal = FaceFlags_Ncpus(1)%Val    
-    else
-       allocate(FaceFlagsLocal(NbFaceLocal_Ncpus(commRank+1)))
-       call MPI_Recv(FaceFlagsLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER, 0, 24, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send(CellTypes_Ncpus(i+1)%Val, NbCellLocal_Ncpus(i+1), MPI_INTEGER1, i, 25, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(CellTypesLocal(NbCellLocal_Ncpus(1)))
-       CellTypesLocal = CellTypes_Ncpus(1)%Val    
-    else
-       allocate(CellTypesLocal(NbCellLocal_Ncpus(commRank+1)))
-       call MPI_Recv(CellTypesLocal, NbCellLocal_Ncpus(commRank+1), MPI_INTEGER1, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-        
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send(FaceTypes_Ncpus(i+1)%Val, NbFaceLocal_Ncpus(i+1), MPI_INTEGER1, i, 26, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(FaceTypesLocal(NbFaceLocal_Ncpus(1)))
-       FaceTypesLocal = FaceTypes_Ncpus(1)%Val    
-    else
-       allocate(FaceTypesLocal(NbFaceLocal_Ncpus(commRank+1)))
-       call MPI_Recv(FaceTypesLocal, NbFaceLocal_Ncpus(commRank+1), MPI_INTEGER1, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(NodeFlags_Ncpus(i)%Val)
-          deallocate(CellFlags_Ncpus(i)%Val)
-          deallocate(FaceFlags_Ncpus(i)%Val)
-          deallocate(CellTypes_Ncpus(i)%Val)
-          deallocate(FaceTypes_Ncpus(i)%Val)
-       end do
-       deallocate(NodeFlags_Ncpus)
-       deallocate(CellFlags_Ncpus)
-       deallocate(FaceFlags_Ncpus)
-       deallocate(FaceTypes_Ncpus)
-    end if
-
-    ! Send Rocktype
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send( &
-            NodeRocktype_Ncpus(i+1)%Array2d, &
-            (IndThermique+1)*NbNodeLocal_Ncpus(i+1), &
-            MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(NodeRocktypeLocal(IndThermique+1,NbNodeLocal_Ncpus(1)))
-       NodeRocktypeLocal = NodeRocktype_Ncpus(1)%Array2d
-    else
-       allocate(NodeRocktypeLocal(IndThermique+1,NbNodeLocal_Ncpus(commRank+1)))
-       call MPI_Recv( &
-         NodeRocktypeLocal, &
-         (IndThermique+1)*NbNodeLocal_Ncpus(commRank+1), &
-         MPI_INTEGER, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send( &
-            CellRocktype_Ncpus(i+1)%Array2d, &
-            (IndThermique+1)*NbCellLocal_Ncpus(i+1), &
-            MPI_INTEGER, i, 26, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(CellRocktypeLocal(IndThermique+1,NbCellLocal_Ncpus(1)))
-       CellRocktypeLocal = CellRocktype_Ncpus(1)%Array2d
-    else
-       allocate(CellRocktypeLocal(IndThermique+1,NbCellLocal_Ncpus(commRank+1)))
-       call MPI_Recv( &
-         CellRocktypeLocal, &
-         (IndThermique+1)*NbCellLocal_Ncpus(commRank+1), &
-         MPI_INTEGER, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if (commRank==0) then
-       do i=1,Ncpus-1
-          call MPI_Send( &
-            FracRocktype_Ncpus(i+1)%Array2d, &
-            (IndThermique+1)*NbFracLocal_Ncpus(i+1), &
-            MPI_INTEGER, i, 27, ComPASS_COMM_WORLD, Ierr)
-       end do
-       allocate(FracRocktypeLocal(IndThermique+1,NbFracLocal_Ncpus(1)))
-       FracRocktypeLocal = FracRocktype_Ncpus(1)%Array2d
-    else
-       allocate(FracRocktypeLocal(IndThermique+1,NbFracLocal_Ncpus(commRank+1)))
-       call MPI_Recv( &
-         FracRocktypeLocal, &
-         (IndThermique+1)*NbFracLocal_Ncpus(commRank+1), &
-         MPI_INTEGER, 0, 27, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(NodeRocktype_Ncpus(i)%Array2d)
-          deallocate(CellRocktype_Ncpus(i)%Array2d)
-          deallocate(FracRocktype_Ncpus(i)%Array2d)
-       end do
-       deallocate(NodeRocktype_Ncpus)
-       deallocate(CellRocktype_Ncpus)
-       deallocate(FracRocktype_Ncpus)
-    end if
-
-
-    ! ************************************** !
-
-    ! Send mesh and connectivities
-    if (commRank==0) then
-
-       ! for proc >=1, send
-       do i=1,Ncpus-1
-
-          ! NodebyNodeOwn
-          call MeshSchema_csrsend(NodebyNodeOwn_Ncpus(i+1), i, 100, VALSIZE_ZERO)
-          ! FracbyNodeOwn
-          call MeshSchema_csrsend(FracbyNodeOwn_Ncpus(i+1), i, 200, VALSIZE_ZERO)
-          ! CellbyNodeOwn
-          call MeshSchema_csrsend(CellbyNodeOwn_Ncpus(i+1), i, 300, VALSIZE_ZERO)
-
-          ! NodebyFracOwn
-          call MeshSchema_csrsend(NodebyFracOwn_Ncpus(i+1), i, 400, VALSIZE_ZERO)
-          ! CellbyFracOwn
-          call MeshSchema_csrsend(CellbyFracOwn_Ncpus(i+1), i, 500, VALSIZE_ZERO)
-          ! FracbyFracOwn
-          call MeshSchema_csrsend(FracbyFracOwn_Ncpus(i+1), i, 600, VALSIZE_ZERO)
-          ! WellInjbyNodeOwn
-          call MeshSchema_csrsend(WellInjbyNodeOwn_Ncpus(i+1), i, 610, VALSIZE_ZERO)
-          ! WellProdbyNodeOwn
-          call MeshSchema_csrsend(WellProdbyNodeOwn_Ncpus(i+1), i, 620, VALSIZE_ZERO)
-
-          ! FacebyCellLocal
-          call MeshSchema_csrsend(FacebyCellLocal_Ncpus(i+1), i, 700, VALSIZE_ZERO)
-          ! FracbyCellLocal
-          call MeshSchema_csrsend(FracbyCellLocal_Ncpus(i+1), i, 800, VALSIZE_ZERO)      
-          ! NodebyCellLocal
-          call MeshSchema_csrsend(NodebyCellLocal_Ncpus(i+1), i, 900, VALSIZE_ZERO)
-
-          ! NodebyFaceLocal
-          call MeshSchema_csrsend(NodebyFaceLocal_Ncpus(i+1), i, 1000, VALSIZE_ZERO)
-
-          ! NodebyWellInjLocal
-          call MeshSchema_csrsend(NodebyWellInjLocal_Ncpus(i+1), i, 1100, VALSIZE_ZERO)
-          ! NodebyWellProdLocal
-          call MeshSchema_csrsend(NodebyWellProdLocal_Ncpus(i+1), i, 1200, VALSIZE_ZERO)
-
-       end do
-
-       ! for proc 0, copy
-       call CommonType_csrcopy(NodebyNodeOwn_Ncpus(1), NodebyNodeOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(FracbyNodeOwn_Ncpus(1), FracbyNodeOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(CellbyNodeOwn_Ncpus(1), CellbyNodeOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(WellInjbyNodeOwn_Ncpus(1), WellInjbyNodeOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(WellProdbyNodeOwn_Ncpus(1), WellProdbyNodeOwn, VALSIZE_ZERO)
-
-       call CommonType_csrcopy(NodebyFracOwn_Ncpus(1), NodebyFracOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(CellbyFracOwn_Ncpus(1), CellbyFracOwn, VALSIZE_ZERO)
-       call CommonType_csrcopy(FracbyFracOwn_Ncpus(1), FracbyFracOwn, VALSIZE_ZERO)
-
-       call CommonType_csrcopy(FacebyCellLocal_Ncpus(1), FacebyCellLocal, VALSIZE_ZERO)
-       call CommonType_csrcopy(FracbyCellLocal_Ncpus(1), FracbyCellLocal, VALSIZE_ZERO)
-       call CommonType_csrcopy(NodebyCellLocal_Ncpus(1), NodebyCellLocal, VALSIZE_ZERO)
-       call CommonType_csrcopy(NodebyFaceLocal_Ncpus(1), NodebyFaceLocal, VALSIZE_ZERO)
-
-       call CommonType_csrcopy(NodebyWellInjLocal_Ncpus(1), NodebyWellInjLocal, VALSIZE_ZERO)
-       call CommonType_csrcopy(NodebyWellProdLocal_Ncpus(1), NodebyWellProdLocal, VALSIZE_ZERO)
-
-    else
-
-       ! NodebyNodeOwn
-       call MeshSchema_csrrecv(NodebyNodeOwn, 0, 100, VALSIZE_ZERO)
-       ! FracbyNodeOwn
-       call MeshSchema_csrrecv(FracbyNodeOwn, 0, 200, VALSIZE_ZERO)
-       ! CellbyNodeOwn
-       call MeshSchema_csrrecv(CellbyNodeOwn, 0, 300, VALSIZE_ZERO)
-
-       ! NodebyFracOwn
-       call MeshSchema_csrrecv(NodebyFracOwn, 0, 400, VALSIZE_ZERO)
-       ! CellbyFracOwn
-       call MeshSchema_csrrecv(CellbyFracOwn, 0, 500, VALSIZE_ZERO)
-       ! FracbyFracOwn
-       call MeshSchema_csrrecv(FracbyFracOwn, 0, 600, VALSIZE_ZERO)
-
-       ! WellInjbyNodeOwn
-       call MeshSchema_csrrecv(WellInjbyNodeOwn, 0, 610, VALSIZE_ZERO)
-       ! WellProdbyNodeOwn
-       call MeshSchema_csrrecv(WellProdbyNodeOwn, 0, 620, VALSIZE_ZERO)
-
-       ! FacebyCellLocal
-       call MeshSchema_csrrecv(FacebyCellLocal, 0, 700, VALSIZE_ZERO)
-       ! FracbyCellLocal
-       call MeshSchema_csrrecv(FracbyCellLocal, 0, 800, VALSIZE_ZERO)
-       ! NodebyCellLocal
-       call MeshSchema_csrrecv(NodebyCellLocal, 0, 900, VALSIZE_ZERO)
-       ! NodebyFaceLocal
-       call MeshSchema_csrrecv(NodebyFaceLocal, 0, 1000, VALSIZE_ZERO)
-
-       ! NodebyWellInjLocal
-       call MeshSchema_csrrecv(NodebyWellInjLocal, 0, 1100, VALSIZE_ZERO)
-       ! NodebyWellProdLocal
-       call MeshSchema_csrrecv(NodebyWellProdLocal, 0, 1200, VALSIZE_ZERO)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          call CommonType_deallocCSR(NodebyNodeOwn_Ncpus(i))
-          call CommonType_deallocCSR(FracbyNodeOwn_Ncpus(i))
-          call CommonType_deallocCSR(CellbyNodeOwn_Ncpus(i))
-
-          call CommonType_deallocCSR(NodebyFracOwn_Ncpus(i))
-          call CommonType_deallocCSR(CellbyFracOwn_Ncpus(i))
-          call CommonType_deallocCSR(FracbyFracOwn_Ncpus(i))
-
-          call CommonType_deallocCSR(WellInjbyNodeOwn_Ncpus(i))
-          call CommonType_deallocCSR(WellProdbyNodeOwn_Ncpus(i))
-
-          call CommonType_deallocCSR(FacebyCellLocal_Ncpus(i))
-          call CommonType_deallocCSR(FracbyCellLocal_Ncpus(i))
-          call CommonType_deallocCSR(NodebyCellLocal_Ncpus(i))
-          call CommonType_deallocCSR(NodebyFaceLocal_Ncpus(i))
-
-          call CommonType_deallocCSR(NodebyWellInjLocal_Ncpus(i))
-          call CommonType_deallocCSR(NodebyWellProdLocal_Ncpus(i))
-       end do
-
-       deallocate(NodebyNodeOwn_Ncpus)
-       deallocate(FracbyNodeOwn_Ncpus)
-       deallocate(CellbyNodeOwn_Ncpus)
-
-       deallocate(NodebyFracOwn_Ncpus)
-       deallocate(CellbyFracOwn_Ncpus)
-       deallocate(FracbyFracOwn_Ncpus)
-
-       deallocate(WellInjbyNodeOwn_Ncpus)
-       deallocate(WellProdbyNodeOwn_Ncpus)
-
-       deallocate(FacebyCellLocal_Ncpus)
-       deallocate(FracbyCellLocal_Ncpus)
-       deallocate(NodebyCellLocal_Ncpus)
-       deallocate(NodebyFaceLocal_Ncpus)
-
-       deallocate(NodebyWellInjLocal_Ncpus)
-       deallocate(NodebyWellProdLocal_Ncpus)
-    end if
-
-    ! Well data type
-    
-    call DefWell_mpi_register_well_data_description(MPI_WELLDATA_ID)
-
-    ! Injectors
-    if (commRank==0) then
-      ! proc >=1, send
-      do i=1, Ncpus-1
-         Nb = NbWellInjLocal_Ncpus(i+1)
-         call MPI_Send(DataWellInjRes_Ncpus(1:Nb,i+1), Nb, MPI_WELLDATA_ID, i, 210, ComPASS_COMM_WORLD, Ierr)
-      end do
-   end if
-   Nb = NbWellInjLocal_Ncpus(commRank+1)
-   allocate(DataWellInjLocal(Nb))
-   if (commRank==0) then
-      DataWellInjLocal(:) = DataWellInjRes_Ncpus(1:Nb,1) ! proc=0, copy
-   else
-      call MPI_Recv(DataWellInjLocal, Nb, MPI_WELLDATA_ID, 0, 210, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
-   end if
-
-    ! Producers
-    if (commRank==0) then
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbWellProdLocal_Ncpus(i+1)
-          call MPI_Send(DataWellProdRes_Ncpus(1:Nb,i+1), Nb, MPI_WELLDATA_ID, i, 211, ComPASS_COMM_WORLD, Ierr)
-       end do
-    end if
-    Nb = NbWellProdLocal_Ncpus(commRank+1)
-    allocate(DataWellProdLocal(Nb))
-    if (commRank==0) then
-       DataWellProdLocal(:) = DataWellProdRes_Ncpus(1:Nb,1) ! proc 0, copy
-    else
-       call MPI_Recv(DataWellProdLocal, Nb, MPI_WELLDATA_ID, 0, 211, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
-    end if
-
-    call MPI_Type_free(MPI_WELLDATA_ID, Ierr)
-
-    ! ************************************* !
-
-    ! Send IdCellLocal
-    if (commRank==0) then
-
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbCellLocal_Ncpus(i+1)
-          call MPI_Send(IdCellRes_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 11, ComPASS_COMM_WORLD, Ierr)
-       end do
-
-       ! proc=0, copy
-       Nb = NbCellLocal_Ncpus(1)
-       allocate(IdCellLocal(Nb))
-       IdCellLocal(:) = IdCellRes_Ncpus(1)%Val(:)
-
-    else   
-       Nb = NbCellLocal_Ncpus(commRank+1)
-       allocate(IdCellLocal(Nb))
-       call MPI_Recv(IdCellLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(IdCellRes_Ncpus(i)%Val)
-       end do
-       deallocate(IdCellRes_Ncpus)
-    end if
-
-    ! Send IdFaceLocal
-    if (commRank==0) then
-
-       ! send to proc >=1
-       do i=1, Ncpus-1
-          Nb = NbFaceLocal_Ncpus(i+1)
-          call MPI_Send(IdFaceRes_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 11, ComPASS_COMM_WORLD, Ierr)
-       end do
-
-       ! proc=0, copy
-       Nb = NbFaceLocal_Ncpus(1)
-       allocate(IdFaceLocal(Nb))
-       IdFaceLocal(:) = IdFaceRes_Ncpus(1)%Val(:)
-
-    else   
-       Nb = NbFaceLocal_Ncpus(commRank+1)
-       allocate(IdFaceLocal(Nb))
-       call MPI_Recv(IdFaceLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
-
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(IdFaceRes_Ncpus(i)%Val)
-       end do
-       deallocate(IdFaceRes_Ncpus)
-    end if
-
-    ! ************************************* !
-
-    ! new MPI type: MPI_IDNODE 
-    blen(1) = 4
-    offsets(1) = 0
-    oldtypes(1) = MPI_CHARACTER
-
-    call MPI_Type_struct(1, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
-    call MPI_Type_commit(MPI_IDNODE, Ierr)
-
-    ! Send IdNodeLocal and IdFFNodeLocal
-    if (commRank==0) then
-
-       ! send to proc >=1
-       do i=1, Ncpus-1
-          Nb = NbNodeLocal_Ncpus(i+1)
-          call MPI_Send(IdNodeRes_Ncpus(i+1)%Val, Nb, MPI_IDNODE, i, 12, ComPASS_COMM_WORLD, Ierr)
+      call MeshSchema_SurfFracLocal
+
+      call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell
+      call MeshSchema_NbFracCellMax ! max nb of frac in a cell
+      call MeshSchema_NbNodeFaceMax ! max nb of nodes in a frac
+
+   end subroutine MeshSchema_make
+
+   ! send/receive (commRank>=1)
+   ! or copy (commRank=0)
+   subroutine MeshSchema_sendrecv
+
+      integer :: dest, Ierr, i, j, Nb
+      integer stat(MPI_STATUS_SIZE)
+
+      integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
+      integer :: blocklen(4), arraytype(4)
+      integer(kind=MPI_ADDRESS_KIND) ::disp(4)
+
+      integer :: MPI_WELLDATA_ID
+
+      ! ************************************* !
+
+      ! Send Nb*
+
+      if (commRank == 0) then
+
+         do dest = 1, Ncpus - 1
+
+            ! Nb*ResS_Ncpus
+            call MPI_Send(NbCellResS_Ncpus, Ncpus, MPI_INTEGER, dest, 11, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbFaceResS_Ncpus, Ncpus, MPI_INTEGER, dest, 12, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbNodeResS_Ncpus, Ncpus, MPI_INTEGER, dest, 13, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbFracResS_Ncpus, Ncpus, MPI_INTEGER, dest, 14, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbWellInjResS_Ncpus, Ncpus, MPI_INTEGER, dest, 141, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbWellProdResS_Ncpus, Ncpus, MPI_INTEGER, dest, 142, ComPASS_COMM_WORLD, Ierr)
+
+            ! Nb*OwnS_Ncpus
+            call MPI_Send(NbCellOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 15, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbFaceOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 16, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbNodeOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 17, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbFracOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 18, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbWellInjOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 181, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbWellProdOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 182, ComPASS_COMM_WORLD, Ierr)
+
+         end do
+
+         allocate (NbCellLocal_Ncpus(Ncpus))
+         allocate (NbFaceLocal_Ncpus(Ncpus))
+         allocate (NbNodeLocal_Ncpus(Ncpus))
+         allocate (NbFracLocal_Ncpus(Ncpus))
+         allocate (NbWellInjLocal_Ncpus(Ncpus))
+         allocate (NbWellProdLocal_Ncpus(Ncpus))
+
+         allocate (NbCellOwn_Ncpus(Ncpus))
+         allocate (NbFaceOwn_Ncpus(Ncpus))
+         allocate (NbNodeOwn_Ncpus(Ncpus))
+         allocate (NbFracOwn_Ncpus(Ncpus))
+         allocate (NbWellInjOwn_Ncpus(Ncpus))
+         allocate (NbWellProdOwn_Ncpus(Ncpus))
+
+         NbCellLocal_Ncpus(:) = NbCellResS_Ncpus(:)
+         NbFaceLocal_Ncpus(:) = NbFaceResS_Ncpus(:)
+         NbNodeLocal_Ncpus(:) = NbNodeResS_Ncpus(:)
+         NbFracLocal_Ncpus(:) = NbFracResS_Ncpus(:)
+         NbWellInjLocal_Ncpus(:) = NbWellInjResS_Ncpus(:)
+         NbWellProdLocal_Ncpus(:) = NbWellProdResS_Ncpus(:)
+
+         NbCellOwn_Ncpus(:) = NbCellOwnS_Ncpus(:)
+         NbFaceOwn_Ncpus(:) = NbFaceOwnS_Ncpus(:)
+         NbNodeOwn_Ncpus(:) = NbNodeOwnS_Ncpus(:)
+         NbFracOwn_Ncpus(:) = NbFracOwnS_Ncpus(:)
+         NbWellInjOwn_Ncpus(:) = NbWellInjOwnS_Ncpus(:)
+         NbWellProdOwn_Ncpus(:) = NbWellProdOwnS_Ncpus(:)
+
+      else
+         allocate (NbCellLocal_Ncpus(Ncpus))
+         allocate (NbFaceLocal_Ncpus(Ncpus))
+         allocate (NbNodeLocal_Ncpus(Ncpus))
+         allocate (NbFracLocal_Ncpus(Ncpus))
+         allocate (NbWellInjLocal_Ncpus(Ncpus))
+         allocate (NbWellProdLocal_Ncpus(Ncpus))
+
+         allocate (NbCellOwn_Ncpus(Ncpus))
+         allocate (NbFaceOwn_Ncpus(Ncpus))
+         allocate (NbNodeOwn_Ncpus(Ncpus))
+         allocate (NbFracOwn_Ncpus(Ncpus))
+         allocate (NbWellInjOwn_Ncpus(Ncpus))
+         allocate (NbWellProdOwn_Ncpus(Ncpus))
+
+         ! Nb*ResS_Ncpus
+         call MPI_recv(NbCellLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbFaceLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbNodeLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbFracLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbWellInjLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 141, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbWellProdLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 142, ComPASS_COMM_WORLD, stat, Ierr)
+
+         ! Nb*OwnS_Ncpus
+         call MPI_Recv(NbCellOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbFaceOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbNodeOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 17, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbFracOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 18, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbWellInjOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 181, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbWellProdOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 182, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      !write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
+      !write(*,*) 'on proc', commRank, ':', NbWellProdOwn_Ncpus, 'producers'
+
+      if (commRank == 0) then
+         deallocate (NbCellResS_Ncpus)
+         deallocate (NbFaceResS_Ncpus)
+         deallocate (NbNodeResS_Ncpus)
+         deallocate (NbFracResS_Ncpus)
+         deallocate (NbWellInjResS_Ncpus)
+         deallocate (NbWellProdResS_Ncpus)
+         deallocate (NbCellOwnS_Ncpus)
+         deallocate (NbFaceOwnS_Ncpus)
+         deallocate (NbNodeOwnS_Ncpus)
+         deallocate (NbFracOwnS_Ncpus)
+         deallocate (NbWellInjOwnS_Ncpus)
+         deallocate (NbWellProdOwnS_Ncpus)
+      end if
+
+      ! Send mesh size
+      if (commRank == 0) then
+
+         do dest = 1, Ncpus - 1
+
+            ! meshSize_*max, meshSize_*min
+            call MPI_Send(meshSizeS_xmax, 1, MPI_DOUBLE, dest, 11, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(meshSizeS_xmin, 1, MPI_DOUBLE, dest, 12, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(meshSizeS_ymax, 1, MPI_DOUBLE, dest, 13, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(meshSizeS_ymin, 1, MPI_DOUBLE, dest, 14, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(meshSizeS_zmax, 1, MPI_DOUBLE, dest, 15, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(meshSizeS_zmin, 1, MPI_DOUBLE, dest, 16, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         meshSize_xmax = meshSizeS_xmax
+         meshSize_xmin = meshSizeS_xmin
+         meshSize_ymax = meshSizeS_ymax
+         meshSize_ymin = meshSizeS_ymin
+         meshSize_zmax = meshSizeS_zmax
+         meshSize_zmin = meshSizeS_zmin
+      else
+
+         call MPI_recv(meshSize_xmax, 1, MPI_DOUBLE, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_recv(meshSize_xmin, 1, MPI_DOUBLE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_recv(meshSize_ymax, 1, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_recv(meshSize_ymin, 1, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_recv(meshSize_zmax, 1, MPI_DOUBLE, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_recv(meshSize_zmin, 1, MPI_DOUBLE, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      ! **************************************** !
+
+      ! Send XNodeRes_Ncpus to XNodeLocal
+      if (commRank == 0) then
+
+         do i = 1, Ncpus - 1
+            call MPI_Send(XNodeRes_Ncpus(i + 1)%Array2d, NbNodeLocal_Ncpus(i + 1)*3, MPI_DOUBLE, i, 21, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         allocate (XNodeLocal(3, NbNodeLocal_Ncpus(1)))
+         do j = 1, NbNodeLocal_Ncpus(1)
+            XNodeLocal(1, j) = XNodeRes_Ncpus(1)%Array2d(1, j)
+            XNodeLocal(2, j) = XNodeRes_Ncpus(1)%Array2d(2, j)
+            XNodeLocal(3, j) = XNodeRes_Ncpus(1)%Array2d(3, j)
+         end do
+
+      else
+         allocate (XNodeLocal(3, NbNodeLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(XNodeLocal, NbNodeLocal_Ncpus(commRank + 1)*3, MPI_DOUBLE, 0, 21, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (XNodeRes_Ncpus(i)%Array2d)
+         end do
+         deallocate (XNodeRes_Ncpus)
+      end if
+
+      ! Send flags
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send(NodeFlags_Ncpus(i + 1)%Val, NbNodeLocal_Ncpus(i + 1), MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (NodeFlagsLocal(NbNodeLocal_Ncpus(1)))
+         NodeFlagsLocal = NodeFlags_Ncpus(1)%Val
+      else
+         allocate (NodeFlagsLocal(NbNodeLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(NodeFlagsLocal, NbNodeLocal_Ncpus(commRank + 1), MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send(CellFlags_Ncpus(i + 1)%Val, NbCellLocal_Ncpus(i + 1), MPI_INTEGER, i, 23, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (CellFlagsLocal(NbCellLocal_Ncpus(1)))
+         CellFlagsLocal = CellFlags_Ncpus(1)%Val
+      else
+         allocate (CellFlagsLocal(NbCellLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(CellFlagsLocal, NbCellLocal_Ncpus(commRank + 1), MPI_INTEGER, 0, 23, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send(FaceFlags_Ncpus(i + 1)%Val, NbFaceLocal_Ncpus(i + 1), MPI_INTEGER, i, 24, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (FaceFlagsLocal(NbFaceLocal_Ncpus(1)))
+         FaceFlagsLocal = FaceFlags_Ncpus(1)%Val
+      else
+         allocate (FaceFlagsLocal(NbFaceLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(FaceFlagsLocal, NbFaceLocal_Ncpus(commRank + 1), MPI_INTEGER, 0, 24, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send(CellTypes_Ncpus(i + 1)%Val, NbCellLocal_Ncpus(i + 1), MPI_INTEGER1, i, 25, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (CellTypesLocal(NbCellLocal_Ncpus(1)))
+         CellTypesLocal = CellTypes_Ncpus(1)%Val
+      else
+         allocate (CellTypesLocal(NbCellLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(CellTypesLocal, NbCellLocal_Ncpus(commRank + 1), MPI_INTEGER1, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send(FaceTypes_Ncpus(i + 1)%Val, NbFaceLocal_Ncpus(i + 1), MPI_INTEGER1, i, 26, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (FaceTypesLocal(NbFaceLocal_Ncpus(1)))
+         FaceTypesLocal = FaceTypes_Ncpus(1)%Val
+      else
+         allocate (FaceTypesLocal(NbFaceLocal_Ncpus(commRank + 1)))
+         call MPI_Recv(FaceTypesLocal, NbFaceLocal_Ncpus(commRank + 1), MPI_INTEGER1, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (NodeFlags_Ncpus(i)%Val)
+            deallocate (CellFlags_Ncpus(i)%Val)
+            deallocate (FaceFlags_Ncpus(i)%Val)
+            deallocate (CellTypes_Ncpus(i)%Val)
+            deallocate (FaceTypes_Ncpus(i)%Val)
+         end do
+         deallocate (NodeFlags_Ncpus)
+         deallocate (CellFlags_Ncpus)
+         deallocate (FaceFlags_Ncpus)
+         deallocate (FaceTypes_Ncpus)
+      end if
+
+      ! Send Rocktype
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               NodeRocktype_Ncpus(i + 1)%Array2d, &
+               (IndThermique + 1)*NbNodeLocal_Ncpus(i + 1), &
+               MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (NodeRocktypeLocal(IndThermique + 1, NbNodeLocal_Ncpus(1)))
+         NodeRocktypeLocal = NodeRocktype_Ncpus(1)%Array2d
+      else
+         allocate (NodeRocktypeLocal(IndThermique + 1, NbNodeLocal_Ncpus(commRank + 1)))
+         call MPI_Recv( &
+            NodeRocktypeLocal, &
+            (IndThermique + 1)*NbNodeLocal_Ncpus(commRank + 1), &
+            MPI_INTEGER, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               CellRocktype_Ncpus(i + 1)%Array2d, &
+               (IndThermique + 1)*NbCellLocal_Ncpus(i + 1), &
+               MPI_INTEGER, i, 26, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (CellRocktypeLocal(IndThermique + 1, NbCellLocal_Ncpus(1)))
+         CellRocktypeLocal = CellRocktype_Ncpus(1)%Array2d
+      else
+         allocate (CellRocktypeLocal(IndThermique + 1, NbCellLocal_Ncpus(commRank + 1)))
+         call MPI_Recv( &
+            CellRocktypeLocal, &
+            (IndThermique + 1)*NbCellLocal_Ncpus(commRank + 1), &
+            MPI_INTEGER, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               FracRocktype_Ncpus(i + 1)%Array2d, &
+               (IndThermique + 1)*NbFracLocal_Ncpus(i + 1), &
+               MPI_INTEGER, i, 27, ComPASS_COMM_WORLD, Ierr)
+         end do
+         allocate (FracRocktypeLocal(IndThermique + 1, NbFracLocal_Ncpus(1)))
+         FracRocktypeLocal = FracRocktype_Ncpus(1)%Array2d
+      else
+         allocate (FracRocktypeLocal(IndThermique + 1, NbFracLocal_Ncpus(commRank + 1)))
+         call MPI_Recv( &
+            FracRocktypeLocal, &
+            (IndThermique + 1)*NbFracLocal_Ncpus(commRank + 1), &
+            MPI_INTEGER, 0, 27, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (NodeRocktype_Ncpus(i)%Array2d)
+            deallocate (CellRocktype_Ncpus(i)%Array2d)
+            deallocate (FracRocktype_Ncpus(i)%Array2d)
+         end do
+         deallocate (NodeRocktype_Ncpus)
+         deallocate (CellRocktype_Ncpus)
+         deallocate (FracRocktype_Ncpus)
+      end if
+
+      ! ************************************** !
+
+      ! Send mesh and connectivities
+      if (commRank == 0) then
+
+         ! for proc >=1, send
+         do i = 1, Ncpus - 1
+
+            ! NodebyNodeOwn
+            call MeshSchema_csrsend(NodebyNodeOwn_Ncpus(i + 1), i, 100, VALSIZE_ZERO)
+            ! FracbyNodeOwn
+            call MeshSchema_csrsend(FracbyNodeOwn_Ncpus(i + 1), i, 200, VALSIZE_ZERO)
+            ! CellbyNodeOwn
+            call MeshSchema_csrsend(CellbyNodeOwn_Ncpus(i + 1), i, 300, VALSIZE_ZERO)
+
+            ! NodebyFracOwn
+            call MeshSchema_csrsend(NodebyFracOwn_Ncpus(i + 1), i, 400, VALSIZE_ZERO)
+            ! CellbyFracOwn
+            call MeshSchema_csrsend(CellbyFracOwn_Ncpus(i + 1), i, 500, VALSIZE_ZERO)
+            ! FracbyFracOwn
+            call MeshSchema_csrsend(FracbyFracOwn_Ncpus(i + 1), i, 600, VALSIZE_ZERO)
+            ! WellInjbyNodeOwn
+            call MeshSchema_csrsend(WellInjbyNodeOwn_Ncpus(i + 1), i, 610, VALSIZE_ZERO)
+            ! WellProdbyNodeOwn
+            call MeshSchema_csrsend(WellProdbyNodeOwn_Ncpus(i + 1), i, 620, VALSIZE_ZERO)
+
+            ! FacebyCellLocal
+            call MeshSchema_csrsend(FacebyCellLocal_Ncpus(i + 1), i, 700, VALSIZE_ZERO)
+            ! FracbyCellLocal
+            call MeshSchema_csrsend(FracbyCellLocal_Ncpus(i + 1), i, 800, VALSIZE_ZERO)
+            ! NodebyCellLocal
+            call MeshSchema_csrsend(NodebyCellLocal_Ncpus(i + 1), i, 900, VALSIZE_ZERO)
+
+            ! NodebyFaceLocal
+            call MeshSchema_csrsend(NodebyFaceLocal_Ncpus(i + 1), i, 1000, VALSIZE_ZERO)
+
+            ! NodebyWellInjLocal
+            call MeshSchema_csrsend(NodebyWellInjLocal_Ncpus(i + 1), i, 1100, VALSIZE_ZERO)
+            ! NodebyWellProdLocal
+            call MeshSchema_csrsend(NodebyWellProdLocal_Ncpus(i + 1), i, 1200, VALSIZE_ZERO)
+
+         end do
+
+         ! for proc 0, copy
+         call CommonType_csrcopy(NodebyNodeOwn_Ncpus(1), NodebyNodeOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(FracbyNodeOwn_Ncpus(1), FracbyNodeOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(CellbyNodeOwn_Ncpus(1), CellbyNodeOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(WellInjbyNodeOwn_Ncpus(1), WellInjbyNodeOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(WellProdbyNodeOwn_Ncpus(1), WellProdbyNodeOwn, VALSIZE_ZERO)
+
+         call CommonType_csrcopy(NodebyFracOwn_Ncpus(1), NodebyFracOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(CellbyFracOwn_Ncpus(1), CellbyFracOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(FracbyFracOwn_Ncpus(1), FracbyFracOwn, VALSIZE_ZERO)
+
+         call CommonType_csrcopy(FacebyCellLocal_Ncpus(1), FacebyCellLocal, VALSIZE_ZERO)
+         call CommonType_csrcopy(FracbyCellLocal_Ncpus(1), FracbyCellLocal, VALSIZE_ZERO)
+         call CommonType_csrcopy(NodebyCellLocal_Ncpus(1), NodebyCellLocal, VALSIZE_ZERO)
+         call CommonType_csrcopy(NodebyFaceLocal_Ncpus(1), NodebyFaceLocal, VALSIZE_ZERO)
+
+         call CommonType_csrcopy(NodebyWellInjLocal_Ncpus(1), NodebyWellInjLocal, VALSIZE_ZERO)
+         call CommonType_csrcopy(NodebyWellProdLocal_Ncpus(1), NodebyWellProdLocal, VALSIZE_ZERO)
+
+      else
+
+         ! NodebyNodeOwn
+         call MeshSchema_csrrecv(NodebyNodeOwn, 0, 100, VALSIZE_ZERO)
+         ! FracbyNodeOwn
+         call MeshSchema_csrrecv(FracbyNodeOwn, 0, 200, VALSIZE_ZERO)
+         ! CellbyNodeOwn
+         call MeshSchema_csrrecv(CellbyNodeOwn, 0, 300, VALSIZE_ZERO)
+
+         ! NodebyFracOwn
+         call MeshSchema_csrrecv(NodebyFracOwn, 0, 400, VALSIZE_ZERO)
+         ! CellbyFracOwn
+         call MeshSchema_csrrecv(CellbyFracOwn, 0, 500, VALSIZE_ZERO)
+         ! FracbyFracOwn
+         call MeshSchema_csrrecv(FracbyFracOwn, 0, 600, VALSIZE_ZERO)
+
+         ! WellInjbyNodeOwn
+         call MeshSchema_csrrecv(WellInjbyNodeOwn, 0, 610, VALSIZE_ZERO)
+         ! WellProdbyNodeOwn
+         call MeshSchema_csrrecv(WellProdbyNodeOwn, 0, 620, VALSIZE_ZERO)
+
+         ! FacebyCellLocal
+         call MeshSchema_csrrecv(FacebyCellLocal, 0, 700, VALSIZE_ZERO)
+         ! FracbyCellLocal
+         call MeshSchema_csrrecv(FracbyCellLocal, 0, 800, VALSIZE_ZERO)
+         ! NodebyCellLocal
+         call MeshSchema_csrrecv(NodebyCellLocal, 0, 900, VALSIZE_ZERO)
+         ! NodebyFaceLocal
+         call MeshSchema_csrrecv(NodebyFaceLocal, 0, 1000, VALSIZE_ZERO)
+
+         ! NodebyWellInjLocal
+         call MeshSchema_csrrecv(NodebyWellInjLocal, 0, 1100, VALSIZE_ZERO)
+         ! NodebyWellProdLocal
+         call MeshSchema_csrrecv(NodebyWellProdLocal, 0, 1200, VALSIZE_ZERO)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            call CommonType_deallocCSR(NodebyNodeOwn_Ncpus(i))
+            call CommonType_deallocCSR(FracbyNodeOwn_Ncpus(i))
+            call CommonType_deallocCSR(CellbyNodeOwn_Ncpus(i))
+
+            call CommonType_deallocCSR(NodebyFracOwn_Ncpus(i))
+            call CommonType_deallocCSR(CellbyFracOwn_Ncpus(i))
+            call CommonType_deallocCSR(FracbyFracOwn_Ncpus(i))
+
+            call CommonType_deallocCSR(WellInjbyNodeOwn_Ncpus(i))
+            call CommonType_deallocCSR(WellProdbyNodeOwn_Ncpus(i))
+
+            call CommonType_deallocCSR(FacebyCellLocal_Ncpus(i))
+            call CommonType_deallocCSR(FracbyCellLocal_Ncpus(i))
+            call CommonType_deallocCSR(NodebyCellLocal_Ncpus(i))
+            call CommonType_deallocCSR(NodebyFaceLocal_Ncpus(i))
+
+            call CommonType_deallocCSR(NodebyWellInjLocal_Ncpus(i))
+            call CommonType_deallocCSR(NodebyWellProdLocal_Ncpus(i))
+         end do
+
+         deallocate (NodebyNodeOwn_Ncpus)
+         deallocate (FracbyNodeOwn_Ncpus)
+         deallocate (CellbyNodeOwn_Ncpus)
+
+         deallocate (NodebyFracOwn_Ncpus)
+         deallocate (CellbyFracOwn_Ncpus)
+         deallocate (FracbyFracOwn_Ncpus)
+
+         deallocate (WellInjbyNodeOwn_Ncpus)
+         deallocate (WellProdbyNodeOwn_Ncpus)
+
+         deallocate (FacebyCellLocal_Ncpus)
+         deallocate (FracbyCellLocal_Ncpus)
+         deallocate (NodebyCellLocal_Ncpus)
+         deallocate (NodebyFaceLocal_Ncpus)
+
+         deallocate (NodebyWellInjLocal_Ncpus)
+         deallocate (NodebyWellProdLocal_Ncpus)
+      end if
+
+      ! Well data type
+
+      call DefWell_mpi_register_well_data_description(MPI_WELLDATA_ID)
+
+      ! Injectors
+      if (commRank == 0) then
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbWellInjLocal_Ncpus(i + 1)
+            call MPI_Send(DataWellInjRes_Ncpus(1:Nb, i + 1), Nb, MPI_WELLDATA_ID, i, 210, ComPASS_COMM_WORLD, Ierr)
+         end do
+      end if
+      Nb = NbWellInjLocal_Ncpus(commRank + 1)
+      allocate (DataWellInjLocal(Nb))
+      if (commRank == 0) then
+         DataWellInjLocal(:) = DataWellInjRes_Ncpus(1:Nb, 1) ! proc=0, copy
+      else
+         call MPI_Recv(DataWellInjLocal, Nb, MPI_WELLDATA_ID, 0, 210, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
+      end if
+
+      ! Producers
+      if (commRank == 0) then
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbWellProdLocal_Ncpus(i + 1)
+            call MPI_Send(DataWellProdRes_Ncpus(1:Nb, i + 1), Nb, MPI_WELLDATA_ID, i, 211, ComPASS_COMM_WORLD, Ierr)
+         end do
+      end if
+      Nb = NbWellProdLocal_Ncpus(commRank + 1)
+      allocate (DataWellProdLocal(Nb))
+      if (commRank == 0) then
+         DataWellProdLocal(:) = DataWellProdRes_Ncpus(1:Nb, 1) ! proc 0, copy
+      else
+         call MPI_Recv(DataWellProdLocal, Nb, MPI_WELLDATA_ID, 0, 211, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
+      end if
+
+      call MPI_Type_free(MPI_WELLDATA_ID, Ierr)
+
+      ! ************************************* !
+
+      ! Send IdCellLocal
+      if (commRank == 0) then
+
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(IdCellRes_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 11, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (IdCellLocal(Nb))
+         IdCellLocal(:) = IdCellRes_Ncpus(1)%Val(:)
+
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (IdCellLocal(Nb))
+         call MPI_Recv(IdCellLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (IdCellRes_Ncpus(i)%Val)
+         end do
+         deallocate (IdCellRes_Ncpus)
+      end if
+
+      ! Send IdFaceLocal
+      if (commRank == 0) then
+
+         ! send to proc >=1
+         do i = 1, Ncpus - 1
+            Nb = NbFaceLocal_Ncpus(i + 1)
+            call MPI_Send(IdFaceRes_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 11, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         ! proc=0, copy
+         Nb = NbFaceLocal_Ncpus(1)
+         allocate (IdFaceLocal(Nb))
+         IdFaceLocal(:) = IdFaceRes_Ncpus(1)%Val(:)
+
+      else
+         Nb = NbFaceLocal_Ncpus(commRank + 1)
+         allocate (IdFaceLocal(Nb))
+         call MPI_Recv(IdFaceLocal, Nb, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (IdFaceRes_Ncpus(i)%Val)
+         end do
+         deallocate (IdFaceRes_Ncpus)
+      end if
+
+      ! ************************************* !
+
+      ! new MPI type: MPI_IDNODE
+      blen(1) = 4
+      offsets(1) = 0
+      oldtypes(1) = MPI_CHARACTER
+
+      call MPI_Type_struct(1, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
+      call MPI_Type_commit(MPI_IDNODE, Ierr)
+
+      ! Send IdNodeLocal and IdFFNodeLocal
+      if (commRank == 0) then
+
+         ! send to proc >=1
+         do i = 1, Ncpus - 1
+            Nb = NbNodeLocal_Ncpus(i + 1)
+            call MPI_Send(IdNodeRes_Ncpus(i + 1)%Val, Nb, MPI_IDNODE, i, 12, ComPASS_COMM_WORLD, Ierr)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-          call MPI_Send(IdFFNodeRes_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 20, ComPASS_COMM_WORLD, Ierr)   ! FIXME
+            call MPI_Send(IdFFNodeRes_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 20, ComPASS_COMM_WORLD, Ierr)   ! FIXME
 #endif
-       end do
+         end do
 
-       ! proc=0, copy
-       Nb = NbNodeLocal_Ncpus(1)
-       allocate(IdNodeLocal(Nb))
-       IdNodeLocal(:) = IdNodeRes_Ncpus(1)%Val(:)
+         ! proc=0, copy
+         Nb = NbNodeLocal_Ncpus(1)
+         allocate (IdNodeLocal(Nb))
+         IdNodeLocal(:) = IdNodeRes_Ncpus(1)%Val(:)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-       allocate(IdFFNodeLocal(Nb))
-       IdFFNodeLocal(:) = IdFFNodeRes_Ncpus(1)%Val(:)
+         allocate (IdFFNodeLocal(Nb))
+         IdFFNodeLocal(:) = IdFFNodeRes_Ncpus(1)%Val(:)
 #endif
 
-    else   ! not master proc
-       Nb = NbNodeLocal_Ncpus(commRank+1)
-       allocate(IdNodeLocal(Nb))
-       call MPI_Recv(IdNodeLocal, Nb, MPI_IDNODE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
+      else   ! not master proc
+         Nb = NbNodeLocal_Ncpus(commRank + 1)
+         allocate (IdNodeLocal(Nb))
+         call MPI_Recv(IdNodeLocal, Nb, MPI_IDNODE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-       allocate(IdFFNodeLocal(Nb))
-       call MPI_Recv(IdFFNodeLocal, Nb, MPI_INTEGER, 0, 20, ComPASS_COMM_WORLD, stat, Ierr)
+         allocate (IdFFNodeLocal(Nb))
+         call MPI_Recv(IdFFNodeLocal, Nb, MPI_INTEGER, 0, 20, ComPASS_COMM_WORLD, stat, Ierr)
 #endif
-    end if
+      end if
 
-    ! free MPI_IDNODE
-    call MPI_Type_free(MPI_IDNODE, Ierr)
+      ! free MPI_IDNODE
+      call MPI_Type_free(MPI_IDNODE, Ierr)
 
-    ! free IdNode
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(IdNodeRes_Ncpus(i)%Val)
+      ! free IdNode
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (IdNodeRes_Ncpus(i)%Val)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-          deallocate(IdFFNodeRes_Ncpus(i)%Val)
+            deallocate (IdFFNodeRes_Ncpus(i)%Val)
 #endif
-       end do
-       deallocate(IdNodeRes_Ncpus)
+         end do
+         deallocate (IdNodeRes_Ncpus)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-       deallocate(IdFFNodeRes_Ncpus)
+         deallocate (IdFFNodeRes_Ncpus)
 #endif
-    end if
+      end if
 
-    ! ************************************ !
+      ! ************************************ !
 
-    ! Send FracToFace and FaceToFrac
-    if (commRank==0) then
+      ! Send FracToFace and FaceToFrac
+      if (commRank == 0) then
 
-       ! proc>=1, send
-       do i=1, Ncpus-1
-          Nb = NbFracLocal_Ncpus(i+1)
-          call MPI_Send(FracToFaceLocal_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 21, ComPASS_COMM_WORLD, Ierr) ! FracToFace
+         ! proc>=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(FracToFaceLocal_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 21, ComPASS_COMM_WORLD, Ierr) ! FracToFace
 
-          Nb = NbFaceLocal_Ncpus(i+1)
-          call MPI_Send(FaceToFracLocal_Ncpus(i+1)%Val, Nb, MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr) ! FracToFace
-       end do
+            Nb = NbFaceLocal_Ncpus(i + 1)
+            call MPI_Send(FaceToFracLocal_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 22, ComPASS_COMM_WORLD, Ierr) ! FracToFace
+         end do
 
-       ! proc=0, copy
-       Nb = NbFracLocal_Ncpus(1)
-       allocate(FracToFaceLocal(Nb))
-       FracToFaceLocal(:) = FracToFaceLocal_Ncpus(1)%Val(:) ! FracToFace
+         ! proc=0, copy
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (FracToFaceLocal(Nb))
+         FracToFaceLocal(:) = FracToFaceLocal_Ncpus(1)%Val(:) ! FracToFace
 
-       Nb = NbFaceLocal_Ncpus(1)
-       allocate(FaceToFracLocal(Nb))
-       FaceToFracLocal(:) = FaceToFracLocal_Ncpus(1)%Val(:) ! FaceToFrac
+         Nb = NbFaceLocal_Ncpus(1)
+         allocate (FaceToFracLocal(Nb))
+         FaceToFracLocal(:) = FaceToFracLocal_Ncpus(1)%Val(:) ! FaceToFrac
 
-    else
-       Nb = NbFracLocal_Ncpus(commRank+1)
-       allocate(FracToFaceLocal(Nb))
-       call MPI_Recv(FracToFaceLocal, Nb, MPI_INTEGER, 0, 21, ComPASS_COMM_WORLD, stat, Ierr) ! FracToFace
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (FracToFaceLocal(Nb))
+         call MPI_Recv(FracToFaceLocal, Nb, MPI_INTEGER, 0, 21, ComPASS_COMM_WORLD, stat, Ierr) ! FracToFace
 
-       Nb = NbFaceLocal_Ncpus(commRank+1)
-       allocate(FaceToFracLocal(Nb))
-       call MPI_Recv(FaceToFracLocal, Nb, MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr) ! FaceToFrac
-    end if
+         Nb = NbFaceLocal_Ncpus(commRank + 1)
+         allocate (FaceToFracLocal(Nb))
+         call MPI_Recv(FaceToFracLocal, Nb, MPI_INTEGER, 0, 22, ComPASS_COMM_WORLD, stat, Ierr) ! FaceToFrac
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(FracToFaceLocal_Ncpus(i)%Val)
-          deallocate(FaceToFracLocal_Ncpus(i)%Val)
-       end do
-       deallocate(FracToFaceLocal_Ncpus)
-       deallocate(FaceToFracLocal_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (FracToFaceLocal_Ncpus(i)%Val)
+            deallocate (FaceToFracLocal_Ncpus(i)%Val)
+         end do
+         deallocate (FracToFaceLocal_Ncpus)
+         deallocate (FaceToFracLocal_Ncpus)
+      end if
 
-    call MeshSchema_send_recv_FamilyDOFIdCOC
+      call MeshSchema_send_recv_FamilyDOFIdCOC
 
-    ! send PorositeCell
-    if (commRank==0) then
+      ! send PorositeCell
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbCellLocal_Ncpus(i+1)
-          call MPI_Send(PorositeCell_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 11, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(PorositeCell_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 11, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbCellLocal_Ncpus(1)
-       allocate(PorositeCellLocal(Nb))
-       PorositeCellLocal(:) = PorositeCell_Ncpus(1)%Val(:)
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (PorositeCellLocal(Nb))
+         PorositeCellLocal(:) = PorositeCell_Ncpus(1)%Val(:)
 
-    else   
-       Nb = NbCellLocal_Ncpus(commRank+1)
-       allocate(PorositeCellLocal(Nb))
-       call MPI_Recv(PorositeCellLocal, Nb, MPI_DOUBLE, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (PorositeCellLocal(Nb))
+         call MPI_Recv(PorositeCellLocal, Nb, MPI_DOUBLE, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(PorositeCell_Ncpus(i)%Val)
-       end do
-       deallocate(PorositeCell_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (PorositeCell_Ncpus(i)%Val)
+         end do
+         deallocate (PorositeCell_Ncpus)
+      end if
 
-    ! send PorositeFrac
-    if (commRank==0) then
+      ! send PorositeFrac
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbFracLocal_Ncpus(i+1)
-          call MPI_Send(PorositeFrac_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 12, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(PorositeFrac_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 12, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-        !print *, "DEBUG - Copying", Nb, "fracture porosity values:", PorositeFrac_Ncpus(1)%Val(:)
-       Nb = NbFracLocal_Ncpus(1)
-       allocate(PorositeFracLocal(Nb))
-       PorositeFracLocal(:) = PorositeFrac_Ncpus(1)%Val(:)
+         ! proc=0, copy
+         !print *, "DEBUG - Copying", Nb, "fracture porosity values:", PorositeFrac_Ncpus(1)%Val(:)
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (PorositeFracLocal(Nb))
+         PorositeFracLocal(:) = PorositeFrac_Ncpus(1)%Val(:)
 
-    else   
-       Nb = NbFracLocal_Ncpus(commRank+1)
-       allocate(PorositeFracLocal(Nb))
-       call MPI_Recv(PorositeFracLocal, Nb, MPI_DOUBLE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (PorositeFracLocal(Nb))
+         call MPI_Recv(PorositeFracLocal, Nb, MPI_DOUBLE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(PorositeFrac_Ncpus(i)%Val)
-       end do
-       deallocate(PorositeFrac_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (PorositeFrac_Ncpus(i)%Val)
+         end do
+         deallocate (PorositeFrac_Ncpus)
+      end if
 
-    ! send PermCellLocal
-    if (commRank==0) then
+      ! send PermCellLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbCellLocal_Ncpus(i+1)
-          call MPI_Send(PermCellLocal_Ncpus(i+1)%Array3d, Nb*9, MPI_DOUBLE, i, 13, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(PermCellLocal_Ncpus(i + 1)%Array3d, Nb*9, MPI_DOUBLE, i, 13, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbCellLocal_Ncpus(1)
-       allocate(PermCellLocal(3,3,Nb))
-       PermCellLocal(:,:,:) = PermCellLocal_Ncpus(1)%Array3d(:,:,:)
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (PermCellLocal(3, 3, Nb))
+         PermCellLocal(:, :, :) = PermCellLocal_Ncpus(1)%Array3d(:, :, :)
 
-    else   
-       Nb = NbCellLocal_Ncpus(commRank+1)
-       allocate(PermCellLocal(3,3,Nb))
-       call MPI_Recv(PermCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (PermCellLocal(3, 3, Nb))
+         call MPI_Recv(PermCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(PermCellLocal_Ncpus(i)%Array3d)
-       end do
-       deallocate(PermCellLocal_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (PermCellLocal_Ncpus(i)%Array3d)
+         end do
+         deallocate (PermCellLocal_Ncpus)
+      end if
 
-    ! send PermFracLocal
-    if (commRank==0) then
+      ! send PermFracLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbFracLocal_Ncpus(i+1)
-          call MPI_Send(PermFracLocal_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 14, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(PermFracLocal_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 14, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbFracLocal_Ncpus(1)
-       allocate(PermFracLocal(Nb))
-       PermFracLocal(:) = PermFracLocal_Ncpus(1)%Val(:)
+         ! proc=0, copy
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (PermFracLocal(Nb))
+         PermFracLocal(:) = PermFracLocal_Ncpus(1)%Val(:)
 
-    else   
-       Nb = NbFracLocal_Ncpus(commRank+1)
-       allocate(PermFracLocal(Nb))
-       call MPI_Recv(PermFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (PermFracLocal(Nb))
+         call MPI_Recv(PermFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(PermFracLocal_Ncpus(i)%Val)
-       end do
-       deallocate(PermFracLocal_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (PermFracLocal_Ncpus(i)%Val)
+         end do
+         deallocate (PermFracLocal_Ncpus)
+      end if
 
 #ifdef _THERMIQUE_
-    ! send CondThermalCellLocal
-    if (commRank==0) then
+      ! send CondThermalCellLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbCellLocal_Ncpus(i+1)
-          call MPI_Send(CondThermalCellLocal_Ncpus(i+1)%Array3d, Nb*9, MPI_DOUBLE, i, 13, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(CondThermalCellLocal_Ncpus(i + 1)%Array3d, Nb*9, MPI_DOUBLE, i, 13, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbCellLocal_Ncpus(1)
-       allocate(CondThermalCellLocal(3,3,Nb))
-       CondThermalCellLocal(:,:,:) = CondThermalCellLocal_Ncpus(1)%Array3d(:,:,:)
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (CondThermalCellLocal(3, 3, Nb))
+         CondThermalCellLocal(:, :, :) = CondThermalCellLocal_Ncpus(1)%Array3d(:, :, :)
 
-    else   
-       Nb = NbCellLocal_Ncpus(commRank+1)
-       allocate(CondThermalCellLocal(3,3,Nb))
-       call MPI_Recv(CondThermalCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (CondThermalCellLocal(3, 3, Nb))
+         call MPI_Recv(CondThermalCellLocal, Nb*9, MPI_DOUBLE, 0, 13, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(CondThermalCellLocal_Ncpus(i)%Array3d)
-       end do
-       deallocate(CondThermalCellLocal_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (CondThermalCellLocal_Ncpus(i)%Array3d)
+         end do
+         deallocate (CondThermalCellLocal_Ncpus)
+      end if
 
-    ! send CondThermalFracLocal
-    if (commRank==0) then
+      ! send CondThermalFracLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbFracLocal_Ncpus(i+1)
-          call MPI_Send(CondThermalFracLocal_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 14, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(CondThermalFracLocal_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 14, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbFracLocal_Ncpus(1)
-       allocate(CondThermalFracLocal(Nb))
-       CondThermalFracLocal(:) = CondThermalFracLocal_Ncpus(1)%Val(:)
+         ! proc=0, copy
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (CondThermalFracLocal(Nb))
+         CondThermalFracLocal(:) = CondThermalFracLocal_Ncpus(1)%Val(:)
 
-    else   
-       Nb = NbFracLocal_Ncpus(commRank+1)
-       allocate(CondThermalFracLocal(Nb))
-       call MPI_Recv(CondThermalFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (CondThermalFracLocal(Nb))
+         call MPI_Recv(CondThermalFracLocal, Nb, MPI_DOUBLE, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(CondThermalFracLocal_Ncpus(i)%Val)
-       end do
-       deallocate(CondThermalFracLocal_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (CondThermalFracLocal_Ncpus(i)%Val)
+         end do
+         deallocate (CondThermalFracLocal_Ncpus)
+      end if
 
-    ! send CellThermalSourceLocal
-    if (commRank==0) then
+      ! send CellThermalSourceLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbCellLocal_Ncpus(i+1)
-          call MPI_Send(CellThermalSource_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 15, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(CellThermalSource_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 15, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbCellLocal_Ncpus(1)
-       allocate(CellThermalSourceLocal(Nb))
-       CellThermalSourceLocal = CellThermalSource_Ncpus(1)%Val
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (CellThermalSourceLocal(Nb))
+         CellThermalSourceLocal = CellThermalSource_Ncpus(1)%Val
 
-    else   
-       Nb = NbCellLocal_Ncpus(commRank+1)
-       allocate(CellThermalSourceLocal(Nb))
-       call MPI_Recv(CellThermalSourceLocal, Nb, MPI_DOUBLE, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (CellThermalSourceLocal(Nb))
+         call MPI_Recv(CellThermalSourceLocal, Nb, MPI_DOUBLE, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(CellThermalSource_Ncpus(i)%Val)
-       end do
-       deallocate(CellThermalSource_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (CellThermalSource_Ncpus(i)%Val)
+         end do
+         deallocate (CellThermalSource_Ncpus)
+      end if
 
-    ! send FracThermalSourceLocal
-    if (commRank==0) then
+      ! send FracThermalSourceLocal
+      if (commRank == 0) then
 
-       ! proc >=1, send
-       do i=1, Ncpus-1
-          Nb = NbFracLocal_Ncpus(i+1)
-          call MPI_Send(FracThermalSource_Ncpus(i+1)%Val, Nb, MPI_DOUBLE, i, 16, ComPASS_COMM_WORLD, Ierr)
-       end do
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(FracThermalSource_Ncpus(i + 1)%Val, Nb, MPI_DOUBLE, i, 16, ComPASS_COMM_WORLD, Ierr)
+         end do
 
-       ! proc=0, copy
-       Nb = NbFracLocal_Ncpus(1)
-       allocate(FracThermalSourceLocal(Nb))
-       FracThermalSourceLocal = FracThermalSource_Ncpus(1)%Val
+         ! proc=0, copy
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (FracThermalSourceLocal(Nb))
+         FracThermalSourceLocal = FracThermalSource_Ncpus(1)%Val
 
-    else   
-       Nb = NbFracLocal_Ncpus(commRank+1)
-       allocate(FracThermalSourceLocal(Nb))
-       call MPI_Recv(FracThermalSourceLocal, Nb, MPI_DOUBLE, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (FracThermalSourceLocal(Nb))
+         call MPI_Recv(FracThermalSourceLocal, Nb, MPI_DOUBLE, 0, 16, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          deallocate(FracThermalSource_Ncpus(i)%Val)
-       end do
-       deallocate(FracThermalSource_Ncpus)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (FracThermalSource_Ncpus(i)%Val)
+         end do
+         deallocate (FracThermalSource_Ncpus)
+      end if
 #endif
 
+      ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
+      blocklen(1) = 1
+      blocklen(2) = 1
+      blocklen(3) = 1
+      blocklen(4) = 1
+      arraytype(1) = MPI_INTEGER
+      arraytype(2) = MPI_INTEGER
+      arraytype(3) = MPI_DOUBLE
+      arraytype(4) = MPI_DOUBLE
+      disp(1) = 0 !  = 0
+      disp(2) = 4 !  + integer
+      disp(3) = 8 !  + integer
+      disp(4) = 16 ! + double
 
-    ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
-    blocklen(1) = 1
-    blocklen(2) = 1
-    blocklen(3) = 1
-    blocklen(4) = 1
-    arraytype(1) = MPI_INTEGER
-    arraytype(2) = MPI_INTEGER
-    arraytype(3) = MPI_DOUBLE
-    arraytype(4) = MPI_DOUBLE
-    disp(1) = 0 !  = 0
-    disp(2) = 4 !  + integer
-    disp(3) = 8 !  + integer
-    disp(4) = 16 ! + double
+      ! Create and commit
+      call MPI_Type_Create_Struct(4, blocklen, disp, arraytype, MPI_DATANODEWELL, Ierr)
+      call MPI_Type_commit(MPI_DATANODEWELL, Ierr)
 
-    ! Create and commit
-    call MPI_Type_Create_Struct(4, blocklen, disp, arraytype, MPI_DATANODEWELL, Ierr)
-    call MPI_Type_commit(MPI_DATANODEWELL, Ierr)
+      ! send NodeDatabyWell
+      if (commRank == 0) then
 
-    ! send NodeDatabyWell
-    if(commRank==0) then
+         do i = 1, Ncpus - 1
+            call MeshSchema_csrdatawellsend(NodeDatabyWellInjLocal_Ncpus(i + 1), i, 100)
+            call MeshSchema_csrdatawellsend(NodeDatabyWellProdLocal_Ncpus(i + 1), i, 200)
+         end do
 
-       do i=1, Ncpus-1
-          call MeshSchema_csrdatawellsend(NodeDatabyWellInjLocal_Ncpus(i+1), i, 100)
-          call MeshSchema_csrdatawellsend(NodeDatabyWellProdLocal_Ncpus(i+1), i, 200)
-       end do
+         call DefWell_csrdatawellcopy(NodeDatabyWellInjLocal_Ncpus(1), NodeDatabyWellInjLocal)
+         call DefWell_csrdatawellcopy(NodeDatabyWellProdLocal_Ncpus(1), NodeDatabyWellProdLocal)
+      else
 
-       call DefWell_csrdatawellcopy(NodeDatabyWellInjLocal_Ncpus(1), NodeDatabyWellInjLocal)
-       call DefWell_csrdatawellcopy(NodeDatabyWellProdLocal_Ncpus(1), NodeDatabyWellProdLocal)
-    else
+         call MeshSchema_csrdatawellrecv(NodeDatabyWellInjLocal, 0, 100)
+         call MeshSchema_csrdatawellrecv(NodeDatabyWellProdLocal, 0, 200)
+      end if
 
-       call MeshSchema_csrdatawellrecv(NodeDatabyWellInjLocal, 0, 100)
-       call MeshSchema_csrdatawellrecv(NodeDatabyWellProdLocal, 0, 200)
-    end if
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            call DefWell_deallocCSRDataWell(NodeDatabyWellInjLocal_Ncpus(i))
+            call DefWell_deallocCSRDataWell(NodeDatabyWellProdLocal_Ncpus(i))
+         end do
+         deallocate (NodeDatabyWellInjLocal_Ncpus)
+         deallocate (NodeDatabyWellProdLocal_Ncpus)
+      end if
 
-    if(commRank==0) then
-       do i=1, Ncpus
-          call DefWell_deallocCSRDataWell(NodeDatabyWellInjLocal_Ncpus(i))
-          call DefWell_deallocCSRDataWell(NodeDatabyWellProdLocal_Ncpus(i))
-       end do
-       deallocate(NodeDatabyWellInjLocal_Ncpus)
-       deallocate(NodeDatabyWellProdLocal_Ncpus)
-    end if
+      ! Free TYPE MPI_DATANODEWELL
+      call MPI_Type_free(MPI_DATANODEWELL, Ierr)
 
-    ! Free TYPE MPI_DATANODEWELL
-    call MPI_Type_free(MPI_DATANODEWELL, Ierr)
-    
-  end subroutine MeshSchema_sendrecv
+   end subroutine MeshSchema_sendrecv
 
+   ! Send csr1 to "dest" with "tag"
+   subroutine MeshSchema_csrsend(csr1, dest, tag, valsize)
 
-  ! Send csr1 to "dest" with "tag"
-  subroutine MeshSchema_csrsend(csr1, dest, tag, valsize)
+      type(CSR) :: csr1
+      integer, intent(in) :: tag, dest, valsize
+      integer :: Nb, Nnz, Ierr
 
-    type(CSR) :: csr1
-    integer, intent(in) :: tag, dest, valsize
-    integer :: Nb, Nnz, Ierr
+      call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag + 1, ComPASS_COMM_WORLD, Ierr)
+      Nb = csr1%Nb
+      call MPI_Send(csr1%Pt, Nb + 1, MPI_INTEGER, dest, tag + 2, ComPASS_COMM_WORLD, Ierr)
+      Nnz = csr1%Pt(Nb + 1)
+      call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag + 3, ComPASS_COMM_WORLD, Ierr)
+      if (valsize == VALSIZE_NB) then
+         call MPI_Send(csr1%Val, Nb, MPI_INTEGER, dest, tag + 4, ComPASS_COMM_WORLD, Ierr)
+      else if (valsize == VALSIZE_NNZ) then
+         call MPI_Send(csr1%Val, Nnz, MPI_INTEGER, dest, tag + 4, ComPASS_COMM_WORLD, Ierr)
+      end if
 
-    call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
-    Nb = csr1%Nb
-    call MPI_Send(csr1%Pt, Nb+1, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
-    Nnz = csr1%Pt(Nb+1) 
-    call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
-    if(valsize==VALSIZE_NB) then
-       call MPI_Send(csr1%Val, Nb, MPI_INTEGER, dest, tag+4, ComPASS_COMM_WORLD, Ierr)
-    else if(valsize==VALSIZE_NNZ) then
-       call MPI_Send(csr1%Val, Nnz, MPI_INTEGER, dest, tag+4, ComPASS_COMM_WORLD, Ierr)
-    end if
+   end subroutine MeshSchema_csrsend
 
-  end subroutine MeshSchema_csrsend
+   ! Recv csr2 from "source" with "tag"
+   subroutine MeshSchema_csrrecv(csr2, source, tag, valsize)
 
+      type(CSR), intent(inout) :: csr2
+      integer, intent(in) :: tag, source, valsize
 
-  ! Recv csr2 from "source" with "tag"
-  subroutine MeshSchema_csrrecv(csr2, source, tag, valsize)
+      integer :: Nb, Nnz, Ierr
+      integer stat(MPI_STATUS_SIZE)
 
-    type(CSR), intent(inout) :: csr2
-    integer, intent(in) :: tag, source, valsize
+      call MPI_Recv(csr2%Nb, 1, MPI_INTEGER, source, tag + 1, ComPASS_COMM_WORLD, stat, Ierr)
 
-    integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
+      Nb = csr2%Nb
+      allocate (csr2%Pt(Nb + 1))
+      call MPI_Recv(csr2%Pt, Nb + 1, MPI_INTEGER, source, tag + 2, ComPASS_COMM_WORLD, stat, Ierr)
 
-    call MPI_Recv(csr2%Nb, 1, MPI_INTEGER, source, tag+1, ComPASS_COMM_WORLD, stat, Ierr)
+      Nnz = csr2%Pt(Nb + 1)
+      allocate (csr2%Num(Nnz))
+      call MPI_Recv(csr2%Num, Nnz, MPI_INTEGER, source, tag + 3, ComPASS_COMM_WORLD, stat, Ierr)
 
-    Nb = csr2%Nb
-    allocate(csr2%Pt(Nb+1))
-    call MPI_Recv(csr2%Pt, Nb+1, MPI_INTEGER, source, tag+2, ComPASS_COMM_WORLD, stat, Ierr)
+      if (valsize == VALSIZE_NB) then
+         allocate (csr2%Val(Nb))
+         call MPI_Recv(csr2%Val, Nb, MPI_INTEGER, source, tag + 4, ComPASS_COMM_WORLD, stat, Ierr)
+      else if (valsize == VALSIZE_NNZ) then
+         allocate (csr2%Val(Nnz))
+         call MPI_Recv(csr2%Val, Nnz, MPI_INTEGER, source, tag + 4, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
 
-    Nnz = csr2%Pt(Nb+1)
-    allocate(csr2%Num(Nnz))
-    call MPI_Recv(csr2%Num, Nnz, MPI_INTEGER, source, tag+3, ComPASS_COMM_WORLD, stat, Ierr)
+   end subroutine MeshSchema_csrrecv
 
-    if(valsize==VALSIZE_NB) then
-       allocate(csr2%Val(Nb))
-       call MPI_Recv(csr2%Val, Nb, MPI_INTEGER, source, tag+4, ComPASS_COMM_WORLD, stat, Ierr)
-    else if(valsize==VALSIZE_NNZ) then
-       allocate(csr2%Val(Nnz))
-       call MPI_Recv(csr2%Val, Nnz, MPI_INTEGER, source, tag+4, ComPASS_COMM_WORLD, stat, Ierr)
-    end if
+   ! Send csr1 to "dest" with "tag"
+   ! %val type is DataNodeWell
+   subroutine MeshSchema_csrdatawellsend(csr1, dest, tag)
 
-  end subroutine MeshSchema_csrrecv
+      type(TYPE_CSRDataNodeWell) :: csr1
+      integer, intent(in) :: tag, dest
+      integer :: Nb, Nnz, Ierr
 
+      call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag + 1, ComPASS_COMM_WORLD, Ierr)
+      Nb = csr1%Nb
+      call MPI_Send(csr1%Pt, Nb + 1, MPI_INTEGER, dest, tag + 2, ComPASS_COMM_WORLD, Ierr)
+      Nnz = csr1%Pt(Nb + 1)
+      call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag + 3, ComPASS_COMM_WORLD, Ierr)
 
-  ! Send csr1 to "dest" with "tag"
-  ! %val type is DataNodeWell
-  subroutine MeshSchema_csrdatawellsend(csr1, dest, tag)
+      call MPI_Send(csr1%Val, Nnz, MPI_DATANODEWELL, dest, tag + 4, ComPASS_COMM_WORLD, Ierr)
 
-    type(TYPE_CSRDataNodeWell) :: csr1
-    integer, intent(in) :: tag, dest
-    integer :: Nb, Nnz, Ierr
+   end subroutine MeshSchema_csrdatawellsend
 
-    call MPI_Send(csr1%Nb, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
-    Nb = csr1%Nb
-    call MPI_Send(csr1%Pt, Nb+1, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
-    Nnz = csr1%Pt(Nb+1) 
-    call MPI_Send(csr1%Num, Nnz, MPI_INTEGER, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
+   ! Recv csr2 from "source" with "tag"
+   ! %val type is DataNodeWell
+   subroutine MeshSchema_csrdatawellrecv(csr2, source, tag)
 
-    call MPI_Send(csr1%Val, Nnz, MPI_DATANODEWELL, dest, tag+4, ComPASS_COMM_WORLD, Ierr)
+      type(TYPE_CSRDataNodeWell), intent(inout) :: csr2
+      integer, intent(in) :: tag, source
 
-  end subroutine MeshSchema_csrdatawellsend
+      integer :: Nb, Nnz, Ierr
+      integer stat(MPI_STATUS_SIZE)
 
+      call MPI_Recv(csr2%Nb, 1, MPI_INTEGER, source, tag + 1, ComPASS_COMM_WORLD, stat, Ierr)
 
-  ! Recv csr2 from "source" with "tag"
-  ! %val type is DataNodeWell
-  subroutine MeshSchema_csrdatawellrecv(csr2, source, tag)
+      Nb = csr2%Nb
+      allocate (csr2%Pt(Nb + 1))
+      call MPI_Recv(csr2%Pt, Nb + 1, MPI_INTEGER, source, tag + 2, ComPASS_COMM_WORLD, stat, Ierr)
 
-    type(TYPE_CSRDataNodeWell), intent(inout) :: csr2
-    integer, intent(in) :: tag, source
+      Nnz = csr2%Pt(Nb + 1)
+      allocate (csr2%Num(Nnz))
+      call MPI_Recv(csr2%Num, Nnz, MPI_INTEGER, source, tag + 3, ComPASS_COMM_WORLD, stat, Ierr)
 
-    integer :: Nb, Nnz, Ierr
-    integer stat(MPI_STATUS_SIZE)
+      allocate (csr2%Val(Nnz))
+      call MPI_Recv(csr2%Val, Nnz, MPI_DATANODEWELL, source, tag + 4, ComPASS_COMM_WORLD, stat, Ierr)
 
-    call MPI_Recv(csr2%Nb, 1, MPI_INTEGER, source, tag+1, ComPASS_COMM_WORLD, stat, Ierr)
+   end subroutine MeshSchema_csrdatawellrecv
 
-    Nb = csr2%Nb
-    allocate(csr2%Pt(Nb+1))
-    call MPI_Recv(csr2%Pt, Nb+1, MPI_INTEGER, source, tag+2, ComPASS_COMM_WORLD, stat, Ierr)
+   subroutine MeshSchema_send_FamilyDOFIdCOC(fidcoc, mpi_struct_id, dest, tag)
 
-    Nnz = csr2%Pt(Nb+1)
-    allocate(csr2%Num(Nnz))
-    call MPI_Recv(csr2%Num, Nnz, MPI_INTEGER, source, tag+3, ComPASS_COMM_WORLD, stat, Ierr)
+      type(FamilyDOFIdCOC), intent(in) :: fidcoc
+      integer, intent(in) :: mpi_struct_id, dest, tag
 
-    allocate(csr2%Val(Nnz))
-    call MPI_Recv(csr2%Val, Nnz, MPI_DATANODEWELL, source, tag+4, ComPASS_COMM_WORLD, stat, Ierr)
+      integer n, Ierr
 
-  end subroutine MeshSchema_csrdatawellrecv
-
-  subroutine MeshSchema_send_FamilyDOFIdCOC(fidcoc, mpi_struct_id, dest, tag)
-
-   type(FamilyDOFIdCOC), intent(in) :: fidcoc
-   integer, intent(in) :: mpi_struct_id, dest, tag
-
-   integer n, Ierr
-
-   n = size(fidcoc%offsets)
-   call MPI_Send(n, 1, MPI_INTEGER, dest, tag+1, ComPASS_COMM_WORLD, Ierr)
-   call MPI_Send(fidcoc%offsets, n, MPI_INTEGER, dest, tag+2, ComPASS_COMM_WORLD, Ierr)
+      n = size(fidcoc%offsets)
+      call MPI_Send(n, 1, MPI_INTEGER, dest, tag + 1, ComPASS_COMM_WORLD, Ierr)
+      call MPI_Send(fidcoc%offsets, n, MPI_INTEGER, dest, tag + 2, ComPASS_COMM_WORLD, Ierr)
 #ifndef NDEBUG
-   if(.not.check_FamilyDOFIdCOC(fidcoc)) &
-      call CommonMPI_abort("Inconsistent input COC")
+      if (.not. check_FamilyDOFIdCOC(fidcoc)) &
+         call CommonMPI_abort("Inconsistent input COC")
 #endif
-   n = size(fidcoc%ids)
-   call MPI_Send(fidcoc%ids, n, mpi_struct_id, dest, tag+3, ComPASS_COMM_WORLD, Ierr)
+      n = size(fidcoc%ids)
+      call MPI_Send(fidcoc%ids, n, mpi_struct_id, dest, tag + 3, ComPASS_COMM_WORLD, Ierr)
 
-  end subroutine MeshSchema_send_FamilyDOFIdCOC
+   end subroutine MeshSchema_send_FamilyDOFIdCOC
 
-  subroutine MeshSchema_recv_FamilyDOFIdCOC(fidcoc, mpi_struct_id, source, tag)
+   subroutine MeshSchema_recv_FamilyDOFIdCOC(fidcoc, mpi_struct_id, source, tag)
 
-   type(FamilyDOFIdCOC), intent(inout) :: fidcoc
-   integer, intent(in) :: mpi_struct_id, source, tag
+      type(FamilyDOFIdCOC), intent(inout) :: fidcoc
+      integer, intent(in) :: mpi_struct_id, source, tag
 
-   integer n, Ierr
-   integer stat(MPI_STATUS_SIZE)
+      integer n, Ierr
+      integer stat(MPI_STATUS_SIZE)
 
-   call MPI_Recv(n, 1, MPI_INTEGER, source, tag+1, ComPASS_COMM_WORLD, stat, Ierr)
-   allocate(fidcoc%offsets(n))
-   call MPI_Recv(fidcoc%offsets, n, MPI_INTEGER, source, tag+2, ComPASS_COMM_WORLD, stat, Ierr)
-   n = fidcoc%offsets(n)
-   allocate(fidcoc%ids(n))
-   call MPI_Recv(fidcoc%ids, n, mpi_struct_id, source, tag+3, ComPASS_COMM_WORLD, stat, Ierr)
+      call MPI_Recv(n, 1, MPI_INTEGER, source, tag + 1, ComPASS_COMM_WORLD, stat, Ierr)
+      allocate (fidcoc%offsets(n))
+      call MPI_Recv(fidcoc%offsets, n, MPI_INTEGER, source, tag + 2, ComPASS_COMM_WORLD, stat, Ierr)
+      n = fidcoc%offsets(n)
+      allocate (fidcoc%ids(n))
+      call MPI_Recv(fidcoc%ids, n, mpi_struct_id, source, tag + 3, ComPASS_COMM_WORLD, stat, Ierr)
 
- end subroutine MeshSchema_recv_FamilyDOFIdCOC
+   end subroutine MeshSchema_recv_FamilyDOFIdCOC
 
- subroutine MeshSchema_send_recv_FamilyDOFIdCOC()
+   subroutine MeshSchema_send_recv_FamilyDOFIdCOC()
 
-   integer :: i, Ierr
-   integer :: mpi_FamilyDOFIdCOC_id ! FIXME: use MPI_DATATYPE
+      integer :: i, Ierr
+      integer :: mpi_FamilyDOFIdCOC_id ! FIXME: use MPI_DATATYPE
 
-   mpi_FamilyDOFIdCOC_id = create_FamilyDOFId_MPI_struct()
-   call MPI_Type_commit(mpi_FamilyDOFIdCOC_id, Ierr)
+      mpi_FamilyDOFIdCOC_id = create_FamilyDOFId_MPI_struct()
+      call MPI_Type_commit(mpi_FamilyDOFIdCOC_id, Ierr)
 
-   if(commRank==0) then
-      do i=1, Ncpus-1
-         call MeshSchema_send_FamilyDOFIdCOC(NumNodebyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 100)
-         call MeshSchema_send_FamilyDOFIdCOC(NumFracbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 300)
-         call MeshSchema_send_FamilyDOFIdCOC(NumWellInjbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 500)
-         call MeshSchema_send_FamilyDOFIdCOC(NumWellProdbyProc_Ncpus(i+1), mpi_FamilyDOFIdCOC_id, i, 700)
-      end do
-      NumNodebyProc = NumNodebyProc_Ncpus(1)
-      NumFracbyProc = NumFracbyProc_Ncpus(1)
-      NumWellInjbyProc = NumWellInjbyProc_Ncpus(1)
-      NumWellProdbyProc = NumWellProdbyProc_Ncpus(1)
-   else
-      call MeshSchema_recv_FamilyDOFIdCOC(NumNodebyProc, mpi_FamilyDOFIdCOC_id, 0, 100)
-      call MeshSchema_recv_FamilyDOFIdCOC(NumFracbyProc, mpi_FamilyDOFIdCOC_id, 0, 300)
-      call MeshSchema_recv_FamilyDOFIdCOC(NumWellInjbyProc, mpi_FamilyDOFIdCOC_id, 0, 500)
-      call MeshSchema_recv_FamilyDOFIdCOC(NumWellProdbyProc, mpi_FamilyDOFIdCOC_id, 0, 700)
-   end if
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MeshSchema_send_FamilyDOFIdCOC(NumNodebyProc_Ncpus(i + 1), mpi_FamilyDOFIdCOC_id, i, 100)
+            call MeshSchema_send_FamilyDOFIdCOC(NumFracbyProc_Ncpus(i + 1), mpi_FamilyDOFIdCOC_id, i, 300)
+            call MeshSchema_send_FamilyDOFIdCOC(NumWellInjbyProc_Ncpus(i + 1), mpi_FamilyDOFIdCOC_id, i, 500)
+            call MeshSchema_send_FamilyDOFIdCOC(NumWellProdbyProc_Ncpus(i + 1), mpi_FamilyDOFIdCOC_id, i, 700)
+         end do
+         NumNodebyProc = NumNodebyProc_Ncpus(1)
+         NumFracbyProc = NumFracbyProc_Ncpus(1)
+         NumWellInjbyProc = NumWellInjbyProc_Ncpus(1)
+         NumWellProdbyProc = NumWellProdbyProc_Ncpus(1)
+      else
+         call MeshSchema_recv_FamilyDOFIdCOC(NumNodebyProc, mpi_FamilyDOFIdCOC_id, 0, 100)
+         call MeshSchema_recv_FamilyDOFIdCOC(NumFracbyProc, mpi_FamilyDOFIdCOC_id, 0, 300)
+         call MeshSchema_recv_FamilyDOFIdCOC(NumWellInjbyProc, mpi_FamilyDOFIdCOC_id, 0, 500)
+         call MeshSchema_recv_FamilyDOFIdCOC(NumWellProdbyProc, mpi_FamilyDOFIdCOC_id, 0, 700)
+      end if
 
-   ! CHECKME: from Fortran 2003 nested allocatable are automatically deallocated
-   if(commRank==0) then
-      do i=1, Ncpus
-         call free_ComPASS_struct(NumNodebyProc_Ncpus(i))
-         call free_ComPASS_struct(NumFracbyProc_Ncpus(i))
-         call free_ComPASS_struct(NumWellInjbyProc_Ncpus(i))
-         call free_ComPASS_struct(NumWellProdbyProc_Ncpus(i))
-      end do
-      deallocate(NumNodebyProc_Ncpus)
-      deallocate(NumFracbyProc_Ncpus)
-      deallocate(NumWellInjbyProc_Ncpus)
-      deallocate(NumWellProdbyProc_Ncpus)
-   end if
+      ! CHECKME: from Fortran 2003 nested allocatable are automatically deallocated
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            call free_ComPASS_struct(NumNodebyProc_Ncpus(i))
+            call free_ComPASS_struct(NumFracbyProc_Ncpus(i))
+            call free_ComPASS_struct(NumWellInjbyProc_Ncpus(i))
+            call free_ComPASS_struct(NumWellProdbyProc_Ncpus(i))
+         end do
+         deallocate (NumNodebyProc_Ncpus)
+         deallocate (NumFracbyProc_Ncpus)
+         deallocate (NumWellInjbyProc_Ncpus)
+         deallocate (NumWellProdbyProc_Ncpus)
+      end if
 
-   call MPI_Type_free(mpi_FamilyDOFIdCOC_id, Ierr)
+      call MPI_Type_free(mpi_FamilyDOFIdCOC_id, Ierr)
 
-  end subroutine MeshSchema_send_recv_FamilyDOFIdCOC
+   end subroutine MeshSchema_send_recv_FamilyDOFIdCOC
 
- ! Output:
-  !  NumNodebyEdgebyWellLocal
-  ! Input:
-  !  NodeDatabyWellLocal
-  ! Local list of Edge by Well (own+ghost)
-  ! List is oriented (Id_parent, Id_son)
-  subroutine MeshSchema_NumNodebyEdgebyWellLocal
+   ! Output:
+   !  NumNodebyEdgebyWellLocal
+   ! Input:
+   !  NodeDatabyWellLocal
+   ! Local list of Edge by Well (own+ghost)
+   ! List is oriented (Id_parent, Id_son)
+   subroutine MeshSchema_NumNodebyEdgebyWellLocal
 
-    integer :: NbWellLocal, i, j, NbEdgemax, comptNode
+      integer :: NbWellLocal, i, j, NbEdgemax, comptNode
 
-    !! INJ WELL
-    NbWellLocal = NodeDatabyWellInjLocal%Nb ! Number of well inj
-    allocate(NbEdgebyWellInjLocal(NbWellLocal))
-    NbEdgemax = 0
+      !! INJ WELL
+      NbWellLocal = NodeDatabyWellInjLocal%Nb ! Number of well inj
+      allocate (NbEdgebyWellInjLocal(NbWellLocal))
+      NbEdgemax = 0
 
-    do i=1,NbWellLocal
-       ! Number of edges = (Number of nodes in local well i) - 1
-       NbEdgebyWellInjLocal(i) = NodeDatabyWellInjLocal%Pt(i+1) - NodeDatabyWellInjLocal%Pt(i) - 1
-       NbEdgemax = max(NbEdgemax,NbEdgebyWellInjLocal(i))
-    enddo
+      do i = 1, NbWellLocal
+         ! Number of edges = (Number of nodes in local well i) - 1
+         NbEdgebyWellInjLocal(i) = NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
+         NbEdgemax = max(NbEdgemax, NbEdgebyWellInjLocal(i))
+      enddo
 
-    allocate(NumNodebyEdgebyWellInjLocal(2,NbEdgemax,NbWellLocal))
-    NumNodebyEdgebyWellInjLocal(:,:,:) = -1
+      allocate (NumNodebyEdgebyWellInjLocal(2, NbEdgemax, NbWellLocal))
+      NumNodebyEdgebyWellInjLocal(:, :, :) = -1
 
-    do i=1,NbWellLocal
+      do i = 1, NbWellLocal
 
-       ! comptNode = 0
-       ! ! loop over every nodes of local well, minus the head node of well
-       ! do j=NodeDatabyWellInjLocal%Pt(i)+1,NodeDatabyWellInjLocal%Pt(i+1)-1
-       !    comptNode = comptNode + 1
-       !    NumNodebyEdgebyWellInjLocal(1,comptNode,i) = NodeDatabyWellInjLocal%Val(j)%Parent
-       !    NumNodebyEdgebyWellInjLocal(2,comptNode,i) = NodeDatabyWellInjLocal%Num(j)
-       ! enddo
+         ! comptNode = 0
+         ! ! loop over every nodes of local well, minus the head node of well
+         ! do j=NodeDatabyWellInjLocal%Pt(i)+1,NodeDatabyWellInjLocal%Pt(i+1)-1
+         !    comptNode = comptNode + 1
+         !    NumNodebyEdgebyWellInjLocal(1,comptNode,i) = NodeDatabyWellInjLocal%Val(j)%Parent
+         !    NumNodebyEdgebyWellInjLocal(2,comptNode,i) = NodeDatabyWellInjLocal%Num(j)
+         ! enddo
 
-       comptNode = 0
-       
-       ! loop over every nodes of local well, minus the head node of well
-       do j=1,NodeDatabyWellInjLocal%Pt(i+1)-NodeDatabyWellInjLocal%Pt(i)-1
-          NumNodebyEdgebyWellInjLocal(1,comptNode+j,i) = NodeDatabyWellInjLocal%Val(j+NodeDatabyWellInjLocal%Pt(i))%Parent
-          NumNodebyEdgebyWellInjLocal(2,comptNode+j,i) = NodeDatabyWellInjLocal%Num(j+NodeDatabyWellInjLocal%Pt(i))
-       enddo
-       comptNode = comptNode + NodeDatabyWellInjLocal%Pt(i+1)-NodeDatabyWellInjLocal%Pt(i)-1
-    enddo
+         comptNode = 0
 
-    !! PROD WELL
-    NbWellLocal = NodeDatabyWellProdLocal%Nb ! Number of well Prod
-    allocate(NbEdgebyWellProdLocal(NbWellLocal))
-    NbEdgemax = 0
+         ! loop over every nodes of local well, minus the head node of well
+         do j = 1, NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
+            NumNodebyEdgebyWellInjLocal(1, comptNode + j, i) = NodeDatabyWellInjLocal%Val(j + NodeDatabyWellInjLocal%Pt(i))%Parent
+            NumNodebyEdgebyWellInjLocal(2, comptNode + j, i) = NodeDatabyWellInjLocal%Num(j + NodeDatabyWellInjLocal%Pt(i))
+         enddo
+         comptNode = comptNode + NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
+      enddo
 
-    do i=1,NbWellLocal
-       ! Number of edges = (Number of nodes in local well i) - 1
-       NbEdgebyWellProdLocal(i) = NodeDatabyWellProdLocal%Pt(i+1) - NodeDatabyWellProdLocal%Pt(i) - 1
-       NbEdgemax = max(NbEdgemax,NbEdgebyWellProdLocal(i))
-    enddo
+      !! PROD WELL
+      NbWellLocal = NodeDatabyWellProdLocal%Nb ! Number of well Prod
+      allocate (NbEdgebyWellProdLocal(NbWellLocal))
+      NbEdgemax = 0
 
-    allocate(NumNodebyEdgebyWellProdLocal(2,NbEdgemax,NbWellLocal))
-    NumNodebyEdgebyWellProdLocal(:,:,:) = -1
+      do i = 1, NbWellLocal
+         ! Number of edges = (Number of nodes in local well i) - 1
+         NbEdgebyWellProdLocal(i) = NodeDatabyWellProdLocal%Pt(i + 1) - NodeDatabyWellProdLocal%Pt(i) - 1
+         NbEdgemax = max(NbEdgemax, NbEdgebyWellProdLocal(i))
+      enddo
 
-    do i=1,NbWellLocal
-       comptNode = 0
-       ! loop over every nodes of local well, minus the head node of well
-       do j=NodeDatabyWellProdLocal%Pt(i)+1,NodeDatabyWellProdLocal%Pt(i+1)-1
-          comptNode = comptNode + 1
-          NumNodebyEdgebyWellProdLocal(1,comptNode,i) = NodeDatabyWellProdLocal%Val(j)%Parent
-          NumNodebyEdgebyWellProdLocal(2,comptNode,i) = NodeDatabyWellProdLocal%Num(j)
-       enddo
-    enddo
+      allocate (NumNodebyEdgebyWellProdLocal(2, NbEdgemax, NbWellLocal))
+      NumNodebyEdgebyWellProdLocal(:, :, :) = -1
 
-  end subroutine MeshSchema_NumNodebyEdgebyWellLocal
+      do i = 1, NbWellLocal
+         comptNode = 0
+         ! loop over every nodes of local well, minus the head node of well
+         do j = NodeDatabyWellProdLocal%Pt(i) + 1, NodeDatabyWellProdLocal%Pt(i + 1) - 1
+            comptNode = comptNode + 1
+            NumNodebyEdgebyWellProdLocal(1, comptNode, i) = NodeDatabyWellProdLocal%Val(j)%Parent
+            NumNodebyEdgebyWellProdLocal(2, comptNode, i) = NodeDatabyWellProdLocal%Num(j)
+         enddo
+      enddo
 
-  ! center of Cell
-  subroutine MeshSchema_XCellLocal
+   end subroutine MeshSchema_NumNodebyEdgebyWellLocal
 
-    integer :: k, m, nbCellLocal
-    double precision, dimension(3) :: xk(3)
+   ! center of Cell
+   subroutine MeshSchema_XCellLocal
 
-    nbCellLocal = NbCellLocal_Ncpus(commRank+1)
+      integer :: k, m, nbCellLocal
+      double precision, dimension(3) :: xk(3)
 
-    allocate(XCellLocal(3,nbCellLocal))
+      nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
 
-    ! boucle sur les mailles
-    do k=1,nbCellLocal
+      allocate (XCellLocal(3, nbCellLocal))
 
-       ! center of cell
-       xk(:) = 0.d0
-       do m = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
-          xk(:) = xk(:) + XNodeLocal(:, NodebyCellLocal%Num(m))
-       enddo
-       xk(:) = xk(:)/dble(NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k))
+      ! boucle sur les mailles
+      do k = 1, nbCellLocal
 
-       XCellLocal(:,k) = xk(:)       
-    enddo
+         ! center of cell
+         xk(:) = 0.d0
+         do m = NodebyCellLocal%Pt(k) + 1, NodebyCellLocal%Pt(k + 1)
+            xk(:) = xk(:) + XNodeLocal(:, NodebyCellLocal%Num(m))
+         enddo
+         xk(:) = xk(:)/dble(NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k))
 
-  end subroutine MeshSchema_XCellLocal
+         XCellLocal(:, k) = xk(:)
+      enddo
 
+   end subroutine MeshSchema_XCellLocal
 
-  ! Vol of Cell
-  subroutine MeshSchema_VolCellLocal
+   ! Vol of Cell
+   subroutine MeshSchema_VolCellLocal
 
-    ! calcul du volume et du centre de gravite
-    ! maille polyèdrique quelconque non necessairement convexe 
-    ! faces non planes (decoupée en triangles avec un point au centre)  
+      ! calcul du volume et du centre de gravite
+      ! maille polyèdrique quelconque non necessairement convexe
+      ! faces non planes (decoupée en triangles avec un point au centre)
 
-    integer :: i,j,k,m,n1,n2
-    double precision :: volk,volT
-    double precision, dimension(3) :: yk,xT,x1,x2,xs,e0,e1,e2,e3
+      integer :: i, j, k, m, n1, n2
+      double precision :: volk, volT
+      double precision, dimension(3) :: yk, xT, x1, x2, xs, e0, e1, e2, e3
 
-    integer :: Ierr, errcode ! used for MPI_Abort
+      integer :: Ierr, errcode ! used for MPI_Abort
 
-    ! check if XCellLocal is computed
-    if (allocated(XCellLocal) .eqv. .false.) then
-       if(commRank==0) then
-          print*, "XCellLocal: center of cell not computed"
-       end if
+      ! check if XCellLocal is computed
+      if (allocated(XCellLocal) .eqv. .false.) then
+         if (commRank == 0) then
+            print *, "XCellLocal: center of cell not computed"
+         end if
 
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
 
-    allocate(VolCellLocal(NbCellLocal_Ncpus(commRank+1)))
-    VolCellLocal(:) = 0.d0
+      allocate (VolCellLocal(NbCellLocal_Ncpus(commRank + 1)))
+      VolCellLocal(:) = 0.d0
 
-    ! boucle sur les mailles
-    do k=1, NbCellLocal_Ncpus(commRank+1)
+      ! boucle sur les mailles
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
 
-       volk = 0.d0
+         volk = 0.d0
 
-       ! center of cell
-       yk(:) = XCellLocal(:,k)
+         ! center of cell
+         yk(:) = XCellLocal(:, k)
 
-       ! boucle sur les faces i de la maille k 
-       do j = FacebyCellLocal%Pt(k)+1, FacebyCellLocal%Pt(k+1)
-          i = FacebyCellLocal%Num(j)
+         ! boucle sur les faces i de la maille k
+         do j = FacebyCellLocal%Pt(k) + 1, FacebyCellLocal%Pt(k + 1)
+            i = FacebyCellLocal%Num(j)
 
-          ! isobarycentre de la face 
-          xs(:) = XFaceLocal(:,i)
+            ! isobarycentre de la face
+            xs(:) = XFaceLocal(:, i)
 
-          ! boucle sur les nodes n1 de la face i 
-          do m = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
-             n1 = NodebyFaceLocal%Num(m)
-             x1(:) = XNodeLocal(:,n1)
+            ! boucle sur les nodes n1 de la face i
+            do m = NodebyFaceLocal%Pt(i) + 1, NodebyFaceLocal%Pt(i + 1)
+               n1 = NodebyFaceLocal%Num(m)
+               x1(:) = XNodeLocal(:, n1)
 
-             if (m == NodebyFaceLocal%Pt(i+1)) then 
-                n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i)+1)
-             else 
-                n2 = NodebyFaceLocal%Num(m+1)
-             endif
+               if (m == NodebyFaceLocal%Pt(i + 1)) then
+                  n2 = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i) + 1)
+               else
+                  n2 = NodebyFaceLocal%Num(m + 1)
+               endif
 
-             x2(:) = XNodeLocal(:,n2)
-             xT(:) = (x1(:)+x2(:)+xs(:)+yk(:))/4.d0 
+               x2(:) = XNodeLocal(:, n2)
+               xT(:) = (x1(:) + x2(:) + xs(:) + yk(:))/4.d0
 
-             e0(:) = xT(:)-yk(:)
-             e1(:) = x1(:)-yk(:)
-             e2(:) = x2(:)-yk(:)
-             e3(:) = xs(:)-yk(:)
+               e0(:) = xT(:) - yk(:)
+               e1(:) = x1(:) - yk(:)
+               e2(:) = x2(:) - yk(:)
+               e3(:) = xs(:) - yk(:)
 
-             volT = e1(1)*e2(2)*e3(3) + e2(1)*e3(2)*e1(3) + e3(1)*e1(2)*e2(3) &
-                  -e1(1)*e2(3)*e3(2) - e2(1)*e3(3)*e1(2) - e3(1)*e1(3)*e2(2) 
+               volT = e1(1)*e2(2)*e3(3) + e2(1)*e3(2)*e1(3) + e3(1)*e1(2)*e2(3) &
+                      - e1(1)*e2(3)*e3(2) - e2(1)*e3(3)*e1(2) - e3(1)*e1(3)*e2(2)
 
-             volT =  abs(volT)/6.d0 
-             volk = volk + volT 
-          enddo
-       enddo
+               volT = abs(volT)/6.d0
+               volk = volk + volT
+            enddo
+         enddo
 
 #ifndef NDEBUG
-       if(volk<1E-10) then
-           print *, "DEBUG - Small cell volume for cell", k
-           do m = NodebyCellLocal%Pt(k)+1, NodebyCellLocal%Pt(k+1)
-               n1 =  NodebyCellLocal%Num(m)
+         if (volk < 1E-10) then
+            print *, "DEBUG - Small cell volume for cell", k
+            do m = NodebyCellLocal%Pt(k) + 1, NodebyCellLocal%Pt(k + 1)
+               n1 = NodebyCellLocal%Num(m)
                print *, "        Node", n1, ":", XNodeLocal(:, n1)
-           end do
-       endif
+            end do
+         endif
 #endif
 
-        VolCellLocal(k) = volk
+         VolCellLocal(k) = volk
 
-    enddo
+      enddo
 
-  end subroutine MeshSchema_VolCellLocal
+   end subroutine MeshSchema_VolCellLocal
 
+   ! center of frac
+   subroutine MeshSchema_XFaceLocal
 
-  ! center of frac
-  subroutine MeshSchema_XFaceLocal
+      integer :: i, m
+      integer :: nbFaceLocal
+      double precision :: xf(3)
 
-    integer :: i, m
-    integer :: nbFaceLocal
-    double precision :: xf(3)
+      nbFaceLocal = NbFaceLocal_Ncpus(commRank + 1)
 
-    nbFaceLocal = NbFaceLocal_Ncpus(commRank+1)
+      allocate (XFaceLocal(3, nbFaceLocal))    ! center of face
 
-    allocate(XFaceLocal(3,nbFaceLocal))    ! center of face
+      ! boucle sur les face frac
+      do i = 1, nbFaceLocal
 
-    ! boucle sur les face frac     
-    do i = 1, nbFaceLocal
+         ! isobarycentre de la face
+         xf(:) = 0.d0
+         do m = NodebyFaceLocal%Pt(i) + 1, NodebyFaceLocal%Pt(i + 1)
+            xf(:) = xf(:) + XNodeLocal(:, NodebyFaceLocal%Num(m))
+         enddo
+         XFaceLocal(:, i) = xf(:)/dble(NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i))
 
-       ! isobarycentre de la face 
-       xf(:) = 0.d0
-       do m = NodebyFaceLocal%Pt(i)+1,NodebyFaceLocal%Pt(i+1)
-          xf(:) = xf(:) + XNodeLocal(:,NodebyFaceLocal%Num(m))
-       enddo
-       XFaceLocal(:,i) = xf(:)/dble(NodebyFaceLocal%Pt(i+1)-NodebyFaceLocal%Pt(i))
+      end do ! end of loop frac
 
-    end do ! end of loop frac
+   end subroutine MeshSchema_XFaceLocal
 
-  end subroutine MeshSchema_XFaceLocal
+   function MeshSchema_local_face_surface_from_nodes(barycenter, nodes) result(surface)
 
-  function MeshSchema_local_face_surface_from_nodes(barycenter, nodes) result(surface)
+      double precision, dimension(3), intent(in) :: barycenter
+      integer, intent(in) :: nodes(:)
+      integer :: edges(size(nodes) + 1)
+      real(c_double) :: surface
 
-  double precision, dimension(3), intent(in) :: barycenter
-  integer, intent(in) :: nodes(:)
-  integer :: edges(size(nodes)+1)
-  real(c_double) :: surface
+      integer :: i, nbnodes
+      double precision, dimension(3) :: x1, x2 !, xt ! coordinates
+      !double precision :: contribution12f
 
-  integer :: i, nbnodes
-  double precision, dimension(3) :: x1, x2 !, xt ! coordinates
-  !double precision :: contribution12f
+      surface = 0.d0
+      ! loop on face edges
+      nbnodes = size(nodes)
+      edges(1:nbnodes) = nodes
+      edges(nbnodes + 1) = nodes(1)
+      do i = 1, nbnodes
+         x1(:) = XNodeLocal(:, edges(i))
+         x2(:) = XNodeLocal(:, edges(i + 1))
+         surface = surface + MeshSchema_triangle_area(x1, x2, barycenter)
+      end do
 
-  surface = 0.d0
-  ! loop on face edges
-  nbnodes = size(nodes)
-  edges(1:nbnodes) = nodes
-  edges(nbnodes+1) = nodes(1)
-  do i = 1, nbnodes
-      x1(:) = XNodeLocal(:, edges(i))
-      x2(:) = XNodeLocal(:, edges(i+1))
-      surface = surface + MeshSchema_triangle_area(x1, x2, barycenter)
-  end do
+   end function MeshSchema_local_face_surface_from_nodes
 
-  end function MeshSchema_local_face_surface_from_nodes
-
-  function MeshSchema_local_face_surface(fk) result(surface) &
+   function MeshSchema_local_face_surface(fk) result(surface) &
       bind(C, name="face_surface")
 
-  integer(c_int), intent(in) :: fk
-  real(c_double) :: surface
+      integer(c_int), intent(in) :: fk
+      real(c_double) :: surface
 
-  surface = MeshSchema_local_face_surface_from_nodes( &
-      XFaceLocal(:, fk), &
-      NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1)) &
-      )
+      surface = MeshSchema_local_face_surface_from_nodes( &
+                XFaceLocal(:, fk), &
+                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)) &
+                )
 
-  end function MeshSchema_local_face_surface
+   end function MeshSchema_local_face_surface
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-  ! Fill SurfFreeFlowLocal with the surface_face/NbNodebyface
-  subroutine MeshSchema_SurfFreeFlowLocal
+   ! Fill SurfFreeFlowLocal with the surface_face/NbNodebyface
+   subroutine MeshSchema_SurfFreeFlowLocal
 
-    integer :: i, mpt, m, errcode, Ierr, nbnodes
-    double precision :: SurfaceFace
+      integer :: i, mpt, m, errcode, Ierr, nbnodes
+      double precision :: SurfaceFace
 
-    allocate(SurfFreeFlowLocal(NbNodeLocal_Ncpus(commRank+1))) 
+      allocate (SurfFreeFlowLocal(NbNodeLocal_Ncpus(commRank + 1)))
 
-    SurfFreeFlowLocal(:) = 0.d0
-    
-    do i = 1, NbFaceLocal_Ncpus(commRank+1)
-      if(FaceFlagsLocal(i)==30) then ! FIXME change 30 with parameter
-         ! compute surface of face
-         nbnodes = NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-         SurfaceFace = MeshSchema_local_face_surface(i) / nbnodes
-         ! sum contributions of the faces to the nodes
-         do mpt = NodebyFaceLocal%Pt(i)+1, NodebyFaceLocal%Pt(i+1)
-            m = NodebyFaceLocal%Num(mpt)
-            SurfFreeFlowLocal(m) = SurfFreeFlowLocal(m) + SurfaceFace
-         enddo
-       endif
-    enddo
+      SurfFreeFlowLocal(:) = 0.d0
 
-  end subroutine MeshSchema_SurfFreeFlowLocal
+      do i = 1, NbFaceLocal_Ncpus(commRank + 1)
+         if (FaceFlagsLocal(i) == 30) then ! FIXME change 30 with parameter
+            ! compute surface of face
+            nbnodes = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
+            SurfaceFace = MeshSchema_local_face_surface(i)/nbnodes
+            ! sum contributions of the faces to the nodes
+            do mpt = NodebyFaceLocal%Pt(i) + 1, NodebyFaceLocal%Pt(i + 1)
+               m = NodebyFaceLocal%Num(mpt)
+               SurfFreeFlowLocal(m) = SurfFreeFlowLocal(m) + SurfaceFace
+            enddo
+         endif
+      enddo
+
+   end subroutine MeshSchema_SurfFreeFlowLocal
 #endif
 
-  subroutine MeshSchema_SurfFracLocal
+   subroutine MeshSchema_SurfFracLocal
 
-    integer :: ifrac, errcode, Ierr
+      integer :: ifrac, errcode, Ierr
 
-    ! check if XFaceLocal is computed
-    if (allocated(XFaceLocal) .eqv. .false.) then
-       if(commRank==0) then
-          print*, "XFaceLocal: center of cell not computed"
-       end if
+      ! check if XFaceLocal is computed
+      if (allocated(XFaceLocal) .eqv. .false.) then
+         if (commRank == 0) then
+            print *, "XFaceLocal: center of cell not computed"
+         end if
 
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-    end if
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
 
-    allocate(SurfFracLocal(NbFracLocal_Ncpus(commRank+1))) ! surf of face
+      allocate (SurfFracLocal(NbFracLocal_Ncpus(commRank + 1))) ! surf of face
 
-    SurfFracLocal(:) = 0.d0
-    
-    do ifrac = 1, NbFracLocal_Ncpus(commRank+1)
-       SurfFracLocal(ifrac) = MeshSchema_local_face_surface(FracToFaceLocal(ifrac))
-    end do
+      SurfFracLocal(:) = 0.d0
 
-  end subroutine MeshSchema_SurfFracLocal
+      do ifrac = 1, NbFracLocal_Ncpus(commRank + 1)
+         SurfFracLocal(ifrac) = MeshSchema_local_face_surface(FracToFaceLocal(ifrac))
+      end do
 
-  subroutine MeshSchema_collect_fracture_nodes
-  
-    integer :: k, frac, face, pnode, nbfractures, nbnodes
-    integer :: Ierr, errcode ! FIXME: used for MPI_Abort but not assigned
+   end subroutine MeshSchema_SurfFracLocal
 
-    nbfractures = NbFracLocal_Ncpus(commRank+1)
+   subroutine MeshSchema_collect_fracture_nodes
 
-    !print *, "DEBUG - Collecting nodes of", nbfractures, "fractures"
+      integer :: k, frac, face, pnode, nbfractures, nbnodes
+      integer :: Ierr, errcode ! FIXME: used for MPI_Abort but not assigned
 
-    if(allocated(NodebyFractureLocal%Pt)) then
-       deallocate(NodebyFractureLocal%Pt)
-    end if
-    NodebyFractureLocal%Nb = nbfractures
-    allocate(NodebyFractureLocal%Pt(nbfractures+1))
+      nbfractures = NbFracLocal_Ncpus(commRank + 1)
 
-    !print *, "DEBUG - Allocated CSR pointer"
+      !print *, "DEBUG - Collecting nodes of", nbfractures, "fractures"
 
-    NodebyFractureLocal%Pt(1) = 0
-    do frac = 1, nbfractures
-       face = FracToFaceLocal(frac)
-       nbnodes = NodebyFaceLocal%Pt(face+1) - NodebyFaceLocal%Pt(face)
-       !print *, "DEBUG - Fracture", frac, "has", nbnodes, "nodes"
-       NodebyFractureLocal%Pt(frac+1) = NodebyFractureLocal%Pt(frac) + nbnodes
-    enddo
+      if (allocated(NodebyFractureLocal%Pt)) then
+         deallocate (NodebyFractureLocal%Pt)
+      end if
+      NodebyFractureLocal%Nb = nbfractures
+      allocate (NodebyFractureLocal%Pt(nbfractures + 1))
 
-    if(allocated(NodebyFractureLocal%Num)) then
-       deallocate(NodebyFractureLocal%Num)
-    end if
-    allocate(NodebyFractureLocal%Num(NodebyFractureLocal%Pt(nbfractures+1)))
-    k = 0
-    do frac = 1, nbfractures
-       face = FracToFaceLocal(frac)
-       do pnode = NodebyFaceLocal%Pt(face)+1, NodebyFaceLocal%Pt(face+1)
+      !print *, "DEBUG - Allocated CSR pointer"
+
+      NodebyFractureLocal%Pt(1) = 0
+      do frac = 1, nbfractures
+         face = FracToFaceLocal(frac)
+         nbnodes = NodebyFaceLocal%Pt(face + 1) - NodebyFaceLocal%Pt(face)
+         !print *, "DEBUG - Fracture", frac, "has", nbnodes, "nodes"
+         NodebyFractureLocal%Pt(frac + 1) = NodebyFractureLocal%Pt(frac) + nbnodes
+      enddo
+
+      if (allocated(NodebyFractureLocal%Num)) then
+         deallocate (NodebyFractureLocal%Num)
+      end if
+      allocate (NodebyFractureLocal%Num(NodebyFractureLocal%Pt(nbfractures + 1)))
+      k = 0
+      do frac = 1, nbfractures
+         face = FracToFaceLocal(frac)
+         do pnode = NodebyFaceLocal%Pt(face) + 1, NodebyFaceLocal%Pt(face + 1)
             k = k + 1
             NodebyFractureLocal%Num(k) = NodebyFaceLocal%Num(pnode)
-       end do
-    end do
-    
-    if(k/=NodebyFractureLocal%Pt(nbfractures+1)) then
-       if(commRank==0) then
-          print*, "MeshSchema_collect_fracture_nodes: something went wrong"
-       end if
-       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)        
-    end if
-    
-    !print *, "DEBUG - Collecting fracture nodes. DONE!"
+         end do
+      end do
 
-  end subroutine MeshSchema_collect_fracture_nodes
-  
-  function MeshSchema_triangle_area(A, B, C) result(area)
+      if (k /= NodebyFractureLocal%Pt(nbfractures + 1)) then
+         if (commRank == 0) then
+            print *, "MeshSchema_collect_fracture_nodes: something went wrong"
+         end if
+         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      end if
 
-    double precision, dimension(3), intent(in) :: A, B, C
-    double precision, dimension(3) :: AB, AC
-    double precision :: area
+      !print *, "DEBUG - Collecting fracture nodes. DONE!"
 
-    AB = B - A
-    AC = C - A
-    area = dsqrt(                               &
-               (AB(2)*AC(3) - AB(3)*AC(2))**2 + &
-               (AB(3)*AC(1) - AB(1)*AC(3))**2 + &
-               (AB(1)*AC(2) - AB(2)*AC(1))**2 ) / 2.d0
+   end subroutine MeshSchema_collect_fracture_nodes
 
-  end function MeshSchema_triangle_area
+   function MeshSchema_triangle_area(A, B, C) result(area)
 
-  ! max number of nodes in a cell
-  subroutine MeshSchema_NbNodeCellMax
+      double precision, dimension(3), intent(in) :: A, B, C
+      double precision, dimension(3) :: AB, AC
+      double precision :: area
 
-    integer :: k, Nb
+      AB = B - A
+      AC = C - A
+      area = dsqrt( &
+             (AB(2)*AC(3) - AB(3)*AC(2))**2 + &
+             (AB(3)*AC(1) - AB(1)*AC(3))**2 + &
+             (AB(1)*AC(2) - AB(2)*AC(1))**2)/2.d0
 
-    NbNodeCellMax = 0
-    do k=1, NbCellLocal_Ncpus(commRank+1)
+   end function MeshSchema_triangle_area
 
-       Nb = NodebyCellLocal%Pt(k+1) - NodebyCellLocal%Pt(k)
-       if(NbNodeCellMax<Nb) then
-          NbNodeCellMax = Nb
-       end if
-    end do
+   ! max number of nodes in a cell
+   subroutine MeshSchema_NbNodeCellMax
 
-  end subroutine MeshSchema_NbNodeCellMax
+      integer :: k, Nb
 
-  ! max number of frac in a cell
-  subroutine MeshSchema_NbFracCellMax
+      NbNodeCellMax = 0
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
 
-    integer :: k, Nb
+         Nb = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
+         if (NbNodeCellMax < Nb) then
+            NbNodeCellMax = Nb
+         end if
+      end do
 
-    NbFracCellMax = 0
-    do k = 1, NbCellLocal_Ncpus(commRank+1)
+   end subroutine MeshSchema_NbNodeCellMax
 
-       Nb = FracbyCellLocal%Pt(k+1) - FracbyCellLocal%Pt(k)
-       if(NbFracCellMax<Nb) then
-          NbFracCellMax = Nb
-       end if
-    end do
+   ! max number of frac in a cell
+   subroutine MeshSchema_NbFracCellMax
 
-  end subroutine MeshSchema_NbFracCellMax
+      integer :: k, Nb
 
+      NbFracCellMax = 0
+      do k = 1, NbCellLocal_Ncpus(commRank + 1)
 
-  ! max number of nodes in a cell
-  subroutine MeshSchema_NbNodeFaceMax
+         Nb = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
+         if (NbFracCellMax < Nb) then
+            NbFracCellMax = Nb
+         end if
+      end do
 
-    integer :: i, Nb
+   end subroutine MeshSchema_NbFracCellMax
 
-    NbNodeFaceMax = 0
-    do i=1, NbFaceLocal_Ncpus(commRank+1)
+   ! max number of nodes in a cell
+   subroutine MeshSchema_NbNodeFaceMax
 
-       Nb = NodebyFaceLocal%Pt(i+1) - NodebyFaceLocal%Pt(i)
-       if(NbNodeFaceMax<Nb) then
-          NbNodeFaceMax = Nb
-       end if
-    end do
+      integer :: i, Nb
 
-  end subroutine MeshSchema_NbNodeFaceMax
+      NbNodeFaceMax = 0
+      do i = 1, NbFaceLocal_Ncpus(commRank + 1)
 
-  ! Free mesh and some connecivities
-  subroutine MeshSchema_Free
+         Nb = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
+         if (NbNodeFaceMax < Nb) then
+            NbNodeFaceMax = Nb
+         end if
+      end do
 
-    deallocate(NbCellLocal_Ncpus)
-    deallocate(NbCellOwn_Ncpus)
-    deallocate(NbFaceLocal_Ncpus)
-    deallocate(NbFaceOwn_Ncpus)
-    deallocate(NbNodeLocal_Ncpus)
-    deallocate(NbNodeOwn_Ncpus)
-    deallocate(NbFracLocal_Ncpus)
-    deallocate(NbFracOwn_Ncpus)
+   end subroutine MeshSchema_NbNodeFaceMax
 
-    call CommonType_deallocCSR(FacebyCellLocal)
-    call CommonType_deallocCSR(FracbyCellLocal)
-    call CommonType_deallocCSR(NodebyCellLocal)
-    call CommonType_deallocCSR(NodebyFaceLocal)
+   ! Free mesh and some connecivities
+   subroutine MeshSchema_Free
 
-    deallocate(XNodeLocal)
-    deallocate(NodeFlagsLocal)
-    deallocate(CellFlagsLocal)
-    deallocate(FaceFlagsLocal)
-    deallocate(CellTypesLocal)
-    deallocate(FaceTypesLocal)
+      deallocate (NbCellLocal_Ncpus)
+      deallocate (NbCellOwn_Ncpus)
+      deallocate (NbFaceLocal_Ncpus)
+      deallocate (NbFaceOwn_Ncpus)
+      deallocate (NbNodeLocal_Ncpus)
+      deallocate (NbNodeOwn_Ncpus)
+      deallocate (NbFracLocal_Ncpus)
+      deallocate (NbFracOwn_Ncpus)
 
-    deallocate(NodeRocktypeLocal)
-    deallocate(CellRocktypeLocal)
-    deallocate(FracRocktypeLocal)
+      call CommonType_deallocCSR(FacebyCellLocal)
+      call CommonType_deallocCSR(FracbyCellLocal)
+      call CommonType_deallocCSR(NodebyCellLocal)
+      call CommonType_deallocCSR(NodebyFaceLocal)
 
-    deallocate(IdCellLocal)
-    deallocate(IdFaceLocal)
-    deallocate(IdNodeLocal)
+      deallocate (XNodeLocal)
+      deallocate (NodeFlagsLocal)
+      deallocate (CellFlagsLocal)
+      deallocate (FaceFlagsLocal)
+      deallocate (CellTypesLocal)
+      deallocate (FaceTypesLocal)
+
+      deallocate (NodeRocktypeLocal)
+      deallocate (CellRocktypeLocal)
+      deallocate (FracRocktypeLocal)
+
+      deallocate (IdCellLocal)
+      deallocate (IdFaceLocal)
+      deallocate (IdNodeLocal)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    deallocate(IdFFNodeLocal)
+      deallocate (IdFFNodeLocal)
 #endif
 
-    deallocate(FracToFaceLocal)
-    deallocate(FaceToFracLocal)
+      deallocate (FracToFaceLocal)
+      deallocate (FaceToFracLocal)
 
-    call free_ComPASS_struct(NumNodebyProc)
-    call free_ComPASS_struct(NumFracbyProc)
-    call free_ComPASS_struct(NumWellInjbyProc)
-    call free_ComPASS_struct(NumWellProdbyProc)
+      call free_ComPASS_struct(NumNodebyProc)
+      call free_ComPASS_struct(NumFracbyProc)
+      call free_ComPASS_struct(NumWellInjbyProc)
+      call free_ComPASS_struct(NumWellProdbyProc)
 
-    deallocate(NbEdgebyWellInjLocal)
-    deallocate(NbEdgebyWellProdLocal)
-    deallocate(NumNodebyEdgebyWellInjLocal)
-    deallocate(NumNodebyEdgebyWellProdLocal)
+      deallocate (NbEdgebyWellInjLocal)
+      deallocate (NbEdgebyWellProdLocal)
+      deallocate (NumNodebyEdgebyWellInjLocal)
+      deallocate (NumNodebyEdgebyWellProdLocal)
 
-    deallocate(XCellLocal)
-    deallocate(XFaceLocal)
+      deallocate (XCellLocal)
+      deallocate (XFaceLocal)
 
-    deallocate(VolCellLocal)
+      deallocate (VolCellLocal)
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-    deallocate(SurfFreeFlowLocal)
+      deallocate (SurfFreeFlowLocal)
 #endif
-    deallocate(SurfFracLocal)
+      deallocate (SurfFracLocal)
 
-    ! the follwoing free could be put after VAGFrac?
-    ! but we keep them just if user wants to use them
-    deallocate(PorositeCellLocal)
-    deallocate(PorositeFracLocal)
-    deallocate(PermCellLocal)
-    deallocate(PermFracLocal)
+      ! the follwoing free could be put after VAGFrac?
+      ! but we keep them just if user wants to use them
+      deallocate (PorositeCellLocal)
+      deallocate (PorositeFracLocal)
+      deallocate (PermCellLocal)
+      deallocate (PermFracLocal)
 #ifdef _THERMIQUE_
-    deallocate(CondThermalCellLocal)
-    deallocate(CondThermalFracLocal)
+      deallocate (CondThermalCellLocal)
+      deallocate (CondThermalFracLocal)
 #endif
-
 
 #ifdef _THERMIQUE_
-    deallocate(CellThermalSourceLocal)
-    deallocate(FracThermalSourceLocal)
+      deallocate (CellThermalSourceLocal)
+      deallocate (FracThermalSourceLocal)
 #endif
 
-    ! the folllowing free could be put after Assembly
-    call CommonType_deallocCSR(NodebyNodeOwn)
-    call CommonType_deallocCSR(FracbyNodeOwn)
-    call CommonType_deallocCSR(CellbyNodeOwn)
+      ! the folllowing free could be put after Assembly
+      call CommonType_deallocCSR(NodebyNodeOwn)
+      call CommonType_deallocCSR(FracbyNodeOwn)
+      call CommonType_deallocCSR(CellbyNodeOwn)
 
-    call CommonType_deallocCSR(NodebyFracOwn)
-    call CommonType_deallocCSR(CellbyFracOwn)
-    call CommonType_deallocCSR(FracbyFracOwn)
+      call CommonType_deallocCSR(NodebyFracOwn)
+      call CommonType_deallocCSR(CellbyFracOwn)
+      call CommonType_deallocCSR(FracbyFracOwn)
 
-  end subroutine MeshSchema_Free
+   end subroutine MeshSchema_Free
 
 end module MeshSchema

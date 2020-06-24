@@ -100,7 +100,7 @@ simulation.init(
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
-    display_well_ids = True,
+    display_well_ids=True,
 )
 
 
@@ -134,13 +134,13 @@ t0 = 0
 # Injection - no production
 simulation.close_well(producer)
 t0 = onestep(t0)
-print("----------------- Finished first cycle with t0=",t0)
+print("----------------- Finished first cycle with t0=", t0)
 # Stop both wells
 simulation.close_well(injector)
 t0 = onestep(t0)
-print("----------------- Finished second cycle with t0=",t0)
+print("----------------- Finished second cycle with t0=", t0)
 # Production - no injection
 simulation.open_well(producer)
 simulation.set_well_property(producer, imposed_flowrate=Qw, verbose=True)
 t0 = onestep(t0)
-print("----------------- Finished third cycle with t0=",t0)
+print("----------------- Finished third cycle with t0=", t0)

@@ -6,7 +6,6 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-
     module MeshSchema_wrappers
 
        use, intrinsic :: iso_c_binding
@@ -15,13 +14,13 @@
        use InteroperabilityStructures, only: cpp_array_wrapper
        use CommonTypesWrapper, only: cpp_COC, retrieve_dof_family
        use MeshSchema, only: &
-         IdNodeLocal, &
-         FaceToFracLocal, FracToFaceLocal, &
-         NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
-         NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
-         XCellLocal, XFaceLocal, &
-         NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
-  
+          IdNodeLocal, &
+          FaceToFracLocal, FracToFaceLocal, &
+          NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+          NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
+          XCellLocal, XFaceLocal, &
+          NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
+
        implicit none
 
        integer :: Ierr, errcode
@@ -88,9 +87,9 @@
           cpp_array%p = c_loc(FracRocktypeLocal)
           cpp_array%n = size(FracRocktypeLocal, 2)
 
-          end subroutine retrieve_fracture_rocktypes
+       end subroutine retrieve_fracture_rocktypes
 
-          subroutine retrieve_cell_centers(cpp_array) &
+       subroutine retrieve_cell_centers(cpp_array) &
           bind(C, name="retrieve_cell_centers")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -136,10 +135,9 @@
           cpp_array%p = c_loc(IdNodeLocal(1))
           cpp_array%n = size(IdNodeLocal)
 
-          end subroutine retrieve_id_node
+       end subroutine retrieve_id_node
 
-
-      subroutine retrieve_frac_face_id(cpp_array) &
+       subroutine retrieve_frac_face_id(cpp_array) &
           bind(C, name="retrieve_frac_face_id")
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
@@ -148,16 +146,16 @@
           n = size(FracToFaceLocal)
           cpp_array%n = n
 
-          if (n>0 .and. (.not. allocated(FracToFaceLocal))) then
+          if (n > 0 .and. (.not. allocated(FracToFaceLocal))) then
              print *, "Local frac face id is not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          if(n==0) then
-              cpp_array%p = C_NULL_PTR
+          if (n == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(FracToFaceLocal(1))
+             cpp_array%p = c_loc(FracToFaceLocal(1))
           end if
 
        end subroutine retrieve_frac_face_id
@@ -171,117 +169,116 @@
           n = size(FaceToFracLocal)
           cpp_array%n = n
 
-          if (n==0 .or. (.not. allocated(FaceToFracLocal))) then
+          if (n == 0 .or. (.not. allocated(FaceToFracLocal))) then
              print *, "Local frac face id is not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          if(n==0) then
-              cpp_array%p = C_NULL_PTR
+          if (n == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(FaceToFracLocal(1))
+             cpp_array%p = c_loc(FaceToFracLocal(1))
           end if
 
-          end subroutine retrieve_face_frac_id
+       end subroutine retrieve_face_frac_id
 
-          subroutine check_nb_own_array(array)
+       subroutine check_nb_own_array(array)
 
           integer(c_int), allocatable, dimension(:), intent(in) :: array
 
-          if( .not. allocated(array) ) then
-              print *, "Partition info array is not allocated."
-              !CHECKME: MPI_Abort is supposed to end all MPI processes
-              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          if (.not. allocated(array)) then
+             print *, "Partition info array is not allocated."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          if( size(array) /= Ncpus ) then
-              print *, "Inconsistent partition info array size."
-              !CHECKME: MPI_Abort is supposed to end all MPI processes
-              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+          if (size(array) /= Ncpus) then
+             print *, "Inconsistent partition info array size."
+             !CHECKME: MPI_Abort is supposed to end all MPI processes
+             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          end subroutine check_nb_own_array
+       end subroutine check_nb_own_array
 
-
-          subroutine retrieve_nb_cells_own(cpp_array) &
-              bind(C, name="retrieve_nb_cells_own")
+       subroutine retrieve_nb_cells_own(cpp_array) &
+          bind(C, name="retrieve_nb_cells_own")
           type(cpp_array_wrapper), intent(inout) :: cpp_array
           call check_nb_own_array(NbCellOwn_Ncpus)
           cpp_array%n = Ncpus
-          if(Ncpus==0) then
-              cpp_array%p = C_NULL_PTR
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(NbCellOwn_Ncpus(1))
+             cpp_array%p = c_loc(NbCellOwn_Ncpus(1))
           end if
-          end subroutine retrieve_nb_cells_own
+       end subroutine retrieve_nb_cells_own
 
-          subroutine retrieve_nb_faces_own(cpp_array) &
-              bind(C, name="retrieve_nb_faces_own")
+       subroutine retrieve_nb_faces_own(cpp_array) &
+          bind(C, name="retrieve_nb_faces_own")
           type(cpp_array_wrapper), intent(inout) :: cpp_array
           call check_nb_own_array(NbFaceOwn_Ncpus)
           cpp_array%n = Ncpus
-          if(Ncpus==0) then
-              cpp_array%p = C_NULL_PTR
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(NbFaceOwn_Ncpus(1))
+             cpp_array%p = c_loc(NbFaceOwn_Ncpus(1))
           end if
-          end subroutine retrieve_nb_faces_own
+       end subroutine retrieve_nb_faces_own
 
-          subroutine retrieve_nb_nodes_own(cpp_array) &
-              bind(C, name="retrieve_nb_nodes_own")
+       subroutine retrieve_nb_nodes_own(cpp_array) &
+          bind(C, name="retrieve_nb_nodes_own")
           type(cpp_array_wrapper), intent(inout) :: cpp_array
           call check_nb_own_array(NbNodeOwn_Ncpus)
           cpp_array%n = Ncpus
-          if(Ncpus==0) then
-              cpp_array%p = C_NULL_PTR
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(NbNodeOwn_Ncpus(1))
+             cpp_array%p = c_loc(NbNodeOwn_Ncpus(1))
           end if
-          end subroutine retrieve_nb_nodes_own
+       end subroutine retrieve_nb_nodes_own
 
-          subroutine retrieve_nb_fractures_own(cpp_array) &
-              bind(C, name="retrieve_nb_fractures_own")
+       subroutine retrieve_nb_fractures_own(cpp_array) &
+          bind(C, name="retrieve_nb_fractures_own")
           type(cpp_array_wrapper), intent(inout) :: cpp_array
           call check_nb_own_array(NbFracOwn_Ncpus)
           cpp_array%n = Ncpus
-          if(Ncpus==0) then
-              cpp_array%p = C_NULL_PTR
+          if (Ncpus == 0) then
+             cpp_array%p = C_NULL_PTR
           else
-              cpp_array%p = c_loc(NbFracOwn_Ncpus(1))
+             cpp_array%p = c_loc(NbFracOwn_Ncpus(1))
           end if
-          end subroutine retrieve_nb_fractures_own
+       end subroutine retrieve_nb_fractures_own
 
-          subroutine retrieve_NumNodebyProc(coc) &
-            bind(C, name="retrieve_NumNodebyProc")
-            type(cpp_COC), intent(inout) :: coc
-            
-            call retrieve_dof_family(NumNodebyProc, coc)
-            
-          end subroutine retrieve_NumNodebyProc
+       subroutine retrieve_NumNodebyProc(coc) &
+          bind(C, name="retrieve_NumNodebyProc")
+          type(cpp_COC), intent(inout) :: coc
 
-          subroutine retrieve_NumFracbyProc(coc) &
-            bind(C, name="retrieve_NumFracbyProc")
-            type(cpp_COC), intent(inout) :: coc
-            
-            call retrieve_dof_family(NumFracbyProc, coc)
-            
-          end subroutine retrieve_NumFracbyProc
+          call retrieve_dof_family(NumNodebyProc, coc)
 
-          subroutine retrieve_NumWellProdbyProc(coc) &
-            bind(C, name="retrieve_NumWellProdbyProc")
-            type(cpp_COC), intent(inout) :: coc
-            
-            call retrieve_dof_family(NumWellProdbyProc, coc)
-            
-          end subroutine retrieve_NumWellProdbyProc
+       end subroutine retrieve_NumNodebyProc
 
-          subroutine retrieve_NumWellInjbyProc(coc) &
-            bind(C, name="retrieve_NumWellInjbyProc")
-            type(cpp_COC), intent(inout) :: coc
-            
-            call retrieve_dof_family(NumWellInjbyProc, coc)
-            
-          end subroutine retrieve_NumWellInjbyProc
+       subroutine retrieve_NumFracbyProc(coc) &
+          bind(C, name="retrieve_NumFracbyProc")
+          type(cpp_COC), intent(inout) :: coc
+
+          call retrieve_dof_family(NumFracbyProc, coc)
+
+       end subroutine retrieve_NumFracbyProc
+
+       subroutine retrieve_NumWellProdbyProc(coc) &
+          bind(C, name="retrieve_NumWellProdbyProc")
+          type(cpp_COC), intent(inout) :: coc
+
+          call retrieve_dof_family(NumWellProdbyProc, coc)
+
+       end subroutine retrieve_NumWellProdbyProc
+
+       subroutine retrieve_NumWellInjbyProc(coc) &
+          bind(C, name="retrieve_NumWellInjbyProc")
+          type(cpp_COC), intent(inout) :: coc
+
+          call retrieve_dof_family(NumWellInjbyProc, coc)
+
+       end subroutine retrieve_NumWellInjbyProc
 
     end module MeshSchema_wrappers

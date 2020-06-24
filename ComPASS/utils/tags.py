@@ -15,8 +15,8 @@ class EdgeTagger:
 
     def __init__(self, edges_families, verbose=False):
         """:param edges_families: edges to be tagged with edges described by their nodes
-           (i.e. edges_families is a sequence of sequence of tuple of size 2 or a sequence of 2 columns arrays) 
-           :param verbose: if True will output a bit of information during the tagging operation 
+           (i.e. edges_families is a sequence of sequence of tuple of size 2 or a sequence of 2 columns arrays)
+           :param verbose: if True will output a bit of information during the tagging operation
         """
         assert len(edges_families) < 31, "no more than 30 families"
         self.edges_families = edges_families
@@ -80,8 +80,7 @@ def retrieve_fracture_edges_with_node_tag(simulation, node_tags, verbose=False):
         node_tags = [int(node_tags)]
     fracture_edges, flags = fracture_edges_and_node_flags(simulation, verbose)
     result = [
-        fracture_edges[(flags[:, 0] == tag) & (flags[:, 1] == tag)]
-        for tag in node_tags
+        fracture_edges[(flags[:, 0] == tag) & (flags[:, 1] == tag)] for tag in node_tags
     ]
     if verbose:
         for tag, edges in zip(node_tags, result):

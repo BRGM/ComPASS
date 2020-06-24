@@ -66,7 +66,7 @@ def proc_filename(basename, procid):
 
 def collect_dtypes(data):
     return {
-        name: a.dtype if a.ndim == 1 else (a.dtype, a.shape[1]) 
+        name: a.dtype if a.ndim == 1 else (a.dtype, a.shape[1])
         for name, a in data.items()
     }
 

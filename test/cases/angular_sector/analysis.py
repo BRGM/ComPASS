@@ -12,13 +12,13 @@ print(f"Loaded {len(simulations)} simulations info.")
 
 for simulation in simulations:
     hash_code = simulation["hash"]
-    with open(f"results-{hash_code}", 'rb') as f:
+    with open(f"results-{hash_code}", "rb") as f:
         simulation["results"] = pickle.load(f)
 
-markers = ['kx', 'r+', 'bx', 'gx']
+markers = ["kx", "r+", "bx", "gx"]
 line_markers = ["r-", "g:", "b-", "k:"]
-marker = lambda k: markers[k%len(markers)]
-line_marker = lambda k: line_markers[k%len(line_markers)]
+marker = lambda k: markers[k % len(markers)]
+line_marker = lambda k: line_markers[k % len(line_markers)]
 
 plt.clf()
 for k, simulation in enumerate(simulations):
@@ -50,7 +50,7 @@ plt.xscale("log")
 plt.legend()
 plt.savefig("well head flow rate.pdf")
 
-1/0
+1 / 0
 
 plt.clf()
 plt.grid(True)
@@ -66,7 +66,7 @@ plt.savefig("final_axis_pressures.pdf")
 
 plt.clf()
 plt.grid(True)
-markers = ['kx', 'r+', 'bx', 'gx']
+markers = ["kx", "r+", "bx", "gx"]
 for k, simulation in enumerate(simulations):
     params = simulation["params"]
     results = simulation["results"]
@@ -76,6 +76,8 @@ for k, simulation in enumerate(simulations):
     iO = np.argmin(vertices[:, 0])
     pO = p[:, iO]
     theta = params["theta"]
-    plt.plot(t[t<10000], pO[t<10000], markers[k], label=f"theta=pi/{int(np.pi/theta)}")
+    plt.plot(
+        t[t < 10000], pO[t < 10000], markers[k], label=f"theta=pi/{int(np.pi/theta)}"
+    )
 plt.legend()
 plt.savefig("pO.pdf")

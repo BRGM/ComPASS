@@ -45,13 +45,13 @@ contains
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: Cal, Cwl
       double precision :: PgCag, PgCwg
-      double precision :: Pref,Pg
+      double precision :: Pref, Pg
 
       ic = inc%ic
       T = inc%Temperature
       S = inc%Saturation
       Pref = inc%Pression
-      ! Compute Pg 
+      ! Compute Pg
       call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
       Pg = Pref + Pc
 
@@ -59,11 +59,11 @@ contains
          ! air liq fugacity
          iph = LIQUID_PHASE
          ! f_Fugacity called with reference pressure
-         call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf) 
+         call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
 
          ! water liq fugacity, f_Fugacity called with reference pressure
-         call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+         call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
@@ -74,8 +74,8 @@ contains
             inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(GAS_PHASE) = 0.d0
             inc%Saturation(LIQUID_PHASE) = 1.d0
-            inc%Comp(AIR_COMP,GAS_PHASE) = MIN(MAX(inc%Comp(AIR_COMP,GAS_PHASE), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,GAS_PHASE) = 1.d0 - inc%Comp(AIR_COMP,GAS_PHASE)
+            inc%Comp(AIR_COMP, GAS_PHASE) = MIN(MAX(inc%Comp(AIR_COMP, GAS_PHASE), 0.d0), 1.d0)
+            inc%Comp(WATER_COMP, GAS_PHASE) = 1.d0 - inc%Comp(AIR_COMP, GAS_PHASE)
 
          endif
 
@@ -101,23 +101,23 @@ contains
 
          ! force comp to be in [0,1] and sum equal to 1
          do iph = 1, NbPhase
-            inc%Comp(AIR_COMP,iph) = MIN(MAX(inc%Comp(AIR_COMP,iph), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP,iph) = 1.d0 - inc%Comp(AIR_COMP,iph)
+            inc%Comp(AIR_COMP, iph) = MIN(MAX(inc%Comp(AIR_COMP, iph), 0.d0), 1.d0)
+            inc%Comp(WATER_COMP, iph) = 1.d0 - inc%Comp(AIR_COMP, iph)
          enddo
 
       elseif (ic == GAS_CONTEXT) then
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cal = inc%Comp(AIR_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 
-         if(Cal + Cwl > 1.d0) then
+         if (Cal + Cwl > 1.d0) then
 
             ! write(*,*)' apparition liquid ', P(GAS_PHASE), T
 
@@ -126,8 +126,8 @@ contains
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
             Cal = MIN(MAX(Cal, 0.d0), 1.d0)
-            inc%Comp(AIR_COMP,LIQUID_PHASE) = Cal
-            inc%Comp(WATER_COMP,LIQUID_PHASE) = 1.d0 - Cal
+            inc%Comp(AIR_COMP, LIQUID_PHASE) = Cal
+            inc%Comp(WATER_COMP, LIQUID_PHASE) = 1.d0 - Cal
          endif
 
       else

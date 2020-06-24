@@ -47,7 +47,7 @@ for state in simulation.cell_states():
 
 # You can also iterate jointly over states and positions
 # but this will not be very efficient
-rho = 1E3
+rho = 1e3
 g = simulation.get_gravity()
 for state, position in zip(simulation.all_states(), simulation.all_positions()):
     state.p = rho * g * position[2]
@@ -60,5 +60,5 @@ print(simulation.node_states().p)
 # You can acces a specific state and change its values
 S = simulation.all_states()[2]
 S.p = 3
-S.S[:]=0.5
+S.S[:] = 0.5
 print(simulation.all_states()[2])

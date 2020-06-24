@@ -9,4 +9,4 @@ simulation (to check boundary conditions, mesh partitionning...)
    :linenos:
 
 Download files:
-:download:`check_settings.py <../test/unit/check_settings.py>` 
+:download:`check_settings.py <../test/unit/check_settings.py>`

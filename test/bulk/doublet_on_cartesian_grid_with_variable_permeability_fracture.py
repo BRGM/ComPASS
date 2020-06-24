@@ -24,7 +24,7 @@ omega_matrix = 0.15                       # matrix porosity
 K_matrix = 2                              # bulk thermal conductivity in W/m/K
 omega_fracture = 0.5                      # fracture porosity
 K_fracture = 2                            # bulk thermal conductivity in W/m/K
-channel_width = 100.                      # fracture channel with 
+channel_width = 100.                      # fracture channel with
 channel_fracture_permeability = 1E-11     # permeability in m^2
 background_fracture_permeability = 1E-12  # permeability in m^2
 # fmt: on

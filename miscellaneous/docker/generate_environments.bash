@@ -8,7 +8,7 @@ REF_SLUG=${2:+":"}${2:-""}
 docker build -t registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG} --build-arg MESHTOOLS_WHEEL_PATH=$MESHTOOLS_WHEEL -f base/Dockerfile .
 docker push registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG}
 
-# order is important because of environments dependencies 
+# order is important because of environments dependencies
 for evt in build run work profiling doc
 do
     echo "Building ${evt}-environment${REF_SLUG}"

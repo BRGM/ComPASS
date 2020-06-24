@@ -17,7 +17,7 @@ All of this is done calling the :code:`simulation.init` method
 After step 2 the mesh is partitioned and the global mesh is no longer available.
 Each proc works on its own subdomain.
 
-3. Setting-up initial values and physical states (cf. various examples in 
+3. Setting-up initial values and physical states (cf. various examples in
 :ref:`Setting-up initial conditions`_)
 
 4. Solving the temporal problem, i.e. making or using one of the provided time loops.

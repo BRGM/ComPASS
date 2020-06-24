@@ -92,7 +92,9 @@ def set_states_inj(states, x, name):
 
 
 def set_injection(name):
-    set_states_inj(simulation.dirichlet_node_states(), simulation.vertices()[:, 0], name)
+    set_states_inj(
+        simulation.dirichlet_node_states(), simulation.vertices()[:, 0], name
+    )
 
 
 # concentrations (=temperature !) treated separately, as there are 2 species
@@ -158,8 +160,7 @@ def make_one_timestep(t, dt, cTold, c1old):
     ts_manager = FixedTimeStep(dt)
     # ts_manager = TimeStepManager(initial_timestep=720,)
     newton = ComPASS.newton.Newton(
-        simulation,
-        1e-5, 20, ComPASS.newton.LinearSolver(1e-6, 150)
+        simulation, 1e-5, 20, ComPASS.newton.LinearSolver(1e-6, 150)
     )  # simulation.default_Newton() #
     context = SimulationContext()
     # do cT first (linear)

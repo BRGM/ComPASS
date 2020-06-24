@@ -6,7 +6,6 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-
     module GlobalVariablesWrappers
 
        use, intrinsic :: iso_c_binding
@@ -41,11 +40,11 @@
 
     contains
 
-        function nb_primary_variables() result(n) &
-        bind(C, name="nb_primary_variables")
-        integer(c_size_t) :: n
-        n = NbIncTotalPrimMax ! NbIncTotalMax
-        end function nb_primary_variables
+       function nb_primary_variables() result(n) &
+          bind(C, name="nb_primary_variables")
+          integer(c_size_t) :: n
+          n = NbIncTotalPrimMax ! NbIncTotalMax
+       end function nb_primary_variables
 
        function get_gravity() result(g) &
           bind(C, name="get_gravity")
@@ -61,10 +60,10 @@
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
        function get_atm_pressure() result(p) &
-         bind(C, name="get_atm_pressure")
-         real(c_double) :: p
-         p = atm_pressure
-      end function get_atm_pressure
+          bind(C, name="get_atm_pressure")
+          real(c_double) :: p
+          p = atm_pressure
+       end function get_atm_pressure
 
        subroutine set_atm_pressure(p) &
           bind(C, name="set_atm_pressure")
@@ -73,10 +72,10 @@
        end subroutine set_atm_pressure
 
        function get_atm_temperature() result(T) &
-         bind(C, name="get_atm_temperature")
-         real(c_double) :: T
-         T = atm_temperature
-      end function get_atm_temperature
+          bind(C, name="get_atm_temperature")
+          real(c_double) :: T
+          T = atm_temperature
+       end function get_atm_temperature
 
        subroutine set_atm_temperature(T) &
           bind(C, name="set_atm_temperature")
@@ -85,10 +84,10 @@
        end subroutine set_atm_temperature
 
        function get_atm_flux_radiation() result(q) &
-         bind(C, name="get_atm_flux_radiation")
-         real(c_double) :: q
-         q = atm_flux_radiation
-      end function get_atm_flux_radiation
+          bind(C, name="get_atm_flux_radiation")
+          real(c_double) :: q
+          q = atm_flux_radiation
+       end function get_atm_flux_radiation
 
        subroutine set_atm_flux_radiation(q) &
           bind(C, name="set_atm_flux_radiation")
@@ -97,10 +96,10 @@
        end subroutine set_atm_flux_radiation
 
        function get_soil_emissivity() result(cst) &
-         bind(C, name="get_soil_emissivity")
-         real(c_double) :: cst
-         cst = soil_emissivity
-      end function get_soil_emissivity
+          bind(C, name="get_soil_emissivity")
+          real(c_double) :: cst
+          cst = soil_emissivity
+       end function get_soil_emissivity
 
        subroutine set_soil_emissivity(cst) &
           bind(C, name="set_soil_emissivity")
@@ -109,10 +108,10 @@
        end subroutine set_soil_emissivity
 
        function get_atm_rain_flux() result(q_rain) &
-         bind(C, name="get_atm_rain_flux")
-         real(c_double) :: q_rain
-         q_rain = rain_flux(LIQUID_PHASE)
-      end function get_atm_rain_flux
+          bind(C, name="get_atm_rain_flux")
+          real(c_double) :: q_rain
+          q_rain = rain_flux(LIQUID_PHASE)
+       end function get_atm_rain_flux
 
        subroutine set_atm_rain_flux(q_rain) &
           bind(C, name="set_atm_rain_flux")
@@ -146,4 +145,3 @@
        end subroutine set_fracture_thickness
 
     end module GlobalVariablesWrappers
-

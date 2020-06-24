@@ -1,6 +1,6 @@
 # Coding/Versioning conventions
 
-**Do not hesitate to start discussions on [GitLab](https://gitlab.inria.fr/charms/ComPASS) using issues or merge request. This should be the preferred way.** 
+**Do not hesitate to start discussions on [GitLab](https://gitlab.inria.fr/charms/ComPASS) using issues or merge request. This should be the preferred way.**
 
 ## Versioning conventions
 
@@ -27,7 +27,7 @@ You can add references in issue or merge request descriptions or in comments. Th
   * to reference a code snippet: $123
 
 Note that issues can be automatically closed through commits using a sepcial syntax (cf. [gitlab documentaiton](https://docs.gitlab.com/ee/user/project/issues/automatic_issue_closing.html)).
-  
+
 Branch names should begin by the name of their owner. Don't be shy on branch naming as branch are to be deleted when merge request to the default branch is closed.
 
 ## Inside the code
@@ -35,13 +35,13 @@ Branch names should begin by the name of their owner. Don't be shy on branch nam
 Flags which are pervasive throughout the code and can be located using a grep utility :
 
   * FIXME: flags a known (potential) bug : None of these should remain in release versions!
-  
+
   * CHECKME: flags an uncertain development (send a WIP merge request and start a discussion)
 
   * WARNING: flags a tricky point at code level (ideally those warnings should also be reflected in code documentation)
-  
+
   * OPTIMIZE: flags a possible enhancement
-  
+
 
 All flags can be combine with question mark whenever one is not sure about the status of his assertion.
 
@@ -53,9 +53,4 @@ When possible, use the prefix `tmp_` for the files or directories you don't want
 
 * prefer lower case fortran
 
-* use [fprettify](https://github.com/pseewald/fprettify) for code formating with 3 spaces indentation 
-
-
-
-
-
+* use [fprettify](https://github.com/pseewald/fprettify) for code formating with 3 spaces indentation

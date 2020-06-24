@@ -255,4 +255,3 @@ On Windows run `scripts/build-local.bat`.
 ## Check object sizes
 
     make sizes /path/to/boost/variant.hpp
-

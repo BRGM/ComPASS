@@ -1,7 +1,5 @@
 # see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
 
-image: docker:stable
-
 variables:
   # When using dind, it's wise to use the overlayfs driver for
   # improved performance.
@@ -22,7 +20,7 @@ services:
   - docker:stable-dind
 
 stages:
-  - build_docker_environments
+  - check-format
   - build
   - test
   - release
@@ -30,40 +28,39 @@ stages:
 
 before_script:
   - echo "Preparing build..."
-  - docker info
-  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-   
+  # - docker info
+  # - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+
 after_script:
   - echo "You might do some cleanup here"
 
-# here we build specific docker environments
-# (cf. miscellaneous/docker/README.md)
-build_docker_environments:
-  stage: build_docker_environments
-  tags:
-    - build
-  only:
-    - /^docker_evt_.*$/
-  script:
-    - cd miscellaneous/docker
-    # We cannot retrieve the latest wheel from MeshTools master branch
-    # using gitlab API beacause the use of CI_JOB_TOKEN is a premium feature
-    # (charms/MeshTools project id is 8447 on gitlab.inria.fr)
-    # # We rely on curl to retrieve MeshTools and we are in an alpine based image (hence apk)
-    # - apk add --no-cache curl
-    # The command is wrapped into single quotes since it contains a colon
-    # - 'curl --location --output wheel.zip --header "JOB-TOKEN: $CI_JOB_TOKEN" "https://gitlab.inria.fr/api/v4/projects/8447/jobs/artifacts/master/download?job=build"''
-    - docker pull registry.gitlab.inria.fr/charms/meshtools/master-wheel:latest
-    - docker run -v $PWD:/localfs --user $UID:`id -g $USER` registry.gitlab.inria.fr/charms/meshtools/master-wheel:latest
-    - /bin/sh -e generate_environments.bash wheel/*.whl
-    - rm -rf wheel
+check:
+    stage: check-format
+    tags:
+        - build
+        - docker
+    image: $CI_REGISTRY_IMAGE/build-environment
+    #only:
+    #  - merge_requests
+    script:
+        # We could check format only for merge requests
+        # using only merge_requests
+        # and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA
+        # variables but the latest are not correclyt set
+        - git fetch origin v4.1
+        - merge_base=$(git merge-base origin/v4.1 HEAD)
+        - changed_files=$(git diff --no-ext-diff --name-only ${merge_base}...HEAD)
+        - echo "Changed files:" ${changed_files}
+        - pre-commit run --files ${changed_files}
 
 
 build:
   stage: build
   tags:
     - build
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - mkdir -p wheel
     - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/build-environment python3 setup.py egg_info --tag-build=$WHEEL_PRERELTAG bdist_wheel -d wheel
     - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WHEEL_TAG=${WHEEL_PRERELTAG//-/_} .
@@ -72,7 +69,7 @@ build:
   artifacts:
     paths:
     - wheel
-    
+
 #TODO
 #how to use docker cache ? split dockerfile to have a build image.fixed.
 #how to prevent from rebuild all code when only test change.
@@ -83,7 +80,9 @@ sanity_check:
   stage: test
   tags:
     - test
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical_1D.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical.py
@@ -96,19 +95,23 @@ sanity_check:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run postprocess_producers.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_petrophysics.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run dof_families.py
-    
+
 pytest_run:
   stage: test
   tags:
     - test
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test
 
 postprocess_test:
   stage: test
   tags:
     - test
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run two_cells.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG postprocess -s -C output-two_cells
 
@@ -116,14 +119,18 @@ petrel_test:
   stage: test
   tags:
     - test
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run --rm -v $PWD/test/cases/petrel:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run doublet_on_cartesian_grid_petrel.py
-  
+
 parallel_test:
   stage: test
   tags:
     - test
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel vertical_column_temperature.py
     - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel test_nodeflags_on_tetmesh.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel distribute_fracture_edge_info.py
@@ -141,7 +148,9 @@ time_bulk_scripts:
     - build
   except:
     - /^doc_.*$/
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run -v $PWD/test:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 utilities/pool.py bulk
 
 reactive_transport_test:
@@ -150,14 +159,18 @@ reactive_transport_test:
     - test
   except:
     - /^doc_.*$/
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run simple_ionexchange.py
 
 master_release:
   stage: release
   tags:
     - release
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:latest
     - docker push $CI_REGISTRY_IMAGE:latest
@@ -170,7 +183,9 @@ tag_release:
   stage: release
   tags:
     - release
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
@@ -183,9 +198,11 @@ pages:
   tags:
     - build
   only:
-    - v4.1
+    - v4.2
     - /^doc_.*$/
+  image: docker:stable
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - mkdir -p public/core_reference
     - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment bash /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
     - cp -rf docs/html/* public

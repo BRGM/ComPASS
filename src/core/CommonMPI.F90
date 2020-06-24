@@ -9,11 +9,11 @@
 module CommonMPI
 
    use mpi, only: &
-     MPI_SUCCESS, &
-     MPI_Abort, &
-     MPI_Comm_rank, &
-     MPI_Comm_size, &
-     MPI_Comm_dup
+      MPI_SUCCESS, &
+      MPI_Abort, &
+      MPI_Comm_rank, &
+      MPI_Comm_size, &
+      MPI_Comm_dup
 
    implicit none
 
@@ -83,7 +83,7 @@ contains
 
    !> \brief Barrier on all MPI processes
    subroutine CommonMPI_barrier()
-   
+
       call MPI_Barrier(ComPASS_COMM_WORLD)
 
    end subroutine CommonMPI_barrier

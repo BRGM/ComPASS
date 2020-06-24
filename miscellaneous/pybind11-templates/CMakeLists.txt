@@ -16,9 +16,9 @@ add_executable(wrap_make_directory wrap_make_directory.cpp)
 target_include_directories(wrap_make_directory PUBLIC ${PYTHON_INCLUDE_DIR})
 target_link_libraries(wrap_make_directory ${PYTHON_LIBRARIES})
 
-set_target_properties(simplecall passingstring
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
-    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}
+set_target_properties(
+  simplecall passingstring
+  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
+             LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
+             LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}
 )

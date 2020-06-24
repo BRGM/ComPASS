@@ -10,7 +10,7 @@ import os
 
 from .utils.filenames import output_directory_and_logfile
 
-#output_directory, logfile = output_directory_and_logfile()
+# output_directory, logfile = output_directory_and_logfile()
 output_directory = None
 logfile = None
 
@@ -23,5 +23,3 @@ def to_output_directory(filename):
 def set_output_directory_and_logfile(case_name):
     global output_directory, logfile
     output_directory, logfile = output_directory_and_logfile(case_name)
-
-

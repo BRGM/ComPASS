@@ -57,11 +57,12 @@ def build_permeability():
     result = np.zeros(centers.shape[0], dtype=np.double)
     result[:] = 0.01 * k
     zc = centers[:, 2]
-    result[(zc>=H/3) & (zc<=2*H/3)] = k
+    result[(zc >= H / 3) & (zc <= 2 * H / 3)] = k
     # result = np.zeros((centers.shape[0], 3, 3), dtype=np.double)
     # result[..., 0, 0] = kres
     # result[..., 1, 1] = kres
     return result
+
 
 simulation.init(
     mesh=mesh,
@@ -126,13 +127,18 @@ def dump_summary(params, objects):
 def pack(**kwargs):
     return kwargs
 
+
 def pack_as_arrays(**kwargs):
     return {name: np.array(value) for name, value in kwargs.items()}
+
 
 dump_summary(
     params=pack(qw=qw, R=R, nb_layers=nb_layers, k=k, theta=theta, ds=ds),
     objects=pack_as_arrays(
-        times=times, timesteps=timesteps, axis_vertices=axis_vertices, axis_pressure=axis_pressure,
+        times=times,
+        timesteps=timesteps,
+        axis_vertices=axis_vertices,
+        axis_pressure=axis_pressure,
         pwh=[wh.pressure for wh in wellheads],
         qwh=[wh.mass_flowrate for wh in wellheads],
     ),

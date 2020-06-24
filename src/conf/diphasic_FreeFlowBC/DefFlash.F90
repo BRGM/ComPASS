@@ -64,11 +64,11 @@ contains
          ! air liq fugacity
          iph = LIQUID_PHASE
          ! f_Fugacity is computed using Pref
-         call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+         call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
 
          ! water liq fugacity, f_Fugacity is computed using Pref
-         call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+         call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
@@ -78,17 +78,16 @@ contains
             inc%Saturation(GAS_PHASE) = 0.d0
             inc%Saturation(LIQUID_PHASE) = 1.d0
             ! force comp to be in [0,1]
-            do i=1,NbComp
-               inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
             enddo
 
          endif
 
          ! force comp to be in [0,1]
-         do i=1,NbComp
-            inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
+         do i = 1, NbComp
+            inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
          enddo
-
 
       elseif (ic == DIPHASIC_CONTEXT) then
 
@@ -108,8 +107,8 @@ contains
 
          ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            do i=1,NbComp
-               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
             enddo
          enddo
 
@@ -117,57 +116,57 @@ contains
 
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cal = inc%Comp(AIR_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 
-         if(Cal + Cwl > 1.d0) then
+         if (Cal + Cwl > 1.d0) then
             ! write(*,*)' appearance liquid '
             inc%ic = DIPHASIC_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
             ! force comp to be in [0,1]
-            do i=1,NbComp
-               inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
             enddo
          endif
 
          ! force comp to be in [0,1]
-         do i=1,NbComp
-            inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+         do i = 1, NbComp
+            inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
          enddo
 
-      ! FREEFLOW BC DOF
+         ! FREEFLOW BC DOF
       elseif (ic == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,AIR_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cal = inc%Comp(AIR_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt,iph,WATER_COMP,Pref,T,inc%Comp(:,iph),S,f(iph),DPf,DTf,DCf,DSf)
+            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
-         Cwl = inc%Comp(WATER_COMP,GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
+         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 
-         if(Cal + Cwl > 1.d0) then
+         if (Cal + Cwl > 1.d0) then
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
             ! force comp to be in [0,1]
-            do i=1,NbComp
-               inc%Comp(i,LIQUID_PHASE) = min(max(inc%Comp(i,LIQUID_PHASE), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
             enddo
          endif
          ! force comp to be in [0,1]
-         do i=1,NbComp
-            inc%Comp(i,GAS_PHASE) = min(max(inc%Comp(i,GAS_PHASE), 0.d0), 1.d0)
+         do i = 1, NbComp
+            inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
          enddo
 
       elseif (ic == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
@@ -191,14 +190,14 @@ contains
 
          ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            do i=1,NbComp
-               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
             enddo
          enddo
 
       elseif (ic == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
 
-         if(inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then
+         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then
             ! write(*,*)' disappearance liquid outflow in Freeflow BC'
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
@@ -206,11 +205,11 @@ contains
 
          ! force comp to be in [0,1]
          do iph = 1, NbPhase
-            do i=1,NbComp
-               inc%Comp(i,iph) = min(max(inc%Comp(i,iph), 0.d0), 1.d0)
+            do i = 1, NbComp
+               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
             enddo
          enddo
-   
+
       else
          call CommonMPI_abort('Error in Flash: unknown context')
 

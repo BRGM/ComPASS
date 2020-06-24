@@ -9,18 +9,18 @@
 module DefWell
 
    use, intrinsic :: iso_c_binding, only: &
-     c_ptr, c_size_t, c_null_ptr, c_loc, c_int, c_double, c_char, c_bool
+      c_ptr, c_size_t, c_null_ptr, c_loc, c_int, c_double, c_char, c_bool
 
    use mpi, only: &
-     MPI_CHARACTER, &
-     MPI_INT, &
-     MPI_DOUBLE, &
-     MPI_Type_Create_Struct, &
-     MPI_ADDRESS_KIND, &
-     MPI_Abort
+      MPI_CHARACTER, &
+      MPI_INT, &
+      MPI_DOUBLE, &
+      MPI_Type_Create_Struct, &
+      MPI_ADDRESS_KIND, &
+      MPI_Abort
 
    use mpi_f08, only: &
-     MPI_Get_address
+      MPI_Get_address
 
    use CommonType, only: CSR
    use CommonMPI, only: ComPASS_COMM_WORLD, CommonMPI_abort
@@ -70,13 +70,13 @@ module DefWell
       type(c_ptr) :: well_offset
       type(c_ptr) :: node_vertex
       type(c_ptr) :: data
-   end type PerforationDataCSR_wrapper   
+   end type PerforationDataCSR_wrapper
 
    !> to allow = between two DataNodeWell_type
    interface assignment(=)
       module procedure assign_DataNodeWell_equal
    end interface assignment(=)
-      
+
    !> to allow = between two DataWellInj
    interface assignment(=)
       module procedure assign_DataWell_equal
@@ -107,25 +107,24 @@ module DefWell
 contains
 
    subroutine DefWell_set_WI_threshold(threshold) &
-        bind(C, name="set_Peaceman_WI_threshold")
-        
-        real(c_double), intent(in), value :: threshold
+      bind(C, name="set_Peaceman_WI_threshold")
 
-        if(threshold<=0.d0) then
-                call CommonMPI_abort("peaceaman index cannot be negative") 
-        endif 
-        DefWell_has_WI_threshold = .true.
-        DefWell_WI_threshold = threshold
-   
+      real(c_double), intent(in), value :: threshold
+
+      if (threshold <= 0.d0) then
+         call CommonMPI_abort("peaceaman index cannot be negative")
+      endif
+      DefWell_has_WI_threshold = .true.
+      DefWell_WI_threshold = threshold
+
    end subroutine DefWell_set_WI_threshold
 
    subroutine DefWell_unset_WI_threshold() &
-        bind(C, name="unset_Peaceman_WI_threshold")
-   
-        DefWell_has_WI_threshold = .false.
+      bind(C, name="unset_Peaceman_WI_threshold")
+
+      DefWell_has_WI_threshold = .false.
 
    end subroutine DefWell_unset_WI_threshold
-
 
    function get_global_injectors_data() result(p) &
       bind(C, name="get_global_injectors_data")
@@ -234,58 +233,58 @@ contains
       type(CSR), intent(in) :: connectivity
       integer, intent(in) :: element
       double precision, intent(inout) :: xc(3)
-      
+
       integer :: m
 
       xc = 0.d0
       do m = connectivity%Pt(element) + 1, connectivity%Pt(element + 1)
          xc = xc + vertices(:, connectivity%Num(m))
       enddo
-      xc = xc / dble( connectivity%Pt(element + 1) - (connectivity%Pt(element)))
-   
+      xc = xc/dble(connectivity%Pt(element + 1) - (connectivity%Pt(element)))
+
    end subroutine element_center
 
-   subroutine compute_peaceman_indices(                   &
+   subroutine compute_peaceman_indices( &
       sum_distances, sum_permeabilities, nb_contributors, &
-      thickness, well_radius, well_index                  &
-   )
+      thickness, well_radius, well_index &
+      )
       double precision, intent(in) :: sum_distances, sum_permeabilities
       integer, intent(in) :: nb_contributors
       double precision, intent(in) :: well_radius, thickness
       double precision, intent(out) :: well_index
-      
+
       double precision, parameter :: Pi = 3.14159265359d0
       double precision :: d, k, peaceman_radius
       double precision :: wi_max
 
-      d = sum_distances / dble( nb_contributors )
-      k = sum_permeabilities / dble( nb_contributors )
+      d = sum_distances/dble(nb_contributors)
+      k = sum_permeabilities/dble(nb_contributors)
 #ifndef NDEBUG
-      if(d<=0) call CommonMPI_abort('negative distance')
-      if(k<=0) call CommonMPI_abort('negative permeability')
+      if (d <= 0) call CommonMPI_abort('negative distance')
+      if (k <= 0) call CommonMPI_abort('negative permeability')
 #endif
-      peaceman_radius = 0.14036d0 * dsqrt(2.d0) * d
+      peaceman_radius = 0.14036d0*dsqrt(2.d0)*d
 
-      well_index = thickness * Pi * k / log(peaceman_radius / well_radius)
-            
-      if(peaceman_radius < well_radius) &
+      well_index = thickness*Pi*k/log(peaceman_radius/well_radius)
+
+      if (peaceman_radius < well_radius) &
          call CommonMPI_abort('Peaceman Well radius is smaller than effective well radius (negative well index).')
-      
-      if(DefWell_has_WI_threshold) then
-         if(peaceman_radius < 2 * well_radius) then
-             wi_max = thickness * Pi * k / log(2d0)
-             write(*,*) 'WARNING'
-             write(*,*) 'WARNING'
-             write(*,*) ''
-             write(*,*) 'Applying threshold on Peaceman Well Index'
-             write(*,*) 'well radius', well_radius, 'vs. Peaceman radius', peaceman_radius
-             write(*,*) 'well index', well_index, 'well index limit', wi_max
-             write(*,*) ''
-             write(*,*) 'WARNING'
-             write(*,*) 'WARNING'
-             well_index = wi_max
+
+      if (DefWell_has_WI_threshold) then
+         if (peaceman_radius < 2*well_radius) then
+            wi_max = thickness*Pi*k/log(2d0)
+            write (*, *) 'WARNING'
+            write (*, *) 'WARNING'
+            write (*, *) ''
+            write (*, *) 'Applying threshold on Peaceman Well Index'
+            write (*, *) 'well radius', well_radius, 'vs. Peaceman radius', peaceman_radius
+            write (*, *) 'well index', well_index, 'well index limit', wi_max
+            write (*, *) ''
+            write (*, *) 'WARNING'
+            write (*, *) 'WARNING'
+            well_index = wi_max
          end if
-       end if
+      end if
 
    end subroutine compute_peaceman_indices
 
@@ -383,12 +382,12 @@ contains
             enddo
             ! there is at least one frac in this node, compute wi
             if (comptFrac > 0) then
-               meanThickness = meanThickness / dble( comptFrac )
-               !Compute peaceman-indices, but for fractures  multiplying by a factor of 2 is necessary 
+               meanThickness = meanThickness/dble(comptFrac)
+               !Compute peaceman-indices, but for fractures  multiplying by a factor of 2 is necessary
                call compute_peaceman_indices(meanDist, meanPerm, comptFrac, 2*meanThickness, WellRadius(i), wi)
                ! contribution of the fracs to the node
-                WI_global(num_node) = WI_global(num_node) + wi
-                              
+               WI_global(num_node) = WI_global(num_node) + wi
+
             endif
          enddo
       enddo
@@ -494,7 +493,7 @@ contains
       x2%WIF = x1%WIF
 
    end subroutine assign_DataNodeWell_equal
- 
+
    !> \brief Define operator = between two DataWellInj:  x2 = x1
    subroutine assign_DataWell_equal(x2, x1)
 
@@ -557,7 +556,7 @@ contains
       types(1) = MPI_INT
       types(11) = MPI_CHARACTER
 
-      blocklengths(:) = 1    
+      blocklengths(:) = 1
       blocklengths(6) = NbComp
 
       call MPI_Type_Create_Struct(count, blocklengths, displacements, types, mpi_id, Ierr)

@@ -1,8 +1,8 @@
-#import ComPASS
+# import ComPASS
 
 # import doublet_utils
-#from ComPASS.utils.units import *
-#from ComPASS.timeloops import standard_loop
+# from ComPASS.utils.units import *
+# from ComPASS.timeloops import standard_loop
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -24,13 +24,13 @@ class formulation(Struct):
 
 ####################   class evoltrch  ################################################
 class Coupling(object):
-    def __init__(self, Chobj, TrObj): #, nb_time_steps):
+    def __init__(self, Chobj, TrObj):  # , nb_time_steps):
 
         self.Tot = np.zeros((Chobj._Nc, TrObj.nb_points))
         self.W = np.zeros((Chobj._Ns, TrObj.nb_points))
         self.C = np.zeros_like(self.Tot)
         self.F = np.zeros_like(self.Tot)
-#        self.Csol = np.zeros((nb_time_steps, Chobj._Nc))
+        #        self.Csol = np.zeros((nb_time_steps, Chobj._Nc))
 
         # initialisations
         for i in range(Chobj._Nc):
@@ -74,7 +74,7 @@ class Coupling(object):
         # chimie pour chaque point du maillage
         """
 		for ix in range(nb_points) :
-		    #Chobj.c0 = [1e-6, 1e-6, 1e-6, 1e-6] 
+		    #Chobj.c0 = [1e-6, 1e-6, 1e-6, 1e-6]
 		    #Chobj.s0 = [0.54849]
 		    Chobj.c0 = csol[:, ix-1]
 		    Chobj.rhs = np.append(g[:, ix], self.W[:, ix])
@@ -91,7 +91,7 @@ class Coupling(object):
         ff[:, 0] = -Faux.T + F[:, 0]
         csol[:, 0] = cc.T
         self.jacCh[0::nb_points, 0::nb_points] = psi_prime_dT
-        
+
         for ix in range(nb_points):
             # Chobj.c0 = [1e-6, 1e-6, 1e-6, 1e-6]
             # Chobj.s0 = [0.54849]
@@ -116,7 +116,6 @@ class Coupling(object):
                     ff[:, ix] = -Faux.T + F[:, ix]
                     csol[:, ix] = cc.T
                     self.jacCh[ix::nb_points, ix::nb_points] = psi_prime_dT
-
 
         return (
             ff.flatten(),
@@ -151,10 +150,10 @@ class Coupling(object):
 
         # chimie pour chaque point du maillage
         """
-	 	Chobj.rhs = np.append(tot[:, 1], self.W[:, 1])  
+	 	Chobj.rhs = np.append(tot[:, 1], self.W[:, 1])
 	 	[sol, status, niter] = Chobj.solve()
 	 	[Caux, Faux, cc, ss, psi_prime_dT]=Chobj.post_process (sol)
-	 	f2[:, 1]= F[:, 1] -Faux.T 
+	 	f2[:, 1]= F[:, 1] -Faux.T
 	 	csol[:,1]=cc.T
 	 	self.jacCh[1::nb_points,1::nb_points] = psi_prime_dT
 	 	"""
@@ -168,8 +167,8 @@ class Coupling(object):
             f2[:, ix] = F[:, ix] - Faux.T
             csol[:, ix] = cc.T
             self.jacCh[ix::nb_points, ix::nb_points] = psi_prime_dT
-            """		    
-		    
+            """
+
 		    if ix>1 :
 		    	#Chobj.c0 = csol[:, ix-1]
 		    	if (tot[:,ix].all() == tot[:,ix-1].all()) :
@@ -177,10 +176,10 @@ class Coupling(object):
 		    		self.jacCh[ix::nb_points,ix::nb_points] = self.jacCh[ix-1::nb_points,ix-1::nb_points]
 		    		csol[:,ix]=csol[:,ix-1]
 		    	else :
-		    		Chobj.rhs = np.append(tot[:, ix], self.W[:, ix])  
+		    		Chobj.rhs = np.append(tot[:, ix], self.W[:, ix])
 		    		[sol, status, niter] = Chobj.solve()
 		    		[Caux, Faux, cc, ss, psi_prime_dT]=Chobj.post_process (sol)
-		    		f2[:,ix]= F[:,ix] -Faux.T 
+		    		f2[:,ix]= F[:,ix] -Faux.T
 		    		csol[:,ix]=cc.T
 		    		self.jacCh[ix::nb_points,ix::nb_points] = psi_prime_dT
 	 		"""
@@ -239,7 +238,7 @@ class Coupling(object):
 
     ########### Simulation : evolution transport-chemistry (the time loop) ##############################
     def Simul_time_loop(self, t, final_time, ts_manager, meth, Chobj, Trobj):
-        
+
         # initial condition
         if meth.nom == "meth_CFT":
             Y0 = np.append(
@@ -313,20 +312,19 @@ class Coupling(object):
             else:
                 error("Wrong value of formulation")
 
-            #Trobj.plot_1D_concentrations(t, self.C)
+            # Trobj.plot_1D_concentrations(t, self.C)
             Trobj.plot_concentrations(t, self.C)
-            #Trobj.plot_3d_concentrations(t, self.C)
+            # Trobj.plot_3d_concentrations(t, self.C)
 
-#            x = ComPASS.vertices()[:, 0]
-#           y = ComPASS.vertices()[:, 1]
-#            z = ComPASS.vertices()[:, 2]
-            
-#on_xr = (lambda x, y, z: (x == xr) & (y == Trobj.grid.extent[1]/2.) & (z == 0))
-##            on_xr = (lambda x, y, z: (x == xr) & (y == 0.007) & (z == 0))
-                #on_xr = lambda x,y,z : (x == xr) & (y == 0) & (z == 0)   # test for ny =1
-                
-##            self.Csol[step, :] = self.C[:, np.nonzero(on_xr(x, y, z))[0]].T
+            #            x = ComPASS.vertices()[:, 0]
+            #           y = ComPASS.vertices()[:, 1]
+            #            z = ComPASS.vertices()[:, 2]
+
+            # on_xr = (lambda x, y, z: (x == xr) & (y == Trobj.grid.extent[1]/2.) & (z == 0))
+            ##            on_xr = (lambda x, y, z: (x == xr) & (y == 0.007) & (z == 0))
+            # on_xr = lambda x,y,z : (x == xr) & (y == 0) & (z == 0)   # test for ny =1
+
+            ##            self.Csol[step, :] = self.C[:, np.nonzero(on_xr(x, y, z))[0]].T
 
             t = t + ts_manager.current_step
             step = step + 1
-

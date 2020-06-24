@@ -5,9 +5,9 @@
 ! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
-    
+
 ! No flash, typically when a single phase is present
-    
+
 module DefFlash
 
    use IncCVReservoir, only: TYPE_IncCVReservoir
@@ -16,7 +16,7 @@ module DefFlash
    implicit none
 
    integer, parameter :: SINGLE_CONTEXT = 1
-   
+
    public :: &
       DefFlash_Flash_cv
 

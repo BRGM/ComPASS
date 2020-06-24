@@ -13,7 +13,7 @@ import ComPASS
 def test_wells():
 
     # FIXME: this is transitory but we need an eos to acces the well structure
-    simulation = ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_eos("water2ph")
 
     W1 = ComPASS.Well()
     W1.geometry.radius = 0.1
@@ -30,21 +30,21 @@ def test_wells():
             print()
             print(well)
             if well.closed:
-                print('Well is closed')
+                print("Well is closed")
             else:
                 if well.injecting:
-                    print('Injection well:')
+                    print("Injection well:")
                 elif well.producing:
-                    print('Production well:')
-                print('    operate on pressure:', well.operate_on_pressure)
-                print('    operate on flowrate:', well.operate_on_flowrate)
+                    print("Production well:")
+                print("    operate on pressure:", well.operate_on_pressure)
+                print("    operate on flowrate:", well.operate_on_flowrate)
         print()
 
     display_wells()
 
-    W1.operate_on_flowrate = 300, 2E5
+    W1.operate_on_flowrate = 300, 2e5
     W1.produce()
-    W2.operate_on_pressure = 4E5, 300
+    W2.operate_on_pressure = 4e5, 300
     W2.inject(273.15 + 30)
 
     display_wells()
@@ -53,14 +53,15 @@ def test_wells():
     W3.geometry.radius = np.pi
     segments = np.transpose(np.vstack([np.arange(10, 18), np.arange(11, 19)]))
     W3.geometry.add_segments(segments)
-    W3.operate_on_pressure = 1E5, 300
+    W3.operate_on_pressure = 1e5, 300
     W3.produce()
 
-    print('Well W3:', W3)
+    print("Well W3:", W3)
 
     wells = [W1, W2, W3]
     simulation.set_well_geometries(wells)
     simulation.set_well_data(wells)
 
-if __name__== '__main__':
+
+if __name__ == "__main__":
     test_wells()

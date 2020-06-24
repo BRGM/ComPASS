@@ -23,4 +23,3 @@ COPY entrypoint.sh /etc/compass/entrypoint.sh
 COPY entrypoint.py /etc/compass/entrypoint.py
 ENTRYPOINT ["/bin/bash", "-e", "/etc/compass/entrypoint.sh"]
 CMD [""]
-

@@ -32,23 +32,22 @@ module DefModel
    integer, parameter :: LIQUID_CONTEXT = ComPASS_LIQUID_CONTEXT
    integer, parameter :: DIPHASIC_CONTEXT = ComPASS_DIPHASIC_CONTEXT
 
-  ! Number of phases that are present in each context
-  integer, parameter, dimension(NbContexte) :: &
+   ! Number of phases that are present in each context
+   integer, parameter, dimension(NbContexte) :: &
       NbPhasePresente_ctx = (/ &
-        1, & ! GAS_CONTEXT
-        1, & ! LIQUID_CONTEXT
-        2  & ! DIPHASIC_CONTEXT
+      1, & ! GAS_CONTEXT
+      1, & ! LIQUID_CONTEXT
+      2 & ! DIPHASIC_CONTEXT
       /)
-  ! Numero of the phase(s) which is/are present in each context
-  ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
-  integer, parameter, dimension(NbPhase, NbContexte) :: &
+   ! Numero of the phase(s) which is/are present in each context
+   ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
+   integer, parameter, dimension(NbPhase, NbContexte) :: &
       NumPhasePresente_ctx = &
-        reshape((/ &
-            GAS_PHASE, 0,            & ! GAS_CONTEXT
-            LIQUID_PHASE, 0,         & ! LIQUID_CONTEXT
-            GAS_PHASE, LIQUID_PHASE  & ! DIPHASIC_CONTEXT
-        /), (/NbPhase, NbContexte/))
-
+      reshape((/ &
+              GAS_PHASE, 0, & ! GAS_CONTEXT
+              LIQUID_PHASE, 0, & ! LIQUID_CONTEXT
+              GAS_PHASE, LIQUID_PHASE & ! DIPHASIC_CONTEXT
+              /), (/NbPhase, NbContexte/))
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
@@ -63,18 +62,18 @@ module DefModel
 #endif
 
 #include "../common/DefModel_constants.F90"
-  integer, parameter :: &
-       NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-       NbIncTotalMax     = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
+   integer, parameter :: &
+      NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
+      NbIncTotalMax = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
 
    ! ! ****** How to choose primary variables ****** ! !
    ! Used in module LoisthermoHydro.F90
    ! pschoice=1: manually
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
-  ! WARNING
-  ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
-  ! P est forcement primaire et en numero 1
-  ! Si T est primaire elle doit etre en numero 2
+   ! WARNING
+   ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
+   ! P est forcement primaire et en numero 1
+   ! Si T est primaire elle doit etre en numero 2
    ! pschoice=2: Glouton method
    !     the matrix psprim and pssecd are defined formally for compile
    ! pschoise=3: Gauss method
@@ -88,42 +87,42 @@ module DefModel
 ! ic=2 LIQUID_CONTEXT:    P=1, T=2, Cl=3
 ! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cg=3, Cl=4, Sprincipal=5        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
 #ifdef _THERMIQUE_
-   integer, parameter, private :: P=1, T=2
+   integer, parameter, private :: P = 1, T = 2
 #else
-   integer, parameter, private :: P=1
+   integer, parameter, private :: P = 1
 #endif
-   
+
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = reshape((/ &
 #ifdef _THERMIQUE_
                        P, T, & ! ic=1 GAS_CONTEXT
                        P, T, & ! ic=2 LIQUID_CONTEXT
-                       P, 5  & ! ic=3 DIPHASIC_CONTEXT     P=1, T=2, Cg=3, Cl=4, Sprincipal=5
+                       P, 5 & ! ic=3 DIPHASIC_CONTEXT     P=1, T=2, Cg=3, Cl=4, Sprincipal=5
 #else
                        P, & ! ic=1 GAS_CONTEXT
                        P, & ! ic=2 LIQUID_CONTEXT
-                       4  & ! ic=3 DIPHASIC_CONTEXT        P=1, Cg=2, Cl=3, Sprincipal=4
+                       4 & ! ic=3 DIPHASIC_CONTEXT        P=1, Cg=2, Cl=3, Sprincipal=4
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
-  ! Sum Salpha =1 was already eliminated
+   ! Sum Salpha =1 was already eliminated
    ! Sl is deduced from Sg: Sl=1-Sg
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/ &
 #ifdef _THERMIQUE_
                        3, 0, 0, & ! ic=1 GAS_CONTEXT           P=1, T=2, Cg=3
                        3, 0, 0, & ! ic=2 LIQUID_CONTEXT        P=1, T=2, Cl=3
-                       T, 3, 4  & ! ic=3 DIPHASIC_CONTEXT      P=1, T=2, Cg=3, Cl=4, Sprincipal=5
+                       T, 3, 4 & ! ic=3 DIPHASIC_CONTEXT      P=1, T=2, Cg=3, Cl=4, Sprincipal=5
 #else
                        2, 0, 0, & ! ic=1 GAS_CONTEXT        P=1, Cg=2
                        2, 0, 0, & ! ic=2 LIQUID_CONTEXT     P=1, Cl=2
-                       0, 0, 0  & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
+                       0, 0, 0 & ! ic=3 DIPHASIC_CONTEXT is MEANINGLESS here
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
 
-  ! Used in module Jacobian.F90
+   ! Used in module Jacobian.F90
    ! aligmethod=1, manually
    ! The idea is to have postive diagonal using linear combinations
    ! (alternative is to used inverse of block = LC of)
@@ -153,7 +152,7 @@ module DefModel
 #else
                         1.d0, & ! GAS_CONTEXT=1
                         1.d0, & ! LIQUID_CONTEXT=2
-                        0.d0  & ! DIPHASIC_CONTEXT=3 is MEANINGLESS here
+                        0.d0 & ! DIPHASIC_CONTEXT=3 is MEANINGLESS here
 #endif
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 

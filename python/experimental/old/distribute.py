@@ -20,13 +20,13 @@ import numpy as np
 from index_zoning import ZoneManager
 
 
-class ZoneArrayItem():
+class ZoneArrayItem:
     def __init__(self, zone, array, is_array=False):
         self.zone = zone
         self.array = array
         if is_array:
             # zone.manager.add_reduce_callback(zone, self._reduce_array_cb())
-            add = getattr(zone.manager, 'add_reduce_callback', None)
+            add = getattr(zone.manager, "add_reduce_callback", None)
             if add:
                 add(zone, self._reduce_array_cb())
 
@@ -64,6 +64,7 @@ class ZoneManager_bis(ZoneManager):
           False -> le callback sera rappelé à la prochaine réduction
 
     """
+
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
         self._reduce_callbacks = {}
@@ -86,7 +87,7 @@ class ZoneManager_bis(ZoneManager):
         indices = indices[order]
         new_domain = self.build_from_indices(indices)
 
-    # def _reduce_domain(self, new_domain, new_content):
+        # def _reduce_domain(self, new_domain, new_content):
         """
 
         change l'état du manager:
@@ -104,9 +105,7 @@ class ZoneManager_bis(ZoneManager):
             callbacks = self.get_reduce_callbacks(zone)
             if callbacks:
                 _, jj, ii = np.intersect1d(
-                    indices, zone.content(),
-                    return_indices=True,
-                    assume_unique=True,
+                    indices, zone.content(), return_indices=True, assume_unique=True,
                 )
                 ii = ii[np.argsort(order[jj])]
                 to_remove = [cb for cb in callbacks if cb(ii)]
@@ -122,8 +121,7 @@ class ZoneManager_bis(ZoneManager):
         self._size = len(indices)
         partition = [self._partition[i] for i in ids]
         partition = [
-            order[np.intersect1d(p, indices, return_indices=1)[2]]
-            for p in partition
+            order[np.intersect1d(p, indices, return_indices=1)[2]] for p in partition
         ]
         # new_domain.content()[new_content]
         self._partition = tuple(partition)
@@ -169,6 +167,7 @@ class GrandManitou:
             assert new_domain <= domain
             # manager._reduce_domain(new_domain, local_indices[new_domain])  # FIXME
             manager._reduce_domain(new_domain, local_indices)
+
 
 #         # si besoin, nettoyer les ZoneMap
 #         # un callback entre ZoneMap et ZoneManager est-il mieux ?

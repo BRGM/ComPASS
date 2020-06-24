@@ -1,4 +1,3 @@
-
 class SimulationInfo:
     def __init__(self):
         self.activate_cpramg = True

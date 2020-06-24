@@ -11,25 +11,25 @@ module MeshInfo
    use iso_c_binding, only: c_size_t
 
    type, bind(C) :: PartElement
-    integer(c_size_t) :: nb_owns
-    integer(c_size_t) :: nb
+      integer(c_size_t) :: nb_owns
+      integer(c_size_t) :: nb
    end type PartElement
 
    type, bind(C) :: PartInfo
-    type(PartElement) :: nodes
-    type(PartElement) :: fractures
-    type(PartElement) :: injectors
-    type(PartElement) :: producers
+      type(PartElement) :: nodes
+      type(PartElement) :: fractures
+      type(PartElement) :: injectors
+      type(PartElement) :: producers
    end type PartInfo
 
 contains
 
-    function number_of_ghosts(element) result(n)
-        type(PartElement), intent(in) :: element
-        integer(c_size_t) :: n
+   function number_of_ghosts(element) result(n)
+      type(PartElement), intent(in) :: element
+      integer(c_size_t) :: n
 
-        n = element%nb - element%nb_owns
+      n = element%nb - element%nb_owns
 
-    end function number_of_ghosts
+   end function number_of_ghosts
 
 end module MeshInfo

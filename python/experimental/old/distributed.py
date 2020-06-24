@@ -1,4 +1,3 @@
-
 from mpi4py import MPI
 from index_zoning import ZoneManager as SeqZoneManager
 
@@ -40,4 +39,3 @@ class ZoneManager(SeqZoneManager):
 
     def _distribute_slave(self, zid, zone):
         pass
-

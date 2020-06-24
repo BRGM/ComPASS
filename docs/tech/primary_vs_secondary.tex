@@ -16,12 +16,12 @@ Let us write the equation in vector form:
 %
 \begin{eqnarray}
 \label{NonLinearSystem}
-\mathbf{0} = \mathcal{R} (X_\D) := 
+\mathbf{0} = \mathcal{R} (X_\D) :=
 \left\{\begin{array}{ll}
 \left(\begin{array}{c}
 R_\nu (X_\D) \\
 L_\nu (X_\D)
-\end{array}\right) 
+\end{array}\right)
 \ \nu \in \CV, \\
 \end{array}\right.
 \end{eqnarray}
@@ -29,7 +29,7 @@ L_\nu (X_\D)
 
 Let us denote:
 \begin{itemize}
-\item $X^{\nat}=\(X^{\nat}_{\nu}\)$ the {\em physical / natural} unknowns 
+\item $X^{\nat}=\(X^{\nat}_{\nu}\)$ the {\em physical / natural} unknowns
 \item $X^{\sol}=\(X^{\sol}_{\nu}\)$ the unkwowns used to solve the problem.
 \end{itemize}
 
@@ -46,7 +46,7 @@ X^{\secdu}_{\nu}
 \end{array}
 \)
 $$
-and is such that the square matrix 
+and is such that the square matrix
 $\nabla_{X^{\secdu}_{\nu}} L_\nu$ is non-singular
 for all $\nu \in \CV$.
 
@@ -88,13 +88,13 @@ gives:
 $$
 \Delta_{X^{\secdu}_{\nu}}
 =  \(\nabla_{X^{\secdu}_{\nu}} L_{\nu} \)^{-1} \(
-L^{\sol}_{\nu} - 
-\nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}} 
+L^{\sol}_{\nu} -
+\nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}}
 \)
 $$
 
-At each step of the Newton algorithm we can choose 
-$( X^{\sol}_{\nu} )_{\nu\in\CV}$ that 
+At each step of the Newton algorithm we can choose
+$( X^{\sol}_{\nu} )_{\nu\in\CV}$ that
 $ L^{\sol}_{\nu} = 0 $ (projection onto the closure laws ? is this the role
 of the {\em flash}?).
 
@@ -108,39 +108,39 @@ $$
 \)
 = R_{\nu}
 $$
- 
+
 $$
 \sum_{\nu'}
 \[
 \nabla_{X^{\primu}_{\nu'}} R_{\nu} \Delta_{X^{\primu}_{\nu'}}+
 \nabla_{X^{\secdu}_{\nu'}} R_{\nu} \(
 \(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} \(
-L_{\nu'} - 
-\nabla_{X^{\primu}_{\nu'}} L_{\nu'} \Delta_{X^{\primu}_{\nu'}} 
+L_{\nu'} -
+\nabla_{X^{\primu}_{\nu'}} L_{\nu'} \Delta_{X^{\primu}_{\nu'}}
 \)
 \)
 \]
 = R_{\nu}
 $$
- 
+
 \begin{eqnarray}
 \label{eq:newtonjacobian}
 \left.\begin{array}{lr}
 \sum_{\nu'}
 \[
-\nabla_{X^{\primu}_{\nu'}} R_{\nu} 
+\nabla_{X^{\primu}_{\nu'}} R_{\nu}
 - \nabla_{X^{\secdu}_{\nu'}} R_{\nu}
 \( \nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1}
 \nabla_{X^{\primu}_{\nu'}} L_{\nu'}
 \] \Delta_{X^{\primu}_{\nu'}}
 = \\
 R_{\nu} - \sum_{\nu'} \[
-\nabla_{X^{\secdu}_{\nu'}} R_{\nu} 
+\nabla_{X^{\secdu}_{\nu'}} R_{\nu}
 \(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} L_{\nu'}
 \]
 \end{array}\right.
 \end{eqnarray}
- 
+
 We also have:
 $$
 \nabla_{X^{\sol}_{\nu}} F
@@ -153,7 +153,7 @@ $$
 = \( \nabla_{X^{\sol}_{\nu}} \cG_{\nu} \) ^{-1}
 $$
 
-Let us note : 
+Let us note :
 $$
 \G_\nu := \nabla_{X^{\sol}_{\nu}} \cG_{\nu}
 $$
@@ -161,21 +161,21 @@ $$
 And:
 $$
 \nabla_{X^{\sol}_{\nu}} F
-= \nabla_{X^{\nat}_{\nu}} F {\G_{\nu}}^{-1} 
+= \nabla_{X^{\nat}_{\nu}} F {\G_{\nu}}^{-1}
 $$
 
 with the notations:
 
 $$
 {\G_{\nu}}^{-1} = \[\,
-\iGcol^{\primu}_{\nu} \, \iGcol^{\secdu}_{\nu} 
+\iGcol^{\primu}_{\nu} \, \iGcol^{\secdu}_{\nu}
 \,\]
 $$
 $$
-J^{R}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} R_{\nu} 
+J^{R}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} R_{\nu}
 $$
 $$
-J^{L}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} L_{\nu} 
+J^{L}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} L_{\nu}
 $$
 
 (note that when $\nu\neq\nu'$ we have $J^{L}_{\nu,\nu'}=0$).
@@ -189,14 +189,14 @@ Finally, \eqref{eq:newtonjacobian} becomes:
 \[
  J^{R}_{\nu,\nu'}
 -  J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
-\(  J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1} 
+\(  J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
  J^{L}_{\nu',\nu'}
 \] \iGcol^{\primu}_{\nu'} \Delta_{X^{\primu}_{\nu'}}
 \\ =
 R_{\nu} - \sum_{\nu'} \[
-J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'} 
+J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
 \( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
-L_{\nu'} 
+L_{\nu'}
 \]
 \end{array}\right.
 \end{eqnarray}
@@ -207,19 +207,19 @@ terms is just to extract columns/rows and is implemented manually in the code.
 \end{rmk}
 
 \begin{rmk}
-The terms $A_{\nu,\nu'}=J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'} 
-\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}$ may be stored as they 
+The terms $A_{\nu,\nu'}=J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
+\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}$ may be stored as they
 appear twice, so that \eqref{eq:newtonjacobian2} would become:
 \begin{eqnarray}
 \sum_{\nu'}
 \[
  J^{R}_{\nu,\nu'}
--  A_{\nu,\nu'} 
- J^{L}_{\nu',\nu'} 
+-  A_{\nu,\nu'}
+ J^{L}_{\nu',\nu'}
 \] \iGcol^{\primu}_{\nu'} \Delta_{X^{\primu}_{\nu'}}
 =
 R_{\nu} - \sum_{\nu'}%\(
-A_{\nu,\nu'} L_{\nu'} 
+A_{\nu,\nu'} L_{\nu'}
 %\)
 \end{eqnarray}
 \end{rmk}
@@ -230,25 +230,24 @@ $\sum_{\nu'} A_{\nu,\nu'} L_{\nu'}$
 may vanish from the right hand side.
 \end{rmk}
 
-% The elimination of the local closure laws (Step 1) is achieved 
-% for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns 
-% $X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with 
+% The elimination of the local closure laws (Step 1) is achieved
+% for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns
+% $X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with
 % $$
-% N^{sd}_\nu =   1 + \# Q_\nu + \sum_{\alpha\in Q_\nu} \#{\cal C}^\alpha 
-% +\#\overline{\cal C}_{Q_\nu} -\#{\cal C}. 
-% $$ 
-% For each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}}  $, 
-% the secondary unknowns are  chosen in such a way that the square matrix 
+% N^{sd}_\nu =   1 + \# Q_\nu + \sum_{\alpha\in Q_\nu} \#{\cal C}^\alpha
+% +\#\overline{\cal C}_{Q_\nu} -\#{\cal C}.
+% $$
+% For each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}}  $,
+% the secondary unknowns are  chosen in such a way that the square matrix
 % $$
 % {\partial L \over \partial X^{sd}_{Q_\nu} } \left(X^{pr}_{Q_\nu},X_{Q_\nu}^{sd}, Q_\nu\right)
-% \in \mathbb{R}^{N^{sd}_\nu \times N^{sd}_\nu},  
+% \in \mathbb{R}^{N^{sd}_\nu \times N^{sd}_\nu},
 % $$
-% is non-singular. This choice can be done algebraically in the general case, 
-% or defined once and for all for each set of present phases $Q_\nu$ 
-% for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are 
-% always chosen as primary unknowns. 
+% is non-singular. This choice can be done algebraically in the general case,
+% or defined once and for all for each set of present phases $Q_\nu$
+% for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are
+% always chosen as primary unknowns.
 
 
- 
+
 \end{document}
-
