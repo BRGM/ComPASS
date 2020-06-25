@@ -153,17 +153,6 @@ time_bulk_scripts:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run -v $PWD/test:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 utilities/pool.py bulk
 
-reactive_transport_test:
-  stage: test
-  tags:
-    - test
-  except:
-    - /^doc_.*$/
-  image: docker:stable
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run -v $PWD/test/experimental/reactive_transport:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run simple_ionexchange.py
-
 master_release:
   stage: release
   tags:

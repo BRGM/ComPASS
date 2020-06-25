@@ -7,7 +7,12 @@
 #
 
 #
-# The example in this file is from the paper
+# This script illustrates how to model reactive transport using ComPASS as a transport engine
+# The ideas used here are further developed in the pyNKRT project
+# which implements a small custom built chemistry engine and Newton-Krylov to solve the coupled system
+# cf: https://gitlab.inria.fr/charms/pynkrt
+#
+# The specific example in this file is from the paper:
 # AJ Valocchi, RL Street, PV Roberts Transport of ion-exchanging solutes in groundwater:
 # Chromatographic theory and field simulation Water Resources Research 17 (5),
 # 1517-1527, 1981
