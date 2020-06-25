@@ -1,0 +1,12 @@
+sites:
+    - node
+    - cell
+    - face
+physics:
+    - coats:
+        - 2 # primary values
+    - well:
+        - 1
+
+
+# DOF size __all__ / __specific__ even all hace unid with proc / id nb nodes non pas maillage mais physics !!
