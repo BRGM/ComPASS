@@ -152,6 +152,15 @@ def _dump_wells(
                 ),
             ]
         }
+
+        try:
+            welldata["well sat_phase_gas"] = np.ascontiguousarray(well.saturation[:, 0])
+
+            welldata["well sat_phase_liq"] = np.ascontiguousarray(well.saturation[:, 1])
+
+        except AttributeError:
+            pass
+
         try:
             welldata["well saturation pressure"] = np.ascontiguousarray(
                 simulation.Psat(well.temperature)

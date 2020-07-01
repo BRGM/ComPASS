@@ -603,25 +603,25 @@ contains
       logical :: converged
 !#endif
 
-      well_data%actual_mass_flowrate = qw
-      well_data%actual_energy_flowrate = qe
-      well_data%actual_pressure = well_head_perforation%Pression
-!      well_data%actual_temperature = well_head_perforation%Temperature
-
-!#ifndef NDEBUG
-      ! WARNING: well_data%actual_temperature must be set to a consistent number...
-      T = well_data%actual_temperature
-      call DefFlashWells_solve_for_temperature(qe, well_head_perforation%Pression, T, qw, converged)
-      if (.not. converged) &
-         !write(*,*) "WARNING: Conversion from enthalpy to temperature diverged."
-         call CommonMPI_abort("WARNING: Conversion from enthalpy to temperature diverged.")
-      !   if(abs(T-well_data%actual_temperature)>1e-3) then
-      !      write(*,*) "Well head temperatures:", well_data%actual_temperature, T
-      !      call CommonMPI_abort("Collected wellhead temperature is inconsistent.")
-      !   endif
-!#endif
-      well_data%actual_temperature = T
-
+!!$      well_data%actual_mass_flowrate = qw
+!!$      well_data%actual_energy_flowrate = qe
+!!$      well_data%actual_pressure = well_head_perforation%Pression
+!!$!      well_data%actual_temperature = well_head_perforation%Temperature
+!!$
+!!$!#ifndef NDEBUG
+!!$      ! WARNING: well_data%actual_temperature must be set to a consistent number...
+!!$      T = well_data%actual_temperature
+!!$      call DefFlashWells_solve_for_temperature(qe, well_head_perforation%Pression, T, qw, converged)
+!!$      if(.not.converged) &
+!!$         !write(*,*) "WARNING: Conversion from enthalpy to temperature diverged."
+!!$         call CommonMPI_abort("WARNING: Conversion from enthalpy to temperature diverged.")
+!!$      !   if(abs(T-well_data%actual_temperature)>1e-3) then
+!!$      !      write(*,*) "Well head temperatures:", well_data%actual_temperature, T
+!!$      !      call CommonMPI_abort("Collected wellhead temperature is inconsistent.")
+!!$      !   endif
+!!$!#endif
+!!$      well_data%actual_temperature = T
+!!$
    end subroutine collect_wellhead_information
 
    subroutine Residu_add_flux_contributions_wells
@@ -682,7 +682,7 @@ contains
          ! FIXME: Init actual temperature
          s = NodebyWellInjLocal%Pt(k + 1) ! well head
          DataWellInjLocal(k)%actual_temperature = IncNode(NodebyWellInjLocal%Num(s))%Temperature
-         call collect_wellhead_information(PerfoWellInj(s), qw, qe, DataWellInjLocal(k))
+         ! call collect_wellhead_information(PerfoWellInj(s), qw, qe, DataWellInjLocal(k)) ! DCQ: Why does it do the flash again ?
 
          ! inj well equation
          if (DataWellInjLocal(k)%IndWell == 'p') then
