@@ -62,7 +62,11 @@ def create_format_commit(selection=None, format_source=None):
 
     check_clean_head()
 
-    configuration_files = [".pre-commit-config.yaml", ".clang-format"]
+    configuration_files = [
+        ".pre-commit-config.yaml",
+        ".clang-format",
+        ".cmake-format.yaml",
+    ]
 
     if format_source is not None:
         run(f"git checkout {format_source} -- {' '.join(configuration_files)}")
