@@ -62,7 +62,10 @@ contains
    !< T is the temperature
    !< C is the phase molar frcations
    !< S is all the saturations
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -74,8 +77,10 @@ contains
 
       integer :: errcode, Ierr
 
+#ifndef NDEBUG
       write (*, *) "Should never be called with a single component."
       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+#endif
 
    end subroutine f_Fugacity
 
@@ -85,7 +90,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
       ! input
@@ -112,7 +117,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+   pure subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
       integer(c_int), intent(in) :: iph
@@ -130,7 +135,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
       ! input
@@ -152,7 +157,7 @@ contains
    !< rt is the rocktype identifier
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< S is all the saturations
-   subroutine f_PermRel(rt, iph, S, f, DSf)
+   pure subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -171,7 +176,7 @@ contains
    !< rt is the rocktype identifier
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< S is all the saturations
-   subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
+   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -192,7 +197,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+   pure subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
       integer(c_int), intent(in) :: iph
@@ -211,7 +216,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
       ! input
@@ -236,7 +241,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 
       ! input

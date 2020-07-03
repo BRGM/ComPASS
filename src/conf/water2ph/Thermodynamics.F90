@@ -44,7 +44,10 @@ contains
    !< T is the temperature
    !< C is the phase molar frcations
    !< S is all the saturations
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -80,25 +83,16 @@ contains
 
    end subroutine f_Fugacity
 
-   ! FIXME: To be removed
-   subroutine check_array_interop(ina, outa) &
-      bind(C, name="check_array_interop")
-
-      real(c_double), intent(in)  :: ina(NbPhase)
-      real(c_double), intent(out) :: outa(NbPhase)
-
-      print *, "Array input", ina
-      outa = ina + 0.5
-
-   end subroutine check_array_interop
-
    ! FIXME #51 densite massique
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is Reference Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
@@ -116,8 +110,10 @@ contains
 
          rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
          call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+#ifndef NDEBUG
          if (Pc .ne. 0.d0) &
             call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
+#endif
          Pg = P + Pc
 
          u = 0.018016d0
@@ -139,9 +135,11 @@ contains
       else if (iph == LIQUID_PHASE) then
          rt = 0 ! FIXME: rt is not used because Pc=0.
          call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+#ifndef NDEBUG
          if (Pc .ne. 0.d0) &
             call CommonMPI_abort("error in f_DensiteMolaire: "// &
                                  "confusion between P and Pl")
+#endif
          Pl = P + Pc   ! carreful, P is Pref and not Pl
 
          rs = 0.d0
@@ -190,7 +188,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
@@ -204,7 +205,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
@@ -248,7 +252,10 @@ contains
    !< rt is the rocktype identifier
    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< S is all the saturations
-   subroutine f_PermRel(rt, iph, S, f, DSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -281,7 +288,7 @@ contains
    !< rt is the rocktype identifier
    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< S is all the saturations
-   subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
+   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -302,7 +309,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
       integer(c_int), intent(in) :: iph
@@ -322,7 +332,10 @@ contains
    !< C is the phase molar fractions
    !< S is all the saturations
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
-   subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
       ! input
@@ -372,7 +385,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 
       ! input
@@ -412,7 +428,7 @@ contains
    end subroutine f_SpecificEnthalpy
 
    !< T is the Temperature
-   subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
+   pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
 
       real(c_double), value, intent(in) :: T
@@ -424,7 +440,7 @@ contains
    end subroutine FluidThermodynamics_Psat
 
    !< P is the Reference Pressure
-   subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
+   pure subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
       bind(C, name="FluidThermodynamics_Tsat")
 
       real(c_double), value, intent(in) :: P
