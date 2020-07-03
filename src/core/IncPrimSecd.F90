@@ -19,13 +19,11 @@ module IncPrimSecd
       NbIncTotalPrimMax, NbEqFermetureMax, NbIncTotalMax, &
       pschoice, psprim, pssecd, &
       NumPhasePresente_ctx, NbPhasePresente_ctx, &
-      NbIncPTCMax, IndThermique, NbCompThermique, NbEqEquilibreMax
+      IndThermique, NbCompThermique
 
    use NumbyContext, only: &
-      NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
-      NumIncComp2NumIncPTC_ctx, NbIncTotalPrim_ctx, NumCompCtilde_ctx, &
-      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-      NbEqEquilibre_ctx, NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
+      NbEqFermeture_ctx, NbIncTotalPrim_ctx, &
+      NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
 
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
@@ -40,6 +38,7 @@ module IncPrimSecd
 
    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
    use Thermodynamics, only: f_Fugacity
+   use IncPrimSecdTypes, only: ControlVolumeInfo, IncPrimSecdTypes_collect_cv_info
 
    implicit none
 
@@ -68,21 +67,6 @@ module IncPrimSecd
       NumIncTotalSecondFrac, &
       NumIncTotalSecondNode
 
-   ! tmp values to simpfy notations of numerotation
-   ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
-   integer, private :: &
-      NbPhasePresente, NbCompCtilde, &
-      NbEqFermeture, NbEqEquilibre, & ! NbEqEquilibre -> Nombre d'Equation d'Equilibre thermodynamique fct du contexte (i.e. égalité des fugacités)
-      NbIncPTC, NbIncPTCPrim, NbIncTotal, &
-      NbIncTotalPrim, &  !
-      NumPhasePresente(NbPhase), & ! Num -> identifiants de la phase présente
-      NumCompCtilde(NbComp), & ! Num -> identifiants des composants absents
-      NumCompEqEquilibre(NbEqEquilibreMax), & ! identifiant des composant présents dans au moins 2 phases (donc concernés par égalité fugacités)
-      NumIncPTC2NumIncComp_comp(NbIncPTCMax), & ! Etant donné une ligne du "vecteur inconnu" quel est le composant
-      NumIncPTC2NumIncComp_phase(NbIncPTCMax), & ! Etant donné une ligne du "vecteur inconnu" quelle est la phase
-      Num2PhasesEqEquilibre(2, NbEqEquilibreMax), & ! phases impliquées dans l'équilibre (cf. NumCompEqEquilibre)
-      NumIncComp2NumIncPTC(NbComp, NbPhase) ! matrice donnant pour chaque phase et chaque composant la ligne du "vecteur inconnu"
-
    public :: &
       IncPrimSecd_allocate, &
       IncPrimSecd_free, &
@@ -92,7 +76,6 @@ module IncPrimSecd
 
    private :: &
       IncPrimSecd_compute_cv, & ! all operations for one cv
-      IncPrimSecd_init_cv, & ! init infos according to ic (context) for each control volume (cv)
       IncPrimSecd_dFsurdX_cv, & ! compute dF/dX for each cv
       IncPrimSecd_dXssurdXp_cv              ! compute dFs/dXp
 
@@ -161,6 +144,7 @@ contains
       integer :: k
       double precision :: &
          dFsurdX(NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
+      type(ControlVolumeInfo) :: cv_info
 
       do k = 1, NbIncLocal
 
@@ -168,18 +152,18 @@ contains
          if (inc(k)%ic > 2**NbPhase - 1) cycle !< \todo FIXME: TEMPORARY: avoid FF dof, loop over reservoir node only.
 #endif
          ! init tmp values for each cv
-         call IncPrimSecd_init_cv(inc(k))
+         call IncPrimSecdTypes_collect_cv_info(inc(k)%ic, cv_info)
 
          !< compute dF/dX
          !< dFsurdX: (col, row) index order
-         call IncPrimSecd_dFsurdX_cv(inc(k), rt(:, k), dFsurdX, SmF(:, k))
+         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), rt(:, k), dFsurdX, SmF(:, k))
 
          !< choose inconnues prim and secd
-         call IncPrimSecd_ps_cv(inc(k), dFsurdX, pschoice, &
+         call IncPrimSecd_ps_cv(cv_info, inc(k), dFsurdX, pschoice, &
                                 NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k))
 
          !< compute dXssurdxp and SmdXs
-         call IncPrimSecd_dXssurdXp_cv(inc(k), dFsurdX, SmF(:, k), &
+         call IncPrimSecd_dXssurdXp_cv(cv_info, inc(k), dFsurdX, SmF(:, k), &
                                        NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                        dXssurdXp(:, :, k), SmdXs(:, k))
 
@@ -201,35 +185,6 @@ contains
 
    end subroutine IncPrimSecd_compPrim_nodes
 
-   !> \brief  init tmp values for each inc
-   subroutine IncPrimSecd_init_cv(inc)
-
-      type(TYPE_IncCVReservoir), intent(in) :: inc
-
-      NbPhasePresente = NbPhasePresente_ctx(inc%ic)
-      NbCompCtilde = NbCompCtilde_ctx(inc%ic)
-
-      NbEqFermeture = NbEqFermeture_ctx(inc%ic)
-      NbEqEquilibre = NbEqEquilibre_ctx(inc%ic)
-
-      NbIncPTC = NbIncPTC_ctx(inc%ic)
-      NbIncPTCPrim = NbIncPTC - NbEqFermeture
-      NbIncTotal = NbIncTotal_ctx(inc%ic)
-
-      ! ps. if there is only one phase, phase is secd  ! FIXME: we assume too much info about physic
-      NbIncTotalPrim = NbIncTotalPrim_ctx(inc%ic)
-
-      NumPhasePresente(:) = NumPhasePresente_ctx(:, inc%ic)
-      NumCompCtilde(:) = NumCompCtilde_ctx(:, inc%ic)
-      NumCompEqEquilibre(:) = NumCompEqEquilibre_ctx(:, inc%ic)
-      NumIncPTC2NumIncComp_comp(:) = NumIncPTC2NumIncComp_comp_ctx(:, inc%ic)
-      NumIncPTC2NumIncComp_phase(:) = NumIncPTC2NumIncComp_phase_ctx(:, inc%ic)
-
-      Num2PhasesEqEquilibre(:, :) = Num2PhasesEqEquilibre_ctx(:, :, inc%ic)
-      NumIncComp2NumIncPTC(:, :) = NumIncComp2NumIncPTC_ctx(:, :, inc%ic)
-
-   end subroutine IncPrimSecd_init_cv
-
    !> \todo FIXME: reprendre notations de Xing et al. 2017
    !> \brief  compute dF/dX
    !! F = closure equations
@@ -241,8 +196,9 @@ contains
    !!      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
    !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
-   subroutine IncPrimSecd_dFsurdX_cv(inc, rt, dFsurdX, SmF)
+   subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, rt, dFsurdX, SmF)
 
+      type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       integer, intent(in) :: rt(IndThermique + 1)
       double precision, intent(out) :: &  ! (col, row) index order
@@ -264,12 +220,12 @@ contains
       ! 1. F = sum_icp C_icp^iph(i) - 1, for i
 
       ! loop for rows associate with C_icp^iph(i) in dFsurdX
-      do i = 1, NbPhasePresente  ! row is i, col is j
-         iph = NumPhasePresente(i)
+      do i = 1, cv_info%NbPhasePresente  ! row is i, col is j
+         iph = cv_info%NumPhasePresente(i)
 
          do icp = 1, NbComp ! loop for cols
             if (MCP(icp, iph) == 1) then
-               j = NumIncComp2NumIncPTC(icp, iph)  ! num of C_icp^iph in IncPTC
+               j = cv_info%NumIncComp2NumIncPTC(icp, iph)  ! num of C_icp^iph in IncPTC
                dFsurdX(j, i) = 1.d0
 
                SmF(i) = SmF(i) + inc%Comp(icp, iph)
@@ -278,86 +234,97 @@ contains
          SmF(i) = SmF(i) - 1.d0
       enddo
 
-      mi = NbPhasePresente ! nb of closure eq already stored, mi+1 futur row of dFsurdX and SmF
+      mi = cv_info%NbPhasePresente ! nb of closure eq already stored, mi+1 futur row of dFsurdX and SmF
 
       ! --------------------------------------------------------------------------
       ! thermodynamic equilibrium - fugacities equality
       ! 2. F = f_i^alpha * C_i^alpha - f_i^beta * C_i^beta
-      do i = 1, NbEqEquilibre !
+#if defined ComPASS_SINGLE_PHASE && defined ComPASS_SINGLE_COMPONENT
+      ! FIXME: put this test in between NDEBUG preprocessors directives
+      !        Once some CI tests are run in Debug mode
+      if (cv_info%NbEqEquilibre /= 0) &
+         call CommonMPI_abort("Model inconsistency...")
+#else
+      if (cv_info%NbEqEquilibre /= 0) then
 
-         icp = NumCompEqEquilibre(i) ! component
+         do i = 1, cv_info%NbEqEquilibre !
 
-         iph1 = Num2PhasesEqEquilibre(1, i) ! phase alpha
-         iph2 = Num2PhasesEqEquilibre(2, i) ! phase beta
+            icp = cv_info%NumCompEqEquilibre(i) ! component
 
-         numc1 = NumIncComp2NumIncPTC(icp, iph1) ! num of C_i^alpha in IncPTC
-         numc2 = NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
+            iph1 = cv_info%Num2PhasesEqEquilibre(1, i) ! phase alpha
+            iph2 = cv_info%Num2PhasesEqEquilibre(2, i) ! phase beta
 
-         ! fugacity and derivative
-         call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
-                         inc%Comp(:, iph1), inc%Saturation, &
-                         f1, dPf1, dTf1, dCf1, dSf1)
-         call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
-                         inc%Comp(:, iph2), inc%Saturation, &
-                         f2, dPf2, dTf2, dCf2, dSf2)
+            numc1 = cv_info%NumIncComp2NumIncPTC(icp, iph1) ! num of C_i^alpha in IncPTC
+            numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
-         ! derivative reference Pression
-         dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)
+            ! fugacity and derivative
+            call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
+                            inc%Comp(:, iph1), inc%Saturation, &
+                            f1, dPf1, dTf1, dCf1, dSf1)
+            call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
+                            inc%Comp(:, iph2), inc%Saturation, &
+                            f2, dPf2, dTf2, dCf2, dSf2)
+
+            ! derivative reference Pression
+            dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)
 
 #ifdef _THERMIQUE_
-         ! derivative Temperature
-         dFsurdX(2, i + mi) = dTf1*inc%Comp(icp, iph1) - dTf2*inc%Comp(icp, iph2)
+            ! derivative Temperature
+            dFsurdX(2, i + mi) = dTf1*inc%Comp(icp, iph1) - dTf2*inc%Comp(icp, iph2)
 #endif
 
-         ! derivative Components
-         ! d (f(P,T,C,S)*C_i)/dC_i = f + df/dC_i*C_i
-         ! d (f(P,T,C,S)*C_i)/dC_j =     df/dC_j*C_i, j!=i
-         dFsurdX(numc1, i + mi) = f1   ! first part of   d (f1(P,T,C)*C_i)/dC_i
+            ! derivative Components
+            ! d (f(P,T,C,S)*C_i)/dC_i = f + df/dC_i*C_i
+            ! d (f(P,T,C,S)*C_i)/dC_j =     df/dC_j*C_i, j!=i
+            dFsurdX(numc1, i + mi) = f1   ! first part of   d (f1(P,T,C)*C_i)/dC_i
 
-         do j = 1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
-            if (MCP(j, iph1) == 1) then ! phase iph1 contains component j
+            do j = 1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
+               if (MCP(j, iph1) == 1) then ! phase iph1 contains component j
 
-               numj = NumIncComp2NumIncPTC(j, iph1) ! num of C_j^iph1 in Inc
+                  numj = cv_info%NumIncComp2NumIncPTC(j, iph1) ! num of C_j^iph1 in Inc
+                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
+                                          + inc%Comp(icp, iph1)*dCf1(j)
+               end if
+            end do
+
+            dFsurdX(numc2, i + mi) = -f2   ! first part of   - d (f2(P,T,C)*C_i)/dC_i
+
+            do j = 1, NbComp     ! - df2/dC_j*C_i    for every j which is in iph2
+               if (MCP(j, iph2) == 1) then ! phase iph2 contains component j
+
+                  numj = cv_info%NumIncComp2NumIncPTC(j, iph2) ! num of C_j^iph2 in Inc
+                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
+                                          - inc%Comp(icp, iph2)*dCf2(j)
+               end if
+            end do
+
+            ! derivative principal Saturations
+            ! with contribution of secondary Saturation
+            ! because sum(saturations)=1 is eliminated
+            jph_scd = cv_info%NumPhasePresente(cv_info%NbPhasePresente) ! secd saturation
+            do j = 1, cv_info%NbPhasePresente - 1
+               numj = j + cv_info%NbIncPTC
+               jph = cv_info%NumPhasePresente(j)
+
                dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                       + inc%Comp(icp, iph1)*dCf1(j)
-            end if
+                                       + dSf1(jph)*inc%Comp(icp, iph1) - dSf2(jph)*inc%Comp(icp, iph2) &
+                                       - dSf1(jph_scd)*inc%Comp(icp, iph1) + dSf2(jph_scd)*inc%Comp(icp, iph2)
+            end do
+
+            ! SmF
+            SmF(i + mi) = f1*inc%Comp(icp, iph1) - f2*inc%Comp(icp, iph2)
          end do
 
-         dFsurdX(numc2, i + mi) = -f2   ! first part of   - d (f2(P,T,C)*C_i)/dC_i
-
-         do j = 1, NbComp     ! - df2/dC_j*C_i    for every j which is in iph2
-            if (MCP(j, iph2) == 1) then ! phase iph2 contains component j
-
-               numj = NumIncComp2NumIncPTC(j, iph2) ! num of C_j^iph2 in Inc
-               dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                       - inc%Comp(icp, iph2)*dCf2(j)
-            end if
-         end do
-
-         ! derivative principal Saturations
-         ! with contribution of secondary Saturation
-         ! because sum(saturations)=1 is eliminated
-         jph_scd = NumPhasePresente(NbPhasePresente) ! secd saturation
-         do j = 1, NbPhasePresente - 1
-            numj = j + NbIncPTC
-            jph = NumPhasePresente(j)
-
-            dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                    + dSf1(jph)*inc%Comp(icp, iph1) - dSf2(jph)*inc%Comp(icp, iph2) &
-                                    - dSf1(jph_scd)*inc%Comp(icp, iph1) + dSf2(jph_scd)*inc%Comp(icp, iph2)
-         end do
-
-         ! SmF
-         SmF(i + mi) = f1*inc%Comp(icp, iph1) - f2*inc%Comp(icp, iph2)
-      end do
+      end if
+#endif
 
    end subroutine IncPrimSecd_dFsurdX_cv
 
    !> \brief choose primary and secondary unknowns for each CV
    !! fill inc%Nb/NumIncTotalPrim/Secd
-   subroutine IncPrimSecd_ps_cv(inc, dFsurdX, pschoicecv, &
+   subroutine IncPrimSecd_ps_cv(cv_info, inc, dFsurdX, pschoicecv, &
                                 NumIncTotalPrimCV, NumIncTotalSecondCV)
-
+      type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       ! dFsurdX may be used depending on choice method
       ! (e.g. projection on closure equations)
@@ -391,7 +358,7 @@ contains
          ! NumIncTotalPrimCV, NumIncTotalSecondCV)
          call CommonMPI_abort("Glouton method is not implemented in IncPrimSecd")
       else if (pschoicecv == 3) then ! Gauss method
-         call IncPrimSecd_IncSecondGauss(inc, dFsurdX, &
+         call IncPrimSecd_IncSecondGauss(cv_info, inc, dFsurdX, &
                                          NumIncTotalPrimCV, NumIncTotalSecondCV)
       end if
 
@@ -399,10 +366,11 @@ contains
 
    !> \brief Compute dXssurdXp = dFsurdXs**(-1) * dFsurdXp
    !! and SmdXs = dFsurdXs**(-1) * SmF
-   subroutine IncPrimSecd_dXssurdXp_cv(inc, dFsurdX, SmF, &
+   subroutine IncPrimSecd_dXssurdXp_cv(cv_info, inc, dFsurdX, SmF, &
                                        NumIncTotalPrimCV, NumIncTotalSecondCV, dXssurdXp, SmdXs)
 
       ! inputs
+      type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       double precision, intent(in) :: & ! (col, row) index order
          dFsurdX(NbIncTotalMax, NbEqFermetureMax), &
@@ -423,42 +391,42 @@ contains
          dFsurdX_secd(NbEqFermetureMax, NbEqFermetureMax)
 
       ! parameters for lapack
-      integer :: ipiv(NbEqFermetureMax), info, Ierr, errcode
+      integer :: ipiv(NbEqFermetureMax), blas_info, Ierr, errcode
       integer :: i, j, iph
 
       ! from dFsurdX, take out the cols of prim and secd variable
-      do j = 1, NbIncTotalPrim
-         do i = 1, NbEqFermeture
+      do j = 1, cv_info%NbIncTotalPrim
+         do i = 1, cv_info%NbEqFermeture
             dFsurdX_prim(i, j) = dFsurdX(NumIncTotalPrimCV(j), i)
          enddo
       enddo
 
-      do j = 1, NbEqFermeture ! = Nb of secd unknowns
-         do i = 1, NbEqFermeture
+      do j = 1, cv_info%NbEqFermeture ! = Nb of secd unknowns
+         do i = 1, cv_info%NbEqFermeture
             dFsurdX_secd(i, j) = dFsurdX(NumIncTotalSecondCV(j), i)
          enddo
       enddo
 
       ! dXssurdXp = dFsurdXs**(-1) * dFsurdXp
-      call dgetrf(NbEqFermeture, NbEqFermeture, &
-                  dFsurdX_secd, NbEqFermetureMax, ipiv, info)
+      call dgetrf(cv_info%NbEqFermeture, cv_info%NbEqFermeture, &
+                  dFsurdX_secd, NbEqFermetureMax, ipiv, blas_info)
 
-      if (info /= 0) then
-         write (0, '(A,I0)') "dgetrf error in dXssurdxp, info = ", info
+      if (blas_info /= 0) then
+         write (0, '(A,I0)') "dgetrf error in dXssurdxp, info = ", blas_info
 
          write (*, *) ' inc ic ', inc%ic
          write (*, *) ' inc P ', inc%Pression
          write (*, *) ' inc T ', inc%Temperature
          write (*, *) ' Sat ', inc%Saturation
-         DO i = 1, NbPhasePresente
-            iph = NumPhasePresente(i)
+         DO i = 1, cv_info%NbPhasePresente
+            iph = cv_info%NumPhasePresente(i)
             write (*, *) ' phase  ', iph
             write (*, *) ' C_i  ', inc%Comp(:, iph)
          ENDDO
          write (*, *)
 
-         do i = 1, NbEqFermeture ! = Nb of secd unknowns
-            do j = 1, NbEqFermeture
+         do i = 1, cv_info%NbEqFermeture ! = Nb of secd unknowns
+            do j = 1, cv_info%NbEqFermeture
                write (*, *) ' dFsurdXs ', i, j, dFsurdX(NumIncTotalSecondCV(j), i)
             enddo
             write (*, *)
@@ -467,30 +435,30 @@ contains
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
 
-      call dgetrs('N', NbEqFermeture, NbIncTotalPrim, &
+      call dgetrs('N', cv_info%NbEqFermeture, cv_info%NbIncTotalPrim, &
                   dFsurdX_secd, NbEqFermetureMax, &
-                  ipiv, dFsurdX_prim, NbEqFermetureMax, info)
-      if (info /= 0) then
-         write (0, '(A,I0)') "dgetrs error in dXssurdxp, info = ", info
+                  ipiv, dFsurdX_prim, NbEqFermetureMax, blas_info)
+      if (blas_info /= 0) then
+         write (0, '(A,I0)') "dgetrs error in dXssurdxp, info = ", blas_info
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
 
-      do j = 1, NbIncTotalPrim
-         do i = 1, NbEqFermeture
+      do j = 1, cv_info%NbIncTotalPrim
+         do i = 1, cv_info%NbEqFermeture
             dXssurdXp(j, i) = dFsurdX_prim(i, j)
          enddo
       enddo
 
       ! SmdXs = dFsurdXs**(-1) * SmF
-      call dgetrs('N', NbEqFermeture, 1, &
+      call dgetrs('N', cv_info%NbEqFermeture, 1, &
                   dFsurdX_secd, NbEqFermetureMax, &
-                  ipiv, SmF, NbEqFermetureMax, info)
-      if (info /= 0) then
-         write (0, '(A,I0)') "dgetrs error in SmdXs, info = ", info
+                  ipiv, SmF, NbEqFermetureMax, blas_info)
+      if (blas_info /= 0) then
+         write (0, '(A,I0)') "dgetrs error in SmdXs, info = ", blas_info
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
 
-      do i = 1, NbEqFermeture
+      do i = 1, cv_info%NbEqFermeture
          SmdXs(i) = SmF(i)
       end do
 
@@ -500,10 +468,11 @@ contains
    !! from the matrix dFsurdX with the glouton algorithm
    !! by minimizing the successives angles
    !! \todo IncPrimSecd_IncSecondGlouton not implemented yet ?
-   subroutine IncPrimSecd_IncSecondGlouton(inc, dFsurdX, &
+   subroutine IncPrimSecd_IncSecondGlouton(cv_info, inc, dFsurdX, &
                                            NumIncTotalPrimCV, NumIncTotalSecondCV)
 
       ! input
+      type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       double precision, intent(in) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
@@ -530,15 +499,15 @@ contains
       ! 2. others
 
       ! dFsurdXnrm2(i): norm 2 of line i of dFsurdX
-      do j = 1, NbIncTotal
-         do i = 1, NbEqFermeture
+      do j = 1, cv_info%NbIncTotal
+         do i = 1, cv_info%NbEqFermeture
             dFsurdXnrm2(j) = dFsurdXnrm2(j) + dFsurdX(j, i)**2
          end do
          dFsurdXnrm2(j) = dsqrt(dFsurdXnrm2(j))
       end do
 
       ! loop for choosing secd inconnues (size is NbEqFermeture), index: is
-      do is = 1, NbEqFermeture
+      do is = 1, cv_info%NbEqFermeture
 
          ! compute ctrit
          if (is == 1) then
@@ -547,10 +516,10 @@ contains
          else !
 
             rnormProjVinc = 0.d0
-            do j = 1, NbIncTotal ! i: loop index of P T C S
+            do j = 1, cv_info%NbIncTotal ! i: loop index of P T C S
 
                ss = 0.d0
-               do i = 1, NbEqFermeture
+               do i = 1, cv_info%NbEqFermeture
                   ss = ss + BaseOrthonormale(i, j)*dFsurdX(j, i)
                end do
 
@@ -566,7 +535,7 @@ contains
 
          ! max of ctrit
          ctrit_max = -100.d0
-         do j = 1, NbIncPTC
+         do j = 1, cv_info%NbIncPTC
             if (ctrit(j) > ctrit_max) then
                ctrit_max = ctrit(j)
             end if
@@ -574,7 +543,7 @@ contains
 
          ! ctrit_maxidxs: all elements that takes the max value
          nj = 0
-         do j = 1, NbIncTotal
+         do j = 1, cv_info%NbIncTotal
             if (abs(ctrit(j) - ctrit_max) < eps) then
                ctrit_maxidxs(nj) = j
                nj = nj + 1
@@ -585,14 +554,14 @@ contains
          NumIncTotalSecondCV(is) = j1
 
          ! update BaseOrthonomale
-         do j = 1, NbEqFermeture
+         do j = 1, cv_info%NbEqFermeture
             BaseOrthonormale(j, is) = dFsurdX(is, j)
          end do
 
          do i = 1, is - 1
 
             ss = 0.d0
-            do j = 1, NbEqFermeture
+            do j = 1, cv_info%NbEqFermeture
                ss = ss + BaseOrthonormale(j, i)*dFsurdX(is, j)
             end do
 
@@ -602,12 +571,12 @@ contains
 
          ! normalisation
          ss = 0.d0
-         do j = 1, NbEqFermeture
+         do j = 1, cv_info%NbEqFermeture
             ss = ss + BaseOrthonormale(j, is)**2
          enddo
 
          ss = dsqrt(ss)
-         do j = 1, NbEqFermeture
+         do j = 1, cv_info%NbEqFermeture
             BaseOrthonormale(j, is) = BaseOrthonormale(j, is)/ss
          enddo
 
@@ -619,10 +588,11 @@ contains
 
    !> \brief  Choice of primary and secondary unknowns
    !! from the matrix dFsurdX with the Gauss algorithm
-   subroutine IncPrimSecd_IncSecondGauss(inc, dFsurdX, &
+   subroutine IncPrimSecd_IncSecondGauss(cv_info, inc, dFsurdX, &
                                          NumIncTotalPrimCV, NumIncTotalSecondCV)
 
       ! input
+      type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       double precision, intent(in) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
@@ -667,8 +637,8 @@ contains
       ! end if
 
       ! init set of inconnus and equations
-      NbSetInc = NbIncPTC
-      NbSetEq = NbEqFermeture
+      NbSetInc = cv_info%NbIncPTC
+      NbSetEq = cv_info%NbEqFermeture
 
       do j = 1, NbSetInc
          NumSetInc(j) = j
@@ -680,7 +650,7 @@ contains
 
       BB(:, :) = dFsurdX(:, :) ! (col, row) index order
 
-      do is = 1, NbEqFermeture ! = nb of secd inconnues
+      do is = 1, cv_info%NbEqFermeture ! = nb of secd inconnues
 
          ! max element of abs(BB(:,:))
          pivotmax = -1.d0
@@ -753,8 +723,8 @@ contains
 
             i1 = pivot(1, 1) ! num of Eq
             j1 = pivot(2, 1) ! num of Inc
-            icp1 = NumIncPTC2NumIncComp_comp(j1)
-            iph1 = NumIncPTC2NumIncComp_phase(j1)
+            icp1 = cv_info%NumIncPTC2NumIncComp_comp(j1)
+            iph1 = cv_info%NumIncPTC2NumIncComp_phase(j1)
 
             ! if(is==2 .and. commRank==1) then
             !    print*,"init", i1, j1
@@ -764,8 +734,8 @@ contains
 
                i = pivot(1, k)
                j = pivot(2, k)
-               icp = NumIncPTC2NumIncComp_comp(j)  ! icp in C_{icp}^iph
-               iph = NumIncPTC2NumIncComp_phase(j) ! iph in C_{icp}^iph
+               icp = cv_info%NumIncPTC2NumIncComp_comp(j)  ! icp in C_{icp}^iph
+               iph = cv_info%NumIncPTC2NumIncComp_phase(j) ! iph in C_{icp}^iph
 
                !              if(commRank==1 .and. is==2) then
                ! !                print*, i1,j1
@@ -837,12 +807,12 @@ contains
       ! 2. NumIncTotalPrimcv = {1,2,...,NbIncPTC}/NumIncTotalSecondcv
       !                       + S^alpha, alpha=1:Nphase-1
       NumIncTotalPrim_idx(:) = .true.
-      do j = 1, NbEqFermeture
+      do j = 1, cv_info%NbEqFermeture
          NumIncTotalPrim_idx(NumIncTotalSecondCV(j)) = .false. ! not prim
       end do
 
       n = 0
-      do j = 1, NbIncPTC
+      do j = 1, cv_info%NbIncPTC
          if (NumIncTotalPrim_idx(j) .eqv. .true.) then ! prim
             n = n + 1
             NumIncTotalPrimCV(n) = j
@@ -851,7 +821,7 @@ contains
 
       ! last S is secd
       ! if there is only one phase, phase is secd
-      do j = NbIncPTC + 1, NbIncTotal - 1  ! NbIncTotal is not possible here, if there are more unknowns than P T C S
+      do j = cv_info%NbIncPTC + 1, cv_info%NbIncTotal - 1  ! NbIncTotal is not possible here, if there are more unknowns than P T C S
          n = n + 1
          NumIncTotalPrimCV(n) = j
       end do

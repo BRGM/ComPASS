@@ -78,11 +78,12 @@ module Jacobian
       PoroVolFourier, &
       Poro_1VolFourier
 
+   use NumbyContext, only: &
+      NbIncTotalPrim_ctx, NbIncTotalPrim_ctx, &
+      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
+
    use IncPrimSecd, only: &
-      NbIncTotalPrim_ctx, &
-      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-      NumIncTotalPrimNode, NumIncTotalPrimCell, NumIncTotalPrimFrac, &
-      NbIncTotalPrimMax
+      NumIncTotalPrimNode, NumIncTotalPrimCell, NumIncTotalPrimFrac, NbIncTotalPrimMax
 
    use MeshSchema, only: &
       IdNodeLocal, &

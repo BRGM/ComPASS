@@ -88,6 +88,7 @@ set(ComPASSCore_SRCS
     Jacobian.F90
     LocalMesh.F90
     IncPrimSecd.F90
+    IncPrimSecdTypes.F90
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90
