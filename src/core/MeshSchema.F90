@@ -348,8 +348,8 @@ contains
       integer(c_int), intent(in) :: rank
 
       if (rank >= Ncpus) then
-         call CommonMPI_abort("Index Error : Retrieving PartInfo for a &
-                              proc rank greater than number of procs")
+         call CommonMPI_abort("Index Error : Retrieving PartInfo for a"// &
+                              "proc rank greater than number of procs")
       end if
 
       info%ncpus = Ncpus

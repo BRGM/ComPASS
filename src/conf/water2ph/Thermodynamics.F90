@@ -140,8 +140,8 @@ contains
          rt = 0 ! FIXME: rt is not used because Pc=0.
          call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
          if (Pc .ne. 0.d0) &
-            call CommonMPI_abort('error in f_DensiteMolaire, &
-                                 confusion between P and Pl')
+            call CommonMPI_abort("error in f_DensiteMolaire: "// &
+                                 "confusion between P and Pl")
          Pl = P + Pc   ! carreful, P is Pref and not Pl
 
          rs = 0.d0
