@@ -2003,6 +2003,7 @@ contains
    !> \brief Contains the local data for the wells (own+ghost) of proc ip
    !! in particular %Parent contains the local number of the node Parent                   <br>
    !!               %Parent remains -1 if head node of the well
+! FIXME: Refactor with the same function to treat successively injectors and producers
    subroutine LocalMesh_NodeDatabyWellLocal(ip)
 
       integer, intent(in) :: ip
@@ -2019,6 +2020,8 @@ contains
       allocate (NodeDatabyWellInjLocal_Ncpus(ip1)%Num(nnz))
       allocate (NodeDatabyWellInjLocal_Ncpus(ip1)%Val(nnz))
 
+      ! copy CSR offsets
+      ! FIXME: would be shared using (shared... ?) pointers...
       NodeDatabyWellInjLocal_Ncpus(ip1)%Pt(:) = NodebyWellInjLocal_Ncpus(ip1)%Pt(:)
       NodeDatabyWellInjLocal_Ncpus(ip1)%Num(:) = NodebyWellInjLocal_Ncpus(ip1)%Num(:)
 
@@ -2039,13 +2042,24 @@ contains
             endif
          enddo
 
+#ifndef NDEBUG
+         if (NodeDatabyWellInjLocal_Ncpus(ip1)%Val(NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1))%Parent /= -1) &
+            call CommonMPI_abort("Inconsistent injector head")
+#endif
          ! Find pointer of parent and fill ...%Val%PtParent (except for head node)
          do cpt = NodebyWellInjLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1) - 1
+            ! reservoir node index
             num_parent = NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%Parent
+#ifndef NDEBUG
+            if (num_parent == -1) &
+               call CommonMPI_abort("Inconsistent parent vertex in injector")
+#endif
             ! look for parent (stored after son)
             do Data_cpt = cpt + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1)
                if (NodeDatabyWellInjLocal_Ncpus(ip1)%Num(Data_cpt) == num_parent) then
                   NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%PtParent = Data_cpt
+                  NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%RelParent = &
+                     Data_cpt - NodebyWellInjLocal_Ncpus(ip1)%Pt(k)
                   exit
                endif
             enddo
@@ -2062,6 +2076,8 @@ contains
       allocate (NodeDatabyWellProdLocal_Ncpus(ip1)%Num(nnz))
       allocate (NodeDatabyWellProdLocal_Ncpus(ip1)%Val(nnz))
 
+      ! copy CSR offsets
+      ! FIXME: would be shared using (shared... ?) pointers...
       NodeDatabyWellProdLocal_Ncpus(ip1)%Pt(:) = NodebyWellProdLocal_Ncpus(ip1)%Pt(:)
       NodeDatabyWellProdLocal_Ncpus(ip1)%Num(:) = NodebyWellProdLocal_Ncpus(ip1)%Num(:)
 
@@ -2082,13 +2098,25 @@ contains
             endif
          enddo
 
+#ifndef NDEBUG
+         if (NodeDatabyWellProdLocal_Ncpus(ip1)%Val(NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1))%Parent /= -1) &
+            call CommonMPI_abort("Inconsistent producer head")
+#endif
+
          ! Find pointer of parent and fill ...%Val%PtParent (except for head node)
          do cpt = NodebyWellProdLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1) - 1
+            ! reservoir node index
             num_parent = NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%Parent
+#ifndef NDEBUG
+            if (num_parent == -1) &
+               call CommonMPI_abort("Inconsistent parent vertex in producer")
+#endif
             ! look for parent (stored after son)
             do Data_cpt = cpt + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1)
                if (NodeDatabyWellProdLocal_Ncpus(ip1)%Num(Data_cpt) == num_parent) then
                   NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%PtParent = Data_cpt
+                  NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%RelParent = &
+                     Data_cpt - NodebyWellProdLocal_Ncpus(ip1)%Pt(k)
                   exit
                endif
             enddo

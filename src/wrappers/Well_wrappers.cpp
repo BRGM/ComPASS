@@ -54,7 +54,8 @@ struct Perforation_state  // WellPerforationState_type in IncCVWell.F90
 struct Perforation_data  // Fortran TYPE_DataNodeWell
 {
    int parent_vertex_id;  // num of parent; -1 if head node
-   int parent_rank;  // pt of parent; -1 if head node ! FIXME: improve doc !!!
+   int parent_offset;  // pt of parent; -1 if head node ! FIXME: improve doc !!!
+   int parent_rank;    // pt of parent; -1 if head node ! FIXME: improve doc !!!
    double well_index_Darcy;
    double well_index_Fourier;
 };
@@ -510,6 +511,7 @@ void add_well_wrappers(py::module& module) {
 
    py::class_<Perforation_data>(module, "PerforationData")
        .def_readonly("parent_vertex", &Perforation_data::parent_vertex_id)
+       .def_readonly("parent_offset", &Perforation_data::parent_offset)
        .def_readonly("parent_rank", &Perforation_data::parent_rank)
        .def_readonly("well_index_Darcy", &Perforation_data::well_index_Darcy)
        .def_readonly("well_index_Fourier",
@@ -629,8 +631,13 @@ void add_well_wrappers(py::module& module) {
       });
    };
 
+   // parent reservoir node
    add_perforation_rank_property("parent_vertex",
                                  offsetof(Perforation_data, parent_vertex_id));
+   // parent offset in *wells CSR*
+   add_perforation_rank_property("parent_offset",
+                                 offsetof(Perforation_data, parent_offset));
+   // parent local node index
    add_perforation_rank_property("parent_rank",
                                  offsetof(Perforation_data, parent_rank));
 

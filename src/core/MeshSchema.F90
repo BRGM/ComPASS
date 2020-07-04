@@ -729,8 +729,8 @@ contains
       integer stat(MPI_STATUS_SIZE)
 
       integer :: blen(1), offsets(1), oldtypes(1), MPI_IDNODE
-      integer :: blocklen(4), arraytype(4)
-      integer(kind=MPI_ADDRESS_KIND) ::disp(4)
+      integer :: blocklen(5), arraytype(5)
+      integer(kind=MPI_ADDRESS_KIND) ::disp(5)
 
       integer :: MPI_WELLDATA_ID
 
@@ -1586,21 +1586,17 @@ contains
 #endif
 
       ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
-      blocklen(1) = 1
-      blocklen(2) = 1
-      blocklen(3) = 1
-      blocklen(4) = 1
-      arraytype(1) = MPI_INTEGER
-      arraytype(2) = MPI_INTEGER
-      arraytype(3) = MPI_DOUBLE
-      arraytype(4) = MPI_DOUBLE
+      blocklen = 1
+      arraytype(1:3) = MPI_INTEGER
+      arraytype(4:5) = MPI_DOUBLE
       disp(1) = 0 !  = 0
       disp(2) = 4 !  + integer
       disp(3) = 8 !  + integer
-      disp(4) = 16 ! + double
+      disp(4) = 12 !  + integer
+      disp(5) = 20 ! + double
 
       ! Create and commit
-      call MPI_Type_Create_Struct(4, blocklen, disp, arraytype, MPI_DATANODEWELL, Ierr)
+      call MPI_Type_Create_Struct(5, blocklen, disp, arraytype, MPI_DATANODEWELL, Ierr)
       call MPI_Type_commit(MPI_DATANODEWELL, Ierr)
 
       ! send NodeDatabyWell

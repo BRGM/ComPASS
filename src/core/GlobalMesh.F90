@@ -1161,6 +1161,7 @@ contains
       NodebyWell%Num = -1
       NodeDatabyWell%Num = -1
       NodeDatabyWell%Val(:)%PtParent = -1
+      NodeDatabyWell%Val(:)%RelParent = -1
 
       NodebyWell%Pt(1) = 0
       do i = 1, NbWell

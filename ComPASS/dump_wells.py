@@ -78,6 +78,7 @@ def _print_well_stats(simulation, well_type):
         )
         print("vertices:", well.vertices)
         print("parent (vertex id):", well.parent_vertex)
+        print("parent (csr offset):", well.parent_offset)
         print("parent (rank):", well.parent_rank)
         print("pressure:", well.pressure)
         print("temperature:", K2degC(well.temperature))
@@ -167,7 +168,7 @@ def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
                 np.hstack(
                     [
                         np.reshape(remap[well_vertices[:-1]], (-1, 1)),
-                        np.reshape(remap[well.parent_vertex], (-1, 1)),
+                        np.reshape(remap[well.parent_offset], (-1, 1)),
                     ]
                 ),
                 pointdata=welldata,

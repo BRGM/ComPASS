@@ -51,8 +51,9 @@ module DefWell
 
    !> Store data of one Node Well about parent and well index
    type, bind(C) :: TYPE_DataNodeWell
-      integer(c_int) :: Parent !< num of parent; -1 if head node
-      integer(c_int) :: PtParent !< pt of parent; -1 if head node ! FIXME: improve doc !!!
+      integer(c_int) :: Parent !< num of parent = reservoir node; -1 if head node
+      integer(c_int) :: PtParent !< pt of parent = offset in "CSR" - Fortran indexing; -1 if head node ! FIXME: improve doc !!!
+      integer(c_int) :: RelParent !< index of parent locally to each well - Fortran indexing; -1 if head node ! FIXME: improve doc !!!
       real(c_double) :: WID !< Well Index Darcy
       real(c_double) :: WIF !< Well Index Fourier
    end type TYPE_DataNodeWell
@@ -489,6 +490,7 @@ contains
 
       x2%Parent = x1%Parent
       x2%PtParent = x1%PtParent
+      x2%RelParent = x1%RelParent
       x2%WID = x1%WID
       x2%WIF = x1%WIF
 
