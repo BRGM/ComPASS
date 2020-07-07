@@ -56,7 +56,7 @@
       n = NbContexte
    end function model_number_of_contexts
 
-   type(ModelConfiguration) function get_model_configuration() result(configuration)
+   pure type(ModelConfiguration) function get_model_configuration() result(configuration)
       configuration%nb_phases = NbPhase
       configuration%nb_components = NbComp
       configuration%nb_contexts = NbContexte

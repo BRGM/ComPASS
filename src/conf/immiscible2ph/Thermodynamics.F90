@@ -39,7 +39,7 @@ module Thermodynamics
 
 contains
 
-   function liquid_pressure(z_ref, p_ref, rho, g, z)
+   pure function liquid_pressure(z_ref, p_ref, rho, g, z)
       real(c_double), intent(in) :: z_ref
       real(c_double), intent(in) :: p_ref
       real(c_double), intent(in) :: rho
@@ -60,7 +60,7 @@ contains
    !< T is the temperature
    !< C is the phase molar frcations
    !< S is all the saturations
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+   pure subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -105,7 +105,7 @@ contains
       endif
    end subroutine f_Fugacity
 
-   subroutine air_henry(T, H)
+   pure subroutine air_henry(T, H)
 
       real(c_double), intent(in) :: T
       real(c_double), intent(out) :: H
@@ -123,7 +123,7 @@ contains
 
    end subroutine
 
-   subroutine air_henry_dT(H_dt)
+   pure subroutine air_henry_dT(H_dt)
 
       real(c_double), intent(out) :: H_dt
 
@@ -140,14 +140,14 @@ contains
 
    end subroutine
 
-   subroutine air_MasseMolaire(m)
+   pure subroutine air_MasseMolaire(m)
 
       real(c_double), intent(out) :: m
 
       m = 29.d-3
    end subroutine air_MasseMolaire
 
-   subroutine H2O_MasseMolaire(m)
+   pure subroutine H2O_MasseMolaire(m)
 
       real(c_double), intent(out)  :: m
 
@@ -160,7 +160,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_density")
 
       ! input
@@ -180,8 +183,10 @@ contains
       if (iph == GAS_PHASE) then
          rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
          call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+#ifndef NDEBUG
          if (Pc .ne. 0.d0) &
             call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
+#endif
          Pg = P + Pc
          f = Pg/(Rgp*T)
 
@@ -205,7 +210,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
       integer(c_int), intent(in) :: iph
@@ -249,7 +257,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
 
       ! input
@@ -278,7 +286,10 @@ contains
    !< rt is the rocktype identifier
    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< S is all the saturations
-   subroutine f_PermRel(rt, iph, S, f, DSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_PermRel(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -291,8 +302,11 @@ contains
       f = S(iph)**2
       dSf = 0.d0
       dSf(iph) = 2.d0*S(iph)
+
+#ifndef NDEBUG
       if (S(iph) < 0.d0) call CommonMPI_abort('Saturation < 0')
       if (S(iph) > 1.d0) call CommonMPI_abort('Saturation > 1')
+#endif
 
    end subroutine f_PermRel
 
@@ -302,7 +316,7 @@ contains
    !< S is all the saturations
    ! FIXME: IF f_PressionCapillaire DEPENDS ON THE ROCKTYPE,
    ! MODIFY f_EnergieInterne AND f_DensiteMolaire
-   subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
+   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
@@ -337,14 +351,19 @@ contains
 
    end subroutine f_PressionCapillaire
 
-   subroutine f_Sl(rt, Pc, Sl)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Sl(rt, Pc, Sl)
 
       integer(c_int), INTENT(IN) :: rt(IndThermique + 1)
       real(c_double), INTENT(IN) :: Pc
 
       real(c_double), INTENT(OUT) :: Sl
 
+#ifndef NDEBUG
       call CommonMPI_abort('entered in f_Sl, but Pc=0')
+#endif
 
    end subroutine
 
@@ -356,7 +375,10 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
 
       ! input
       integer(c_int), intent(in) :: iph
@@ -390,7 +412,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
 
       ! input
@@ -462,7 +484,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
 
       ! input
@@ -528,7 +550,7 @@ contains
 
    end subroutine f_SpecificEnthalpy
 
-   subroutine f_CpGaz(c)
+   pure subroutine f_CpGaz(c)
 
       real(c_double), intent(out) :: c
 
@@ -537,7 +559,7 @@ contains
 
    ! Compute Psat(T)
    !< T is the Temperature
-   subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
+   pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
 
       real(c_double), value, intent(in) :: T
@@ -551,7 +573,10 @@ contains
 
    ! Compute Tsat(P)
    !< P is the Reference Pressure
-   subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
       bind(C, name="FluidThermodynamics_Tsat")
 
       real(c_double), value, intent(in) :: P
@@ -560,7 +585,9 @@ contains
       Tsat = 0.d0
       dP_Tsat = 0.d0
 
+#ifndef NDEBUG
       call CommonMPI_abort('entered in Tsat, not implemented')
+#endif
 
    end subroutine FluidThermodynamics_Tsat
 
