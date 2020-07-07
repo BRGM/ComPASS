@@ -118,6 +118,7 @@ class PetscIterativeSolver(IterativeSolver):
         self.ksp.getPC().setFactorLevels(1)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
         self.tolerance, self.max_iterations, self.restart_size = self.settings[:]
+        self.ksp.setFromOptions()
 
     tolerance = property(
         fget=lambda self: self.ksp.rtol,
@@ -130,7 +131,9 @@ class PetscIterativeSolver(IterativeSolver):
         doc="Maximum number of iterations accepted before convergence failure",
     )
     restart_size = property(
-        fget=None,  # restart_size is not available in petsc4py  :(
+        # restart_size is not available in petsc4py,
+        # but can be set using the command line petsc option -ksp_gmres_restart restart
+        fget=None,
         fset=lambda self, value: self.ksp.setGMRESRestart(value),
         doc="Number of iterations at which GMRES restarts",
     )
