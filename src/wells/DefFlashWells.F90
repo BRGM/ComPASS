@@ -880,10 +880,10 @@ contains
    !! the loop is done from head to tail (mean density is updated before being used).
    subroutine DefFlashWells_TimeFlashSinglePhaseWellProd
 
-      double precision :: T, ResT, Pws, Ci(NbComp), sumni, E, zp, zs
-      double precision :: H, rhoMean, Pdrop
+      double precision :: T, ResT, Pws, Ci(NbComp), sumni, E
+      double precision :: rhoMean
       double precision :: dPf, dTf, Sat(NbPhase), dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_Enthalpie
-      integer :: k, s, icp, sparent, i
+      integer :: k, s, icp
       logical :: converged
 
       Sat(:) = 0.d0

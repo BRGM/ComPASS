@@ -39,8 +39,7 @@ contains
       INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
-      integer :: iph, context, errcode, Ierr
-      double precision :: dCf(NbComp)
+      integer :: context
 
       double precision :: Tsat, dTsatdP, Psat, dPsatdT
 
