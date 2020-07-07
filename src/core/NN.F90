@@ -47,7 +47,8 @@ module NN
    use Jacobian, only: Jacobian_StrucJacA, Jacobian_StrucJacBigA, Jacobian_free
    use SolvePetsc, only: SolvePetsc_Init, SolvePetsc_free
    use DefFlash, only: DefFlash_Flash_cv
-   use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells
+   use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells, DefFlashWells_free
+   use WellState, only: WellState_allocate, WellState_free
 
 #ifdef COMPASS_PETSC_VERSION_LESS_3_6
 #include <finclude/petscdef.h>
@@ -217,6 +218,7 @@ contains
                 (NbWellProdLocal_Ncpus(commRank + 1)))
 
       ! init and sort for flash
+      call WellState_allocate
       call DefFlashWells_allocate
 
    end subroutine NN_init_phase2_setup_solvers
@@ -276,6 +278,8 @@ contains
       ! call DefFlash_free
       call NumbyContext_free
       call MeshSchema_free
+      call WellState_free
+      call DefFlashWells_free
 
    end subroutine NN_finalize
 

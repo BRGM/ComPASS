@@ -99,7 +99,7 @@ set(ComPASSCore_SRCS
     NN.F90
 )
 
-set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90)
+set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90 WellState.F90)
 
 if(DEF_FREEFLOW_STRUCTURES)
   list(APPEND ComPASSCore_SRCS IncPrimSecdFreeFlow.F90)
@@ -127,7 +127,7 @@ foreach(_src ${ComPASSWells_SRCS})
 endforeach()
 set(ComPASSWells_SRCS ${_tmp})
 
-set(CONF_SRCS DefFlash.F90 DefModel.F90 Thermodynamics.F90)
+set(CONF_SRCS DefFlash.F90 DefModel.F90 DefWellFlash.F90 Thermodynamics.F90)
 
 # set( WRAPPERS_CORE_SRCS MeshSchema_wrappers.F90 MeshUtilities_wrappers.cpp
 # NN_wrappers.cpp NN_wrappers.F90 )

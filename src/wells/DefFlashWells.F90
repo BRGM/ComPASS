@@ -53,7 +53,7 @@ module DefFlashWells
       DensitemolaireKrViscoCompWellInj, &
       LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
    use Thermodynamics, only: &
-      f_DensiteMolaire, f_DensiteMassique, f_Enthalpie, f_PermRel, f_Viscosite, FluidThermodynamics_Tsat
+      f_DensiteMolaire, f_PermRel, f_Viscosite !, FluidThermodynamics_Tsat
    use MeshSchema, only: &
       DataWellInjLocal, &
       NodeDatabyWellInjLocal, &
@@ -66,14 +66,12 @@ module DefFlashWells
    use DefModel, only: &
       IndThermique, NbPhase, NbComp, LIQUID_PHASE, GAS_PHASE, MCP, &
       NumPhasePresente_ctx, NbPhasePresente_ctx
-
    use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
+   use DefWellFlash, only: DefWellFlash_TimeFlashWellProd
 #endif
    implicit none
 
-   double precision, parameter, private :: WellsNewtonTol = 1.0d-5 !< Newton convergence precision
-   integer, parameter, private:: WellsNewtonMaxiter = 1000 !< Max number of iteration for newton
-   integer, parameter, private:: WellsNslice = 100 !< Number of discretization for the approximation of the integral
+   !integer, parameter, private:: WellsNslice = 100 !< Number of discretization for the approximation of the integral
    integer, private :: fdFl !< debug output
 
    type(CSRdble) :: ZSortedInj !< CSR vector storing the nodes of each injection well in Z coordinate order
@@ -91,10 +89,6 @@ module DefFlashWells
    double precision, allocatable, dimension(:, :) :: R, Mob ! CSR vectors used to compute the non linear update of the pressure
    double precision, allocatable, dimension(:) :: Flow ! CSR vectors used to compute the non linear update of the pressure
 
-   ! molar/energy fluxes for production well(s)
-   double precision, allocatable, dimension(:, :) :: summolarFluxProd !< Molar flux for production well: summolarFluxProd(component,node_well)
-   double precision, allocatable, dimension(:) :: sumnrjFluxProd !< Energy flux for production well: sumnrjFluxProd(node_well)
-
    ! molar fluxes for injection well(s), head node
    double precision, allocatable, dimension(:) :: headmolarFluxInj !< Molar flux for injection well: headmolarFluxProd(node_well)
 
@@ -102,8 +96,7 @@ module DefFlashWells
       DefFlashWells_allocate, & ! Allocation, initialization and deallocation (in NN.F90)
       DefFlashWells_NewtonFlashLinWells, & ! Flash after each Newton iteration
       DefFlashWells_TimeFlash, & ! Flash after each time step
-      DefFlashWells_free, &
-      DefFlashWells_solve_for_temperature ! FIXME: should be elsewhere (pure physical function)
+      DefFlashWells_free
 
    private :: &
       DefFlashWells_Flash_cv
@@ -117,11 +110,6 @@ module DefFlashWells
       DefFlashWells_NonLinPressureUpdateWellProd
 
    private :: &
-      DefFlashWells_TimeFlashSinglePhaseWellProd, & ! Flash after time step to compute T and rho
-      DefFlashWells_TimeFlashTwoPhasesWellProd ! Flash after time step to compute T and rho
-
-   private :: &
-      DefFlashWells_FlowrateWellProd, &
       DefFlashWells_PressureToFlowrateWellProd, &
       DefFlashWells_PressureToFlowrateWellInj, &
       QuickSortCSR, &
@@ -143,8 +131,7 @@ contains
 
       integer :: num_Well
 
-!      call DefFlashWells_TimeFlashSinglePhaseWellProd
-      call DefFlashWells_TimeFlashTwoPhasesWellProd
+      call DefWellFlash_TimeFlashWellProd
 
       ! compute
       do num_Well = 1, NbWellInjLocal_Ncpus(commRank + 1)
@@ -156,7 +143,6 @@ contains
 
    !> Allocate global vectors used only in this file
    subroutine DefFlashWells_allocate
-      integer :: Nnz
       character(len=300) :: fn, pid
 
       ! put debugging magic here, open a file descriptor per processor
@@ -178,10 +164,6 @@ contains
 
       ! allocate flowrate
       allocate (headmolarFluxInj(NbWellInjLocal_Ncpus(commRank + 1)))
-
-      Nnz = NodebyWellProdLocal%Pt(NodebyWellProdLocal%Nb + 1)
-      allocate (summolarFluxProd(NbComp, Nnz))
-      allocate (sumnrjFluxProd(Nnz))
 
       ZSortedInj%Nb = NodebyWellInjLocal%Nb
       allocate (ZSortedInj%Pt(ZSortedInj%Nb + 1))
@@ -228,7 +210,6 @@ contains
       deallocate (MobSortedTempProd)
       deallocate (MobSortedProd)
       deallocate (Mob, R, Flow)
-      deallocate (summolarFluxProd, sumnrjFluxProd)
       deallocate (headmolarFluxInj)
 
    end subroutine DefFlashWells_free
@@ -691,70 +672,6 @@ contains
 
    end subroutine DefFlashWells_NewtonFlashLinWellProd
 
-   !> \brief Compute the flowrate at each node of the production well num_Well:
-   !! Fill the CSR vectors summolarFluxProd and sumnrjFluxProd.
-   !! Use PerfoWellProd\%Pression and IncNode\%Pression.
-   !!
-   !! \param[in]      num_Well             Numero of the production well
-   subroutine DefFlashWells_FlowrateWellProd(num_Well)
-
-      integer, intent(in) :: num_Well
-      integer :: s, nums, icp, m, mph, sparent
-      double precision :: Pws, Ps, WIDws
-      double precision:: Flux_ks(NbComp), FluxT_ks
-
-      ! nodes of well k
-      ! looping from head to queue, recall the numbering of parents & sons, parents_idxs are greater that their sons_idxs
-      do s = NodebyWellProdLocal%Pt(num_Well) + 1, NodebyWellProdLocal%Pt(num_Well + 1)
-         nums = NodebyWellProdLocal%Num(s)
-
-         sparent = NodeDatabyWellProdLocal%Val(s)%PtParent
-
-         Pws = PerfoWellProd(s)%Pression ! P_{w,s}
-         Ps = IncNode(nums)%Pression ! P_s
-         WIDws = NodeDatabyWellProdLocal%Val(s)%WID
-
-         Flux_ks(:) = 0.d0
-         FluxT_ks = 0.d0
-
-         do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-            mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-            !
-            if ((Ps - Pws) > 0.d0) then
-               do icp = 1, NbComp
-                  if (MCP(icp, mph) == 1) then ! \cap P_i
-                     Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
-                  end if
-               end do
-
-#ifdef _THERMIQUE_
-               FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*(Ps - Pws)
-#endif
-            end if
-         end do
-
-         summolarFluxProd(:, s) = summolarFluxProd(:, s) + Flux_ks(:)
-
-#ifdef _THERMIQUE_
-         sumnrjFluxProd(s) = sumnrjFluxProd(s) + FluxT_ks
-#endif
-
-         !now update the parent node, except the well root node
-         if (sparent /= -1) then ! head node if sparent = -1
-            summolarFluxProd(:, sparent) = summolarFluxProd(:, sparent) + summolarFluxProd(:, s)
-            sumnrjFluxProd(sparent) = sumnrjFluxProd(sparent) + sumnrjFluxProd(s)
-         end if
-      end do
-
-      ! compute qw, i.e. sum_{i} q_{w,s,i} where s is head
-      ! Flowrate_head = 0.d0
-      ! do icp=1, NbComp
-      !    Flowrate_head = Flowrate_head + summolarFluxProd(icp,NodebyWellProdLocal%Pt(num_Well+1))
-      ! end do
-
-   end subroutine DefFlashWells_FlowrateWellProd
-
    !> \brief Compute the flowrate at the head node of the production well num_Well
    !! with the new value of the unknows
    !!
@@ -845,226 +762,6 @@ contains
       end do
 
    end subroutine DefFlashWells_PressureToFlowrateWellInj
-
-   subroutine DefFlashWells_solve_for_temperature(Phase, E, p, T, n, converged, ResT)
-
-      integer, intent(in) :: Phase
-      double precision, intent(in) :: E !< total energy
-      double precision, intent(in) :: p !< pressure
-      double precision, intent(inout) :: T !< initial temperature and result
-      double precision, intent(in) :: n !< total number of moles
-      logical, intent(inout) :: converged
-      double precision, intent(inout):: ResT
-      double precision :: H, dHdP, dHdT, Sat(NbPhase), dHdC(NbComp), dHdS(NbPhase)
-      double precision :: dummyCi(NbComp), dummySat(NbPhase) ! not used by f_Enthalpie !
-      integer :: i
-
-      converged = .false.
-      ResT = 1E+10
-      do i = 1, WellsNewtonMaxiter
-         call f_Enthalpie(Phase, p, T, dummyCi, dummySat, H, dHdP, dHdT, dHdC, dHdS)
-         ResT = E - H*n ! residual
-         if (abs(ResT) < WellsNewtonTol) then
-            converged = .true.
-            exit
-         else
-            T = T + ResT/(dHdT*n)
-         end if
-      end do
-
-   end subroutine DefFlashWells_solve_for_temperature
-
-   !! \brief Execute the flash to determine T and the molar fractions
-   !! to update PerfoWellProd(s)%Temperature and PerfoWellProd(s)%Density.
-   !! This Flash is performed for a monophasic multicomponent fluid.
-   !!
-   !! Loop over the nodes s from head to tail to
-   !! to determine which phases are present, then computes the temperature
-   !! and the mean density.
-   !! The well pressure and the pressure drop are taken from
-   !! the previous Newton iteration and the previous time step respectively.
-   subroutine DefFlashWells_TimeFlashSinglePhaseWellProd
-
-      double precision :: T, ResT, Pws, Ci(NbComp), sumni, E
-      double precision :: rhoMean
-      double precision :: dPf, dTf, Sat(NbPhase), dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_Enthalpie
-      integer :: k, s, icp
-      logical :: converged
-
-      Sat(:) = 0.d0
-      Sat(LIQUID_PHASE) = 1.d0
-
-      summolarFluxProd(:, :) = 0.d0
-      sumnrjFluxProd(:) = 0.d0
-
-      write (*, *) '--DefFlashWells_TimeFlashSinglePhaseWellProd ends()--'
-      do k = 1, NodebyWellProdLocal%Nb
-
-         ! compute flowrate of well k (fill summolarFluxProd and sumnrjFluxProd)
-         call DefFlashWells_FlowrateWellProd(k)
-
-         ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1
-
-            Pws = PerfoWellProd(s)%Pression
-
-            ! Newton method to compute T: R = E-Enthalpie*n = 0
-            E = sumnrjFluxProd(s) ! energy
-
-            sumni = 0
-            do icp = 1, NbComp
-               sumni = sumni + summolarFluxProd(icp, s)
-            end do
-
-            ! initialize newton with reservoir temperature
-            T = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-            call DefFlashWells_solve_for_temperature(LIQUID_PHASE, E, Pws, T, sumni, converged, ResT)
-            if (.not. converged) then
-               print *, "Warning: Newton in DefFlashWells_TimeFlashSinglePhaseProd has not converged"
-               print *, "Residue is", abs(ResT), "Well_idx= ", k, "node_idx= ", s
-            end if
-
-            ! update PhysPerfoWell
-            PerfoWellProd(s)%Temperature = T
-            call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, Sat, rhoMean, &
-                                   dPf, dTf, dCf, dSf)
-            PerfoWellProd(s)%Density = rhoMean
-
-         end do ! end of well k
-      end do
-      write (*, *) '--DefFlashWells_TimeFlashSinglePhaseWellProd ends()--'
-
-   end subroutine DefFlashWells_TimeFlashSinglePhaseWellProd
-
-   !! \brief Execute the flash to determine T and the molar fractions
-   !! to update PerfoWellProd(s)%Temperature and PerfoWellProd(s)%Density.
-   !! This Flash is performed for a diphasique monocomponent fluid (H20).
-   !!
-   !! Loop over the nodes s from head to tail to
-   !! to determine which phases are present, then computes the temperature
-   !! and the mean density.
-   !! The well pressure and the pressure drop are taken from
-   !! the previous Newton iteration and the previous time step respectively.
-   subroutine DefFlashWells_TimeFlashTwoPhasesWellProd
-
-      double precision :: Temp, Pws, Tsat, dP_Tsat, liq_molarfrac, zs, z, p, ResT
-      double precision :: Hgas, Hliq, Hphase, rhogas, rholiq, avg_molar_dens
-      double precision :: sumni, E
-      ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
-      integer :: Nnz, nWell, s, sparent, icp, i, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
-      logical :: converged
-      summolarFluxProd(:, :) = 0.d0
-      sumnrjFluxProd(:) = 0.d0
-
-      ! loop over production well
-      do nWell = 1, NodebyWellProdLocal%Nb
-
-         ! compute flowrate of well nWell (fill summolarFluxProd and sumnrjFluxProd)
-         call DefFlashWells_FlowrateWellProd(nWell)
-
-         ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(nWell + 1), NodebyWellProdLocal%Pt(nWell) + 1, -1
-
-            Pws = PerfoWellProd(s)%Pression
-
-            E = sumnrjFluxProd(s) ! energy
-
-            sumni = 0
-            do icp = 1, NbComp
-               sumni = sumni + summolarFluxProd(icp, s)
-            end do
-
-            if (sumni < 1.0D-12) then
-               cycle !keep everything as the previous  timestep
-            end if
-
-            if (DataWellProdLocal(nWell)%IndWell == 'c') then ! well is closed,perform ....
-
-               Temp = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-               call DefFlashWells_solve_for_temperature(LIQUID_PHASE, E, Pws, Temp, sumni, converged, ResT)
-               if (.not. converged) then
-                  print *, "Warning: Newton in DefFlashWells_TimeFlashSinglePhaseProd has not converged"
-                  print *, "Residue is", abs(ResT), "Well_idx= ", nWell, "node_idx= ", s
-               end if
-
-               ! update PhysPerfoWell
-               PerfoWellProd(s)%Temperature = Temp
-               PerfoWellProd(s)%Saturation(GAS_PHASE) = 0.d0
-               PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 1.d0
-               Sat(:) = 0.d0
-               Sat(LIQUID_PHASE) = 1.d0
-               call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, Sat, rholiq, &
-                                      dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = rholiq
-
-            else
-
-               ! suppose that the two phases are present at the node
-               ID_PHASE = -1
-               ! then T=Tsat(P)
-#ifdef _THERMIQUE_
-               call FluidThermodynamics_Tsat(Pws, Tsat, dP_Tsat)
-#endif
-               Temp = Tsat
-
-               ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
-               ! molarFrac is not used in the computation of the enthalpies
-#ifdef _THERMIQUE_
-               call f_Enthalpie(GAS_PHASE, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
-               call f_Enthalpie(LIQUID_PHASE, Pws, Temp, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
-#endif
-               !! and compute liq_molarfrac
-               liq_molarfrac = (Hgas - E/sumni)/(Hgas - Hliq)
-
-               if (liq_molarfrac < 0.d0) then ! the hypothesis that the two phases are present is wrong: only gas
-                  liq_molarfrac = 0.d0
-                  ID_PHASE = GAS_PHASE
-                  PerfoWellProd(s)%Saturation(GAS_PHASE) = 1.d0
-                  PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 0.d0
-               else if (liq_molarfrac > 1.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
-                  liq_molarfrac = 1.d0
-                  ID_PHASE = LIQUID_PHASE
-                  PerfoWellProd(s)%Saturation(GAS_PHASE) = 0.d0
-                  PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 1.d0
-               endif
-
-               if (ID_PHASE > 0) then
-                  !solve temperature
-                  ! initialize newton with reservoir temperature
-                  Temp = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-
-                  call DefFlashWells_solve_for_temperature(ID_PHASE, E, Pws, Temp, sumni, converged, ResT)
-                  if (.not. converged) then
-                     print *, "Warning: Newton in DefFlashWells_TimeFlashTwoPhasesProd has not converged"
-                     print *, "Residue is", abs(ResT), "Well_idx= ", nWell, "node_idx= ", s
-                  end if
-               end if
-
-               ! we deduce the mean density
-               ! molarFrac is not used in the computation of the massique densities
-               call f_DensiteMassique(GAS_PHASE, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
-               call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
-
-               !Compute Saturations
-               call f_DensiteMolaire(GAS_PHASE, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
-               call f_DensiteMolaire(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
-               avg_molar_dens = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
-
-               PerfoWellProd(s)%Saturation(GAS_PHASE) = (1.d0 - liq_molarfrac)*rhogas/avg_molar_dens
-               PerfoWellProd(s)%Saturation(LIQUID_PHASE) = liq_molarfrac*rholiq/avg_molar_dens
-
-               ! fill PhysPerfoWell%T
-               PerfoWellProd(s)%Temperature = Temp
-
-            end if !well is cloed
-
-         enddo ! node s
-
-      enddo ! nWell
-
-   end subroutine DefFlashWells_TimeFlashTwoPhasesWellProd
 
    !> \brief Sorting the heights contained in mycsr%Value, and update
    !! the corresponding node values (indexes) stored in mycsr%Num
