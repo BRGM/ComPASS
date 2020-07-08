@@ -8,6 +8,7 @@
 
 module WellState
 
+   use CommonMPI, only: CommonMPI_abort
    use DefModel, only: &
       NbPhase, NbComp, MCP, NumPhasePresente_ctx, NbPhasePresente_ctx
    use IncCVWells, only: PerfoWellProd, NodebyWellProdLocal, NodebyWellInjLocal
@@ -55,60 +56,80 @@ contains
 
       integer :: k, s, nums, icp, m, mph, sparent
       double precision :: Pws, Ps, WIDws
-      double precision:: Flux_ks(NbComp), FluxT_ks
+      double precision:: Flux_ks(NbComp), perf_inflow
+#ifdef _THERMIQUE_
+      double precision:: FluxT_ks
+#endif
+
+#ifndef NDEBUG
+      if (.not. allocated(summolarFluxProd)) &
+         call CommonMPI_abort("Work array should be allocated.")
+      if (.not. allocated(sumnrjFluxProd)) &
+         call CommonMPI_abort("Work array should be allocated.")
+#endif
 
       summolarFluxProd = 0.d0
       sumnrjFluxProd = 0.d0
 
       do k = 1, NodebyWellProdLocal%Nb
 
-         ! looping from head to queue, recall the numbering of parents & sons, parents_idxs are greater that their sons_idxs
+#ifndef NDEBUG
+         if (NodeDatabyWellProdLocal%Val(NodebyWellProdLocal%Pt(k + 1))%PtParent /= -1) &
+            call CommonMPI_abort("Wrong head")
+#endif
+
+         ! parents_idxs are greater that their sons_idxs
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
 
             nums = NodebyWellProdLocal%Num(s)
             sparent = NodeDatabyWellProdLocal%Val(s)%PtParent
-
             Pws = PerfoWellProd(s)%Pression ! P_{w,s}
             Ps = IncNode(nums)%Pression ! P_s
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
 
-            Flux_ks = 0.d0
-            FluxT_ks = 0.d0
+#ifndef NDEBUG
+            if (WIDws < 0.d0) &
+               call CommonMPI_abort("Well index is negative.")
+#endif
 
-            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+            perf_inflow = WIDws*(Ps - Pws)
 
-               if ((Ps - Pws) > 0.d0) then
+            if (perf_inflow > 0.d0) then
+               Flux_ks = 0.d0
+#ifdef _THERMIQUE_
+               FluxT_ks = 0.d0
+#endif
+               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+                  mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
-                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
+                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*perf_inflow
                      end if
                   end do
-
 #ifdef _THERMIQUE_
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*(Ps - Pws)
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*perf_inflow
 #endif
-               end if
-            end do
-
-            summolarFluxProd(:, s) = summolarFluxProd(:, s) + Flux_ks(:)
-
+               end do
+               summolarFluxProd(:, s) = summolarFluxProd(:, s) + Flux_ks(:)
 #ifdef _THERMIQUE_
-            sumnrjFluxProd(s) = sumnrjFluxProd(s) + FluxT_ks
+               sumnrjFluxProd(s) = sumnrjFluxProd(s) + FluxT_ks
 #endif
+            end if
 
             !now update the parent node, except the well root node
             if (sparent /= -1) then ! head node if sparent = -1
                summolarFluxProd(:, sparent) = summolarFluxProd(:, sparent) + summolarFluxProd(:, s)
+#ifdef _THERMIQUE_
                sumnrjFluxProd(sparent) = sumnrjFluxProd(sparent) + sumnrjFluxProd(s)
+#endif
+#ifndef NDEBUG
+            else
+               if (s /= NodebyWellProdLocal%Pt(k + 1)) &
+                  call CommonMPI_abort("Head found in the middle of the well.")
+#endif
             end if
-         end do
 
-         ! compute qw, i.e. sum_{i} q_{w,s,i} where s is head
-         ! Flowrate_head = 0.d0
-         ! do icp=1, NbComp
-         !    Flowrate_head = Flowrate_head + summolarFluxProd(icp,NodebyWellProdLocal%Pt(k+1))
-         ! end do
+         end do
 
       end do
 
