@@ -168,7 +168,7 @@ def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
                 np.hstack(
                     [
                         np.reshape(remap[well_vertices[:-1]], (-1, 1)),
-                        np.reshape(remap[well.parent_offset], (-1, 1)),
+                        np.reshape(remap[well.parent_vertex], (-1, 1)),
                     ]
                 ),
                 pointdata=welldata,
