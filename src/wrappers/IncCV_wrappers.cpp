@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <sstream>
 
+#include "Neumann.h"
 #include "StateObjects.h"
 
 // Fortran functions
@@ -79,6 +80,15 @@ auto add_attribute_array(
 };
 
 void add_IncCV_wrappers(py::module& module) {
+   using Context = typename X::Model::Context;
+   using Real = typename X::Model::Real;
+   constexpr auto np = X::Model::np;  // number of phases // FIXME to be passed
+                                      // dynamically as argument
+   constexpr auto nc = X::Model::nc;  // number of components // FIXME to be
+                                      // passed dynamically as argument
+   constexpr auto nbdof = X::Model::nbdof;  // number of components // FIXME to
+                                            // be passed dynamically as argument
+
    module.def("check_IncCV", []() {
       py::print("Check IncCV:", number_of_components(), number_of_phases(),
                 size_of_unknowns(), sizeof(X));
@@ -87,24 +97,23 @@ void add_IncCV_wrappers(py::module& module) {
    py::class_<X>(module, "State")
        .def_readwrite("p", &X::p)
        .def_readwrite("T", &X::T)
-       .def_property_readonly(
-           "S",
-           [](py::object& self) {
-              return py::array_t<X::Real, py::array::c_style>{
-                  X::np, self.cast<X&>().S.data(), self};
-           })
+       .def_property_readonly("S",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     np, self.cast<X&>().S.data(), self};
+                              })
        .def_property_readonly(
            "C",
            [](py::object& self) {
-              return py::array_t<X::Real, py::array::c_style>{
-                  {X::np, X::nc}, self.cast<X&>().C.data()->data(), self};
+              return py::array_t<Real, py::array::c_style>{
+                  {np, nc}, self.cast<X&>().C.data()->data(), self};
            })
-       .def_property_readonly(
-           "accumulation",
-           [](py::object& self) {
-              return py::array_t<X::Real, py::array::c_style>{
-                  X::nc, self.cast<X&>().accumulation.data(), self};
-           })
+       .def_property_readonly("accumulation",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     nc, self.cast<X&>().accumulation.data(),
+                                     self};
+                              })
        .def("__str__", [](const X& self) {
           std::basic_stringstream<char> s;
           s << "Context: " << static_cast<int>(self.context);
@@ -141,22 +150,20 @@ void add_IncCV_wrappers(py::module& module) {
            .def("fill", &StateArray::fill)
            .def("set", &StateArray::fill);
 
-   add_attribute_array<typename X::Context>(PyStateArray, "context",
-                                            offsetof(X, context));
-   add_attribute_array<typename X::Real>(PyStateArray, "p", offsetof(X, p));
-   add_attribute_array<typename X::Real>(PyStateArray, "T", offsetof(X, T));
-   add_attribute_array<typename X::Real>(
-       PyStateArray, "C", offsetof(X, C), {X::np, X::nc},
-       {X::nc * sizeof(X::Real), sizeof(X::Real)});
-   add_attribute_array<typename X::Real>(PyStateArray, "S", offsetof(X, S),
-                                         {X::np}, {sizeof(X::Real)});
-   add_attribute_array<typename X::Real>(PyStateArray, "accumulation",
-                                         offsetof(X, accumulation), {X::nbdof},
-                                         {sizeof(X::Real)});
+   add_attribute_array<Context>(PyStateArray, "context", offsetof(X, context));
+   add_attribute_array<Real>(PyStateArray, "p", offsetof(X, p));
+   add_attribute_array<Real>(PyStateArray, "T", offsetof(X, T));
+   add_attribute_array<Real>(PyStateArray, "C", offsetof(X, C), {np, nc},
+                             {nc * sizeof(Real), sizeof(Real)});
+   add_attribute_array<Real>(PyStateArray, "S", offsetof(X, S), {np},
+                             {sizeof(Real)});
+   add_attribute_array<Real>(PyStateArray, "accumulation",
+                             offsetof(X, accumulation), {nbdof},
+                             {sizeof(Real)});
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-   add_attribute_array<typename X::Real>(
-       PyStateArray, "FreeFlow_phase_flowrate",
-       offsetof(X, FreeFlow_phase_flowrate), {X::np}, {sizeof(X::Real)});
+   add_attribute_array<Real>(PyStateArray, "FreeFlow_phase_flowrate",
+                             offsetof(X, FreeFlow_phase_flowrate), {X::np},
+                             {sizeof(Real)});
 #endif  // _WIP_FREEFLOW_STRUCTURES_
    // auto PyNeumannArray = py::class_<NeumannArray>(module,
    // "NeumannContributions")
@@ -165,7 +172,7 @@ void add_IncCV_wrappers(py::module& module) {
    //    py::make_tuple(self.length); });
    // add_attribute_array<typename Neumann::molar_flux>(PyNeumannArray,
    // "molar_flux", offsetof(Neumann, molar_flux), { Neumann::nc }, {
-   // sizeof(X::Real) }); add_attribute_array<typename
+   // sizeof(Real) }); add_attribute_array<typename
    // Neumann::Real>(PyNeumannArray, "heat_flux", offsetof(Neumann, heat_flux));
 
    module.def("dirichlet_node_states", []() {
@@ -209,6 +216,10 @@ void add_IncCV_wrappers(py::module& module) {
    // wrapper.pointer};
    //});
 
+   static_assert(
+       std::is_same<typename X::Model, typename NeumannBC::Model>::value,
+       "Model inconsistency");
+
    py::class_<NeumannBC>(module, "NeumannBC")
        .def(py::init<>())
        .def_readwrite("heat_flux", &NeumannBC::heat_flux)
@@ -219,8 +230,8 @@ void add_IncCV_wrappers(py::module& module) {
                   self.cast<NeumannBC*>()
                       ->molar_flux
                       .data();  // C++ pointer to underlying NeumannBC instance
-              return py::array_t<NeumannBC::Real, py::array::c_style>(
-                  {NeumannBC::nc}, {sizeof(NeumannBC::Real)}, data, self);
+              return py::array_t<Real, py::array::c_style>({nc}, {sizeof(Real)},
+                                                           data, self);
            })  // return value policy defaults to
                // py::return_value_policy::reference_internal which is ok
        ;
