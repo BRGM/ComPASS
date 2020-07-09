@@ -97,7 +97,9 @@ def _well_vtu_filename(wellid, tag=None):
     return f"well_id{wellid:04d}{tag}.vtu"
 
 
-def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
+def _dump_wells(
+    simulation, well_type, outputdir=None, tag=None, verbose=False, ofmt="binary"
+):
     if outputdir is None:
         outputdir = Path(".")
     else:
@@ -172,6 +174,7 @@ def _dump_wells(simulation, well_type, outputdir=None, tag=None, verbose=False):
                     ]
                 ),
                 pointdata=welldata,
+                ofmt=ofmt,
             ),
             str(outputdir / _well_vtu_filename(wells_data[wk].id, tag)),
         )
