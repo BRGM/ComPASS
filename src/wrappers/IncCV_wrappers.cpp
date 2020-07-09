@@ -48,36 +48,8 @@ void dump_incv_info();
 
 #include "IncCV_wrappers.h"
 #include "PyXArrayWrapper.h"
-
-template <typename AttributeType, typename PyClass>
-auto add_attribute_array(
-    PyClass& states, const char* name, std::size_t offset,
-    std::vector<std::size_t> shape = std::vector<std::size_t>{},
-    std::vector<std::size_t> strides = std::vector<std::size_t>{}) {
-   states.def_property_readonly(
-       name,
-       [=](py::object& self) {
-          auto wrapper = self.cast<StateArray*>();  // C++ pointer to underlying
-                                                    // StateArray instance
-          auto attribute_position = reinterpret_cast<const AttributeType*>(
-              reinterpret_cast<const unsigned char*>(wrapper->pointer) +
-              offset);
-          auto final_shape = std::vector<std::size_t>{{wrapper->length}};
-          std::copy(shape.begin(), shape.end(),
-                    std::back_inserter(final_shape));
-          auto final_strides = std::vector<std::size_t>{{sizeof(X)}};
-          std::copy(strides.begin(), strides.end(),
-                    std::back_inserter(final_strides));
-          return py::array_t<AttributeType, py::array::c_style>{
-              final_shape, final_strides, attribute_position, self};
-       },
-       py::return_value_policy::
-           reference_internal  // py::keep_alive<0, 1>(): because the StateArray
-                               // instance must be kept alive as long as the
-                               // attribute is used - should be ok this is the
-                               // default for def_property
-   );
-};
+#include "attribute_array.h"
+#include "wrap_array_holder.h"
 
 void add_IncCV_wrappers(py::module& module) {
    using Context = typename X::Model::Context;
@@ -133,35 +105,21 @@ void add_IncCV_wrappers(py::module& module) {
 
    // FUTURE: all the following until next FUTURE tag shall be useless soon (cf
    // infra)
-   auto PyStateArray =
-       py::class_<StateArray>(module, "States")
-           .def("size", [](const StateArray& self) { return self.length; })
-           .def_property_readonly("shape",
-                                  [](const StateArray& self) {
-                                     return py::make_tuple(self.length);
-                                  })
-           .def("__getitem__", &StateArray::operator[],
-                py::return_value_policy::reference)
-           .def("__iter__",
-                [](StateArray& self) {
-                   return py::make_iterator(self.pointer,
-                                            self.pointer + self.length);
-                })
-           .def("fill", &StateArray::fill)
-           .def("set", &StateArray::fill);
-
-   add_attribute_array<Context>(PyStateArray, "context", offsetof(X, context));
-   add_attribute_array<Real>(PyStateArray, "p", offsetof(X, p));
-   add_attribute_array<Real>(PyStateArray, "T", offsetof(X, T));
-   add_attribute_array<Real>(PyStateArray, "C", offsetof(X, C), {np, nc},
-                             {nc * sizeof(Real), sizeof(Real)});
-   add_attribute_array<Real>(PyStateArray, "S", offsetof(X, S), {np},
-                             {sizeof(Real)});
-   add_attribute_array<Real>(PyStateArray, "accumulation",
-                             offsetof(X, accumulation), {nbdof},
-                             {sizeof(Real)});
+   auto pyStateArray = wrap_array_holder<StateArray>(module, "States");
+   add_attribute_array<StateArray, Context>(pyStateArray, "context",
+                                            offsetof(X, context));
+   add_attribute_array<StateArray, Real>(pyStateArray, "p", offsetof(X, p));
+   add_attribute_array<StateArray, Real>(pyStateArray, "T", offsetof(X, T));
+   add_attribute_array<StateArray, Real>(pyStateArray, "C", offsetof(X, C),
+                                         {np, nc},
+                                         {nc * sizeof(Real), sizeof(Real)});
+   add_attribute_array<StateArray, Real>(pyStateArray, "S", offsetof(X, S),
+                                         {np}, {sizeof(Real)});
+   add_attribute_array<StateArray, Real>(pyStateArray, "accumulation",
+                                         offsetof(X, accumulation), {nbdof},
+                                         {sizeof(Real)});
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-   add_attribute_array<Real>(PyStateArray, "FreeFlow_phase_flowrate",
+   add_attribute_array<Real>(pyStateArray, "FreeFlow_phase_flowrate",
                              offsetof(X, FreeFlow_phase_flowrate), {X::np},
                              {sizeof(Real)});
 #endif  // _WIP_FREEFLOW_STRUCTURES_
