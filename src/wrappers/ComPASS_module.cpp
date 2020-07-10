@@ -9,27 +9,33 @@
 
 #include <pybind11/pybind11.h>
 
-#include "COC_wrappers.h"
-#include "DebugUtils_wrappers.h"
-#include "Flux_wrappers.h"
-#include "GlobalMesh_wrappers.h"
-#include "GlobalVariables_wrappers.h"
-#include "IncCV_wrappers.h"
-#include "Jacobian_wrappers.h"
+namespace py = pybind11;
+
 #include "LinearSystem_wrapper.h"
-#include "MeshSchema_wrappers.h"
-#include "MeshUtilities_wrappers.h"
-#include "Metis_wrapper.h"
 #include "Model_wrappers.h"
-#include "NN_wrappers.h"
 #include "PyBuffer_wrappers.h"
-#include "Residu_wrappers.h"
-#include "SolvePetsc_wrappers.h"
 #include "SyncPetsc_wrappers.h"
-#include "TimeLoop_wrappers.h"
-#include "VAGFrac_wrappers.h"
-#include "Well_wrappers.h"
 #include "preprocessor_utils.h"
+
+void add_pybuffer_wrappers(py::module&);
+void add_NN_wrappers(py::module&);
+void add_coc_wrappers(py::module&);
+void add_GlobalMesh_wrappers(py::module&);
+void add_mesh_utilities_wrappers(py::module&);
+void add_mesh_schema_wrappers(py::module&);
+void add_well_wrappers(py::module&);
+void add_global_variables_wrappers(py::module&);
+void add_IncCV_wrappers(py::module&);
+void add_flux_wrappers(py::module&);
+void add_time_loop_wrappers(py::module&);
+void add_debug_utils_wrappers(py::module&);
+void add_model_wrappers(py::module&);
+void add_Residu_wrappers(py::module&);
+void add_Metis_wrapper(py::module&);
+void add_SolvePetsc_wrappers(py::module&);
+void add_LinearSystem_wrapper(py::module&);
+void add_SyncPetsc_wrappers(py::module&);
+void add_VAGFrac_wrappers(py::module&);
 
 PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    module.doc() = "pybind11 ComPASS library interface for " TOSTRING(
@@ -53,6 +59,5 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_SolvePetsc_wrappers(module);
    add_LinearSystem_wrapper(module);
    add_SyncPetsc_wrappers(module);
-   add_Jacobian_wrappers(module);
    add_VAGFrac_wrappers(module);
 }

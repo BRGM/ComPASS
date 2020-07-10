@@ -7,9 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "Flux_wrappers.h"
-
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
 struct cpp_narray_wrapper {
    const std::size_t *shape;
@@ -24,6 +23,8 @@ std::size_t number_of_nodes();
 std::size_t number_of_cells();
 std::size_t number_of_fractures();
 }
+
+namespace py = pybind11;
 
 void add_flux_wrappers(py::module &module) {
    constexpr std::size_t NC = ComPASS_NUMBER_OF_COMPONENTS;

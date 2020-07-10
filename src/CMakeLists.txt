@@ -133,56 +133,40 @@ set(CONF_SRCS DefFlash.F90 DefModel.F90 Thermodynamics.F90)
 # NN_wrappers.cpp NN_wrappers.F90 )
 
 set(WRAPPERS_SRCS
-    ArrayWrapper.h
     COC.h
-    COC_wrappers.h
     COC_wrappers.cpp
     CommonTypesWrapper.F90
-    DebugUtils_wrappers.h
     DebugUtils_wrappers.cpp
-    Flux_wrappers.h
     Flux_wrappers.cpp
     Flux_wrappers.F90
     GlobalMeshWrapper.F90
-    GlobalMesh_wrappers.h
     GlobalMesh_wrappers.cpp
     GlobalVariables_wrappers.F90
-    GlobalVariables_wrappers.h
     GlobalVariables_wrappers.cpp
-    IncCV_wrappers.h
     IncCV_wrappers.cpp
     IncCV_wrappers.F90
-    Jacobian_wrappers.cpp
     LinearSystem_wrapper.cpp
     LinearSystem_wrapper.h
     LocalMeshWrapper.F90
     MeshUtilities.h
-    MeshSchema_wrappers.h
     MeshSchema_wrappers.cpp
-    MeshUtilities_wrappers.h
     MeshUtilities_wrappers.cpp
-    Metis_wrapper.h
     Metis_wrapper.cpp
     Model_wrappers.h
     Model_common_wrappers.cpp
     MeshSchema_wrappers.F90
-    NN_wrappers.h
     NN_wrappers.cpp
     PyBuffer_wrappers.h
     PyBuffer_wrappers.cpp
-    Residu_wrappers.h
     Residu_wrappers.cpp
     SolvePetsc_wrappers.F90
     SolvePetsc_wrappers.cpp
     SyncPetsc_wrappers.cpp
     StringWrapper.h
     StringWrapper.F90
-    TimeLoop_wrappers.h
     TimeLoop_wrappers.cpp
-    VAGFrac_wrappers.h
     VAGFrac_wrappers.cpp
     Well.h
-    Well_wrappers.h
     Well_wrappers.cpp
     Well_wrappers.F90
 )

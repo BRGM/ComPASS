@@ -7,6 +7,10 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <pybind11/iostream.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+
 #include "ArrayWrapper.h"
 #include "StringWrapper.h"
 
@@ -22,10 +26,7 @@ void init_phase2_setup_contexts();
 void init_phase2_setup_solvers();
 }
 
-#include <pybind11/iostream.h>
-#include <pybind11/numpy.h>
-
-#include "NN_wrappers.h"
+namespace py = pybind11;
 
 void add_NN_wrappers(py::module& module) {
    module.def(

@@ -46,10 +46,11 @@ void dump_incv_info();
 
 #include <pybind11/numpy.h>
 
-#include "IncCV_wrappers.h"
 #include "PyXArrayWrapper.h"
 #include "attribute_array.h"
 #include "wrap_array_holder.h"
+
+namespace py = pybind11;
 
 void add_IncCV_wrappers(py::module& module) {
    using Context = typename X::Model::Context;

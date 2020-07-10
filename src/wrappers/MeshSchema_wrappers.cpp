@@ -7,12 +7,7 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-// #include "ArrayWrapper.h"
-// #include "XArrayWrapper.h"
-// #include "PyXArrayWrapper.h"
-// #include "PyArrayWrapper.h"
-// #include "PyBuffer_wrappers.h"
-// #include "MeshUtilities.h"
+#include <pybind11/pybind11.h>
 
 #include "COC.h"
 
@@ -32,7 +27,8 @@ void retrieve_NumWellInjbyProc(DofFamilyCOC&);
 }
 
 #include "COC_exposers.h"
-#include "MeshSchema_wrappers.h"
+
+namespace py = pybind11;
 
 void add_mesh_schema_wrappers(py::module& module) {
    typedef GenericCOC_container<DOFId> DofFamily;

@@ -7,12 +7,14 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <pybind11/pybind11.h>
+
 // Fortran functions
 extern "C" {
 void debug_utils_dump_mesh_info();
 }
 
-#include "DebugUtils_wrappers.h"
+namespace py = pybind11;
 
 void add_debug_utils_wrappers(py::module& module) {
    module.def("debug_utils_dump_mesh_info", &debug_utils_dump_mesh_info);

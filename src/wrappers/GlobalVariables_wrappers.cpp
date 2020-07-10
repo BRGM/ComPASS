@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <pybind11/numpy.h>
+
 // FIXME: should be defined with common types/defines
 //        in ComPASS namespace
 typedef int ComPASS_Fortran_size_type;
@@ -33,9 +35,7 @@ double get_fracture_thickness();
 void set_fracture_thickness(double);
 }
 
-#include "GlobalVariables_wrappers.h"
-
-#include <pybind11/numpy.h>
+namespace py = pybind11;
 
 void add_global_variables_wrappers(py::module& module) {
    module.def("get_gravity", &get_gravity);

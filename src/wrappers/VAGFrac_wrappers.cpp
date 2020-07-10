@@ -7,7 +7,7 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "VAGFrac_wrappers.h"
+#include <pybind11/pybind11.h>
 
 // Fortran functions
 extern "C" {
@@ -16,6 +16,8 @@ void VAGFrac_TransFourier();
 void VAGFrac_VolsDarcy(double, double);
 void VAGFrac_VolsFourier(double, double);
 }
+
+namespace py = pybind11;
 
 void add_VAGFrac_wrappers(py::module& module) {
    module.def("VAGFrac_TransDarcy", &VAGFrac_TransDarcy);

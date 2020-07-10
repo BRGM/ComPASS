@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <pybind11/pybind11.h>
+
 #include "ArrayWrapper.h"
 #include "MeshUtilities.h"
 #include "PyArrayWrapper.h"
@@ -89,7 +91,7 @@ void retrieve_nb_wellinj_own(XArrayWrapper<int>&);
 void retrieve_nb_wellprod_own(XArrayWrapper<int>&);
 }
 
-#include "MeshUtilities_wrappers.h"
+namespace py = pybind11;
 
 template <typename Buffer, typename PyClass, typename Accessor>
 void register_property_buffer(PyClass& pyclass, const char* name,

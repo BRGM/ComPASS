@@ -7,9 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "Well_wrappers.h"
-
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
 #include <cassert>
 #include <functional>
@@ -23,6 +22,8 @@
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+
+namespace py = pybind11;
 
 /** Common data structure shared by injectors and producers. */
 struct Fortran_well_data {

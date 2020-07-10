@@ -7,8 +7,6 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "COC_wrappers.h"
-
 #include "COC_exposers.h"
 
 void add_coc_wrappers(py::module& module) {

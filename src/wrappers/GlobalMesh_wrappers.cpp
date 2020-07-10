@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <pybind11/numpy.h>
+
 // Fortran functions
 extern "C" {
 void GlobalMesh_build_cartesian_grid(double, double, double, double, double,
@@ -29,9 +31,7 @@ void GlobalMesh_allocate_rocktype();
 void GlobalMesh_count_dirichlet_nodes();
 }
 
-#include "GlobalMesh_wrappers.h"
-
-#include <pybind11/numpy.h>
+namespace py = pybind11;
 
 // FIXME: Retrieve id and coordinate types from meshtools (avoid double and int
 // here)

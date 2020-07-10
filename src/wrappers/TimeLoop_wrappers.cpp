@@ -7,12 +7,9 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-//#include "ArrayWrapper.h"
-//#include "XArrayWrapper.h"
-//#include "PyXArrayWrapper.h"
-//#include "PyArrayWrapper.h"
-//#include "PyBuffer_wrappers.h"
-//#include "MeshUtilities.h"
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+
 #include <cstddef>
 
 #include "CTVector.h"
@@ -49,9 +46,7 @@ void DefFlashWells_TimeFlash();
 void pass_and_dump_array(double*, std::size_t*);
 }
 
-#include <pybind11/numpy.h>
-
-#include "TimeLoop_wrappers.h"
+namespace py = pybind11;
 
 void add_time_loop_wrappers(py::module& module) {
    module.def("IncCV_SaveIncPreviousTimeStep", &IncCV_SaveIncPreviousTimeStep);
