@@ -11,12 +11,6 @@
 
 namespace py = pybind11;
 
-#include "LinearSystem_wrapper.h"
-#include "Model_wrappers.h"
-#include "PyBuffer_wrappers.h"
-#include "SyncPetsc_wrappers.h"
-#include "preprocessor_utils.h"
-
 void add_pybuffer_wrappers(py::module&);
 void add_NN_wrappers(py::module&);
 void add_coc_wrappers(py::module&);
@@ -36,6 +30,8 @@ void add_SolvePetsc_wrappers(py::module&);
 void add_LinearSystem_wrapper(py::module&);
 void add_SyncPetsc_wrappers(py::module&);
 void add_VAGFrac_wrappers(py::module&);
+
+#include "preprocessor_utils.h"
 
 PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    module.doc() = "pybind11 ComPASS library interface for " TOSTRING(

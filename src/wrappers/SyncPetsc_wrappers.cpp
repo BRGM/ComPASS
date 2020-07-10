@@ -22,13 +22,11 @@
 // used (based on multiple preprocessor defines... !). As this wrapping is bound
 // to disappear (one day) we keep it "simple" but not very portable.
 
+// Fortran functions
 extern "C" {
 void syncpetsc_getsolnodefracwell_(Vec*, NewtonIncrements::Pointers<double>);
 void SyncPetsc_colnum(int*, std::size_t);
-// void MeshSchema_part_info(PartInfo&);
-// void SyncPetsc_global_matrix_size(MatrixSize&);
-// void SyncPetsc_local_matrix_size(MatrixSize&);
-// void SyncPetsc_rowcolnum(int*, std::size_t, int*, std::size_t);
+void MeshSchema_part_info(PartInfo&);
 }
 
 #include <pybind11/numpy.h>

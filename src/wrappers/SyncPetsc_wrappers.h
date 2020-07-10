@@ -38,10 +38,3 @@ struct PartInfo {
    PartElement injectors;
    PartElement producers;
 };
-
-extern "C" {
-void MeshSchema_part_info_by_rank(PartInfo&, size_t&);
-void MeshSchema_part_info(PartInfo&);
-}
-
-void add_SyncPetsc_wrappers(py::module& module);

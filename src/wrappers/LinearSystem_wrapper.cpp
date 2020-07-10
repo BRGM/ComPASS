@@ -7,12 +7,11 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "LinearSystem_wrapper.h"
-
 #include <petscmat.h>
 #include <petscvec.h>
 
 #include "COC.h"
+#include "LinearSystemBuilder.h"
 #include "Petsc_caster.h"
 #include "XArrayWrapper.h"
 
@@ -31,6 +30,8 @@ struct DOFId {
 
 typedef GenericCOC<DOFId> DofFamilyCOC;
 
+// Fortran functions
+
 extern "C" {
 void retrieve_NumNodebyProc(DofFamilyCOC&);
 void retrieve_NumFracbyProc(DofFamilyCOC&);
@@ -38,6 +39,8 @@ void retrieve_NumWellProdbyProc(DofFamilyCOC&);
 void retrieve_NumWellInjbyProc(DofFamilyCOC&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
+void MeshSchema_part_info_by_rank(PartInfo&, size_t&);
+void MeshSchema_part_info(PartInfo&);
 }
 
 #include <iostream>

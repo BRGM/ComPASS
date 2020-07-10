@@ -146,7 +146,7 @@ set(WRAPPERS_SRCS
     IncCV_wrappers.cpp
     IncCV_wrappers.F90
     LinearSystem_wrapper.cpp
-    LinearSystem_wrapper.h
+    LinearSystemBuilder.h
     LocalMeshWrapper.F90
     MeshUtilities.h
     MeshSchema_wrappers.cpp

@@ -12,7 +12,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include "ArrayWrapper.h"
 #include "BlockMatrixWrapper.h"
 #include "SyncPetsc_wrappers.h"
 
@@ -49,4 +48,3 @@ class LinearSystemBuilder {
    std::size_t get_d_nnz(size_t i) { return d_nnz[i]; };
    std::size_t get_o_nnz(size_t i) { return o_nnz[i]; };
 };
-void add_LinearSystem_wrapper(py::module& module);
