@@ -210,6 +210,8 @@ def standard_loop(
         specific_outputs = []
     events = _make_event_list(events)
     t = initial_time if initial_time is not None else 0
+    initial_time = t
+    total_time = None if final_time is None else (final_time - initial_time)
     while len(events) > 0 and events[0].time < t:
         mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
         events.pop(0)
@@ -236,7 +238,11 @@ def standard_loop(
         print()
         print("** Time Step (iteration):", n, "*" * 50)
         if final_time:
-            final_time_info = "-> " + time_string(final_time)
+            final_time_info = (
+                "-> "
+                + time_string(final_time)
+                + f" ({100*(t - initial_time)/total_time:.2f}% done)"
+            )
         else:
             final_time_info = "-> NO final time"
         print("Current time:", time_string(t), final_time_info)
