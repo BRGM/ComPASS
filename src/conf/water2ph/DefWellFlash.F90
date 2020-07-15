@@ -36,26 +36,26 @@ contains
    !! the previous Newton iteration and the previous time step respectively.
    subroutine DefWellFlash_TimeFlashWellProd
 
-      double precision :: Temp, Pws, liq_molarfrac, ResT
-      double precision :: Hgas, Hliq, rhogas, rholiq, avg_molar_dens
+      double precision :: Tws, Pws, xg, Sg, Sl, ResT
+      double precision :: Hgas, Hliq, rhog, rhol
       double precision :: sumni, E
       ! not used, empty passed to f_Enthalpie
       double precision :: dPf, dTf, dP_Tsat, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
-      integer :: nWell, s, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
+      integer :: wk, s, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
       logical :: converged
 
 #ifndef _THERMIQUE_
       call CommonMPI_abort("DefWellFlash_TimeFlashWellProd: thermal transfer must be activated")
 #endif
 
-      ! compute flowrate of well nWell (fill summolarFluxProd and sumnrjFluxProd)
+      ! compute flowrate of well wk (fill summolarFluxProd and sumnrjFluxProd)
       call WellState_FlowrateWellProd
 
       ! loop over production well
-      do nWell = 1, NodebyWellProdLocal%Nb
+      do wk = 1, NodebyWellProdLocal%Nb
 
          ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(nWell + 1), NodebyWellProdLocal%Pt(nWell) + 1, -1
+         do s = NodebyWellProdLocal%Pt(wk + 1), NodebyWellProdLocal%Pt(wk) + 1, -1
 
             Pws = PerfoWellProd(s)%Pression
             E = sumnrjFluxProd(s) ! energy
@@ -64,84 +64,77 @@ contains
                cycle !keep everything as the previous  timestep
             end if
 
-            if (DataWellProdLocal(nWell)%IndWell == 'c') then ! well is closed,perform ....
+            if (DataWellProdLocal(wk)%IndWell == 'c') then ! well is closed
 
-               Temp = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-               call WellState_solve_for_temperature(LIQUID_PHASE, E, Pws, Temp, sumni, converged, ResT)
+               Tws = IncNode(NodebyWellProdLocal%Num(s))%Temperature
+               call WellState_solve_for_temperature(LIQUID_PHASE, E, Pws, Tws, sumni, converged, ResT)
                if (.not. converged) then
                   print *, "Warning: Newton in DefWellFlash_TimeFlashWellProd has not converged"
-                  print *, "Residue is", abs(ResT), "Well_idx= ", nWell, "node_idx= ", s
+                  print *, "Residue is", abs(ResT), "Well_idx= ", wk, "node_idx= ", s
                end if
 
                ! update PhysPerfoWell
-               PerfoWellProd(s)%Temperature = Temp
+               PerfoWellProd(s)%Temperature = Tws
                PerfoWellProd(s)%Saturation(GAS_PHASE) = 0.d0
                PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 1.d0
                Sat(:) = 0.d0
                Sat(LIQUID_PHASE) = 1.d0
-               call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, Sat, rholiq, &
+               call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, Sat, rhol, &
                                       dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = rholiq
+               PerfoWellProd(s)%Density = rhol
 
-            else
+            else ! well is open
 
                ! suppose that the two phases are present at the node
                ID_PHASE = -1
                ! set temperature to saturation temperature at Pws
-               call FluidThermodynamics_Tsat(Pws, Temp, dP_Tsat)
+               call FluidThermodynamics_Tsat(Pws, Tws, dP_Tsat)
                ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
                ! molarFrac is not used in the computation of the enthalpies
-               call f_Enthalpie(GAS_PHASE, Pws, Temp, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
-               call f_Enthalpie(LIQUID_PHASE, Pws, Temp, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
-               !! and compute liq_molarfrac
-               liq_molarfrac = (Hgas - E/sumni)/(Hgas - Hliq)
+               call f_Enthalpie(GAS_PHASE, Pws, Tws, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
+               call f_Enthalpie(LIQUID_PHASE, Pws, Tws, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
 
-               if (liq_molarfrac < 0.d0) then ! the hypothesis that the two phases are present is wrong: only gas
-                  liq_molarfrac = 0.d0
-                  ID_PHASE = GAS_PHASE
-                  PerfoWellProd(s)%Saturation(GAS_PHASE) = 1.d0
-                  PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 0.d0
-               else if (liq_molarfrac > 1.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
-                  liq_molarfrac = 1.d0
+               xg = (E/sumni - Hliq)/(Hgas - Hliq)
+
+               if (xg <= 0.d0) then ! the hypothesis that the two phases are present is wrong: only liquid
+                  xg = 0.d0
                   ID_PHASE = LIQUID_PHASE
                   PerfoWellProd(s)%Saturation(GAS_PHASE) = 0.d0
                   PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 1.d0
+               else if (xg >= 1.d0) then ! the hypothesis that the two phases are present is wrong: only gas
+                  xg = 1.d0
+                  ID_PHASE = GAS_PHASE
+                  PerfoWellProd(s)%Saturation(GAS_PHASE) = 1.d0
+                  PerfoWellProd(s)%Saturation(LIQUID_PHASE) = 0.d0
                endif
 
-               if (ID_PHASE > 0) then
-                  !solve temperature
-                  ! initialize newton with reservoir temperature
-                  Temp = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-
-                  call WellState_solve_for_temperature(ID_PHASE, E, Pws, Temp, sumni, converged, ResT)
+               if (ID_PHASE > 0) then ! perforation is monophasic
+                  ! compute temperature: initialize newton with reservoir temperature
+                  Tws = IncNode(NodebyWellProdLocal%Num(s))%Temperature
+                  call WellState_solve_for_temperature(ID_PHASE, E, Pws, Tws, sumni, converged, ResT)
                   if (.not. converged) then
                      print *, "Warning: Newton in DefWellFlash_TimeFlashWellProd has not converged"
-                     print *, "Residue is", abs(ResT), "Well_idx= ", nWell, "node_idx= ", s
+                     print *, "Residue is", abs(ResT), "Well_idx= ", wk, "node_idx= ", s
                   end if
-               end if
+                  PerfoWellProd(s)%Temperature = Tws
+                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, sat, PerfoWellProd(s)%Density, dPf, dTf, dCf, dSf)
+               else ! perforation is diphasic
+                  PerfoWellProd(s)%Temperature = Tws
+                  ! molarFrac is not used in the computation of the massique densities
+                  call f_DensiteMassique(GAS_PHASE, Pws, Tws, molarFrac, sat, rhog, dPf, dTf, dCf, dSf)
+                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, sat, rhol, dPf, dTf, dCf, dSf)
+                  Sg = (xg/rhog)/((xg/rhog) + ((1.d0 - xg)/rhol))
+                  Sl = 1.d0 - Sg
+                  PerfoWellProd(s)%Density = Sl*rhol + Sg*rhog
+                  PerfoWellProd(s)%Saturation(GAS_PHASE) = Sg
+                  PerfoWellProd(s)%Saturation(LIQUID_PHASE) = Sl
+               end if ! perforation is monophasic / diphasic
 
-               ! we deduce the mean density
-               ! molarFrac is not used in the computation of the massique densities
-               call f_DensiteMassique(GAS_PHASE, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
-               call f_DensiteMassique(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
-               PerfoWellProd(s)%Density = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
+            end if ! well is closed / open
 
-               !Compute Saturations
-               call f_DensiteMolaire(GAS_PHASE, Pws, Temp, molarFrac, sat, rhogas, dPf, dTf, dCf, dSf)
-               call f_DensiteMolaire(LIQUID_PHASE, Pws, Temp, molarFrac, sat, rholiq, dPf, dTf, dCf, dSf)
-               avg_molar_dens = liq_molarfrac*rholiq + (1.d0 - liq_molarfrac)*rhogas
+         enddo ! loop on perforations s of well wk
 
-               PerfoWellProd(s)%Saturation(GAS_PHASE) = (1.d0 - liq_molarfrac)*rhogas/avg_molar_dens
-               PerfoWellProd(s)%Saturation(LIQUID_PHASE) = liq_molarfrac*rholiq/avg_molar_dens
-
-               ! fill PhysPerfoWell%T
-               PerfoWellProd(s)%Temperature = Temp
-
-            end if !well is cloed
-
-         enddo ! node s
-
-      enddo ! nWell
+      enddo ! loop on wells wk
 
    end subroutine DefWellFlash_TimeFlashWellProd
 
