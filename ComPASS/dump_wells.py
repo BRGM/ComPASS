@@ -1,8 +1,9 @@
 from collections import namedtuple
 from pathlib import Path
 import numpy as np
-from ComPASS.utils.units import *
-import ComPASS.mpi as mpi
+from .utils.units import *
+from . import mpi
+from .utils.various import enum_to_list
 import MeshTools.vtkwriters as vtkw
 
 
@@ -133,10 +134,10 @@ def _dump_wells(
             name: np.ascontiguousarray(a)
             for name, a in [
                 ("reservoir vertices id", well_vertices),
-                ("well pressure", well.pressure),
-                ("well temperature", K2degC(well.temperature)),
-                ("well pressure drop", well.pressure_drop),
-                ("well density", well.density),
+                ("pressure", well.pressure),
+                ("temperature", K2degC(well.temperature)),
+                ("pressure drop", well.pressure_drop),
+                ("density", well.density),
                 ("Darcy WI", well.well_index_Darcy),
                 ("Fourier WI", well.well_index_Fourier),
                 ("reservoir pressure", node_states.p[well_vertices]),
@@ -153,26 +154,26 @@ def _dump_wells(
             ]
         }
 
+        phases = enum_to_list(simulation.Phase)
+        if len(phases) > 1:
+            for phk, phase in enumerate(phases):
+                welldata[f"{phase} saturation"] = np.ascontiguousarray(
+                    well.saturation[:, phk]
+                )
+
         try:
-            welldata["well sat_phase_gas"] = np.ascontiguousarray(well.saturation[:, 0])
-
-            welldata["well sat_phase_liq"] = np.ascontiguousarray(well.saturation[:, 1])
-
-        except AttributeError:
-            pass
-
-        try:
-            welldata["well saturation pressure"] = np.ascontiguousarray(
+            welldata["saturation pressure"] = np.ascontiguousarray(
                 simulation.Psat(well.temperature)
             )
         except AttributeError:
             pass
         try:
-            welldata["well saturation temperature"] = np.ascontiguousarray(
+            welldata["saturation temperature"] = np.ascontiguousarray(
                 simulation.Tsat(well.pressure)
             )
         except AttributeError:
             pass
+
         vtkw.write_vtu(
             vtkw.vtu_doc(
                 vertices[well_vertices],

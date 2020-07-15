@@ -13,13 +13,7 @@ from . import mpi
 from . import dump_wells as dw
 from .utils import create_directories
 from .runtime import to_output_directory
-
-
-def _enum_to_list(enum):
-    return [
-        name
-        for name, _ in sorted(enum.__members__.items(), key=lambda item: int(item[1]))
-    ]
+from .utils.various import enum_to_list
 
 
 class Dumper:
@@ -139,8 +133,8 @@ class Dumper:
             "fracture_temperature": fracture_states.T,
         }
 
-        phases = _enum_to_list(self.simulation.Phase)
-        components = _enum_to_list(self.simulation.Component)
+        phases = enum_to_list(self.simulation.Phase)
+        components = enum_to_list(self.simulation.Component)
         for phk, phase in enumerate(phases):
             dumped_states[f"cell_{phase} saturation"] = cell_states.S[:, phk]
             dumped_states[f"node_{phase} saturation"] = node_states.S[:, phk]

@@ -2,6 +2,13 @@ from itertools import product
 import numpy as np
 
 
+def enum_to_list(enum):
+    return [
+        name
+        for name, _ in sorted(enum.__members__.items(), key=lambda item: int(item[1]))
+    ]
+
+
 def tensor_coordinates(tensor, name, diagonal_only=False):
     tensor = np.asarray(tensor)
     assert tensor.ndim == 2 or tensor.ndim == 3, "wrong tensor array dimension"
