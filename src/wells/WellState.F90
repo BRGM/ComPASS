@@ -135,6 +135,7 @@ contains
 
    end subroutine WellState_FlowrateWellProd
 
+   ! FIXME: we should change the API to pass E/n instead of E and n
 #ifdef NDEBUG
    pure &
 #endif
