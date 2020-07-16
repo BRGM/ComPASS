@@ -8,8 +8,9 @@
 
 module Thermodynamics
 
-   use CommonMPI, only: CommonMPI_abort
    use iso_c_binding, only: c_double, c_int
+   use CommonMPI, only: CommonMPI_abort
+   use PhysicalConstants, only: M_H2O, M_air
    use DefModel, only: NbPhase, NbComp, IndThermique, &
                        GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
                        get_model_configuration
@@ -140,20 +141,6 @@ contains
 
    end subroutine
 
-   pure subroutine air_MasseMolaire(m)
-
-      real(c_double), intent(out) :: m
-
-      m = 29.d-3
-   end subroutine air_MasseMolaire
-
-   pure subroutine H2O_MasseMolaire(m)
-
-      real(c_double), intent(out)  :: m
-
-      m = 18.d-3
-   end subroutine H2O_MasseMolaire
-
    ! Molar density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is Reference Pressure
@@ -174,11 +161,10 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: Rgp, H2O_m, Pc, DSPc(NbPhase), Pg
+      real(c_double) :: Rgp, Pc, DSPc(NbPhase), Pg
       integer(c_int) :: rt(IndThermique + 1)
 
       Rgp = 8.314d0
-      call H2O_MasseMolaire(H2O_m)
 
       if (iph == GAS_PHASE) then
          rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
@@ -195,7 +181,7 @@ contains
          dCf = 0.d0
          dSf = DSPc(iph)/(Rgp*T)
       else if (iph == LIQUID_PHASE) then
-         f = 1000.d0/H2O_m
+         f = 1000.d0/M_H2O
 
          dPf = 0.d0
          dTf = 0.d0
@@ -229,8 +215,8 @@ contains
 
       call f_DensiteMolaire(iph, P, T, C, S, zeta, dPf, dTf, dCf, dSf)   ! P is Reference Pressure
 
-      call air_MasseMolaire(comp_m(AIR_COMP))
-      call H2O_MasseMolaire(comp_m(WATER_COMP))
+      comp_m(AIR_COMP) = M_air
+      comp_m(WATER_COMP) = M_H2O
 
       m = 0.d0
       ! loop of component in phase iph
@@ -423,7 +409,6 @@ contains
       ! output
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: H2O_m, air_m
       real(c_double) :: a, b, cc, d, Ts, T0, ss, dTss, cp
       type(ModelConfiguration) :: configuration
 
@@ -438,21 +423,18 @@ contains
          ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
          dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
 
-         call H2O_MasseMolaire(H2O_m)
-
          call f_CpGaz(cp)
-         call air_MasseMolaire(air_m)
 
          configuration = get_model_configuration()
 
-         f = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*air_m*T + &
-             configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*ss*H2O_m
+         f = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*M_air*T + &
+             configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*ss*M_H2O
 
          dPf = 0.d0
-         dTf = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*air_m + &
-               configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*H2O_m*dTss
-         dCf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*air_m*T
-         dCf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*H2O_m
+         dTf = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*M_air + &
+               configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*M_H2O*dTss
+         dCf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air*T
+         dCf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*M_H2O
          dSf = 0.d0
 
       else if (iph == LIQUID_PHASE) then
@@ -466,12 +448,10 @@ contains
          ss = a + b*(T - T0) + cc*(T - T0)**2.d0 + d*(T - T0)**3.d0
          dTss = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2.d0
 
-         call H2O_MasseMolaire(H2O_m)
-
-         f = ss*H2O_m
+         f = ss*M_H2O
 
          dPf = 0.d0
-         dTf = dTss*H2O_m
+         dTf = dTss*M_H2O
          dCf = 0.d0
          dSf = 0.d0
       endif
@@ -496,7 +476,6 @@ contains
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
                                      dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
 
-      real(c_double) :: H2O_m, air_m
       real(c_double) :: a, b, cc, d, Ts, T0, ss, dTss, cp
       type(ModelConfiguration) :: configuration
 
@@ -511,19 +490,16 @@ contains
          ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
          dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
 
-         call H2O_MasseMolaire(H2O_m)
-
          call f_CpGaz(cp)
-         call air_MasseMolaire(air_m)
 
          configuration = get_model_configuration()
 
-         f(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*air_m*T
-         f(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*H2O_m
+         f(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air*T
+         f(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*M_H2O
 
          dPf = 0.d0
-         dTf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*air_m
-         dTf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*H2O_m*dTss
+         dTf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air
+         dTf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*M_H2O*dTss
          dCf = 0.d0
          dSf = 0.d0
 
@@ -538,12 +514,10 @@ contains
          ss = a + b*(T - T0) + cc*(T - T0)**2.d0 + d*(T - T0)**3.d0
          dTss = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2.d0
 
-         call H2O_MasseMolaire(H2O_m)
-
-         f(:) = ss*H2O_m
+         f(:) = ss*M_H2O
 
          dPf = 0.d0
-         dTf(:) = dTss*H2O_m
+         dTf(:) = dTss*M_H2O
          dCf = 0.d0
          dSf = 0.d0
       endif

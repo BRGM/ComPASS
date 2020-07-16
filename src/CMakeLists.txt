@@ -97,6 +97,7 @@ set(ComPASSCore_SRCS
     SyncPetsc.F90
     VAGFrac.F90
     NN.F90
+    physics/PhysicalConstants.F90
 )
 
 set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90 WellState.F90)
