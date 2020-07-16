@@ -13,7 +13,8 @@ module LoisThermoHydro
 #ifdef _THERMIQUE_
       f_EnergieInterne, f_Enthalpie, f_SpecificEnthalpy, &
 #endif
-      f_Viscosite, f_DensiteMolaire, f_PermRel, f_PressionCapillaire, f_DensiteMassique
+      f_Viscosite, f_DensiteMolaire, f_PressionCapillaire, f_DensiteMassique
+   use RelativePermeabilities, only: f_PermRel
    use DefModel, only: &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       WATER_COMP, &

@@ -18,6 +18,7 @@ module Thermodynamics
    use DefModel, only: &
       NbPhase, NbComp, IndThermique, &
       GAS_PHASE, LIQUID_PHASE
+   use RelativePermeabilities, only: f_PermRel
 
    implicit none
 
@@ -26,7 +27,6 @@ module Thermodynamics
       f_DensiteMolaire, & ! \xi^alpha(P,T,C,S)
       f_DensiteMassique, & ! \rho^alpha(P,T,C,S)
       f_Viscosite, & ! \mu^alpha(P,T,C,S)
-      f_PermRel, & ! k_{r_alpha}(S)
       f_PressionCapillaire, & ! P_{c,alpha}(S)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
@@ -241,38 +241,6 @@ contains
       end if
 
    end subroutine f_Viscosite
-
-   ! Permeabilites = S**2
-   !< rt is the rocktype identifier
-   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-   !< S is all the saturations
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_PermRel(rt, iph, S, f, dSf)
-
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: S(NbPhase)
-      real(c_double), intent(out) :: f
-      real(c_double), intent(out) :: dSf(NbPhase)
-
-      dSf = 0.d0
-
-      ! No interaction between phases
-      f = S(iph)
-      dSf(iph) = 1.d0
-
-      !   ! Brooks-Corey like
-      !   f = S(iph)**2
-      !   dSf(iph) = 2.d0*S(iph)
-
-#ifndef NDEBUG
-      if (iph /= GAS_PHASE .and. iph /= LIQUID_PHASE) &
-         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
-#endif
-
-   end subroutine f_PermRel
 
    ! P(iph) = Pref + f_PressionCapillaire(iph)
    !< rt is the rocktype identifier

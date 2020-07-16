@@ -15,6 +15,7 @@ module Thermodynamics
                        GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
                        get_model_configuration
    use CommonType, only: ModelConfiguration
+   use RelativePermeabilities, only: f_PermRel
 
    implicit none
 
@@ -23,7 +24,6 @@ module Thermodynamics
       f_DensiteMolaire, &  !< \xi^alpha(P,T,C,S)
       f_DensiteMassique, &  !< \rho^alpha(P,T,C,S)
       f_Viscosite, &  !< \mu^alpha(P,T,C,S)
-      f_PermRel, &  !< k_{r_alpha}(S)
       f_PressionCapillaire, &  !< P_{c,alpha}(S)
       air_henry, &  !< Henry coef for air comp
       air_henry_dT, &  !< derivative of the Henry coef for air comp
@@ -269,34 +269,6 @@ contains
       dSf = 0.d0
 
    end subroutine f_Viscosite
-
-   ! Permeabilites = S**2
-   !< rt is the rocktype identifier
-   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-   !< S is all the saturations
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_PermRel(rt, iph, S, f, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, DSf(NbPhase)
-
-      f = S(iph)**2
-      dSf = 0.d0
-      dSf(iph) = 2.d0*S(iph)
-
-#ifndef NDEBUG
-      if (S(iph) < 0.d0) call CommonMPI_abort('Saturation < 0')
-      if (S(iph) > 1.d0) call CommonMPI_abort('Saturation > 1')
-#endif
-
-   end subroutine f_PermRel
 
    ! P(iph) = Pref + f_PressionCapillaire(iph)
    !< rt is the rocktype identifier
