@@ -6,9 +6,12 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
+#ifndef _THERMIQUE_
+#error DefWellFlash: thermal transfer must be activated
+#endif
+
 module DefWellFlash
 
-   use CommonMPI, only: CommonMPI_abort
    use IncCVWells, only: PerfoWellProd, NodebyWellProdLocal
    use IncCVReservoir, only: IncNode
    use Thermodynamics, only: &
@@ -75,10 +78,6 @@ contains
       double precision :: dPf, dTf, dP_Tsat, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
       integer :: wk, s, sr, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
       logical :: converged
-
-#ifndef _THERMIQUE_
-      call CommonMPI_abort("DefWellFlash_TimeFlashWellProd: thermal transfer must be activated")
-#endif
 
       ! compute flowrate of well wk (fill summolarFluxProd and sumnrjFluxProd)
       call WellState_FlowrateWellProd
