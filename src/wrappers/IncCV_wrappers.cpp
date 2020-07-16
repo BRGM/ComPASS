@@ -120,9 +120,9 @@ void add_IncCV_wrappers(py::module& module) {
                                          offsetof(X, accumulation), {nbdof},
                                          {sizeof(Real)});
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-   add_attribute_array<Real>(pyStateArray, "FreeFlow_phase_flowrate",
-                             offsetof(X, FreeFlow_phase_flowrate), {X::np},
-                             {sizeof(Real)});
+   add_attribute_array<StateArray, Real>(
+       pyStateArray, "FreeFlow_phase_flowrate",
+       offsetof(X, FreeFlow_phase_flowrate), {np}, {sizeof(Real)});
 #endif  // _WIP_FREEFLOW_STRUCTURES_
    // auto PyNeumannArray = py::class_<NeumannArray>(module,
    // "NeumannContributions")
