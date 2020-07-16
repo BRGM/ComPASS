@@ -34,7 +34,7 @@ contains
       double precision :: Tws, Pws, Sg, Sl
       double precision :: rhog, rhol, rho
       ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, dP_Tsat, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
+      double precision :: dPf, dTf, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
       integer :: s, sr
 
       do s = NodebyWellProdLocal%Pt(wk) + 1, NodebyWellProdLocal%Pt(wk)
@@ -72,11 +72,11 @@ contains
    subroutine DefWellFlash_TimeFlashWellProd
 
       double precision :: Tws, Pws, xg, Sg, Sl, ResT
-      double precision :: Hgas, Hliq, rhog, rhol, rho
+      double precision :: Hgas, Hliq, rhog, rhol
       double precision :: sumni, E
       ! not used, empty passed to f_Enthalpie
       double precision :: dPf, dTf, dP_Tsat, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
-      integer :: wk, s, sr, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
+      integer :: wk, s, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
       logical :: converged
 
       ! compute flowrate of well wk (fill summolarFluxProd and sumnrjFluxProd)
