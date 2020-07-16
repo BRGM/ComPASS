@@ -211,33 +211,27 @@ subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
       real(c_double), intent(in) :: C(NbComp), S(NbPhase)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
-      real(c_double) :: a, ss, ds, Cs, T1
+      real(c_double) :: Tref, a, da, b
+
+      dPf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
 
       if (iph == GAS_PHASE) then
          f = (0.361d0*T - 10.2d0)*1.d-7
-         dPf = 0.d0
          dTf = 0.361*1.d-7
-         dCf(:) = 0.d0
-         dSf(:) = 0.d0
-      
+
       else if (iph == LIQUID_PHASE) then
-         T1 = 300.d0
-         Cs = 0.04d0
-         a = 1.d0 + Cs*1.34d0 + 6.12d0*Cs**2
-         ss = 0.021482*(T - 273.d0 - 8.435d0 &
-                        + sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
-         ss = ss - 1.2
-         ds = 0.021482d0*(1.d0 + (T - 273.d0 - 8.435d0) &
-                          /sqrt(8078.4d0 + (T - 273.d0 - 8.435d0)**2))
-         f = 1.d-3*a/ss
-         dPf = 0.d0
-         dTf = -a*1.d-3*ds/ss**2
-         dCf(:) = 0.d0
-         dSf(:) = 0.d0
-   
+         Tref = T - 273.d0 - 8.435d0
+         b = sqrt(8078.4d0 + Tref**2)
+         a = 0.021482*(Tref + b) - 1.2
+         da = 0.021482d0*(1.d0 + Tref/b)
+         f = 1.d-3/a
+         dTf = -f*(da/a)
+
 #ifndef NDEBUG
       else
-         call CommonMPI_abort('unknow phase in f_Viscosite')
+         call CommonMPI_abort('Unknow phase in f_Viscosite')
 #endif
 
       end if
