@@ -249,32 +249,28 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_PermRel(rt, iph, S, f, DSf)
+      subroutine f_PermRel(rt, iph, S, f, dSf)
 
-      ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: S(NbPhase)
+      real(c_double), intent(out) :: f
+      real(c_double), intent(out) :: dSf(NbPhase)
 
-      ! output
-      real(c_double), intent(out) :: f, DSf(NbPhase)
+      dSf = 0.d0
 
-      dSf(:) = 0.d0
+      ! No interaction between phases
+      f = S(iph)
+      dSf(iph) = 1.d0
 
-      if (iph == GAS_PHASE) then
-         f = S(iph)**2
-         dSf(iph) = 2.d0*S(iph)
-
-      else if (iph == LIQUID_PHASE) then
-         f = S(iph)**2
-         dSf(iph) = 2.d0*S(iph)
+      !   ! Brooks-Corey like
+      !   f = S(iph)**2
+      !   dSf(iph) = 2.d0*S(iph)
 
 #ifndef NDEBUG
-      else
+      if (iph /= GAS_PHASE .and. iph /= LIQUID_PHASE) &
          call CommonMPI_abort('unknow phase in f_DensiteMolaire')
 #endif
-
-      end if
 
    end subroutine f_PermRel
 
