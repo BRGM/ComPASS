@@ -84,13 +84,7 @@ module DefModel
 
    ! Sum Salpha =1 was already eliminated (only one phase in this physic)
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
-      pssecd = reshape((/ &
-#ifdef _THERMIQUE_
-                       C & ! only one context ic=1
-#else
-                       C & ! only one context ic=1
-#endif
-                       /), (/NbEqFermetureMax, NbContexte/))
+      pssecd = reshape((/C/), (/NbEqFermetureMax, NbContexte/))
 
    ! ! ****** Alignment method ****** ! !
    ! Used in module Jacobian.F90
