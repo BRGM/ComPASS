@@ -9,7 +9,7 @@
 module RelativePermeabilities
 
    use, intrinsic :: iso_c_binding, only: c_double, c_int
-   use DefModel, only: NbPhase, IndThermique
+   use DefModel, only: NbPhase, IndThermique, GAS_PHASE, LIQUID_PHASE
 
    implicit none
 
