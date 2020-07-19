@@ -1,0 +1,134 @@
+%% LyX 2.3.3 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{calc}
+\usepackage{amsmath}
+\usepackage{babel}
+\begin{document}
+\global\long\def\V{\mathcal{V}}%
+\global\long\def\F{\mathcal{F}}%
+\global\long\def\K{K}%
+\global\long\def\W{\mathcal{W}}%
+\global\long\def\N{\mathcal{N}}%
+
+\[
+\left[\begin{array}{cccc}
+J_{\N\N} & J_{\N\F} & J_{\N\K} & J_{\N\W}\\
+J_{\F\N} & J_{\F\F} & J_{\F\K} & J_{\F\W}\\
+J_{\K\N} & J_{\K\F} & J_{\K\K} & J_{\K\W}\\
+J_{\W\N} & J_{\W\F} & J_{\W\K} & J_{\W\W}
+\end{array}\right]
+\]
+\[
+\left[\begin{array}{cccc}
+J_{\N\N} & J_{\N\F} & J_{\N\K} & J_{\N\W}\\
+J_{\F\N} & J_{\F\F} & J_{\F\K} & J_{\F\W}\\
+J_{\K\N} & J_{\K\F} & J_{\K\K} & 0\\
+J_{\W\N} & J_{\W\F} & 0 & J_{\W\W}
+\end{array}\right]\left[\begin{array}{c}
+X_{\N}\\
+X_{\F}\\
+X_{\K}\\
+X_{\W}
+\end{array}\right]=\left[\begin{array}{c}
+S_{\N}\\
+S_{\F}\\
+S_{\K}\\
+S_{\W}
+\end{array}\right]
+\]
+\[
+\left[\begin{array}{ccc}
+J_{\V\V} & J_{\V\K} & J_{\V\W}\\
+J_{\K\V} & J_{\K\K} & 0\\
+J_{\W\V} & 0 & J_{\W\W}
+\end{array}\right]\left[\begin{array}{c}
+X_{\V}\\
+X_{\K}\\
+X_{\W}
+\end{array}\right]=\left[\begin{array}{c}
+S_{\V}\\
+S_{\K}\\
+S_{\W}
+\end{array}\right]
+\]
+
+$J_{\K\K}=\left[J_{kk}\right]_{k\in\K}$ is block diagonal
+
+\[
+J_{\K\V}X_{\V}+J_{\K\K}X_{\K}=S_{\K}
+\]
+\noindent\fbox{\begin{minipage}[t]{1\columnwidth - 2\fboxsep - 2\fboxrule}%
+\[
+X_{\K}=J_{\K\K}^{-1}\left(S_{\K}-J_{\K\V}X_{\V}\right)
+\]
+%
+\end{minipage}}
+
+\begin{align*}
+J_{\V\V}X_{\V}+J_{\V\W}X_{\W}=S_{\V}-J_{\V\K}J_{\K\K}^{-1}\left(S_{\K}-J_{\K\V}X_{\V}\right)\\
+J_{\W\V}X_{\V}+J_{\W\W}X_{\W}=S_{\W}
+\end{align*}
+
+\noindent\fbox{\begin{minipage}[t]{1\columnwidth - 2\fboxsep - 2\fboxrule}%
+\[
+\left[\begin{array}{cc}
+J_{\V\V}-J_{\V\K}J_{\K\K}^{-1}J_{\K\V} & J_{\V\W}\\
+J_{\W\V} & J_{\W\W}
+\end{array}\right]\left[\begin{array}{c}
+X_{\V}\\
+X_{\W}
+\end{array}\right]=\left[\begin{array}{c}
+S_{\V}-J_{\V\K}J_{\K\K}^{-1}S_{\K}\\
+S_{\W}
+\end{array}\right]
+\]
+%
+\end{minipage}}
+
+Let's introduce:
+\[
+\beta=J_{\V\K}J_{\K\K}^{-1}
+\]
+
+\[
+\left[\begin{array}{cc}
+J_{\V\V}-\beta J_{\K\V} & J_{\V\W}\\
+J_{\W\V} & J_{\W\W}
+\end{array}\right]\left[\begin{array}{c}
+X_{\V}\\
+X_{\W}
+\end{array}\right]=\left[\begin{array}{c}
+S_{\V}-\beta S_{\K}\\
+S_{\W}
+\end{array}\right]
+\]
+
+We have:
+\[
+\beta=\left[\beta_{\nu k}\right]_{\nu\in\V,k\in\K}
+\]
+\[
+\beta_{\nu k}=J_{\nu k}J_{kk}^{-1}
+\]
+and:
+\[
+\beta J_{\K\V}=\left[\sum_{k\in\K}J_{\nu k}J_{kk}^{-1}J_{k\nu'}\right]_{\left(\nu,\nu'\right)\in\V^{2}}
+\]
+
+Then with:
+\[
+B_{\nu k}=\left(J_{\nu k}J_{kk}^{-1}\right)^{T}
+\]
+It comes :
+\[
+S_{\V}-J_{\V\K}J_{\K\K}^{-1}S_{\K}=\left[S_{\nu}-\sum_{k\in\K}B_{\nu k}^{T}S_{k}\right]_{\nu\in\V}
+\]
+
+\[
+J_{\V\V}-\beta J_{\K\V}=\left[J_{\nu\nu'}-\sum_{k\in\K}B_{\nu k}^{T}J_{k\nu'}\right]_{\left(\nu,\nu'\right)\in\V^{2}}
+\]
+
+\end{document}

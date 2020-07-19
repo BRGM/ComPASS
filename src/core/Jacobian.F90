@@ -129,8 +129,8 @@ module Jacobian
    real(c_double), pointer, dimension(:, :), public :: &
       bigSm, Sm
 
-   ! ipiv(:,k): pivot indices for cell k
-   integer, allocatable, dimension(:, :), private :: ipiv
+   ! pivot(:,k): pivot indices for cell k
+   integer, allocatable, dimension(:, :), private :: pivot
 
    ! JacBigA is a sparse matrix.
    ! for an element in JacBigA, we need to known its num in JacBigA%Val.
@@ -349,8 +349,6 @@ contains
    subroutine Jacobian_JacBigA_BigSm(Delta_t)
 
       double precision, intent(in) :: Delta_t
-
-      integer :: j, start, s, i, nz
 
       !> 1. init right hand side
       call Jacobian_JacBigA_BigSm_init_from_residual
@@ -752,7 +750,7 @@ contains
       ! div prim of Fourier flux
       double precision :: &
          divFourierFlux_k(NbIncTotalPrimMax), &
-         divFourierFlux_s(NbIncTotalPrimMax), &
+         !  divFourierFlux_s(NbIncTotalPrimMax), &
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
 
@@ -1356,7 +1354,7 @@ contains
       ! div FluxFourier
       double precision :: &
          divFourierFlux_k(NbIncTotalPrimMax), &
-         divFourierFlux_s(NbIncTotalPrimMax), &
+         !  divFourierFlux_s(NbIncTotalPrimMax), &
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeFaceMax), & ! r represent s' in paper
          SmFourierFlux
 
@@ -4730,6 +4728,257 @@ contains
 
    end subroutine Jacobian_Alignment_man_row
 
+   !---------------------------------------------------------------------------
+   !> @brief
+   !> Compute the in place LU factorization of \f$J_{KK}\f$ diagonal blocks
+   !---------------------------------------------------------------------------
+   subroutine Jacobian_Schur_Jkk_LU_factorization(J)
+      type(CSRArray2dble), intent(out) :: J
+
+      integer, parameter :: n = NbCompThermique ! The size of squared block
+      integer :: k, nb_cells, row_k, row_cells_offset
+      integer :: info
+      real(c_double), pointer, dimension(:, :) :: JkkT
+#ifndef NDEBUG
+      integer :: col_cells_offset, col_cells_end
+      integer, pointer, dimension(:) :: cols
+#endif
+
+      nb_cells = NbCellLocal_Ncpus(commRank + 1)
+
+#ifndef NDEBUG
+      col_cells_offset = NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)
+      col_cells_end = col_cells_offset + nb_cells
+#endif
+
+      if (.not. allocated(pivot)) then
+         allocate (pivot(n, nb_cells))
+      end if
+
+      row_cells_offset = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
+
+      do k = 1, nb_cells
+
+         row_k = row_cells_offset + k
+
+#ifndef NDEBUG
+         cols => J%Num(J%Pt(row_k) + 1:J%Pt(row_k + 1) - 1)
+         if (any(cols > col_cells_offset)) &
+            call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent column in LHS")
+         ! Check J_{KW}=0
+         if ( &
+            J%Num(J%Pt(row_k + 1)) <= col_cells_offset .or. &
+            J%Num(J%Pt(row_k + 1)) > col_cells_end &
+            ) call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent cell column in LHS")
+#endif
+
+         ! J_{KK} is block diagonal and J_{KW}=0
+         ! so Jkk is the last block of J%Val(:, :, row_begin:row_end) with:
+         ! row_begin = J%Pt(cells_row_offset + k) + 1
+         ! row_end = J%Pt(cells_row_offset + k + 1)
+         JkkT => J%Val(:, :, J%Pt(row_k + 1))
+         call dgetrf(n, n, JkkT, n, pivot(:, k), info)
+
+         if (info /= 0) &
+            call CommonMPI_abort("dgetrf error in Jacobian_Schur_Jkk_LU_factorization")
+
+      end do
+
+   end subroutine Jacobian_Schur_Jkk_LU_factorization
+
+   !---------------------------------------------------------------------------
+   !> @brief
+   !> Extract \f$J_{\nu\nu}\f$ \f$J_{\nuW}\f$ \f$S_{\nu}\f$...
+   !>
+   !> Extract \f[
+   !> \left[\begin{array}{cc}
+   !>    J_{\nu\nu} & J_{\nu W}\\
+   !>    J_{W\nu} & J_{WW}
+   !> \end{array}\right]
+   !> \f]
+   !---------------------------------------------------------------------------
+   subroutine Jacobian_Schur_extract_LHS(BigLHS, LHS)
+      type(CSRArray2dble), intent(in) :: BigLHS
+      type(CSRArray2dble), intent(out) :: LHS
+
+      integer :: nu, mu, nb_rows
+      integer :: nc, nb_cells, row_cells_offset, row_cells_end
+      integer :: j, colj, col_cells_offset, col_cells_end
+      integer, pointer, dimension(:) :: col
+
+      nb_cells = NbCellLocal_Ncpus(commRank + 1)
+      row_cells_offset = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
+      row_cells_end = row_cells_offset + nb_cells
+      col_cells_offset = NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)
+      col_cells_end = col_cells_offset + nb_cells
+      nb_rows = size(BigSm, 2)
+
+#ifndef NDEBUG
+      if (nb_rows /= (row_cells_end + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1))) &
+         call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_extract_LHS!")
+#endif
+
+      ! We extract J_{\V\V} J_{\V\W} skipping J_{\V\K}
+      do nu = 1, nb_rows
+         mu = nu
+         if (mu > row_cells_offset) then
+            if (mu <= row_cells_end) cycle
+            mu = mu - nb_cells
+         end if
+         nc = 0 ! number of cells on row nu
+         col => BigLHS%Num(BigLHS%Pt(nu) + 1:BigLHS%Pt(nu + 1))
+         do j = 1, size(col)
+            colj = col(j)
+            if (colj <= col_cells_offset) then
+               LHS%Val(:, :, LHS%Pt(mu) + j) = BigLHS%Val(:, :, BigLHS%Pt(nu) + j)
+            else if (colj <= col_cells_end) then
+               nc = nc + 1
+            else
+               LHS%Val(:, :, LHS%Pt(mu) + j - nc) = BigLHS%Val(:, :, BigLHS%Pt(nu) + j)
+            end if
+         end do
+      end do
+
+   end subroutine Jacobian_Schur_extract_LHS
+
+   !---------------------------------------------------------------------------
+   !> @brief
+   !> Extract \f$J_{\nu\nu}\f$ \f$J_{\nuW}\f$ \f$S_{\nu}\f$...
+   !>
+   !> Extract \f[
+   !> \left[\begin{array}{c}
+   !>    S_{\nu} \\ S_{W}
+   !> \end{array}\right]
+   !> \f]
+   !---------------------------------------------------------------------------
+   subroutine Jacobian_Schur_extract_RHS(BigRHS, RHS)
+      real(c_double), dimension(:, :), intent(in) :: BigRHS
+      real(c_double), dimension(:, :), intent(out) :: RHS
+      integer :: nb_rows, row_cells_offset, row_cells_end
+
+      row_cells_offset = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
+      row_cells_end = row_cells_offset + NbCellLocal_Ncpus(commRank + 1)
+      nb_rows = size(BigRHS, 2)
+
+#ifndef NDEBUG
+      if (nb_rows /= (row_cells_offset + NbCellLocal_Ncpus(commRank + 1) &
+                      + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1))) &
+         call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_init_Sm!")
+#endif
+
+      RHS(:, 1:row_cells_offset) = BigRHS(:, 1:row_cells_offset)
+      if (size(RHS, 2) > row_cells_offset) &
+         RHS(:, (row_cells_offset + 1):size(RHS, 2)) = BigRHS(:, (row_cells_end + 1):nb_rows)
+
+   end subroutine Jacobian_Schur_extract_RHS
+
+   ! Schur complement
+   ! cf. latex file in docs/tech/schur.tex
+   subroutine Jacobian_Schur_substitution(BigLHS, LHS, BigRHS, RHS, RHS_only)
+      type(CSRArray2dble), intent(in) :: BigLHS
+      type(CSRArray2dble), intent(inout) :: LHS
+      real(c_double), dimension(:, :), intent(in) :: BigRHS
+      real(c_double), dimension(:, :), intent(inout) :: RHS
+      logical, intent(in) :: RHS_only
+
+      integer, parameter :: n = NbCompThermique ! The size of squared block
+      integer :: i, j, k, l, col_k, row_k, nu, nup, info
+      integer :: row_nodes_end, row_cells_offset, col_cells_offset, col_cells_end
+      real(c_double) :: B(n, n)
+      real(c_double), pointer, dimension(:, :) :: JkkT_LU
+      integer, pointer, dimension(:) :: colsJnu, colsJk
+
+      col_cells_offset = NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)
+      col_cells_end = col_cells_offset + NbCellLocal_Ncpus(commRank + 1)
+      row_nodes_end = NbNodeOwn_Ncpus(commRank + 1)
+      row_cells_offset = row_nodes_end + NbFracOwn_Ncpus(commRank + 1)
+
+      do nu = 1, row_cells_offset
+
+         ! skip Dirichlet nodes
+         if (nu <= row_nodes_end) then
+            if ( &
+#ifdef _THERMIQUE_
+               (IdNodeLocal(nu)%P == "d") .and. (IdNodeLocal(nu)%T == "d") &
+#else
+               IdNodeLocal(nu)%P == "d" &
+#endif
+               ) cycle
+         end if
+
+         colsJnu => BigLHS%Num(BigLHS%Pt(nu) + 1:BigLHS%Pt(nu + 1))
+         do i = 1, size(colsJnu)
+
+            col_k = colsJnu(i)
+            ! process only columns that correspond to cells
+            if (col_k <= col_cells_offset) cycle
+            if (col_k > col_cells_end) exit
+            k = col_k - col_cells_offset
+
+            row_k = row_cells_offset + k
+
+            ! B <- J_{\nu k}^T
+            B = BigLHS%Val(:, :, BigLHS%Pt(nu) + i)
+            ! J_{KK} is block diagonal and J_{KW}=0
+            ! so Jkk is the last block of BigLHS%Val(:, :, row_begin:row_end) with:
+            ! row_begin = BigLHS%Pt(row_k) + 1
+            ! row_end = BigLHS%Pt(row_k + 1)
+            JkkT_LU => BigLHS%Val(:, :, BigLHS%Pt(row_k + 1))
+            ! B  <- (J_{kk}^T)^{-1} B = (J_{kk}^T)^{-1} J_{\nu k}^T = B_{\nu k}
+            call dgetrs('N', n, n, JkkT_LU, n, pivot(:, k), B, n, info)
+            if (info /= 0) &
+               call CommonMPI_abort("dgetrs error in Jacobian_Schur_substitution")
+
+            ! S_{\nu} <- S_{\nu} - B^{T} S_{k}
+            call dgemv('T', n, n, -1.d0, B, n, BigRHS(:, row_k), 1, 1.d0, RHS(:, nu), 1)
+
+            if (RHS_only) cycle
+
+            colsJk => BigLHS%Num(BigLHS%Pt(row_k) + 1:BigLHS%Pt(row_k + 1))
+            do j = 1, size(colsJk)
+               nup = colsJk(j)
+               if (nup > col_cells_offset) exit
+               l = findloc(colsJnu, nup, 1)
+#ifndef NDEBUG
+               if (LHS%Num(LHS%Pt(nu) + l) /= nup) &
+                  call CommonMPI_abort("Unconsistencies between LHS and BigLHS")
+#endif
+               ! because of C like storage of the blocks we compute the transpose of
+               ! J_{\nu\nu'}-\sum_{k\in\K}B_{\nu k}^{T}J_{k\nu'}
+               call dgemm('N', 'N', n, n, n, -1.d0, &
+                          BigLHS%Val(:, :, BigLHS%Pt(row_k) + j), n, B, n, 1.d0, &
+                          LHS%Val(:, :, LHS%Pt(nu) + l), n)
+            end do ! end of colsJk
+
+         end do ! end of colsJnu
+
+      end do ! end of \nu \in \V
+
+   end subroutine Jacobian_Schur_substitution
+
+   ! Schur complement
+   ! cf. latex file in docs/tech/schur.tex
+   subroutine Jacobian_Schur_new(factorize)
+
+      logical, intent(in) :: factorize ! in place LU factorization of JKK diagonal blocks
+
+      if (factorize) &
+         call Jacobian_Schur_Jkk_LU_factorization(JacBigA)
+
+      call Jacobian_Schur_extract_LHS(JacBigA, JacA)
+      call Jacobian_Schur_extract_RHS(BigSm, Sm)
+
+      call Jacobian_Schur_substitution(JacBigA, JacA, BigSm, Sm, .false.)
+
+   end subroutine Jacobian_Schur_new
+
+   subroutine Jacobian_Schur
+
+      !   call Jacobian_Schur_old
+      call Jacobian_Schur_new(.true.)
+
+   end subroutine Jacobian_Schur
+
    ! Schur complement
    ! (A1, A2; A3, A4) ->  A1-A3*A2/A4
    ! BigSm =(b1;b2)   ->  b1-A3*(b2/14), b1, b2 are vectors
@@ -4748,8 +4997,7 @@ contains
    !  col lmj in A3
    !  col n in A1
    !  the element considered in A4 is (lmj,lmi), %Num(mij)
-
-   subroutine Jacobian_Schur
+   subroutine Jacobian_Schur_old
 
       integer :: k, rowk, mk
       integer :: i, mi, rowmi, colmi, kmi, mj, lmj, mij, n, ln, j, lj, ni, info
@@ -4765,8 +5013,8 @@ contains
       NbNodeFracOwn = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
       NbNodeFracOwnCellLocal = NbNodeFracOwn + NbCellLocal_Ncpus(commRank + 1)
 
-      if (.not. allocated(ipiv)) then
-         allocate (ipiv(NbCompThermique, NbCellLocal_Ncpus(commRank + 1)))
+      if (.not. allocated(pivot)) then
+         allocate (pivot(NbCompThermique, NbCellLocal_Ncpus(commRank + 1)))
       end if
 
       ! compute LU for each block element of A4
@@ -4777,7 +5025,7 @@ contains
 
          ! diag block is JacBigA%Val(:,:,mk)
          call dgetrf(NbCompThermique, NbCompThermique, &
-                     JacBigA%Val(:, :, mk), NbCompThermique, ipiv(:, k), info)
+                     JacBigA%Val(:, :, mk), NbCompThermique, pivot(:, k), info)
 
          if (info /= 0) then
             write (0, '(A,I5)', advance='no') "dgetrf error in Schur complement, k =", k
@@ -4817,7 +5065,7 @@ contains
                ! DB = JacBigA%Val(mij)^-1*JacBigA%Val(mi)
                DB(:, :) = JacBigA%Val(:, :, mi)
                call dgetrs('N', NbCompThermique, NbCompThermique, &
-                           JacBigA%Val(:, :, mij), NbCompThermique, ipiv(:, kmi), &
+                           JacBigA%Val(:, :, mij), NbCompThermique, pivot(:, kmi), &
                            DB, NbCompThermique, info)
 
                if (info /= 0) then
@@ -4912,7 +5160,7 @@ contains
          Sm(:, row1) = BigSm(:, row2)
       end do
 
-   end subroutine Jacobian_Schur
+   end subroutine Jacobian_Schur_old
 
    ! Non-zero sturcture of Jacobian
    subroutine Jacobian_StrucJacBigA
@@ -5628,7 +5876,7 @@ contains
             bigSm(1:NbCompThermique, rowk) - tmpInc(1:NbCompThermique)
 
          call dgetrs('T', NbCompThermique, 1, &
-                     JacBigA%Val(:, :, nz), NbCompThermique, ipiv(:, k), &
+                     JacBigA%Val(:, :, nz), NbCompThermique, pivot(:, k), &
                      NewtonIncreCell(1:NbCompThermique, k), NbCompThermique, info)
 
          if (info /= 0) then
