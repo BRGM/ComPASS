@@ -9,7 +9,11 @@
 module RelativePermeabilities
 
    use, intrinsic :: iso_c_binding, only: c_double, c_int
-   use DefModel, only: NbPhase, IndThermique, GAS_PHASE, LIQUID_PHASE
+   use DefModel, only: NbPhase, IndThermique
+#ifndef NDEBUG
+   use DefModel, only: GAS_PHASE, LIQUID_PHASE
+   use CommonMPI, only: CommonMPI_abort
+#endif
 
    implicit none
 
@@ -39,9 +43,9 @@ contains
 
 #ifndef NDEBUG
       if (iph /= GAS_PHASE .and. iph /= LIQUID_PHASE) &
-         call CommonMPI_abort('unknow phase in f_PermRel')
+         call CommonMPI_abort("Unknow phase in f_PermRel")
       if (any(S < 0.d0) .or. any(S > 1.d0)) &
-         call CommonMPI_abort('Unconsistent saturations in f_PermRel')
+         call CommonMPI_abort("Unconsistent saturations in f_PermRel")
 #endif
 
    end subroutine f_PermRel
