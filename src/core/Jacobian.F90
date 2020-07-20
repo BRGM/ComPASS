@@ -4563,36 +4563,26 @@ contains
    ! used for Alignment for node/frac
    subroutine Jacobian_Alignment_diag_row(rowk, colk)
 
-      integer, intent(in) :: rowk, colk
+      integer, intent(in) :: rowk ! local row
+      integer, intent(in) :: colk ! global row
+
+      integer, parameter :: n = NbCompThermique
+      ! optimal size of the WORK array, pre-queried for machine
+      integer, parameter :: lwork = 320 ! Mac
+      double precision, dimension(lwork) :: work
+      integer :: ipival(n), info
       integer :: i, nz, errcode, Ierr
 
-      ! optimal size of the WORK array, pre-queried for machine
-      integer, parameter :: lwork &
-                            = 320 ! Mac
+      double precision, dimension(n, n) :: AA, BB
+      double precision, dimension(n) :: Smk
 
-      double precision, dimension(lwork) :: work
-      integer :: ipival(NbCompThermique), info
-
-      double precision, dimension(NbCompThermique, NbCompThermique) :: &
-         AA, BB
-      double precision, dimension(NbCompThermique) :: &
-         Smk
-
-      ! look for the diag: JacA(:,:,nz)
-      do i = JacA%Pt(rowk) + 1, JacA%Pt(rowk + 1)
-         if (JacA%Num(i) == colk) then
-            nz = i
-            exit
-         end if
-      end do
+      nz = JacA%Pt(rowk) + findloc(JacA%Num((JacA%Pt(rowk) + 1):JacA%Pt(rowk + 1)), colk, 1)
+      BB = JacA%Val(:, :, nz)
 
       ! BB = inv(JacA%Val(:,:,nz))
       ! ps. the index order of JacA%Val(:,:,nz) is (col, row)
       ! so the index order of BB is also (col, row)
-
-      BB = JacA%Val(:, :, nz)
-      call dgetrf(NbCompThermique, NbCompThermique, &
-                  BB, NbCompThermique, ipival, info)
+      call dgetrf(n, n, BB, n, ipival, info)
       if (info /= 0) then
          print *, "dgetrf error", info, "in Alignment, rowk/colk = ", rowk, colk
          print *, "shape of BB", shape(BB)
@@ -4602,8 +4592,7 @@ contains
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
 
-      call dgetri(NbCompThermique, BB, NbCompThermique, &
-                  ipival, work, lwork, info)
+      call dgetri(n, BB, n, ipival, work, lwork, info)
       ! print*, lwork(1)
       if (info /= 0) then
          print *, "dgetri error", info, "in Alignment, rowk/colk = ", rowk, colk
@@ -4612,19 +4601,14 @@ contains
 
       ! JacA%Val(:,:,i) = JacA%Val(:,:,i)*BB, row k
       do i = JacA%Pt(rowk) + 1, JacA%Pt(rowk + 1)
-
          AA(:, :) = JacA%Val(:, :, i)
-         call dgemm('N', 'N', NbCompThermique, NbCompThermique, NbCompThermique, &
-                    1.d0, AA, NbCompThermique, BB, NbCompThermique, 0.d0, &
-                    JacA%Val(:, :, i), NbCompThermique)
+         call dgemm('N', 'N', n, n, n, 1.d0, AA, n, BB, n, 0.d0, JacA%Val(:, :, i), n)
       end do
 
       ! Sm(:,rowk) = BB * Sm(:,rowk), rowk
       ! transpose of BB is necessary since the index of BB is (col, row)
       Smk(:) = Sm(:, rowk)
-      call dgemv('T', NbCompThermique, NbCompThermique, 1.d0, &
-                 BB, NbCompThermique, Smk, 1, &
-                 0.d0, Sm(:, rowk), 1)
+      call dgemv('T', n, n, 1.d0, BB, n, Smk, 1, 0.d0, Sm(:, rowk), 1)
 
    end subroutine Jacobian_Alignment_diag_row
 
