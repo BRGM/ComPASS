@@ -4732,8 +4732,8 @@ contains
    !> @brief
    !> Compute the in place LU factorization of \f$J_{KK}\f$ diagonal blocks
    !---------------------------------------------------------------------------
-   subroutine Jacobian_Schur_Jkk_LU_factorization(J)
-      type(CSRArray2dble), intent(out) :: J
+   subroutine Jacobian_Schur_Jkk_LU_factorization(Mat)
+      type(CSRArray2dble), intent(out) :: Mat
 
       integer, parameter :: n = NbCompThermique ! The size of squared block
       integer :: k, nb_cells, row_k, row_cells_offset
@@ -4762,21 +4762,21 @@ contains
          row_k = row_cells_offset + k
 
 #ifndef NDEBUG
-         cols => J%Num(J%Pt(row_k) + 1:J%Pt(row_k + 1) - 1)
+         cols => Mat%Num(Mat%Pt(row_k) + 1:Mat%Pt(row_k + 1) - 1)
          if (any(cols > col_cells_offset)) &
-            call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent column in LHS")
+            call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent column in Mat")
          ! Check J_{KW}=0
          if ( &
-            J%Num(J%Pt(row_k + 1)) <= col_cells_offset .or. &
-            J%Num(J%Pt(row_k + 1)) > col_cells_end &
-            ) call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent cell column in LHS")
+            Mat%Num(Mat%Pt(row_k + 1)) <= col_cells_offset .or. &
+            Mat%Num(Mat%Pt(row_k + 1)) > col_cells_end &
+            ) call CommonMPI_abort("Jacobian_Schur_Jkk_LU_factorization: inconsistent cell column in Mat")
 #endif
 
          ! J_{KK} is block diagonal and J_{KW}=0
-         ! so Jkk is the last block of J%Val(:, :, row_begin:row_end) with:
-         ! row_begin = J%Pt(cells_row_offset + k) + 1
-         ! row_end = J%Pt(cells_row_offset + k + 1)
-         JkkT => J%Val(:, :, J%Pt(row_k + 1))
+         ! so Jkk is the last block of Mat%Val(:, :, row_begin:row_end) with:
+         ! row_begin = Mat%Pt(cells_row_offset + k) + 1
+         ! row_end = Mat%Pt(cells_row_offset + k + 1)
+         JkkT => Mat%Val(:, :, Mat%Pt(row_k + 1))
          call dgetrf(n, n, JkkT, n, pivot(:, k), info)
 
          if (info /= 0) &
@@ -4797,9 +4797,9 @@ contains
    !> \end{array}\right]
    !> \f]
    !---------------------------------------------------------------------------
-   subroutine Jacobian_Schur_extract_LHS(BigLHS, LHS)
-      type(CSRArray2dble), intent(in) :: BigLHS
-      type(CSRArray2dble), intent(out) :: LHS
+   subroutine Jacobian_Schur_extract_submatrix(BigMat, Mat)
+      type(CSRArray2dble), intent(in) :: BigMat
+      type(CSRArray2dble), intent(out) :: Mat
 
       integer :: nu, mu, nb_rows
       integer :: nc, nb_cells, row_cells_offset, row_cells_end
@@ -4815,7 +4815,7 @@ contains
 
 #ifndef NDEBUG
       if (nb_rows /= (row_cells_end + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1))) &
-         call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_extract_LHS!")
+         call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_extract_submatrix!")
 #endif
 
       ! We extract J_{\V\V} J_{\V\W} skipping J_{\V\K}
@@ -4826,20 +4826,20 @@ contains
             mu = mu - nb_cells
          end if
          nc = 0 ! number of cells on row nu
-         col => BigLHS%Num(BigLHS%Pt(nu) + 1:BigLHS%Pt(nu + 1))
+         col => BigMat%Num(BigMat%Pt(nu) + 1:BigMat%Pt(nu + 1))
          do j = 1, size(col)
             colj = col(j)
             if (colj <= col_cells_offset) then
-               LHS%Val(:, :, LHS%Pt(mu) + j) = BigLHS%Val(:, :, BigLHS%Pt(nu) + j)
+               Mat%Val(:, :, Mat%Pt(mu) + j) = BigMat%Val(:, :, BigMat%Pt(nu) + j)
             else if (colj <= col_cells_end) then
                nc = nc + 1
             else
-               LHS%Val(:, :, LHS%Pt(mu) + j - nc) = BigLHS%Val(:, :, BigLHS%Pt(nu) + j)
+               Mat%Val(:, :, Mat%Pt(mu) + j - nc) = BigMat%Val(:, :, BigMat%Pt(nu) + j)
             end if
          end do
       end do
 
-   end subroutine Jacobian_Schur_extract_LHS
+   end subroutine Jacobian_Schur_extract_submatrix
 
    !---------------------------------------------------------------------------
    !> @brief
@@ -4851,14 +4851,14 @@ contains
    !> \end{array}\right]
    !> \f]
    !---------------------------------------------------------------------------
-   subroutine Jacobian_Schur_extract_RHS(BigRHS, RHS)
-      real(c_double), dimension(:, :), intent(in) :: BigRHS
-      real(c_double), dimension(:, :), intent(out) :: RHS
+   subroutine Jacobian_Schur_extract_subvector(BigVec, Vec)
+      real(c_double), dimension(:, :), intent(in) :: BigVec
+      real(c_double), dimension(:, :), intent(out) :: Vec
       integer :: nb_rows, row_cells_offset, row_cells_end
 
       row_cells_offset = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
       row_cells_end = row_cells_offset + NbCellLocal_Ncpus(commRank + 1)
-      nb_rows = size(BigRHS, 2)
+      nb_rows = size(BigVec, 2)
 
 #ifndef NDEBUG
       if (nb_rows /= (row_cells_offset + NbCellLocal_Ncpus(commRank + 1) &
@@ -4866,19 +4866,19 @@ contains
          call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_init_Sm!")
 #endif
 
-      RHS(:, 1:row_cells_offset) = BigRHS(:, 1:row_cells_offset)
-      if (size(RHS, 2) > row_cells_offset) &
-         RHS(:, (row_cells_offset + 1):size(RHS, 2)) = BigRHS(:, (row_cells_end + 1):nb_rows)
+      Vec(:, 1:row_cells_offset) = BigVec(:, 1:row_cells_offset)
+      if (size(Vec, 2) > row_cells_offset) &
+         Vec(:, (row_cells_offset + 1):size(Vec, 2)) = BigVec(:, (row_cells_end + 1):nb_rows)
 
-   end subroutine Jacobian_Schur_extract_RHS
+   end subroutine Jacobian_Schur_extract_subvector
 
    ! Schur complement
    ! cf. latex file in docs/tech/schur.tex
-   subroutine Jacobian_Schur_substitution(BigLHS, LHS, BigRHS, RHS, RHS_only)
-      type(CSRArray2dble), intent(in) :: BigLHS
-      type(CSRArray2dble), intent(inout) :: LHS
-      real(c_double), dimension(:, :), intent(in) :: BigRHS
-      real(c_double), dimension(:, :), intent(inout) :: RHS
+   subroutine Jacobian_Schur_substitution(BigMat, Mat, BigVec, Vec, RHS_only)
+      type(CSRArray2dble), intent(in) :: BigMat
+      type(CSRArray2dble), intent(inout) :: Mat
+      real(c_double), dimension(:, :), intent(in) :: BigVec
+      real(c_double), dimension(:, :), intent(inout) :: Vec
       logical, intent(in) :: RHS_only
 
       integer, parameter :: n = NbCompThermique ! The size of squared block
@@ -4906,7 +4906,7 @@ contains
                ) cycle
          end if
 
-         colsJnu => BigLHS%Num(BigLHS%Pt(nu) + 1:BigLHS%Pt(nu + 1))
+         colsJnu => BigMat%Num(BigMat%Pt(nu) + 1:BigMat%Pt(nu + 1))
          do i = 1, size(colsJnu)
 
             col_k = colsJnu(i)
@@ -4918,36 +4918,36 @@ contains
             row_k = row_cells_offset + k
 
             ! B <- J_{\nu k}^T
-            B = BigLHS%Val(:, :, BigLHS%Pt(nu) + i)
+            B = BigMat%Val(:, :, BigMat%Pt(nu) + i)
             ! J_{KK} is block diagonal and J_{KW}=0
-            ! so Jkk is the last block of BigLHS%Val(:, :, row_begin:row_end) with:
-            ! row_begin = BigLHS%Pt(row_k) + 1
-            ! row_end = BigLHS%Pt(row_k + 1)
-            JkkT_LU => BigLHS%Val(:, :, BigLHS%Pt(row_k + 1))
+            ! so Jkk is the last block of BigMat%Val(:, :, row_begin:row_end) with:
+            ! row_begin = BigMat%Pt(row_k) + 1
+            ! row_end = BigMat%Pt(row_k + 1)
+            JkkT_LU => BigMat%Val(:, :, BigMat%Pt(row_k + 1))
             ! B  <- (J_{kk}^T)^{-1} B = (J_{kk}^T)^{-1} J_{\nu k}^T = B_{\nu k}
             call dgetrs('N', n, n, JkkT_LU, n, pivot(:, k), B, n, info)
             if (info /= 0) &
                call CommonMPI_abort("dgetrs error in Jacobian_Schur_substitution")
 
             ! S_{\nu} <- S_{\nu} - B^{T} S_{k}
-            call dgemv('T', n, n, -1.d0, B, n, BigRHS(:, row_k), 1, 1.d0, RHS(:, nu), 1)
+            call dgemv('T', n, n, -1.d0, B, n, BigVec(:, row_k), 1, 1.d0, Vec(:, nu), 1)
 
             if (RHS_only) cycle
 
-            colsJk => BigLHS%Num(BigLHS%Pt(row_k) + 1:BigLHS%Pt(row_k + 1))
+            colsJk => BigMat%Num(BigMat%Pt(row_k) + 1:BigMat%Pt(row_k + 1))
             do j = 1, size(colsJk)
                nup = colsJk(j)
                if (nup > col_cells_offset) exit
                l = findloc(colsJnu, nup, 1)
 #ifndef NDEBUG
-               if (LHS%Num(LHS%Pt(nu) + l) /= nup) &
-                  call CommonMPI_abort("Unconsistencies between LHS and BigLHS")
+               if (Mat%Num(Mat%Pt(nu) + l) /= nup) &
+                  call CommonMPI_abort("Unconsistencies between Mat and BigMat")
 #endif
                ! because of C like storage of the blocks we compute the transpose of
                ! J_{\nu\nu'}-\sum_{k\in\K}B_{\nu k}^{T}J_{k\nu'}
                call dgemm('N', 'N', n, n, n, -1.d0, &
-                          BigLHS%Val(:, :, BigLHS%Pt(row_k) + j), n, B, n, 1.d0, &
-                          LHS%Val(:, :, LHS%Pt(nu) + l), n)
+                          BigMat%Val(:, :, BigMat%Pt(row_k) + j), n, B, n, 1.d0, &
+                          Mat%Val(:, :, Mat%Pt(nu) + l), n)
             end do ! end of colsJk
 
          end do ! end of colsJnu
@@ -4965,8 +4965,8 @@ contains
       if (factorize) &
          call Jacobian_Schur_Jkk_LU_factorization(JacBigA)
 
-      call Jacobian_Schur_extract_LHS(JacBigA, JacA)
-      call Jacobian_Schur_extract_RHS(BigSm, Sm)
+      call Jacobian_Schur_extract_submatrix(JacBigA, JacA)
+      call Jacobian_Schur_extract_subvector(BigSm, Sm)
 
       call Jacobian_Schur_substitution(JacBigA, JacA, BigSm, Sm, .false.)
 
