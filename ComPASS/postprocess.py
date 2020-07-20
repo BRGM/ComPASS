@@ -324,9 +324,13 @@ class PostProcessor:
 
     def collect_wells(self, convert_temperature):
         # FIXME: temperature conversion is not available (cf. gitlab issue #205)
-        well_ids = np.loadtxt(
-            self.dumper.to_output_directory("well_ids"), ndmin=1, dtype=np.uint64
-        )
+        well_ids_file = Path(self.dumper.to_output_directory("well_ids"))
+        if not well_ids_file.exists():
+            return
+        with open(well_ids_file) as f:
+            if len("".join(f.readlines()).strip()) == 0:
+                return
+        well_ids = np.loadtxt(well_ids_file, ndmin=1, dtype=np.uint64)
         snapshots = self.collect_snapshots()
         for well in well_ids:
             pvd = {}
@@ -433,7 +437,13 @@ def postprocess_command(
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
     for directory in directories:
-        postprocess(directory, collect_procs_id, collect_states, convert_temperature)
+        postprocess(
+            directory,
+            collect_procs_id,
+            collect_states,
+            convert_temperature,
+            collect_wells,
+        )
 
 
 if __name__ == "__main__":
