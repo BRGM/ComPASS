@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "../common/enum_to_rank.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
 
@@ -23,12 +24,6 @@ enum struct Context {
    liquid = ComPASS_LIQUID_CONTEXT,
    diphasic = ComPASS_DIPHASIC_CONTEXT
 };
-
-template <typename T>
-inline auto enum_to_rank(const T enum_value) {
-   assert(static_cast<int>(enum_value) > 0);
-   return static_cast<int>(enum_value) - 1;  // Fortran -> C indexing
-}
 
 // Fortran functions
 extern "C" {
