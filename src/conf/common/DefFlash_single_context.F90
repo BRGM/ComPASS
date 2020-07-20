@@ -15,8 +15,6 @@ module DefFlash
 
    implicit none
 
-   integer, parameter :: SINGLE_CONTEXT = 1
-
    public :: &
       DefFlash_Flash_cv
 
@@ -34,7 +32,7 @@ contains
       integer, intent(in) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
-      inc%ic = SINGLE_CONTEXT
+      inc%ic = ComPASS_SINGLE_CONTEXT
 
    end subroutine DefFlash_Flash_cv
 
