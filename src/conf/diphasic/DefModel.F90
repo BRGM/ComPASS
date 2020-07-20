@@ -24,8 +24,8 @@ module DefModel
    ! --------------------------------------------------------------
    !      Definition of the components
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
-   integer, parameter :: AIR_COMP = ComPASS_AIR_COMP ! =1 (defined in cmake.conf)
-   integer, parameter :: WATER_COMP = ComPASS_WATER_COMP ! =2 (defined in cmake.conf) I don't know if the water has to be at the end ?
+   integer, parameter :: AIR_COMP = ComPASS_AIR_COMPONENT ! (defined in cmake.conf)
+   integer, parameter :: WATER_COMP = ComPASS_WATER_COMPONENT ! (defined in cmake.conf) CHECKME: does the water has to be at the end?
 
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES
    !FIXME: Asssume that the latest phase is the liquid phase (wells)

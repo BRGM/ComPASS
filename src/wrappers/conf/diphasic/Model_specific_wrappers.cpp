@@ -8,7 +8,10 @@ static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 2, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
 
-enum struct Component { air = ComPASS_AIR_COMP, water = ComPASS_WATER_COMP };
+enum struct Component {
+   air = ComPASS_AIR_COMPONENT,
+   water = ComPASS_WATER_COMPONENT
+};
 
 enum struct Phase { gas = ComPASS_GAS_PHASE, liquid = ComPASS_LIQUID_PHASE };
 
