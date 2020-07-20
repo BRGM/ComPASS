@@ -9,7 +9,7 @@
 
 # Configuration to be built FIXME: include file liquid_water,
 # linear_liquid_water, water_with_tracer have been moved to attic
-set(CONFIGURATIONS diphasic linear_water water2ph immiscible2ph)
+set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
 
 foreach(_conf ${CONFIGURATIONS})
   option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)

@@ -61,6 +61,7 @@
 
 # -- Tweaks physics
 # set(DEF_THERMIQUE ON CACHE BOOL "Activate energy transfer.")
+# set(ComPASS_WITH_brine_PHYSICS ON CACHE BOOL "Compiles brine eos module.")
 # set(ComPASS_WITH_diphasic_PHYSICS ON CACHE BOOL "Compiles diphasic eos module.")
 # set(ComPASS_WITH_immiscible2ph_PHYSICS ON CACHE BOOL "Compiles subcritical 2 immiscible phases eos module.")
 # set(ComPASS_WITH_linear_water_PHYSICS ON CACHE BOOL "Compiles simplified water eos module.")
