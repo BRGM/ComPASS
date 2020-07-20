@@ -577,8 +577,8 @@ contains
 
          ! Comp
          do i = 2 + IndThermique, NbIncPTC ! loop over index of Components
-            iph = NumIncPTC2NumIncComp_phase(i) ! phase of Component i
-            icp = NumIncPTC2NumIncComp_comp(i) ! numero of the component i
+            iph = NumIncPTC2NumIncComp_phase(i) ! phase corresponding to unknown i
+            icp = NumIncPTC2NumIncComp_comp(i) ! component corresponding to unknown i
             call LoisThermoHydro_Inc_cv(i, inc(k), &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
@@ -1655,6 +1655,9 @@ contains
             endif
          enddo
       ELSE ! index_inc (P or T) not found
+         write (*, *) "Looking for unknown ", index_inc, &
+            "(NumIncTotalPrimCV=", NumIncTotalPrimCV, &
+            " NumIncTotalSecondCV=", NumIncTotalSecondCV, ")"
          if (index_inc == 1) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, P not found ')
 #ifdef _THERMIQUE_
          if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
