@@ -24,4 +24,12 @@ ton = 1000  # kg
 degC2K = lambda T: T + 273.15
 K2degC = lambda T: T - 273.15
 
-time_string = lambda tin: "%10.5g s = %10.5g y" % (tin, tin / year)
+
+def time_string_factory(time_unit, symbol):
+    def f(tin):
+        return f"{tin:10.5g} s = {tin / time_unit:10.5g} {symbol}"
+
+    return f
+
+
+time_string = time_string_factory(year, "y")
