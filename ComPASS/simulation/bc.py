@@ -70,6 +70,19 @@ def reset_dirichlet_nodes(
     pressure_selection=lambda pts: None,
     temperature_selection=lambda pts: None,
 ):
+    """
+    Select new Dirichlet nodes using mask functions
+    (must be True where the node is a Dirichlet node).
+
+    :param simulation: the simulation object
+    :param both_selection: a function that will be called on vertices coordinates
+                            to select both pressure and temperature dirichlet nodes
+                            (default to no selection)
+    :param pressure_selection: a function that will be called on vertices coordinates
+                            to select both pressure dirichlet nodes (default to no selection)
+    :param temperature_selection: a function that will be called on vertices coordinates
+                            to select temperature dirichlet nodes (default to no selection)
+    """
     clear_dirichlet_nodes(simulation)
     vertices = simulation.vertices()
     set_dirichlet_nodes(
