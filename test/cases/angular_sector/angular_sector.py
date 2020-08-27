@@ -1,8 +1,8 @@
 import numpy as np
 
-import mCGAL.kernels.Epick.Mesh_2 as Mesh_2
-from mCGAL.kernels.Epick import Point_2 as Point
-from mCGAL.kernels.Epick import distance
+import pyCGAL.kernels.Epick.Mesh_2 as Mesh_2
+from pyCGAL.kernels.Epick import Point_2 as Point
+from pyCGAL.kernels.Epick import distance
 
 from MeshTools import Wedge, HybridMesh
 from MeshTools.utils import axis_extrusion
