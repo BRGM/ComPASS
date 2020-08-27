@@ -158,6 +158,7 @@ class PostProcessor:
             ),
             piecefile,
         )
+        # FIXME: we could optimize selecting only fracture nodes and skipping empty files
         if fracdata:
             fracdata_size = int(
                 np.unique([a.shape[0] for a in fracdata.values()])
@@ -170,6 +171,8 @@ class PostProcessor:
                 cell_nodes = mesh["fracturenodes_values"]
                 cell_types = mesh["fracture_types"]
                 if own_only:
+                    if nb_own_fractures == 0:
+                        return piecefile, None
                     cell_nodes_offsets = cell_nodes_offsets[:nb_own_fractures]
                     cell_nodes = cell_nodes[: cell_nodes_offsets[-1]]
                     cell_types = cell_types[:nb_own_fractures]
