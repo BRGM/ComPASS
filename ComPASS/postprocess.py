@@ -16,7 +16,7 @@ import numpy as np
 from .dumps import Dumper
 from .dump_wells import _well_vtu_filename as well_vtu
 from .utils import create_directories
-from .utils.units import year
+from .utils import units
 import MeshTools.vtkwriters as vtkw
 
 
@@ -62,7 +62,7 @@ class MeshDistribution:
 
 
 class PostProcessor:
-    def __init__(self, directory):
+    def __init__(self, directory, time_unit):
         # No simulation object during postprocess -> None
         self.dumper = Dumper(None, directory)
         self.paraview_directory = os.path.join(
@@ -81,6 +81,8 @@ class PostProcessor:
         self.vertices_type = None
         self.data_types = None
         self.proc_id_type = np.dtype("i")
+        assert time_unit > 0
+        self.time_unit = time_unit
 
     def to_paraview_directory(self, filename=""):
         return os.path.join(self.paraview_directory, filename)
@@ -300,7 +302,7 @@ class PostProcessor:
                     fracpvtufile,
                 )
                 pvtus = (pvtufile, fracpvtufile)
-            pvd[snapshots[tag] / year] = pvtus
+            pvd[snapshots[tag] / self.time_unit] = pvtus
         vtkw.write_pvd(
             vtkw.pvd_doc(
                 [
@@ -340,7 +342,7 @@ class PostProcessor:
                 # copy file in paraview directory
                 new_vtu = self.to_pvwells_directory(os.path.basename(vtu))
                 shutil.copyfile(vtu, new_vtu)
-                pvd[snapshots[tag] / year] = new_vtu
+                pvd[snapshots[tag] / self.time_unit] = new_vtu
             vtkw.write_pvd(
                 vtkw.pvd_doc(
                     [
@@ -358,6 +360,7 @@ def postprocess(
     collect_states=True,
     convert_temperature=True,
     collect_wells=True,
+    time_unit="year",
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)
 
@@ -365,13 +368,21 @@ def postprocess(
     :param collect_procs_id: boolean flag to collect procs ids and output mesh partitioning
     :param collect_states: boolean flag to collect physical states
     :param convert_temperature: boolean flag to convert Kelvin to Celsius degrees
+    :param time_unit: a string among second, minute, hour, day, year, defaults to year
 
     """
     directory = Path(directory)
     print("processing results in", directory)
     something_done = False
+    time_unit_value = {
+        "second": 1,
+        "minute": units.minute,
+        "hour": units.hour,
+        "day": units.day,
+        "year": units.year,
+    }[time_unit]
     if directory.is_dir() and (collect_procs_id or collect_states or collect_wells):
-        pp = PostProcessor(directory)
+        pp = PostProcessor(directory, time_unit_value)
         if collect_procs_id:
             pp.collect_proc_ids()
             something_done = True
@@ -431,9 +442,25 @@ def postprocess(
     default=False,
     help="convert temperature from Kelvin to Celsius degrees",
 )
+@click.option(
+    "-t",
+    "--time-unit",
+    "time_unit",
+    default="year",
+    type=click.Choice(
+        ["second", "minute", "hour", "day", "year"], case_sensitive=False
+    ),
+    show_default=True,
+    help="select a time unit",
+)
 @click.argument("directories", nargs=-1)
 def postprocess_command(
-    collect_procs_id, collect_states, collect_wells, convert_temperature, directories
+    collect_procs_id,
+    collect_states,
+    collect_wells,
+    convert_temperature,
+    time_unit,
+    directories,
 ):
     """postprocess a set of directories where output from ComPASS simulations are stored (typically something like output-scriptname)"""
     for directory in directories:
@@ -443,6 +470,7 @@ def postprocess_command(
             collect_states,
             convert_temperature,
             collect_wells,
+            time_unit,
         )
 
 
