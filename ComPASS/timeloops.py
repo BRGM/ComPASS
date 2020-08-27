@@ -209,10 +209,9 @@ def standard_loop(
     if specific_outputs is None:
         specific_outputs = []
     events = _make_event_list(events)
-    t = initial_time if initial_time is not None else 0
-    initial_time = t
-    total_time = None if final_time is None else (final_time - initial_time)
-    while len(events) > 0 and events[0].time < t:
+    t0 = initial_time if initial_time is not None else 0
+    total_time = None if final_time is None else (final_time - t0)
+    while len(events) > 0 and events[0].time < t0:
         mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
         events.pop(0)
     if shooter is None:
@@ -225,6 +224,7 @@ def standard_loop(
             return
         t, n, _ = tick
         for callback in output_callbacks:
+            # FIXME: why not callback(tick)?
             callback(n, t)
         shooter.shoot(t)
 
@@ -233,15 +233,16 @@ def standard_loop(
     def add_output_event(tout):
         events.add(Event(tout, [output_actions,]))
 
+    # FIXME: use tick as argument not (t, n)
     @mpi.on_master_proc
-    def print_iteration_info():
+    def print_iteration_info(t, n):
         print()
         print("** Time Step (iteration):", n, "*" * 50)
         if final_time:
             final_time_info = (
                 "-> "
                 + time_string(final_time)
-                + f" ({100*(t - initial_time)/total_time:.2f}% done)"
+                + f" ({100*(t - t0)/total_time:.2f}% done)"
             )
         else:
             final_time_info = "-> NO final time"
@@ -259,6 +260,8 @@ def standard_loop(
                 action(tick)
             events.pop(0)
 
+    tick0 = LoopTick(time=t0, iteration=n)
+
     if output_period is not None:
 
         def push_reccuring_output_event(tick):
@@ -270,17 +273,17 @@ def standard_loop(
                     )
                 )
 
-        push_reccuring_output_event(LoopTick(time=t + output_period))
+        push_reccuring_output_event(tick0)
     if output_before_start:
-        output_actions(LoopTick(time=t, iteration=n))
-    process_events(LoopTick(time=t, iteration=n))
+        output_actions(tick0)
+    process_events(tick0)
 
     if well_pressure_offset is not None:
         check_well_pressure(simulation, well_pressure_offset)
     # InitPressureDrop
     kernel = get_kernel()
     kernel.IncCVWells_InitPressureDrop()
-
+    t = t0
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
         if len(events) > 0:
@@ -294,7 +297,7 @@ def standard_loop(
             dt_to_next_event is None or dt_to_next_event > 0
         ), f"dt to next event: {dt_to_next_event}"
         n += 1
-        print_iteration_info()
+        print_iteration_info(t, n)
         # --
         dt = timestep.make_one_timestep(
             newton,
