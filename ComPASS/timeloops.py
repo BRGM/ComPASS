@@ -152,7 +152,7 @@ def standard_loop(
     :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
         (cf. ``ouput_period`` and ``output_every``).
         The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
-    :param specific_outputs: .
+    :param specific_outputs: A sequence of additional output times.
     :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
     :param context: A :class:`ComPASS.simulation_context.SimulationContext` object that is used to
