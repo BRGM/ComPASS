@@ -284,6 +284,7 @@ def standard_loop(
     kernel = get_kernel()
     kernel.IncCVWells_InitPressureDrop()
     t = t0
+    tick = tick0
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
         if len(events) > 0:
