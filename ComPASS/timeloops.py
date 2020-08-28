@@ -101,7 +101,11 @@ class Snapshooter:
 
 
 n = 0  # iteration counter FIXME: global variable
-shooter = None
+shooter = None  # FIXME: global variable
+
+# FIXME: temporary workaround for bug #280
+# https://gitlab.inria.fr/charms/ComPASS/-/issues/280
+default_newton_instance = None
 
 
 def standard_loop(
@@ -170,15 +174,20 @@ def standard_loop(
     :param no_output: Flag that will prevent any output (defaults to False)
     :return: The time at the end of the time loop.
     """
+    # FIXME: horrible global variables... to be removed... using OOP?
+    global n, shooter, default_newton_instance
     assert not (final_time is None and nitermax is None)
     if newton is None:
-        newton = default_Newton(simulation)
+        if default_newton_instance is None:
+            default_newton_instance = default_Newton(simulation)
+        newton = default_newton_instance
+        assert (
+            newton.simulation == simulation
+        ), "Unconsistent simulation object for default Newton instance"
     if context is None:
         context = SimulationContext()
     if well_connections is None:
         well_connections = simulation.well_connections
-    global n
-    global shooter
     if output_period is None:
         if nb_output is not None:
             nb_output = max(2, nb_output)
