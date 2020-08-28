@@ -58,31 +58,15 @@ left = x == x.min()
 dirichlet.p[left] = pL
 dirichlet.T[left] = TL
 
-# lsolver = linear_solver(simulation, direct=True)
-# newton = Newton(simulation, 1e-5, 8, lsolver)
-# newton = default_Newton(simulation)
-
 t0 = 0
 nitermax = 0
-mem = MemStatus("script", skip_first=False)
+mem = MemStatus("script", skip_first=True)
 
-import os, psutil
-from ComPASS.utils.memory import sizeof_fmt
-
-process = psutil.Process(os.getpid())
-mem0 = process.memory_info().rss
-print(f"Starting memory:", sizeof_fmt(mem0))
-
-for _ in range(2000):
+for _ in range(200):
     nitermax += 2
     t0 = simulation.standard_loop(
-        initial_time=t0,
-        initial_timestep=1,
-        nitermax=nitermax,
-        output_period=1,  # , newton=newton,
+        initial_time=t0, initial_timestep=1, nitermax=nitermax, output_period=1,
     )
     mem.update(verbose=True)
 
 print(mem)
-print(f"Final memory:", sizeof_fmt(process.memory_info().rss))
-print(f"Final memory increase:", sizeof_fmt(process.memory_info().rss - mem0))
