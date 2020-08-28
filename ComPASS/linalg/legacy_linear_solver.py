@@ -84,7 +84,7 @@ class LegacyIterativeSolver(IterativeSolver):
         self.activate_cpramg = activate_cpramg
         self.settings = (
             self.settings._asdict()
-        )  # Is there a better way than storing it as a dictionary ?
+        )  # CHECKME: Is there a better way than storing it as a dictionary ?
         self.kernel.SolvePetsc_Init(
             settings.max_iterations, settings.tolerance, self.activate_cpramg, False,
         )
