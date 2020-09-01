@@ -1,4 +1,4 @@
-.. _Setting-up initial conditions:
+.. _setting-initial-values:
 
 Setting up initial values
 =========================

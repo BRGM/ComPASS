@@ -18,11 +18,12 @@ After step 2 the mesh is partitioned and the global mesh is no longer available.
 Each proc works on its own subdomain.
 
 3. Setting-up initial values and physical states (cf. various examples in
-:ref:`Setting-up initial conditions`_)
+:ref:`setting-initial-values`).
 
 4. Solving the temporal problem, i.e. making or using one of the provided time loops.
 Cf. for example the :func:`ComPASS.timeloops.standard_loop` function.
 
 
-Simulation results can be prostprocess with ComPASS.prostprocess module.
-If you use docker container you can also use the :code:`posprocess` subcommand.
+Simulation results can be prostprocess with ComPASS.prostprocess module
+and the underlying :func:`~ComPASS.postprocess.postprocess` function.
+If you use docker container you can also use the :code:`postprocess` subcommand.
