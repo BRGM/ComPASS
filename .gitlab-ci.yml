@@ -190,8 +190,9 @@ pages:
   tags:
     - build
   only:
-    - ${CI_DEFAULT_BRANCH}
-    - /^doc_.*$/
+    refs:
+      - ${CI_DEFAULT_BRANCH}
+      - /^doc_.*$/
   image: docker:stable
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
