@@ -49,6 +49,8 @@ html_theme = "sphinx_rtd_theme"
 # of the sidebar.
 html_logo = "compass_logo.png"
 
+# Add a timestamp using datetime format
+html_last_updated_fmt = "%b %d, %Y, %X"
 
 # The suffix(es) of source filenames.
 source_suffix = {
