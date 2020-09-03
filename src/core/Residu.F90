@@ -8,10 +8,12 @@
 
 module Residu
 
-   use, intrinsic :: iso_c_binding, only: c_double, c_f_pointer
+   use, intrinsic :: iso_c_binding, only: c_int, c_double, c_f_pointer
+   use, intrinsic :: ieee_arithmetic, only: ieee_value, ieee_quiet_nan
 
    use CommonMPI, only: commRank, CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
+   use CommonType, only: CSR
 
    use DefModel, only: &
       NbPhase, NbComp, NbCompThermique, IndThermique, &
@@ -619,6 +621,24 @@ contains
 ! !!$
 !    end subroutine collect_wellhead_information
 
+   subroutine Residu_copy_reservoir_state_to_well(wk, NodebyWell, PerfoWell)
+      integer(c_int), intent(in) :: wk
+      type(CSR), intent(in) :: NodebyWell
+      type(WellPerforationState_type), dimension(:), intent(inout) :: PerfoWell
+
+      integer :: s, nums
+
+      do s = NodebyWell%Pt(wk) + 1, NodebyWell%Pt(wk + 1)
+         nums = NodebyWell%Num(s)
+         PerfoWell(s)%Pression = IncNode(nums)%Pression
+         PerfoWell(s)%Temperature = IncNode(nums)%Temperature
+         PerfoWell(s)%Saturation = IncNode(nums)%Saturation
+         PerfoWell(s)%Density = ieee_value(PerfoWell(s)%Density, ieee_quiet_nan) ! FIXME: Should we recompute this?
+         PerfoWell(s)%PressureDrop = ieee_value(PerfoWell(s)%PressureDrop, ieee_quiet_nan) ! FIXME: Should we recompute this?
+      end do
+
+   end subroutine Residu_copy_reservoir_state_to_well
+
    subroutine Residu_add_flux_contributions_wells
 
       integer :: k, s, nums, m, mph, icp
@@ -636,6 +656,7 @@ contains
          ! Check if the well is closed
          if (DataWellInjLocal(k)%IndWell == 'c') then
             ResiduWellInj(k) = 0.d0
+            call Residu_copy_reservoir_state_to_well(k, NodebyWellInjLocal, PerfoWellInj)
             cycle ! FIXME: if Fourier contribion is considered we should take it into account
          end if
 
@@ -700,6 +721,7 @@ contains
          ! Check if the well is closed
          if (DataWellProdLocal(k)%IndWell == 'c') then
             ResiduWellProd(k) = 0.d0
+            call Residu_copy_reservoir_state_to_well(k, NodebyWellProdLocal, PerfoWellProd)
             cycle ! FIXME: if Fourier contribion is considered we should take it into account
          end if
 
