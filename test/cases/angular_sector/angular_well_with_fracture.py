@@ -85,7 +85,7 @@ simulation.init(
 ## ------------------------------
 
 # top nodes are set to dirichlet conditions
-simulation.reset_dirichlet_nodes(lambda xyz: xyz[:, 2] - epsilon > H)
+simulation.reset_dirichlet_nodes(lambda xyz: xyz[:, 2] > H - epsilon)
 X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
 simulation.all_states().set(X0)
 dirichlet = simulation.dirichlet_node_states()
