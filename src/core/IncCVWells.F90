@@ -32,6 +32,7 @@ module IncCVWells
 
    use MeshSchema, only: &
       XNodeLocal, &
+      DataWellProdLocal, DataWellInjLocal, &
       NodebyWellProdLocal, NodebyWellInjLocal, &
       NodeDatabyWellProdLocal, NodeDatabyWellInjLocal, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus
@@ -144,6 +145,9 @@ contains
 
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
 
+         ! Check if the well is closed
+         if (DataWellProdLocal(k)%IndWell == 'c') cycle
+
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
@@ -210,6 +214,9 @@ contains
       Stmp(LIQUID_PHASE) = 1.d0
 
       do k = 1, nbwells
+
+         ! Check if the well is closed
+         if (DataWellInjLocal(k)%IndWell == 'c') cycle
 
          Pw_head = IncPressionWellInj(k)
          T = DataWellInjLocal(k)%InjectionTemperature
