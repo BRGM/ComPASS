@@ -19,8 +19,11 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
                        through a fake method as `simulation.create_vertical_well`
 
     :param xy: the 2D coordinates (X, Y) of the well location
+    :param well_radius: the well radius in meters (used to compute Peaceman well indices)
+    :param zmin: only vertices above zmin will be considered (ignored if None, which is the default)
+    :param zmax: only vertices above zmin will be considered (ignored if None, which is the default)
 
-    :return: The data of the well which as `wid` id.
+    :return: the created well
     """
     x, y, z = simulation.coordinates(simulation.global_vertices())
     x_well = x[np.argmin(np.abs(x - xy[0]))]
