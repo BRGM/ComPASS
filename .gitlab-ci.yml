@@ -189,10 +189,9 @@ pages:
   stage: documentation
   tags:
     - build
-  only:
-    refs:
-      - ${CI_DEFAULT_BRANCH}
-      - /^doc_.*$/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH =~ /^doc_.*$/'
   image: docker:stable
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
