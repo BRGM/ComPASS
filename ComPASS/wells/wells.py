@@ -13,13 +13,31 @@ from ..timeloops import Event
 from ..mpi import master_print
 
 
+def create_well_from_segments(simulation, segments, well_radius=None):
+    """
+    :param simulation: simulation object, the method can also be accessed
+                       through a fake method as `simulation.create_well_from_segments`
+    :param segments: a sequence of pair vertices id
+    :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
+    """
+    well = common_wrapper.Well()
+    if well_radius is None:
+        well_radius = 0.1
+    well.geometry.radius = well_radius
+    segments = np.ascontiguousarray(segments)
+    segments.shape = -1, 2
+    print(segments)
+    well.geometry.add_segments(segments + 1)  # Fortran indices start at 1
+    return well
+
+
 def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_vertical_well`
 
     :param xy: the 2D coordinates (X, Y) of the well location
-    :param well_radius: the well radius in meters (used to compute Peaceman well indices)
+    :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     :param zmin: only vertices above zmin will be considered (ignored if None, which is the default)
     :param zmax: only vertices above zmin will be considered (ignored if None, which is the default)
 
@@ -36,13 +54,8 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
     well_nodes = np.nonzero(selection)[0]
     # CHECKME: What is the expected order for well nodes?
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
-    well = common_wrapper.Well()
-    if well_radius is None:
-        well_radius = 0.1
-    well.geometry.radius = well_radius
     segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
-    well.geometry.add_segments(segments + 1)  # Fortran indices start at 1
-    return well
+    return create_well_from_segments(simulation, segments, well_radius)
 
 
 def _get_well_data(simulation, wells_data, wid):
