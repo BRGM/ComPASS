@@ -126,9 +126,9 @@ def _dump_wells(
         # We want to keep only well vertices not all revervoir vertices
         well_vertices = well.vertices
         assert well_vertices.shape == np.unique(well_vertices).shape
-        remap = np.zeros(vertices.shape[0], dtype=well_vertices.dtype)
-        remap[well_vertices] = 1
-        remap = np.cumsum(remap) - 1
+        remap = np.full(vertices.shape[0], -1, dtype=well_vertices.dtype)
+        # Well nodes are sorted along well so we have to keep order
+        remap[well_vertices] = np.arange(well_vertices.shape[0])
         # FIXME: well.pressure has no real meaning for multiple phases (reference pressure ?)
         welldata = {
             name: np.ascontiguousarray(a)
