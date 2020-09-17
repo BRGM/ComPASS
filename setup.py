@@ -129,6 +129,8 @@ setup(
     author_email="anr-charms@brgm.fr",
     description="A parallel multiphase multicomponents simulator.",
     long_description="",
+    url="https://charms.gitlabpages.inria.fr/ComPASS/",
+    license="GPLv3/CeCILLv2.1",
     packages=[
         "ComPASS",
         "ComPASS.eos",
