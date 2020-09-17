@@ -21,12 +21,11 @@
 import numpy as np
 
 import ComPASS
+from ComPASS.utils.grid import on_xmin, on_xmax
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
-
-ComPASS.load_eos("linear_water")
 
 p_reservoir = 0  # no flow - linear water eos
 Tleft, Tright = 33.0, 5.0  # K or deg C no matter
@@ -44,60 +43,32 @@ nb_outputs = 20
 
 #%% Simulation -----------------------------------------------------------------
 
-ComPASS.set_gravity(0)
+ComPASS.set_output_directory_and_logfile(__file__)
+
+simulation = ComPASS.load_eos("linear_water")
+simulation.set_gravity(0)
 rhocp = rho_reservoir * cp_reservoir
-fluid_properties = ComPASS.get_fluid_properties()
+simulation.set_rock_volumetric_heat_capacity(rhocp)
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.volumetric_heat_capacity = rhocp
-ComPASS.set_rock_volumetric_heat_capacity(rhocp)
 
 nb_steps = int(L / ds) + 1
 shape = [1,] * 3
 shape[axis] = nb_steps
 extent = [L / ds,] * 3
 extent[axis] = L
+
 grid = ComPASS.Grid(shape=shape, extent=extent,)
-
-
-on_the_left = lambda xyz: xyz[:, axis] <= grid.origin[axis]
-on_the_right = lambda xyz: xyz[:, axis] >= (grid.origin[axis] + grid.extent[axis])
+on_the_left = on_xmin(grid)
+on_the_right = on_xmax(grid)
 
 
 def select_dirichlet_nodes():
-    coords = ComPASS.global_vertices()
-    return on_the_left(coords) | on_the_right(coords)
+    vertices = simulation.global_vertices()
+    return on_the_left(vertices) | on_the_right(vertices)
 
 
-def set_boundary_conditions():
-    def set_states(states, xyz):
-        left = on_the_left(xyz)
-        states.p[left] = p_reservoir
-        states.T[left] = Tleft
-        right = on_the_right(xyz)
-        states.p[right] = p_reservoir
-        states.T[right] = Tright
-        both = left | right
-        states.context[both] = 1
-        states.S[both] = 1
-        states.C[both] = 1.0
-
-    set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices())
-
-
-def set_initial_values():
-    def set_states(states):
-        states.context[:] = 1
-        states.p[:] = p_reservoir
-        states.T[:] = Tright
-        states.S[:] = 1
-        states.C[:] = 1.0
-
-    set_states(ComPASS.node_states())
-    set_states(ComPASS.cell_states())
-
-
-ComPASS.set_output_directory_and_logfile(__file__)
-
-ComPASS.init(
+simulation.init(
     mesh=grid,
     set_dirichlet_nodes=select_dirichlet_nodes,
     cell_thermal_conductivity=K_reservoir,
@@ -105,18 +76,31 @@ ComPASS.init(
     cell_porosity=omega_reservoir,
 )
 
-set_initial_values()
-set_boundary_conditions()
+
+# homogeneous reservoir initial state
+X0 = simulation.build_state(p=p_reservoir, T=Tright)
+simulation.all_states().set(X0)
+
+# Dirichlet boundary conditions
+dirichlet_nodes = simulation.dirichlet_node_states()
+dirichlet_nodes.set(X0)
+dirichlet_nodes.T[on_the_left(simulation.vertices())] = Tleft
 
 # Construct the linear solver and newton objects outside the time loop
-# to set their parameters. Here direct solving is activated
+# to set their parameters. Here direct solver is activated
 lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 output_period = final_time / nb_outputs
-standard_loop(
+simulation.standard_loop(
     final_time=final_time,
     newton=newton,
     output_period=output_period,
     time_step_manager=TimeStepManager(final_time / (10 * nb_steps), output_period),
 )
+
+print("\nWARNING: No check against anaytical solution was performed\n")
+
+# if necessary simulation results can be directly postprocessed here
+# from ComPASS.postprocess import postprocess
+# postprocess(simulation.runtime.output_directory, convert_temperature=True)
