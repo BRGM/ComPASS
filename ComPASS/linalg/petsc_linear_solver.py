@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-
+import numpy as np
 import petsc4py
 import sys
 
@@ -109,13 +109,17 @@ class PetscIterativeSolver(IterativeSolver):
     """
 
     def __init__(
-        self, linear_system, settings, comm=PETSc.COMM_WORLD,
+        self, linear_system, settings, activate_cpramg=True, comm=PETSc.COMM_WORLD,
     ):
 
         super().__init__(linear_system, settings)
         self.ksp = PETSc.KSP().create(comm=comm)
         self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
-        self.ksp.getPC().setFactorLevels(1)
+        self.pc = self.ksp.getPC()
+        if activate_cpramg:
+            self.set_cpramg_pc()
+        else:
+            self.pc.setFactorLevels(1)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
         self.tolerance, self.max_iterations, self.restart_size = self.settings[:]
         self.ksp.setFromOptions()
@@ -153,6 +157,44 @@ class PetscIterativeSolver(IterativeSolver):
             self.number_of_successful_iterations += nit
 
         return self.linear_system.x, nit, ksp_reason
+
+    def set_cpramg_pc(self):
+
+        # CPR-AMG is a multiplicative composite PC :
+        # CPR-AMG = M2*(I - A*M1) + M1
+        # Where M1 is an AMG procedure on the pressure unknowns,
+        # set using the Petsc fieldsplit type.
+        # and M2 = ILU(A)
+        cpramg_pc = self.pc
+        cpramg_pc.setType(PETSc.PC.Type.COMPOSITE)
+        cpramg_pc.setCompositeType(PETSc.PC.CompositeType.MULTIPLICATIVE)
+        cpramg_pc.addCompositePC(PETSc.PC.Type.FIELDSPLIT)
+        cpramg_pc.addCompositePC(PETSc.PC.Type.BJACOBI)
+        cpramg_pc.setUp()
+
+        # We now define M1 as an additive fieldsplit pc
+        # M1 = M11 + M12
+        # with M11 an AMG v-cycle procedure on the pressure field
+        # and M12 = 0 a NONE PC which "does nothing"
+        block_size = self.linear_system.lsbuilder.get_block_size()
+        p_field = np.array([0], dtype="int32")
+        rest = np.arange(1, block_size, dtype="int32")
+        fs_pc = cpramg_pc.getCompositePC(0)
+        fs_pc.setFieldSplitFields(
+            block_size, ("pressure", p_field), ("rest of unknowns", rest)
+        )
+        fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
+        sub_ksp_list = fs_pc.getFieldSplitSubKSP()
+
+        # Algebraic multigrid procedure on the pressure field
+        pressure_ksp = sub_ksp_list[0]
+        pressure_ksp.setType(PETSc.KSP.Type.PREONLY)
+        pressure_ksp.getPC().setType(PETSc.PC.Type.GAMG)
+
+        # NONE Type PC on the rest of the unknowns
+        rest_ksp = sub_ksp_list[1]
+        rest_ksp.setType(PETSc.KSP.Type.PREONLY)
+        rest_ksp.getPC().setType(PETSc.PC.Type.NONE)
 
 
 class PetscDirectSolver(DirectSolver):

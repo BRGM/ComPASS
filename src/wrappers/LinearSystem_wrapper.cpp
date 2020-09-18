@@ -438,6 +438,7 @@ void add_LinearSystem_wrapper(py::module& module) {
    py::class_<LinearSystemBuilder>(module, "LinearSystemBuilder")
        .def(py::init<>())
        .def("get_non_zeros", &LinearSystemBuilder::get_non_zeros)
+       .def("get_block_size", &LinearSystemBuilder::get_block_size)
        .def("set_AMPI", &LinearSystemBuilder::set_AMPI)
        .def("set_RHS", &LinearSystemBuilder::set_RHS);
 }

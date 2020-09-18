@@ -45,15 +45,13 @@ def linear_solver(
         settings = IterativeSolverSettings(
             tolerance or 1e-6, max_iterations or 150, restart_size or 30,
         )
+        # activate_cpramg defaults to True if not provided
+        activate_cpramg = activate_cpramg if activate_cpramg is not None else True
         if legacy:
-            # Activate CPR-AMG preconditioner defaults to True if not provided
-            activate_cpramg = activate_cpramg if activate_cpramg is not None else True
             return LegacyIterativeSolver(
                 LegacyLinearSystem(simulation), settings, activate_cpramg
             )
         else:
-            if activate_cpramg:
-                mpi.master_print(
-                    "The CPR-AMG preconditioner is not available in the PETSc linear solver\nUsing default ILU - block Jacobi preconditioner instead"
-                )
-            return PetscIterativeSolver(PetscLinearSystem(simulation), settings)
+            return PetscIterativeSolver(
+                PetscLinearSystem(simulation), settings, activate_cpramg
+            )

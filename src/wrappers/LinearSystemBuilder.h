@@ -41,6 +41,7 @@ class LinearSystemBuilder {
    };
    void set_AMPI(py::object pyA);
    void set_RHS(py::object pyRHS);
+   std::size_t get_block_size() { return JacA.block_size; };
    std::size_t get_n_rowl() { return n_rowl; };
    std::size_t get_n_coll() { return n_coll; };
    std::size_t get_n_rowg() { return n_rowg; };
