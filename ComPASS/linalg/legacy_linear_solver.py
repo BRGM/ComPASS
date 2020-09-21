@@ -79,9 +79,9 @@ class LegacyIterativeSolver(IterativeSolver):
         """
         :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
         """
-        super().__init__(linear_system, settings)
         self.kernel = get_kernel()
         self.activate_cpramg = activate_cpramg
+        super().__init__(linear_system, settings)
         self.settings = (
             self.settings._asdict()
         )  # CHECKME: Is there a better way than storing it as a dictionary ?
@@ -131,6 +131,13 @@ class LegacyIterativeSolver(IterativeSolver):
 
         return self.linear_system.x, nit, ksp_reason
 
+    def __str__(self):
+
+        cpramg_description = (
+            "activated" if self.activate_cpramg == True else "not activated"
+        )
+        return f"{super().__str__()}\n   Legacy Fortran90 implementation\n   Settings : {self.settings}\n   CPR-AMG : {cpramg_description}"
+
 
 class LegacyDirectSolver(DirectSolver):
     def __init__(
@@ -153,3 +160,6 @@ class LegacyDirectSolver(DirectSolver):
             )
 
         return self.linear_system.x, nit, ksp_reason
+
+    def __str__(self):
+        return f"{super().__str__()}\n   Legacy Fortran90 implementation"

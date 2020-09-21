@@ -7,6 +7,8 @@
 #
 
 from collections import namedtuple
+from ..mpi import master_print
+from ..options import get
 
 IterativeSolverSettings = namedtuple(
     "IterativeSolverSettings",
@@ -26,11 +28,19 @@ class LinearSolver:
         """
         self.failures = 0
         self.linear_system = linear_system
+        if get("--linear_solver_view", False):
+            master_print(self)
+
+    def __str__(self):
+        return "LinearSolver object view:"
 
 
 class DirectSolver(LinearSolver):
     def __init__(self, linear_system):
         super().__init__(linear_system)
+
+    def __str__(self):
+        return f"{super().__str__()}\n   Direct"
 
 
 class IterativeSolver(LinearSolver):
@@ -38,7 +48,10 @@ class IterativeSolver(LinearSolver):
         """
         :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
         """
-        super().__init__(linear_system)
         self.number_of_successful_iterations = 0
         self.number_of_unsuccessful_iterations = 0
         self.settings = settings
+        super().__init__(linear_system)
+
+    def __str__(self):
+        return f"{super().__str__()}\n   Iterative"

@@ -6,6 +6,7 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 from .. import mpi
+from ..options import get
 from .legacy_linear_solver import (
     LegacyDirectSolver,
     LegacyIterativeSolver,
@@ -31,6 +32,24 @@ def linear_solver(
     """
     A function that manages linear solver instanciation from keyword parameters
     """
+
+    # Command line options override the function's arguments
+    legacy_opt = get("--legacy_linear_solver")
+    if legacy_opt == "True":
+        legacy = True
+    elif legacy_opt == "False":
+        legacy = False
+    direct_opt = get("--direct_linear_solver")
+    if direct_opt == "True":
+        direct = True
+    elif direct_opt == "False":
+        direct = False
+    activate_cpramg_opt = get("--activate_cpramg")
+    if activate_cpramg_opt == "True":
+        activate_cpramg = True
+    elif activate_cpramg_opt == "False":
+        activate_cpramg = False
+
     if direct:
         if any((activate_cpramg, tolerance, max_iterations, restart_size)):
             mpi.master_print(
