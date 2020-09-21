@@ -18,6 +18,8 @@ from ..utils.grid import (
     all_boundaries,
 )
 
+from ..utils.phase_computations import total_phase_volume
+
 from .bc import (
     set_global_dirichlet_nodes,
     clear_dirichlet_nodes,

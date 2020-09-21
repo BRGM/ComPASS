@@ -62,3 +62,6 @@ mass, energy = simulation.total_accumulation()
 
 assert np.allclose(mass, volume * phi * rhof)
 assert np.allclose(energy, volume * (phi * rhocpf + (1 - phi) * rhocpr))
+assert np.allclose(
+    simulation.total_phase_volume(simulation.Phase.single_phase), volume * phi
+)

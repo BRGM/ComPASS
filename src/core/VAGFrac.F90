@@ -17,10 +17,11 @@
 
 module VAGFrac
 
-   use iso_c_binding, only: c_double
+   use iso_c_binding, only: c_double, c_loc
    use mpi, only: MPI_Abort, MPI_Barrier
    use CommonMPI, only: ComPASS_COMM_WORLD, commRank, CommonMPI_abort
    use CommonType, only: CSR
+   use CommonTypesWrapper, only: cpp_array_wrapper
 
    use DebugUtils, only: DebugUtils_is_own_frac_node
 
@@ -95,6 +96,28 @@ module VAGFrac
       VAGFrac_InvA
 
 contains
+
+   subroutine retrieve_dfa(dfa, cpp_array)
+
+      type(DOFFamilyArray), target, intent(in) :: dfa
+      type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+      if (.not. allocated(dfa%values)) &
+         call CommonMPI_abort("DOF family array is not allocated.")
+
+      cpp_array%p = c_loc(dfa%values(1))
+      cpp_array%n = size(dfa%values)
+
+   end subroutine retrieve_dfa
+
+   subroutine retrieve_porous_volume_Darcy(cpp_array) &
+      bind(C, name="retrieve_porous_volume_Darcy")
+
+      type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+      call retrieve_dfa(PoroVolDarcy, cpp_array)
+
+   end subroutine retrieve_porous_volume_Darcy
 
    ! compute Trans and TransFrac for Darcy
    subroutine VAGFrac_TransDarcy() &

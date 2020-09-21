@@ -9,12 +9,15 @@
 
 #include <pybind11/pybind11.h>
 
+#include "PyBuffer_wrappers.h"
+
 // Fortran functions
 extern "C" {
 void VAGFrac_TransDarcy();
 void VAGFrac_TransFourier();
 void VAGFrac_VolsDarcy(double, double);
 void VAGFrac_VolsFourier(double, double);
+void retrieve_porous_volume_Darcy(ArrayWrapper&);
 }
 
 namespace py = pybind11;
@@ -24,4 +27,8 @@ void add_VAGFrac_wrappers(py::module& module) {
    module.def("VAGFrac_TransFourier", &VAGFrac_TransFourier);
    module.def("VAGFrac_VolsDarcy", &VAGFrac_VolsDarcy);
    module.def("VAGFrac_VolsFourier", &VAGFrac_VolsFourier);
+
+   module.def("porous_volume_Darcy", []() {
+      return retrieve_buffer<DoubleBuffer>(retrieve_porous_volume_Darcy);
+   });
 }
