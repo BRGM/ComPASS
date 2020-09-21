@@ -189,7 +189,9 @@ class PetscIterativeSolver(IterativeSolver):
         # Algebraic multigrid procedure on the pressure field
         pressure_ksp = sub_ksp_list[0]
         pressure_ksp.setType(PETSc.KSP.Type.PREONLY)
-        pressure_ksp.getPC().setType(PETSc.PC.Type.GAMG)
+        pressure_pc = pressure_ksp.getPC()
+        pressure_pc.setType(PETSc.PC.Type.HYPRE)
+        PETSc.Options().setValue("-pc_hypre_boomeramg_strong_threshold", "0.5")
 
         # NONE Type PC on the rest of the unknowns
         rest_ksp = sub_ksp_list[1]
