@@ -151,10 +151,10 @@ module DefModel
                        ! FF dof : LIQUID_OUTFLOW_CONTEXT
                        T, 8, 9 & ! DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT=6  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
 #else
-                       ! not implemented yet
-                       P, 2, & ! GAS_CONTEXT=1        Cga=2, Cgw=3
-                       P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
-                       P, 6 & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
+#error Freeflow BC is not implemented for isothermal case.
+                       !    P, 2, & ! GAS_CONTEXT=1        Cga=2, Cgw=3
+                       !    P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
+                       !    P, 6 & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
@@ -171,10 +171,10 @@ module DefModel
                        ! FF dof : LIQUID_OUTFLOW_CONTEXT
                        P, 3, 4, 5, 6 & ! DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT=6    P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
 #else
-                       ! not implemented yet
-                       3, 0, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
-                       2, 0, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
-                       2, 3, 4, 5, 0 & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
+#error Freeflow BC is not implemented for isothermal case.
+                       !    3, 0, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
+                       !    2, 0, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
+                       !    2, 3, 4, 5, 0 & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 

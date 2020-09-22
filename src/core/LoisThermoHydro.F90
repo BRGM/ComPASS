@@ -192,20 +192,22 @@ module LoisThermoHydro
 
    ! tmp values to simpfy notations of numerotation
    ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
-   integer, private :: &
-      NbPhasePresente, NbCompCtilde, &
-      NbEqFermeture, NbEqEquilibre, &
-      NbIncPTC, NbIncPTCPrim, &
-      NbIncTotalPrim, &
-      !
-      NumPhasePresente(NbPhase), &
-      NumCompCtilde(NbComp), &
-      NumCompEqEquilibre(NbEqEquilibreMax), &
-      NumIncPTC2NumIncComp_comp(NbIncPTCMax), &
-      NumIncPTC2NumIncComp_phase(NbIncPTCMax), &
-      !
-      Num2PhasesEqEquilibre(2, NbEqEquilibreMax), &
-      NumIncComp2NumIncPTC(NbComp, NbPhase)
+   type ContextInfo
+      integer :: &
+         NbPhasePresente, NbCompCtilde, &
+         NbEqFermeture, NbEqEquilibre, &
+         NbIncPTC, NbIncPTCPrim, &
+         NbIncTotalPrim, &
+         !
+         NumPhasePresente(NbPhase), &
+         NumCompCtilde(NbComp), &
+         NumCompEqEquilibre(NbEqEquilibreMax), &
+         NumIncPTC2NumIncComp_comp(NbIncPTCMax), &
+         NumIncPTC2NumIncComp_phase(NbIncPTCMax), &
+         !
+         Num2PhasesEqEquilibre(2, NbEqEquilibreMax), &
+         NumIncComp2NumIncPTC(NbComp, NbPhase)
+   end type ContextInfo
 
    public :: &
       LoisThermoHydro_allocate, &
@@ -542,64 +544,65 @@ contains
          SmEnthalpie(NbPhase)
 
       integer :: k, i, icp, iph
+      type(ContextInfo) :: ctxinfo
 
       ! loop over each local element
       do k = 1, NbIncLocal
 
          ! init tmp values for each cv
-         call LoisThermoHydro_init_cv(inc(k))
+         call LoisThermoHydro_init_cv(inc(k), ctxinfo)
 
          ! viscosite
-         call LoisThermoHydro_viscosite_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_viscosite_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                            NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                            UnsurViscosite, divUnsurViscosite, SmUnSurViscosite)
 
          ! densite massique
-         call LoisThermoHydro_densitemassique_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_densitemassique_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                  NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                  DensiteMassique(:, k), divDensiteMassique(:, :, k), SmDensiteMassique(:, k))
 
          ! deniste molaire
-         call LoisThermoHydro_densitemolaire_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_densitemolaire_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                 NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                 DensiteMolaire, divDensiteMolaire, SmDensiteMolaire)
 
          ! PermRel
-         call LoisThermoHydro_PermRel_cv(inc(k), rt(:, k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_PermRel_cv(inc(k), ctxinfo, rt(:, k), dXssurdXp(:, :, k), SmdXs(:, k), &
                                          NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                          PermRel, divPermRel)
 
          ! Reference Pressure (unknown index is 1)
-         call LoisThermoHydro_Inc_cv(1, inc(k), &
+         call LoisThermoHydro_Inc_cv(1, inc(k), ctxinfo, &
                                      NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                      dXssurdXp(:, :, k), SmdXs(:, k), &
                                      divPression(:, k), SmPression(k))
 
          ! Comp
-         do i = 2 + IndThermique, NbIncPTC ! loop over index of Components
-            iph = NumIncPTC2NumIncComp_phase(i) ! phase corresponding to unknown i
-            icp = NumIncPTC2NumIncComp_comp(i) ! component corresponding to unknown i
-            call LoisThermoHydro_Inc_cv(i, inc(k), &
+         do i = 2 + IndThermique, ctxinfo%NbIncPTC ! loop over index of Components
+            iph = ctxinfo%NumIncPTC2NumIncComp_phase(i) ! phase corresponding to unknown i
+            icp = ctxinfo%NumIncPTC2NumIncComp_comp(i) ! component corresponding to unknown i
+            call LoisThermoHydro_Inc_cv(i, inc(k), ctxinfo, &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divComp(:, icp, iph), SmComp(icp, iph))
          enddo
 
          ! Pression Capillaire
-         call LoisThermoHydro_PressionCapillaire_cv(rt(:, k), inc(k), &
+         call LoisThermoHydro_PressionCapillaire_cv(rt(:, k), inc(k), ctxinfo, &
                                                     NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                     dXssurdXp(:, :, k), &
                                                     PressionCap(:, k), divPressionCap(:, :, k))
 
          ! Saturation div FIXME: not done with LoisThermoHydro_Inc_cv because last saturation is eliminated
-         call LoisThermoHydro_Saturation_cv(inc(k), &
+         call LoisThermoHydro_Saturation_cv(inc(k), ctxinfo, &
                                             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                             dXssurdXp(:, :, k), &
                                             divSaturation(:, :, k))
 
          ! term: DensiteMolaire * PermRel / Viscosite * Comp
          call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( &
-            inc(k), &
+            inc(k), ctxinfo, &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             PermRel, divPermRel, &
             UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
@@ -612,7 +615,7 @@ contains
 
          ! term: DensiteMolaire * Saturation * Comp
          call LoisThermoHydro_DensiteMolaireSatComp_cv( &
-            inc(k), divSaturation(:, :, k), &
+            inc(k), ctxinfo, divSaturation(:, :, k), &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             divComp, SmComp, &
             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
@@ -623,24 +626,24 @@ contains
 
 #ifdef _THERMIQUE_
          ! FIXME: Temperature (unknown index is 2)
-         call LoisThermoHydro_Inc_cv(2, inc(k), &
+         call LoisThermoHydro_Inc_cv(2, inc(k), ctxinfo, &
                                      NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                      dXssurdXp(:, :, k), SmdXs(:, k), &
                                      divTemperature(:, k), SmTemperature(k))
 
          ! energie interne
-         call LoisThermoHydro_EnergieInterne_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_EnergieInterne_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                 NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                 EnergieInterne, divEnergieInterne, SmEnergieInterne)
 
          ! Enthalpie
-         call LoisThermoHydro_Enthalpie_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_Enthalpie_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                            NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                            Enthalpie, divEnthalpie, SmEnthalpie)
 
          ! term: DensiteMolaire * Energieinterne * Saturation
          call LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv( &
-            inc(k), divSaturation(:, :, k), &
+            inc(k), ctxinfo, divSaturation(:, :, k), &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             EnergieInterne, divEnergieInterne, SmEnergieInterne, &
             DensiteMolaireEnergieInterneSat(:, k), &
@@ -649,6 +652,7 @@ contains
 
          ! term: DensiteMolaire * PermRel / Viscosite * Enthalpie
          call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
+            ctxinfo, &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             PermRel, divPermRel, &
             UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
@@ -795,6 +799,7 @@ contains
          divSpecificEnthalpy(NbIncTotalPrimMax, NbComp, NbPhase), &
          SmSpecificEnthalpy(NbComp, NbPhase)
       integer :: k, i, iph, icp
+      type(ContextInfo) :: ctxinfo
 
       ! loop over each local element, called only with nodes
       do k = 1, NbIncLocal
@@ -802,28 +807,28 @@ contains
          if (.not. IdFFNodeLocal(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
 
          ! init tmp values for each cv
-         call LoisThermoHydro_init_cv(inc(k))
+         call LoisThermoHydro_init_cv(inc(k), ctxinfo)
 
          ! Comp
-         do i = 2 + IndThermique, NbIncPTC ! loop over index of Components
-            iph = NumIncPTC2NumIncComp_phase(i) ! phase of Component i
-            icp = NumIncPTC2NumIncComp_comp(i) ! numero of the component i
-            call LoisThermoHydro_Inc_cv(i, inc(k), &
+         do i = 2 + IndThermique, ctxinfo%NbIncPTC ! loop over index of Components
+            iph = ctxinfo%NumIncPTC2NumIncComp_phase(i) ! phase of Component i
+            icp = ctxinfo%NumIncPTC2NumIncComp_comp(i) ! numero of the component i
+            call LoisThermoHydro_Inc_cv(i, inc(k), ctxinfo, &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divComp(:, icp, iph), SmComp(icp, iph))
          enddo
 
-         do i = 1, NbPhasePresente
+         do i = 1, ctxinfo%NbPhasePresente
             ! phase molar flowrate (unknown index is NbIncPTC+NbPhasePresente-1+i) (FIXME: -1 because one saturation is eliminated)
-            call LoisThermoHydro_Inc_cv(NbIncPTC + NbPhasePresente - 1 + i, inc(k), &
+            call LoisThermoHydro_Inc_cv(ctxinfo%NbIncPTC + ctxinfo%NbPhasePresente - 1 + i, inc(k), ctxinfo, &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divFreeFlowMolarFlowrate(:, i, k), SmFreeFlowMolarFlowrate(i, k))
          enddo
 
          ! term: FreeFlowMolarFlowrate * Comp
-         call LoisThermoHydro_FreeFlowMolarFlowrateComp_cv(inc(k), &
+         call LoisThermoHydro_FreeFlowMolarFlowrateComp_cv(inc(k), ctxinfo, &
                                                            divFreeFlowMolarFlowrate(:, :, k), SmFreeFlowMolarFlowrate(:, k), &
                                                            divComp, SmComp, &
                                                            FreeFlowMolarFlowrateComp(:, :, k), &
@@ -831,7 +836,7 @@ contains
                                                            SmFreeFlowMolarFlowrateComp(:, :, k))
 
          ! term: Hm * (Comp - atm_comp)
-         call LoisThermoHydro_FreeFlowHmComp_cv(inc(k), &
+         call LoisThermoHydro_FreeFlowHmComp_cv(inc(k), ctxinfo, &
                                                 divComp, SmComp, &
                                                 FreeFlowHmComp(:, :, k), &
                                                 divFreeFlowHmComp(:, :, :, k), &
@@ -839,13 +844,13 @@ contains
 
 #ifdef _THERMIQUE_
          ! SpecificEnthalpy
-         call LoisThermoHydro_SpecificEnthalpy_cv(inc(k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_SpecificEnthalpy_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                   NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                   SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy)
 
          ! term: gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
          !       liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
-         call LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv(inc(k), &
+         call LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv(inc(k), ctxinfo, &
                                                                 divFreeFlowMolarFlowrate(:, :, k), SmFreeFlowMolarFlowrate(:, k), &
                                                                 SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy, &
                                                                 divComp, SmComp, &
@@ -854,7 +859,7 @@ contains
                                                                 SmFreeFlowMolarFlowrateEnthalpie(:, k))
 
          ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
-         call LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv(inc(k), &
+         call LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv(inc(k), ctxinfo, &
                                                                    divTemperature(:, k), SmTemperature(k), &
                                                                    FreeFlowHTTemperatureNetRadiation(k), &
                                                                    divFreeFlowHTTemperatureNetRadiation(:, k), &
@@ -862,7 +867,7 @@ contains
 
          ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
          !       liquid-> Enthalpie(liquid) of the far field atmosphere
-         call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie(:, k))
+         call LoisThermoHydro_AtmEnthalpie_cv(ctxinfo, AtmEnthalpie(:, k))
 #endif
       end do ! k
 
@@ -870,13 +875,14 @@ contains
 
    ! term: FreeFlowMolarFlowrate * Comp
    subroutine LoisThermoHydro_FreeFlowMolarFlowrateComp_cv( &
-      inc, &
+      inc, ctxinfo, &
       divFreeFlowMolarFlowrate, SmFreeFlowMolarFlowrate, &
       divComp, SmComp, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Comp and FreeFlow_flowrate
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divFreeFlowMolarFlowrate(NbIncTotalPrimMax, NbPhase), &
          SmFreeFlowMolarFlowrate(NbPhase), &
@@ -897,8 +903,8 @@ contains
       Smval(:, :) = 0.d0
 
       ! 1. val: FreeFlowMolarFlowrate * Comp
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
@@ -910,13 +916,13 @@ contains
       end do
 
       ! 2. div(FreeFlowMolarFlowrate * Comp)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
 
-               do k = 1, NbIncTotalPrim
+               do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, icp, i) = divFreeFlowMolarFlowrate(k, i)*inc%Comp(icp, iph) &
                                     + inc%FreeFlow_flowrate(iph)*divComp(k, icp, iph)
                end do
@@ -927,8 +933,8 @@ contains
       end do ! end of 2
 
       ! 3. Sm(FreeFlowMolarFlowrate * Comp)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
@@ -943,12 +949,13 @@ contains
 
    ! term: Hm * (Comp - atm_comp)
    subroutine LoisThermoHydro_FreeFlowHmComp_cv( &
-      inc, &
+      inc, ctxinfo, &
       divComp, SmComp, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Comp
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
          SmComp(NbComp, NbPhase)
@@ -967,8 +974,8 @@ contains
       Smval(:, :) = 0.d0
 
       ! 1. val: Hm * (Comp - atm_comp) if gas ; Hm(alpha)=0. if alpha not gas
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
@@ -980,13 +987,13 @@ contains
       end do
 
       ! 2. div(Hm * (Comp - atm_comp))
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
 
-               do k = 1, NbIncTotalPrim
+               do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, icp, i) = Hm(iph)*divComp(k, icp, iph)
                end do
 
@@ -996,8 +1003,8 @@ contains
       end do ! end of 2
 
       ! 3. Sm(Hm * (Comp - atm_comp))
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
@@ -1013,7 +1020,7 @@ contains
    ! term: gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
    !       liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
    subroutine LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv( &
-      inc, &
+      inc, ctxinfo, &
       divFreeFlowMolarFlowrate, SmFreeFlowMolarFlowrate, &
       SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy, &
       divComp, SmComp, &
@@ -1021,6 +1028,7 @@ contains
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Temperature and Comp
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divFreeFlowMolarFlowrate(NbIncTotalPrimMax, NbPhase), &
          SmFreeFlowMolarFlowrate(NbPhase), &
@@ -1043,8 +1051,8 @@ contains
       dval(:, :) = 0.d0
       Smval(:) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          if (iph == LIQUID_PHASE) then ! FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
 
@@ -1054,7 +1062,7 @@ contains
                         + inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(icp, i)*inc%Comp(icp, iph)
 
                ! 2. dval
-               do k = 1, NbIncTotalPrim
+               do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, i) = dval(k, i) &
                                + divFreeFlowMolarFlowrate(k, i)*SpecificEnthalpy(icp, i)*inc%Comp(icp, iph) &
                                + inc%FreeFlow_flowrate(iph)*divSpecificEnthalpy(k, icp, i)*inc%Comp(icp, iph) &
@@ -1074,7 +1082,7 @@ contains
             val(i) = inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(WATER_COMP, i)
 
             ! 2. dval
-            do k = 1, NbIncTotalPrim
+            do k = 1, ctxinfo%NbIncTotalPrim
                dval(k, i) = divFreeFlowMolarFlowrate(k, i)*SpecificEnthalpy(WATER_COMP, i) &
                             + inc%FreeFlow_flowrate(iph)*divSpecificEnthalpy(k, WATER_COMP, i)
             enddo ! k
@@ -1089,12 +1097,13 @@ contains
 
    ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
    subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv( &
-      inc, &
+      inc, ctxinfo, &
       divTemperature, SmTemperature, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Temperature
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divTemperature(NbIncTotalPrimMax), &
          SmTemperature
@@ -1117,7 +1126,7 @@ contains
             - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*inc%Temperature**4.d0
 
       ! 2. dval
-      do k = 1, NbIncTotalPrim
+      do k = 1, ctxinfo%NbIncTotalPrim
          dval(k) = HT*divTemperature(k) &
                    + soil_emissivity*Stephan_Boltzmann_cst*4.d0*divTemperature(k)*inc%Temperature**3.d0
       enddo
@@ -1130,9 +1139,9 @@ contains
 
    ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
    !       liquid-> Enthalpie(liquid) of the far field atmosphere
-   subroutine LoisThermoHydro_AtmEnthalpie_cv(val)
+   subroutine LoisThermoHydro_AtmEnthalpie_cv(ctxinfo, val)
 
-      ! output
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(out) :: val(NbPhase)
 
       ! tmp
@@ -1143,8 +1152,8 @@ contains
       Sat = 0.d0
       val = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_SpecificEnthalpy(iph, atm_pressure, atm_temperature, &
                                  atm_comp(:, iph), Sat, & ! Sat not used
@@ -1213,35 +1222,37 @@ contains
 
    end subroutine LoisThermoHydro_divPrim_nodes
 
-   subroutine LoisThermoHydro_init_cv(inc)
+   subroutine LoisThermoHydro_init_cv(inc, ctxinfo)
 
       type(TYPE_IncCVReservoir), intent(in) :: inc
+      type(ContextInfo), intent(out) :: ctxinfo
 
-      NbPhasePresente = NbPhasePresente_ctx(inc%ic)
-      NbCompCtilde = NbCompCtilde_ctx(inc%ic)
+      ctxinfo%NbPhasePresente = NbPhasePresente_ctx(inc%ic)
+      ctxinfo%NbCompCtilde = NbCompCtilde_ctx(inc%ic)
 
-      NbEqFermeture = NbEqFermeture_ctx(inc%ic)
-      NbEqEquilibre = NbEqEquilibre_ctx(inc%ic)
+      ctxinfo%NbEqFermeture = NbEqFermeture_ctx(inc%ic)
+      ctxinfo%NbEqEquilibre = NbEqEquilibre_ctx(inc%ic)
 
-      NbIncPTC = NbIncPTC_ctx(inc%ic)
-      NbIncPTCPrim = NbIncPTC - NbEqFermeture
+      ctxinfo%NbIncPTC = NbIncPTC_ctx(inc%ic)
+      ctxinfo%NbIncPTCPrim = ctxinfo%NbIncPTC - ctxinfo%NbEqFermeture
 
       ! ps. if there is only one phase, phase is secd
-      NbIncTotalPrim = NbIncTotalPrim_ctx(inc%ic)
+      ctxinfo%NbIncTotalPrim = NbIncTotalPrim_ctx(inc%ic)
 
-      NumPhasePresente(:) = NumPhasePresente_ctx(:, inc%ic)
-      NumCompCtilde(:) = NumCompCtilde_ctx(:, inc%ic)
-      NumCompEqEquilibre(:) = NumCompEqEquilibre_ctx(:, inc%ic)
-      NumIncPTC2NumIncComp_comp(:) = NumIncPTC2NumIncComp_comp_ctx(:, inc%ic)
-      NumIncPTC2NumIncComp_phase(:) = NumIncPTC2NumIncComp_phase_ctx(:, inc%ic)
+      ctxinfo%NumPhasePresente(:) = NumPhasePresente_ctx(:, inc%ic)
+      ctxinfo%NumCompCtilde(:) = NumCompCtilde_ctx(:, inc%ic)
+      ctxinfo%NumCompEqEquilibre(:) = NumCompEqEquilibre_ctx(:, inc%ic)
+      ctxinfo%NumIncPTC2NumIncComp_comp(:) = NumIncPTC2NumIncComp_comp_ctx(:, inc%ic)
+      ctxinfo%NumIncPTC2NumIncComp_phase(:) = NumIncPTC2NumIncComp_phase_ctx(:, inc%ic)
 
-      Num2PhasesEqEquilibre(:, :) = Num2PhasesEqEquilibre_ctx(:, :, inc%ic)
-      NumIncComp2NumIncPTC(:, :) = NumIncComp2NumIncPTC_ctx(:, :, inc%ic)
+      ctxinfo%Num2PhasesEqEquilibre(:, :) = Num2PhasesEqEquilibre_ctx(:, :, inc%ic)
+      ctxinfo%NumIncComp2NumIncPTC(:, :) = NumIncComp2NumIncPTC_ctx(:, :, inc%ic)
 
    end subroutine LoisThermoHydro_init_cv
 
    ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-   subroutine LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+   subroutine LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: iph ! num of phase
       double precision, intent(in) :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision, intent(out) :: dfdX(NbIncTotalMax)
@@ -1260,7 +1271,7 @@ contains
 
       do j = 1, NbComp
          if (MCP(j, iph) == 1) then
-            jc = NumIncComp2NumIncPTC(j, iph)
+            jc = ctxinfo%NumIncComp2NumIncPTC(j, iph)
             dfdX(jc) = dCf(j)
          end if
       enddo
@@ -1270,20 +1281,21 @@ contains
 !         jc = j + NbIncPTC
 !         dfdX(jc) = dSf(j)
 !    enddo
-      dfS_elim = dSf(NumPhasePresente(NbPhasePresente))
-      do j = 1, NbPhasePresente - 1
-         jph = NumPhasePresente(j)
+      dfS_elim = dSf(ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente))
+      do j = 1, ctxinfo%NbPhasePresente - 1
+         jph = ctxinfo%NumPhasePresente(j)
 
-         jc = j + NbIncPTC
+         jc = j + ctxinfo%NbIncPTC
          dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
       enddo
 
    end subroutine LoisThermoHydro_fill_gradient_dfdX
 
-   subroutine LoisThermoHydro_dfdX_ps(iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+   subroutine LoisThermoHydro_dfdX_ps(ctxinfo, iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dfdX_prim, dfdX_secd)
 
       ! input
+      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: iph ! num of phase
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
@@ -1298,22 +1310,23 @@ contains
       integer :: j
 
       ! prim and secd part of dfdX
-      do j = 1, NbIncTotalPrim
+      do j = 1, ctxinfo%NbIncTotalPrim
          dfdX_prim(j, iph) = dfdX(NumIncTotalPrimCV(j))
       end do
 
       ! secd unknowns
-      do j = 1, NbEqFermeture
+      do j = 1, ctxinfo%NbEqFermeture
          dfdX_secd(j, iph) = dfdX(NumIncTotalSecondCV(j))
       end do
 
    end subroutine LoisThermoHydro_dfdX_ps
 
-   subroutine LoisThermoHydro_densitemassique_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_densitemassique_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                                  NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &    ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1343,16 +1356,16 @@ contains
       Smval(:) = 0.d0
 
 #ifdef DEBUG_LOISTHEMOHYDRO
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          write (*, *) 'Phase', iph, 'MCP row=', MCP(:, iph)
       end do
 #endif
 
       dfdX_secd(:, :) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_DensiteMassique(iph, inc%Pression, inc%Temperature, &
                                 inc%Comp(:, iph), inc%Saturation, &
@@ -1361,33 +1374,34 @@ contains
          val(iph) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhase, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, NbPhase, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
       ! - dv/dXs*SmdXs
-      call dgemv('T', NbEqFermeture, NbPhase, &
+      call dgemv('T', ctxinfo%NbEqFermeture, NbPhase, &
                  -1.d0, dfdX_secd, NbEqFermetureMax, &
                  SmdXs, 1, 0.d0, Smval, 1)
 
    end subroutine LoisThermoHydro_densitemassique_cv
 
-   subroutine LoisThermoHydro_viscosite_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_viscosite_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                            NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1418,8 +1432,8 @@ contains
 
       dfdX_secd(:, :) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_Viscosite(iph, inc%Pression, inc%Temperature, &
                           inc%Comp(:, iph), inc%Saturation, &
@@ -1437,12 +1451,12 @@ contains
          val(i) = 1.d0/f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
          dfdX(:) = -dfdX(:)/f**2
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
@@ -1452,22 +1466,23 @@ contains
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order,
       ! consider all the mats as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
       ! -dv/dXs*SmdXs
-      call dgemv('T', NbEqFermeture, NbPhasePresente, &
+      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
                  -1.d0, dfdX_secd, NbEqFermetureMax, &
                  SmdXs, 1, 0.d0, Smval, 1)
 
    end subroutine LoisThermoHydro_viscosite_cv
 
-   subroutine LoisThermoHydro_densitemolaire_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_densitemolaire_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                                 NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1498,8 +1513,8 @@ contains
 
       dfdX_secd(:, :) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_DensiteMolaire(iph, inc%Pression, inc%Temperature, &
                                inc%Comp(:, iph), inc%Saturation, &
@@ -1508,33 +1523,34 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=densitemolaire
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
       ! -dv/dXs*SmdXs
-      call dgemv('T', NbEqFermeture, NbPhasePresente, &
+      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
                  -1.d0, dfdX_secd, NbEqFermetureMax, &
                  SmdXs, 1, 0.d0, Smval, 1)
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
-   subroutine LoisThermoHydro_PermRel_cv(inc, rt, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_PermRel_cv(inc, ctxinfo, rt, dXssurdXp, SmdXs, &
                                          NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       INTEGER, INTENT(IN) :: rt(IndThermique + 1)
 
       double precision, intent(in) :: & ! (col, row) index order
@@ -1584,26 +1600,26 @@ contains
 
       dCf = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_PermRel(rt, iph, inc%Saturation, f, dSf)
 
          val(i) = f
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, 0.d0, 0.d0, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, 0.d0, 0.d0, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhase, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, NbPhase, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
@@ -1616,7 +1632,7 @@ contains
 
    end subroutine LoisThermoHydro_PermRel_cv
 
-   subroutine LoisThermoHydro_Inc_cv(index_inc, inc, &
+   subroutine LoisThermoHydro_Inc_cv(index_inc, inc, ctxinfo, &
                                      NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                      dXssurdXp, SmdXs, &
                                      dval, Smval)
@@ -1624,6 +1640,7 @@ contains
       ! input
       integer, intent(in) :: index_inc
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
          NumIncTotalSecondCV(NbEqFermetureMax)
@@ -1648,7 +1665,7 @@ contains
             endif
          enddo
       ELSE IF (ANY(NumIncTotalSecondCV == index_inc)) THEN ! index_inc (P or T) is secd
-         do i = 1, NbEqFermeture
+         do i = 1, ctxinfo%NbEqFermeture
             if (NumIncTotalSecondCV(i) == index_inc) then
                dval(:) = -dXssurdXp(:, i)
                Smval = -SmdXs(i)
@@ -1662,19 +1679,20 @@ contains
 #ifdef _THERMIQUE_
          if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
 #endif
-         if (index_inc > 1 + IndThermique .and. index_inc <= NbIncPTC) &
+         if (index_inc > 1 + IndThermique .and. index_inc <= ctxinfo%NbIncPTC) &
             call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, C not found ')
       ENDIF
 
    end subroutine LoisThermoHydro_Inc_cv
 
-   subroutine LoisThermoHydro_Saturation_cv(inc, &
+   subroutine LoisThermoHydro_Saturation_cv(inc, ctxinfo, &
                                             NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                             dXssurdXp, &
                                             dval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
          NumIncTotalSecondCV(NbEqFermetureMax)
@@ -1690,14 +1708,14 @@ contains
       dval(:, :) = 0.d0
 
       ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
-      DO i = 1, NbPhasePresente - 1
+      DO i = 1, ctxinfo%NbPhasePresente - 1
 
-         IF (ANY(NumIncTotalPrimCV == i + NbIncPTC)) THEN ! S is prim
+         IF (ANY(NumIncTotalPrimCV == i + ctxinfo%NbIncPTC)) THEN ! S is prim
             do k = 1, NbIncTotalPrimMax
-               if (NumIncTotalPrimCV(k) == i + NbIncPTC) then
+               if (NumIncTotalPrimCV(k) == i + ctxinfo%NbIncPTC) then
                   dval(k, i) = 1.d0
 
-                  dval(k, NbPhasePresente) = -1.d0
+                  dval(k, ctxinfo%NbPhasePresente) = -1.d0
                endif
             enddo
          ELSE if (inc%ic < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
@@ -1708,7 +1726,7 @@ contains
    end subroutine LoisThermoHydro_Saturation_cv
 
    ! In the sens P(iph) = Pref + f_PressionCapillaire(iph)
-   subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, &
+   subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, ctxinfo, &
                                                     NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                                     dXssurdXp, &
                                                     val, dval)
@@ -1716,6 +1734,7 @@ contains
       ! input
       integer, intent(in) :: rt(IndThermique + 1)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
          NumIncTotalSecondCV(NbEqFermetureMax)
@@ -1739,15 +1758,15 @@ contains
 
          val(iph) = f
 
-         dfS_secd = dSf(NumPhasePresente(NbPhasePresente))
+         dfS_secd = dSf(ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente))
 
-         do j = 1, NbPhasePresente - 1
+         do j = 1, ctxinfo%NbPhasePresente - 1
             ! Look for S, is it primary or secondary unknowns ?
             ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
-            IF (ANY(NumIncTotalPrimCV == j + NbIncPTC)) THEN ! S is prim
-               jph = NumPhasePresente(j)
+            IF (ANY(NumIncTotalPrimCV == j + ctxinfo%NbIncPTC)) THEN ! S is prim
+               jph = ctxinfo%NumPhasePresente(j)
                do k = 1, NbIncTotalPrimMax
-                  if (NumIncTotalPrimCV(k) == j + NbIncPTC) then
+                  if (NumIncTotalPrimCV(k) == j + ctxinfo%NbIncPTC) then
                      dval(k, iph) = dSf(jph) - dfS_secd
                   endif
                enddo
@@ -1762,11 +1781,12 @@ contains
 
 #ifdef _THERMIQUE_
 
-   subroutine LoisThermoHydro_EnergieInterne_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_EnergieInterne_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                                 NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1797,8 +1817,8 @@ contains
 
       dfdX_secd(:, :) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_EnergieInterne(iph, inc%Pression, inc%Temperature, &
                                inc%Comp(:, iph), inc%Saturation, &
@@ -1807,33 +1827,34 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=energieinterne
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
       ! -dv/dXs*SmdXs
-      call dgemv('T', NbEqFermeture, NbPhasePresente, &
+      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
                  -1.d0, dfdX_secd, NbEqFermetureMax, &
                  SmdXs, 1, 0.d0, Smval, 1)
 
    end subroutine LoisThermoHydro_EnergieInterne_cv
 
-   subroutine LoisThermoHydro_Enthalpie_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_Enthalpie_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                            NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1864,8 +1885,8 @@ contains
 
       dfdX_secd(:, :) = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          call f_Enthalpie(iph, inc%Pression, inc%Temperature, &
                           inc%Comp(:, iph), inc%Saturation, &
@@ -1874,34 +1895,35 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
       ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &
+      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                  dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
 
       ! -dv/dXs*SmdXs
-      call dgemv('T', NbEqFermeture, NbPhasePresente, &
+      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
                  -1.d0, dfdX_secd, NbEqFermetureMax, &
                  SmdXs, 1, 0.d0, Smval, 1)
 
    end subroutine LoisThermoHydro_Enthalpie_cv
 
    ! Specific enthalpy
-   subroutine LoisThermoHydro_SpecificEnthalpy_cv(inc, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_SpecificEnthalpy_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
                                                   NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
@@ -1929,22 +1951,19 @@ contains
 
       dfdX_secd = 0.d0
 
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          call f_SpecificEnthalpy(iph, inc%Pression, inc%Temperature, &
                                  inc%Comp(:, iph), inc%Saturation, &
                                  f, dPf, dTf, dCf, dSf)
 
          do icp = 1, NbComp
             val(icp, i) = f(icp) ! val
-
             ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-            call LoisThermoHydro_fill_gradient_dfdX(iph, dPf(icp), dTf(icp), dCf(icp, :), dSf(icp, :), dfdX)
-
+            call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf(icp), dTf(icp), dCf(icp, :), dSf(icp, :), dfdX)
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
-            call LoisThermoHydro_dfdX_ps(i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+            call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                          dval(:, icp, :), dfdX_secd(:, icp, :))
          end do
       end do
@@ -1953,12 +1972,12 @@ contains
          ! dv/dXp - dv/dXs*dXs/dXp, v=specific enth
          ! dval = dfdX_prim - dXssurdXp*dfdX_secd
          ! all the mats is in (col, row) index order, only need to consider as transpose
-         call dgemm('N', 'N', NbIncTotalPrim, NbPhasePresente, NbEqFermeture, &
+         call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
                     -1.d0, dXssurdXp, NbIncTotalPrimMax, &
                     dfdX_secd(:, icp, :), NbEqFermetureMax, 1.d0, dval(:, icp, :), NbIncTotalPrimMax)
 
          ! -dv/dXs*SmdXs
-         call dgemv('T', NbEqFermeture, NbPhasePresente, &
+         call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
                     -1.d0, dfdX_secd(:, icp, :), NbEqFermetureMax, &
                     SmdXs, 1, 0.d0, Smval(icp, :), 1)
       end do
@@ -1967,63 +1986,60 @@ contains
 
 #endif
 
+   ! LoisThermoHydro_DensiteMolaireSat_cv is never called (cf. issue #292)
    ! term: desitemolaire * Saturation
-   subroutine LoisThermoHydro_DensiteMolaireSat_cv( &
-      inc, divSaturation, &
-      DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
-      val, dval, Smval)
+!    subroutine LoisThermoHydro_DensiteMolaireSat_cv( &
+!       inc, ctxinfo, divSaturation, &
+!       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
+!       val, dval, Smval)
 
-      ! input
-      type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
+!       ! input
+!       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
+!       type(ContextInfo), intent(in) :: ctxinfo
+!       double precision, intent(in) :: &
+!          divSaturation(NbIncTotalPrimMax, NbPhase), &
+!          DensiteMolaire(NbPhase), &
+!          divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
+!          SmDensiteMolaire(NbPhase)
 
-      double precision, intent(in) :: &
-         divSaturation(NbIncTotalPrimMax, NbPhase), &
-         DensiteMolaire(NbPhase), &
-         divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
-         SmDensiteMolaire(NbPhase)
+!       ! output
+!       double precision, intent(out) :: &
+!          val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
 
-      ! output
-      double precision, intent(out) :: &
-         val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
+!       ! tmp
+!       integer :: i, iph, k
 
-      ! tmp
-      integer :: i, iph, k
+!       val(:) = 0.d0
+!       dval(:, :) = 0.d0
+!       Smval(:) = 0.d0
 
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-      Smval(:) = 0.d0
+!       ! 1. val
+!       do i = 1, ctxinfo%NbPhasePresente
+!          iph = ctxinfo%NumPhasePresente(i)
+!          val(i) = DensiteMolaire(i)*inc%Saturation(iph)
+!       end do
 
-      ! 1. val
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+!       ! 2. dval: d(DensiteMolaire * Saturation)
+!       do i = 1, ctxinfo%NbPhasePresente
+!          iph = ctxinfo%NumPhasePresente(i)
+!          do k = 1, ctxinfo%NbIncTotalPrim
+!             dval(k, i) = &
+!                divDensiteMolaire(k, i)*inc%Saturation(iph) &
+!                + divSaturation(k, i)*DensiteMolaire(i)
+!          end do
+!       end do
 
-         val(i) = DensiteMolaire(i)*inc%Saturation(iph)
-      end do
+!       ! 3. Smval
+!       do i = 1, ctxinfo%NbPhasePresente
+!          iph = ctxinfo%NumPhasePresente(i)
+!          Smval(i) = SmDensiteMolaire(i)*inc%Saturation(iph)
+!       end do
 
-      ! 2. dval: d(DensiteMolaire * Saturation)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
-         do k = 1, NbIncTotalPrim
-
-            dval(k, i) = &
-               divDensiteMolaire(k, i)*inc%Saturation(iph) &
-               + divSaturation(k, i)*DensiteMolaire(i)
-         end do
-      end do
-
-      ! 3. Smval
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
-         Smval(i) = SmDensiteMolaire(i)*inc%Saturation(iph)
-      end do
-
-   end subroutine LoisThermoHydro_DensiteMolaireSat_cv
+!    end subroutine LoisThermoHydro_DensiteMolaireSat_cv
 
    ! term: desitemolaire * Saturation * Comp
    subroutine LoisThermoHydro_DensiteMolaireSatComp_cv( &
-      inc, divSaturation, &
+      inc, ctxinfo, divSaturation, &
       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
       divComp, SmComp, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
@@ -2032,7 +2048,7 @@ contains
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
-
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divSaturation(NbIncTotalPrimMax, NbPhase), &
          DensiteMolaire(NbPhase), &
@@ -2066,11 +2082,9 @@ contains
       Smval(:, :) = 0.d0
 
       ! 1. val
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          do icp = 1, NbComp
-
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understant better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
@@ -2081,36 +2095,31 @@ contains
       end do
 
       ! 2.1 div(DensiteMolaire * Saturation * C_i^alpha)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          ! 2.1.1 compute dvi, tmp vector, used in 2.1.2
-         do k = 1, NbIncTotalPrim
-
+         do k = 1, ctxinfo%NbIncTotalPrim
             dvi(k) = &
                divDensiteMolaire(k, i)*inc%Saturation(iph) &
                + divSaturation(k, i)*DensiteMolaire(i)
          end do
-
          tmp_val = DensiteMolaire(i)*inc%Saturation(iph)
 
          ! 2.1.2
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
-
-               do k = 1, NbIncTotalPrim
+               do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
                                     + tmp_val*divComp(k, icp, iph)
                end do
-
             end if
          end do ! end of P_i
 
       end do ! end of 2.1
 
       ! 3. Smval
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
          dv = SmDensiteMolaire(i)*inc%Saturation(iph)
          tmp_val = DensiteMolaire(i)*inc%Saturation(iph)
@@ -2126,66 +2135,66 @@ contains
 
    end subroutine LoisThermoHydro_DensiteMolaireSatComp_cv
 
+   ! FIXME: LoisThermoHydro_DensiteMolaireKrVisco_cv is never called (cf. issue #291)
    ! div and Sm of term: DensiteMolaire*Kr/Viscosite
-   subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv( &
-      DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
-      PermRel, divPermRel, &
-      UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
-      val, dval, Smval)
+!    subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv( &
+!       ctxinfo, &
+!       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
+!       PermRel, divPermRel, &
+!       UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
+!       val, dval, Smval)
 
-      ! input
-      double precision, intent(in) :: &
-         DensiteMolaire(NbPhase), &
-         PermRel(NbPhase), &
-         UnsurViscosite(NbPhase), &
-         !
-         divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
-         divPermRel(NbIncTotalPrimMax, NbPhase), &
-         divUnsurViscosite(NbIncTotalPrimMax, NbPhase), &
-         !
-         SmDensiteMolaire(NbPhase), &
-         SmUnSurViscosite(NbPhase)
+!       ! input
+!       type(ContextInfo), intent(in) :: ctxinfo
+!       double precision, intent(in) :: &
+!          DensiteMolaire(NbPhase), &
+!          PermRel(NbPhase), &
+!          UnsurViscosite(NbPhase), &
+!          !
+!          divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
+!          divPermRel(NbIncTotalPrimMax, NbPhase), &
+!          divUnsurViscosite(NbIncTotalPrimMax, NbPhase), &
+!          !
+!          SmDensiteMolaire(NbPhase), &
+!          SmUnSurViscosite(NbPhase)
 
-      ! output
-      double precision, intent(out) :: &
-         val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
+!       ! output
+!       double precision, intent(out) :: &
+!          val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
 
-      ! tmp
-      integer :: i, k
+!       ! tmp
+!       integer :: i, k
 
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-      Smval(:) = 0.d0
+!       val(:) = 0.d0
+!       dval(:, :) = 0.d0
+!       Smval(:) = 0.d0
 
-      ! 1. val
-      do i = 1, NbPhasePresente
-         val(i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
-      end do
+!       ! 1. val
+!       do i = 1, ctxinfo%NbPhasePresente
+!          val(i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
+!       end do
 
-      ! 2. dval: d(DensiteMolaire*Kr/Viscosite)
-      do i = 1, NbPhasePresente
+!       ! 2. dval: d(DensiteMolaire*Kr/Viscosite)
+!       do i = 1, ctxinfo%NbPhasePresente
+!          do k = 1, ctxinfo%NbIncTotalPrim
+!             dval(k, i) = &
+!                divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i) &
+!                + divPermRel(k, i)*DensiteMolaire(i)*UnsurViscosite(i) &
+!                + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(i)
+!          end do
+!       end do
 
-         do k = 1, NbIncTotalPrim
+!       ! 3. Smval
+!       do i = 1, ctxinfo%NbPhasePresente
+!          Smval(i) = &
+!             SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
+!             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
+!       end do
 
-            dval(k, i) = &
-               divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i) &
-               + divPermRel(k, i)*DensiteMolaire(i)*UnsurViscosite(i) &
-               + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(i)
-         end do
-      end do
-
-      ! 3. Smval
-      do i = 1, NbPhasePresente
-
-         Smval(i) = &
-            SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
-            + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
-      end do
-
-   end subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv
+!    end subroutine LoisThermoHydro_DensiteMolaireKrVisco_cv
 
    ! div and Sm of term: DensiteMolaire*Kr/Viscosite*Comp
-   subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv(inc, &
+   subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv(inc, ctxinfo, &
                                                            DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
                                                            PermRel, divPermRel, &
                                                            UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
@@ -2196,7 +2205,7 @@ contains
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc
-
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          DensiteMolaire(NbPhase), &
          PermRel(NbPhase), &
@@ -2236,11 +2245,9 @@ contains
       Smval(:, :) = 0.d0
 
       ! 1. val
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          do icp = 1, NbComp
-
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
@@ -2251,11 +2258,10 @@ contains
       end do
 
       ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          ! 2.1.1 compute dvi=div(DensiteMolaire*Kr/Viscosite), tmp vector
-         do k = 1, NbIncTotalPrim
+         do k = 1, ctxinfo%NbIncTotalPrim
             dvi(k) = &
                divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i) &
                + divPermRel(k, i)*DensiteMolaire(i)*UnsurViscosite(i) &
@@ -2267,32 +2273,26 @@ contains
          ! 2.1.2
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
-
-               do k = 1, NbIncTotalPrim
+               do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
                                     + tmp_val*divComp(k, icp, iph)
                end do
-
             end if
          end do ! end of P_i
 
       end do ! end of 2.1
 
       ! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          ! 2.2.1 compute dv=Sm(DensiteMolaire*Kr/Viscosite), tmp vector
          dv = &
             SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
-
          tmp_val = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
-
          ! 2.2.2
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
-
                Smval(icp, i) = dv*inc%Comp(icp, iph) &
                                + tmp_val*SmComp(icp, iph)
             end if
@@ -2302,14 +2302,14 @@ contains
    end subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv
 
    subroutine LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv( &
-      inc, divSaturation, &
+      inc, ctxinfo, divSaturation, &
       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
       EnergieInterne, divEnergieInterne, SmEnergieInterne, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Saturation
-
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          DensiteMolaire(NbPhase), &
          EnergieInterne(NbPhase), &
@@ -2333,17 +2333,16 @@ contains
       Smval(:) = 0.d0
 
       ! 1. val
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          val(i) = DensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph)
       end do
 
       ! 2. dval
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
 
-         do k = 1, NbIncTotalPrim
+         do k = 1, ctxinfo%NbIncTotalPrim
 
             dval(k, i) = &
                divDensiteMolaire(k, i)*EnergieInterne(i)*inc%Saturation(iph) &
@@ -2353,9 +2352,8 @@ contains
       end do
 
       ! 3. Smval
-      do i = 1, NbPhasePresente
-         iph = NumPhasePresente(i)
-
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
          Smval(i) = &
             SmDensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph) &
             + SmEnergieInterne(i)*DensiteMolaire(i)*inc%Saturation(iph)
@@ -2364,12 +2362,14 @@ contains
    end subroutine LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv
 
    subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
+      ctxinfo, &
       DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
       PermRel, divPermRel, &
       UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
       Enthalpie, divEnthalpie, SmEnthalpie, &
       val, dval, Smval)
 
+      type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          DensiteMolaire(NbPhase), &
          PermRel(NbPhase), &
@@ -2398,14 +2398,14 @@ contains
       Smval(:) = 0.d0
 
       ! 1. val
-      do i = 1, NbPhasePresente
+      do i = 1, ctxinfo%NbPhasePresente
          val(i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i)
       end do
 
       ! 2. dval
-      do i = 1, NbPhasePresente
+      do i = 1, ctxinfo%NbPhasePresente
 
-         do k = 1, NbIncTotalPrim
+         do k = 1, ctxinfo%NbIncTotalPrim
 
             dval(k, i) = &
                divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i) &
@@ -2416,7 +2416,7 @@ contains
       end do
 
       ! 3. Smval
-      do i = 1, NbPhasePresente
+      do i = 1, ctxinfo%NbPhasePresente
 
          Smval(i) = &
             SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i) &
