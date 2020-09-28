@@ -6,12 +6,7 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-import petsc4py
-import sys
-
-petsc4py.init(sys.argv)
-from .. import mpi
-from petsc4py import PETSc
+from .__init__ import *
 from .solver import IterativeSolver, DirectSolver, IterativeSolverSettings
 from .._kernel import get_kernel
 from .exceptions import IterativeSolverFailure, DirectSolverFailure

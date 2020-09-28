@@ -5,14 +5,9 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-import numpy as np
-import petsc4py
-import sys
 
-petsc4py.init(sys.argv)
-from .. import mpi
+from .__init__ import *
 from .solver import *
-from petsc4py import PETSc
 from .exceptions import IterativeSolverFailure, DirectSolverFailure
 
 

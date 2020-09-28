@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-from .. import mpi
+from .__init__ import *
 from ..options import get
 from .legacy_linear_solver import (
     LegacyDirectSolver,
@@ -33,7 +33,7 @@ def linear_solver(
     """
     A function that manages linear solver instanciation from keyword parameters
     """
-
+    print(petsc4py.get_config())
     # Command line options override the function's arguments
     if from_options == True:
         legacy_opt = get("--legacy_linear_solver")

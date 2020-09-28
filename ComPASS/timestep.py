@@ -6,8 +6,6 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-from petsc4py import PETSc
-
 from . import mpi
 from .newton import IterationExhaustion, NewtonFailure, LinearSolverFailure
 from .utils.units import time_string
@@ -25,6 +23,8 @@ class AllAttemptsFailed(Exception):
 
 
 def explain_reason(reason):
+    from petsc4py import PETSc
+
     possible_reasons = [
         name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
     ]
