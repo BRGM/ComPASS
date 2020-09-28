@@ -19,6 +19,7 @@ module Thermodynamics
       NbPhase, NbComp, IndThermique, &
       GAS_PHASE, LIQUID_PHASE
    use RelativePermeabilities, only: f_PermRel
+   use CapillaryPressure, only: f_PressionCapillaire
 
    implicit none
 
@@ -27,7 +28,6 @@ module Thermodynamics
       f_DensiteMolaire, & ! \xi^alpha(P,T,C,S)
       f_DensiteMassique, & ! \rho^alpha(P,T,C,S)
       f_Viscosite, & ! \mu^alpha(P,T,C,S)
-      f_PressionCapillaire, & ! P_{c,alpha}(S)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
@@ -241,25 +241,6 @@ contains
       end if
 
    end subroutine f_Viscosite
-
-   ! P(iph) = Pref + f_PressionCapillaire(iph)
-   !< rt is the rocktype identifier
-   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-   !< S is all the saturations
-   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, DSf(NbPhase)
-
-      f = 0.d0
-      dSf(:) = 0.d0
-
-   end subroutine f_PressionCapillaire
 
    ! EnergieInterne
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE

@@ -17,6 +17,7 @@ module Thermodynamics
    use DefModel, only: &
       NbPhase, NbComp, IndThermique
    use RelativePermeabilities, only: f_PermRel
+   use CapillaryPressure, only: f_PressionCapillaire
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
 #endif
@@ -30,8 +31,7 @@ module Thermodynamics
       f_Viscosite, & ! \mu^alpha(P,T,C,S)
       f_EnergieInterne, &
       f_Enthalpie, &
-      f_SpecificEnthalpy, &
-      f_PressionCapillaire
+      f_SpecificEnthalpy
 
 contains
 
@@ -174,25 +174,6 @@ contains
 
    end subroutine f_Viscosite
 
-!    ! P(iph) = Pref + f_PressionCapillaire(iph)
-!    !< rt is the rocktype identifier
-!    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-!    !< S is all the saturations
-!    pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
-
-!       ! input
-!       integer(c_int), intent(in) :: rt(IndThermique + 1)
-!       integer(c_int), intent(in) :: iph
-!       real(c_double), intent(in) :: S(NbPhase)
-
-!       ! output
-!       real(c_double), intent(out) :: f, DSf(NbPhase)
-
-!       f = 0.d0
-!       dSf(:) = 0.d0
-
-!    end subroutine f_PressionCapillaire
-
    ! EnergieInterne
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is the Reference Pressure
@@ -292,24 +273,5 @@ contains
       dTf(:) = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
 
    end subroutine f_SpecificEnthalpy
-
-   ! P(iph) = Pref + f_PressionCapillaire(iph)
-   !< rt is the rocktype identifier
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< S is all the saturations
-   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, DSf(NbPhase)
-
-      f = 0.d0
-      dSf = 0.d0
-
-   end subroutine f_PressionCapillaire
 
 end module Thermodynamics

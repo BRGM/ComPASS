@@ -21,6 +21,8 @@ import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
+from ComPASS.linalg.factory import linear_solver
+from ComPASS.newton import Newton
 
 
 Lx = 1000.0
@@ -95,14 +97,19 @@ timestep = TimeStepManager(
     decrease_factor=0.5,
 )
 
+# Construct the linear solver and newton objects outside the time loop
+# to set their parameters. Here direct solving is activated
+lsolver = linear_solver(simulation, direct=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 final_time = 100.0 * year
 output_period = 0.01 * final_time
 
-current_time = standard_loop(
-    simulation,
+current_time = simulation.standard_loop(
     final_time=final_time,
     time_step_manager=timestep,
     output_period=output_period,
+    newton=newton,
 )
 
 print("time after the time loop", current_time / year, "years")
