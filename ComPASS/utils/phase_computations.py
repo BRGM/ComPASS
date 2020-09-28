@@ -16,8 +16,9 @@ def total_phase_volume(simulation, phase):
     cells = slice(nn + nf, nn + nf + noc)
     phi = simulation.phase_index(phase)
     states = simulation.all_states()
+    Sphi = states.S[:, phi].ravel()
     porous_volume = np.array(simulation.porous_volume_Darcy(), copy=False)
     result = 0
     for locus in [nodes, fractures, cells]:
-        result += np.sum(states.S[locus].ravel() * porous_volume[locus])
+        result += np.sum(Sphi[locus] * porous_volume[locus])
     return MPI.COMM_WORLD.allreduce(result, MPI.SUM)
