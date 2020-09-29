@@ -105,10 +105,12 @@ def chain_wells(tick):
         data = simulation.get_well_data(target)
         if data is not None:
             wellhead = simulation.well_connections[source]
+            assert wellhead.molar_flowrate.shape == (1,)  # a single component
+            molar_flowrate = wellhead.molar_flowrate[0]
             assert (
-                wellhead.mass_flowrate >= 0
-            ), f"source well {source} with flowrate {wellhead.mass_flowrate} should be a producer"
-            data.imposed_flowrate = -wellhead.mass_flowrate
+                molar_flowrate >= 0
+            ), f"source well {source} with flowrate {molar_flowrate} should be a producer"
+            data.imposed_flowrate = -molar_flowrate
             # print(f"Wellhead temperature at well {source}: {K2degC(wellhead.temperature)}")
             data.injection_temperature = max(
                 degC2K(20), wellhead.temperature - network_deltaT(tick.time)

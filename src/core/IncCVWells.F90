@@ -47,9 +47,9 @@ module IncCVWells
          Temperature, & !< Temperature at the perforation
          Density, & !< Density at the perforation: constant per edge, stored at node parent
          Saturation(NbPhase), & !< Phases saturation
-         PressureDrop !< Pressure drop at the perforation, used to construct Pressure from the head pressure
-      ! FluxMolar(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
-      ! FluxEnergy           !< Energy flux at the perforation, q_{w,s,e}
+         PressureDrop, & !< Pressure drop at the perforation, used to construct Pressure from the head pressure
+         MolarFlowrate(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
+         EnergyFlowrate !< Energy flux at the perforation, q_{w,s,e}
    end type WellPerforationState_type
 
    type, bind(C) :: WellPerforations_type

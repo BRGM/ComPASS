@@ -7,7 +7,7 @@ from .. import mpi
 
 WellHead = namedtuple(
     "WellHead",
-    ["mass_flowrate", "energy_flowrate", "pressure", "temperature"],
+    ["molar_flowrate", "energy_flowrate", "pressure", "temperature"],
     defaults=(None,) * 4,
 )
 
@@ -43,10 +43,7 @@ class WellDataConnection:
         if data is None:
             return
         wellhead = WellHead(
-            data.actual_mass_flowrate,
-            data.actual_energy_flowrate,
-            data.actual_pressure,
-            data.actual_temperature,
+            data.molar_flowrate, data.energy_flowrate, data.pressure, data.temperature,
         )
         self._value = wellhead
         comm = mpi.communicator()

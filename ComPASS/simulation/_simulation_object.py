@@ -6,7 +6,7 @@ from . import utils
 from . import state
 
 from .._kernel import simulation_wrapper
-from ..wells.wells import get_well_data
+from ..wells.wells import get_wellhead
 from ..wells.connections import WellDataConnections, add_well_connections
 
 _not_available = object()
@@ -49,7 +49,7 @@ class SimmulationBase:
 class Simulation:
     def __init__(self):
         # self.base = SimulationBase() # is not allowed because __setattr__ is prohibited
-        well_data_provider = partial(get_well_data, self)
+        well_data_provider = partial(get_wellhead, self)
         self.__dict__["base"] = SimmulationBase(well_data_provider)
 
     def __setattr__(self, name, value):

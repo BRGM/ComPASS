@@ -50,6 +50,8 @@ struct Perforation_state  // WellPerforationState_type in IncCVWell.F90
    double density;
    std::array<double, NP> saturation;
    double pressure_drop;
+   std::array<double, NC> molar_flowrate;
+   double energy_flowrate;
 };
 
 struct Perforation_data  // Fortran TYPE_DataNodeWell
@@ -508,7 +510,14 @@ void add_well_wrappers(py::module& module) {
                                  return py::array_t<double, py::array::c_style>{
                                      NP, state->saturation.data(), self};
                               })
-       .def_readonly("pressure_drop", &Perforation_state::pressure_drop);
+       .def_readonly("pressure_drop", &Perforation_state::pressure_drop)
+       .def_property_readonly("molar_flowrate",
+                              [](py::object& self) {
+                                 auto state = self.cast<Perforation_state*>();
+                                 return py::array_t<double, py::array::c_style>{
+                                     NC, state->molar_flowrate.data(), self};
+                              })
+       .def_readonly("energy_flowrate", &Perforation_state::energy_flowrate);
 
    py::class_<Perforation_data>(module, "PerforationData")
        .def_readonly("parent_vertex", &Perforation_data::parent_vertex_id)

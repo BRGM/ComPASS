@@ -593,34 +593,6 @@ contains
 
    end subroutine Residu_add_flux_contributions
 
-!    subroutine collect_wellhead_information(well_head_perforation, qw, qe, well_data)
-!       type(WellPerforationState_type), intent(in) :: well_head_perforation
-!       double precision, intent(in) :: qw, qe
-!       type(WellData_type), intent(inout) :: well_data
-
-!       double precision :: T
-
-! !!$      well_data%actual_mass_flowrate = qw
-! !!$      well_data%actual_energy_flowrate = qe
-! !!$      well_data%actual_pressure = well_head_perforation%Pression
-! !!$!      well_data%actual_temperature = well_head_perforation%Temperature
-! !!$
-! !!$!#ifndef NDEBUG
-! !!$      ! WARNING: well_data%actual_temperature must be set to a consistent number...
-! !!$      T = well_data%actual_temperature
-! !!$      call DefFlashWells_solve_for_temperature(qe, well_head_perforation%Pression, T, qw, converged)
-! !!$      if(.not.converged) &
-! !!$         !write(*,*) "WARNING: Conversion from enthalpy to temperature diverged."
-! !!$         call CommonMPI_abort("WARNING: Conversion from enthalpy to temperature diverged.")
-! !!$      !   if(abs(T-well_data%actual_temperature)>1e-3) then
-! !!$      !      write(*,*) "Well head temperatures:", well_data%actual_temperature, T
-! !!$      !      call CommonMPI_abort("Collected wellhead temperature is inconsistent.")
-! !!$      !   endif
-! !!$!#endif
-! !!$      well_data%actual_temperature = T
-! !!$
-!    end subroutine collect_wellhead_information
-
    subroutine Residu_copy_reservoir_state_to_well(wk, NodebyWell, PerfoWell)
       integer(c_int), intent(in) :: wk
       type(CSR), intent(in) :: NodebyWell
@@ -635,6 +607,8 @@ contains
          PerfoWell(s)%Saturation = IncNode(nums)%Saturation
          PerfoWell(s)%Density = ieee_value(PerfoWell(s)%Density, ieee_quiet_nan) ! FIXME: Should we recompute this?
          PerfoWell(s)%PressureDrop = ieee_value(PerfoWell(s)%PressureDrop, ieee_quiet_nan) ! FIXME: Should we recompute this?
+         PerfoWell(s)%MolarFlowrate = 0.d0
+         PerfoWell(s)%EnergyFlowrate = 0.d0
       end do
 
    end subroutine Residu_copy_reservoir_state_to_well
@@ -692,13 +666,10 @@ contains
 #endif
                qw = qw + sum(Flux_ks)
                qe = qe + FluxT_ks
+               PerfoWellInj(s)%MolarFlowrate = qw
+               PerfoWellInj(s)%EnergyFlowrate = qe
             end if
          end do ! end of node s in injection well k
-
-         ! FIXME: Init actual temperature
-         s = NodebyWellInjLocal%Pt(k + 1) ! well head
-         DataWellInjLocal(k)%actual_temperature = IncNode(NodebyWellInjLocal%Num(s))%Temperature
-         ! call collect_wellhead_information(PerfoWellInj(s), qw, qe, DataWellInjLocal(k)) ! DCQ: Why does it do the flash again ?
 
          ! inj well equation
          if (DataWellInjLocal(k)%IndWell == 'p') then
@@ -757,14 +728,10 @@ contains
 #endif
                qw = qw + sum(Flux_ks)
                qe = qe + FluxT_ks
+               PerfoWellProd(s)%MolarFlowrate = qw
+               PerfoWellProd(s)%EnergyFlowrate = qe
             end if
          end do ! end of node s in production well k
-
-         ! FIXME: Init actual temperature
-         s = NodebyWellProdLocal%Pt(k + 1) ! well head
-         DataWellProdLocal(k)%actual_temperature = IncNode(NodebyWellProdLocal%Num(s))%Temperature
-         ! FIXME: The routine below does nothing...
-         ! call collect_wellhead_information(PerfoWellProd(NodebyWellProdLocal%Pt(k + 1)), qw, qe, DataWellProdLocal(k))
 
          ! prod well equation
          if (DataWellProdLocal(k)%IndWell == 'p') then
