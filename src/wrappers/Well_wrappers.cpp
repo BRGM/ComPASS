@@ -146,14 +146,14 @@ auto unpack_well_information(const ComPASS::Well::Well_type well_type) {
 
 struct Well_perforations_iterator {
    ComPASS::Well::Well_type well_type;
-   std::size_t well_id;
+   std::size_t well_rank;
    Well_perforations operator*() {
       switch (well_type) {
          case ComPASS::Well::Well_type::producer:
-            return get_producing_perforations(well_id);
+            return get_producing_perforations(well_rank);
             break;
          case ComPASS::Well::Well_type::injector:
-            return get_injecting_perforations(well_id);
+            return get_injecting_perforations(well_rank);
             break;
          default:
             assert(false);
@@ -161,20 +161,20 @@ struct Well_perforations_iterator {
       return Well_perforations{nullptr, 0};
    }
    Well_perforations_iterator& operator++() {
-      ++well_id;
+      ++well_rank;
       return *this;
    }
    bool operator<(const Well_perforations_iterator& other) const {
       assert(well_type == other.well_type);
-      return well_id < other.well_id;
+      return well_rank < other.well_rank;
    }
    bool operator==(const Well_perforations_iterator& other) const {
       assert(well_type == other.well_type);
-      return well_id == other.well_id;
+      return well_rank == other.well_rank;
    }
    bool operator!=(const Well_perforations_iterator& other) const {
       assert(well_type == other.well_type);
-      return well_id != other.well_id;
+      return well_rank != other.well_rank;
    }
 };
 
