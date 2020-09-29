@@ -234,6 +234,8 @@ simulation_wrapper = Wrapper(
         "injectors_information",
         "producers_data",
         "injectors_data",
+        "producer_perforations",
+        "injector_perforations",
         "producers_perforations",
         "injectors_perforations",
         "NumNodebyProc",

@@ -701,6 +701,14 @@ void add_well_wrappers(py::module& module) {
               if (i < 0) return self.perforations_begin + (n + i);
               return self.perforations_begin + i;
            },
+           py::return_value_policy::reference)
+       .def_property_readonly(
+           "wellhead",
+           [](Well_perforations& self) -> py::object {
+              if (self.nb_perforations == 0) return py::none();
+              return py::cast(
+                  *(self.perforations_begin + self.nb_perforations - 1));
+           },
            py::return_value_policy::reference);
 
    module.def("producers_perforations", []() {
@@ -715,6 +723,15 @@ void add_well_wrappers(py::module& module) {
       return py::make_iterator(
           Well_perforations_iterator{well_type, 0},
           Well_perforations_iterator{well_type, nb_injectors()});
+   });
+
+   module.def("injector_perforations", [](std::size_t wk) {
+      assert(wk < nb_injectors());
+      return get_injecting_perforations(wk);
+   });
+   module.def("producer_perforations", [](std::size_t wk) {
+      assert(wk < nb_producers());
+      return get_producing_perforations(wk);
    });
 
    module.def("nb_producers", &nb_producers);

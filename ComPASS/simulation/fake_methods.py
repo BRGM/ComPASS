@@ -4,6 +4,7 @@ from ..wells.wells import (
     create_well_from_segments,
     create_vertical_well,
     get_well_data,
+    get_wellhead,
     set_well_property,
     close_well,
     open_well,
