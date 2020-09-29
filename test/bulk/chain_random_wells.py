@@ -107,7 +107,7 @@ def chain_wells(tick):
             wellhead = simulation.well_connections[source]
             assert (
                 wellhead.mass_flowrate >= 0
-            ), f"source well {source} should be a producer"
+            ), f"source well {source} with flowrate {wellhead.mass_flowrate} should be a producer"
             data.imposed_flowrate = -wellhead.mass_flowrate
             # print(f"Wellhead temperature at well {source}: {K2degC(wellhead.temperature)}")
             data.injection_temperature = max(
