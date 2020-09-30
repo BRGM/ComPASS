@@ -172,7 +172,6 @@ def add_well_connections(
     :param well_pairs: a sequence of well pair to be chained
     :param proc_requests: a sequence of pair (proc, list of wells to make available)
     """
-    print("**********", connections)
     new_connections = _define_connections(
         well_data_provider, well_pairs=well_pairs, proc_requests=proc_requests
     )
