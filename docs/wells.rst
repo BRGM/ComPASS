@@ -75,6 +75,28 @@ functions. You will find two example in the :ref:`example scripts section<settin
     but it's ok to close wells afterwards.
 
 
+Monitoring well state
+---------------------
+
+All well nodes (called perforations) can be acessed and hold the following physical values:
+  - pressure at the well node
+  - temperature at the well node
+  - fluid density at the well node
+  - saturations at the well node (an array with number of phases values)
+  - pressure drop at the well node
+  - molar flowrates at the well node (an array with number of components values)
+  - flowing energy at the well nodes
+
+One specific perforation is the well head that can be accessed with
+the `simulation.get_wellhead` function, for example:
+
+.. code:: python
+
+    # wid is the well id
+    wellhead = simulation.get_wellhead(wid)
+    print(f"Well head pressure for well {wid} is: {wellhead.pressure}")
+
+
 Connections between wells
 -------------------------
 
@@ -84,7 +106,7 @@ from a given well is made available to another one (whatever the procs that mana
 To connect two wells you give a sequence (list, array...) of pairs `(source, target)`
 using the `simulation.add_well_connections` function.
 
-Then the well head information (`mass_flowrate`, `energy_flowrate`, `pressure`, `temperature`)
+Then the well head information (`molar_flowrate`, `energy_flowrate`, `pressure`, `temperature`)
 is made available using the source well id with `simulation.well_connections[source_well_id]`.
 For example:
 
