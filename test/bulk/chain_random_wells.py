@@ -144,6 +144,13 @@ simulation.standard_loop(
     iteration_callbacks=iteration_callbacks,
 )
 
+for wk in range(2 * nb_random_wells):
+    perforations = simulation.get_well_perforations_state(wk)
+    print(perforations)
+    if perforations is not None:
+        print([perf.pressure for perf in perforations])
+    print(simulation.get_wellhead(wk))
+
 if mpi.is_on_master_proc:
     for well, transient in wellhead_states.items():
         # Will produce a text file with 5 columns

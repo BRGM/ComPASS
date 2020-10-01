@@ -96,6 +96,19 @@ the `simulation.get_wellhead` function, for example:
     wellhead = simulation.get_wellhead(wid)
     print(f"Well head pressure for well {wid} is: {wellhead.pressure}")
 
+To access all perforations state you can use
+the `simulation.get_well_perforations_state` function.
+Then, there is no array wrapper to access underlying
+property yet (this is a work in progress cf. issue
+`298 <https://gitlab.inria.fr/charms/ComPASS/-/issues/298>`_
+). But you can easily build a copy :
+
+.. code:: python
+
+    # wid is the well id
+    perfs = simulation.get_well_perforations_state(wid)
+    p = np.array([perf.pressure for perf in perfs])
+
 
 Connections between wells
 -------------------------

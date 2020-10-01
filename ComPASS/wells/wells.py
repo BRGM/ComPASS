@@ -85,6 +85,27 @@ def get_well_data(simulation, wid, own_only=False):
             return data[1]
 
 
+def get_well_perforations_state(simulation, wid, own_only=False):
+    """
+    :param simulation: simulation object, the method can also be accessed
+                       through a fake method as `simulation.get_well_data`
+
+    :param wid: well unique id
+    :param own_only: will look amongst own wells only
+                     (well whose unknowns are managed by this proc)
+
+    :return: The perforations of the well which as `wid` id.
+    """
+    for getdata, getperf in [
+        (simulation.injectors_data, simulation.injector_perforations),
+        (simulation.producers_data, simulation.producer_perforations),
+    ]:
+        data = _get_well_data(simulation, getdata(own_only), wid)
+        if data is not None:
+            wk, _ = data
+            return getperf(wk)
+
+
 def get_wellhead(simulation, wid, own_only=False):
     """
     :param simulation: simulation object, the method can also be accessed
@@ -96,14 +117,9 @@ def get_wellhead(simulation, wid, own_only=False):
 
     :return: The wellhead of the well which as `wid` id.
     """
-    for getdata, getperf in [
-        (simulation.injectors_data, simulation.injector_perforations),
-        (simulation.producers_data, simulation.producer_perforations),
-    ]:
-        data = _get_well_data(simulation, getdata(own_only), wid)
-        if data is not None:
-            wk, _ = data
-            return getperf(wk).wellhead
+    perfs = get_well_perforations_state(simulation, wid, own_only)
+    if perfs is not None:
+        return perfs.wellhead
 
 
 # WARNING: in parallel we must modify both own and ghost wells
