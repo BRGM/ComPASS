@@ -2,6 +2,7 @@ from ..timeloops import standard_loop
 
 from ..wells.wells import (
     create_well_from_segments,
+    create_single_branch_well,
     create_vertical_well,
     get_well_data,
     get_well_perforations_state,

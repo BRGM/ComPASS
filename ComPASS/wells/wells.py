@@ -17,18 +17,28 @@ def create_well_from_segments(simulation, segments, well_radius=None):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_well_from_segments`
-    :param segments: a sequence of pair vertices id
+    :param segments: a sequence of pair vertices id oritented from wellhead downwards
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     """
     well = common_wrapper.Well()
-    if well_radius is None:
-        well_radius = 0.1
-    well.geometry.radius = well_radius
+    well.geometry.radius = well_radius or 0.1
     segments = np.ascontiguousarray(segments)
     segments.shape = -1, 2
-    print(segments)
     well.geometry.add_segments(segments + 1)  # Fortran indices start at 1
     return well
+
+
+def create_single_branch_well(simulation, nodes, well_radius=None):
+    """
+    :param simulation: simulation object, the method can also be accessed
+                       through a fake method as `simulation.create_single_branch_well`
+    :param segments: a sequence of vertices id describing the well from top to bottom
+    :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
+    """
+    nodes = np.asarray(nodes)
+    assert nodes.ndim == 1
+    segments = np.transpose(np.vstack([nodes[:-1], nodes[1:]]))
+    return create_well_from_segments(simulation, segments, well_radius)
 
 
 def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None):
@@ -52,10 +62,9 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
     if zmax is not None:
         selection &= z <= zmax
     well_nodes = np.nonzero(selection)[0]
-    # CHECKME: What is the expected order for well nodes?
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
-    segments = np.transpose(np.vstack([well_nodes[1:], well_nodes[:-1]]))
-    return create_well_from_segments(simulation, segments, well_radius)
+    # reorder nodes from top to bottom
+    return create_single_branch_well(simulation, well_nodes[::-1], well_radius)
 
 
 def _get_well_data(simulation, wells_data, wid):
