@@ -540,7 +540,7 @@ contains
 
       types(:) = MPI_DOUBLE
       types(1) = MPI_INT
-      types(11) = MPI_CHARACTER
+      types(count) = MPI_CHARACTER
 
       blocklengths(:) = 1
       blocklengths(6) = NbComp
