@@ -16,12 +16,13 @@ import ComPASS
 import ComPASS.mpi as mpi
 from ComPASS.utils.units import *
 
-# fmt: off
-np.random.seed(12345)  # set the seed to always have the same well pattern
-if len(sys.argv)>1:
+if len(sys.argv) > 1:
     nb_random_wells = int(sys.argv[1])
 else:
-    nb_random_wells = 10   # nb_random_wells producers + nb_random_wells injectors
+    nb_random_wells = 10  # nb_random_wells producers + nb_random_wells injectors
+
+# fmt: off
+np.random.seed(12345)  # set the seed to always have the same well pattern
 pres = 15.0 * MPa      # initial reservoir pressure
 Tres = degC2K(60)      # temperature of the reservoir
 k_reservoir = 1e-12    # reservoir permeability in m^2
@@ -115,7 +116,6 @@ def chain_wells(tick):
                 molar_flowrate >= 0
             ), f"source well {source} with flowrate {molar_flowrate} should be a producer"
             data.imposed_flowrate = -molar_flowrate
-            # print(f"Wellhead temperature at well {source}: {K2degC(wellhead.temperature)}")
             data.injection_temperature = max(
                 degC2K(20), wellhead.temperature - network_deltaT(tick.time)
             )
