@@ -532,25 +532,25 @@ void add_well_wrappers(py::module& module) {
                },
                py::return_value_policy::reference_internal);
 
-   auto add_perforation_state_property = [&pyWellInfo](const char* name,
-                                                       std::size_t offset) {
-      pyWellInfo.def_property_readonly(
-          name,
-          [offset](py::object& self) {
-             auto info = self.cast<Well_information*>();
-             std::vector<std::size_t> shape;
-             shape.push_back(info->nb_perforations);
-             std::vector<std::size_t> strides;
-             strides.push_back(sizeof(Perforation_state));
-             auto ptr = reinterpret_cast<const double*>(
-                 reinterpret_cast<const unsigned char*>(
-                     info->perforations_state) +
-                 offset);
-             return py::array_t<double, py::array::c_style>{shape, strides, ptr,
-                                                            self};
-          },
-          py::return_value_policy::reference_internal);
-   };
+   auto add_perforation_state_property =
+       [&pyWellInfo](const char* name, const std::size_t offset) {
+          pyWellInfo.def_property_readonly(
+              name,
+              [offset](py::object& self) {
+                 auto info = self.cast<Well_information*>();
+                 std::vector<std::size_t> shape;
+                 shape.push_back(info->nb_perforations);
+                 std::vector<std::size_t> strides;
+                 strides.push_back(sizeof(Perforation_state));
+                 auto ptr = reinterpret_cast<const double*>(
+                     reinterpret_cast<const unsigned char*>(
+                         info->perforations_state) +
+                     offset);
+                 return py::array_t<double, py::array::c_style>{shape, strides,
+                                                                ptr, self};
+              },
+              py::return_value_policy::reference_internal);
+       };
 
    add_perforation_state_property("pressure",
                                   offsetof(Perforation_state, pressure));
@@ -560,24 +560,37 @@ void add_well_wrappers(py::module& module) {
                                   offsetof(Perforation_state, density));
    add_perforation_state_property("pressure_drop",
                                   offsetof(Perforation_state, pressure_drop));
+   add_perforation_state_property("energy_flowrate",
+                                  offsetof(Perforation_state, energy_flowrate));
 
-   pyWellInfo.def_property_readonly(
-       "saturation",
-       [](py::object& self) {
-          auto info = self.cast<Well_information*>();
-          std::vector<std::size_t> shape;
-          shape.push_back(info->nb_perforations);
-          shape.push_back(NP);
-          std::vector<std::size_t> strides;
-          strides.push_back(sizeof(Perforation_state));
-          strides.push_back(sizeof(double));
-          auto ptr = reinterpret_cast<const double*>(
-              reinterpret_cast<const unsigned char*>(info->perforations_state) +
-              offsetof(Perforation_state, saturation));
-          return py::array_t<double, py::array::c_style>{shape, strides, ptr,
-                                                         self};
-       },
-       py::return_value_policy::reference_internal);
+   auto add_perforation_state_vector_property =
+       [&pyWellInfo](const char* name, const std::size_t vector_size,
+                     const std::size_t offset) {
+          pyWellInfo.def_property_readonly(
+              name,
+              [vector_size, offset](py::object& self) {
+                 auto info = self.cast<Well_information*>();
+                 std::vector<std::size_t> shape;
+                 shape.push_back(info->nb_perforations);
+                 shape.push_back(vector_size);
+                 std::vector<std::size_t> strides;
+                 strides.push_back(sizeof(Perforation_state));
+                 strides.push_back(sizeof(double));
+                 auto ptr = reinterpret_cast<const double*>(
+                     reinterpret_cast<const unsigned char*>(
+                         info->perforations_state) +
+                     offset);
+                 return py::array_t<double, py::array::c_style>{shape, strides,
+                                                                ptr, self};
+              },
+              py::return_value_policy::reference_internal);
+       };
+
+   add_perforation_state_vector_property(
+       "saturation", NP, offsetof(Perforation_state, saturation));
+
+   add_perforation_state_vector_property(
+       "molar_flowrate", NC, offsetof(Perforation_state, molar_flowrate));
 
    auto add_perforation_data_property = [&pyWellInfo](const char* name,
                                                       std::size_t offset) {

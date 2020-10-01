@@ -151,6 +151,7 @@ def _dump_wells(
                         0,
                     ),
                 ),
+                ("energy flowrate", well.energy_flowrate),
             ]
         }
 
@@ -160,6 +161,12 @@ def _dump_wells(
                 welldata[f"{phase} saturation"] = np.ascontiguousarray(
                     well.saturation[:, phk]
                 )
+
+        components = enum_to_list(simulation.Component)
+        for ck, component in enumerate(components):
+            welldata[f"{component} flowrate"] = np.ascontiguousarray(
+                well.molar_flowrate[:, ck]
+            )
 
         try:
             welldata["saturation pressure"] = np.ascontiguousarray(
