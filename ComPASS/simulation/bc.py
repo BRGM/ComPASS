@@ -84,10 +84,16 @@ def reset_dirichlet_nodes(
                             to select temperature dirichlet nodes (default to no selection)
     """
     clear_dirichlet_nodes(simulation)
-    vertices = simulation.vertices()
+
+    def apply_if_callable(f):
+        if callable(f):
+            return f(simulation.vertices())
+        return f
+
     set_dirichlet_nodes(
         simulation,
-        both=both_selection(vertices),
-        pressure=pressure_selection(vertices),
-        temperature=temperature_selection(vertices),
+        both=apply_if_callable(both_selection),
+        pressure=apply_if_callable(pressure_selection),
+        temperature=apply_if_callable(temperature_selection),
     )
+    # FIXME: we should redistribute porous volumes!
