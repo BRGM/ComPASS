@@ -88,6 +88,8 @@ class LegacyIterativeSolver(IterativeSolver):
         self.kernel.SolvePetsc_Init(
             settings.max_iterations, settings.tolerance, self.activate_cpramg, False,
         )
+        # Good ol' Fortran doesn't set restart at initialization... We gotta do it ourselves
+        self.restart_size = settings.restart_size
 
     def make_setter(name):
         def setter(self, value):

@@ -28,27 +28,29 @@ def linear_solver(
     tolerance=None,
     max_iterations=None,
     restart_size=None,
+    from_options=False,
 ):
     """
     A function that manages linear solver instanciation from keyword parameters
     """
 
     # Command line options override the function's arguments
-    legacy_opt = get("--legacy_linear_solver")
-    if legacy_opt == "True":
-        legacy = True
-    elif legacy_opt == "False":
-        legacy = False
-    direct_opt = get("--direct_linear_solver")
-    if direct_opt == "True":
-        direct = True
-    elif direct_opt == "False":
-        direct = False
-    activate_cpramg_opt = get("--activate_cpramg")
-    if activate_cpramg_opt == "True":
-        activate_cpramg = True
-    elif activate_cpramg_opt == "False":
-        activate_cpramg = False
+    if from_options == True:
+        legacy_opt = get("--legacy_linear_solver")
+        if legacy_opt == "True":
+            legacy = True
+        elif legacy_opt == "False":
+            legacy = False
+        direct_opt = get("--direct_linear_solver")
+        if direct_opt == "True":
+            direct = True
+        elif direct_opt == "False":
+            direct = False
+        activate_cpramg_opt = get("--activate_cpramg")
+        if activate_cpramg_opt == "True":
+            activate_cpramg = True
+        elif activate_cpramg_opt == "False":
+            activate_cpramg = False
 
     if direct:
         if any((activate_cpramg, tolerance, max_iterations, restart_size)):
