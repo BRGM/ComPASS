@@ -33,7 +33,7 @@ def linear_solver(
     """
     A function that manages linear solver instanciation from keyword parameters
     """
-    print(petsc4py.get_config())
+
     # Command line options override the function's arguments
     if from_options == True:
         legacy_opt = get("--legacy_linear_solver")

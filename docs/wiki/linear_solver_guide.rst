@@ -60,6 +60,7 @@ should display the following output :
 
 The easiest and fastest way of getting your own `LinearSolver` object is to use the factory function from the `ComPASS.linalg.factory` file:
 
+```python
     def linear_solver(
         simulation,
         legacy=True,
@@ -70,6 +71,7 @@ The easiest and fastest way of getting your own `LinearSolver` object is to use 
         restart_size=None,
         from_options=False,
     ):
+```
 
 ### Description of the factory function's arguments
 
@@ -83,9 +85,10 @@ The easiest and fastest way of getting your own `LinearSolver` object is to use 
   - `from_options` :     Enable command line options (set to `True` in the `standard_loop()` call to the factory)
 
 To pass the linear solver object to the simulation loop, you must call the Newton object constructor. The Newton constructor takes four arguments :
-The simulation object, the relative tolerance on residual decrease to achieve Newton convergence, the maximum number of iterations, and a linear solver object.
+The simulation object, the relative tolerance on residual decrease to achieve Newton convergence, the maximum number of Newton iterations, and a linear solver object.
 The example below shows how to use a direct solver of the `Petsc` kind :
 
+```python
     from ComPASS.linalg.factory import linear_solver
 
     # Use the factory function to instanciate your own LinearSolver
@@ -102,6 +105,7 @@ The example below shows how to use a direct solver of the `Petsc` kind :
         output_period=year,
         context=context,
     )
+```
 
 ### Note on the two different versions
 
@@ -119,6 +123,7 @@ Both version are essentially identical, but there are a few things to note on th
 
 It is possible to access an iterative solver's parameters using the 'dot' symbol :
 
+```python
     from ComPASS.linalg.factory import linear_solver
 
     # Let's set up a legacy iterative solver, but with CPR-AMG disabled
@@ -127,15 +132,18 @@ It is possible to access an iterative solver's parameters using the 'dot' symbol
     leg_it_lsolver.tolerance = 1.e-5
     leg_it_lsolver.max_iterations = 100
     leg_it_lsolver.restart_size = 20
+```
 
 Linear solvers also feature à `__str__` method, so you can display information about the object with a `print()` statement (or `mpi.master_print()` in parallel) :
 
+```python
     from ComPASS.linalg.factory import linear_solver
 
     # Let's set up a petsc iterative solver, with specific settings
     ptc_it_lsolver = linear_solver(simulation, legacy=False, tolerance=1e-7, max_iterations=250, restart_size=50)
 
     print(ptc_it_solver)
+```
 
 Output :
 

@@ -1,12 +1,13 @@
 from doublet_on_cartesian_grid_setup import *
 
+from ComPASS.newton import Newton
+from ComPASS.linalg.factory import linear_solver
+
 """
 This script runs the default time loop with with a Legacy iterative solver
 """
 
-lsolver = LegacyIterativeSolver(
-    LegacyLinearSystem(simulation), IterativeSolverSettings(1.0e-6, 150, 30)
-)
+lsolver = linear_solver(simulation, legacy=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(

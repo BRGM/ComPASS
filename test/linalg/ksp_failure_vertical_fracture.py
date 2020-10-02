@@ -104,10 +104,12 @@ def set_boundary_fluxes():
 
 set_boundary_fluxes()
 
-# The default preconditioner is a basic block Jacobi - ILU(0) PC,
+# Setting the preconditioner to a basic block Jacobi - ILU(0) PC,
 # which isn't robust enough for this test case
 lsolver = PetscIterativeSolver(
-    PetscLinearSystem(simulation), IterativeSolverSettings(1.0e-6, 150, 30)
+    PetscLinearSystem(simulation),
+    IterativeSolverSettings(1.0e-6, 150, 30),
+    activate_cpramg=False,
 )
 newton = Newton(simulation, 1e-5, 8, lsolver)
 

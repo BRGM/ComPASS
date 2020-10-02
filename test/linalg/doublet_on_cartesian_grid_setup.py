@@ -9,10 +9,6 @@
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.utils.grid import grid_center
-from ComPASS.newton import Newton
-from ComPASS.linalg.petsc_linear_solver import *
-from ComPASS.linalg.legacy_linear_solver import *
-from ComPASS.linalg.factory import linear_solver
 from ComPASS.simulation_context import SimulationContext
 
 # fmt: off
