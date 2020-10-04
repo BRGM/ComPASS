@@ -21,6 +21,7 @@ class SimmulationBase:
     def __init__(self, well_data_provider):
         self.well_data_provider = well_data_provider
         self.well_connections = WellDataConnections()
+        self.scheme = None
 
     def add_well_connections(self, well_pairs=None, proc_requests=None):
         """
@@ -53,7 +54,7 @@ class Simulation:
         self.__dict__["base"] = SimmulationBase(well_data_provider)
 
     def __setattr__(self, name, value):
-        assert False, "no modification for now !"
+        setattr(self.__dict__["base"], name, value)
 
     def __getattr__(self, name):
         try:

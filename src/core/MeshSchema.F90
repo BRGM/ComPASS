@@ -513,12 +513,15 @@ contains
       type(SubArraySizes) :: nb
       type(SubArrayOffsets) :: offset
 
-      if (allocated(a%values)) &
-         call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated')
-
       call MeshSchema_subarrays_compute_info(nb, offset)
 
-      allocate (a%values(nb%nodes + nb%fractures + nb%cells))
+      if (allocated(a%values)) then
+         if (size(a%values) /= (nb%nodes + nb%fractures + nb%cells)) &
+            call CommonMPI_abort('MeshSchema_allocate_DOFFamilyArray: already allocated with incompatible size.')
+      else
+         allocate (a%values(nb%nodes + nb%fractures + nb%cells))
+      endif
+
       nullify (a%nodes, a%fractures, a%cells)
       a%nodes => a%values(offset%nodes:offset%nodes - 1 + nb%nodes)
       a%fractures => a%values(offset%fractures:offset%fractures - 1 + nb%fractures)

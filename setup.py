@@ -138,6 +138,7 @@ setup(
         "ComPASS.io",
         "ComPASS.linalg",
         "ComPASS.utils",
+        "ComPASS.schemes",
         "ComPASS.simulation",
         "ComPASS.wells",
     ],

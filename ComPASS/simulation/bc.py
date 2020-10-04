@@ -100,4 +100,4 @@ def reset_dirichlet_nodes(
         pressure=apply_if_callable(pressure_selection),
         temperature=apply_if_callable(temperature_selection),
     )
-    # FIXME: we should redistribute porous volumes!
+    simulation.scheme.compute_volumes()

@@ -27,6 +27,7 @@ from .. import messages
 from .._kernel import get_kernel
 from .._kernel import simulation_wrapper as _sw
 
+from ..schemes.VAG import VAGScheme
 from .utils import reshape_as_scalar_array, reshape_as_tensor_array
 from .data import set_fractures, collect_all_edges
 from . import state
@@ -54,7 +55,7 @@ def init(
     set_global_flags=None,
     set_global_rocktype=None,
     mesh_parts=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Initialize many simulation properties and distribute the mesh.
@@ -203,7 +204,7 @@ def init(
     mpi.synchronize()
     kernel.init_phase2_build_local_mesh()
     kernel.init_phase2_setup_contexts()
-    setup_VAG(properties)
+    setup_scheme(_simulation_object.self, properties)
     kernel.init_phase2_setup_solvers()
     system = DistributedSystem(kernel)
     state.info.system = system
@@ -458,20 +459,24 @@ def add_output_subdirectory(path):
 
 
 def setup_VAG(properties):
-    kernel = get_kernel()
-    omegas = {}
-    for law in ("Darcy", "Fourier"):
+    def get_omega_values(law):
+        omega = {}
         for location in ("cell", "fracture"):
-            omega = properties[location + "_omega_" + law]()
-            if omega is None:
-                omega = 0.075 if location == "cell" else 0.15
-            omegas["%s_%s" % (location, law)] = omega
-    kernel.VAGFrac_TransDarcy()
-    if kernel.has_energy_transfer_enabled():
-        kernel.VAGFrac_TransFourier()
-    kernel.VAGFrac_VolsDarcy(omegas["cell_Darcy"], omegas["fracture_Darcy"])
-    if kernel.has_energy_transfer_enabled():
-        kernel.VAGFrac_VolsFourier(omegas["cell_Fourier"], omegas["fracture_Fourier"])
+            value = properties[location + "_omega_" + law]()
+            if value is not None:
+                omega[location] = value
+        return omega
+
+    return VAGScheme(
+        **{f"omega_{law}": get_omega_values(law) for law in ("Darcy", "Fourier")}
+    )
+
+
+def setup_scheme(simulation, properties):
+    assert simulation.scheme is None
+    simulation.scheme = vag = setup_VAG(properties)
+    vag.compute_transmissivities()
+    vag.compute_volumes()
 
 
 def _set_property_on_global_mesh(property, location, value, fractures=None):
