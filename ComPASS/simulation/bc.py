@@ -72,7 +72,10 @@ def reset_dirichlet_nodes(
 ):
     """
     Select new Dirichlet nodes using mask functions
-    (must be True where the node is a Dirichlet node).
+    (must be True where the node is a Dirichlet node)
+    or a list of nodes that will become Dirichlet nodes.
+    All dirichlet node states will be copied from the
+    current node states.
 
     :param simulation: the simulation object
     :param both_selection: a function that will be called on vertices coordinates
@@ -84,6 +87,7 @@ def reset_dirichlet_nodes(
                             to select temperature dirichlet nodes (default to no selection)
     """
     clear_dirichlet_nodes(simulation)
+    simulation.dirichlet_node_states().copy(simulation.node_states())
 
     def apply_if_callable(f):
         if callable(f):

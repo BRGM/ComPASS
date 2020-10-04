@@ -19,5 +19,6 @@ auto wrap_array_holder(py::module& module, const char* name)
    });
    pyclass.def("fill", &Array_type::fill);
    pyclass.def("set", &Array_type::fill);
+   pyclass.def("copy", &Array_type::copy);
    return pyclass;
 }

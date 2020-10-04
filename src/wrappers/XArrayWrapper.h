@@ -34,4 +34,10 @@ struct XArrayWrapper {
          (*p) = t;
       }
    }
+   void copy(const XArrayWrapper<T>& other) {
+      assert(length == other.length);
+      for (std::size_t k = 0; k < std::min(length, other.length); ++k) {
+         (pointer + k)->operator=(*(other.pointer + k));
+      }
+   }
 };
