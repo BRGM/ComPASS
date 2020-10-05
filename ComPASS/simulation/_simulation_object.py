@@ -57,10 +57,6 @@ class Simulation:
         setattr(self.__dict__["base"], name, value)
 
     def __getattr__(self, name):
-        try:
-            return getattr(self.__dict__["base"], name)
-        except AttributeError:
-            pass
         value = getattr(fake_methods, name, _not_available)
         if value is not _not_available:
             return partial(value, self)
@@ -68,6 +64,10 @@ class Simulation:
             value = getattr(src, name, _not_available)
             if value is not _not_available:
                 return value
+        try:
+            return getattr(self.__dict__["base"], name)
+        except AttributeError:
+            pass
         raise AttributeError(f"'Simulation' object has no attribute {name!r}")
 
     def __dir__(self):
