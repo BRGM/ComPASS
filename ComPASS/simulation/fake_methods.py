@@ -29,3 +29,5 @@ from .bc import (
     set_dirichlet_nodes,
     reset_dirichlet_nodes,
 )
+
+from ..io.mesh import write_mesh
