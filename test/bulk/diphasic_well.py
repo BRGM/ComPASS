@@ -25,7 +25,7 @@ ptop = 4 * MPa
 Teps = 1               # temperature variation temperature at the top of the reservoir is set to Tsat(ptop) - Teps
 gravity = 9.81
 omega = 0.15           # reservoir porosity
-kh = 1e-12             # reservoir horizontal permeability in m^2
+kh = 5e-14             # reservoir horizontal permeability in m^2
 kvh = 0.001            # ratio of vertical permeability to horizontal permeability - low value to prevent natural convection
 K = 2                  # bulk thermal conductivity in W/m/K
 Qm = 200 * ton / hour
@@ -91,6 +91,8 @@ simulation.standard_loop(
 
 # Dirichlet nodes will be locked to their equilibrium values
 simulation.reset_dirichlet_nodes(on_vertical_boundaries(grid))
+assert np.all(dirichlet.p == simulation.node_states().p)
+assert np.all(dirichlet.T == simulation.node_states().T)
 
 simulation.open_well(wid)
 simulation.set_well_property(wid, imposed_flowrate=Qm)
@@ -98,3 +100,5 @@ simulation.set_well_property(wid, imposed_flowrate=Qm)
 simulation.standard_loop(
     initial_time=0, initial_timestep=hour, output_period=day, final_time=30 * day,
 )
+
+assert simulation.all_states().S.max() > 0.1
