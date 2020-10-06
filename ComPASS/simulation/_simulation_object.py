@@ -3,14 +3,19 @@ from . import fake_methods
 from . import base
 from . import data
 from . import utils
-from . import state
 
 from .._kernel import simulation_wrapper
 from ..wells.wells import get_wellhead
 from ..wells.connections import WellDataConnections, add_well_connections
 
 _not_available = object()
-_fake_members = state, base, data, utils, simulation_wrapper
+_fake_members = base, data, utils, simulation_wrapper
+
+
+class SimulationInfo:
+    def __init__(self):
+        self.system = None
+        self.ghosts_synchronizer = None
 
 
 class SimmulationBase:
@@ -19,6 +24,9 @@ class SimmulationBase:
     """
 
     def __init__(self, well_data_provider):
+        self.info = SimulationInfo()
+        self.initialized = False
+        self.mesh_is_local = False
         self.well_data_provider = well_data_provider
         self.well_connections = WellDataConnections()
         self.scheme = None

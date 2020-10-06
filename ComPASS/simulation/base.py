@@ -30,7 +30,6 @@ from .._kernel import simulation_wrapper as _sw
 from ..schemes.VAG import VAGScheme
 from .utils import reshape_as_scalar_array, reshape_as_tensor_array
 from .data import set_fractures, collect_all_edges
-from . import state
 from . import _simulation_object
 
 
@@ -107,7 +106,9 @@ def init(
         to nodes for the discretisation of the temperature gradient (Fourier law)
     """
     kernel = get_kernel()
-    assert not state.mesh_is_local
+    # FIXME: should be passed as argument
+    simulation = _simulation_object.self
+    assert not simulation.mesh_is_local
     # here properties will just be used as a namespace
     properties = {}
 
@@ -137,7 +138,7 @@ def init(
             except KeyError:
                 properties[name] = lambda: None
     # FUTURE: This could be managed through a context manager ?
-    assert not state.initialized
+    assert not simulation.initialized
     # FIXME: grid is kept for backward compatibility, should be deprecated
     if type(mesh) is str:
         if not os.path.exists(mesh):
@@ -200,18 +201,18 @@ def init(
             assert ucolors.min() >= 0
             assert ucolors.max() < mpi.communicator().size
         kernel.init_phase2_partition(mesh_parts)
-    state.mesh_is_local = True
+    simulation.mesh_is_local = True
     mpi.synchronize()
     kernel.init_phase2_build_local_mesh()
     kernel.init_phase2_setup_contexts()
     setup_scheme(_simulation_object.self, properties)
     kernel.init_phase2_setup_solvers()
     system = DistributedSystem(kernel)
-    state.info.system = system
-    state.info.ghosts_synchronizer = Synchronizer(system)
+    simulation.info.system = system
+    simulation.info.ghosts_synchronizer = Synchronizer(system)
     mpi.synchronize()  # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
-    state.initialized = True
+    simulation.initialized = True
     atexit.register(_exit_eos_and_finalize)
 
 

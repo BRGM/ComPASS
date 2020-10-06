@@ -9,12 +9,14 @@ from .utils import (
     get_boundary_faces as _get_boundary_faces,
     get_boundary_vertices as _get_boundary_vertices,
 )
-from . import state
 from .._kernel import simulation_wrapper as _sw
+
+# CHECKME: does (re)loading module change _simulation_object.self values?
+from . import _simulation_object
 
 
 def collect_all_edges():
-    assert not state.mesh_is_local, "mesh is assumed to be global"
+    assert not _simulation_object.self.mesh_is_local, "mesh is assumed to be global"
     face_nodes = _sw.get_global_connectivity().NodebyFace
     edges = []
     for face in face_nodes:
