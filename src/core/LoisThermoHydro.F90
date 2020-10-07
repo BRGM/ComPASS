@@ -1261,7 +1261,7 @@ contains
       integer :: j, jc, jph
       double precision :: dfS_elim
 
-      dfdX(:) = 0.d0
+      dfdX = 0.d0
 
       dfdX(1) = dPf  ! P
 
@@ -1284,7 +1284,6 @@ contains
       dfS_elim = dSf(ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente))
       do j = 1, ctxinfo%NbPhasePresente - 1
          jph = ctxinfo%NumPhasePresente(j)
-
          jc = j + ctxinfo%NbIncPTC
          dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
       enddo
@@ -1362,7 +1361,7 @@ contains
       end do
 #endif
 
-      dfdX_secd(:, :) = 0.d0
+      dfdX_secd = 0.d0
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
