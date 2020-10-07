@@ -159,12 +159,6 @@ module LocalMesh
    type(Array1IdNode), dimension(:), allocatable, public :: &
       IdNodeRes_Ncpus
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-   !! IdFFNodeRes_Ncpus (True if Freeflow BC)
-   type(Array1Int), dimension(:), allocatable, public :: &
-      IdFFNodeRes_Ncpus
-#endif
-
    !! IdCell
    type(ARRAY1Int), dimension(:), allocatable, public :: &
       IdCellRes_Ncpus
@@ -279,9 +273,6 @@ module LocalMesh
       LocalMesh_IdCellRes, & ! make IdCellRes_Ncpus(ip1)
       LocalMesh_IdFaceRes, & ! make IdFaceRes_Ncpus(ip1)
       LocalMesh_IdNodeRes, & ! make IdNodeRes_Ncpus(ip1), NbNodeNotDirRes/OwnS_Ncpus(ip1)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-      localMesh_IdFFNodeRes, & ! make IdFFNodeRes_Ncpus(ip1)
-#endif
       !
       LocalMesh_FracbyCellLocal, & ! make FracbyCellLocal_Ncpus(ip1)
       LocalMesh_FracbyProc, & ! make FracbyProc(ip1)
@@ -399,9 +390,6 @@ contains
       ! IdFace/Node
       allocate (IdFaceRes_Ncpus(Ncpus))
       allocate (IdNodeRes_Ncpus(Ncpus))
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-      allocate (IdFFNodeRes_Ncpus(Ncpus))
-#endif
       allocate (IdCellRes_Ncpus(Ncpus))
 
       ! Frac to/from Face
@@ -465,9 +453,6 @@ contains
 
          call LocalMesh_IdFaceRes(i)        ! IdFaceRes_Ncpus(ip1)
          call LocalMesh_IdNodeRes(i)        ! IdNodeRes_Ncpus(ip1)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-         call localMesh_IdFFNodeRes(i)      ! IdFFNodeRes_Ncpus(ip1)
-#endif
          call LocalMesh_IdCellRes(i)        ! IdCellRes_Ncpus(ip1)
 
          call LocalMesh_FracbyCellLocal(i)  ! FracbyCellLocal_Ncpus(ip1)
@@ -1849,39 +1834,6 @@ contains
       end do
 
    end subroutine LocalMesh_IdNodeRes
-
-   ! Output:
-   !  IdFFNodeRes_Ncpus(ip)
-   ! Use:
-   !  FacebyProc, FaceFlags, NodebyFaceLocal_Ncpus
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-   subroutine LocalMesh_IdFFNodeRes(ip)
-
-      integer, intent(in) :: ip
-
-      integer :: ip1, Nb, i, j, npt, n
-
-      ip1 = ip + 1
-
-      Nb = NbNodeResS_Ncpus(ip1)
-      allocate (IdFFNodeRes_Ncpus(ip1)%Val(Nb))
-      IdFFNodeRes_Ncpus(ip1)%Val = 0
-
-      do i = 1, FacebyProc(ip1)%Nb
-         do j = FacebyProc(ip1)%Pt(i) + 1, FacebyProc(ip1)%Pt(i + 1)
-            ! if FacebyProc(ip1)%Num(j) is FreeFlow BC
-            if (FaceFlags(FacebyProc(ip1)%Num(j)) == 30) then ! FIXME change 30 with parameter
-               ! all nodes of this face are FreeFlow BC
-               do npt = NodebyFaceLocal_Ncpus(ip1)%Pt(j) + 1, NodebyFaceLocal_Ncpus(ip1)%Pt(j + 1) ! j is local number of face
-                  n = NodebyFaceLocal_Ncpus(ip1)%Num(npt)
-                  IdFFNodeRes_Ncpus(ip1)%Val(n) = 1
-               enddo
-            end if
-         end do
-      end do
-
-   end subroutine LocalMesh_IdFFNodeRes
-#endif
 
    ! Output:
    !  PorositeCell_Ncpus(ip), PorositeFrac_Ncpus(ip)

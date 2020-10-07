@@ -11,25 +11,26 @@
 
 namespace py = pybind11;
 
-void add_pybuffer_wrappers(py::module&);
-void add_NN_wrappers(py::module&);
-void add_coc_wrappers(py::module&);
-void add_GlobalMesh_wrappers(py::module&);
-void add_mesh_utilities_wrappers(py::module&);
-void add_mesh_schema_wrappers(py::module&);
-void add_well_wrappers(py::module&);
-void add_global_variables_wrappers(py::module&);
-void add_IncCV_wrappers(py::module&);
-void add_flux_wrappers(py::module&);
-void add_time_loop_wrappers(py::module&);
-void add_debug_utils_wrappers(py::module&);
-void add_model_wrappers(py::module&);
-void add_Residu_wrappers(py::module&);
-void add_Metis_wrapper(py::module&);
-void add_SolvePetsc_wrappers(py::module&);
-void add_LinearSystem_wrapper(py::module&);
-void add_SyncPetsc_wrappers(py::module&);
-void add_VAGFrac_wrappers(py::module&);
+void add_pybuffer_wrappers(py::module &);
+void add_NN_wrappers(py::module &);
+void add_coc_wrappers(py::module &);
+void add_GlobalMesh_wrappers(py::module &);
+void add_mesh_utilities_wrappers(py::module &);
+void add_mesh_schema_wrappers(py::module &);
+void add_well_wrappers(py::module &);
+void add_global_variables_wrappers(py::module &);
+void add_IncCV_wrappers(py::module &);
+void add_flux_wrappers(py::module &);
+void add_time_loop_wrappers(py::module &);
+void add_debug_utils_wrappers(py::module &);
+void add_model_wrappers(py::module &);
+void add_Residu_wrappers(py::module &);
+void add_Metis_wrapper(py::module &);
+void add_SolvePetsc_wrappers(py::module &);
+void add_LinearSystem_wrapper(py::module &);
+void add_SyncPetsc_wrappers(py::module &);
+void add_VAGFrac_wrappers(py::module &);
+void add_freeflow_wrappers(py::module &);
 
 #include "preprocessor_utils.h"
 
@@ -56,4 +57,5 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_LinearSystem_wrapper(module);
    add_SyncPetsc_wrappers(module);
    add_VAGFrac_wrappers(module);
+   add_freeflow_wrappers(module);
 }

@@ -54,10 +54,6 @@ module MeshSchema
       NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
       NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-   use LocalMesh, only: IdFFNodeRes_Ncpus
-#endif
-
    implicit none
 
    ! 1. Mesh Info
@@ -181,8 +177,9 @@ module MeshSchema
    ! 8. VolCellLocal, SurfFreeFlowLocal, SurfFracLocal
    double precision, dimension(:), allocatable, protected :: &
       VolCellLocal, &      ! vol of cell
-      SurfFreeFlowLocal, & ! surf of faces allocated to each freeflow node
       SurfFracLocal        ! surf of frac face
+   double precision, dimension(:), allocatable :: &
+      SurfFreeFlowLocal ! surf of faces allocated to each freeflow node
 
    ! 9. max number of nodes/frac in a cell
    integer, protected :: &
@@ -262,9 +259,6 @@ module MeshSchema
       MeshSchema_XCellLocal, &
       MeshSchema_VolCellLocal, &
       MeshSchema_XFaceLocal, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-      MeshSchema_SurfFreeFlowLocal, &
-#endif
       MeshSchema_SurfFracLocal, &
       MeshSchema_NbNodeCellMax, &
       MeshSchema_NbNodeFaceMax, &
@@ -725,9 +719,6 @@ contains
 
       ! VolCellLocal and SurfFraclocal
       call MeshSchema_VolCellLocal
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-      call MeshSchema_SurfFreeFlowLocal
-#endif
       call MeshSchema_SurfFracLocal
 
       call MeshSchema_NbNodeCellMax ! max nb of nodes in a cell
@@ -1296,28 +1287,17 @@ contains
          do i = 1, Ncpus - 1
             Nb = NbNodeLocal_Ncpus(i + 1)
             call MPI_Send(IdNodeRes_Ncpus(i + 1)%Val, Nb, MPI_IDNODE, i, 12, ComPASS_COMM_WORLD, Ierr)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-            call MPI_Send(IdFFNodeRes_Ncpus(i + 1)%Val, Nb, MPI_INTEGER, i, 20, ComPASS_COMM_WORLD, Ierr)   ! FIXME
-#endif
          end do
 
          ! proc=0, copy
          Nb = NbNodeLocal_Ncpus(1)
          allocate (IdNodeLocal(Nb))
          IdNodeLocal(:) = IdNodeRes_Ncpus(1)%Val(:)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-         allocate (IdFFNodeLocal(Nb))
-         IdFFNodeLocal(:) = IdFFNodeRes_Ncpus(1)%Val(:)
-#endif
 
       else   ! not master proc
          Nb = NbNodeLocal_Ncpus(commRank + 1)
          allocate (IdNodeLocal(Nb))
          call MPI_Recv(IdNodeLocal, Nb, MPI_IDNODE, 0, 12, ComPASS_COMM_WORLD, stat, Ierr)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-         allocate (IdFFNodeLocal(Nb))
-         call MPI_Recv(IdFFNodeLocal, Nb, MPI_INTEGER, 0, 20, ComPASS_COMM_WORLD, stat, Ierr)
-#endif
       end if
 
       ! free MPI_IDNODE
@@ -1327,14 +1307,8 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus
             deallocate (IdNodeRes_Ncpus(i)%Val)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-            deallocate (IdFFNodeRes_Ncpus(i)%Val)
-#endif
          end do
          deallocate (IdNodeRes_Ncpus)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-         deallocate (IdFFNodeRes_Ncpus)
-#endif
       end if
 
       ! ************************************ !
@@ -2055,33 +2029,6 @@ contains
                 )
 
    end function MeshSchema_local_face_surface
-
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-   ! Fill SurfFreeFlowLocal with the surface_face/NbNodebyface
-   subroutine MeshSchema_SurfFreeFlowLocal
-
-      integer :: i, mpt, m, errcode, Ierr, nbnodes
-      double precision :: SurfaceFace
-
-      allocate (SurfFreeFlowLocal(NbNodeLocal_Ncpus(commRank + 1)))
-
-      SurfFreeFlowLocal(:) = 0.d0
-
-      do i = 1, NbFaceLocal_Ncpus(commRank + 1)
-         if (FaceFlagsLocal(i) == 30) then ! FIXME change 30 with parameter
-            ! compute surface of face
-            nbnodes = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
-            SurfaceFace = MeshSchema_local_face_surface(i)/nbnodes
-            ! sum contributions of the faces to the nodes
-            do mpt = NodebyFaceLocal%Pt(i) + 1, NodebyFaceLocal%Pt(i + 1)
-               m = NodebyFaceLocal%Num(mpt)
-               SurfFreeFlowLocal(m) = SurfFreeFlowLocal(m) + SurfaceFace
-            enddo
-         endif
-      enddo
-
-   end subroutine MeshSchema_SurfFreeFlowLocal
-#endif
 
    subroutine MeshSchema_SurfFracLocal
 

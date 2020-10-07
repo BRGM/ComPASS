@@ -11,17 +11,15 @@
 # atm BC at the top
 # gravity = 0
 
-import ComPASS
 import numpy as np
-import sys
+
+import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
-import ComPASS.messages
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
-from ComPASS.mpi import master_print
+from ComPASS.utils.grid import on_zmin, on_zmax
 
 Lz = 1000.0
 nz = 200
@@ -52,89 +50,31 @@ simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-liquid_context = simulation.Context.liquid
-diphasic_with_liq_outflow = simulation.Context.diphasic_FF_liq_outflow
-
-if ComPASS.mpi.is_on_master_proc:
-
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
-
-    def Dirichlet_node():
-        vertices = np.rec.array(simulation.global_vertices())
-        return vertices[:, 2] <= Oz
-
-    def set_global_flags():
-        # nodes
-        vertices = np.rec.array(simulation.global_vertices())
-        nodeflags = simulation.global_nodeflags()
-        nodeflags[vertices[:, 2] >= Topz] = freeflow_flag
-        nodeflags[vertices[:, 2] <= Oz] = bot_flag
-        # freeflow faces, necessary to flag them
-        facecenters = simulation.compute_global_face_centers()
-        faceflags = simulation.global_faceflags()
-        faceflags[facecenters[:, 2] >= Topz] = freeflow_flag
-
-
-if not ComPASS.mpi.is_on_master_proc:
-    grid = (
-        Dirichlet_node
-    ) = omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
+grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=Dirichlet_node,
+    set_dirichlet_nodes=simulation.bottom_boundary(grid),
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=cell_thermal_cond,
-    set_global_flags=set_global_flags,
 )
 
+fc = simulation.compute_face_centers()
+simulation.set_freeflow_faces(on_zmax(grid)(fc))
 
-def set_Dirichlet_state(state):
-    node_flags = simulation.nodeflags()
-    # bottom
-    state.context[node_flags == bot_flag] = liquid_context
-    state.p[node_flags == bot_flag] = Pporous
-    state.T[node_flags == bot_flag] = Tporous
-    state.S[node_flags == bot_flag] = [0, 1]
-    state.C[node_flags == bot_flag] = [[1.0, 0.0], [0.0, 1.0]]
+state = dict(p=Pporous, T=Tporous, S=[0, 1], C=[[1.0, 0.0], [0.01, 0.99]])
+X0 = simulation.build_state(simulation.Context.liquid, **state)
+X_bottom = simulation.build_state(X0)
+X_bottom.C[1][:] = [0.0, 1.0]
+X_top = simulation.build_state(simulation.Context.diphasic_FF_liq_outflow, **state)
+X_top.T = 250  # between Tporous and Tatm
 
+simulation.all_states().set(X0)
+simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
+simulation.dirichlet_node_states().set(X_bottom)
 
-def set_FreeFlow_state(state):
-    node_flags = simulation.nodeflags()
-    # top
-    state.context[node_flags == freeflow_flag] = diphasic_with_liq_outflow
-    state.p[node_flags == freeflow_flag] = Pporous
-    state.T[node_flags == freeflow_flag] = 250  # between Tporous and Tatm
-    state.S[node_flags == freeflow_flag] = [0, 1]
-    state.C[node_flags == freeflow_flag] = [[1.0, 0.0], [0.01, 0.99]]
-    state.FreeFlow_phase_flowrate[node_flags == freeflow_flag] = 0.0
-
-
-def set_states(state, depths):
-    state.context[:] = liquid_context
-    state.p[:] = Pporous  # no gravity
-    state.T[:] = Tporous
-    state.S[:] = [0, 1]
-    state.C[:] = [[1.0, 0.0], [0.01, 0.99]]
-
-
-def set_variable_initial_bc_values():
-    set_states(simulation.node_states(), Topz - simulation.vertices()[:, 2])
-    set_states(simulation.cell_states(), Topz - simulation.compute_cell_centers()[:, 2])
-    set_FreeFlow_state(simulation.node_states())
-    set_Dirichlet_state(simulation.dirichlet_node_states())
-
-
-master_print("set initial and BC")
-set_variable_initial_bc_values()
-
-context = SimulationContext()
-context.abort_on_ksp_failure = False
-context.dump_system_on_ksp_failure = False
-context.abort_on_newton_failure = False
-
-timestep = TimeStepManager(
+tsmger = TimeStepManager(
     initial_timestep=100.0,
     minimum_timestep=1e-3,
     maximum_timestep=10.0 * year,
@@ -150,12 +90,10 @@ output_period = 0.1 * final_time
 lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
-current_time = standard_loop(
-    simulation,
+current_time = simulation.standard_loop(
     newton=newton,
     final_time=final_time,
-    context=context,
-    time_step_manager=timestep,
+    time_step_manager=tsmger,
     output_period=output_period,
 )
 

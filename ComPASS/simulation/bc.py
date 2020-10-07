@@ -101,3 +101,41 @@ def reset_dirichlet_nodes(
         temperature=apply_if_callable(temperature_selection),
     )
     simulation.scheme.compute_volumes()
+
+
+def set_freeflow_faces(simulation, faces):
+    """
+    Select new freeflow faces using mask functions
+    (must be True where the face is a *freeflow* face)
+    or a sequence of faces id that will become freeflow faces.
+
+    :param simulation: the simulation object
+    :param faces: a sequence with boolean values or faces id
+    """
+    assert (
+        simulation.mesh_is_local
+    ), "Freeflow faces must be set once the mesh is distributed."
+    kernel = get_kernel()
+    faces = np.asarray(faces)
+    assert faces.ndim == 1
+    nf = simulation.number_of_faces()
+    if faces.dtype == np.bool:
+        assert (
+            faces.size == nf
+        ), "There should has many mask values has local mesh faces."
+        faces = np.nonzero(faces)[0]
+    assert np.all(faces >= 0) and np.all(faces < nf)
+    kernel.set_freeflow_faces(faces + 1)  # C -> Fortran indexing
+
+
+def reset_freeflow_faces(simulation, faces):
+    """
+    Delete all freeflow faces and select new ones using mask functions
+    (must be True where the face is a *freeflow* face)
+    or a sequence of faces id that will become freeflow faces.
+
+    :param simulation: the simulation object
+    :param faces: a sequence with boolean values or faces id
+    """
+    kernel.clear_freeflow_faces()
+    set_freeflow_faces(simulation, faces)

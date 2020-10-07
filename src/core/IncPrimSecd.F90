@@ -112,7 +112,11 @@ contains
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
-         NumIncTotalPrimNode, NumIncTotalSecondNode)
+         NumIncTotalPrimNode, NumIncTotalSecondNode &
+#ifdef _WIP_FREEFLOW_STRUCTURES_
+         , IdFFNodeLocal &
+#endif
+         )
 
    end subroutine IncPrimSecd_compute
 
@@ -121,7 +125,8 @@ contains
       NbIncLocal, &
       inc, rt, &
       dXssurdXp, SmdXs, SmF, &
-      NumIncTotalPrimCV, NumIncTotalSecondCV)
+      NumIncTotalPrimCV, NumIncTotalSecondCV, &
+      skip_cv)
 
       ! input
       integer, intent(in) :: NbIncLocal
@@ -139,6 +144,7 @@ contains
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs(NbEqFermetureMax, NbIncLocal), &
          SmF(NbEqFermetureMax, NbIncLocal)
+      logical, optional, intent(in) :: skip_cv(:)
 
       ! tmp
       integer :: k
@@ -146,11 +152,34 @@ contains
          dFsurdX(NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
       type(ControlVolumeInfo) :: cv_info
 
+#ifndef NDEBUG
+      if (present(skip_cv)) then
+         if (size(skip_cv) /= NbIncLocal) &
+            call CommonMPI_abort("Inconsistent mask size.")
+      endif
+#endif
       do k = 1, NbIncLocal
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-         if (inc(k)%ic > 2**NbPhase - 1) cycle !< \todo FIXME: TEMPORARY: avoid FF dof, loop over reservoir node only.
+#ifndef NDEBUG
+         if (inc(k)%ic <= 0) &
+            call CommonMPI_abort("Inconsistent negative context.")
+         if (present(skip_cv)) then
+            if ((inc(k)%ic <= 2**NbPhase - 1) .and. skip_cv(k)) then
+               write (*, *) "Context", inc(k)%ic, ": node is marked as freeflow."
+               call CommonMPI_abort("Inconsistent context: node is marked as freeflow.")
+            endif
+            if ((inc(k)%ic > 2**NbPhase - 1) .and. .not. skip_cv(k)) then
+               write (*, *) "Context", inc(k)%ic, ": node is not marked as freeflow."
+               call CommonMPI_abort("Inconsistent context: node is not marked as freeflow.")
+            endif
+         endif
 #endif
+#endif
+         if (present(skip_cv)) then
+            if (skip_cv(k)) cycle
+         endif
+
          ! init tmp values for each cv
          call IncPrimSecdTypes_collect_cv_info(inc(k)%ic, cv_info)
 

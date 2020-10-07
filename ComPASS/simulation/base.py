@@ -210,6 +210,8 @@ def init(
     system = DistributedSystem(kernel)
     simulation.info.system = system
     simulation.info.ghosts_synchronizer = Synchronizer(system)
+    if kernel.has_freeflow_structures:  # FIXME: to be removed
+        kernel.clear_freeflow_faces()
     mpi.synchronize()  # wait for every process to synchronize
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True

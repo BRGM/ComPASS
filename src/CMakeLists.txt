@@ -102,9 +102,7 @@ set(ComPASSCore_SRCS
 
 set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90 WellState.F90)
 
-if(DEF_FREEFLOW_STRUCTURES)
-  list(APPEND ComPASSCore_SRCS IncPrimSecdFreeFlow.F90)
-endif(DEF_FREEFLOW_STRUCTURES)
+set(ComPASSFreeFlow_SRCS IncPrimSecdFreeFlow.F90 FreeFlow.F90)
 
 # FIXME: DISPMODULE from Thibault branch ?
 if(NOT MPI_Fortran_FOUND)
@@ -128,6 +126,12 @@ foreach(_src ${ComPASSWells_SRCS})
 endforeach()
 set(ComPASSWells_SRCS ${_tmp})
 
+unset(_tmp)
+foreach(_src ${ComPASSFreeFlow_SRCS})
+  list(APPEND _tmp freeflow/${_src})
+endforeach()
+set(ComPASSFreeFlow_SRCS ${_tmp})
+
 set(CONF_SRCS DefFlash.F90 DefModel.F90 DefWellFlash.F90 Thermodynamics.F90
               CapillaryPressure.F90 RelativePermeabilities.F90
 )
@@ -147,6 +151,7 @@ set(WRAPPERS_SRCS
     GlobalVariables_wrappers.F90
     GlobalVariables_wrappers.cpp
     IncCV_wrappers.cpp
+    FreeFlow_wrappers.cpp
     IncCV_wrappers.F90
     LinearSystem_wrapper.cpp
     LinearSystemBuilder.h
@@ -190,6 +195,11 @@ foreach(_conf ${CONFIGURATIONS})
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS})
+  if(DEF_FREEFLOW_STRUCTURES)
+    foreach(_src ${ComPASSFreeFlow_SRCS})
+      list(APPEND CONF_ALL_SRCS ${_src})
+    endforeach()
+  endif(DEF_FREEFLOW_STRUCTURES)
   foreach(_src ${CONF_SRCS})
     list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
   endforeach()

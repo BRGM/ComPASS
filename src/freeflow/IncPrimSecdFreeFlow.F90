@@ -45,13 +45,13 @@ module IncPrimSecdFreeFlow
    implicit none
 
    public :: &
-      IncPrimSecdFreeFlow_compute, &
-      IncPrimSecdFreeFlow_compPrim_nodes
+      IncPrimSecdFreeFlow_compute !, &
+   !   IncPrimSecdFreeFlow_compPrim_nodes
 
    private :: &
       IncPrimSecdFreeFlow_compute_cv, & ! all operations for one cv
       IncPrimSecdFreeFlow_dFsurdX_cv, & ! compute dF/dX for each cv
-      IncPrimSecdFreeFlow_dXssurdXp_cv              ! compute dFs/dXp
+      IncPrimSecdFreeFlow_dXssurdXp_cv  ! compute dFs/dXp
 
 contains
 
@@ -130,20 +130,20 @@ contains
 
    end subroutine IncPrimSecdFreeFlow_compute_cv
 
-   !> Update prim/secd arrays of nodes (same as IncPrimSecdFreeFlow_compute)
-   ! FIXME NumIncTotalPrimNode, NumIncTotalSecondNode are updated in IncPrimSecd.F90, is it necessary to update dXssurdXpNode, SmdXsNode ?
-   subroutine IncPrimSecdFreeFlow_compPrim_nodes
+!    !> Update prim/secd arrays of nodes (same as IncPrimSecdFreeFlow_compute)
+!    ! FIXME NumIncTotalPrimNode, NumIncTotalSecondNode are updated in IncPrimSecd.F90, is it necessary to update dXssurdXpNode, SmdXsNode ?
+!    subroutine IncPrimSecdFreeFlow_compPrim_nodes
 
-      ! node
-      call IncPrimSecdFreeFlow_compute_cv( &
-         NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeRocktypeLocal, &
-         dXssurdXpNode, SmdXsNode, &
-         SmFNode, &
-         !
-         NumIncTotalPrimNode, NumIncTotalSecondNode)
+!       ! node
+!       call IncPrimSecdFreeFlow_compute_cv( &
+!          NbNodeLocal_Ncpus(commRank + 1), &
+!          IncNode, NodeRocktypeLocal, &
+!          dXssurdXpNode, SmdXsNode, &
+!          SmFNode, &
+!          !
+!          NumIncTotalPrimNode, NumIncTotalSecondNode)
 
-   end subroutine IncPrimSecdFreeFlow_compPrim_nodes
+!    end subroutine IncPrimSecdFreeFlow_compPrim_nodes
 
    ! FIXME: reprendre notations de Xing et al. 2017
    ! F = closure equations

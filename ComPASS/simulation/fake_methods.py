@@ -28,6 +28,8 @@ from .bc import (
     clear_dirichlet_nodes,
     set_dirichlet_nodes,
     reset_dirichlet_nodes,
+    set_freeflow_faces,
+    reset_freeflow_faces,
 )
 
 from ..io.mesh import write_mesh
