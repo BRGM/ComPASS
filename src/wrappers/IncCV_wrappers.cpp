@@ -68,6 +68,7 @@ void add_IncCV_wrappers(py::module& module) {
    });
 
    py::class_<X>(module, "State")
+       .def(py::init<const X&>())
        .def_readwrite("p", &X::p)
        .def_readwrite("T", &X::T)
        .def_property_readonly("S",
@@ -103,6 +104,9 @@ void add_IncCV_wrappers(py::module& module) {
           s << ")";
           return py::str{s.str()};
        });
+
+   module.def("build_state",
+              [](const X& other) { return std::make_unique<X>(other); });
 
    // FUTURE: all the following until next FUTURE tag shall be useless soon (cf
    // infra)

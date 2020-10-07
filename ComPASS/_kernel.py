@@ -105,6 +105,7 @@ simulation_wrapper = Wrapper(
         "vertices",
         "celltypes",
         "number_of_phases",
+        "State",
         "Phase",
         "Component",
         "Context",
