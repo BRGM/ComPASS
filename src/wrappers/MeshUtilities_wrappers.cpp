@@ -278,6 +278,8 @@ void add_mesh_utilities_wrappers(py::module& module) {
    module.def("number_of_own_nodes", &number_of_own_nodes);
    module.def("number_of_cells", &number_of_cells);
    module.def("number_of_own_cells", &number_of_own_cells);
+   module.def("number_of_faces", &number_of_faces);
+   module.def("number_of_own_faces", &number_of_own_faces);
    module.def("number_of_fractures", &number_of_fractures);
    module.def("number_of_own_fractures", &number_of_own_fractures);
    module.def("number_of_own_injectors", &number_of_own_injectors);

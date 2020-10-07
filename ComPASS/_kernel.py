@@ -155,6 +155,8 @@ simulation_wrapper = Wrapper(
         "number_of_own_nodes",
         "number_of_cells",
         "number_of_own_cells",
+        "number_of_faces",
+        "number_of_own_faces",
         "number_of_fractures",
         "number_of_own_fractures",
         "number_of_own_injectors",
