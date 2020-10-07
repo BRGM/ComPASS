@@ -66,3 +66,12 @@ def get_boundary_vertices(connectivity):
 def coordinates(a):
     assert len(a.shape) == 2 and a.shape[1] == 3
     return (a[:, j] for j in range(a.shape[1]))
+
+
+def facenodes(simulation, fis):
+    face_nodes = simulation.get_connectivity().NodebyFace
+    nodes = []
+    for fk, face in enumerate(face_nodes):
+        if fk in fis:
+            nodes.append(np.array(face, copy=False))
+    return np.unique(nodes) - 1  # Fortran -> C indexing

@@ -31,3 +31,5 @@ from .bc import (
 )
 
 from ..io.mesh import write_mesh
+
+from .utils import facenodes
