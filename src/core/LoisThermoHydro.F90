@@ -1378,7 +1378,7 @@ contains
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
@@ -1612,7 +1612,7 @@ contains
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, iph, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, i, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval, dfdX_secd)
       end do
 
