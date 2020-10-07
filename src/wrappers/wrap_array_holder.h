@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -19,6 +20,17 @@ auto wrap_array_holder(py::module& module, const char* name)
    });
    pyclass.def("fill", &Array_type::fill);
    pyclass.def("set", &Array_type::fill);
+   pyclass.def(
+       "set", [](Array_type& self, py::array_t<bool, py::array::c_style>& where,
+                 const typename Array_type::wrapped_type& x) {
+          assert(where.ndim() == 1);
+          assert(self.length == where.size());
+          auto use = where.data(0);
+          for (auto& value : self) {
+             if (*use) value = x;
+             ++use;
+          }
+       });
    pyclass.def("copy", &Array_type::copy);
    return pyclass;
 }

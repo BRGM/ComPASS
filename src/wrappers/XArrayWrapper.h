@@ -40,4 +40,6 @@ struct XArrayWrapper {
          (pointer + k)->operator=(*(other.pointer + k));
       }
    }
+   auto begin() const { return pointer; }
+   auto end() const { return pointer + length; }
 };
