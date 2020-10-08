@@ -41,11 +41,11 @@ assert nh > 0
 grid = ComPASS.Grid(shape=(nh, nh, nv), extent=(2 * L, 2 * L, H), origin=(-L, -L, 0),)
 
 
-def make_producer():
+def make_injector():
     well = simulation.create_vertical_well((0, 0), rw)
     well.id = wid
-    well.operate_on_flowrate = Qm, 1.0 * bar
-    well.produce()
+    well.operate_on_flowrate = -Qm, np.inf
+    well.inject(degC2K(110))
     return [well]
 
 
@@ -57,7 +57,7 @@ def permeability():
 
 simulation.init(
     mesh=grid,
-    wells=make_producer,
+    wells=make_injector,
     cell_porosity=omega,
     cell_permeability=permeability,
     cell_thermal_conductivity=K,
@@ -95,10 +95,10 @@ assert np.all(dirichlet.p == simulation.node_states().p)
 assert np.all(dirichlet.T == simulation.node_states().T)
 
 simulation.open_well(wid)
-simulation.set_well_property(wid, imposed_flowrate=Qm)
+simulation.set_well_property(wid, imposed_flowrate=-Qm)
 
 simulation.standard_loop(
     initial_time=0, initial_timestep=hour, output_period=day, final_time=30 * day,
 )
 
-assert simulation.all_states().S[:, 0].max() > 0.1
+assert np.all(simulation.all_states().S[:, 0]) == 0.0

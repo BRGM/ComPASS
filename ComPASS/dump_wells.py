@@ -129,6 +129,17 @@ def _dump_wells(
         remap = np.full(vertices.shape[0], -1, dtype=well_vertices.dtype)
         # Well nodes are sorted along well so we have to keep order
         remap[well_vertices] = np.arange(well_vertices.shape[0])
+
+        def compute_inflow():
+            sign = {"injection": -1, "production": 1}[well_type]
+            pres = node_states.p[well_vertices]  # reservoir pressure
+            assert pres.shape == well.pressure.shape
+            return np.where(
+                sign * (pres - well.pressure) > 0,
+                well.well_index_Darcy * (pres - well.pressure),
+                0,
+            )
+
         # FIXME: well.pressure has no real meaning for multiple phases (reference pressure ?)
         welldata = {
             name: np.ascontiguousarray(a)
@@ -142,15 +153,7 @@ def _dump_wells(
                 ("Fourier WI", well.well_index_Fourier),
                 ("reservoir pressure", node_states.p[well_vertices]),
                 ("reservoir temperature", K2degC(node_states.T[well_vertices])),
-                (
-                    "inflow",
-                    np.where(
-                        well.pressure < node_states.p[well_vertices],
-                        well.well_index_Darcy
-                        * (node_states.p[well_vertices] - well.pressure),
-                        0,
-                    ),
-                ),
+                ("inflow", compute_inflow()),
                 ("energy flowrate", well.energy_flowrate),
             ]
         }

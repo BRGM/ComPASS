@@ -193,7 +193,7 @@ contains
    !! integration from node head (w) to node (s)
    subroutine IncCVWells_PressureDropWellInj
 
-      integer :: s, n, k, nbwells, nums, sparent
+      integer :: s, sp, n, k, nbwells, nums, nump
       double precision :: Pw_head, Pws, zp, zs, Pdrop, T, C(NbComp)
 
       ! nb pieces for discrete integration
@@ -222,42 +222,37 @@ contains
          T = DataWellInjLocal(k)%InjectionTemperature
          C = DataWellInjLocal(k)%CompTotal
 
-         ! looping from head to queue
-         do s = NodebyWellInjLocal%Pt(k + 1), NodebyWellInjLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
-            nums = NodebyWellInjLocal%Num(s)
+         ! integrate over head to queue
+         s = NodebyWellInjLocal%Pt(k + 1)
 
-            if (s == NodebyWellInjLocal%Pt(k + 1)) then ! head node, P = Pw
-
-               Pws = Pw_head ! P_{w,s} = Pw
-               PerfoWellInj(s)%Pression = Pws
-               PerfoWellInj(s)%PressureDrop = 0.d0
-
-            else ! Pws = P_{w,parent} + \Delta P_{w,parent}
-
-               zs = XNodeLocal(3, nums) ! z-cordinate of node s
-               zp = XNodeLocal(3, NodeDatabyWellInjLocal%Val(s)%Parent) ! z-cordinate of parent of s
-               sparent = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
-               dz = (zp - zs)/Npiece
 #ifndef NDEBUG
-               if (dz < 0) &
-                  call CommonMPI_abort("Nodes are badly sorted.")
+         if (s <= NodebyWellInjLocal%Pt(k)) &
+            call CommonMPI_abort("Well has no nodes!")
+         if (NodeDatabyWellInjLocal%Val(s)%Parent /= -1) &
+            call CommonMPI_abort("Inconsistent well head node!")
 #endif
 
-               !Proceed to integrate at the interval [zs,zp]
-               Pdrop = 0
-               do n = 1, Npiece
-                  call f_DensiteMolaire(LIQUID_PHASE, Pws, T, C, Stmp, &
-                                        Rhotmp, dPf, dTf, dCf, dSf)
-                  Pdrop = Pdrop - gravity*Rhotmp*dz
-                  Pws = PerfoWellInj(sparent)%Pression + Pdrop ! Pws
+         PerfoWellInj(s)%Pression = Pw_head
+         PerfoWellInj(s)%PressureDrop = 0.d0
 
-               end do
-
-               PerfoWellInj(s)%Pression = Pws
-               PerfoWellInj(s)%PressureDrop = Pws - Pw_head
-
-            end if
+         do while (s > NodebyWellInjLocal%Pt(k) + 1)
+            s = s - 1
+            nums = NodebyWellInjLocal%Num(s)
+            nump = NodeDatabyWellInjLocal%Val(s)%Parent
+            zs = XNodeLocal(3, nums) ! z-cordinate of node s
+            zp = XNodeLocal(3, nump) ! z-cordinate of parent of s
+            dz = (zp - zs)/Npiece
+            sp = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
+            Pws = PerfoWellInj(sp)%Pression
+            ! integrate from zp to zs
+            do n = 1, Npiece
+               call f_DensiteMolaire(LIQUID_PHASE, Pws, T, C, Stmp, Rhotmp, dPf, dTf, dCf, dSf)
+               Pws = Pws + gravity*Rhotmp*dz
+            end do
+            PerfoWellInj(s)%Pression = Pws
+            PerfoWellInj(s)%PressureDrop = Pws - Pw_head
          end do
+
       end do
 
    end subroutine IncCVWells_PressureDropWellInj
