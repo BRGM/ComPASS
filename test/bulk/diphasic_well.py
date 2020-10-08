@@ -10,6 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.grid import on_zmax, on_vertical_boundaries
+from ComPASS.timestep_management import TimeStepManager
 from ComPASS.utils.units import *
 
 
@@ -71,17 +72,32 @@ print(f"   delta pressure to boiling: {(simulation.Psat(Ttop) - ptop)/bar:.1f} b
 ## First step - equilibrium state
 ## ------------------------------
 
-simulation.reset_dirichlet_nodes(on_zmax(grid))
 X0 = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
-simulation.all_states().set(X0)
-dirichlet = simulation.dirichlet_node_states()
-dirichlet.set(X0)
+# approximate rho
+rho = simulation.liquid_molar_density(ptop, Ttop)
+ztop = grid.origin[2] + grid.extent[2]
+
+
+def set_states(states, z):
+    states.set(X0)
+    states.p[:] = ptop + rho * gravity * (ztop - z)
+
+
+set_states(simulation.node_states(), simulation.vertices()[:, 2])
+set_states(simulation.cell_states(), simulation.cell_centers()[:, 2])
+set_states(simulation.fracture_states(), simulation.compute_fracture_centers()[:, 2])
+simulation.reset_dirichlet_nodes(on_zmax(grid))
+assert np.all(simulation.dirichlet_node_states().p == simulation.node_states().p)
 
 simulation.close_well(wid)
 
+tsmger = TimeStepManager(
+    initial_timestep=1 * year, increase_factor=2.0, decrease_factor=0.2,
+)
+
 simulation.standard_loop(
-    initial_timestep=10 * day,
     final_time=10 * year,  # more than enough to reach pressure equilibrium
+    time_step_manager=tsmger,
     no_output=True,
 )
 
@@ -91,8 +107,6 @@ simulation.standard_loop(
 
 # Dirichlet nodes will be locked to their equilibrium values
 simulation.reset_dirichlet_nodes(on_vertical_boundaries(grid))
-assert np.all(dirichlet.p == simulation.node_states().p)
-assert np.all(dirichlet.T == simulation.node_states().T)
 
 simulation.open_well(wid)
 simulation.set_well_property(wid, imposed_flowrate=Qm)
