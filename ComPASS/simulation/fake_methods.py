@@ -12,6 +12,7 @@ from ..wells.wells import (
     open_well,
     well_production_history,
     well_injection_history,
+    close_perforations,
 )
 
 from ..utils.grid import (

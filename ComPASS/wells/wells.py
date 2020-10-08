@@ -11,6 +11,7 @@ from .._kernel import common_wrapper
 from .. import mpi
 from ..timeloops import Event
 from ..mpi import master_print
+from ..dump_wells import _wells_info
 
 
 def create_well_from_segments(simulation, segments, well_radius=None):
@@ -304,3 +305,51 @@ def well_injection_history(simulation, wid, history, verbose=True):
             )
         events.append(Event(t, actions))
     return events
+
+
+def close_perforations(simulation, wid, above=None, below=None):
+    """
+    Close some of the well perforations by setting their Peaceman well indices to 0.
+    (This is a rough approximation).
+
+    :param simulation: simulation object, the method can also be accessed
+                       through a fake method (cf. example below)
+
+    :param wid: well unique id
+    :param above: optional, will close all perforations with z above `above`
+    :param below: optional, will close all perforations with z below `below`
+
+    If neither `above` nor `below` are specified all perforations are closed.
+
+    :Example:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        simulation.close_perforations(wid, above=z_top_reservoir)
+    """
+    well = None
+    for well_type in ["injection", "production"]:
+        pack = _wells_info(simulation, well_type)
+        if pack.nb > 0:
+            for info, data in zip(pack.information, pack.data):
+                if data.id == wid:
+                    well = info
+                    break
+        if well is not None:
+            break
+    if well is None:
+        return
+    vertices = simulation.vertices()[well.vertices]
+    z = vertices[:, 2]
+
+    def close_perfs(mask):
+        well.well_index_Darcy[mask] = 0
+        well.well_index_Fourier[mask] = 0
+
+    if above is not None:
+        close_perfs(z >= float(above))
+    if below is not None:
+        close_perfs(z <= float(below))
+    if above is None and below is None:
+        close_perfs(np.ones(z.shape, dtype=np.bool))
