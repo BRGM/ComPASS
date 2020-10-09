@@ -568,7 +568,7 @@ contains
                                                 DensiteMolaire, divDensiteMolaire, SmDensiteMolaire)
 
          ! PermRel
-         call LoisThermoHydro_PermRel_cv(inc(k), ctxinfo, rt(:, k), dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_PermRel_cv(inc(k), ctxinfo, rt(1, k), dXssurdXp(:, :, k), SmdXs(:, k), &
                                          NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                          PermRel, divPermRel)
 
@@ -1472,51 +1472,56 @@ contains
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
-   subroutine LoisThermoHydro_PermRel_cv(inc, ctxinfo, rt, dXssurdXp, SmdXs, &
-                                         NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
+   subroutine LoisThermoHydro_all_relative_permeabilities(rock_type, phases, S, f, dSf)
+      integer, intent(in) :: rock_type
+      integer, intent(in) :: phases(:)
+      double precision, intent(in) :: S(NbPhase)
+      double precision, intent(out) :: f(NbPhase)
+      double precision, intent(out) :: dSf(NbPhase, NbPhase)
 
-      ! input
+      integer i
+
+      do i = 1, size(phases)
+         call f_PermRel(rock_type, phases(i), S, f(i), dSf(:, i))
+      end do
+
+   end subroutine LoisThermoHydro_all_relative_permeabilities
+
+   subroutine LoisThermoHydro_PermRel_cv(inc, ctxinfo, rock_type, dXssurdXp, SmdXs, &
+                                         NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       type(ContextInfo), intent(in) :: ctxinfo
-      INTEGER, INTENT(IN) :: rt(IndThermique + 1)
-
-      double precision, intent(in) :: & ! (col, row) index order
-         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
-
-      integer, intent(in) :: &
-         NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV(NbEqFermetureMax)
-
-      ! output
+      integer, intent(in) :: rock_type
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
-      ! tmp
-      double precision :: f, dSf(NbPhase), dCf(NbComp)
-      double precision :: dfdX(NbIncTotalMax)
-      double precision :: dfdX_secd(NbEqFermetureMax, NbPhase) !=NbEqFermetureMax
+      double precision :: f(NbPhase), dSf(NbPhase, NbPhase), dCf(NbComp)
+      double precision :: dfdX(NbIncTotalMax, NbPhase)
+      double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
       integer :: i, iph
 
       val(:) = 0.d0
       dval(:, :) = 0.d0
       dfdX_secd(:, :) = 0.d0
 
+      ! WARNING: no variations with respect to molar fractions
       dCf = 0.d0
+
+      call LoisThermoHydro_all_relative_permeabilities( &
+         rock_type, ctxinfo%NumPhasePresente(1:ctxinfo%NbPhasePresente), &
+         inc%Saturation, val, dSf)
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-
-         call f_PermRel(rt, iph, inc%Saturation, f, dSf)
-
-         val(i) = f
-
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, 0.d0, 0.d0, dCf, dSf, dfdX)
-
+         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -2327,7 +2332,7 @@ contains
             rt = NodeRocktypeLocal(:, s)
 
             ! Permrel
-            call f_PermRel(rt, LIQUID_PHASE, Sw, PermRel, dSf)
+            call f_PermRel(rt(1), LIQUID_PHASE, Sw, PermRel, dSf)
 
             ! Molar density
             call f_DensiteMolaire(LIQUID_PHASE, Pws, Tw, Cw, Sw, &

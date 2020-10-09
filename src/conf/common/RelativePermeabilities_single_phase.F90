@@ -23,7 +23,7 @@ contains
    !< S is all the saturations
    pure subroutine f_PermRel(rt, iph, S, kr, dkrdS)
 
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
+      integer(c_int), intent(in) :: rt
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: S(NbPhase)
       real(c_double), intent(out) :: kr
