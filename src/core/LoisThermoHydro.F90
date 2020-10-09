@@ -1104,6 +1104,38 @@ contains
 ! _WIP_FREEFLOW_STRUCTURES_
 #endif
 
+   subroutine LoisThermoHydro_local_Schur(nb_unknows, nb_closures, nb_phases, dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
+      integer, intent(in) :: nb_unknows
+      integer, intent(in) :: nb_closures
+      integer, intent(in) :: nb_phases
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: dfdX_secd(NbEqFermetureMax, nb_phases)
+      double precision, intent(inout) :: dval(NbIncTotalPrimMax, nb_phases)
+      double precision, optional, intent(in) :: SmdXs(NbEqFermetureMax)
+      double precision, optional, intent(inout) :: Smval(nb_phases)
+
+      ! dv/dXp - dv/dXs*dXs/dXp
+      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
+      ! all the mats is in (col, row) index order, only need to consider as transpose
+      call dgemm('N', 'N', &
+                 nb_unknows, nb_phases, nb_closures, &
+                 -1.d0, dXssurdXp, NbIncTotalPrimMax, dfdX_secd, &
+                 NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
+
+#ifndef NDEBUG
+      if ((present(SmdXs) .and. .not. present(Smval)) .or. (present(Smval) .and. .not. present(SmdXs))) &
+         call CommonMPI_abort("Both second members arguments should be provided!")
+#endif
+
+      ! - dv/dXs*SmdXs
+      if (present(SmdXs)) then
+         call dgemv('T', nb_closures, nb_phases, &
+                    -1.d0, dfdX_secd, NbEqFermetureMax, &
+                    SmdXs, 1, 0.d0, Smval, 1)
+      end if
+
+   end subroutine LoisThermoHydro_local_Schur
+
    !> Update thermo Laws of nodes
    subroutine LoisThermoHydro_divPrim_nodes
 
@@ -1302,17 +1334,9 @@ contains
                                       dval(:, iph), dfdX_secd(:, iph))
       end do
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, NbPhase, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-      ! - dv/dXs*SmdXs
-      call dgemv('T', ctxinfo%NbEqFermeture, NbPhase, &
-                 -1.d0, dfdX_secd, NbEqFermetureMax, &
-                 SmdXs, 1, 0.d0, Smval, 1)
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_densitemassique_cv
 
@@ -1382,18 +1406,9 @@ contains
 
       !print*, SmdXs
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order,
-      ! consider all the mats as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-      ! -dv/dXs*SmdXs
-      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
-                 -1.d0, dfdX_secd, NbEqFermetureMax, &
-                 SmdXs, 1, 0.d0, Smval, 1)
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_viscosite_cv
 
@@ -1451,17 +1466,9 @@ contains
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=densitemolaire
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-      ! -dv/dXs*SmdXs
-      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
-                 -1.d0, dfdX_secd, NbEqFermetureMax, &
-                 SmdXs, 1, 0.d0, Smval, 1)
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
@@ -1491,29 +1498,6 @@ contains
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase) !=NbEqFermetureMax
       integer :: i, iph
 
-! previous implementation
-      !  val(:) = 0.d0
-      !  dval(:,:) = 0.d0
-!
-      !  ! if there is only one presente phase,
-      !  ! this Saturation must be secd --> dval=0, Sm=0
-      !  do i=1, NbPhasePresente
-      !     iph = NumPhasePresente(i)
-!
-      !     call f_PermRel(rt, iph, inc%Saturation, f, dSf)
-!
-      !     val(i) = f
-      !     dfS_secd = dSf( NumPhasePresente(NbPhasePresente)) ! the last is secd, FIXME: sum S=1 in hard, last saturation is eliminated
-!
-      !     ! alpha=1,2,...,NbPhasepresente-1
-      !     ! Ps. NbIncPTCPrim+NbPhasePresente-1=NbIncTotalPrim
-      !     do j=1, NbPhasePresente - 1
-      !        jph = NumPhasePresente(j)
-!
-      !        dval(j+NbIncPTCPrim,i) = dSf(jph) - dfS_secd
-      !     end do
-      !  end do
-
       val(:) = 0.d0
       dval(:, :) = 0.d0
       dfdX_secd(:, :) = 0.d0
@@ -1536,19 +1520,11 @@ contains
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, NbPhase, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-!
-!    ! - dv/dXs*SmdXs  ! FIXME: add Sm ?
-!    Smval(:) = 0.d0
-!    call dgemv('T', NbEqFermeture, NbPhase,  &
-!         -1.d0, dfdX_secd, NbEqFermetureMax, &
-!         SmdXs, 1, 0.d0, Smval, 1)
+      ! FIXME: why not calling on RHS?
+      !        because we don't use directly kr variations in Jacobian but divKrVisco...
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval)
 
    end subroutine LoisThermoHydro_PermRel_cv
 
@@ -1755,17 +1731,9 @@ contains
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=energieinterne
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-      ! -dv/dXs*SmdXs
-      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
-                 -1.d0, dfdX_secd, NbEqFermetureMax, &
-                 SmdXs, 1, 0.d0, Smval, 1)
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_EnergieInterne_cv
 
@@ -1823,17 +1791,9 @@ contains
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
-      ! dv/dXp - dv/dXs*dXs/dXp, v=viscosite
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
-      call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
-                 -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                 dfdX_secd, NbEqFermetureMax, 1.d0, dval, NbIncTotalPrimMax)
-
-      ! -dv/dXs*SmdXs
-      call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
-                 -1.d0, dfdX_secd, NbEqFermetureMax, &
-                 SmdXs, 1, 0.d0, Smval, 1)
+      call LoisThermoHydro_local_Schur( &
+         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_Enthalpie_cv
 
@@ -1889,17 +1849,9 @@ contains
       end do
 
       do icp = 1, NbComp
-         ! dv/dXp - dv/dXs*dXs/dXp, v=specific enth
-         ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-         ! all the mats is in (col, row) index order, only need to consider as transpose
-         call dgemm('N', 'N', ctxinfo%NbIncTotalPrim, ctxinfo%NbPhasePresente, ctxinfo%NbEqFermeture, &
-                    -1.d0, dXssurdXp, NbIncTotalPrimMax, &
-                    dfdX_secd(:, icp, :), NbEqFermetureMax, 1.d0, dval(:, icp, :), NbIncTotalPrimMax)
-
-         ! -dv/dXs*SmdXs
-         call dgemv('T', ctxinfo%NbEqFermeture, ctxinfo%NbPhasePresente, &
-                    -1.d0, dfdX_secd(:, icp, :), NbEqFermetureMax, &
-                    SmdXs, 1, 0.d0, Smval(icp, :), 1)
+         call LoisThermoHydro_local_Schur( &
+            ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+            dXssurdXp, dfdX_secd(:, icp, :), dval(:, icp, :), SmdXs, Smval(icp, :))
       end do
 
    end subroutine LoisThermoHydro_SpecificEnthalpy_cv
