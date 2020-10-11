@@ -50,7 +50,7 @@ module NumbyContext
       NbIncTotalPrim_ctx
 
    ! from IncComp to IncPTC (num)
-   integer, dimension(:, :, :), allocatable, protected :: &
+   integer, dimension(:, :, :), allocatable, target :: &
       NumIncComp2NumIncPTC_ctx
 
    ! from IncPTC to IncComp (i and alpha)
