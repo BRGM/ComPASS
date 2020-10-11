@@ -8,6 +8,7 @@
 
 module LoisThermoHydro
 
+   use, intrinsic :: iso_c_binding, only: c_double, c_int
    use CommonMPI, only: commRank, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
@@ -1211,63 +1212,63 @@ contains
    end subroutine LoisThermoHydro_init_cv
 
    ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-   subroutine LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
-      type(ContextInfo), intent(in) :: ctxinfo
+   subroutine LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
+      integer(c_int), intent(in) :: context
       integer, intent(in) :: iph ! num of phase
       double precision, intent(in) :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision, intent(out) :: dfdX(NbIncTotalMax)
 
-      ! tmp
-      integer :: j, jc, jph
+      integer(c_int) :: j, jc, jph, NbIncPTC, nb_phases
       double precision :: dfS_elim
+      integer(c_int), pointer :: NumIncComp2NumIncPTC(:, :)
+
+      NumIncComp2NumIncPTC => NumIncComp2NumIncPTC_ctx(:, :, context)
 
       dfdX = 0.d0
 
       dfdX(1) = dPf  ! P
-
 #ifdef _THERMIQUE_
       dfdX(2) = dTf
 #endif
 
       do j = 1, NbComp
          if (MCP(j, iph) == 1) then
-            jc = ctxinfo%NumIncComp2NumIncPTC(j, iph)
+            jc = NumIncComp2NumIncPTC(j, iph)
             dfdX(jc) = dCf(j)
          end if
       enddo
 
-!    Previous implementation:
-!    do j=1, NbPhase ! S
-!         jc = j + NbIncPTC
-!         dfdX(jc) = dSf(j)
-!    enddo
-      dfS_elim = dSf(ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente))
-      do j = 1, ctxinfo%NbPhasePresente - 1
-         jph = ctxinfo%NumPhasePresente(j)
-         jc = j + ctxinfo%NbIncPTC
+      nb_phases = NbPhasePresente_ctx(context)
+
+      dfS_elim = dSf(NumPhasePresente_ctx(nb_phases, context)) ! last saturation is eliminated
+      NbIncPTC = NbIncPTC_ctx(context)
+      do j = 1, nb_phases - 1
+         jph = NumPhasePresente_ctx(j, context)
+         jc = j + NbIncPTC
          dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
       enddo
 
    end subroutine LoisThermoHydro_fill_gradient_dfdX
 
-   subroutine LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dfdX_prim, dfdX_secd)
-      type(ContextInfo), intent(in) :: ctxinfo
+   subroutine LoisThermoHydro_dfdX_ps(context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dfdX_prim, dfdX_secd)
+      integer(c_int), intent(in) :: context
       integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
       integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
       double precision, intent(in) :: dfdX(NbIncTotalMax)  ! dfdX = (df/dP, df/dT, df/dC, df/dS)
       double precision, intent(out) :: dfdX_prim(NbIncTotalPrimMax)
       double precision, intent(out) ::  dfdX_secd(NbEqFermetureMax)
 
-      integer :: j
+      integer :: j, np, ns
 
       ! prim and secd part of dfdX
-      do j = 1, ctxinfo%NbIncTotalPrim
+      np = NbIncTotalPrim_ctx(context)
+      do j = 1, np
          dfdX_prim(j) = dfdX(NumIncTotalPrimCV(j))
       end do
 
       ! secd unknowns
-      do j = 1, ctxinfo%NbEqFermeture
+      ns = NbEqFermeture_ctx(context)
+      do j = 1, ns
          dfdX_secd(j) = dfdX(NumIncTotalSecondCV(j))
       end do
 
@@ -1326,7 +1327,7 @@ contains
          val(iph) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
@@ -1395,12 +1396,12 @@ contains
          val(i) = 1.d0/f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
          dfdX(:) = -dfdX(:)/f**2
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -1458,11 +1459,11 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -1518,10 +1519,10 @@ contains
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -1728,11 +1729,11 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -1788,11 +1789,11 @@ contains
          val(i) = f ! val
 
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
@@ -1845,10 +1846,10 @@ contains
          do icp = 1, NbComp
             val(icp, i) = f(icp) ! val
             ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-            call LoisThermoHydro_fill_gradient_dfdX(ctxinfo, iph, dPf(icp), dTf(icp), dCf(icp, :), dSf(icp, :), dfdX)
+            call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf(icp), dTf(icp), dCf(icp, :), dSf(icp, :), dfdX)
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
-            call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+            call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                          dval(:, icp, i), dfdX_secd(:, icp, i))
          end do
       end do
