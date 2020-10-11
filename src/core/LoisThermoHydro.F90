@@ -1240,13 +1240,21 @@ contains
 
       nb_phases = NbPhasePresente_ctx(context)
 
-      dfS_elim = dSf(NumPhasePresente_ctx(nb_phases, context)) ! last saturation is eliminated
-      NbIncPTC = NbIncPTC_ctx(context)
-      do j = 1, nb_phases - 1
-         jph = NumPhasePresente_ctx(j, context)
-         jc = j + NbIncPTC
-         dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
-      enddo
+#ifndef NDEBUG
+      if (nb_phases < 1) &
+         call CommonMPI_abort("LoisThermoHydro_fill_gradient_dfdX: Inconsistent number of phases.")
+#endif
+
+      if (nb_phases > 1) then
+         dfS_elim = dSf(NumPhasePresente_ctx(nb_phases, context)) ! last saturation is eliminated
+         NbIncPTC = NbIncPTC_ctx(context)
+         do j = 1, nb_phases - 1
+            jph = NumPhasePresente_ctx(j, context)
+            jc = j + NbIncPTC
+            dfdX(jc) = dSf(jph) - dfS_elim ! last saturation is eliminated
+         enddo
+         ! else nothing done because S=1, dS=0, and last saturation is eliminated
+      endif
 
    end subroutine LoisThermoHydro_fill_gradient_dfdX
 
@@ -1331,7 +1339,7 @@ contains
 
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
+         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
                                       dval(:, iph), dfdX_secd(:, iph))
       end do
 
