@@ -191,6 +191,11 @@ module LoisThermoHydro
       SmDensiteMolaireEnergieInterneSatFrac, &
       SmDensiteMolaireEnergieInterneSatNode
 
+   ! work arrays - with wa_ prefix
+   real(c_double), allocatable, target, dimension(:, :) :: wa_UnsurViscosite
+   real(c_double), allocatable, target, dimension(:, :, :) :: wa_divUnsurViscosite
+   real(c_double), allocatable, target, dimension(:, :) :: wa_SmUnsurViscosite   ! tmp values to simpfy notations of numerotation
+
    ! tmp values to simpfy notations of numerotation
    ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
    type ContextInfo
@@ -524,11 +529,6 @@ contains
          DensiteMolaire(NbPhase), &
          divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
          SmDensiteMolaire(NbPhase), &
-         !
-         UnsurViscosite(NbPhase), &
-         divUnsurViscosite(NbIncTotalPrimMax, NbPhase), &
-         SmUnsurViscosite(NbPhase), &
-         !
          PermRel(NbPhase), &
          divPermRel(NbIncTotalPrimMax, NbPhase), &
          !
@@ -547,16 +547,16 @@ contains
       integer :: k, i, icp, iph
       type(ContextInfo) :: ctxinfo
 
-      ! loop over each local element
+      do k = 1, NbIncLocal
+         call LoisThermoHydro_viscosite_cv( &
+            inc(k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k))
+      end do
+
       do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
-
-         ! viscosite
-         call LoisThermoHydro_viscosite_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
-                                           NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                           UnsurViscosite, divUnsurViscosite, SmUnSurViscosite)
 
          ! densite massique
          call LoisThermoHydro_densitemassique_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
@@ -606,7 +606,7 @@ contains
             inc(k), ctxinfo, &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             PermRel, divPermRel, &
-            UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
+            wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
             divComp, SmComp, &
             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             dXssurdXp(:, :, k), SmdXs(:, k), &
@@ -656,7 +656,7 @@ contains
             ctxinfo, &
             DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
             PermRel, divPermRel, &
-            UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
+            wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
             Enthalpie, divEnthalpie, SmEnthalpie, &
             DensiteMolaireKrViscoEnthalpie(:, k), &
             divDensiteMolaireKrViscoEnthalpie(:, :, k), &
@@ -1349,74 +1349,45 @@ contains
 
    end subroutine LoisThermoHydro_densitemassique_cv
 
-   subroutine LoisThermoHydro_viscosite_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
-                                           NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
-
-      ! input
+   subroutine LoisThermoHydro_viscosite_cv( &
+      inc, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      type(ContextInfo), intent(in) :: ctxinfo
-      double precision, intent(in) :: & ! (col, row) index order
-         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
-
-      integer, intent(in) :: &
-         NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV(NbEqFermetureMax)
-
-      ! output
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
       double precision, intent(out) :: Smval(NbPhase)
 
-      ! tmp
+      integer :: i, iph, context, nb_phases
       double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
 
-      integer :: i, iph
-
-      ! 1. val
-      ! 2. dval
-      ! 3. Smval
-
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-      Smval(:) = 0.d0
-
-      dfdX_secd(:, :) = 0.d0
-
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
-
+      val = 0.d0
+      dval = 0.d0
+      Smval = 0.d0
+      dfdX_secd = 0.d0
+      context = inc%ic
+      nb_phases = NbPhasePresente_ctx(context)
+      do i = 1, nb_phases
+         iph = NumPhasePresente_ctx(i, context)
          call f_Viscosite(iph, inc%Pression, inc%Temperature, &
                           inc%Comp(:, iph), inc%Saturation, &
                           f, dPf, dTf, dCf, dSf)
-
-#ifndef NDEBUG
-         if (f .le. 0) then
-            write (*, *) "Viscosity at p=", inc%Pression, "T=", inc%Temperature
-            write (*, *) "             C=", inc%Comp, "S=", inc%Saturation
-            write (*, *) "          -> mu=", f
-            call CommonMPI_abort('inconsistent viscosity value')
-         endif
-#endif
-
-         val(i) = 1.d0/f ! val
-
-         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
+         val(i) = 1.d0/f
+         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
          call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
          dfdX(:) = -dfdX(:)/f**2
-
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dval(:, i), dfdX_secd(:, i))
+         call LoisThermoHydro_dfdX_ps( &
+            inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dval(:, i), dfdX_secd(:, i))
       end do
 
-      !print*, SmdXs
-
       call LoisThermoHydro_local_Schur( &
-         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
          dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_viscosite_cv
@@ -2383,11 +2354,12 @@ contains
    ! allocate
    subroutine LoisThermoHydro_allocate
 
-      integer :: nbCell, nbFrac, nbNode, nbNodeInj
+      integer :: nbCell, nbFrac, nbNode, nbNodeInj, max_nb_control_volumes
 
       nbCell = NbCellLocal_Ncpus(commRank + 1)
       nbFrac = NbFracLocal_Ncpus(commRank + 1)
       nbNode = NbNodeLocal_Ncpus(commRank + 1)
+      max_nb_control_volumes = max(nbNode, nbFrac, nbCell)
       nbNodeInj = NodeByWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)
       ! print*, 'LoisThermoHydro_allocate', nbCell, nbFrac, nbNode, nbNodeInj
 
@@ -2521,9 +2493,19 @@ contains
 
 #endif
 
+      ! Work arrays
+      allocate (wa_UnsurViscosite(NbPhase, max_nb_control_volumes))
+      allocate (wa_divUnsurViscosite(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
+      allocate (wa_SmUnsurViscosite(NbPhase, max_nb_control_volumes))
+
    end subroutine LoisThermoHydro_allocate
 
    subroutine LoisThermoHydro_free
+
+      ! Work arrays
+      deallocate (wa_UnsurViscosite)
+      deallocate (wa_divUnsurViscosite)
+      deallocate (wa_SmUnsurViscosite)
 
       ! densite massique
       deallocate (DensiteMassiqueCell)
