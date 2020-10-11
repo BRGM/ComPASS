@@ -554,14 +554,15 @@ contains
       end do
 
       do k = 1, NbIncLocal
+         call LoisThermoHydro_densitemassique_cv( &
+            inc(k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            DensiteMassique(:, k), divDensiteMassique(:, :, k), SmDensiteMassique(:, k))
+      end do
+
+      do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
-
-         ! densite massique
-         call LoisThermoHydro_densitemassique_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
-                                                 NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                                 DensiteMassique(:, k), divDensiteMassique(:, :, k), SmDensiteMassique(:, k))
 
          ! deniste molaire
          call LoisThermoHydro_densitemolaire_cv(inc(k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
@@ -1282,69 +1283,44 @@ contains
 
    end subroutine LoisThermoHydro_dfdX_ps
 
-   subroutine LoisThermoHydro_densitemassique_cv(inc, ctxinfo, dXssurdXp, SmdXs, &
-                                                 NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
-
-      ! input
+   subroutine LoisThermoHydro_densitemassique_cv( &
+      inc, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      type(ContextInfo), intent(in) :: ctxinfo
-      double precision, intent(in) :: &    ! (col, row) index order
-         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
-
-      integer, intent(in) :: &
-         NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV(NbEqFermetureMax)
-
-      ! output
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
       double precision, intent(out) :: Smval(NbPhase)
 
-      ! tmp
-      double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      integer :: i, iph, context, nb_phases
+      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase) !=NbEqFermetureMax
 
-      integer :: iph, i
-
-      ! 1. val
-      ! 2. dval
-      ! 3. Smval
-
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-      Smval(:) = 0.d0
-
-#ifdef DEBUG_LOISTHEMOHYDRO
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
-         write (*, *) 'Phase', iph, 'MCP row=', MCP(:, iph)
-      end do
-#endif
-
+      val = 0.d0
+      dval = 0.d0
+      Smval = 0.d0
       dfdX_secd = 0.d0
 
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
-
+      context = inc%ic
+      nb_phases = NbPhasePresente_ctx(context)
+      do i = 1, nb_phases
+         iph = NumPhasePresente_ctx(i, context)
          call f_DensiteMassique(iph, inc%Pression, inc%Temperature, &
                                 inc%Comp(:, iph), inc%Saturation, &
-                                f, dPf, dTf, dCf, dSf)
-
-         val(iph) = f ! val
-
-         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
-
+                                val(iph), dPf, dTf, dCf, dSf)
+         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
+         call LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dval(:, iph), dfdX_secd(:, iph))
+         call LoisThermoHydro_dfdX_ps( &
+            context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dval(:, iph), dfdX_secd(:, iph))
       end do
 
       call LoisThermoHydro_local_Schur( &
-         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
          dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_densitemassique_cv
