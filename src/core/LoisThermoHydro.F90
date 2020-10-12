@@ -1371,7 +1371,7 @@ contains
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps(ctxinfo, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dval(:, i), dfdX_secd(:, i))
+                                      dval(:, iph), dfdX_secd(:, iph))
       end do
 
       ! dv/dXp - dv/dXs*dXs/dXp, v=densitemassique
