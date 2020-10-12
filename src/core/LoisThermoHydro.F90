@@ -569,22 +569,23 @@ contains
             wa_PermRel(:, k), wa_divPermRel(:, :, k))
       end do
 
+      ! Reference Pressure (unknown index is 1)
+      do k = 1, NbIncLocal
+         call LoisThermoHydro_Inc_cv( &
+            1, inc(k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dXssurdXp(:, :, k), SmdXs(:, k), &
+            divPression(:, k), SmPression(k))
+      end do
+
       do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
 
-         ! Reference Pressure (unknown index is 1)
-         call LoisThermoHydro_Inc_cv(1, inc(k), ctxinfo, &
-                                     NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                     dXssurdXp(:, :, k), SmdXs(:, k), &
-                                     divPression(:, k), SmPression(k))
-
          ! Comp
          do i = 2 + IndThermique, ctxinfo%NbIncPTC ! loop over index of Components
             iph = ctxinfo%NumIncPTC2NumIncComp_phase(i) ! phase corresponding to unknown i
             icp = ctxinfo%NumIncPTC2NumIncComp_comp(i) ! component corresponding to unknown i
-            call LoisThermoHydro_Inc_cv(i, inc(k), ctxinfo, &
+            call LoisThermoHydro_Inc_cv(i, inc(k), &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divComp(:, icp, iph), SmComp(icp, iph))
@@ -628,7 +629,7 @@ contains
 
 #ifdef _THERMIQUE_
          ! FIXME: Temperature (unknown index is 2)
-         call LoisThermoHydro_Inc_cv(2, inc(k), ctxinfo, &
+         call LoisThermoHydro_Inc_cv(2, inc(k), &
                                      NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                      dXssurdXp(:, :, k), SmdXs(:, k), &
                                      divTemperature(:, k), SmTemperature(k))
@@ -743,7 +744,7 @@ contains
          do i = 2 + IndThermique, ctxinfo%NbIncPTC ! loop over index of Components
             iph = ctxinfo%NumIncPTC2NumIncComp_phase(i) ! phase of Component i
             icp = ctxinfo%NumIncPTC2NumIncComp_comp(i) ! numero of the component i
-            call LoisThermoHydro_Inc_cv(i, inc(k), ctxinfo, &
+            call LoisThermoHydro_Inc_cv(i, inc(k), &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divComp(:, icp, iph), SmComp(icp, iph))
@@ -751,7 +752,7 @@ contains
 
          do i = 1, ctxinfo%NbPhasePresente
             ! phase molar flowrate (unknown index is NbIncPTC+NbPhasePresente-1+i) (FIXME: -1 because one saturation is eliminated)
-            call LoisThermoHydro_Inc_cv(ctxinfo%NbIncPTC + ctxinfo%NbPhasePresente - 1 + i, inc(k), ctxinfo, &
+            call LoisThermoHydro_Inc_cv(ctxinfo%NbIncPTC + ctxinfo%NbPhasePresente - 1 + i, inc(k), &
                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                         dXssurdXp(:, :, k), SmdXs(:, k), &
                                         divFreeFlowMolarFlowrate(:, i, k), SmFreeFlowMolarFlowrate(i, k))
@@ -1472,32 +1473,25 @@ contains
 
    end subroutine LoisThermoHydro_PermRel_cv
 
-   subroutine LoisThermoHydro_Inc_cv(index_inc, inc, ctxinfo, &
+   subroutine LoisThermoHydro_Inc_cv(index_inc, inc, &
                                      NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                      dXssurdXp, SmdXs, &
                                      dval, Smval)
-
-      ! input
       integer, intent(in) :: index_inc
-      type(TYPE_IncCVReservoir), intent(in)  :: inc
-      type(ContextInfo), intent(in) :: ctxinfo
-      integer, intent(in) :: &
-         NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV(NbEqFermetureMax)
-
-      double precision, intent(in) :: & ! (col, row) index order
-         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
-         SmdXs(NbEqFermetureMax)
-
-      ! output
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
       double precision, intent(out) :: dval(NbIncTotalPrimMax)
       double precision, intent(out) :: Smval
 
-      integer :: i
+      integer :: i, context
 
-      dval(:) = 0.d0
+      dval = 0.d0
       Smval = 0.d0
 
+      context = inc%ic
       IF (ANY(NumIncTotalPrimCV == index_inc)) THEN ! index_inc (P or T) is prim
          do i = 1, NbIncTotalPrimMax
             if (NumIncTotalPrimCV(i) == index_inc) then
@@ -1505,7 +1499,7 @@ contains
             endif
          enddo
       ELSE IF (ANY(NumIncTotalSecondCV == index_inc)) THEN ! index_inc (P or T) is secd
-         do i = 1, ctxinfo%NbEqFermeture
+         do i = 1, NbEqFermeture_ctx(context)
             if (NumIncTotalSecondCV(i) == index_inc) then
                dval(:) = -dXssurdXp(:, i)
                Smval = -SmdXs(i)
@@ -1519,7 +1513,7 @@ contains
 #ifdef _THERMIQUE_
          if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
 #endif
-         if (index_inc > 1 + IndThermique .and. index_inc <= ctxinfo%NbIncPTC) &
+         if (index_inc > 1 + IndThermique .and. index_inc <= NbIncPTC_ctx(context)) &
             call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, C not found ')
       ENDIF
 
