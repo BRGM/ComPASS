@@ -3201,23 +3201,6 @@ contains
 
       Id_Qks(:) = .false.
 
-      ! if( k==1 .and. s==1 .and. commRank==1) then
-      !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-
-      !       print*, sum_aksgz/20.d0, divrho_k(j,1), divrho_k(j,2)
-
-      !       ! print*, IncNode(nums)%Saturation(2)
-      !       ! print*, IncCell(k)%Saturation
-      !       ! print*, divrho_s(j,1)!*sum_aksgz!*DensiteMolaireKrViscoCompCell(1,1,1)
-      !       ! print*, sum_aksgz*DensiteMolaireKrViscoCompCell(1,1,1)
-      !       ! print*, sum_aksgz, DensiteMolaireKrViscoCompCell(1,1,1)
-      !       ! print*, divDensiteMassiqueNode(j,1,nums)
-      !       ! print*, divSaturationNode(j,1,nums)
-      !       ! print*, DensiteMassiqueCell(1,k)
-      !       ! print*, IncNode(nums)%Saturation(2)
-      !    end do
-      ! end if
-
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
@@ -3760,51 +3743,6 @@ contains
 
          Smrho_k(mph) = SmDensiteMassiqueCell(mph, k)
 
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + IncCell(k)%Saturation(mph) / Satki * divDensiteMassiqueCell(j,mph,k) &
-         !                          !
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k) ! SmSaturation=0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + divSaturationNode(j,m,nums) / Satki * DensiteMassiqueNode(mph,nums) &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums) &
-         !            + IncNode(nums)%Saturation(mph) / Satki * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncNode(nums)%Saturation(mph) / Satki * SmDensiteMassiqueNode(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
-
       end do ! end of Q_k
 
       do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -3812,58 +3750,11 @@ contains
 
          tmp_compt(mph) = tmp_compt(mph) + 1
 
-         ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
-
          do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
             divrho_s(j, mph) = divDensiteMassiqueNode(j, mph, nums)
          end do
 
          Smrho_s(mph) = SmDensiteMassiqueNode(mph, nums)
-
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            + divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + IncCell(k)%Saturation(mph) / Satki * divDensiteMassiqueCell(j,mph,k) &
-         !                       !
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + divSaturationNode(j,m,nums) / Satki * DensiteMassiqueNode(mph,nums) &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums) &
-         !            + IncNode(nums)%Saturation(mph) / Satki * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncNode(nums)%Saturation(mph) / Satki * SmDensiteMassiqueNode(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
 
       end do
 
@@ -3873,11 +3764,6 @@ contains
          Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
          Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
       enddo
-
-      ! if(k==1 .and. s==1 .and. commRank==0) then
-      !    print*, "ph 1", divrho_s(:,1)
-      !    print*, "ph 2", divrho_s(:,2)
-      ! end if
 
    end subroutine Jacobian_divrho_cellnode
 
@@ -3912,7 +3798,6 @@ contains
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
-         !Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
          tmp_compt(mph) = tmp_compt(mph) + 1
 
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
@@ -3921,57 +3806,11 @@ contains
 
          Smrho_k(mph) = SmDensiteMassiqueCell(mph, k)
 
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + IncCell(k)%Saturation(mph) / Satki * divDensiteMassiqueCell(j,mph,k) &
-         !                          !
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncFrac(nums)%Saturation(mph) * DensiteMassiqueFrac(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k) ! SmSaturation=0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationFrac(j,m,nums) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + divSaturationFrac(j,m,nums) / Satki * DensiteMassiqueFrac(mph,nums) &
-         !            - divSaturationFrac(j,m,nums) / (Satki**2) &
-         !            * IncFrac(nums)%Saturation(mph) * DensiteMassiqueFrac(mph,nums) &
-         !            + IncFrac(nums)%Saturation(mph) / Satki * divDensiteMassiqueFrac(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncFrac(nums)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
-
       end do ! end of Q_k
 
       do m = 1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-         ! Satki = IncCell(k)%Saturation(mph) + IncFrac(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
          tmp_compt(mph) = tmp_compt(mph) + 1
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
@@ -3979,51 +3818,6 @@ contains
          end do
 
          Smrho_s(mph) = SmDensiteMassiqueFrac(mph, nums)
-
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueCell(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            + divSaturationCell(j,m,k) / Satki * DensiteMassiqueCell(mph,k) &
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + IncCell(k)%Saturation(mph) / Satki * divDensiteMassiqueCell(j,mph,k) &
-         !                       !
-         !            - divSaturationCell(j,m,k) / (Satki**2) &
-         !            * IncFrac(nums)%Saturation(mph) * DensiteMassiqueFrac(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncCell(k)%Saturation(mph) / Satki * SmDensiteMassiqueCell(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationFrac(j,m,nums) / (Satki**2) &
-         !            * IncCell(k)%Saturation(mph) * DensiteMassiqueCell(mph,k) &
-         !            + divSaturationFrac(j,m,nums) / Satki * DensiteMassiqueFrac(mph,nums) &
-         !            - divSaturationFrac(j,m,nums) / (Satki**2) &
-         !            * IncFrac(nums)%Saturation(mph) * DensiteMassiqueFrac(mph,nums) &
-         !            + IncFrac(nums)%Saturation(mph) / Satki * divDensiteMassiqueFrac(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncFrac(nums)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
 
       end do
 
@@ -4033,11 +3827,6 @@ contains
          Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
          Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
       enddo
-
-      ! if(k==1 .and. s==1 .and. commRank==0) then
-      !    print*, "ph 1", divrho_s(:,1)
-      !    print*, "ph 2", divrho_s(:,2)
-      ! end if
 
    end subroutine Jacobian_divrho_cellfrac
 
@@ -4068,7 +3857,6 @@ contains
       do m = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
 
-         ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
          tmp_compt(mph) = tmp_compt(mph) + 1
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
@@ -4077,58 +3865,11 @@ contains
 
          Smrho_k(mph) = SmDensiteMassiqueFrac(mph, k)
 
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            divSaturationFrac(j,m,k) / Satki * DensiteMassiqueFrac(mph,k) &
-         !            - divSaturationFrac(j,m,k) / (Satki**2) &
-         !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
-         !            + IncFrac(k)%Saturation(mph) / Satki * divDensiteMassiqueFrac(j,mph,k) &
-         !                          !
-         !            - divSaturationFrac(j,m,k) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncFrac(k)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,k) ! SmSaturation=0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
-         !            + divSaturationNode(j,m,nums) / Satki * DensiteMassiqueNode(mph,nums) &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums) &
-         !            + IncNode(nums)%Saturation(mph) / Satki * divDensiteMassiqueNode(j,mph,nums)
-
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncNode(nums)%Saturation(mph) / Satki * SmDensiteMassiqueNode(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
-
       end do ! end of Q_k
 
       do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-         ! Satki = IncFrac(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
          tmp_compt(mph) = tmp_compt(mph) + 1
 
          do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
@@ -4136,51 +3877,6 @@ contains
          end do
 
          Smrho_s(mph) = SmDensiteMassiqueNode(mph, nums)
-
-         ! if( abs(Satki)<eps) then ! Satki == 0
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-         !       divrho_k(j,mph) = 0.5d0 * divDensiteMassiqueFrac(j,mph,k)
-         !    end do
-
-         !    Smrho_k(mph) = 0.5d0 * SmDensiteMassiqueFrac(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-         !       divrho_s(j,mph) = 0.5d0 * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = 0.5d0 * SmDensiteMassiqueNode(mph,nums)
-
-         ! else
-
-         !    do j=1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
-         !       divrho_k(j,mph) = &
-         !            + divSaturationFrac(j,m,k) / Satki * DensiteMassiqueFrac(mph,k) &
-         !            - divSaturationFrac(j,m,k) / (Satki**2) &
-         !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
-         !            + IncFrac(k)%Saturation(mph) / Satki * divDensiteMassiqueFrac(j,mph,k) &
-         !                       !
-         !            - divSaturationFrac(j,m,k) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums)
-         !    end do
-
-         !    Smrho_k(mph) = &
-         !         IncFrac(k)%Saturation(mph) / Satki * SmDensiteMassiqueFrac(mph,k)
-
-         !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-         !       divrho_s(j,mph) = &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncFrac(k)%Saturation(mph) * DensiteMassiqueFrac(mph,k) &
-         !            + divSaturationNode(j,m,nums) / Satki * DensiteMassiqueNode(mph,nums) &
-         !            - divSaturationNode(j,m,nums) / (Satki**2) &
-         !            * IncNode(nums)%Saturation(mph) * DensiteMassiqueNode(mph,nums) &
-         !            + IncNode(nums)%Saturation(mph) / Satki * divDensiteMassiqueNode(j,mph,nums)
-         !    end do
-
-         !    Smrho_s(mph) = &
-         !         IncNode(nums)%Saturation(mph) / Satki * SmDensiteMassiqueNode(mph,nums)
-
-         ! end if ! end of Id_Qks(mph)
 
       end do
 
@@ -4190,11 +3886,6 @@ contains
          Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
          Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
       enddo
-
-      ! if(k==1 .and. s==1 .and. commRank==0) then
-      !    print*, "ph 1", divrho_s(:,1)
-      !    print*, "ph 2", divrho_s(:,2)
-      ! end if
 
    end subroutine Jacobian_divrho_fracnode
 

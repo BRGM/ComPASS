@@ -139,38 +139,14 @@ contains
 
             do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! phases present: Q_k
                numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-               ! Satki = IncCell(k)%Saturation(numph_k) + IncNode(numi)%Saturation(numph_k) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueCell(numph_k, k) ! Attention: numph_k used for densitemassique
                tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-
-               ! if(abs(Satki)<eps) then
-               !    rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueCell(numph_k, k) + DensiteMassiqueNode(numph_k, numi))
-               ! else
-               !    rho_ki_alpha(numph_k) = &
-               !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) &
-               !         + IncNode(numi)%Saturation(numph_k) * DensiteMassiqueNode(numph_k, numi))/Satki
-               ! end if
             end do
 
             do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic) ! phases present: Q_i
                numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-
-               ! Satki = IncCell(k)%Saturation(numph_i) + IncNode(numi)%Saturation(numph_i) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
                tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-
-               ! if(abs(Satki)<eps) then
-               !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueCell(numph_i, k) + DensiteMassiqueNode(numph_i, numi))
-               ! else
-               !    rho_ki_alpha(numph_i) = &
-               !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) &
-               !         + IncNode(numi)%Saturation(numph_i) * DensiteMassiqueNode(numph_i, numi))/Satki
-               ! end if
             end do
 
             rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
@@ -268,39 +244,13 @@ contains
                numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
 
                tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-
-               ! Satki = IncCell(k)%Saturation(numph_k) + IncFrac(numi)%Saturation(numph_k) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueCell(numph_k, k) ! Attention: numph_k used for densitemassique
-
-               ! if(abs(Satki)<eps) then
-               !   rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueCell(numph_k, k) + DensiteMassiqueFrac(numph_k, numi))
-               ! else
-               !    rho_ki_alpha(numph_k) = &
-               !         (IncCell(k)%Saturation(numph_k) * DensiteMassiqueCell(numph_k, k) &
-               !         + IncFrac(numi)%Saturation(numph_k) * DensiteMassiqueFrac(numph_k, numi))/Satki
-               ! end if
             end do
 
             do nph_i = 1, NbPhasePresente_ctx(IncFrac(numi)%ic) ! phases present: Q_i
                numph_i = NumPhasePresente_ctx(nph_i, IncFrac(numi)%ic)
-
                tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-
-               ! Satki = IncCell(k)%Saturation(numph_i) + IncFrac(numi)%Saturation(numph_i) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueFrac(numph_i, numi) ! Attention: numph_k used for densitemassique
-
-               ! if(abs(Satki)<eps) then
-               !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueCell(numph_i, k) + DensiteMassiqueFrac(numph_i, numi))
-               ! else
-               !    rho_ki_alpha(numph_i) = &
-               !         (IncCell(k)%Saturation(numph_i) * DensiteMassiqueCell(numph_i, k) &
-               !         + IncFrac(numi)%Saturation(numph_i) * DensiteMassiqueFrac(numph_i, numi))/Satki
-               ! end if
-
             end do
 
             rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
@@ -339,10 +289,6 @@ contains
                            + rho_ki_alpha(numph_i)*zkj)*Tkij
                   end if
                end do
-
-               ! if(commRank==1 .and. k==1) then
-               !    print*, "j node", j, Pkj, zkj, (Pkj+rho_ki_alpha(2)*zkj), Tkij
-               ! end if
 
             end do ! end of j
 
@@ -388,12 +334,6 @@ contains
 
       end do ! fin loop cell k
 
-      ! if(commRank==1) then
-      !    do i=1, 9
-      !       print*, i, FluxDarcyKI(:,i,1)
-      !    end do
-      ! end if
-
    end subroutine Flux_DarcyFlux_Cell
 
    ! Structure of this subroutine:
@@ -436,46 +376,17 @@ contains
 
             do nph_k = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! phases present: Q_k
                numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
-
-               ! Satki = IncFrac(k)%Saturation(numph_k) + IncNode(numi)%Saturation(numph_k) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueFrac(numph_k, k)
                tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-
-               ! if(abs(Satki)<eps) then
-               !    rho_ki_alpha(numph_k) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueFrac(numph_k, k) + DensiteMassiqueNode(numph_k, numi) )
-               ! else
-               !    rho_ki_alpha(numph_k) = &
-               !         (IncFrac(k)%Saturation(numph_k) * DensiteMassiqueFrac(numph_k, k) &
-               !         + IncNode(numi)%Saturation(numph_k) * DensiteMassiqueNode(numph_k, numi))/Satki
-               ! end if
             end do
 
             do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic) ! phases present: Q_i
                numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-
-               ! Satki = IncFrac(k)%Saturation(numph_i) + IncNode(numi)%Saturation(numph_i) ! S_k^alpha+S_i^alpha
-
                rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
                tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-
-               ! if(abs(Satki)<eps) then
-               !    rho_ki_alpha(numph_i) = & ! Attention: numph_k used for densitemassique
-               !         0.5d0 * (DensiteMassiqueFrac(numph_i, k) + DensiteMassiqueNode(numph_i, numi))
-               ! else
-               !    rho_ki_alpha(numph_i) = &
-               !         (IncFrac(k)%Saturation(numph_i) * DensiteMassiqueFrac(numph_i, k) &
-               !         + IncNode(numi)%Saturation(numph_i) * DensiteMassiqueNode(numph_i, numi))/Satki
-               ! end if
-
             end do
 
             rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
-
-            ! if(commRank==1 .and. k==1) then
-            !    print*, i, rho_ki_alpha(:)
-            ! end if
 
             do j = 1, NbNodeFrac
                numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
@@ -495,10 +406,6 @@ contains
                   FluxDarcyFI(numph_k, i, k) = FluxDarcyFI(numph_k, i, k) &
                                                + (Pkj + PressionCapFrac(numph_k, k) - PressionCapNode(numph_k, numj) &
                                                   + rho_ki_alpha(numph_k)*zkj)*Tkij
-
-                  ! if(commRank==1 .and. k==1) then
-                  !    print*, k, i, j, numph_k, FluxDarcyFI(numph_k,i,k), (Pkj+rho_ki_alpha(numph_k)*zkj), Tkij
-                  ! end if
 
                end do
 
