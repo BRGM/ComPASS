@@ -198,6 +198,8 @@ module LoisThermoHydro
    real(c_double), allocatable, target, dimension(:, :) :: wa_DensiteMolaire
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divDensiteMolaire
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmDensiteMolaire   ! tmp values to simpfy notations of numerotation
+   real(c_double), allocatable, target, dimension(:, :) :: wa_PermRel
+   real(c_double), allocatable, target, dimension(:, :, :) :: wa_divPermRel
 
    ! tmp values to simpfy notations of numerotation
    ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
@@ -528,9 +530,6 @@ contains
          SmDensiteMolaireKrViscoEnthalpie(NbPhase, NbIncLocal)
 
       double precision :: &
-         PermRel(NbPhase), &
-         divPermRel(NbIncTotalPrimMax, NbPhase), &
-         !
          divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
          SmComp(NbComp, NbPhase)
 
@@ -565,14 +564,15 @@ contains
       end do
 
       do k = 1, NbIncLocal
+         call LoisThermoHydro_PermRel_cv( &
+            inc(k), rt(1, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            wa_PermRel(:, k), wa_divPermRel(:, :, k))
+      end do
+
+      do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
-
-         ! PermRel
-         call LoisThermoHydro_PermRel_cv(inc(k), ctxinfo, rt(1, k), dXssurdXp(:, :, k), SmdXs(:, k), &
-                                         NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                         PermRel, divPermRel)
 
          ! Reference Pressure (unknown index is 1)
          call LoisThermoHydro_Inc_cv(1, inc(k), ctxinfo, &
@@ -606,7 +606,7 @@ contains
          call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( &
             inc(k), ctxinfo, &
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
-            PermRel, divPermRel, &
+            wa_PermRel(:, k), wa_divPermRel(:, :, k), &
             wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
             divComp, SmComp, &
             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
@@ -656,7 +656,7 @@ contains
          call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
             ctxinfo, &
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
-            PermRel, divPermRel, &
+            wa_PermRel(:, k), wa_divPermRel(:, :, k), &
             wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
             Enthalpie, divEnthalpie, SmEnthalpie, &
             DensiteMolaireKrViscoEnthalpie(:, k), &
@@ -1425,10 +1425,9 @@ contains
 
    end subroutine LoisThermoHydro_all_relative_permeabilities
 
-   subroutine LoisThermoHydro_PermRel_cv(inc, ctxinfo, rock_type, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_PermRel_cv(inc, rock_type, dXssurdXp, SmdXs, &
                                          NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      type(ContextInfo), intent(in) :: ctxinfo
       integer, intent(in) :: rock_type
       double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(in) :: SmdXs(NbEqFermetureMax)
@@ -1437,36 +1436,38 @@ contains
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
-      double precision :: f(NbPhase), dSf(NbPhase, NbPhase), dCf(NbComp)
+      integer :: i, iph, context, nb_phases
+      double precision :: dSf(NbPhase, NbPhase), dCf(NbComp)
       double precision :: dfdX(NbIncTotalMax, NbPhase)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
-      integer :: i, iph
 
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-      dfdX_secd(:, :) = 0.d0
+      val = 0.d0
+      dval = 0.d0
+      dfdX_secd = 0.d0
 
       ! WARNING: no variations with respect to molar fractions
       dCf = 0.d0
 
+      context = inc%ic
+      nb_phases = NbPhasePresente_ctx(context)
       call LoisThermoHydro_all_relative_permeabilities( &
-         rock_type, ctxinfo%NumPhasePresente(1:ctxinfo%NbPhasePresente), &
+         rock_type, NumPhasePresente_ctx(1:nb_phases, context), &
          inc%Saturation, val, dSf)
 
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
-         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
+      do i = 1, nb_phases
+         iph = NumPhasePresente_ctx(i, context)
+         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
+         call LoisThermoHydro_fill_gradient_dfdX(context, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
+         call LoisThermoHydro_dfdX_ps(context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
                                       dval(:, i), dfdX_secd(:, i))
       end do
 
       ! FIXME: why not calling on RHS?
       !        because we don't use directly kr variations in Jacobian but divKrVisco...
       call LoisThermoHydro_local_Schur( &
-         ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
+         NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
          dXssurdXp, dfdX_secd, dval)
 
    end subroutine LoisThermoHydro_PermRel_cv
@@ -2458,6 +2459,8 @@ contains
       allocate (wa_DensiteMolaire(NbPhase, max_nb_control_volumes))
       allocate (wa_divDensiteMolaire(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
       allocate (wa_SmDensiteMolaire(NbPhase, max_nb_control_volumes))
+      allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
+      allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
 
    end subroutine LoisThermoHydro_allocate
 
@@ -2470,6 +2473,8 @@ contains
       deallocate (wa_DensiteMolaire)
       deallocate (wa_divDensiteMolaire)
       deallocate (wa_SmDensiteMolaire)
+      deallocate (wa_PermRel)
+      deallocate (wa_divPermRel)
 
       ! densite massique
       deallocate (DensiteMassiqueCell)
