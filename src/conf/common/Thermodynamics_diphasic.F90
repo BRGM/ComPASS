@@ -82,7 +82,7 @@ contains
       dSf = 0.d0
 
       if (iph == GAS_PHASE) then
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
+         call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)  ! Pg=Pref + Pc
          f = P + Pc
 
          dPf = 1.d0
@@ -92,7 +92,7 @@ contains
             call air_henry(T, f)
             call air_henry_dT(dTf)
          else if (icp == WATER_COMP) then
-            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+            call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)
             ! FIXME: Pl = Pref + f_PressionCapillaire, so Pc = -Pc
             Pc = -Pc
             DSPc = -DSPc
@@ -164,16 +164,16 @@ contains
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       real(c_double) :: Rgp, Pc, DSPc(NbPhase), Pg
-      integer(c_int) :: rt(IndThermique + 1)
+      integer(c_int) :: rocktype
 
       Rgp = 8.314d0
 
       if (iph == GAS_PHASE) then
-         rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+         rocktype = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
+         call f_PressionCapillaire(rocktype, iph, S, Pc, DSPc)
 #ifndef NDEBUG
          if (Pc .ne. 0.d0) &
-            call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
+            call CommonMPI_abort('possible error in f_DensiteMolaire (change rocktype?)')
 #endif
          Pg = P + Pc
          f = Pg/(Rgp*T)
@@ -293,10 +293,10 @@ contains
       real(c_double) :: Piph, Pc, DSPc(NbPhase)
       real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp), dzetadS(NbPhase)
       real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp), denthdS(NbPhase)
-      integer(c_int) :: rt(IndThermique + 1)
+      integer(c_int) :: rocktype
 
-      rt = 0
-      call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+      rocktype = 0
+      call f_PressionCapillaire(rocktype, iph, S, Pc, DSPc)
       Piph = P + Pc
 
       CALL f_Enthalpie(iph, P, T, C, S, enth, denthdP, denthdT, denthdC, denthdS) ! called with reference pressure

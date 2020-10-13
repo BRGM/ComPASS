@@ -273,7 +273,7 @@ contains
 
       ! --------------------------------------------------------------------------
       ! 3. P^g - P^atm = 0     ie      Pref + Pc(GAS_PHASE) - P^atm = 0
-      call f_PressionCapillaire(rt, GAS_PHASE, inc%Saturation, Pc, DSPc)
+      call f_PressionCapillaire(rt(1), GAS_PHASE, inc%Saturation, Pc, DSPc)
 
       ! derivative Pressure
       dFsurdX(1, mi + 1) = 1.d0

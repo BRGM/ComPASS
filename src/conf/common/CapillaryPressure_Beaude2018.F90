@@ -22,9 +22,9 @@ contains
    !< S is all the saturations
    ! FIXME: IF f_PressionCapillaire DEPENDS ON THE ROCKTYPE,
    ! MODIFY f_EnergieInterne AND f_DensiteMolaire
-   pure subroutine f_PressionCapillaire(rt, iph, S, f, DSf)
+   pure subroutine f_PressionCapillaire(rocktype, iph, S, f, DSf)
 
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
+      integer(c_int), intent(in) :: rocktype
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: S(NbPhase)
       real(c_double), intent(out) :: f, DSf(NbPhase)

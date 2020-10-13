@@ -75,7 +75,7 @@ contains
             Pc = 0.d0
             DSPc = 0.d0
          else
-            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
+            call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)  ! Pg=Pref + Pc
          end if
 
          f = P + Pc
@@ -133,7 +133,7 @@ contains
             DSPc = 0.d0
          else
             rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
-            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+            call f_PressionCapillaire(0, iph, S, Pc, DSPc)
 #ifndef NDEBUG
             if (Pc .ne. 0.d0) &
                call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
@@ -159,7 +159,7 @@ contains
 
       else if (iph == LIQUID_PHASE) then
          rt = 0 ! FIXME: rt is not used because Pc=0.
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+         call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)
 #ifndef NDEBUG
          if (Pc .ne. 0.d0) &
             call CommonMPI_abort("error in f_DensiteMolaire: "// &

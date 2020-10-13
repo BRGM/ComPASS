@@ -588,15 +588,15 @@ contains
       end do
 
       do k = 1, NbIncLocal
+         call LoisThermoHydro_PressionCapillaire_cv( &
+            rt(1, k), inc(k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dXssurdXp(:, :, k), &
+            PressionCap(:, k), divPressionCap(:, :, k))
+      end do
+
+      do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
-
-         ! Pression Capillaire
-         call LoisThermoHydro_PressionCapillaire_cv(rt(:, k), inc(k), ctxinfo, &
-                                                    NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                                    dXssurdXp(:, :, k), &
-                                                    PressionCap(:, k), divPressionCap(:, :, k))
 
          ! Saturation div FIXME: not done with LoisThermoHydro_Inc_cv because last saturation is eliminated
          call LoisThermoHydro_Saturation_cv(inc(k), ctxinfo, &
@@ -1561,55 +1561,44 @@ contains
    end subroutine LoisThermoHydro_Saturation_cv
 
    ! In the sens P(iph) = Pref + f_PressionCapillaire(iph)
-   subroutine LoisThermoHydro_PressionCapillaire_cv(rt, inc, ctxinfo, &
+   subroutine LoisThermoHydro_PressionCapillaire_cv(rocktype, inc, &
                                                     NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                                     dXssurdXp, &
                                                     val, dval)
-
-      ! input
-      integer, intent(in) :: rt(IndThermique + 1)
+      integer, intent(in) :: rocktype
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      type(ContextInfo), intent(in) :: ctxinfo
-      integer, intent(in) :: &
-         NumIncTotalPrimCV(NbIncTotalPrimMax), &
-         NumIncTotalSecondCV(NbEqFermetureMax)
-      double precision, intent(in) :: & ! (col, row) index order
-         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
-
-      ! output
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
-      ! tmp
-      double precision :: f, dSf(NbPhase), dfS_secd
-      integer :: iph, j, jph, k
+      double precision :: dSf(NbPhase), dfS_secd
+      integer :: iph, j, jph, k, context, nb_phases
 
-      val(:) = 0.d0
-      dval(:, :) = 0.d0
-
+      val = 0.d0
+      dval = 0.d0
+      context = inc%ic
       do iph = 1, NbPhase
-
-         call f_PressionCapillaire(rt, iph, inc%Saturation, f, dSf)
-
-         val(iph) = f
-
-         dfS_secd = dSf(ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente))
-
-         do j = 1, ctxinfo%NbPhasePresente - 1
-            ! Look for S, is it primary or secondary unknowns ?
-            ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
-            IF (ANY(NumIncTotalPrimCV == j + ctxinfo%NbIncPTC)) THEN ! S is prim
-               jph = ctxinfo%NumPhasePresente(j)
-               do k = 1, NbIncTotalPrimMax
-                  if (NumIncTotalPrimCV(k) == j + ctxinfo%NbIncPTC) then
-                     dval(k, iph) = dSf(jph) - dfS_secd
-                  endif
-               enddo
-            ELSE if (inc%ic < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
-               call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
-            ENDIF
-         enddo
-
+         call f_PressionCapillaire(rocktype, iph, inc%Saturation, val(iph), dSf)
+         nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
+         dfS_secd = dSf(NumPhasePresente_ctx(nb_phases, context)) ! FIXME: Last saturation is eliminated
+         if (nb_phases > 1) then
+            do j = 1, nb_phases - 1
+               ! Look for S, is it primary or secondary unknowns ?
+               ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
+               if (any(NumIncTotalPrimCV == j + NbIncPTC_ctx(context))) then ! S is prim
+                  jph = NumPhasePresente_ctx(j, context)
+                  do k = 1, NbIncTotalPrimMax
+                     if (NumIncTotalPrimCV(k) == j + NbIncPTC_ctx(context)) then
+                        dval(k, iph) = dSf(jph) - dfS_secd ! FIXME: Last saturation is eliminated
+                     endif
+                  enddo
+               else if (context < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
+                  call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
+               end if
+            end do
+         end if
       end do ! iph
 
    end subroutine LoisThermoHydro_PressionCapillaire_cv
