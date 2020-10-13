@@ -34,10 +34,10 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, rt, porovol)
+   subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
 
       type(Type_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rt(IndThermique + 1)
+      integer, intent(in) :: rocktype(IndThermique + 1)
       double precision, intent(in) :: porovol ! porovol
 
       integer :: iph, ic
@@ -53,18 +53,18 @@ contains
       S = inc%Saturation
       Pref = inc%Pression
       ! Compute Pg
-      call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
+      call f_PressionCapillaire(rocktype(1), GAS_PHASE, S, Pc, DSPc)
       Pg = Pref + Pc
 
       if (ic == LIQUID_CONTEXT) then
          ! air liq fugacity
          iph = LIQUID_PHASE
          ! f_Fugacity called with reference pressure
-         call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
+         call f_Fugacity(rocktype, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
 
          ! water liq fugacity, f_Fugacity called with reference pressure
-         call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
+         call f_Fugacity(rocktype, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
 
          ! don't divide inequality by Pg (migth be negative during Newton iteration)
@@ -109,12 +109,12 @@ contains
       elseif (ic == GAS_CONTEXT) then
          ! air
          do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
+            call f_Fugacity(rocktype, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
          Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
          ! water
          do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
+            call f_Fugacity(rocktype, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
          enddo
          Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
 

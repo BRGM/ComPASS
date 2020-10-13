@@ -55,7 +55,7 @@ contains
       S = inc%Saturation
       Pref = inc%Pression
       ! compute Pg
-      call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
+      call f_PressionCapillaire(rt(1), GAS_PHASE, S, Pc, DSPc)
       Pg = Pref + Pc
 
       ! RESRVOIR DOF
