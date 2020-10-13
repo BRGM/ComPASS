@@ -200,6 +200,7 @@ module LoisThermoHydro
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmDensiteMolaire   ! tmp values to simpfy notations of numerotation
    real(c_double), allocatable, target, dimension(:, :) :: wa_PermRel
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divPermRel
+   real(c_double), allocatable, target, dimension(:, :, :) :: wa_dSf
    real(c_double), allocatable, target, dimension(:, :, :, :) :: wa_divComp
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_SmComp
 
@@ -561,11 +562,8 @@ contains
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k))
       end do
 
-      do k = 1, NbIncLocal
-         call LoisThermoHydro_PermRel_cv( &
-            inc(k), rt(1, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-            wa_PermRel(:, k), wa_divPermRel(:, :, k))
-      end do
+      call LoisThermoHydro_PermRel_all_control_volumes( &
+         inc, rt(1, :), dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
 
       ! Reference Pressure (unknown index is 1)
       do k = 1, NbIncLocal
@@ -1412,17 +1410,17 @@ contains
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
-   subroutine LoisThermoHydro_all_relative_permeabilities(rock_type, phases, S, f, dSf)
-      integer, intent(in) :: rock_type
-      integer, intent(in) :: phases(:)
+   subroutine LoisThermoHydro_all_relative_permeabilities(rocktype, phase, S, f, dSf)
+      integer, intent(in) :: rocktype
+      integer, intent(in) :: phase(:)
       double precision, intent(in) :: S(NbPhase)
       double precision, intent(out) :: f(NbPhase)
       double precision, intent(out) :: dSf(NbPhase, NbPhase)
 
       integer i
 
-      do i = 1, size(phases)
-         call f_PermRel(rock_type, phases(i), S, f(i), dSf(:, i))
+      do i = 1, size(phase)
+         call f_PermRel(rocktype, phase(i), S, f(i), dSf(:, i))
       end do
 
    end subroutine LoisThermoHydro_all_relative_permeabilities
@@ -1473,6 +1471,89 @@ contains
          dXssurdXp, dfdX_secd, dval)
 
    end subroutine LoisThermoHydro_PermRel_cv
+
+   subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktype, kr, dsf)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
+      integer, intent(in) :: rocktype(:)
+      double precision, intent(out) :: kr(:, :)
+      double precision, intent(out) :: dSf(:, :, :)
+
+      integer :: i, k, iph, context, nb_phases
+
+      kr = 0.d0
+      dSf = 0.d0
+
+      do k = 1, size(inc)
+         context = inc(k)%ic
+         nb_phases = NbPhasePresente_ctx(context)
+         do i = 1, nb_phases
+            iph = NumPhasePresente_ctx(i, context)
+            call f_PermRel(rocktype(k), iph, inc(k)%Saturation, kr(i, k), dSf(:, i, k))
+         end do
+      end do
+
+   end subroutine LoisThermoHydro_all_relative_permeabilities_all_cv
+
+   subroutine LoisThermoHydro_all_dkrdX( &
+      inc, rocktype, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, dSf, dkr)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
+      integer, intent(in) :: rocktype(:)
+      double precision, intent(in) :: dXssurdXp(:, :, :)
+      double precision, intent(in) :: SmdXs(:, :)
+      integer, intent(in) :: NumIncTotalPrimCV(:, :)
+      integer, intent(in) :: NumIncTotalSecondCV(:, :)
+      double precision, intent(in) :: dSf(:, :, :)
+      double precision, intent(out) :: dkr(:, :, :)
+
+      integer :: k, i, iph, context, nb_phases
+      double precision :: dCf(NbComp)
+      double precision :: dfdX(NbIncTotalMax, NbPhase)
+      double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
+
+      dkr = 0.d0
+
+      ! WARNING: no variations with respect to molar fractions
+      dCf = 0.d0
+
+      do k = 1, size(inc)
+         context = inc(k)%ic
+         nb_phases = NbPhasePresente_ctx(context)
+         dfdX = 0.d0
+         dfdX_secd = 0.d0
+         do i = 1, nb_phases
+            iph = NumPhasePresente_ctx(i, context)
+            ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
+            call LoisThermoHydro_fill_gradient_dfdX(context, iph, 0.d0, 0.d0, dCf, dSf(:, i, k), dfdX(:, i))
+            ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+            ! and dfdX_secd w.r.t. the secondary unknowns
+            call LoisThermoHydro_dfdX_ps( &
+               context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), dkr(:, i, k), dfdX_secd(:, i))
+         end do
+         ! FIXME: why not calling on RHS?
+         !        because we don't use directly kr variations in Jacobian but divKrVisco...
+         call LoisThermoHydro_local_Schur( &
+            NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, dXssurdXp, dfdX_secd, dkr(:, :, k))
+      end do
+
+   end subroutine LoisThermoHydro_all_dkrdX
+
+   subroutine LoisThermoHydro_PermRel_all_control_volumes( &
+      inc, rocktype, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, kr, dkr)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
+      integer, intent(in) :: rocktype(:)
+      double precision, intent(in) :: dXssurdXp(:, :, :)
+      double precision, intent(in) :: SmdXs(:, :)
+      integer, intent(in) :: NumIncTotalPrimCV(:, :)
+      integer, intent(in) :: NumIncTotalSecondCV(:, :)
+      double precision, intent(out) :: kr(:, :)
+      double precision, intent(out) :: dkr(:, :, :)
+
+      call LoisThermoHydro_all_relative_permeabilities_all_cv( &
+         inc, rocktype, kr, wa_dSf)
+      call LoisThermoHydro_all_dkrdX( &
+         inc, rocktype, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_dSf, dkr)
+
+   end subroutine LoisThermoHydro_PermRel_all_control_volumes
 
    subroutine LoisThermoHydro_Inc_cv(index_inc, inc, &
                                      NumIncTotalPrimCV, NumIncTotalSecondCV, &
@@ -2445,6 +2526,7 @@ contains
       allocate (wa_SmDensiteMolaire(NbPhase, max_nb_control_volumes))
       allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
       allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
+      allocate (wa_dSf(NbPhase, NbPhase, max_nb_control_volumes))
       allocate (wa_divComp(NbIncTotalPrimMax, NbComp, NbPhase, max_nb_control_volumes))
       allocate (wa_SmComp(NbComp, NbPhase, max_nb_control_volumes))
 
@@ -2461,6 +2543,7 @@ contains
       deallocate (wa_SmDensiteMolaire)
       deallocate (wa_PermRel)
       deallocate (wa_divPermRel)
+      deallocate (wa_dSf)
       deallocate (wa_divComp)
       deallocate (wa_SmComp)
 
