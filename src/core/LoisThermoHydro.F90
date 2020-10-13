@@ -200,6 +200,8 @@ module LoisThermoHydro
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmDensiteMolaire   ! tmp values to simpfy notations of numerotation
    real(c_double), allocatable, target, dimension(:, :) :: wa_PermRel
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divPermRel
+   real(c_double), allocatable, target, dimension(:, :, :, :) :: wa_divComp
+   real(c_double), allocatable, target, dimension(:, :, :) :: wa_SmComp
 
    ! tmp values to simpfy notations of numerotation
    ! ex. NbPhasePresente = NbPhasePresente_ctx(inc%ic)
@@ -530,10 +532,6 @@ contains
          SmDensiteMolaireKrViscoEnthalpie(NbPhase, NbIncLocal)
 
       double precision :: &
-         divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
-         SmComp(NbComp, NbPhase)
-
-      double precision :: &
          EnergieInterne(NbPhase), &
          divEnergieInterne(NbIncTotalPrimMax, NbPhase), &
          SmEnergieInterne(NbPhase), &
@@ -542,7 +540,7 @@ contains
          divEnthalpie(NbIncTotalPrimMax, NbPhase), &
          SmEnthalpie(NbPhase)
 
-      integer :: k, i, icp, iph
+      integer :: k, i, icp, iph, context
       type(ContextInfo) :: ctxinfo
 
       do k = 1, NbIncLocal
@@ -576,20 +574,23 @@ contains
             divPression(:, k), SmPression(k))
       end do
 
+      ! Other equilibriums
+      do k = 1, NbIncLocal
+         context = inc(k)%ic
+         do i = 2 + IndThermique, NbIncPTC_ctx(context) ! loop over index of Components
+            iph = NumIncPTC2NumIncComp_phase_ctx(i, context) ! phase corresponding to unknown i
+            icp = NumIncPTC2NumIncComp_comp_ctx(i, context) ! component corresponding to unknown i
+            call LoisThermoHydro_Inc_cv(i, inc(k), &
+                                        NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+                                        dXssurdXp(:, :, k), SmdXs(:, k), &
+                                        wa_divComp(:, icp, iph, k), wa_SmComp(icp, iph, k))
+         enddo
+      end do
+
       do k = 1, NbIncLocal
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)
-
-         ! Comp
-         do i = 2 + IndThermique, ctxinfo%NbIncPTC ! loop over index of Components
-            iph = ctxinfo%NumIncPTC2NumIncComp_phase(i) ! phase corresponding to unknown i
-            icp = ctxinfo%NumIncPTC2NumIncComp_comp(i) ! component corresponding to unknown i
-            call LoisThermoHydro_Inc_cv(i, inc(k), &
-                                        NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                        dXssurdXp(:, :, k), SmdXs(:, k), &
-                                        divComp(:, icp, iph), SmComp(icp, iph))
-         enddo
 
          ! Pression Capillaire
          call LoisThermoHydro_PressionCapillaire_cv(rt(:, k), inc(k), ctxinfo, &
@@ -609,7 +610,7 @@ contains
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
             wa_PermRel(:, k), wa_divPermRel(:, :, k), &
             wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
-            divComp, SmComp, &
+            wa_divComp(:, :, :, k), wa_SmComp(:, :, k), &
             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             dXssurdXp(:, :, k), SmdXs(:, k), &
             DensiteMolaireKrViscoComp(:, :, k), &
@@ -620,7 +621,7 @@ contains
          call LoisThermoHydro_DensiteMolaireSatComp_cv( &
             inc(k), ctxinfo, divSaturation(:, :, k), &
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
-            divComp, SmComp, &
+            wa_divComp(:, :, :, k), wa_SmComp(:, :, k), &
             NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             dXssurdXp(:, :, k), SmdXs(:, k), &
             DensiteMolaireSatComp(:, :, k), &
@@ -2455,6 +2456,8 @@ contains
       allocate (wa_SmDensiteMolaire(NbPhase, max_nb_control_volumes))
       allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
       allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
+      allocate (wa_divComp(NbIncTotalPrimMax, NbComp, NbPhase, max_nb_control_volumes))
+      allocate (wa_SmComp(NbComp, NbPhase, max_nb_control_volumes))
 
    end subroutine LoisThermoHydro_allocate
 
@@ -2469,6 +2472,8 @@ contains
       deallocate (wa_SmDensiteMolaire)
       deallocate (wa_PermRel)
       deallocate (wa_divPermRel)
+      deallocate (wa_divComp)
+      deallocate (wa_SmComp)
 
       ! densite massique
       deallocate (DensiteMassiqueCell)
