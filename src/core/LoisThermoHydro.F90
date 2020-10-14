@@ -1630,22 +1630,28 @@ contains
       double precision :: dSf(NbPhase), dfS_secd
       integer :: iph, j, jph, k, context, nb_phases
 
+      ! Pc only depends on saturations
+      ! We are only interested in actual values for phases (absolute indexing)
+      ! and derivates with respect to primary variables that are used in Jacobian
+      ! CHECKME: it may be necessary to compute capillary pressure for absent phases to test for apparition
+
       val = 0.d0
       dval = 0.d0
       context = inc%ic
+      nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
       do iph = 1, NbPhase
          call f_PressionCapillaire(rocktype, iph, inc%Saturation, val(iph), dSf)
-         nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
-         dfS_secd = dSf(NumPhasePresente_ctx(nb_phases, context)) ! FIXME: Last saturation is eliminated
          if (nb_phases > 1) then
+            dfS_secd = dSf(NumPhasePresente_ctx(nb_phases, context)) ! FIXME: Last saturation is eliminated
             do j = 1, nb_phases - 1
                ! Look for S, is it primary or secondary unknowns ?
                ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
-               if (any(NumIncTotalPrimCV == j + NbIncPTC_ctx(context))) then ! S is prim
-                  jph = NumPhasePresente_ctx(j, context)
+               if (any(NumIncTotalPrimCV == j + NbIncPTC_ctx(context))) then
                   do k = 1, NbIncTotalPrimMax
-                     if (NumIncTotalPrimCV(k) == j + NbIncPTC_ctx(context)) then
+                     if (NumIncTotalPrimCV(k) == j + NbIncPTC_ctx(context)) then ! Sjph is primary
+                        jph = NumPhasePresente_ctx(j, context)
                         dval(k, iph) = dSf(jph) - dfS_secd ! FIXME: Last saturation is eliminated
+                        exit
                      endif
                   enddo
                else if (context < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
