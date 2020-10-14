@@ -192,6 +192,8 @@ module LoisThermoHydro
       SmDensiteMolaireEnergieInterneSatNode
 
    ! work arrays - with wa_ prefix
+   ! FIXME: wa_Darcy_rocktypes is to be removed... a one dimension array for rocktypes
+   integer(c_int), allocatable, target, dimension(:) :: wa_Darcy_rocktypes
    real(c_double), allocatable, target, dimension(:, :) :: wa_UnsurViscosite
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divUnsurViscosite
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmUnsurViscosite   ! tmp values to simpfy notations of numerotation
@@ -485,7 +487,7 @@ contains
 
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
 
-      integer, intent(in) :: rt(IndThermique + 1, NbIncLocal)
+      integer(c_int), intent(in) :: rt(IndThermique + 1, NbIncLocal)
 
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
@@ -543,6 +545,8 @@ contains
       integer :: k, i, icp, iph, context
       type(ContextInfo) :: ctxinfo
 
+      wa_Darcy_rocktypes = rt(1, :)
+
       do k = 1, NbIncLocal
          call LoisThermoHydro_viscosite_cv( &
             inc(k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
@@ -562,7 +566,7 @@ contains
       end do
 
       call LoisThermoHydro_PermRel_all_control_volumes( &
-         inc, rt(1, :), dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
+         inc, wa_Darcy_rocktypes, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
 
       ! Reference Pressure (unknown index is 1)
       do k = 1, NbIncLocal
@@ -586,7 +590,7 @@ contains
 
       do k = 1, NbIncLocal
          call LoisThermoHydro_PressionCapillaire_cv( &
-            rt(1, k), inc(k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dXssurdXp(:, :, k), &
+            wa_Darcy_rocktypes(k), inc(k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dXssurdXp(:, :, k), &
             PressionCap(:, k), divPressionCap(:, :, k))
       end do
 
@@ -2439,6 +2443,7 @@ contains
 #endif
 
       ! Work arrays
+      allocate (wa_Darcy_rocktypes(max_nb_control_volumes))
       allocate (wa_UnsurViscosite(NbPhase, max_nb_control_volumes))
       allocate (wa_divUnsurViscosite(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
       allocate (wa_SmUnsurViscosite(NbPhase, max_nb_control_volumes))
@@ -2456,6 +2461,7 @@ contains
    subroutine LoisThermoHydro_free
 
       ! Work arrays
+      deallocate (wa_Darcy_rocktypes)
       deallocate (wa_UnsurViscosite)
       deallocate (wa_divUnsurViscosite)
       deallocate (wa_SmUnsurViscosite)
