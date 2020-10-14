@@ -565,7 +565,8 @@ contains
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k))
       end do
 
-      call LoisThermoHydro_PermRel_all_control_volumes( &
+      if (NbPhase > 1) &
+         call LoisThermoHydro_PermRel_all_control_volumes( &
          inc, wa_Darcy_rocktypes, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
 
       ! Reference Pressure (unknown index is 1)
@@ -606,17 +607,30 @@ contains
                                             divSaturation(:, :, k))
 
          ! term: DensiteMolaire * PermRel / Viscosite * Comp
-         call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( &
-            inc(k), ctxinfo, &
-            wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
-            wa_PermRel(:, k), wa_divPermRel(:, :, k), &
-            wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
-            wa_divComp(:, :, :, k), wa_SmComp(:, :, k), &
-            NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-            dXssurdXp(:, :, k), SmdXs(:, k), &
-            DensiteMolaireKrViscoComp(:, :, k), &
-            divDensiteMolaireKrViscoComp(:, :, :, k), &
-            SmDensiteMolaireKrViscoComp(:, :, k))
+         if (NbPhase > 1) then
+            call LoisThermoHydro_DensiteMolaireKrViscoComp_cv( &
+               inc(k), ctxinfo, &
+               wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
+               wa_PermRel(:, k), wa_divPermRel(:, :, k), &
+               wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
+               wa_divComp(:, :, :, k), wa_SmComp(:, :, k), &
+               NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+               dXssurdXp(:, :, k), SmdXs(:, k), &
+               DensiteMolaireKrViscoComp(:, :, k), &
+               divDensiteMolaireKrViscoComp(:, :, :, k), &
+               SmDensiteMolaireKrViscoComp(:, :, k))
+         else
+            call LoisThermoHydro_DensiteMolaireKrViscoComp_cv_single_phase( &
+               inc(k), ctxinfo, &
+               wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
+               wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
+               wa_divComp(:, :, :, k), wa_SmComp(:, :, k), &
+               NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+               dXssurdXp(:, :, k), SmdXs(:, k), &
+               DensiteMolaireKrViscoComp(:, :, k), &
+               divDensiteMolaireKrViscoComp(:, :, :, k), &
+               SmDensiteMolaireKrViscoComp(:, :, k))
+         endif
 
          ! term: DensiteMolaire * Saturation * Comp
          call LoisThermoHydro_DensiteMolaireSatComp_cv( &
@@ -656,15 +670,26 @@ contains
             SmDensiteMolaireEnergieInterneSat(:, k))
 
          ! term: DensiteMolaire * PermRel / Viscosite * Enthalpie
-         call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
-            ctxinfo, &
-            wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
-            wa_PermRel(:, k), wa_divPermRel(:, :, k), &
-            wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
-            Enthalpie, divEnthalpie, SmEnthalpie, &
-            DensiteMolaireKrViscoEnthalpie(:, k), &
-            divDensiteMolaireKrViscoEnthalpie(:, :, k), &
-            SmDensiteMolaireKrViscoEnthalpie(:, k))
+         if (NbPhase > 1) then
+            call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv( &
+               ctxinfo, &
+               wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
+               wa_PermRel(:, k), wa_divPermRel(:, :, k), &
+               wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
+               Enthalpie, divEnthalpie, SmEnthalpie, &
+               DensiteMolaireKrViscoEnthalpie(:, k), &
+               divDensiteMolaireKrViscoEnthalpie(:, :, k), &
+               SmDensiteMolaireKrViscoEnthalpie(:, k))
+         else
+            call LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv_single_phase( &
+               ctxinfo, &
+               wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k), &
+               wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k), &
+               Enthalpie, divEnthalpie, SmEnthalpie, &
+               DensiteMolaireKrViscoEnthalpie(:, k), &
+               divDensiteMolaireKrViscoEnthalpie(:, :, k), &
+               SmDensiteMolaireKrViscoEnthalpie(:, k))
+         end if
 #endif
 
       end do
@@ -2025,7 +2050,7 @@ contains
                                                            dXssurdXp, SmdXs, &
                                                            val, dval, Smval)
 
-      ! input
+! input
       type(TYPE_IncCVReservoir), intent(in) :: inc
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
@@ -2050,13 +2075,13 @@ contains
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
 
-      ! output
+! output
       double precision, intent(out) :: &
          val(NbComp, NbPhase), &
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
 
-      ! tmp
+! tmp
       integer :: i, iph, icp, k, j, jcp, jph, numj, s
       double precision :: dv, tmp_val
 
@@ -2066,19 +2091,19 @@ contains
       dval(:, :, :) = 0.d0
       Smval(:, :) = 0.d0
 
-      ! 1. val
+! 1. val
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
          do icp = 1, NbComp
-            ! only {alpha | alpha \in Q_k \cap P_i} is useful
-            ! To understand better, change the order of the loop do i=.. and the loop do icp=..
+! only {alpha | alpha \in Q_k \cap P_i} is useful
+! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
                val(icp, i) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
                              *inc%Comp(icp, iph)
             end if
          end do
-         ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-         ! 2.1.1 compute dvi=div(DensiteMolaire*Kr/Viscosite), tmp vector
+! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
+! 2.1.1 compute dvi=div(DensiteMolaire*Kr/Viscosite), tmp vector
          do k = 1, ctxinfo%NbIncTotalPrim
             dvi(k) = &
                divDensiteMolaire(k, i)*PermRel(iph)*UnsurViscosite(i) &
@@ -2088,31 +2113,122 @@ contains
 
          tmp_val = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
 
-         ! 2.1.2
+! 2.1.2
          do icp = 1, NbComp ! P_i
-            if (MCP(icp, iph) == 1) then
-               do k = 1, ctxinfo%NbIncTotalPrim
-                  dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
-                                    + tmp_val*divComp(k, icp, iph)
-               end do
-            end if
+         if (MCP(icp, iph) == 1) then
+         do k = 1, ctxinfo%NbIncTotalPrim
+            dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
+                              + tmp_val*divComp(k, icp, iph)
+         end do
+         end if
          end do ! end of P_i
-         ! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-         ! 2.2.1 compute dv=Sm(DensiteMolaire*Kr/Viscosite), tmp vector
+! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
+! 2.2.1 compute dv=Sm(DensiteMolaire*Kr/Viscosite), tmp vector
          dv = &
             SmDensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(iph)
          tmp_val = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
-         ! 2.2.2
+! 2.2.2
          do icp = 1, NbComp ! P_i
-            if (MCP(icp, iph) == 1) then
-               Smval(icp, i) = dv*inc%Comp(icp, iph) &
-                               + tmp_val*SmComp(icp, iph)
-            end if
+         if (MCP(icp, iph) == 1) then
+            Smval(icp, i) = dv*inc%Comp(icp, iph) &
+                            + tmp_val*SmComp(icp, iph)
+         end if
          end do
       end do ! end of 2.2
 
    end subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv
+
+   ! div and Sm of term: DensiteMolaire*Kr/Viscosite*Comp
+   subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv_single_phase(inc, ctxinfo, &
+                                                                        DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
+                                                                        UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
+                                                                        divComp, SmComp, &
+                                                                        NumIncTotalPrimCV, NumIncTotalSecondCV, &
+                                                                        dXssurdXp, SmdXs, &
+                                                                        val, dval, Smval)
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      type(ContextInfo), intent(in) :: ctxinfo
+      double precision, intent(in) :: &
+         DensiteMolaire(NbPhase), &
+         UnsurViscosite(NbPhase), &
+         !
+         divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
+         divUnsurViscosite(NbIncTotalPrimMax, NbPhase), &
+         divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
+         !
+         SmDensiteMolaire(NbPhase), &
+         SmUnSurViscosite(NbPhase), &
+         SmComp(NbComp, NbPhase)
+
+      integer, intent(in) :: &
+         NumIncTotalPrimCV(NbIncTotalPrimMax), &
+         NumIncTotalSecondCV(NbEqFermetureMax)
+
+      double precision, intent(in) :: & ! (col, row) index order
+         dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
+         SmdXs(NbEqFermetureMax)
+
+      double precision, intent(out) :: &
+         val(NbComp, NbPhase), &
+         dval(NbIncTotalPrimMax, NbComp, NbPhase), &
+         Smval(NbComp, NbPhase)
+
+      integer :: i, iph, icp, k, j, jcp, jph, numj, s
+      double precision :: dv, tmp_val
+
+      double precision :: dvi(NbIncTotalPrimMax)
+
+      val = 0.d0
+      dval = 0.d0
+      Smval = 0.d0
+
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
+         ! 1. val
+         do icp = 1, NbComp
+            ! only {alpha | alpha \in Q_k \cap P_i} is useful
+            ! To understand better, change the order of the loop do i=.. and the loop do icp=..
+            if (MCP(icp, iph) == 1) then ! P_i
+               val(icp, i) = DensiteMolaire(i)*UnsurViscosite(i) &
+                             *inc%Comp(icp, iph)
+            end if
+         end do
+         ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
+         ! 2.1.1 compute dvi=div(DensiteMolaire*Kr/Viscosite), tmp vector
+         do k = 1, ctxinfo%NbIncTotalPrim
+            dvi(k) = &
+               divDensiteMolaire(k, i)*UnsurViscosite(i) &
+               + divUnsurViscosite(k, i)*DensiteMolaire(i)
+         end do
+
+         tmp_val = DensiteMolaire(i)*UnsurViscosite(i)
+
+         ! 2.1.2
+         do icp = 1, NbComp ! P_i
+         if (MCP(icp, iph) == 1) then
+         do k = 1, ctxinfo%NbIncTotalPrim
+            dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
+                              + tmp_val*divComp(k, icp, iph)
+         end do
+         end if
+         end do ! end of P_i
+         ! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
+         ! 2.2.1 compute dv=Sm(DensiteMolaire*Kr/Viscosite), tmp vector
+         dv = &
+            SmDensiteMolaire(i)*UnsurViscosite(i) &
+            + SmUnSurViscosite(i)*DensiteMolaire(i)
+         tmp_val = DensiteMolaire(i)*UnsurViscosite(i)
+         ! 2.2.2
+         do icp = 1, NbComp ! P_i
+         if (MCP(icp, iph) == 1) then
+            Smval(icp, i) = dv*inc%Comp(icp, iph) &
+                            + tmp_val*SmComp(icp, iph)
+         end if
+         end do
+      end do
+
+   end subroutine LoisThermoHydro_DensiteMolaireKrViscoComp_cv_single_phase
 
    subroutine LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv( &
       inc, ctxinfo, divSaturation, &
@@ -2231,6 +2347,60 @@ contains
       end do
 
    end subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv
+
+   subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv_single_phase( &
+      ctxinfo, &
+      DensiteMolaire, divDensiteMolaire, SmDensiteMolaire, &
+      UnsurViscosite, divUnsurViscosite, SmUnSurViscosite, &
+      Enthalpie, divEnthalpie, SmEnthalpie, &
+      val, dval, Smval)
+
+      type(ContextInfo), intent(in) :: ctxinfo
+      double precision, intent(in) :: &
+         DensiteMolaire(NbPhase), &
+         UnsurViscosite(NbPhase), &
+         !
+         divDensiteMolaire(NbIncTotalPrimMax, NbPhase), &
+         divUnsurViscosite(NbIncTotalPrimMax, NbPhase), &
+         !
+         SmDensiteMolaire(NbPhase), &
+         SmUnSurViscosite(NbPhase), &
+         !
+         Enthalpie(NbPhase), &
+         divEnthalpie(NbIncTotalPrimMax, NbPhase), &
+         SmEnthalpie(NbPhase)
+
+      ! output
+      double precision, intent(out) :: &
+         val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
+
+      ! tmp
+      integer :: i, iph, k
+
+      val(:) = 0.d0
+      dval(:, :) = 0.d0
+      Smval(:) = 0.d0
+
+      do i = 1, ctxinfo%NbPhasePresente
+         iph = ctxinfo%NumPhasePresente(i)
+         ! 1. val
+         val(i) = DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i)
+         ! 2. dval
+         do k = 1, ctxinfo%NbIncTotalPrim
+
+            dval(k, i) = &
+               divDensiteMolaire(k, i)*UnsurViscosite(i)*Enthalpie(i) &
+               + divUnsurViscosite(k, i)*DensiteMolaire(i)*Enthalpie(i) &
+               + divEnthalpie(k, i)*DensiteMolaire(i)*UnsurViscosite(i)
+         end do
+         ! 3. Smval
+         Smval(i) = &
+            SmDensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i) &
+            + SmUnSurViscosite(i)*DensiteMolaire(i)*Enthalpie(i) &
+            + SmEnthalpie(i)*DensiteMolaire(i)*UnsurViscosite(i)
+      end do
+
+   end subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv_single_phase
 
    subroutine LoisThermoHydro_divP_wellinj(NbIncLocal)
 
@@ -2443,6 +2613,8 @@ contains
 #endif
 
       ! Work arrays
+      if (NbPhase < 1) &
+         call CommonMPI_abort("Unconsistent number of phases!")
       allocate (wa_Darcy_rocktypes(max_nb_control_volumes))
       allocate (wa_UnsurViscosite(NbPhase, max_nb_control_volumes))
       allocate (wa_divUnsurViscosite(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
@@ -2450,8 +2622,10 @@ contains
       allocate (wa_DensiteMolaire(NbPhase, max_nb_control_volumes))
       allocate (wa_divDensiteMolaire(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
       allocate (wa_SmDensiteMolaire(NbPhase, max_nb_control_volumes))
-      allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
-      allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
+      if (NbPhase > 1) then
+         allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
+         allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
+      end if
       allocate (wa_dSf(NbPhase, NbPhase, max_nb_control_volumes))
       allocate (wa_divComp(NbIncTotalPrimMax, NbComp, NbPhase, max_nb_control_volumes))
       allocate (wa_SmComp(NbComp, NbPhase, max_nb_control_volumes))
@@ -2468,8 +2642,10 @@ contains
       deallocate (wa_DensiteMolaire)
       deallocate (wa_divDensiteMolaire)
       deallocate (wa_SmDensiteMolaire)
-      deallocate (wa_PermRel)
-      deallocate (wa_divPermRel)
+      if (NbPhase > 1) then
+         deallocate (wa_PermRel)
+         deallocate (wa_divPermRel)
+      end if
       deallocate (wa_dSf)
       deallocate (wa_divComp)
       deallocate (wa_SmComp)
