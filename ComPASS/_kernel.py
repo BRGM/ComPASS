@@ -22,9 +22,9 @@ def load_eos(eosname):
     #     if key not in gdict:
     #         gdict[key] = kdict[key]
     kernel.init_model()
-    kernel.create_simulation_object(mpi.proc_rank)
     from .simulation import _simulation_object
 
+    kernel.register_simulation(_simulation_object.self)
     return _simulation_object.self
 
 
@@ -212,6 +212,7 @@ simulation_wrapper = Wrapper(
         "get_global_fracture_thermal_conductivity_buffer",
         "porous_volume_Darcy",
         "petrophysics",
+        "set_fill_kr_arrays",
         # "cell_porosity",
         # "fracture_porosity",
         # "cell_permeability",

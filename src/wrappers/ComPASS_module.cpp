@@ -34,6 +34,7 @@ void add_freeflow_wrappers(py::module &);
 
 // FIXME: this should be elsewhere as it internals and not wrappers
 void add_simulation_pyinternals(py::module &);
+void add_kr_pyinternals(py::module &);
 
 #include "preprocessor_utils.h"
 
@@ -64,4 +65,5 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
 
    // FIXME: this should be elsewhere as it is more an internal than a wrapper
    add_simulation_pyinternals(module);
+   add_kr_pyinternals(module);
 }

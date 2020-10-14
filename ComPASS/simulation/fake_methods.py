@@ -45,3 +45,5 @@ from .bc import (
 from ..io.mesh import write_mesh
 
 from .utils import facenodes
+
+from ..petrophysics.kr import set_kr_functions
