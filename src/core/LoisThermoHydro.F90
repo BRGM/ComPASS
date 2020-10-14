@@ -248,7 +248,6 @@ module LoisThermoHydro
       LoisThermoHydro_dfdX_ps, & ! fill dfdX_prim/dfdX_secd with the derivatives w.r.t. the primary/secondary unknowns
       LoisThermoHydro_DensiteMolaire_cv, & ! prim divs: densitemolaire
       LoisThermoHydro_Viscosite_cv, & !            1/viscosite
-      LoisThermoHydro_PermRel_cv, & !            Permrel
       LoisThermoHydro_Inc_cv, & !            called with Pression and Temperature
       LoisThermoHydro_PressionCapillaire_cv, & !            Pressioncapillaire
       LoisThermoHydro_Saturation_cv, & !            Saturation
@@ -1409,68 +1408,6 @@ contains
          dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
    end subroutine LoisThermoHydro_densitemolaire_cv
-
-   subroutine LoisThermoHydro_all_relative_permeabilities(rocktype, phase, S, f, dSf)
-      integer, intent(in) :: rocktype
-      integer, intent(in) :: phase(:)
-      double precision, intent(in) :: S(NbPhase)
-      double precision, intent(out) :: f(NbPhase)
-      double precision, intent(out) :: dSf(NbPhase, NbPhase)
-
-      integer i
-
-      do i = 1, size(phase)
-         call f_PermRel(rocktype, phase(i), S, f(i), dSf(:, i))
-      end do
-
-   end subroutine LoisThermoHydro_all_relative_permeabilities
-
-   subroutine LoisThermoHydro_PermRel_cv(inc, rock_type, dXssurdXp, SmdXs, &
-                                         NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval)
-      type(TYPE_IncCVReservoir), intent(in)  :: inc
-      integer, intent(in) :: rock_type
-      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
-      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
-      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
-      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
-      double precision, intent(out) :: val(NbPhase)
-      double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
-
-      integer :: i, iph, context, nb_phases
-      double precision :: dSf(NbPhase, NbPhase), dCf(NbComp)
-      double precision :: dfdX(NbIncTotalMax, NbPhase)
-      double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
-
-      val = 0.d0
-      dval = 0.d0
-      dfdX_secd = 0.d0
-
-      ! WARNING: no variations with respect to molar fractions
-      dCf = 0.d0
-
-      context = inc%ic
-      nb_phases = NbPhasePresente_ctx(context)
-      call LoisThermoHydro_all_relative_permeabilities( &
-         rock_type, NumPhasePresente_ctx(1:nb_phases, context), &
-         inc%Saturation, val, dSf)
-
-      do i = 1, nb_phases
-         iph = NumPhasePresente_ctx(i, context)
-         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
-         call LoisThermoHydro_fill_gradient_dfdX(context, iph, 0.d0, 0.d0, dCf, dSf(:, i), dfdX(:, i))
-         ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
-         ! and dfdX_secd w.r.t. the secondary unknowns
-         call LoisThermoHydro_dfdX_ps(context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), &
-                                      dval(:, i), dfdX_secd(:, i))
-      end do
-
-      ! FIXME: why not calling on RHS?
-      !        because we don't use directly kr variations in Jacobian but divKrVisco...
-      call LoisThermoHydro_local_Schur( &
-         NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
-         dXssurdXp, dfdX_secd, dval)
-
-   end subroutine LoisThermoHydro_PermRel_cv
 
    subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktype, kr, dsf)
       type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
