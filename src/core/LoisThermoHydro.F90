@@ -1425,7 +1425,7 @@ contains
          nb_phases = NbPhasePresente_ctx(context)
          do i = 1, nb_phases
             iph = NumPhasePresente_ctx(i, context)
-            call f_PermRel(rocktype(k), iph, inc(k)%Saturation, kr(i, k), dSf(:, i, k))
+            call f_PermRel(rocktype(k), iph, inc(k)%Saturation, kr(iph, k), dSf(:, iph, k))
          end do
       end do
 
@@ -1460,11 +1460,11 @@ contains
          do i = 1, nb_phases
             iph = NumPhasePresente_ctx(i, context)
             ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
-            call LoisThermoHydro_fill_gradient_dfdX(context, iph, 0.d0, 0.d0, dCf, dSf(:, i, k), dfdX(:, i))
+            call LoisThermoHydro_fill_gradient_dfdX(context, iph, 0.d0, 0.d0, dCf, dSf(:, iph, k), dfdX(:, iph))
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
             call LoisThermoHydro_dfdX_ps( &
-               context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, i), dkr(:, i, k), dfdX_secd(:, i))
+               context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
          end do
          ! FIXME: why not calling on RHS?
          !        because we don't use directly kr variations in Jacobian but divKrVisco...
@@ -2069,24 +2069,20 @@ contains
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
-               val(icp, i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
+               val(icp, i) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
                              *inc%Comp(icp, iph)
             end if
          end do
-      end do
-
-      ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
+         ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
          ! 2.1.1 compute dvi=div(DensiteMolaire*Kr/Viscosite), tmp vector
          do k = 1, ctxinfo%NbIncTotalPrim
             dvi(k) = &
-               divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i) &
-               + divPermRel(k, i)*DensiteMolaire(i)*UnsurViscosite(i) &
-               + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(i)
+               divDensiteMolaire(k, i)*PermRel(iph)*UnsurViscosite(i) &
+               + divPermRel(k, iph)*DensiteMolaire(i)*UnsurViscosite(i) &
+               + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(iph)
          end do
 
-         tmp_val = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
+         tmp_val = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
 
          ! 2.1.2
          do icp = 1, NbComp ! P_i
@@ -2097,17 +2093,12 @@ contains
                end do
             end if
          end do ! end of P_i
-
-      end do ! end of 2.1
-
-      ! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
+         ! 2.2. Sm(DensiteMolaire*Kr/Viscosite*C_i^alpha)
          ! 2.2.1 compute dv=Sm(DensiteMolaire*Kr/Viscosite), tmp vector
          dv = &
-            SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i) &
-            + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)
-         tmp_val = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
+            SmDensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
+            + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(iph)
+         tmp_val = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
          ! 2.2.2
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
@@ -2209,37 +2200,30 @@ contains
          val(NbPhase), dval(NbIncTotalPrimMax, NbPhase), Smval(NbPhase)
 
       ! tmp
-      integer :: i, k
+      integer :: i, iph, k
 
       val(:) = 0.d0
       dval(:, :) = 0.d0
       Smval(:) = 0.d0
 
-      ! 1. val
       do i = 1, ctxinfo%NbPhasePresente
-         val(i) = DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i)
-      end do
-
-      ! 2. dval
-      do i = 1, ctxinfo%NbPhasePresente
-
+         iph = ctxinfo%NumPhasePresente(i)
+         ! 1. val
+         val(i) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i)
+         ! 2. dval
          do k = 1, ctxinfo%NbIncTotalPrim
 
             dval(k, i) = &
-               divDensiteMolaire(k, i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i) &
-               + divPermRel(k, i)*DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i) &
-               + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(i)*Enthalpie(i) &
-               + divEnthalpie(k, i)*DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
+               divDensiteMolaire(k, i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i) &
+               + divPermRel(k, iph)*DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i) &
+               + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(iph)*Enthalpie(i) &
+               + divEnthalpie(k, i)*DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
          end do
-      end do
-
-      ! 3. Smval
-      do i = 1, ctxinfo%NbPhasePresente
-
+         ! 3. Smval
          Smval(i) = &
-            SmDensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)*Enthalpie(i) &
-            + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(i)*Enthalpie(i) &
-            + SmEnthalpie(i)*DensiteMolaire(i)*PermRel(i)*UnsurViscosite(i)
+            SmDensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i) &
+            + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(iph)*Enthalpie(i) &
+            + SmEnthalpie(i)*DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
       end do
 
    end subroutine LoisThermoHydro_DensiteMolaireKrViscoEnthalpie_cv
