@@ -93,6 +93,7 @@ set(ComPASSCore_SRCS
     MeshSchema.F90
     Newton.F90
     Residu.F90
+    Simulation.cpp
     SolvePetsc.F90
     SyncPetsc.F90
     VAGFrac.F90
