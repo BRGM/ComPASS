@@ -987,6 +987,7 @@ contains
          end do
 
 #ifdef _WIP_FREEFLOW_STRUCTURES_
+         ! FIXME: CRITICAL: we should check against a freeflow tag
          if (ic > 2**NbPhase - 1 .and. NbPhasePresente > 1) then ! FIXME: loop over freeflow dof only, avoid reservoir node
             ! Correct the value for the last saturation
             ! Remark : it is possible that no saturation belongs to the unknowns (when liquid outflow)
