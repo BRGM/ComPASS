@@ -214,6 +214,7 @@ foreach(_conf ${CONFIGURATIONS})
                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
   )
   target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
+  target_include_directories(${CONF_TARGETNAME} PUBLIC core/include)
   target_include_directories(${CONF_TARGETNAME} PUBLIC wrappers)
   target_include_directories(
     ${CONF_TARGETNAME} PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/common
