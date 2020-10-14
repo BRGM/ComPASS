@@ -9,26 +9,60 @@
 
 #include "Simulation.h"
 
-#include <memory>
-
 namespace ComPASS {
 
+/** Alternative 1: the simulation object is on the C++ side *
+
 std::unique_ptr<Simulation> simulation_handle;
+py::object simulation_pyhandle = py::none();
 
 void create_simulation_object(int proc) {
-   if (simulation_handle)
+   if (simulation_handle) {
+      assert(!simulation_pyhandle.is_none());
       throw std::runtime_error("A simulation object has already been defined.");
+   }
+   assert(simulation_pyhandle.is_none());
    simulation_handle = std::make_unique<Simulation>(proc);
+   simulation_pyhandle = py::cast(simulation_handle.get());
+   assert(simulation_handle.get() == simulation_pyhandle.cast<Simulation*>());
 }
 
-Simulation* simulation_object() { return simulation_handle.get(); }
+Simulation* get_simulation_handle() { return simulation_handle.get(); }
+py::object& get_simulation_pyhandle() { return simulation_pyhandle; }
+
+/**/
+
+/** Alternative 2: Use the python simulation object */
+py::object simulation = py::none();
+
+void register_simulation(py::object& obj) {
+   if (!simulation.is_none())
+      throw std::runtime_error(
+          "A simulation object has already been registered.");
+   simulation = obj;
+   assert(!simulation.is_none());
+}
+
+void release_simulation() {
+   if (!simulation.is_none()) simulation = py::none();
+}
+
+py::object& get_simulation() { return simulation; }
+
+/**/
 
 }  // namespace ComPASS
 
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
-
 void add_simulation_pyinternals(py::module& module) {
+   /** Alternative 1: the simulation object is on the C++ side *
+
+   py::class_<ComPASS::Simulation>(module, "Simulation");
    module.def("create_simulation_object", &ComPASS::create_simulation_object,
               py::arg("proc") = -1);
+
+   /**/
+
+   /** Alternative 2: Use the python simulation object */
+   module.def("register_simulation", &ComPASS::register_simulation);
+   module.def("release_simulation", &ComPASS::release_simulation);
 }

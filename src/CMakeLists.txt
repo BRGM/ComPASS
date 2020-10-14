@@ -89,6 +89,7 @@ set(ComPASSCore_SRCS
     LocalMesh.F90
     IncPrimSecd.F90
     IncPrimSecdTypes.F90
+    LoisThermoHydro.cpp
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90

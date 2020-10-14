@@ -8,7 +8,7 @@
 
 module LoisThermoHydro
 
-   use, intrinsic :: iso_c_binding, only: c_double, c_int
+   use, intrinsic :: iso_c_binding, only: c_double, c_int, c_size_t, c_ptr, c_loc
    use CommonMPI, only: commRank, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
@@ -224,6 +224,19 @@ module LoisThermoHydro
          Num2PhasesEqEquilibre(2, NbEqEquilibreMax), &
          NumIncComp2NumIncPTC(NbComp, NbPhase)
    end type ContextInfo
+
+   interface
+      subroutine fill_kr_arrays(n, np, states, rocktypes, kr, dkrdS) &
+         bind(C, name="fill_kr_arrays")
+         use, intrinsic :: iso_c_binding, only: c_int, c_size_t, c_ptr
+         integer(c_size_t), value, intent(in) :: n !< size of *states* array
+         integer(c_int), value, intent(in)  :: np !< number of phases
+         type(c_ptr), value, intent(in)  :: states
+         type(c_ptr), value, intent(in)  :: rocktypes
+         type(c_ptr), value, intent(in)  :: kr
+         type(c_ptr), value, intent(in)  :: dkrdS
+      end subroutine fill_kr_arrays
+   end interface
 
    public :: &
       LoisThermoHydro_allocate, &
@@ -1438,25 +1451,19 @@ contains
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
-   subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktype, kr, dsf)
-      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
-      integer, intent(in) :: rocktype(:)
-      double precision, intent(out) :: kr(:, :)
-      double precision, intent(out) :: dSf(:, :, :)
+   subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktypes, kr, dsf)
+      type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
+      integer, dimension(:), target, intent(in) :: rocktypes
+      real(c_double), dimension(:, :), target, intent(out) :: kr
+      real(c_double), dimension(:, :, :), target, intent(out) :: dSf
 
-      integer :: i, k, iph, context, nb_phases
+      integer(c_size_t) :: n
 
-      kr = 0.d0
-      dSf = 0.d0
-
-      do k = 1, size(inc)
-         context = inc(k)%ic
-         nb_phases = NbPhasePresente_ctx(context)
-         do i = 1, nb_phases
-            iph = NumPhasePresente_ctx(i, context)
-            call f_PermRel(rocktype(k), iph, inc(k)%Saturation, kr(iph, k), dSf(:, iph, k))
-         end do
-      end do
+      n = size(inc)
+      if (n == 0) return ! nothing to do
+      call fill_kr_arrays( &
+         n, NbPhase, c_loc(inc(1)), c_loc(rocktypes(1)), &
+         c_loc(kr(1, 1)), c_loc(dSf(1, 1, 1)))
 
    end subroutine LoisThermoHydro_all_relative_permeabilities_all_cv
 
@@ -1468,7 +1475,7 @@ contains
       double precision, intent(in) :: SmdXs(:, :)
       integer, intent(in) :: NumIncTotalPrimCV(:, :)
       integer, intent(in) :: NumIncTotalSecondCV(:, :)
-      double precision, intent(in) :: dSf(:, :, :)
+      real(c_double), intent(in) :: dSf(:, :, :)
       double precision, intent(out) :: dkr(:, :, :)
 
       integer :: k, i, iph, context, nb_phases
@@ -1511,8 +1518,8 @@ contains
       double precision, intent(in) :: SmdXs(:, :)
       integer, intent(in) :: NumIncTotalPrimCV(:, :)
       integer, intent(in) :: NumIncTotalSecondCV(:, :)
-      double precision, intent(out) :: kr(:, :)
-      double precision, intent(out) :: dkr(:, :, :)
+      real(c_double), intent(out) :: kr(:, :)
+      real(c_double), intent(out) :: dkr(:, :, :)
 
       call LoisThermoHydro_all_relative_permeabilities_all_cv( &
          inc, rocktype, kr, wa_dSf)

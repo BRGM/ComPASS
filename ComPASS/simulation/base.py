@@ -224,6 +224,7 @@ def init(
     if kernel.has_freeflow_structures:  # FIXME: to be removed
         kernel.clear_freeflow_faces()
     mpi.synchronize()  # wait for every process to synchronize
+    simulation.set_kr_functions()
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
     atexit.register(_exit_eos_and_finalize)
@@ -566,5 +567,6 @@ def _petrophysics_statistics_on_global_mesh(fractures):
 
 
 def _exit_eos_and_finalize():
+    get_kernel().release_simulation()
     _sw.finalize_model()
     _sw.finalize()
