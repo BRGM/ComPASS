@@ -1,5 +1,6 @@
 import importlib
 
+from . import mpi
 
 kernel = None
 
@@ -21,6 +22,7 @@ def load_eos(eosname):
     #     if key not in gdict:
     #         gdict[key] = kdict[key]
     kernel.init_model()
+    kernel.create_simulation_object(mpi.proc_rank)
     from .simulation import _simulation_object
 
     return _simulation_object.self
