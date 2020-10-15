@@ -13,6 +13,8 @@ ComPASS
    developer_corner
    python_reference/ComPASS
    python_reference/modules
+   CPR-AMG_preconditioner
+   linear_solver_guide
 
 `ComPASS core reference <core_reference/index.html>`_
 
