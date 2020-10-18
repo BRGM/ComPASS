@@ -202,7 +202,7 @@ module LoisThermoHydro
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmDensiteMolaire   ! tmp values to simpfy notations of numerotation
    real(c_double), allocatable, target, dimension(:, :) :: wa_PermRel
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divPermRel
-   real(c_double), allocatable, target, dimension(:, :, :) :: wa_dSf
+   real(c_double), allocatable, target, dimension(:, :, :) :: wa_dfdS
    real(c_double), allocatable, target, dimension(:, :, :, :) :: wa_divComp
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_SmComp
 
@@ -1468,9 +1468,8 @@ contains
    end subroutine LoisThermoHydro_all_relative_permeabilities_all_cv
 
    subroutine LoisThermoHydro_all_dkrdX( &
-      inc, rocktype, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, dSf, dkr)
+      inc, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, dSf, dkr)
       type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
-      integer, intent(in) :: rocktype(:)
       double precision, intent(in) :: dXssurdXp(:, :, :)
       double precision, intent(in) :: SmdXs(:, :)
       integer, intent(in) :: NumIncTotalPrimCV(:, :)
@@ -1522,9 +1521,9 @@ contains
       real(c_double), intent(out) :: dkr(:, :, :)
 
       call LoisThermoHydro_all_relative_permeabilities_all_cv( &
-         inc, rocktype, kr, wa_dSf)
+         inc, rocktype, kr, wa_dfdS)
       call LoisThermoHydro_all_dkrdX( &
-         inc, rocktype, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_dSf, dkr)
+         inc, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_dfdS, dkr)
 
    end subroutine LoisThermoHydro_PermRel_all_control_volumes
 
@@ -2639,7 +2638,7 @@ contains
          allocate (wa_PermRel(NbPhase, max_nb_control_volumes))
          allocate (wa_divPermRel(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
       end if
-      allocate (wa_dSf(NbPhase, NbPhase, max_nb_control_volumes))
+      allocate (wa_dfdS(NbPhase, NbPhase, max_nb_control_volumes))
       allocate (wa_divComp(NbIncTotalPrimMax, NbComp, NbPhase, max_nb_control_volumes))
       allocate (wa_SmComp(NbComp, NbPhase, max_nb_control_volumes))
 
@@ -2659,7 +2658,7 @@ contains
          deallocate (wa_PermRel)
          deallocate (wa_divPermRel)
       end if
-      deallocate (wa_dSf)
+      deallocate (wa_dfdS)
       deallocate (wa_divComp)
       deallocate (wa_SmComp)
 
