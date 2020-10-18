@@ -264,7 +264,6 @@ module LoisThermoHydro
       LoisThermoHydro_DensiteMolaire_cv, & ! prim divs: densitemolaire
       LoisThermoHydro_Viscosite_cv, & !            1/viscosite
       LoisThermoHydro_Inc_cv, & !            called with Pression and Temperature
-      LoisThermoHydro_PressionCapillaire_cv, & !            Pressioncapillaire
       LoisThermoHydro_Saturation_cv, & !            Saturation
       !
       LoisThermoHydro_DensiteMassique_cv, & !          densitemassique
@@ -602,11 +601,9 @@ contains
          enddo
       end do
 
-      do k = 1, NbIncLocal
-         call LoisThermoHydro_PressionCapillaire_cv( &
-            wa_Darcy_rocktypes(k), inc(k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dXssurdXp(:, :, k), &
-            PressionCap(:, k), divPressionCap(:, :, k))
-      end do
+      if (NbPhase > 1) &
+         call LoisThermoHydro_Pc_all_control_volumes( &
+         inc, wa_Darcy_rocktypes, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, PressionCap, divPressionCap)
 
       do k = 1, NbIncLocal
 
@@ -1613,43 +1610,62 @@ contains
 
    end subroutine LoisThermoHydro_Saturation_cv
 
-   ! In the sens P(iph) = Pref + f_PressionCapillaire(iph)
-   subroutine LoisThermoHydro_PressionCapillaire_cv(rocktype, inc, &
-                                                    NumIncTotalPrimCV, NumIncTotalSecondCV, &
-                                                    dXssurdXp, &
-                                                    val, dval)
-      integer, intent(in) :: rocktype
-      type(TYPE_IncCVReservoir), intent(in)  :: inc
-      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
-      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
-      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
-      double precision, intent(out) :: val(NbPhase)
-      double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
+   subroutine LoisThermoHydro_all_capillary_pressures_all_cv(inc, rocktype, Pc, dPcdS)
+      type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
+      integer, dimension(:), target, intent(in) :: rocktype
+      real(c_double), dimension(:, :), target, intent(out) :: Pc
+      real(c_double), dimension(:, :, :), target, intent(out) :: dPcdS
 
-      double precision :: dSf(NbPhase), dfS_secd
-      integer :: iph, j, jph, k, context, nb_phases
+      integer :: k, iph, n
+
+      Pc = 0.d0
+      dPcdS = 0.d0
+      n = size(inc)
+      if (n == 0) return ! nothing to do
+      do k = 1, n
+         do iph = 1, NbPhase
+            call f_PressionCapillaire(rocktype(k), iph, inc(k)%Saturation, Pc(iph, k), dPcdS(:, iph, k))
+         end do
+      end do
+
+   end subroutine LoisThermoHydro_all_capillary_pressures_all_cv
+
+   subroutine LoisThermoHydro_all_dPcdXp( &
+      inc, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, dPcdS, dPcdXp)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
+      double precision, intent(in) :: dXssurdXp(:, :, :)
+      integer, intent(in) :: NumIncTotalPrimCV(:, :)
+      integer, intent(in) :: NumIncTotalSecondCV(:, :)
+      real(c_double), intent(in) :: dPcdS(:, :, :)
+      real(c_double), intent(out) :: dPcdXp(:, :, :)
+
+      integer :: n, k, i, iph, iphl, context, nb_phases, pu, pui
+      real(c_double) :: dPcdSl
 
       ! Pc only depends on saturations
       ! We are only interested in actual values for phases (absolute indexing)
       ! and derivates with respect to primary variables that are used in Jacobian
       ! CHECKME: it may be necessary to compute capillary pressure for absent phases to test for apparition
 
-      val = 0.d0
-      dval = 0.d0
-      context = inc%ic
-      nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
-      do iph = 1, NbPhase
-         call f_PressionCapillaire(rocktype, iph, inc%Saturation, val(iph), dSf)
+      dPcdXp = 0.d0
+
+      n = size(inc)
+      if (n == 0) return ! nothing to do
+      do k = 1, n
+         context = inc(k)%ic
+         nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
          if (nb_phases > 1) then
-            dfS_secd = dSf(NumPhasePresente_ctx(nb_phases, context)) ! FIXME: Last saturation is eliminated
-            do j = 1, nb_phases - 1
+            iphl = NumPhasePresente_ctx(nb_phases, context)
+            dPcdSl = dPcdS(iphl, iphl, k) ! FIXME: Last saturation is eliminated
+            do i = 1, nb_phases - 1
                ! Look for S, is it primary or secondary unknowns ?
                ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
-               if (any(NumIncTotalPrimCV == j + NbIncPTC_ctx(context))) then
-                  do k = 1, NbIncTotalPrimMax
-                     if (NumIncTotalPrimCV(k) == j + NbIncPTC_ctx(context)) then ! Sjph is primary
-                        jph = NumPhasePresente_ctx(j, context)
-                        dval(k, iph) = dSf(jph) - dfS_secd ! FIXME: Last saturation is eliminated
+               pui = i + NbIncPTC_ctx(context)
+               if (any(NumIncTotalPrimCV(:, k) == pui)) then
+                  do pu = 1, NbIncTotalPrimMax ! pu: primary unknown
+                     if (NumIncTotalPrimCV(pu, k) == pui) then ! Sjph is primary
+                        iph = NumPhasePresente_ctx(i, context)
+                        dPcdXp(pu, iph, k) = dPcdS(iph, iph, k) - dPcdSl ! FIXME: Last saturation is eliminated
                         exit
                      endif
                   enddo
@@ -1658,9 +1674,25 @@ contains
                end if
             end do
          end if
-      end do ! iph
+      end do ! k
 
-   end subroutine LoisThermoHydro_PressionCapillaire_cv
+   end subroutine LoisThermoHydro_all_dPcdXp
+
+   subroutine LoisThermoHydro_Pc_all_control_volumes( &
+      inc, rocktype, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, Pc, dPcdXp)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc(:)
+      integer, intent(in) :: rocktype(:)
+      double precision, intent(in) :: dXssurdXp(:, :, :)
+      integer, intent(in) :: NumIncTotalPrimCV(:, :)
+      integer, intent(in) :: NumIncTotalSecondCV(:, :)
+      real(c_double), intent(out) :: Pc(:, :)
+      real(c_double), intent(out) :: dPcdXp(:, :, :)
+
+      call LoisThermoHydro_all_capillary_pressures_all_cv(inc, rocktype, Pc, wa_dfdS)
+      call LoisThermoHydro_all_dPcdXp( &
+         inc, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_dfdS, dPcdXp)
+
+   end subroutine LoisThermoHydro_Pc_all_control_volumes
 
 #ifdef _THERMIQUE_
 
