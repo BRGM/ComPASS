@@ -1448,11 +1448,11 @@ contains
 
    end subroutine LoisThermoHydro_densitemolaire_cv
 
-   subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktypes, kr, dsf)
+   subroutine LoisThermoHydro_all_relative_permeabilities_all_cv(inc, rocktypes, kr, dkrdS)
       type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
-      integer, dimension(:), target, intent(in) :: rocktypes
+      integer(c_int), dimension(:), target, intent(in) :: rocktypes
       real(c_double), dimension(:, :), target, intent(out) :: kr
-      real(c_double), dimension(:, :, :), target, intent(out) :: dSf
+      real(c_double), dimension(:, :, :), target, intent(out) :: dkrdS
 
       integer(c_size_t) :: n
 
@@ -1460,7 +1460,7 @@ contains
       if (n == 0) return ! nothing to do
       call fill_kr_arrays( &
          n, NbPhase, c_loc(inc(1)), c_loc(rocktypes(1)), &
-         c_loc(kr(1, 1)), c_loc(dSf(1, 1, 1)))
+         c_loc(kr(1, 1)), c_loc(dkrdS(1, 1, 1)))
 
    end subroutine LoisThermoHydro_all_relative_permeabilities_all_cv
 
