@@ -213,6 +213,7 @@ simulation_wrapper = Wrapper(
         "porous_volume_Darcy",
         "petrophysics",
         "set_fill_kr_arrays",
+        "set_fill_Pc_arrays",
         # "cell_porosity",
         # "fracture_porosity",
         # "cell_permeability",
