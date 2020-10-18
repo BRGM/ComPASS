@@ -15,7 +15,6 @@ module Thermodynamics
                        GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
                        get_model_configuration
    use CommonType, only: ModelConfiguration
-   use RelativePermeabilities, only: f_PermRel
    use CapillaryPressure, only: f_PressionCapillaire
 
    implicit none

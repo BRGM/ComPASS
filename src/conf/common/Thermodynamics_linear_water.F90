@@ -14,7 +14,6 @@ module Thermodynamics
    use mpi, only: MPI_Abort
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
-   use RelativePermeabilities, only: f_PermRel
    use CapillaryPressure, only: f_PressionCapillaire
 
    implicit none
