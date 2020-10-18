@@ -11,15 +11,15 @@ import numpy as np
 
 def no_interactions(states, rocktypes, kr, dkrdS):
     # A lot of assertions that may slow down things...
-    assert rocktypes.ndim == 1
-    assert kr.ndim == 2
-    assert dkrdS.ndim == 3
-    assert states.size() == rocktypes.shape[0] == kr.shape[0] == dkrdS.shape[0]
+    # assert rocktypes.ndim == 1
+    # assert kr.ndim == 2
+    # assert dkrdS.ndim == 3
+    # assert states.size() == rocktypes.shape[0] == kr.shape[0] == dkrdS.shape[0]
     nb_phases = kr.shape[1]
     S = states.S
-    assert S.shape[1] == nb_phases
-    assert dkrdS.shape[1] == dkrdS.shape[2] == nb_phases
-    assert np.all((S >= 0) & (S <= 1))
+    # assert S.shape[1] == nb_phases
+    # assert dkrdS.shape[1] == dkrdS.shape[2] == nb_phases
+    # assert np.all((S >= 0) & (S <= 1))
 
     assert nb_phases == 2, "Should not be called if np==1"
     kr[...] = S
