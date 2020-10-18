@@ -238,6 +238,19 @@ module LoisThermoHydro
       end subroutine fill_kr_arrays
    end interface
 
+   interface
+      subroutine fill_Pc_arrays(n, np, states, rocktypes, Pc, dPcdS) &
+         bind(C, name="fill_Pc_arrays")
+         use, intrinsic :: iso_c_binding, only: c_int, c_size_t, c_ptr
+         integer(c_size_t), value, intent(in) :: n !< size of *states* array
+         integer(c_int), value, intent(in)  :: np !< number of phases
+         type(c_ptr), value, intent(in)  :: states
+         type(c_ptr), value, intent(in)  :: rocktypes
+         type(c_ptr), value, intent(in)  :: Pc
+         type(c_ptr), value, intent(in)  :: dPcdS
+      end subroutine fill_Pc_arrays
+   end interface
+
    public :: &
       LoisThermoHydro_allocate, &
       LoisThermoHydro_free, &
@@ -1612,21 +1625,17 @@ contains
 
    subroutine LoisThermoHydro_all_capillary_pressures_all_cv(inc, rocktype, Pc, dPcdS)
       type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
-      integer, dimension(:), target, intent(in) :: rocktype
+      integer(c_int), dimension(:), target, intent(in) :: rocktype
       real(c_double), dimension(:, :), target, intent(out) :: Pc
       real(c_double), dimension(:, :, :), target, intent(out) :: dPcdS
 
-      integer :: k, iph, n
+      integer(c_size_t) :: n
 
-      Pc = 0.d0
-      dPcdS = 0.d0
       n = size(inc)
       if (n == 0) return ! nothing to do
-      do k = 1, n
-         do iph = 1, NbPhase
-            call f_PressionCapillaire(rocktype(k), iph, inc(k)%Saturation, Pc(iph, k), dPcdS(:, iph, k))
-         end do
-      end do
+      call fill_Pc_arrays( &
+         n, NbPhase, c_loc(inc(1)), c_loc(rocktype(1)), &
+         c_loc(Pc(1, 1)), c_loc(dPcdS(1, 1, 1)))
 
    end subroutine LoisThermoHydro_all_capillary_pressures_all_cv
 

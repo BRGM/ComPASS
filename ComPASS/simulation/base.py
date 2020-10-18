@@ -225,6 +225,7 @@ def init(
         kernel.clear_freeflow_faces()
     mpi.synchronize()  # wait for every process to synchronize
     simulation.set_kr_functions()
+    simulation.set_Pc_functions()
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
     atexit.register(_exit_eos_and_finalize)

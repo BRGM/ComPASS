@@ -15,6 +15,7 @@
 namespace py = pybind11;
 
 py::function py_fill_kr_arrays;
+py::function py_fill_Pc_arrays;
 
 extern "C" {
 
@@ -29,9 +30,23 @@ void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
        {n, X::Model::np, X::Model::np}, p_dkrdS, simulation};
    py_fill_kr_arrays(states, rocktypes, kr, dkrdS);
 }
+
+void fill_Pc_arrays(const std::size_t n, const int np, X* p_states,
+                    int* p_rocktypes, double* p_Pc, double* p_dPcdS) {
+   StateArray states{reinterpret_cast<X*>(p_states), n};
+   auto simulation = ComPASS::get_simulation();
+   py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
+   py::array_t<double, py::array::c_style> Pc{
+       {n, X::Model::np}, p_Pc, simulation};
+   py::array_t<double, py::array::c_style> dPcdS{
+       {n, X::Model::np, X::Model::np}, p_dPcdS, simulation};
+   py_fill_Pc_arrays(states, rocktypes, Pc, dPcdS);
+}
 }
 
-void add_kr_pyinternals(py::module& module) {
+void add_petrophysics_pyinternals(py::module& module) {
    module.def("set_fill_kr_arrays",
               [](py::function& f) { py_fill_kr_arrays = f; });
+   module.def("set_fill_Pc_arrays",
+              [](py::function& f) { py_fill_Pc_arrays = f; });
 }
