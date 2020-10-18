@@ -135,7 +135,7 @@ endforeach()
 set(ComPASSFreeFlow_SRCS ${_tmp})
 
 set(CONF_SRCS DefFlash.F90 DefModel.F90 DefWellFlash.F90 Thermodynamics.F90
-              CapillaryPressure.F90 RelativePermeabilities.F90
+              CapillaryPressure.F90
 )
 
 # set( WRAPPERS_CORE_SRCS MeshSchema_wrappers.F90 MeshUtilities_wrappers.cpp

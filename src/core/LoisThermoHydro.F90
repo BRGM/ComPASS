@@ -15,7 +15,6 @@ module LoisThermoHydro
       f_EnergieInterne, f_Enthalpie, f_SpecificEnthalpy, &
 #endif
       f_Viscosite, f_DensiteMolaire, f_PressionCapillaire, f_DensiteMassique
-   use RelativePermeabilities, only: f_PermRel
    use DefModel, only: &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       WATER_COMP, &
@@ -2465,7 +2464,7 @@ contains
          Viscosite, dP_Viscosite, &
          Enthalpie, dP_Enthalpie
 
-      double precision :: dSf(NbPhase), dTf, dCf(NbComp), PermRel
+      double precision :: dSf(NbPhase), dTf, dCf(NbComp)
       integer :: rt(IndThermique + 1)
       integer :: s, i, k
 
@@ -2483,9 +2482,6 @@ contains
 
             rt = NodeRocktypeLocal(:, s)
 
-            ! Permrel
-            call f_PermRel(rt(1), LIQUID_PHASE, Sw, PermRel, dSf)
-
             ! Molar density
             call f_DensiteMolaire(LIQUID_PHASE, Pws, Tw, Cw, Sw, &
                                   DensiteMolaire, dP_DensiteMolaire, dTf, dCf, dSf)
@@ -2502,16 +2498,17 @@ contains
 
             do i = 1, NbComp
 
-               ! value
-               DensiteMolaireKrViscoCompWellInj(i, s) = Cw(i)*PermRel*DensiteMolaire/Viscosite
+               ! kr = 1.
+               DensiteMolaireKrViscoCompWellInj(i, s) = Cw(i)*DensiteMolaire/Viscosite
 
-               ! div of pression
+               ! div of pression - kr =1.
                divDensiteMolaireKrViscoCompWellInj(i, s) = &
-                  Cw(i)*PermRel*(dP_DensiteMolaire/Viscosite - DensiteMolaire*dP_Viscosite/(Viscosite**2))
+                  Cw(i)*(dP_DensiteMolaire/Viscosite - DensiteMolaire*dP_Viscosite/(Viscosite**2))
             end do
 
 #ifdef _THERMIQUE_
-            DensiteMolaireKrViscoEnthalpieWellInj(s) = Enthalpie*PermRel*DensiteMolaire/Viscosite
+            ! kr = 1.
+            DensiteMolaireKrViscoEnthalpieWellInj(s) = Enthalpie*DensiteMolaire/Viscosite
 
             divDensiteMolaireKrViscoEnthalpieWellInj(s) = &
                +dP_DensiteMolaire/Viscosite*Enthalpie &
