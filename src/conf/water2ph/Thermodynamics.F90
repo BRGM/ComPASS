@@ -18,7 +18,6 @@ module Thermodynamics
    use DefModel, only: &
       NbPhase, NbComp, IndThermique, &
       GAS_PHASE, LIQUID_PHASE
-   use RelativePermeabilities, only: f_PermRel
    use CapillaryPressure, only: f_PressionCapillaire
 
    implicit none
