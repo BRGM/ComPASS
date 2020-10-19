@@ -46,7 +46,7 @@ contains
       bind(C, name="debug_utils_dump_mesh_info")
 
       character(len=1024) :: filename
-      integer :: k, Ierr, errcode
+      integer :: k
 
       write (filename, "(A5I0.5)") "nodes", commRank + 1
       open (unit=24, file=trim(filename), status='REPLACE')
