@@ -33,7 +33,7 @@ module IncPrimSecd
       IdFFNodeLocal, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
-      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+      NodeDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
       NodeByWellInjLocal
 
    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
@@ -90,7 +90,7 @@ contains
       !< cell
       call IncPrimSecd_compute_cv( &
          NbCellLocal_Ncpus(commRank + 1), &
-         IncCell, CellRocktypeLocal, &
+         IncCell, CellDarcyRocktypesLocal, &
          dXssurdXpCell, SmdXsCell, &
          SmFCell, &
          !
@@ -99,7 +99,7 @@ contains
       !< frac
       call IncPrimSecd_compute_cv( &
          NbFracLocal_Ncpus(commRank + 1), &
-         IncFrac, FracRocktypeLocal, &
+         IncFrac, FracDarcyRocktypesLocal, &
          dXssurdXpFrac, SmdXsFrac, &
          SmFFrac, &
          !
@@ -108,7 +108,7 @@ contains
       !< node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeRocktypeLocal, &
+         IncNode, NodeDarcyRocktypesLocal, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -133,7 +133,7 @@ contains
 
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
 
-      integer, intent(in) :: rt(IndThermique + 1, NbIncLocal)
+      integer, intent(in) :: rt(NbIncLocal)
 
       ! output
       integer, intent(out) :: &
@@ -185,7 +185,7 @@ contains
 
          !< compute dF/dX
          !< dFsurdX: (col, row) index order
-         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), rt(:, k), dFsurdX, SmF(:, k))
+         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), rt(k), dFsurdX, SmF(:, k))
 
          !< choose inconnues prim and secd
          call IncPrimSecd_ps_cv(cv_info, inc(k), dFsurdX, pschoice, &
@@ -206,7 +206,7 @@ contains
       ! node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeRocktypeLocal, &
+         IncNode, NodeDarcyRocktypesLocal, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -229,7 +229,7 @@ contains
 
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      integer, intent(in) :: rt(IndThermique + 1)
+      integer, intent(in) :: rt
       double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 

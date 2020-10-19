@@ -44,7 +44,7 @@ module LoisThermoHydro
       IdFFNodeLocal, &
 #endif
       NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
-      CellRocktypeLocal, FracRocktypeLocal, NodeRocktypeLocal, &
+      CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, NodeDarcyRocktypesLocal, &
       PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WIP_FREEFLOW_STRUCTURES_
@@ -191,8 +191,6 @@ module LoisThermoHydro
       SmDensiteMolaireEnergieInterneSatNode
 
    ! work arrays - with wa_ prefix
-   ! FIXME: wa_Darcy_rocktypes is to be removed... a one dimension array for rocktypes
-   integer(c_int), allocatable, target, dimension(:) :: wa_Darcy_rocktypes
    real(c_double), allocatable, target, dimension(:, :) :: wa_UnsurViscosite
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_divUnsurViscosite
    real(c_double), allocatable, target, dimension(:, :) :: wa_SmUnsurViscosite   ! tmp values to simpfy notations of numerotation
@@ -303,7 +301,7 @@ contains
 
       ! cell
       call LoisThermoHydro_divPrim_cv(NbCellLocal_Ncpus(commRank + 1), IncCell, &
-                                      CellRocktypeLocal, &
+                                      CellDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpCell, &
                                       SmdXsCell, &
@@ -345,7 +343,7 @@ contains
 
       ! frac
       call LoisThermoHydro_divPrim_cv(NbFracLocal_Ncpus(commRank + 1), IncFrac, &
-                                      FracRocktypeLocal, &
+                                      FracDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpFrac, &
                                       SmdXsFrac, &
@@ -387,7 +385,7 @@ contains
 
       ! node
       call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                      NodeRocktypeLocal, &
+                                      NodeDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpNode, &
                                       SmdXsNode, &
@@ -430,7 +428,7 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       ! FreeFlow nodes
       call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                               NodeRocktypeLocal, &
+                                               NodeDarcyRocktypesLocal, &
                                                !
                                                dXssurdXpNode, &
                                                SmdXsNode, &
@@ -493,7 +491,7 @@ contains
    ! all operations for one cv
    subroutine LoisThermoHydro_divPrim_cv( &
       NbIncLocal, inc, &
-      rt, &
+      rocktypes, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
       DensiteMassique, divDensiteMassique, SmDensiteMassique, &
@@ -511,7 +509,7 @@ contains
 
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
 
-      integer(c_int), intent(in) :: rt(IndThermique + 1, NbIncLocal)
+      integer(c_int), intent(in) :: rocktypes(NbIncLocal)
 
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
@@ -569,8 +567,6 @@ contains
       integer :: k, i, icp, iph, context
       type(ContextInfo) :: ctxinfo
 
-      wa_Darcy_rocktypes = rt(1, :)
-
       do k = 1, NbIncLocal
          call LoisThermoHydro_viscosite_cv( &
             inc(k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
@@ -591,7 +587,7 @@ contains
 
       if (NbPhase > 1) &
          call LoisThermoHydro_PermRel_all_control_volumes( &
-         inc, wa_Darcy_rocktypes, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
+         inc, rocktypes, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, wa_PermRel, wa_divPermRel)
 
       ! Reference Pressure (unknown index is 1)
       do k = 1, NbIncLocal
@@ -615,7 +611,7 @@ contains
 
       if (NbPhase > 1) &
          call LoisThermoHydro_Pc_all_control_volumes( &
-         inc, wa_Darcy_rocktypes, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, PressionCap, divPressionCap)
+         inc, rocktypes, dXssurdXp, NumIncTotalPrimCV, NumIncTotalSecondCV, PressionCap, divPressionCap)
 
       do k = 1, NbIncLocal
 
@@ -1192,7 +1188,7 @@ contains
    subroutine LoisThermoHydro_divPrim_nodes
 
       call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                      NodeRocktypeLocal, &
+                                      NodeDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpNode, &
                                       SmdXsNode, &
@@ -2465,7 +2461,6 @@ contains
          Enthalpie, dP_Enthalpie
 
       double precision :: dSf(NbPhase), dTf, dCf(NbComp)
-      integer :: rt(IndThermique + 1)
       integer :: s, i, k
 
       do k = 1, NbIncLocal
@@ -2479,8 +2474,6 @@ contains
 
             Tw = DataWellInjLocal(k)%InjectionTemperature     ! T_w
             Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w
-
-            rt = NodeRocktypeLocal(:, s)
 
             ! Molar density
             call f_DensiteMolaire(LIQUID_PHASE, Pws, Tw, Cw, Sw, &
@@ -2665,7 +2658,6 @@ contains
       ! Work arrays
       if (NbPhase < 1) &
          call CommonMPI_abort("Unconsistent number of phases!")
-      allocate (wa_Darcy_rocktypes(max_nb_control_volumes))
       allocate (wa_UnsurViscosite(NbPhase, max_nb_control_volumes))
       allocate (wa_divUnsurViscosite(NbIncTotalPrimMax, NbPhase, max_nb_control_volumes))
       allocate (wa_SmUnsurViscosite(NbPhase, max_nb_control_volumes))
@@ -2685,7 +2677,6 @@ contains
    subroutine LoisThermoHydro_free
 
       ! Work arrays
-      deallocate (wa_Darcy_rocktypes)
       deallocate (wa_UnsurViscosite)
       deallocate (wa_divUnsurViscosite)
       deallocate (wa_SmUnsurViscosite)

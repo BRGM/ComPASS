@@ -29,7 +29,7 @@ contains
    subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
 
       type(TYPE_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rocktype(IndThermique + 1)
+      integer, intent(in) :: rocktype
       double precision, intent(in) :: porovol ! porovol
 
       inc%ic = ComPASS_SINGLE_CONTEXT

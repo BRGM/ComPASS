@@ -124,12 +124,9 @@ void add_mesh_utilities_wrappers(py::module& module) {
                                retrieve_global_node_rocktypes);
    add_rocktypes_array_wrapper(module, "global_fracture_rocktypes",
                                retrieve_global_fracture_rocktypes);
-   add_rocktypes_array_wrapper(module, "cell_rocktypes",
-                               retrieve_cell_rocktypes);
-   add_rocktypes_array_wrapper(module, "node_rocktypes",
-                               retrieve_node_rocktypes);
-   add_rocktypes_array_wrapper(module, "fracture_rocktypes",
-                               retrieve_fracture_rocktypes);
+   add_array_wrapper(module, "cell_rocktypes", retrieve_cell_rocktypes);
+   add_array_wrapper(module, "node_rocktypes", retrieve_node_rocktypes);
+   add_array_wrapper(module, "fracture_rocktypes", retrieve_fracture_rocktypes);
    add_array_wrapper(module, "global_nodeflags", retrieve_global_nodeflags);
    add_array_wrapper(module, "global_cellflags", retrieve_global_cellflags);
    add_array_wrapper(module, "global_faceflags", retrieve_global_faceflags);

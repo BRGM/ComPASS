@@ -37,7 +37,7 @@ contains
    subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
 
       type(Type_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rocktype(IndThermique + 1)
+      integer, intent(in) :: rocktype
       double precision, intent(in) :: porovol ! porovol
 
       integer :: iph, ic
@@ -53,7 +53,7 @@ contains
       S = inc%Saturation
       Pref = inc%Pression
       ! Compute Pg
-      call f_PressionCapillaire(rocktype(1), GAS_PHASE, S, Pc, DSPc)
+      call f_PressionCapillaire(rocktype, GAS_PHASE, S, Pc, DSPc)
       Pg = Pref + Pc
 
       if (ic == LIQUID_CONTEXT) then

@@ -115,10 +115,21 @@ module MeshSchema
       CellTypesLocal, &
       FaceTypesLocal
 
-   integer(c_int), allocatable, dimension(:, :), target :: &
-      NodeRocktypeLocal, &
-      CellRocktypeLocal, &
-      FracRocktypeLocal
+   integer(c_int), allocatable, dimension(:), target, public :: &
+      AllDarcyRocktypesLocal
+   integer(c_int), dimension(:), pointer, public :: &
+      NodeDarcyRocktypesLocal, &
+      CellDarcyRocktypesLocal, &
+      FracDarcyRocktypesLocal
+
+#ifdef _THERMIQUE_
+   integer(c_int), allocatable, dimension(:), target, public :: &
+      AllFourierRocktypesLocal
+   integer(c_int), dimension(:), pointer, public :: &
+      NodeFourierRocktypesLocal, &
+      CellFourierRocktypesLocal, &
+      FracFourierRocktypesLocal
+#endif
 
    ! 4. IdCell/IdFace/IdNode
    integer, allocatable, dimension(:), protected :: &
@@ -738,7 +749,7 @@ contains
       integer :: blocklen(5), arraytype(5)
       integer(kind=MPI_ADDRESS_KIND) ::disp(5)
 
-      integer :: MPI_WELLDATA_ID
+      integer :: MPI_WELLDATA_ID, nb_nodes, nb_fracs, nb_cells
 
       ! ************************************* !
 
@@ -974,56 +985,108 @@ contains
       end if
 
       ! Send Rocktype
+      nb_nodes = NbNodeLocal_Ncpus(commRank + 1)
+      nb_cells = NbCellLocal_Ncpus(commRank + 1)
+      nb_fracs = NbFracLocal_Ncpus(commRank + 1)
+      allocate (AllDarcyRocktypesLocal(nb_nodes + nb_fracs + nb_cells))
+      NodeDarcyRocktypesLocal => AllDarcyRocktypesLocal(1:nb_nodes)
+      FracDarcyRocktypesLocal => AllDarcyRocktypesLocal(nb_nodes + 1:nb_nodes + nb_fracs)
+      CellDarcyRocktypesLocal => AllDarcyRocktypesLocal(nb_nodes + nb_fracs + 1:nb_nodes + nb_fracs + nb_cells)
+
+#ifdef _THERMIQUE_
+      allocate (AllFourierRocktypesLocal(nb_nodes + nb_fracs + nb_cells))
+      NodeFourierRocktypesLocal => AllFourierRocktypesLocal(1:nb_nodes)
+      FracFourierRocktypesLocal => AllFourierRocktypesLocal(nb_nodes + 1:nb_nodes + nb_fracs)
+      CellFourierRocktypesLocal => AllFourierRocktypesLocal(nb_nodes + nb_fracs + 1:nb_nodes + nb_fracs + nb_cells)
+#endif
+
+      ! Nodes
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               NodeRocktype_Ncpus(i + 1)%Array2d, &
-               (IndThermique + 1)*NbNodeLocal_Ncpus(i + 1), &
+               NodeRocktype_Ncpus(i + 1)%Array2d(1, :), nb_nodes, &
                MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
-         allocate (NodeRocktypeLocal(IndThermique + 1, NbNodeLocal_Ncpus(1)))
-         NodeRocktypeLocal = NodeRocktype_Ncpus(1)%Array2d
+         NodeDarcyRocktypesLocal = NodeRocktype_Ncpus(1)%Array2d(1, :)
       else
-         allocate (NodeRocktypeLocal(IndThermique + 1, NbNodeLocal_Ncpus(commRank + 1)))
          call MPI_Recv( &
-            NodeRocktypeLocal, &
-            (IndThermique + 1)*NbNodeLocal_Ncpus(commRank + 1), &
+            NodeDarcyRocktypesLocal, nb_nodes, &
             MPI_INTEGER, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
       end if
 
+      ! Fractures
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               CellRocktype_Ncpus(i + 1)%Array2d, &
-               (IndThermique + 1)*NbCellLocal_Ncpus(i + 1), &
-               MPI_INTEGER, i, 26, ComPASS_COMM_WORLD, Ierr)
+               FracRocktype_Ncpus(i + 1)%Array2d(1, :), nb_fracs, &
+               MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
-         allocate (CellRocktypeLocal(IndThermique + 1, NbCellLocal_Ncpus(1)))
-         CellRocktypeLocal = CellRocktype_Ncpus(1)%Array2d
+         FracDarcyRocktypesLocal = FracRocktype_Ncpus(1)%Array2d(1, :)
       else
-         allocate (CellRocktypeLocal(IndThermique + 1, NbCellLocal_Ncpus(commRank + 1)))
          call MPI_Recv( &
-            CellRocktypeLocal, &
-            (IndThermique + 1)*NbCellLocal_Ncpus(commRank + 1), &
-            MPI_INTEGER, 0, 26, ComPASS_COMM_WORLD, stat, Ierr)
+            FracDarcyRocktypesLocal, nb_fracs, &
+            MPI_INTEGER, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
       end if
 
+      ! Cells
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               FracRocktype_Ncpus(i + 1)%Array2d, &
-               (IndThermique + 1)*NbFracLocal_Ncpus(i + 1), &
-               MPI_INTEGER, i, 27, ComPASS_COMM_WORLD, Ierr)
+               CellRocktype_Ncpus(i + 1)%Array2d(1, :), nb_cells, &
+               MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
-         allocate (FracRocktypeLocal(IndThermique + 1, NbFracLocal_Ncpus(1)))
-         FracRocktypeLocal = FracRocktype_Ncpus(1)%Array2d
+         CellDarcyRocktypesLocal = CellRocktype_Ncpus(1)%Array2d(1, :)
       else
-         allocate (FracRocktypeLocal(IndThermique + 1, NbFracLocal_Ncpus(commRank + 1)))
          call MPI_Recv( &
-            FracRocktypeLocal, &
-            (IndThermique + 1)*NbFracLocal_Ncpus(commRank + 1), &
-            MPI_INTEGER, 0, 27, ComPASS_COMM_WORLD, stat, Ierr)
+            CellDarcyRocktypesLocal, nb_cells, &
+            MPI_INTEGER, 0, 25, ComPASS_COMM_WORLD, stat, Ierr)
       end if
+
+#ifdef _THERMIQUE_
+
+      ! Nodes
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               NodeRocktype_Ncpus(i + 1)%Array2d(2, :), nb_nodes, &
+               MPI_INTEGER, i, 28, ComPASS_COMM_WORLD, Ierr)
+         end do
+         NodeFourierRocktypesLocal = NodeRocktype_Ncpus(1)%Array2d(2, :)
+      else
+         call MPI_Recv( &
+            NodeFourierRocktypesLocal, nb_nodes, &
+            MPI_INTEGER, 0, 28, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      ! Fractures
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               FracRocktype_Ncpus(i + 1)%Array2d(2, :), nb_fracs, &
+               MPI_INTEGER, i, 29, ComPASS_COMM_WORLD, Ierr)
+         end do
+         FracFourierRocktypesLocal = FracRocktype_Ncpus(1)%Array2d(2, :)
+      else
+         call MPI_Recv( &
+            FracFourierRocktypesLocal, nb_fracs, &
+            MPI_INTEGER, 0, 29, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      ! Cells
+      if (commRank == 0) then
+         do i = 1, Ncpus - 1
+            call MPI_Send( &
+               CellRocktype_Ncpus(i + 1)%Array2d(2, :), nb_cells, &
+               MPI_INTEGER, i, 30, ComPASS_COMM_WORLD, Ierr)
+         end do
+         CellFourierRocktypesLocal = CellRocktype_Ncpus(1)%Array2d(2, :)
+      else
+         call MPI_Recv( &
+            CellFourierRocktypesLocal, nb_cells, &
+            MPI_INTEGER, 0, 30, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+#endif
 
       if (commRank == 0) then
          do i = 1, Ncpus
@@ -2189,9 +2252,17 @@ contains
       deallocate (CellTypesLocal)
       deallocate (FaceTypesLocal)
 
-      deallocate (NodeRocktypeLocal)
-      deallocate (CellRocktypeLocal)
-      deallocate (FracRocktypeLocal)
+      nullify (NodeDarcyRocktypesLocal)
+      nullify (FracDarcyRocktypesLocal)
+      nullify (CellDarcyRocktypesLocal)
+      deallocate (AllDarcyRocktypesLocal)
+
+#ifdef _THERMIQUE_
+      nullify (NodeFourierRocktypesLocal)
+      nullify (FracFourierRocktypesLocal)
+      nullify (CellFourierRocktypesLocal)
+      deallocate (AllFourierRocktypesLocal)
+#endif
 
       deallocate (IdCellLocal)
       deallocate (IdFaceLocal)

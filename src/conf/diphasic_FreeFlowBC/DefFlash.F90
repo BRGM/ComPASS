@@ -39,7 +39,7 @@ contains
    subroutine DefFlash_Flash_cv(inc, rt, porovol)
 
       type(Type_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rt(IndThermique + 1)
+      integer, intent(in) :: rt
       double precision, intent(in) :: porovol ! porous volume
 
       integer :: iph, ic, i
@@ -55,7 +55,7 @@ contains
       S = inc%Saturation
       Pref = inc%Pression
       ! compute Pg
-      call f_PressionCapillaire(rt(1), GAS_PHASE, S, Pc, DSPc)
+      call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
       Pg = Pref + Pc
 
       ! RESRVOIR DOF

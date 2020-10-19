@@ -25,9 +25,9 @@ module NN
       NbComp, NbPhase, IndThermique, NbIncTotalMax, get_model_configuration
 
    use IncCVReservoir, only: &
-      Type_IncCVReservoir, IncNode, IncCell, IncFrac
+      Type_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac
    use MeshSchema, only: &
-      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+      AllDarcyRocktypesLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
       MeshSchema_make, MeshSchema_free
@@ -221,17 +221,16 @@ contains
 
    end subroutine NN_init_phase2_setup_solvers
 
-   subroutine NN_flash_control_volumes(n, state, rocktypes, volume)
+   subroutine NN_flash_control_volumes(states, rocktypes, volume)
+      type(Type_IncCVReservoir), intent(inout) :: states(:)
+      integer(c_int), intent(in) :: rocktypes(:)
+      real(c_double), intent(in) :: volume(:)
 
-      integer, intent(in) :: n
-      type(Type_IncCVReservoir), intent(inout) :: state(n)
-      integer, intent(in) :: rocktypes(IndThermique + 1, n)
-      double precision, intent(in) :: volume(n)
+      integer :: k, n
 
-      integer :: k
-
+      n = size(states)
       do k = 1, n
-         call DefFlash_Flash_cv(state(k), rocktypes(:, k), volume(k))
+         call DefFlash_Flash_cv(states(k), rocktypes(k), volume(k))
       end do
 
    end subroutine NN_flash_control_volumes
@@ -243,9 +242,7 @@ contains
    subroutine NN_flash_all_control_volumes() &
       bind(C, name="NN_flash_all_control_volumes")
 
-      call NN_flash_control_volumes(NbNodeLocal_Ncpus(commRank + 1), IncNode, NodeRocktypeLocal, PoroVolDarcy%nodes)
-      call NN_flash_control_volumes(NbFracLocal_Ncpus(commRank + 1), IncFrac, FracRocktypeLocal, PoroVolDarcy%fractures)
-      call NN_flash_control_volumes(NbCellLocal_Ncpus(commRank + 1), IncCell, CellRocktypeLocal, PoroVolDarcy%cells)
+      call NN_flash_control_volumes(IncAll, AllDarcyRocktypesLocal, PoroVolDarcy%values)
 
       ! choose between linear or non-linear update of the Newton unknown Pw
       ! The next subroutines also compute the mode of the wells ('pressure' or 'flowrate')
