@@ -8,7 +8,7 @@
 
 module IncPrimSecd
 
-   use iso_c_binding, only: c_double
+   use iso_c_binding, only: c_int, c_double
    use mpi, only: MPI_Abort
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
@@ -42,30 +42,30 @@ module IncPrimSecd
 
    implicit none
 
-   ! dXssurdXp and SmdXs
-   double precision, allocatable, dimension(:, :, :) :: &
-      dXssurdXpCell, &
-      dXssurdXpFrac, &
-      dXssurdXpNode
+   real(c_double), allocatable, dimension(:, :, :), target, public :: &
+      dXssurdXpAll
+   real(c_double), dimension(:, :, :), pointer, public :: &
+      dXssurdXpCell, dXssurdXpFrac, dXssurdXpNode
 
-   double precision, allocatable, dimension(:, :) :: &
-      SmdXsCell, &
-      SmdXsFrac, &
-      SmdXsNode
+   real(c_double), allocatable, dimension(:, :), target, public :: &
+      SmdXsAll
+   real(c_double), dimension(:, :), pointer, public :: &
+      SmdXsCell, SmdXsFrac, SmdXsNode
 
-   double precision, allocatable, dimension(:, :) :: &
-      SmFCell, &
-      SmFFrac, &
-      SmFNode
+   real(c_double), allocatable, dimension(:, :), target, public :: &
+      SmFAll
+   real(c_double), dimension(:, :), pointer, public :: &
+      SmFCell, SmFFrac, SmFNode
 
-   ! num inc prim secd
-   integer, allocatable, dimension(:, :) :: &
-      NumIncTotalPrimCell, &
-      NumIncTotalPrimFrac, &
-      NumIncTotalPrimNode, &
-      NumIncTotalSecondCell, &
-      NumIncTotalSecondFrac, &
-      NumIncTotalSecondNode
+   integer(c_int), allocatable, dimension(:, :), target, public :: &
+      NumIncTotalPrimAll
+   integer(c_int), dimension(:, :), pointer, public :: &
+      NumIncTotalPrimCell, NumIncTotalPrimFrac, NumIncTotalPrimNode
+
+   integer(c_int), allocatable, dimension(:, :), target, public :: &
+      NumIncTotalSecondAll
+   integer(c_int), dimension(:, :), pointer, public :: &
+      NumIncTotalSecondCell, NumIncTotalSecondFrac, NumIncTotalSecondNode
 
    public :: &
       IncPrimSecd_allocate, &
@@ -1034,62 +1034,76 @@ contains
    ! allocate
    subroutine IncPrimSecd_allocate
 
-      integer :: nbCell, nbFrac, nbNode, nbNodeInj
+      integer :: nbCell, nbFrac, nbNode, n
+      integer :: begin_node, end_node
+      integer :: begin_frac, end_frac
+      integer :: begin_cell, end_cell
 
       nbCell = NbCellLocal_Ncpus(commRank + 1)
       nbFrac = NbFracLocal_Ncpus(commRank + 1)
       nbNode = NbNodeLocal_Ncpus(commRank + 1)
-      nbNodeInj = NodeByWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)
-      ! print*, 'IncPrimSecd_allocate', nbCell, nbFrac, nbNode, nbNodeInj
+      n = nbNode + nbFrac + nbCell
+      begin_node = 1
+      end_node = nbNode
+      begin_frac = end_node + 1
+      end_frac = end_node + nbFrac
+      begin_cell = end_frac + 1
+      end_cell = end_frac + nbCell
 
-      ! dXssurdXp and SmdXs
-      allocate (dXssurdXpCell(NbIncTotalPrimMax, NbEqFermetureMax, nbCell))
-      allocate (dXssurdXpFrac(NbIncTotalPrimMax, NbEqFermetureMax, nbFrac))
-      allocate (dXssurdXpNode(NbIncTotalPrimMax, NbEqFermetureMax, nbNode))
+      allocate (dXssurdXpAll(NbIncTotalPrimMax, NbEqFermetureMax, n))
+      dXssurdXpNode => dXssurdXpAll(:, :, begin_node:end_node)
+      dXssurdXpFrac => dXssurdXpAll(:, :, begin_frac:end_frac)
+      dXssurdXpCell => dXssurdXpAll(:, :, begin_cell:end_cell)
 
-      allocate (SmdXsCell(NbEqFermetureMax, nbCell))
-      allocate (SmdXsFrac(NbEqFermetureMax, nbFrac))
-      allocate (SmdXsNode(NbEqFermetureMax, nbNode))
+      allocate (SmdXsAll(NbEqFermetureMax, n))
+      SmdXsNode => SmdXsAll(:, begin_node:end_node)
+      SmdXsFrac => SmdXsAll(:, begin_frac:end_frac)
+      SmdXsCell => SmdXsAll(:, begin_cell:end_cell)
 
-      allocate (SmFCell(NbEqFermetureMax, nbCell))
-      allocate (SmFFrac(NbEqFermetureMax, nbFrac))
-      allocate (SmFNode(NbEqFermetureMax, nbNode))
+      allocate (SmFAll(NbEqFermetureMax, n))
+      SmFNode => SmFAll(:, begin_node:end_node)
+      SmFFrac => SmFAll(:, begin_frac:end_frac)
+      SmFCell => SmFAll(:, begin_cell:end_cell)
 
-      ! Num IncTotalPrim and IncTotalSecond
-      allocate (NumIncTotalPrimCell(NbIncTotalPrimMax, nbCell))
-      allocate (NumIncTotalPrimFrac(NbIncTotalPrimMax, nbFrac))
-      allocate (NumIncTotalPrimNode(NbIncTotalPrimMax, nbNode))
-      allocate (NumIncTotalSecondCell(NbEqFermetureMax, nbCell))
-      allocate (NumIncTotalSecondFrac(NbEqFermetureMax, nbFrac))
-      allocate (NumIncTotalSecondNode(NbEqFermetureMax, nbNode))
+      allocate (NumIncTotalPrimAll(NbIncTotalPrimMax, n))
+      NumIncTotalPrimNode => NumIncTotalPrimAll(:, begin_node:end_node)
+      NumIncTotalPrimFrac => NumIncTotalPrimAll(:, begin_frac:end_frac)
+      NumIncTotalPrimCell => NumIncTotalPrimAll(:, begin_cell:end_cell)
+
+      allocate (NumIncTotalSecondAll(NbEqFermetureMax, n))
+      NumIncTotalSecondNode => NumIncTotalSecondAll(:, begin_node:end_node)
+      NumIncTotalSecondFrac => NumIncTotalSecondAll(:, begin_frac:end_frac)
+      NumIncTotalSecondCell => NumIncTotalSecondAll(:, begin_cell:end_cell)
 
    end subroutine IncPrimSecd_allocate
 
    ! free
    subroutine IncPrimSecd_free
 
-      ! dXssurdXp
-      deallocate (dXssurdXpCell)
-      deallocate (dXssurdXpFrac)
-      deallocate (dXssurdXpNode)
+      nullify (dXssurdXpCell)
+      nullify (dXssurdXpFrac)
+      nullify (dXssurdXpNode)
+      deallocate (dXssurdXpAll)
 
-      ! Smdxs
-      deallocate (SmdXsCell)
-      deallocate (SmdXsFrac)
-      deallocate (SmdXsNode)
+      nullify (SmdXsCell)
+      nullify (SmdXsFrac)
+      nullify (SmdXsNode)
+      deallocate (SmdXsall)
 
-      ! SmF
-      deallocate (SmFCell)
-      deallocate (SmFFrac)
-      deallocate (SmFNode)
+      nullify (SmFCell)
+      nullify (SmFFrac)
+      nullify (SmFNode)
+      deallocate (SmFAll)
 
-      ! Num IncTotalPrim and IncTotalSecond
-      deallocate (NumIncTotalPrimCell)
-      deallocate (NumIncTotalPrimFrac)
-      deallocate (NumIncTotalPrimNode)
-      deallocate (NumIncTotalSecondCell)
-      deallocate (NumIncTotalSecondFrac)
-      deallocate (NumIncTotalSecondNode)
+      nullify (NumIncTotalPrimCell)
+      nullify (NumIncTotalPrimFrac)
+      nullify (NumIncTotalPrimNode)
+      deallocate (NumIncTotalPrimAll)
+
+      nullify (NumIncTotalSecondCell)
+      nullify (NumIncTotalSecondFrac)
+      nullify (NumIncTotalSecondNode)
+      deallocate (NumIncTotalSecondAll)
 
    end subroutine IncPrimSecd_free
 
