@@ -63,7 +63,7 @@ contains
    pure subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
+      integer(c_int), intent(in) :: rt
       integer(c_int), intent(in) :: iph, icp
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
 
@@ -81,7 +81,7 @@ contains
       dSf = 0.d0
 
       if (iph == GAS_PHASE) then
-         call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)  ! Pg=Pref + Pc
+         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
          f = P + Pc
 
          dPf = 1.d0
@@ -91,7 +91,7 @@ contains
             call air_henry(T, f)
             call air_henry_dT(dTf)
          else if (icp == WATER_COMP) then
-            call f_PressionCapillaire(rt(1), iph, S, Pc, DSPc)
+            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
             ! FIXME: Pl = Pref + f_PressionCapillaire, so Pc = -Pc
             Pc = -Pc
             DSPc = -DSPc

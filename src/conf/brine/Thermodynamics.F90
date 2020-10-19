@@ -48,7 +48,7 @@ contains
       subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
 
       ! input
-      integer(c_int), intent(in) :: rt(IndThermique + 1)
+      integer(c_int), intent(in) :: rt
       integer(c_int), intent(in) :: iph, icp
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
 

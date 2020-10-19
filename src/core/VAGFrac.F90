@@ -29,7 +29,8 @@ module VAGFrac
       PermCellLocal, PermFracLocal, CondThermalCellLocal, CondThermalFracLocal, &
       NodebyCellLocal, FracbyCellLocal, FacebyCellLocal, &
       NodebyFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
-      CellRocktypeLocal, NodeRocktypeLocal, FracRocktypeLocal, &
+      CellDarcyRocktypesLocal, NodeDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
+      CellFourierRocktypesLocal, NodeFourierRocktypesLocal, FracFourierRocktypesLocal, &
       CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
       PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
       NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
@@ -611,9 +612,9 @@ contains
 
       CALL VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
-         CellRocktypeLocal(1, :), &
+         CellDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(1, :), &
+         NodeDarcyRocktypesLocal, &
          IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
          omegaDarcyCell, &
          NodebyCellLocal, &
@@ -622,9 +623,9 @@ contains
 
       CALL VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
-         FracRocktypeLocal(1, :), &
+         FracDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(1, :), &
+         NodeDarcyRocktypesLocal, &
          IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y", &
          omegaDarcyFrac, &
          NodebyFractureLocal, &
@@ -638,9 +639,9 @@ contains
 
       CALL VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
-         CellRocktypeLocal(1, :), &
+         CellDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(1, :), &
+         NodeDarcyRocktypesLocal, &
          IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
          omegaDarcyCell, &
          NodebyCellLocal, &
@@ -649,9 +650,9 @@ contains
 
       CALL VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
-         FracRocktypeLocal(1, :), &
+         FracDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(1, :), &
+         NodeDarcyRocktypesLocal, &
          IdNodeLocal(:)%P /= "d", &
          omegaDarcyFrac, &
          NodebyFractureLocal, &
@@ -672,9 +673,9 @@ contains
       quantities%nodes = 0.d0
       call VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
-         CellRocktypeLocal(2, :), &
+         CellFourierRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(2, :), &
+         NodeFourierRocktypesLocal, &
          IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
          omegaFourierCell, &
          NodebyCellLocal, &
@@ -682,9 +683,9 @@ contains
          )
       call VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
-         FracRocktypeLocal(2, :), &
+         FracFourierRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
-         NodeRocktypeLocal(2, :), &
+         NodeFourierRocktypesLocal, &
          IdNodeLocal(:)%T /= "d", &
          omegaFourierFrac, &
          NodebyFractureLocal, &

@@ -32,7 +32,7 @@ contains
    subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
 
       type(TYPE_IncCVReservoir), intent(inout) :: inc
-      INTEGER, INTENT(IN) :: rocktype(IndThermique + 1)
+      INTEGER, INTENT(IN) :: rocktype
       double precision, intent(in) :: porovol ! porovol
 
       inc%ic = 1

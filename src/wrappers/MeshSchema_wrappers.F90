@@ -16,7 +16,7 @@
        use MeshSchema, only: &
           IdNodeLocal, &
           FaceToFracLocal, FracToFaceLocal, &
-          NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
+          NodeDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
           NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
           NbWellInjOwn_Ncpus, NbWellProdOwn_Ncpus, &
           XCellLocal, XFaceLocal, &
@@ -47,14 +47,14 @@
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
-          if (.not. allocated(CellRocktypeLocal)) then
+          if (.not. associated(CellDarcyRocktypesLocal)) then
              print *, "cell rocktypes are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(CellRocktypeLocal)
-          cpp_array%n = size(CellRocktypeLocal, 2)
+          cpp_array%p = c_loc(CellDarcyRocktypesLocal(1))
+          cpp_array%n = size(CellDarcyRocktypesLocal)
 
        end subroutine retrieve_cell_rocktypes
 
@@ -63,14 +63,14 @@
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
-          if (.not. allocated(NodeRocktypeLocal)) then
+          if (.not. associated(NodeDarcyRocktypesLocal)) then
              print *, "node rocktypes are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(NodeRocktypeLocal)
-          cpp_array%n = size(NodeRocktypeLocal, 2)
+          cpp_array%p = c_loc(NodeDarcyRocktypesLocal(1))
+          cpp_array%n = size(NodeDarcyRocktypesLocal)
 
        end subroutine retrieve_node_rocktypes
 
@@ -79,14 +79,14 @@
 
           type(cpp_array_wrapper), intent(inout) :: cpp_array
 
-          if (.not. allocated(FracRocktypeLocal)) then
+          if (.not. associated(FracDarcyRocktypesLocal)) then
              print *, "frac rocktypes are not allocated."
              !CHECKME: MPI_Abort is supposed to end all MPI processes
              call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
           end if
 
-          cpp_array%p = c_loc(FracRocktypeLocal)
-          cpp_array%n = size(FracRocktypeLocal, 2)
+          cpp_array%p = c_loc(FracDarcyRocktypesLocal(1))
+          cpp_array%n = size(FracDarcyRocktypesLocal)
 
        end subroutine retrieve_fracture_rocktypes
 
