@@ -50,12 +50,11 @@ module Jacobian
       SmDensiteMolaireKrViscoEnthalpieNode, SmDensiteMolaireKrViscoEnthalpieCell, SmDensiteMolaireKrViscoEnthalpieFrac, &
       SmDensiteMolaireEnergieInterneSatNode, SmDensiteMolaireEnergieInterneSatCell, SmDensiteMolaireEnergieInterneSatFrac, &
       divDensiteMassiqueNode, divDensiteMassiqueCell, divDensiteMassiqueFrac, &
-      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
       divDensiteMolaireKrViscoEnthalpieWellInj, divDensiteMolaireKrViscoCompWellInj, &
       divDensiteMolaireSatCompNode, divDensiteMolaireSatCompCell, divDensiteMolaireSatCompFrac, &
       divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
       divPressionNode, divPressionCell, divPressionFrac, &
-      divPressionCapNode, divPressionCapCell, divPressionCapFrac, &
+      divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
       SmDensiteMolaireSatComp
 
    use NumbyContext, only: &
@@ -3212,7 +3211,7 @@ contains
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
             divDarcyFlux_k(j, mph) = &
                sum_aks*divPressionCell(j, k) &        ! \sum a_{ks}^{s'} P_k
-               + sum_aks*divPressionCapCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+               + sum_aks*divPhasePressureCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
          end do
 
@@ -3239,7 +3238,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                            - TkLocal_Darcy(k)%pt(s, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                           - TkLocal_Darcy(k)%pt(s, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                           - TkLocal_Darcy(k)%pt(s, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
             end do
 
             ! SmDarcyFlux from r (node)
@@ -3257,7 +3256,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                divDarcyFlux_r(j, mph, rf) = divDarcyFlux_r(j, mph, rf) &
                                             - TkLocal_Darcy(k)%pt(s, rf)*divPressionFrac(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                            - TkLocal_Darcy(k)%pt(s, rf)*divPressionCapFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                            - TkLocal_Darcy(k)%pt(s, rf)*divPhasePressureFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
             end do
 
             ! SmDarcyFlux from r (frac)
@@ -3276,7 +3275,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                divDarcyFlux_k(j, mph) = &
                   sum_aks*divPressionCell(j, k) &        ! \sum a_{ks}^{s'} P_k
-                  + sum_aks*divPressionCapCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+                  + sum_aks*divPhasePressureCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                   + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
             end do
 
@@ -3302,7 +3301,7 @@ contains
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                               - TkLocal_Darcy(k)%pt(s, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                              - TkLocal_Darcy(k)%pt(s, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                              - TkLocal_Darcy(k)%pt(s, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
                end do
 
                ! SmDarcyFlux_r from r (node)
@@ -3320,7 +3319,7 @@ contains
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divDarcyFlux_r(j, mph, rf) = divDarcyFlux_r(j, mph, rf) &
                                                - TkLocal_Darcy(k)%pt(s, rf)*divPressionFrac(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                               - TkLocal_Darcy(k)%pt(s, rf)*divPressionCapFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                               - TkLocal_Darcy(k)%pt(s, rf)*divPhasePressureFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
                end do
 
                ! SmDarcyFlux from r (frac)
@@ -3422,7 +3421,7 @@ contains
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
             divDarcyFlux_k(j, mph) = &
                sum_aks*divPressionCell(j, k) &        ! \sum a_{ks}^{s'} P_k
-               + sum_aks*divPressionCapCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+               + sum_aks*divPhasePressureCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
          end do
 
@@ -3448,7 +3447,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                            - TkLocal_Darcy(k)%pt(sf, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                           - TkLocal_Darcy(k)%pt(sf, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                           - TkLocal_Darcy(k)%pt(sf, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
             end do
 
             ! SmDarcyFlux from r (node)
@@ -3466,7 +3465,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                divDarcyFlux_r(j, mph, rf) = divDarcyFlux_r(j, mph, rf) &
                                             - TkLocal_Darcy(k)%pt(sf, rf)*divPressionFrac(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                            - TkLocal_Darcy(k)%pt(sf, rf)*divPressionCapFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                            - TkLocal_Darcy(k)%pt(sf, rf)*divPhasePressureFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
             end do
 
             ! SmDarcyFlux from r (frac)
@@ -3486,7 +3485,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                divDarcyFlux_k(j, mph) = &
                   sum_aks*divPressionCell(j, k) &        ! \sum a_{ks}^{s'} P_k
-                  + sum_aks*divPressionCapCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+                  + sum_aks*divPhasePressureCell(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                   + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
             end do
 
@@ -3512,7 +3511,7 @@ contains
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                               - TkLocal_Darcy(k)%pt(sf, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                              - TkLocal_Darcy(k)%pt(sf, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                              - TkLocal_Darcy(k)%pt(sf, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
                end do
 
                ! SmDarcyFlux from r (node)
@@ -3530,7 +3529,7 @@ contains
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divDarcyFlux_r(j, mph, rf) = divDarcyFlux_r(j, mph, rf) &
                                                - TkLocal_Darcy(k)%pt(sf, rf)*divPressionFrac(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                               - TkLocal_Darcy(k)%pt(sf, rf)*divPressionCapFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                               - TkLocal_Darcy(k)%pt(sf, rf)*divPhasePressureFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
                end do
 
                ! SmDarcyFlux from r (frac)
@@ -3623,7 +3622,7 @@ contains
          do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
             divDarcyFlux_k(j, mph) = &
                sum_aks*divPressionFrac(j, k) &        ! \sum a_{ks}^{s'} P_k
-               + sum_aks*divPressionCapFrac(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+               + sum_aks*divPhasePressureFrac(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
          end do
 
@@ -3649,7 +3648,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                            - TkFracLocal_Darcy(k)%pt(s, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                           - TkFracLocal_Darcy(k)%pt(s, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                           - TkFracLocal_Darcy(k)%pt(s, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
             end do
 
             ! SmDarcyFlux from r
@@ -3669,7 +3668,7 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                divDarcyFlux_k(j, mph) = &
                   sum_aks*divPressionFrac(j, k) &        ! \sum a_{ks}^{s'} P_k
-                  + sum_aks*divPressionCapFrac(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
+                  + sum_aks*divPhasePressureFrac(j, mph, k) & ! \sum a_{ks}^{s'} PressionCap_k
                   + sum_aksgz*divrho_k(j, mph)           ! \sum a_{ks}^{s'} divrho_k * g * (z_k-z_s')
             end do
 
@@ -3695,7 +3694,7 @@ contains
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                               - TkFracLocal_Darcy(k)%pt(s, r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
-                                              - TkFracLocal_Darcy(k)%pt(s, r)*divPressionCapNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
+                                              - TkFracLocal_Darcy(k)%pt(s, r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
                end do
 
                ! SmDarcyFlux from r (node)

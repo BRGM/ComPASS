@@ -10,8 +10,9 @@
 
 module DefFlash
 
+   use iso_c_binding, only: c_double
    use IncCVReservoir, only: TYPE_IncCVReservoir
-   use DefModel, only: IndThermique
+   use DefModel, only: IndThermique, NbPhase
 
    implicit none
 
@@ -26,11 +27,10 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
-
-      type(TYPE_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rocktype
-      double precision, intent(in) :: porovol ! porovol
+   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
 
       inc%ic = ComPASS_SINGLE_CONTEXT
 

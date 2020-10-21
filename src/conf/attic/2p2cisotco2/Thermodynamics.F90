@@ -14,6 +14,7 @@
 module Thermodynamics
 
    use DefModel, only: NbPhase, NbComp, IndThermique
+   use IncCVReservoir, only: TYPE_IncCVReservoir
 
    implicit none
 
@@ -26,9 +27,7 @@ module Thermodynamics
       f_PressionCapillaire, &  ! P_{c,alpha}(S)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
-      CO2_henry, &
-      liquid_pressure
-
+      CO2_henry
 !#ifdef _THERMIQUE_
 
    public :: &
@@ -38,74 +37,50 @@ module Thermodynamics
 
 contains
 
-   FUNCTION liquid_pressure(z_ref, p_ref, rho, g, z)
-      DOUBLE PRECISION, INTENT(IN) :: z_ref
-      DOUBLE PRECISION, INTENT(IN) :: p_ref
-      DOUBLE PRECISION, INTENT(IN) :: rho
-      DOUBLE PRECISION, INTENT(IN) :: g
-      DOUBLE PRECISION, INTENT(IN) :: z
-      DOUBLE PRECISION :: liquid_pressure
-
-      liquid_pressure = p_ref - rho*g*(z - z_ref)
-   END FUNCTION liquid_pressure
-
-   ! *** Physics *** !
-
    ! Fugacity coefficient
    ! f * c_i
-   ! P = Pg pression de reference
    ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+   pure subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
+      integer(c_int), intent(in) :: iph, icp
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
+      real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
-      ! input
-      integer, intent(in) :: rt(IndThermique + 1)
-      integer, intent(in) :: iph, icp
-      double precision, intent(in) :: P, T, C(NbComp), S(NbPhase)
+      double precision :: T, PSat, dTSat
 
-      ! output
-      double precision, intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
+      dPf = 0.d0
+      dTf = 0.d0
+      dCf = 0.d0
+      dSf = 0.d0
 
-      double precision :: PSat, dTSat, Pc, DSPc(NbPhase)
-      DOUBLE PRECISION :: RZetal
-
-      RZetal = 8.314d0*1000.d0/0.018d0
-
-      IF (iph == GAS_PHASE) THEN
-         f = P
-
+      if (iph == GAS_PHASE) then
+         f = pa(GAS_PHASE)
          dPf = 1.d0
-         dTf = 0.d0
-         dCf = 0.d0
-         dSf = 0.d0
-      ELSE IF (iph == LIQUID_PHASE) THEN
-         IF (icp == 1) THEN
-            CALL CO2_henry(T, f, dTf)
-            dPf = 0.d0
-            dCf = 0.d0
-            dSf = 0.d0
-         ELSE
-            CALL FluidThermodynamics_Psat(T, Psat, dTSat)
-
+         dSf(GAS_PHASE) = dpadS(GAS_PHASE)
+      else if (iph == LIQUID_PHASE) then
+         T = inc%Temperature
+         if (icp == 1) then
+            call CO2_henry(T, f, dTf)
+         else
+            call FluidThermodynamics_Psat(T, Psat, dTSat)
             f = Psat
-
-            dPf = 0.d0
             dTf = dTSat
-            dCf = 0.d0
-            dSf = 0.d0
-         ENDIF
-      END IF
+         endif
+      end if
+
    end subroutine f_Fugacity
 
    SUBROUTINE CO2_henry(T, H, H_dt)
 
-      DOUBLE PRECISION, INTENT(IN) :: T
-      DOUBLE PRECISION, INTENT(OUT) :: H, H_dt
+      double precision, intent(in) :: T
+      double precision, intent(out) :: H, H_dt
 
-      DOUBLE PRECISION :: T1
-      DOUBLE PRECISION :: T2
-      DOUBLE PRECISION :: H1
-      DOUBLE PRECISION :: H2
+      double precision :: T1
+      double precision :: T2
+      double precision :: H1
+      double precision :: H2
 
       T1 = 298.d0
       T2 = 353.d0

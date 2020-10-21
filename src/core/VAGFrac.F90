@@ -581,17 +581,17 @@ contains
 
    end subroutine VAGFrac_check_volumes
 
-   subroutine VAGFrac_distribute_Darcy_quantities(cell_quantity, fracture_quantity, node_quantity)
+!    subroutine VAGFrac_distribute_Darcy_quantities(cell_quantity, fracture_quantity, node_quantity)
 
-      ! FIXME: use DOFFamilyArray instead
-      real(c_double), intent(inout) :: cell_quantity(:)
-      real(c_double), intent(inout) :: fracture_quantity(:)
-      real(c_double), intent(inout) :: node_quantity(:)
+!       ! FIXME: use DOFFamilyArray instead
+!       real(c_double), intent(inout) :: cell_quantity(:)
+!       real(c_double), intent(inout) :: fracture_quantity(:)
+!       real(c_double), intent(inout) :: node_quantity(:)
 
-      ! FIXME
-      call CommonMPI_abort('VAGFrac_distribute_Darcy_quantities: to be implemented as VAGFrac_distribute_fourier_quantities')
+!       ! FIXME
+!       call CommonMPI_abort('VAGFrac_distribute_Darcy_quantities: to be implemented as VAGFrac_distribute_fourier_quantities')
 
-   end subroutine VAGFrac_distribute_Darcy_quantities
+!    end subroutine VAGFrac_distribute_Darcy_quantities
 
    ! Compute vols darcy:
    !   VolDarcy and PoroVolDarcy

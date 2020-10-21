@@ -14,9 +14,9 @@
 module Thermodynamics
 
    use, intrinsic :: iso_c_binding, only: c_double, c_int
-   use DefModel, only: &
-      NbPhase, NbComp, IndThermique
-   use CapillaryPressure, only: f_PressionCapillaire
+   use DefModel, only: NbPhase, NbComp, IndThermique
+   use IncCVReservoir, only: TYPE_IncCVReservoir
+
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
 #endif
@@ -45,14 +45,11 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt
+      subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
       integer(c_int), intent(in) :: iph, icp
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
 #ifndef NDEBUG
@@ -70,27 +67,27 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_density")
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwdp, dcwdT
+      real(c_double) :: Cs, cw, dcwdp, dcwdT
       real(c_double) :: sc, dscdT, dscdCs
       real(c_double) :: Psat, dPsatdT
       real(c_double) :: rs, cwrs
 
-      rho0 = 780.83795d0
-      a = 1.6269192d0
-      b = -3.0635410d-3
-      a1 = 2.4638d-9
-      a2 = 1.1343d-17
-      b1 = -1.2171d-11
-      b2 = 4.8695d-20
-      c1 = 1.8452d-14
-      c2 = -5.9978d-23
+      real(c_double), parameter :: rho0 = 780.83795d0
+      real(c_double), parameter :: a = 1.6269192d0
+      real(c_double), parameter :: b = -3.0635410d-3
+      real(c_double), parameter :: a1 = 2.4638d-9
+      real(c_double), parameter :: a2 = 1.1343d-17
+      real(c_double), parameter :: b1 = -1.2171d-11
+      real(c_double), parameter :: b2 = 4.8695d-20
+      real(c_double), parameter :: c1 = 1.8452d-14
+      real(c_double), parameter :: c2 = -5.9978d-23
 
       ! Pure water part
       rs = 0.d0 ! CHECKME: What is this???? Link to capillary pressure?
@@ -114,7 +111,6 @@ contains
       dTf = dscdT*(1.d0 + cw*(P - Psat)) + sc*(dcwdT*(P - Psat) - cw*dPsatdT)
       dCf(ComPASS_SALT_COMPONENT) = dscdCs*(1.d0 + cw*(P - Psat))
       dCf(ComPASS_WATER_COMPONENT) = -dCf(ComPASS_SALT_COMPONENT)
-      dSf = 0.d0
 
    end subroutine f_DensiteMolaire
 
@@ -127,12 +123,12 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(in) :: P, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      call f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
 
@@ -144,12 +140,12 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_Viscosite(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       real(c_double) :: Tref, ns, dnsdT, b, dbdT, Cs, sc, dscdCs
 
@@ -169,7 +165,6 @@ contains
       dTf = -1.d-3*sc*(dnsdT/(ns**2))
       dCf(ComPASS_SALT_COMPONENT) = 1.d-3*(dscdCs)/ns
       dCf(ComPASS_WATER_COMPONENT) = -dCf(ComPASS_SALT_COMPONENT)
-      dSf = 0.d0
 
    end subroutine f_Viscosite
 
@@ -182,18 +177,35 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      subroutine f_EnergieInterne(iph, P, T, C, f, dPf, dTf, dCf)
 
       ! input
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: P, T, C(NbComp)
 
       ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      call f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      call f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_EnergieInterne
+
+   ! FIXME: pure liquid water...
+   pure subroutine f_proxy_enthalpy(P, T, f, dPf, dTf)
+      real(c_double), value, intent(in) :: P, T
+      real(c_double), intent(out) :: f, dPf, dTf
+
+      real(c_double), parameter :: a = -14.4319d+3
+      real(c_double), parameter :: b = 4.70915d+3
+      real(c_double), parameter :: cc = -4.87534d0
+      real(c_double), parameter :: d = 1.45008d-2
+      real(c_double), parameter :: T0 = 273.d0
+
+      f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
+      dPf = 0.d0
+      dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
+
+   end subroutine f_proxy_enthalpy
 
    ! Enthalpie
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
@@ -205,32 +217,20 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+! FIXME: this should depend on salt concentration and use specific enthalpy
+#ifndef NDEBUG
+      call CommonMPI_abort("f_Enthalpie: not implemented correctly.")
+#endif
 
-      real(c_double) :: a, b, cc, d, T0
-
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
-
-      a = -14.4319d+3
-      b = 4.70915d+3
-      cc = -4.87534d0
-      d = 1.45008d-2
-      T0 = 273.d0
-
-      f = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
-      dTf = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
+      call f_proxy_enthalpy(P, T, f, dPf, dTf)
+      dCf = 0.d0
 
    end subroutine f_Enthalpie
 
@@ -243,33 +243,23 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_SpecificEnthalpy(iph, P, T, f, dPf, dTf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
-                                     dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+      real(c_double) :: fv, dPfv, dTfv
 
-      real(c_double) :: a, b, cc, d, T0
+      ! FIXME: this should depend on salt concentration
+#ifndef NDEBUG
+      call CommonMPI_abort("f_SpecificEnthalpy: not implemented correctly.")
+#endif
 
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-      dSf = 0.d0
-
-      a = -14.4319d+3
-      b = 4.70915d+3
-      cc = -4.87534d0
-      d = 1.45008d-2
-      T0 = 273.d0
-
-      f(:) = a + b*(T - T0) + cc*(T - T0)**2 + d*(T - T0)**3
-      dTf(:) = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2
+      call f_proxy_enthalpy(P, T, fv, dPfv, dTfv)
+      f = fv
+      dPf = dPfv
+      dTf = dTfv
 
    end subroutine f_SpecificEnthalpy
 

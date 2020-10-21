@@ -17,7 +17,7 @@ module IncPrimSecdFreeFlow
       pschoice, psprim, pssecd, &
       NumPhasePresente_ctx, NbPhasePresente_ctx, &
       NbIncPTCMax, IndThermique, NbCompThermique, NbEqEquilibreMax
-   use Thermodynamics, only: f_Fugacity, f_PressionCapillaire
+   use Thermodynamics, only: f_Fugacity
    use NumbyContext, only: &
       NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
       NumIncComp2NumIncPTC_ctx, NbIncTotalPrim_ctx, NumCompCtilde_ctx, &
@@ -157,11 +157,10 @@ contains
    !      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
    !      dFsurdX(, :)                                            derivative freeflow flowrate(s)
-   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, rt, dFsurdX, SmF)
+   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, dFsurdX, SmF)
 
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      integer, intent(in) :: rt(IndThermique + 1)
       double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
@@ -212,12 +211,8 @@ contains
          numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
          ! fugacity
-         call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
-                         inc%Comp(:, iph1), inc%Saturation, &
-                         f1, dPf1, dTf1, dCf1, dSf1)
-         call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
-                         inc%Comp(:, iph2), inc%Saturation, &
-                         f2, dPf2, dTf2, dCf2, dSf2)
+         call f_Fugacity(iph1, icp, inc, pa, dpadS, f1, dPf1, dTf1, dCf1, dSf1)
+         call f_Fugacity(iph2, icp, inc, pa, dpadS, f2, dPf2, dTf2, dCf2, dSf2)
 
          ! derivative Pressure
          dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)

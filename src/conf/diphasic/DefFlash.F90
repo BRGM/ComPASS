@@ -13,13 +13,13 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
-   use, intrinsic :: iso_c_binding, only: c_double
+   use iso_c_binding, only: c_int, c_double
    use CommonMPI, only: CommonMPI_abort
    use IncCVReservoir, only: Type_IncCVReservoir
    use DefModel, only: &
-      IndThermique, NbPhase, NbComp, &
+      NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity, f_PressionCapillaire
+   use Thermodynamics, only: f_Fugacity
 
    implicit none
 
@@ -28,115 +28,28 @@ module DefFlash
 
 contains
 
+   include "../common/DiphasicFlash.F90"
+
    !> \brief Determine the phases
    !! which are actualy present.
    !!
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
-
+   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rocktype
-      double precision, intent(in) :: porovol ! porovol
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
 
-      integer :: iph, ic
-      double precision :: T, f(NbPhase)
-      double precision :: S(NbPhase), Pc, DSPc(NbPhase)
-      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
-      double precision :: Cal, Cwl
-      double precision :: PgCag, PgCwg
-      double precision :: Pref, Pg
-
-      ic = inc%ic
-      T = inc%Temperature
-      S = inc%Saturation
-      Pref = inc%Pression
-      ! Compute Pg
-      call f_PressionCapillaire(rocktype, GAS_PHASE, S, Pc, DSPc)
-      Pg = Pref + Pc
-
-      if (ic == LIQUID_CONTEXT) then
-         ! air liq fugacity
-         iph = LIQUID_PHASE
-         ! f_Fugacity called with reference pressure
-         call f_Fugacity(rocktype, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
-
-         ! water liq fugacity, f_Fugacity called with reference pressure
-         call f_Fugacity(rocktype, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
-
-         ! don't divide inequality by Pg (migth be negative during Newton iteration)
-         if (PgCag + PgCwg > Pg) then
-
-            ! write(*,*)' apparition gas ', Pg, T
-
-            inc%ic = DIPHASIC_CONTEXT
-            inc%Saturation(GAS_PHASE) = 0.d0
-            inc%Saturation(LIQUID_PHASE) = 1.d0
-            inc%Comp(AIR_COMP, GAS_PHASE) = MIN(MAX(inc%Comp(AIR_COMP, GAS_PHASE), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP, GAS_PHASE) = 1.d0 - inc%Comp(AIR_COMP, GAS_PHASE)
-
-         endif
-
-      elseif (ic == DIPHASIC_CONTEXT) then
-
-         if (S(GAS_PHASE) < 0.d0) then
-
-            ! write(*,*)' disapparition gas ', P(GAS_PHASE), T
-
-            inc%ic = LIQUID_CONTEXT
-            inc%Saturation(GAS_PHASE) = 0.d0
-            inc%Saturation(LIQUID_PHASE) = 1.d0
-
-         elseif (S(LIQUID_PHASE) < 0.d0) then
-
-            ! write (*, *) ' disapparition liquid ', P(GAS_PHASE), T
-
-            inc%ic = GAS_CONTEXT
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-
-         endif
-
-         ! force comp to be in [0,1] and sum equal to 1
-         do iph = 1, NbPhase
-            inc%Comp(AIR_COMP, iph) = MIN(MAX(inc%Comp(AIR_COMP, iph), 0.d0), 1.d0)
-            inc%Comp(WATER_COMP, iph) = 1.d0 - inc%Comp(AIR_COMP, iph)
-         enddo
-
-      elseif (ic == GAS_CONTEXT) then
-         ! air
-         do iph = 1, NbPhase
-            call f_Fugacity(rocktype, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-         ! water
-         do iph = 1, NbPhase
-            call f_Fugacity(rocktype, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-
-         if (Cal + Cwl > 1.d0) then
-
-            ! write(*,*)' apparition liquid ', P(GAS_PHASE), T
-
-            inc%ic = DIPHASIC_CONTEXT
-
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-            Cal = MIN(MAX(Cal, 0.d0), 1.d0)
-            inc%Comp(AIR_COMP, LIQUID_PHASE) = Cal
-            inc%Comp(WATER_COMP, LIQUID_PHASE) = 1.d0 - Cal
-         endif
-
-      else
-         call CommonMPI_abort('Error in Flash: unknown context')
+#ifndef NDEBUG
+      if (NbPhase /= 2) then
+         call CommonMPI_abort("Wrong number of phases.")
       endif
+#endif
+
+      call DiphasicFlash_Flash_cv(inc, pa, dpadS)
+      call DiphasicFlash_enforce_consistent_molar_fractions(inc)
 
    end subroutine DefFlash_Flash_cv
-
-#include "../common/DiphasicFlash.F90"
 
 end module DefFlash

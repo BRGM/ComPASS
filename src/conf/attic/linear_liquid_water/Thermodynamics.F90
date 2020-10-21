@@ -37,17 +37,12 @@ contains
    ! Fugacity
    ! iph is an identifier for each phase:
    ! GAS_PHASE = 1; LIQUID_PHASE = 2
-   subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt
+   pure subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
       integer(c_int), intent(in) :: iph, icp
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
-
-      integer :: errcode, Ierr
 
       write (*, *) "Should never be called with a single component."
       call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)

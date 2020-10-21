@@ -13,9 +13,9 @@ module Thermodynamics
    use PhysicalConstants, only: M_H2O, M_air
    use DefModel, only: NbPhase, NbComp, IndThermique, &
                        GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
-                       get_model_configuration
+                       get_model_configuration, MCP
    use CommonType, only: ModelConfiguration
-   use CapillaryPressure, only: f_PressionCapillaire
+   use IncCVReservoir, only: TYPE_IncCVReservoir
 
    implicit none
 
@@ -25,8 +25,7 @@ module Thermodynamics
       f_DensiteMassique, &  !< \rho^alpha(P,T,C,S)
       f_Viscosite, &  !< \mu^alpha(P,T,C,S)
       air_henry, &  !< Henry coef for air comp
-      air_henry_dT, &  !< derivative of the Henry coef for air comp
-      liquid_pressure          !< compute liquid pressure with hydrostatic pressure
+      air_henry_dT  !< derivative of the Henry coef for air comp
 
 #ifdef _THERMIQUE_
    public :: &
@@ -39,19 +38,6 @@ module Thermodynamics
 
 contains
 
-   pure function liquid_pressure(z_ref, p_ref, rho, g, z)
-      real(c_double), intent(in) :: z_ref
-      real(c_double), intent(in) :: p_ref
-      real(c_double), intent(in) :: rho
-      real(c_double), intent(in) :: g
-      real(c_double), intent(in) :: z
-      real(c_double) :: liquid_pressure
-
-      liquid_pressure = p_ref - rho*g*(z - z_ref)
-   end function liquid_pressure
-
-   ! *** Physics *** !
-
    ! Fugacity coefficient
    !< rt is the rocktype identifier
    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
@@ -60,20 +46,15 @@ contains
    !< T is the temperature
    !< C is the phase molar frcations
    !< S is all the saturations
-   pure subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt
+   pure subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
       integer(c_int), intent(in) :: iph, icp
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
-      real(c_double) :: PSat, dTSat, Pc, DSPc(NbPhase)
-      real(c_double) :: RZetal
-
-      RZetal = 8.314d0*1000.d0/0.018d0
+      real(c_double) :: T, PSat, dTSat, Pc, dPcdS(NbPhase)
+      real(c_double), parameter :: RZetal = 8.314d0*1000.d0/0.018d0
 
       dPf = 0.d0
       dTf = 0.d0
@@ -81,26 +62,24 @@ contains
       dSf = 0.d0
 
       if (iph == GAS_PHASE) then
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
-         f = P + Pc
-
+         f = pa(GAS_PHASE)
          dPf = 1.d0
-         dSf = DSPc
+         dSf(GAS_PHASE) = dpadS(GAS_PHASE)
       else if (iph == LIQUID_PHASE) then
+         T = inc%Temperature
          if (icp == AIR_COMP) then
             call air_henry(T, f)
             call air_henry_dT(dTf)
          else if (icp == WATER_COMP) then
-            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
-            ! FIXME: Pl = Pref + f_PressionCapillaire, so Pc = -Pc
-            Pc = -Pc
-            DSPc = -DSPc
+            Pc = pa(GAS_PHASE) - pa(LIQUID_PHASE)
+            dPcdS = 0.d0
+            dPcdS(GAS_PHASE) = dpadS(GAS_PHASE)
+            dPcdS(LIQUID_PHASE) = -dpadS(LIQUID_PHASE)
             call FluidThermodynamics_Psat(T, Psat, dTSat)
-
             f = Psat*dexp(Pc/(T*RZetal))
-
             dTf = (dTSat - Psat*Pc/RZetal/(T**2))*dexp(Pc/(T*RZetal))
-            dSf = DSPc*f/(T*RZetal)
+            dCf = 0.d0
+            dSf = dPcdS*f/(T*RZetal)
          endif
       endif
    end subroutine f_Fugacity
@@ -111,14 +90,10 @@ contains
       real(c_double), intent(in) :: T
       real(c_double), intent(out) :: H
 
-      real(c_double) :: T1, T2
-      real(c_double) :: H1, H2
-
-      T1 = 293.d0
-      T2 = 353.d0
-
-      H1 = 6.d+9
-      H2 = 10.d+9
+      real(c_double), parameter :: T1 = 293.d0
+      real(c_double), parameter :: T2 = 353.d0
+      real(c_double), parameter :: H1 = 6.d+9
+      real(c_double), parameter :: H2 = 10.d+9
 
       H = H1 + (H2 - H1)*(T - T1)/(T2 - T1)
 
@@ -129,18 +104,41 @@ contains
 
       real(c_double), intent(out) :: H_dt
 
-      real(c_double) :: T1, T2
-      real(c_double) :: H1, H2
-
-      T1 = 293.d0
-      T2 = 353.d0
-
-      H1 = 6.d+9
-      H2 = 10.d+9
+      real(c_double), parameter :: T1 = 293.d0
+      real(c_double), parameter :: T2 = 353.d0
+      real(c_double), parameter :: H1 = 6.d+9
+      real(c_double), parameter :: H2 = 10.d+9
 
       H_dt = (H2 - H1)/(T2 - T1)
 
    end subroutine
+
+   pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+
+      real(c_double) :: Pc, DSPc(NbPhase), Pg
+      real(c_double), parameter :: Rgp = 8.314d0
+
+      f = p/(Rgp*T)
+      dPf = 1/(Rgp*T)
+      dTf = -Pg/Rgp/T**2
+      dCf = 0.d0
+
+   end subroutine f_DensiteMolaire_gas
+
+   pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+
+      f = 1000.d0/M_H2O
+      dPf = 0.d0
+      dTf = 0.d0
+      dCf = 0.d0
+
+   end subroutine f_DensiteMolaire_liquid
 
    ! Molar density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
@@ -151,44 +149,25 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_DensiteMolaire(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_density")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      real(c_double) :: Rgp, Pc, DSPc(NbPhase), Pg
-      integer(c_int) :: rocktype
-
-      Rgp = 8.314d0
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       if (iph == GAS_PHASE) then
-         rocktype = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
-         call f_PressionCapillaire(rocktype, iph, S, Pc, DSPc)
-#ifndef NDEBUG
-         if (Pc .ne. 0.d0) &
-            call CommonMPI_abort('possible error in f_DensiteMolaire (change rocktype?)')
-#endif
-         Pg = P + Pc
-         f = Pg/(Rgp*T)
-
-         dPf = 1/(Rgp*T)
-         dTf = -Pg/Rgp/T**2
-         dCf = 0.d0
-         dSf = DSPc(iph)/(Rgp*T)
+         call f_DensiteMolaire_gas( &
+            p, T, C, f, dPf, dTf, dCf)
       else if (iph == LIQUID_PHASE) then
-         f = 1000.d0/M_H2O
-
-         dPf = 0.d0
-         dTf = 0.d0
-         dCf = 0.d0
-         dSf = 0.d0
+         call f_DensiteMolaire_liquid( &
+            p, T, C, f, dPf, dTf, dCf)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
+#endif
       endif
+
    end subroutine f_DensiteMolaire
 
    ! Massic density
@@ -200,41 +179,22 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
-
-      ! input
+      subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      real(c_double) :: zeta, comp_m(NbComp), m
+      real(c_double) :: zeta, M
       integer :: icp
-      type(ModelConfiguration) :: configuration
-      configuration = get_model_configuration()
 
-      call f_DensiteMolaire(iph, P, T, C, S, zeta, dPf, dTf, dCf, dSf)   ! P is Reference Pressure
+      call f_DensiteMolaire(iph, p, T, C, zeta, dPf, dTf, dCf)
 
-      comp_m(AIR_COMP) = M_air
-      comp_m(WATER_COMP) = M_H2O
-
-      m = 0.d0
-      ! loop of component in phase iph
-      do icp = 1, NbComp
-         ! configuration%MCP(icp,iph)=1 if component in phase iph
-         m = m + configuration%MCP(icp, iph)*C(icp)*comp_m(icp)
-      enddo
-
-      f = zeta*m
-
-      dPf = dPf*m
-      dTf = dTf*m
-      ! loop of component in phase iph
-      do icp = 1, NbComp
-         dCf(icp) = dCf(icp)*m + zeta*configuration%MCP(icp, iph)*comp_m(icp)
-      enddo
-      dSf = dSf*m
+      M = MCP(AIR_COMP, iph)*M_air*C(AIR_COMP) + MCP(WATER_COMP, iph)*M_H2O*C(WATER_COMP)
+      f = zeta*M
+      dPf = dPf*M
+      dTf = dTf*M
+      dCf(AIR_COMP) = dCf(AIR_COMP)*M + zeta*MCP(AIR_COMP, iph)*M_air
+      dCf(WATER_COMP) = dCf(WATER_COMP)*M + zeta*MCP(WATER_COMP, iph)*M_H2O
 
    end subroutine f_DensiteMassique
 
@@ -244,17 +204,12 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   pure subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: &
-         f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       if (iph == GAS_PHASE) then
          f = 2.d-5
@@ -265,7 +220,6 @@ contains
       dPf = 0.d0
       dTf = 0.d0
       dCf = 0.d0
-      dSf = 0.d0
 
    end subroutine f_Viscosite
 
@@ -277,36 +231,76 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
+
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
-
-      ! input
+      subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double) :: paovzeta2
+      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
+      real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp)
 
-      real(c_double) :: Piph, Pc, DSPc(NbPhase)
-      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp), dzetadS(NbPhase)
-      real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp), denthdS(NbPhase)
-      integer(c_int) :: rocktype
-
-      rocktype = 0
-      call f_PressionCapillaire(rocktype, iph, S, Pc, DSPc)
-      Piph = P + Pc
-
-      CALL f_Enthalpie(iph, P, T, C, S, enth, denthdP, denthdT, denthdC, denthdS) ! called with reference pressure
-      CALL f_DensiteMolaire(iph, P, T, C, S, zeta, dzetadP, dzetadT, dzetadC, dzetadS) ! called with reference pressure
-      f = enth - Piph/zeta ! P is phase pressure
-      dPf = denthdP - 1.d0/zeta + Piph/zeta**2*dzetadP
-      dTf = denthdT + Piph/zeta**2*dzetadT
-      dCf = denthdC + Piph/zeta**2*dzetadC
-      dSf = denthdS - DSPc/zeta + Piph/zeta**2*dzetadS
+      call f_Enthalpie(iph, p, T, C, enth, denthdP, denthdT, denthdC)
+      call f_DensiteMolaire(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
+      f = enth - p/zeta
+      paovzeta2 = p/(zeta**2)
+      dPf = denthdP - 1.d0/zeta + paovzeta2*dzetadP
+      dTf = denthdT + paovzeta2*dzetadT
+      dCf = denthdC + paovzeta2*dzetadC
 
    end subroutine f_EnergieInterne
+
+   pure subroutine f_specific_enthalpy_gas(p, T, is_present, f, dPf, dTf)
+      real(c_double), intent(in) :: p, T
+      integer, intent(in) :: is_present(NbComp)
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
+
+      real(c_double), parameter :: a = 1990.89d+3
+      real(c_double), parameter :: b = 190.16d+3
+      real(c_double), parameter :: cc = -1.91264d+3
+      real(c_double), parameter :: d = 0.2997d+3
+      real(c_double) :: Ts, ss, dTss, cp, beta_air, beta_water
+
+      call f_CpGaz(cp)
+
+      Ts = T/100.d0
+      ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
+      dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
+      ! CHECKME: could we assume that MCP(AIR_COMP, iph)==.false. => C(AIR_COMP) = 0
+      beta_air = is_present(AIR_COMP)*cp*M_air
+      beta_water = is_present(WATER_COMP)*M_H2O
+      f(AIR_COMP) = beta_air*T
+      f(WATER_COMP) = beta_water*ss
+      dPf = 0.d0
+      dTf(AIR_COMP) = beta_air
+      dTf(WATER_COMP) = beta_water*dTss
+
+   end subroutine f_specific_enthalpy_gas
+
+   pure subroutine f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
+
+      real(c_double), parameter :: a = -14.4319d+3
+      real(c_double), parameter :: b = +4.70915d+3
+      real(c_double), parameter :: cc = -4.87534
+      real(c_double), parameter :: d = 1.45008d-2
+      real(c_double), parameter :: T0 = 273.d0
+      real(c_double) :: ss, dTss, TdegC
+
+      TdegC = T - T0
+      ss = a + b*TdegC + cc*(TdegC**2) + d*(TdegC**3)
+      dTss = b + 2.d0*cc*TdegC + 3*d*(TdegC**2)
+      ! FIXME: all components have the same contributions
+      f = ss*M_H2O
+      dPf = 0.d0
+      dTf = dTss*M_H2O
+
+   end subroutine f_specific_enthalpy_liquid
 
    ! Enthalpie
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
@@ -314,63 +308,31 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
-      bind(C, name="FluidThermodynamics_molar_enthalpy")
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf)
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! input
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      real(c_double) :: a, b, cc, d, Ts, T0, ss, dTss, cp
-      type(ModelConfiguration) :: configuration
+      real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
 
       if (iph == GAS_PHASE) then
-         a = 1990.89d+3
-         b = 190.16d+3
-         cc = -1.91264d+3
-         d = 0.2997d+3
-
-         Ts = T/100.d0
-
-         ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
-         dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
-
-         call f_CpGaz(cp)
-
-         configuration = get_model_configuration()
-
-         f = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*M_air*T + &
-             configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*ss*M_H2O
-
-         dPf = 0.d0
-         dTf = configuration%MCP(AIR_COMP, iph)*C(AIR_COMP)*cp*M_air + &
-               configuration%MCP(WATER_COMP, iph)*C(WATER_COMP)*M_H2O*dTss
-         dCf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air*T
-         dCf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*M_H2O
-         dSf = 0.d0
-
+         call f_specific_enthalpy_gas(p, T, MCP(:, GAS_PHASE), fspec, dfspecdP, dfspecdT)
       else if (iph == LIQUID_PHASE) then
-
-         a = -14.4319d+3
-         b = +4.70915d+3
-         cc = -4.87534
-         d = 1.45008d-2
-         T0 = 273.d0
-
-         ss = a + b*(T - T0) + cc*(T - T0)**2.d0 + d*(T - T0)**3.d0
-         dTss = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2.d0
-
-         f = ss*M_H2O
-
-         dPf = 0.d0
-         dTf = dTss*M_H2O
-         dCf = 0.d0
-         dSf = 0.d0
+         call f_specific_enthalpy_liquid(p, T, fspec, dfspecdP, dfspecdT)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort("Unknow phase in f_Enthalpie.")
+#endif
       endif
+
+      f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
+      dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
+      dTf = dfspecdT(AIR_COMP)*C(AIR_COMP) + dfspecdT(WATER_COMP)*C(WATER_COMP)
+      dCf(AIR_COMP) = fspec(AIR_COMP)
+      dCf(WATER_COMP) = fspec(WATER_COMP)
 
    end subroutine f_Enthalpie
 
@@ -380,62 +342,23 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_SpecificEnthalpy(iph, p, T, f, dPf, dTf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
-                                     dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
-
-      real(c_double) :: a, b, cc, d, Ts, T0, ss, dTss, cp
-      type(ModelConfiguration) :: configuration
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
       if (iph == GAS_PHASE) then
-         a = 1990.89d+3
-         b = 190.16d+3
-         cc = -1.91264d+3
-         d = 0.2997d+3
-
-         Ts = T/100.d0
-
-         ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
-         dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
-
-         call f_CpGaz(cp)
-
-         configuration = get_model_configuration()
-
-         f(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air*T
-         f(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*ss*M_H2O
-
-         dPf = 0.d0
-         dTf(AIR_COMP) = configuration%MCP(AIR_COMP, iph)*cp*M_air
-         dTf(WATER_COMP) = configuration%MCP(WATER_COMP, iph)*M_H2O*dTss
-         dCf = 0.d0
-         dSf = 0.d0
-
+         call f_specific_enthalpy_gas(p, T, MCP(:, GAS_PHASE), f, dPf, dTf)
       else if (iph == LIQUID_PHASE) then
-
-         a = -14.4319d+3
-         b = +4.70915d+3
-         cc = -4.87534
-         d = 1.45008d-2
-         T0 = 273.d0
-
-         ss = a + b*(T - T0) + cc*(T - T0)**2.d0 + d*(T - T0)**3.d0
-         dTss = b + 2.d0*cc*(T - T0) + 3.d0*d*(T - T0)**2.d0
-
-         f(:) = ss*M_H2O
-
-         dPf = 0.d0
-         dTf(:) = dTss*M_H2O
-         dCf = 0.d0
-         dSf = 0.d0
+         call f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort("Unknow phase in f_SpecificEnthalpy.")
+#endif
       endif
 
    end subroutine f_SpecificEnthalpy
@@ -446,6 +369,7 @@ contains
       real(c_double), intent(out) :: c
 
       c = 1000.d0
+
    end subroutine
 
    ! Compute Psat(T)
@@ -456,7 +380,7 @@ contains
       real(c_double), value, intent(in) :: T
       real(c_double), intent(out) :: Psat, dT_PSat
 
-! valid between -50C and 200C
+      ! valid between -50C and 200C
       Psat = 100.d0*dexp(46.784d0 - 6435.d0/T - 3.868d0*dlog(T))
       dT_PSat = (6435.d0/T**2.d0 - 3.868d0/T)*Psat
 

@@ -13,6 +13,7 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
+   use iso_c_binding, only: c_double
    use IncCVReservoir, only: Type_IncCVReservoir
    use DefModel, only: &
       locked_context, &
@@ -33,14 +34,12 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, rocktype, porovol)
-
-      type(TYPE_IncCVReservoir), intent(inout) :: inc
-      INTEGER, INTENT(IN) :: rocktype
-      double precision, intent(in) :: porovol ! porovol
+   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
 
       integer :: context
-
       double precision :: Tsat, dTsatdP, Psat, dPsatdT
 
       context = inc%ic
