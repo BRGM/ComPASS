@@ -15,6 +15,7 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 
 simulation = ComPASS.load_eos("water2ph")
+ComPASS.set_output_directory_and_logfile(__file__)
 
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
@@ -33,11 +34,11 @@ nH = 50  # discretization
 nx, ny, nz = 2 * nH, 1, nH
 Lx, Ly, Lz = 2 * H, 0.1 * H, H
 
-ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded
 pbottom = simulation.get_gravity() * H * 900.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)
+assert hbottom > 1e6, "Wrong enthalpy for bottom initialisation"
 
 grid = ComPASS.Grid(
     shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(-0.5 * Lx, -0.5 * Ly, -H)

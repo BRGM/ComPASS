@@ -1493,7 +1493,7 @@ contains
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
             call LoisThermoHydro_dfdX_ps( &
-               context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
+               context, NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
          end do
          ! FIXME: why not calling on RHS?
          !        because we don't use directly kr variations in Jacobian but divKrVisco...
