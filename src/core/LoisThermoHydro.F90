@@ -1338,7 +1338,7 @@ contains
          call f_DensiteMassique( &
             iph, pa(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dPf, dTf, dCf)
          dSf = 0.d0
-         dSf = dPf*dpadS(iph)
+         dSf(iph) = dPf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
          call LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
