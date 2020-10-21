@@ -16,11 +16,11 @@ module DefFlash
    use CommonMPI, only: CommonMPI_abort
    use IncCVReservoir, only: Type_IncCVReservoir
    use DefModel, only: &
-      IndThermique, NbPhase, NbComp, &
+      NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
       GAS_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity, f_PressionCapillaire
+   use Thermodynamics, only: f_Fugacity
 
    implicit none
 
@@ -29,6 +29,8 @@ module DefFlash
 
 contains
 
+   include "../common/DiphasicFlash.F90"
+
    !> \brief Determine the phases
    !! which are actualy present.
    !!
@@ -36,13 +38,12 @@ contains
    !! \param[in]      porovol   porous Volume
    !! \param[in]      rt        rocktype
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, rt, porovol)
-
+   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      integer, intent(in) :: rt
-      double precision, intent(in) :: porovol ! porous volume
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
 
-      integer :: iph, ic, i
+      integer :: iph, context, i
       double precision :: T, f(NbPhase)
       double precision :: S(NbPhase), Pc, DSPc(NbPhase)
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
@@ -50,170 +51,45 @@ contains
       double precision :: PgCag, PgCwg
       double precision :: Pref, Pg
 
-      ic = inc%ic
-      T = inc%Temperature
-      S = inc%Saturation
-      Pref = inc%Pression
-      ! compute Pg
-      call f_PressionCapillaire(rt, GAS_PHASE, S, Pc, DSPc)
-      Pg = Pref + Pc
+#ifndef NDEBUG
+      if (NbPhase /= 2) then
+         call CommonMPI_abort("Wrong number of phases.")
+      endif
+#endif
 
-      ! RESRVOIR DOF
-      if (ic == LIQUID_CONTEXT) then
+      context = inc%ic
 
-         ! air liq fugacity
-         iph = LIQUID_PHASE
-         ! f_Fugacity is computed using Pref
-         call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         PgCag = inc%Comp(AIR_COMP, iph)*f(iph)
+      if (context == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
-         ! water liq fugacity, f_Fugacity is computed using Pref
-         call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         PgCwg = inc%Comp(WATER_COMP, iph)*f(iph)
+         call DiphasicFlash_gas_to_diphasic(inc, pa, dpadS)
+         if (inc%ic == DIPHASIC_CONTEXT) inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
 
-         ! don't divide inequality by Pg (migth be negative during Newton iteration)
-         if (PgCag + PgCwg > Pg) then
-            ! write(*,*)' appearance gas ', Pg, T
-            inc%ic = DIPHASIC_CONTEXT
-            inc%Saturation(GAS_PHASE) = 0.d0
-            inc%Saturation(LIQUID_PHASE) = 1.d0
-            ! force comp to be in [0,1]
-            do i = 1, NbComp
-               inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
-            enddo
+      elseif (context == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
-         endif
-
-         ! force comp to be in [0,1]
-         do i = 1, NbComp
-            inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
-         enddo
-
-      elseif (ic == DIPHASIC_CONTEXT) then
-
-         if (S(GAS_PHASE) < 0.d0) then
-            ! write(*,*)' disappearance gas ', Pg, T
-            inc%ic = LIQUID_CONTEXT
-            inc%Saturation(GAS_PHASE) = 0.d0
-            inc%Saturation(LIQUID_PHASE) = 1.d0
-
-         elseif (S(LIQUID_PHASE) < 0.d0) then
-            ! write (*, *) ' disappearance liquid ', Pg, T
-            inc%ic = GAS_CONTEXT
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-
-         endif
-
-         ! force comp to be in [0,1]
-         do iph = 1, NbPhase
-            do i = 1, NbComp
-               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
-            enddo
-         enddo
-
-      elseif (ic == GAS_CONTEXT) then
-
-         ! air
-         do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-         ! water
-         do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-
-         if (Cal + Cwl > 1.d0) then
-            ! write(*,*)' appearance liquid '
-            inc%ic = DIPHASIC_CONTEXT
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-            ! force comp to be in [0,1]
-            do i = 1, NbComp
-               inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
-            enddo
-         endif
-
-         ! force comp to be in [0,1]
-         do i = 1, NbComp
-            inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
-         enddo
-
-         ! FREEFLOW BC DOF
-      elseif (ic == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
-
-         ! air
-         do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, AIR_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cal = inc%Comp(AIR_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-         ! water
-         do iph = 1, NbPhase
-            call f_Fugacity(rt, iph, WATER_COMP, Pref, T, inc%Comp(:, iph), S, f(iph), DPf, DTf, DCf, DSf)
-         enddo
-         Cwl = inc%Comp(WATER_COMP, GAS_PHASE)*f(GAS_PHASE)/f(LIQUID_PHASE)
-
-         if (Cal + Cwl > 1.d0) then
+         ! CHECKME: we assume no entry pressure in the atmosphere
+         call DiphasicFlash_diphasic_switches(inc)
+         if (inc%ic == LIQUID_CONTEXT) then
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-            ! force comp to be in [0,1]
-            do i = 1, NbComp
-               inc%Comp(i, LIQUID_PHASE) = min(max(inc%Comp(i, LIQUID_PHASE), 0.d0), 1.d0)
-            enddo
-         endif
-         ! force comp to be in [0,1]
-         do i = 1, NbComp
-            inc%Comp(i, GAS_PHASE) = min(max(inc%Comp(i, GAS_PHASE), 0.d0), 1.d0)
-         enddo
-
-      elseif (ic == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
-
-         if (S(GAS_PHASE) < 0.d0) then ! because there is no entry pressure in the atmosphere
-            ! write(*,*)' appearance liquid outflow in Freeflow BC', Pg, T
-            inc%ic = DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
-            ! important to set the following saturations
-            ! because they are not unknowns in this context
-            inc%Saturation(GAS_PHASE) = 0.d0
-            inc%Saturation(LIQUID_PHASE) = 1.d0
-            inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
-
-         elseif (S(LIQUID_PHASE) < 0.d0) then
-            ! write (*, *) ' disappearance liquid phase in Freeflow BC', Pg, T
+         elseif (inc%ic == GAS_CONTEXT) then
             inc%ic = GAS_FF_NO_LIQ_OUTFLOW_CONTEXT
-            inc%Saturation(GAS_PHASE) = 1.d0
-            inc%Saturation(LIQUID_PHASE) = 0.d0
-
          endif
+         ! The following always holds even at liquid apparition
+         inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
 
-         ! force comp to be in [0,1]
-         do iph = 1, NbPhase
-            do i = 1, NbComp
-               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
-            enddo
-         enddo
+      elseif (context == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
 
-      elseif (ic == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
-
-         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then
-            ! write(*,*)' disappearance liquid outflow in Freeflow BC'
+         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then ! liquid vanishes
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
          endif
-
-         ! force comp to be in [0,1]
-         do iph = 1, NbPhase
-            do i = 1, NbComp
-               inc%Comp(i, iph) = min(max(inc%Comp(i, iph), 0.d0), 1.d0)
-            enddo
-         enddo
 
       else
-         call CommonMPI_abort('Error in Flash: unknown context')
+
+         call DiphasicFlash_Flash_cv(inc, pa, dpadS)
 
       endif
+
+      call DiphasicFlash_enforce_consistent_molar_fractions(inc)
 
    end subroutine DefFlash_Flash_cv
 

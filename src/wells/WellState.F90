@@ -136,10 +136,7 @@ contains
    end subroutine WellState_FlowrateWellProd
 
    ! FIXME: we should change the API to pass E/n instead of E and n
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine WellState_solve_for_temperature(Phase, E, p, T, n, converged, ResT, newton_tol_in, newton_itermax_in)
+   subroutine WellState_solve_for_temperature(Phase, E, p, T, n, converged, ResT, newton_tol_in, newton_itermax_in)
 
       integer, intent(in) :: Phase
       double precision, intent(in) :: E !< total energy
@@ -150,9 +147,15 @@ contains
       double precision, intent(inout):: ResT
       double precision, intent(in), optional :: newton_tol_in
       integer, intent(in), optional :: newton_itermax_in
-      double precision :: H, dHdP, dHdT, dHdC(NbComp), dHdS(NbPhase), newton_tol
-      double precision :: dummyCi(NbComp), dummySat(NbPhase) ! not used by f_Enthalpie !
+      double precision :: H, dHdP, dHdT, dHdC(NbComp), newton_tol
+      double precision :: Ci(NbComp)
       integer :: i, newton_itermax
+
+#ifndef NDEBUG
+      if (NbComp /= 1) &
+         call CommonMPI_abort("Assuming a single component...")
+#endif
+      Ci = 1.d0 ! A single component
 
       newton_tol = 1.0d-5
       if (present(newton_tol_in)) newton_tol = newton_tol_in
@@ -161,7 +164,7 @@ contains
       converged = .false.
       ResT = 1E+10
       do i = 1, newton_itermax
-         call f_Enthalpie(Phase, p, T, dummyCi, dummySat, H, dHdP, dHdT, dHdC, dHdS)
+         call f_Enthalpie(Phase, p, T, Ci, H, dHdP, dHdT, dHdC)
          ResT = E - H*n ! residual
          if (abs(ResT) < newton_tol) then
             converged = .true.

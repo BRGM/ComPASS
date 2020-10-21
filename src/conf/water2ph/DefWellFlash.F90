@@ -15,7 +15,7 @@ module DefWellFlash
    use IncCVWells, only: PerfoWellProd, NodebyWellProdLocal
    use IncCVReservoir, only: IncNode
    use Thermodynamics, only: &
-      f_DensiteMassique, f_DensiteMolaire, f_Enthalpie, FluidThermodynamics_Tsat
+      f_DensiteMassique, f_Enthalpie, FluidThermodynamics_Tsat
    use DefModel, only: NbPhase, NbComp, LIQUID_PHASE, GAS_PHASE
    use MeshSchema, only: DataWellProdLocal
    use WellState, only: &
@@ -34,7 +34,7 @@ contains
       double precision :: Tws, Pws, Sg, Sl
       double precision :: rhog, rhol, rho
       ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
+      double precision :: dPf, dTf, dCf(NbComp)
       integer :: s, sr
 
       do s = NodebyWellProdLocal%Pt(wk) + 1, NodebyWellProdLocal%Pt(wk)
@@ -48,11 +48,11 @@ contains
          PerfoWellProd(s)%Saturation = IncNode(sr)%Saturation
          rho = 0.d0
          if (Sg > 0) then
-            call f_DensiteMassique(GAS_PHASE, Pws, Tws, molarFrac, sat, rhog, dPf, dTf, dCf, dSf)
+            call f_DensiteMassique(GAS_PHASE, Pws, Tws, IncNode(sr)%Comp(:, GAS_PHASE), rhog, dPf, dTf, dCf)
             rho = rho + Sg*rhog
          end if
          if (Sl > 0) then
-            call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, sat, rhol, dPf, dTf, dCf, dSf)
+            call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, IncNode(sr)%Comp(:, LIQUID_PHASE), rhol, dPf, dTf, dCf)
             rho = rho + Sl*rhol
          end if
          PerfoWellProd(s)%Density = rho
@@ -75,7 +75,7 @@ contains
       double precision :: Hgas, Hliq, rhog, rhol
       double precision :: sumni, E
       ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, dP_Tsat, sat(NbPhase), molarFrac(NbComp), dCf(NbComp), dSf(NbPhase)
+      double precision :: dPf, dTf, dP_Tsat, Cw(NbComp), dCf(NbComp)
       integer :: wk, s, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
       logical :: converged
 
@@ -100,15 +100,15 @@ contains
                if (sumni < 1.0D-12) then
                   cycle !keep everything as the previous  timestep
                end if
-
+               Cw = summolarFluxProd(:, s)/sumni
                ! suppose that the two phases are present at the node
                ID_PHASE = -1
                ! set temperature to saturation temperature at Pws
                call FluidThermodynamics_Tsat(Pws, Tws, dP_Tsat)
                ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
                ! molarFrac is not used in the computation of the enthalpies
-               call f_Enthalpie(GAS_PHASE, Pws, Tws, molarFrac, sat, Hgas, dPf, dTf, dCf, dSf)
-               call f_Enthalpie(LIQUID_PHASE, Pws, Tws, molarFrac, sat, Hliq, dPf, dTf, dCf, dSf)
+               call f_Enthalpie(GAS_PHASE, Pws, Tws, Cw, Hgas, dPf, dTf, dCf)
+               call f_Enthalpie(LIQUID_PHASE, Pws, Tws, Cw, Hliq, dPf, dTf, dCf)
 
                xg = (E/sumni - Hliq)/(Hgas - Hliq)
 
@@ -133,12 +133,12 @@ contains
                      print *, "Residue is", abs(ResT), "Well_idx= ", wk, "node_idx= ", s
                   end if
                   PerfoWellProd(s)%Temperature = Tws
-                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, sat, PerfoWellProd(s)%Density, dPf, dTf, dCf, dSf)
+                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, Cw, PerfoWellProd(s)%Density, dPf, dTf, dCf)
                else ! perforation is diphasic
                   PerfoWellProd(s)%Temperature = Tws
                   ! molarFrac is not used in the computation of the massique densities
-                  call f_DensiteMassique(GAS_PHASE, Pws, Tws, molarFrac, sat, rhog, dPf, dTf, dCf, dSf)
-                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, molarFrac, sat, rhol, dPf, dTf, dCf, dSf)
+                  call f_DensiteMassique(GAS_PHASE, Pws, Tws, Cw, rhog, dPf, dTf, dCf)
+                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, Cw, rhol, dPf, dTf, dCf)
                   Sg = (xg/rhog)/((xg/rhog) + ((1.d0 - xg)/rhol))
                   Sl = 1.d0 - Sg
                   PerfoWellProd(s)%Density = Sl*rhol + Sg*rhog

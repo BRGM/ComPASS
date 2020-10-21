@@ -14,7 +14,11 @@ module Thermodynamics
    use mpi, only: MPI_Abort
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
-   use CapillaryPressure, only: f_PressionCapillaire
+   use IncCVReservoir, only: TYPE_IncCVReservoir
+
+#ifndef NDEBUG
+   use CommonMPI, only: CommonMPI_abort
+#endif
 
    implicit none
 
@@ -64,21 +68,15 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
-
-      ! input
-      integer(c_int), intent(in) :: rt
+      subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
       integer(c_int), intent(in) :: iph, icp
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
-      integer :: errcode, Ierr
-
 #ifndef NDEBUG
-      write (*, *) "Should never be called with a single component."
-      call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+      call CommonMPI_abort("Fugacity should never be called with a single component.")
 #endif
 
    end subroutine f_Fugacity
@@ -89,24 +87,19 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   subroutine f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_density")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       f = fluid_properties%specific_mass &
           *exp(fluid_properties%compressibility*(P - fluid_properties%reference_pressure)) &
           *exp(fluid_properties%thermal_expansivity*(T - fluid_properties%reference_temperature))
       dPf = f*fluid_properties%compressibility
       dTf = f*fluid_properties%thermal_expansivity
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
+      dCf = 0.d0
 
    end subroutine f_DensiteMolaire
 
@@ -116,16 +109,12 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
-
-      ! input
+   subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: P, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      call f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
 
@@ -134,21 +123,17 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_Viscosite(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   subroutine f_Viscosite(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: &
-         f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       f = fluid_properties%dynamic_viscosity
       dPf = 0.d0
       dTf = 0.d0
+      dCf = 0.d0
 
    end subroutine f_Viscosite
 
@@ -158,18 +143,24 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_EnergieInterne(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+   subroutine f_EnergieInterne(iph, P, T, C, f, dPf, dTf, dCf)
+      integer(c_int), value, intent(in) :: iph
+      real(c_double), value, intent(in) :: P, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! input
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      call f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      call f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_EnergieInterne
+
+   subroutine f_enthalpy_proxy(T, f, dTf)
+      real(c_double), value, intent(in) :: T
+      real(c_double), intent(out) :: f, dTf
+
+      f = fluid_properties%volumetric_heat_capacity*T
+      dTf = fluid_properties%volumetric_heat_capacity
+
+   end subroutine f_enthalpy_proxy
 
    ! Enthalpie
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
@@ -177,22 +168,16 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_Enthalpie(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   subroutine f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
-
-      f = fluid_properties%volumetric_heat_capacity*T
+      call f_enthalpy_proxy(T, f, dTf)
       dPf = 0.d0
-      dTf = fluid_properties%volumetric_heat_capacity
-      dCf(:) = 0.d0
-      dSf(:) = 0.d0
+      dCf = 0.d0
 
    end subroutine f_Enthalpie
 
@@ -202,23 +187,23 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-   pure subroutine f_SpecificEnthalpy(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+   subroutine f_SpecificEnthalpy(iph, P, T, f, dPf, dTf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-
-      ! input
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
-      ! output
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp), &
-                                     dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+      real(c_double) :: fv, dTfv
 
-      f(:) = fluid_properties%volumetric_heat_capacity*T
+#ifndef NDEBUG
+      if (NbComp /= 1) &
+         call CommonMPI_abort("f_SpecificEnthalpy: single component assumed!")
+#endif
+
+      call f_enthalpy_proxy(T, fv, dTfv)
+      f = fv
       dPf = 0.d0
-      dTf(:) = fluid_properties%volumetric_heat_capacity
-      dCf = 0.d0
-      dSf = 0.d0
+      dTf = dTfv
 
    end subroutine f_SpecificEnthalpy
 

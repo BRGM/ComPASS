@@ -35,12 +35,9 @@ contains
 
       double precision :: T, ResT, Pws, Ci(NbComp), sumni, E
       double precision :: rhoMean
-      double precision :: dPf, dTf, Sat(NbPhase), dCf(NbComp), dSf(NbPhase) ! not used for now, empty passed to f_Enthalpie
+      double precision :: dPf, dTf, dCf(NbComp) ! not used for now, empty passed to f_Enthalpie
       integer :: k, s
       logical :: converged
-
-      Sat = 0.d0
-      Sat(LIQUID_PHASE) = 1.d0
 
       call WellState_FlowrateWellProd
 
@@ -66,8 +63,7 @@ contains
 
             ! update PhysPerfoWell
             PerfoWellProd(s)%Temperature = T
-            call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, Sat, rhoMean, &
-                                   dPf, dTf, dCf, dSf)
+            call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, rhoMean, dPf, dTf, dCf)
             PerfoWellProd(s)%Density = rhoMean
 
          end do ! end of well k

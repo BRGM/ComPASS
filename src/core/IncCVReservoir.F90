@@ -18,7 +18,7 @@ module IncCVReservoir
       NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
       NbCompThermique, NbIncTotalMax, &
       NumPhasePresente_ctx, NbPhasePresente_ctx, &
-      IndThermique, MCP
+      IndThermique, MCP, NbIncTotalPrimMax
 
    use MeshSchema, only: &
       IdNodeLocal, &
@@ -76,6 +76,19 @@ module IncCVReservoir
       IncCellPreviousTimeStep, & !< Cell unknowns for previous time step
       IncFracPreviousTimeStep, & !< Fracture Face unknowns for previous time step
       IncNodePreviousTimeStep !< Node unknowns for previous time step
+
+   real(c_double), allocatable, dimension(:, :), target, public :: &
+      PhasePressureAll
+   real(c_double), dimension(:, :), pointer, public :: &
+      PhasePressureCell, PhasePressureFrac, PhasePressureNode
+   real(c_double), allocatable, dimension(:, :, :), target, public :: &
+      divPhasePressureAll
+   real(c_double), dimension(:, :, :), pointer, public :: &
+      divPhasePressureCell, divPhasePressureFrac, divPhasePressureNode
+   real(c_double), allocatable, dimension(:, :), target, public :: &
+      dPhasePressuredSAll
+   real(c_double), dimension(:, :), pointer, public :: &
+      dPhasePressuredSCell, dPhasePressuredSFrac, dPhasePressuredSNode
 
    public :: &
       IncCVReservoir_allocate, &
@@ -149,13 +162,44 @@ contains
    subroutine IncCVReservoir_allocate
 
       type(SubArrayInfo) :: info
+      integer(c_size_t) :: k, n
+      integer(c_size_t) :: begin_node, end_node
+      integer(c_size_t) :: begin_frac, end_frac
+      integer(c_size_t) :: begin_cell, end_cell
 
       call MeshSchema_subarrays_info(info)
+      n = info%nb%nodes + info%nb%fractures + info%nb%cells
+      begin_node = info%offset%nodes
+      end_node = info%offset%nodes - 1 + info%nb%nodes
+      begin_frac = info%offset%fractures
+      end_frac = info%offset%fractures - 1 + info%nb%fractures
+      begin_cell = info%offset%cells
+      end_cell = info%offset%cells - 1 + info%nb%cells
 
-      allocate (IncAll(info%nb%nodes + info%nb%fractures + info%nb%cells))
-      IncNode => IncAll(info%offset%nodes:info%offset%nodes - 1 + info%nb%nodes)
-      IncFrac => IncAll(info%offset%fractures:info%offset%fractures - 1 + info%nb%fractures)
-      IncCell => IncAll(info%offset%cells:info%offset%cells - 1 + info%nb%cells)
+      allocate (IncAll(n))
+      IncNode => IncAll(begin_node:end_node)
+      IncFrac => IncAll(begin_frac:end_frac)
+      IncCell => IncAll(begin_cell:end_cell)
+
+      allocate (PhasePressureAll(NbPhase, n))
+      PhasePressureNode => PhasePressureAll(:, begin_node:end_node)
+      PhasePressureFrac => PhasePressureAll(:, begin_frac:end_frac)
+      PhasePressureCell => PhasePressureAll(:, begin_cell:end_cell)
+
+      allocate (divPhasePressureAll(NbIncTotalPrimMax, NbPhase, n))
+      divPhasePressureNode => divPhasePressureAll(:, :, begin_node:end_node)
+      divPhasePressureFrac => divPhasePressureAll(:, :, begin_frac:end_frac)
+      divPhasePressureCell => divPhasePressureAll(:, :, begin_cell:end_cell)
+      divPhasePressureAll = 0.d0
+      do k = 1, n
+         divPhasePressureAll(1, :, k) = 1.d0 ! CHECKME: reference pressure - first primary unknown
+      end do
+
+      allocate (dPhasePressuredSAll(NbPhase, n))
+      dPhasePressuredSNode => dPhasePressuredSAll(:, begin_node:end_node)
+      dPhasePressuredSFrac => dPhasePressuredSAll(:, begin_frac:end_frac)
+      dPhasePressuredSCell => dPhasePressuredSAll(:, begin_cell:end_cell)
+      dPhasePressuredSAll = 0.d0
 
       allocate (IncCellPreviousTimeStep(NbCellLocal_Ncpus(commRank + 1)))
       allocate (IncFracPreviousTimeStep(NbFracLocal_Ncpus(commRank + 1)))
@@ -168,6 +212,21 @@ contains
 
       nullify (IncNode, IncFrac, IncCell)
       deallocate (IncAll)
+
+      nullify (PhasePressureNode)
+      nullify (PhasePressureFrac)
+      nullify (PhasePressureCell)
+      deallocate (PhasePressureAll)
+
+      nullify (divPhasePressureNode)
+      nullify (divPhasePressureFrac)
+      nullify (divPhasePressureCell)
+      deallocate (divPhasePressureAll)
+
+      nullify (dPhasePressuredSNode)
+      nullify (dPhasePressuredSFrac)
+      nullify (dPhasePressuredSCell)
+      deallocate (dPhasePressuredSAll)
 
       deallocate (IncCellPreviousTimeStep)
       deallocate (IncFracPreviousTimeStep)

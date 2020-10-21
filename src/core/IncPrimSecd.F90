@@ -27,7 +27,10 @@ module IncPrimSecd
 
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
-      IncCell, IncFrac, IncNode
+      IncCell, IncFrac, IncNode, &
+      PhasePressureNode, dPhasePressuredSNode, &
+      PhasePressureFrac, dPhasePressuredSFrac, &
+      PhasePressureCell, dPhasePressuredSCell
    use MeshSchema, only: &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
@@ -90,16 +93,15 @@ contains
       !< cell
       call IncPrimSecd_compute_cv( &
          NbCellLocal_Ncpus(commRank + 1), &
-         IncCell, CellDarcyRocktypesLocal, &
+         IncCell, PhasePressureCell, dPhasePressuredSCell, &
          dXssurdXpCell, SmdXsCell, &
          SmFCell, &
-         !
          NumIncTotalPrimCell, NumIncTotalSecondCell)
 
       !< frac
       call IncPrimSecd_compute_cv( &
          NbFracLocal_Ncpus(commRank + 1), &
-         IncFrac, FracDarcyRocktypesLocal, &
+         IncFrac, PhasePressureFrac, dPhasePressuredSFrac, &
          dXssurdXpFrac, SmdXsFrac, &
          SmFFrac, &
          !
@@ -108,7 +110,7 @@ contains
       !< node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeDarcyRocktypesLocal, &
+         IncNode, PhasePressureNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -123,30 +125,23 @@ contains
    !> \brief  all operations for a set of cv (cell/frac/node)
    subroutine IncPrimSecd_compute_cv( &
       NbIncLocal, &
-      inc, rt, &
+      inc, pa, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
       skip_cv)
-
-      ! input
       integer, intent(in) :: NbIncLocal
-
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-
-      integer, intent(in) :: rt(NbIncLocal)
-
-      ! output
+      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal) ! phase pressure
+      real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
       integer, intent(out) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
          NumIncTotalSecondCV(NbEqFermetureMax, NbIncLocal)
-
-      double precision, intent(out) :: &
+      real(c_double), intent(out) :: &
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs(NbEqFermetureMax, NbIncLocal), &
          SmF(NbEqFermetureMax, NbIncLocal)
       logical, optional, intent(in) :: skip_cv(:)
 
-      ! tmp
       integer :: k
       double precision :: &
          dFsurdX(NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
@@ -185,7 +180,7 @@ contains
 
          !< compute dF/dX
          !< dFsurdX: (col, row) index order
-         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), rt(k), dFsurdX, SmF(:, k))
+         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), pa(:, k), dpadS(:, k), dFsurdX, SmF(:, k))
 
          !< choose inconnues prim and secd
          call IncPrimSecd_ps_cv(cv_info, inc(k), dFsurdX, pschoice, &
@@ -206,7 +201,7 @@ contains
       ! node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeDarcyRocktypesLocal, &
+         IncNode, PhasePressureNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -225,11 +220,13 @@ contains
    !!      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
    !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
-   subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, rt, dFsurdX, SmF)
+   subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
 
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      integer, intent(in) :: rt
+      real(c_double), intent(in) :: pa(NbPhase)
+      real(c_double), intent(in) :: dpadS(NbPhase)
+
       double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
@@ -287,12 +284,8 @@ contains
             numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
             ! fugacity and derivative
-            call f_Fugacity(rt, iph1, icp, inc%Pression, inc%Temperature, &
-                            inc%Comp(:, iph1), inc%Saturation, &
-                            f1, dPf1, dTf1, dCf1, dSf1)
-            call f_Fugacity(rt, iph2, icp, inc%Pression, inc%Temperature, &
-                            inc%Comp(:, iph2), inc%Saturation, &
-                            f2, dPf2, dTf2, dCf2, dSf2)
+            call f_Fugacity(iph1, icp, inc, pa, dpadS, f1, dPf1, dTf1, dCf1, dSf1)
+            call f_Fugacity(iph2, icp, inc, pa, dpadS, f2, dPf2, dTf2, dCf2, dSf2)
 
             ! derivative reference Pression
             dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)

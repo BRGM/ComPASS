@@ -26,7 +26,7 @@ module IncCVWells
    use DefModel, only: NbComp, NbPhase, LIQUID_PHASE
    use Physics, only: gravity
 
-   use Thermodynamics, only: f_DensiteMolaire
+   use Thermodynamics, only: f_DensiteMassique
 
    use IncCVReservoir, only: IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx
 
@@ -136,7 +136,7 @@ contains
 
       integer :: k, s, m, mph, nums, sparent
       double precision :: Pws, zp, zs, Pdrop, Rhotmp
-      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: dPf, dTf, dCf(NbComp)
 
 #ifndef NDEBUG
       if (NbWellProdLocal_Ncpus(commRank + 1) /= NodebyWellProdLocal%Nb) &
@@ -158,8 +158,8 @@ contains
                do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
                   mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-                  call f_DensiteMolaire(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
-                                        IncNode(nums)%Comp(:, mph), IncNode(nums)%Saturation, Rhotmp, dPf, dTf, dCf, dSf)
+                  call f_DensiteMassique(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
+                                         IncNode(nums)%Comp(:, mph), Rhotmp, dPf, dTf, dCf)
                   PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp*IncNode(nums)%Saturation(mph)
                end do
             end if
@@ -199,8 +199,7 @@ contains
       ! nb pieces for discrete integration
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
-      double precision :: Ptmp, Stmp(NbPhase), &
-         z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: Ptmp, z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp)
 
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
 
@@ -208,10 +207,6 @@ contains
       if (NbWellInjLocal_Ncpus(commRank + 1) /= NodebyWellInjLocal%Nb) &
          call CommonMPI_abort("Well numbers are inconsistent")
 #endif
-
-      ! Saturation is fixed to liquid
-      Stmp(:) = 0.d0
-      Stmp(LIQUID_PHASE) = 1.d0
 
       do k = 1, nbwells
 
@@ -246,7 +241,7 @@ contains
             Pws = PerfoWellInj(sp)%Pression
             ! integrate from zp to zs
             do n = 1, Npiece
-               call f_DensiteMolaire(LIQUID_PHASE, Pws, T, C, Stmp, Rhotmp, dPf, dTf, dCf, dSf)
+               call f_DensiteMassique(LIQUID_PHASE, Pws, T, C, Rhotmp, dPf, dTf, dCf)
                Pws = Pws + gravity*Rhotmp*dz
             end do
             PerfoWellInj(s)%Pression = Pws
