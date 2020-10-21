@@ -232,7 +232,7 @@ module LoisThermoHydro
    end interface
 
    interface
-      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, p, dpdS) &
+      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, pa, dpadS) &
          bind(C, name="fill_phase_pressure_arrays")
          use, intrinsic :: iso_c_binding, only: c_int, c_size_t, c_ptr
          integer(c_size_t), value, intent(in) :: n !< size of *states* array
@@ -1929,7 +1929,7 @@ contains
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
 
-      integer :: i, iph, icp, k, j, jcp, jph, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
@@ -2084,15 +2084,11 @@ contains
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
-
-! output
       double precision, intent(out) :: &
          val(NbComp, NbPhase), &
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
-
-! tmp
-      integer :: i, iph, icp, k, j, jcp, jph, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
@@ -2184,7 +2180,7 @@ contains
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
 
-      integer :: i, iph, icp, k, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
