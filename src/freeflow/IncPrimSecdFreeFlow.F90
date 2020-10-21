@@ -9,7 +9,7 @@
 module IncPrimSecdFreeFlow
 
    ! FIXME: add only: check that all members are necessary
-   use iso_c_binding, only: c_int
+   use iso_c_binding, only: c_int, c_double
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
    use DefModel, only: &
       NbComp, NbPhase, MCP, GAS_PHASE, &
@@ -25,7 +25,7 @@ module IncPrimSecdFreeFlow
       NbEqEquilibre_ctx, NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
-      IncCell, IncFrac, IncNode
+      IncNode, PhasePressureNode, dPhasePressuredSNode
    use IncPrimSecd, only: IncPrimSecd_ps_cv, &
                           dXssurdXpCell, dXssurdXpFrac, dXssurdXpNode, &
                           SmdXsCell, SmdXsFrac, SmdXsNode, &
@@ -38,7 +38,6 @@ module IncPrimSecdFreeFlow
       IdFFNodeLocal, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
-      NodeRocktypeLocal, CellRocktypeLocal, FracRocktypeLocal, &
       NodeByWellInjLocal
    use IncPrimSecdTypes, only: ControlVolumeInfo, IncPrimSecdTypes_collect_cv_info
 
@@ -65,10 +64,9 @@ contains
       ! FreeFlow BC nodes
       call IncPrimSecdFreeFlow_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, NodeRocktypeLocal, &
+         IncNode, PhasePressureNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
-         !
          NumIncTotalPrimNode, NumIncTotalSecondNode)
 
    end subroutine IncPrimSecdFreeFlow_compute
@@ -76,28 +74,21 @@ contains
    ! all operations for a set of cv (called with nodes only)
    subroutine IncPrimSecdFreeFlow_compute_cv( &
       NbIncLocal, &
-      inc, rt, &
+      inc, pa, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV)
-
-      ! input
       integer, intent(in) :: NbIncLocal
-
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-
-      integer, intent(in) :: rt(IndThermique + 1, NbIncLocal)
-
-      ! output
+      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal)
+      real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
       integer, intent(out) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
          NumIncTotalSecondCV(NbEqFermetureMax, NbIncLocal)
-
-      double precision, intent(out) :: &
+      real(c_double), intent(out) :: &
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs(NbEqFermetureMax, NbIncLocal), &
          SmF(NbEqFermetureMax, NbIncLocal)
 
-      ! tmp
       integer :: k
       double precision :: &
          dFsurdX(NbIncTotalMax, NbEqFermetureMax) ! (col,row) index order
@@ -113,7 +104,7 @@ contains
 
          ! compute dF/dX
          ! dFsurdX: (col, row) index order
-         call IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc(k), rt(:, k), dFsurdX, SmF(:, k))
+         call IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc(k), pa(:, k), dpadS(:, k), dFsurdX, SmF(:, k))
 
          ! FIXME: si je peux faire IncPrimSecd_compute sur les dof FF, enlever ce call et remettre protected à NumIncTotal...
          ! (mais cela m'étonnerait car le numb d'eq de fermeture ne correspond pas au nb d'inconnus secds dans ce cas)
@@ -137,7 +128,7 @@ contains
 !       ! node
 !       call IncPrimSecdFreeFlow_compute_cv( &
 !          NbNodeLocal_Ncpus(commRank + 1), &
-!          IncNode, NodeRocktypeLocal, &
+!          IncNode, NodeDarcyRocktypesLocal, &
 !          dXssurdXpNode, SmdXsNode, &
 !          SmFNode, &
 !          !
@@ -157,10 +148,12 @@ contains
    !      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
    !      dFsurdX(, :)                                            derivative freeflow flowrate(s)
-   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, dFsurdX, SmF)
+   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
 
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double), intent(in) :: pa(NbPhase)
+      real(c_double), intent(in) :: dpadS(NbPhase)
       double precision, intent(out) :: &  ! (col, row) index order
          dFsurdX(NbIncTotalMax, NbEqFermetureMax)
 
@@ -168,10 +161,9 @@ contains
          SmF(NbEqFermetureMax)
 
       integer :: i, mi, iph, iph1, iph2, icp, j, jph, jph_scd, numj, numc1, numc2
-      double precision :: &
+      real(c_double) :: &
          f1, dPf1, dTf1, dCf1(NbComp), dSf1(NbPhase), &
-         f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase), &
-         Pc, dSPc(NbPhase)
+         f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase)
 
       dFsurdX(:, :) = 0.d0  ! local to this file, cannot rely on previous computation in IncPrimSecd
       SmF(:) = 0.d0
@@ -268,11 +260,9 @@ contains
 
       ! --------------------------------------------------------------------------
       ! 3. P^g - P^atm = 0     ie      Pref + Pc(GAS_PHASE) - P^atm = 0
-      call f_PressionCapillaire(rt(1), GAS_PHASE, inc%Saturation, Pc, DSPc)
 
       ! derivative Pressure
       dFsurdX(1, mi + 1) = 1.d0
-
       ! derivative primary Saturations
       ! with contribution of secondary Saturation
       ! because sum(saturations)=1 is eliminated
@@ -280,12 +270,11 @@ contains
       do j = 1, cv_info%NbPhasePresente - 1
          numj = j + cv_info%NbIncPTC
          jph = cv_info%NumPhasePresente(j)
-
-         dFsurdX(numj, mi + 1) = DSPc(jph) - DSPc(jph_scd)
+         dFsurdX(numj, mi + 1) = dpadS(jph) - dpadS(jph_scd)
       end do
 
       ! SmF
-      SmF(mi + 1) = inc%Pression + Pc - atm_pressure
+      SmF(mi + 1) = pa(GAS_PHASE) - atm_pressure
 
    end subroutine IncPrimSecdFreeFlow_dFsurdX_cv
 
