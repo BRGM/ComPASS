@@ -1642,7 +1642,8 @@ contains
       n = size(inc)
       if (n == 0) return ! nothing to do
       do k = 1, n
-         divp(1, :, k) = 1.d0 ! reference pressure - first primary unknown
+         ! FIXME: divphasepressure and divpression should be MERGED
+         ! divp(1, :, k) = 1.d0 ! reference pressure - first primary unknown
          context = inc(k)%ic
          nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
          if (nb_phases > 1) then
