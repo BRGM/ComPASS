@@ -13,6 +13,7 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
+   use iso_c_binding, only: c_int, c_double
    use CommonMPI, only: CommonMPI_abort
    use IncCVReservoir, only: Type_IncCVReservoir
    use DefModel, only: &

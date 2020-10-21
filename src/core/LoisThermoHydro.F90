@@ -424,7 +424,7 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       ! FreeFlow nodes
       call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                               NodeDarcyRocktypesLocal, &
+                                               PhasePressureNode, dPhasePressuredSNode, &
                                                !
                                                dXssurdXpNode, &
                                                SmdXsNode, &
@@ -706,8 +706,7 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
    ! Compute derivative of phase molar flowrates in the Freeflow dof
    subroutine LoisThermoHydro_divPrim_FreeFlow_cv( &
-      NbIncLocal, inc, &
-      rt, &
+      NbIncLocal, inc, pa, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
       divTemperature, SmTemperature, &
@@ -724,7 +723,6 @@ contains
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
       real(c_double), intent(in) :: pa(NbPhase, NbIncLocal)
       real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
-      integer(c_int), intent(in) :: rokctypes(NbIncLocal)
 
       double precision, intent(in) :: &
          divTemperature(NbIncTotalPrimMax, NbIncLocal), &
@@ -1106,24 +1104,18 @@ contains
    ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
    !       liquid-> Enthalpie(liquid) of the far field atmosphere
    subroutine LoisThermoHydro_AtmEnthalpie_cv(ctxinfo, val)
-
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(out) :: val(NbPhase)
 
-      ! tmp
-      double precision :: f(NbComp), Sat(NbPhase), dPf(NbComp), dTf(NbComp), &
-         dCf(NbComp, NbComp), dSf(NbComp, NbPhase)
+      double precision :: f(NbComp), dPf(NbComp), dTf(NbComp)
       integer :: i, iph, icp
 
-      Sat = 0.d0
       val = 0.d0
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
 
-         call f_SpecificEnthalpy(iph, atm_pressure, atm_temperature, &
-                                 atm_comp(:, iph), Sat, & ! Sat not used
-                                 f, dPf, dTf, dCf, dSf)
+         call f_SpecificEnthalpy(iph, atm_pressure, atm_temperature, f, dPf, dTf)
 
          if (iph == LIQUID_PHASE) then ! sum_icp( specific_enthalpie(icp)*atm_comp(icp,iph) )
             do icp = 1, NbComp
