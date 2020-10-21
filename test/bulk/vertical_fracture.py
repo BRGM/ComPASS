@@ -36,7 +36,8 @@ Lx, Ly, Lz = 2 * H, 0.1 * H, H
 
 
 # thermodynamic functions are only available once the eos is loaded
-pbottom = simulation.get_gravity() * H * 900.0
+gravity = simulation.get_gravity()
+pbottom = gravity * H * 900.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)
 assert hbottom > 1e6, "Wrong enthalpy for bottom initialisation"
 
@@ -95,6 +96,6 @@ standard_loop(
     simulation,
     newton=newton,
     final_time=final_time,
-    time_step_manager=TimeStepManager(100, output_period),
+    time_step_manager=TimeStepManager(10, output_period),
     output_period=output_period,
 )
