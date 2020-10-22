@@ -114,7 +114,7 @@ contains
    end subroutine
 
    pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -129,7 +129,7 @@ contains
    end subroutine f_DensiteMolaire_gas
 
    pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -151,8 +151,8 @@ contains
 #endif
       subroutine f_DensiteMolaire(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: p, T
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -206,8 +206,8 @@ contains
    !< S is all the saturations
    pure subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: p, T
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -313,8 +313,8 @@ contains
 #endif
       subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: p, T
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -349,8 +349,8 @@ contains
 #endif
       subroutine f_SpecificEnthalpy(iph, p, T, f, dPf, dTf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: p, T
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
       if (iph == GAS_PHASE) then
@@ -379,7 +379,7 @@ contains
    pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
 
-      real(c_double), value, intent(in) :: T
+      real(c_double), intent(in) :: T
       real(c_double), intent(out) :: Psat, dT_PSat
 
       ! valid between -50C and 200C
@@ -396,7 +396,7 @@ contains
       subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
       bind(C, name="FluidThermodynamics_Tsat")
 
-      real(c_double), value, intent(in) :: P
+      real(c_double), intent(in) :: P
       real(c_double), intent(out) :: Tsat, dP_Tsat
 
       Tsat = 0.d0

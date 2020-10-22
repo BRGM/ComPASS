@@ -1834,11 +1834,11 @@ contains
                ! derivative of
                !   sum_{Q_s \cap P_i} q_{w,s,i}
                !   sum_{Q_s \cap P_i} q_{w,s,e}
-               dP_w(:) = 0.d0
-               dP_s(:, :) = 0.d0
+               dP_w = 0.d0
+               dP_s = 0.d0
 #ifdef _THERMIQUE_
                dP_ER_w = 0.d0
-               der_ER_s(:) = 0.d0
+               der_ER_s = 0.d0
 #endif
 
                do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -1849,7 +1849,7 @@ contains
                         ! p^w_s = p^w + {\Delta p}^(n-1)_s
                         ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s)
                         dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
-
+                        ! No capillary pressure in the well
                         dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, m, nums)*WIDws*Ps_Pws
                         dP_s(1, icp) = dP_s(1, icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
 
@@ -4455,8 +4455,10 @@ contains
          JkkT => Mat%Val(:, :, Mat%Pt(row_k + 1))
          call dgetrf(n, n, JkkT, n, pivot(:, k), info)
 
-         if (info /= 0) &
+         if (info /= 0) then
+            write (*, *) "Local block:", JkkT
             call CommonMPI_abort("dgetrf error in Jacobian_Schur_Jkk_LU_factorization")
+         end if
 
       end do
 

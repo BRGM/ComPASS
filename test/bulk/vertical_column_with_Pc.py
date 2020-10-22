@@ -54,37 +54,37 @@ def dPcdS(Sg):
 simulation.set_liquid_capillary_pressure(Pc, dPcdS)
 
 
-def top_nodes():
-    return simulation.global_vertices()[:, 2] >= 0
-
-
 simulation.init(
     mesh=grid,
     cell_permeability=k_matrix,
     cell_porosity=phi_matrix,
     cell_thermal_conductivity=K_matrix,
-    set_dirichlet_nodes=top_nodes,
 )
 
-X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
-simulation.all_states().set(X0)
-simulation.dirichlet_node_states().set(X0)
-
-
-def set_boundary_heat_flux():
-    Neumann = ComPASS.NeumannBC()
-    Neumann.heat_flux = bottom_heat_flux
-    face_centers = simulation.face_centers()
-    simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
-
-
-set_boundary_heat_flux()
+states = simulation.all_states()
+states.context[:] = simulation.Context.liquid
+states.p[:] = p0
+states.T[:] = T0
+states.S[:] = 0
+states.S[:, 1] = 1
+states.C[:, :, :] = 0
+states.C[1, 1, :] = 1  # liquid is pure water
+# Top boundary conditions
+top = simulation.vertices()[:, 2] >= 0
+states.S[:, 0] = Sg0
+states.S[:, 1] = 1 - Sg0
+states.C[0, 0, :] = 1 - Cw0
+states.C[0, 1, :] = Cw0
+states.C[1, 0, :] = 0.001
+states.C[1, 1, :] = 1 - 0.001
+# Liquid composition should be consistent with Henry law at top boundary conditions...
+simulation.reset_dirichlet_nodes(top)
 
 final_time = 1e4 * year
 output_period = 1e3 * year
 standard_loop(
     simulation,
     final_time=final_time,
-    time_step_manager=TimeStepManager(30 * day, 100 * year),
+    time_step_manager=TimeStepManager(1, 100 * year),
     output_period=output_period,
 )

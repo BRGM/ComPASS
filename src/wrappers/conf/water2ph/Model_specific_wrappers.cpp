@@ -3,6 +3,7 @@
 #include <array>
 
 #include "../common/enum_to_rank.h"
+#include "../common/fortran_thermodynamics.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
 
@@ -24,22 +25,6 @@ enum struct Context {
    liquid = ComPASS_LIQUID_CONTEXT,
    diphasic = ComPASS_DIPHASIC_CONTEXT
 };
-
-// Fortran functions
-extern "C" {
-void FluidThermodynamics_molar_density(const int &, const double &,
-                                       const double &, const double *, double &,
-                                       double &, double &, double *);
-void FluidThermodynamics_molar_enthalpy(const int &, const double &,
-                                        const double &, const double *,
-                                        double &, double &, double &, double *);
-void FluidThermodynamics_dynamic_viscosity(const int &, const double &,
-                                           const double &, const double *,
-                                           double &, double &, double &,
-                                           double *);
-void FluidThermodynamics_Psat(const double &, double &, double &);
-void FluidThermodynamics_Tsat(const double &, double &, double &);
-}
 
 void init_model() {}
 
