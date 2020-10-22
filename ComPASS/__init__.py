@@ -16,7 +16,7 @@ from ._kernel import get_kernel, load_eos, common_wrapper
 
 
 # __variables__ with double-quoted values will be available in setup.py:
-__version__ = "4.2.0"
+__version__ = "4.3.0"
 
 
 def __getattr__(name):

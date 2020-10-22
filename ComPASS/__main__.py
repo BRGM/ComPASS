@@ -1,6 +1,8 @@
+from . import __version__
+
 print(
-    r"""
-Hello. This is the ComPASS package.
+    f"""
+Hello. This is the ComPASS package {__version__}.
 
 The standard way to use it is with an import directive at the beginning of a simulation script.
 You will find examples in the test sub-directory of the project tree.:
