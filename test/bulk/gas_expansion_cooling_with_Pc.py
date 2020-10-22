@@ -16,6 +16,7 @@ from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
+from data import pc_curves
 
 Lz = 4000.0
 nz = 400
@@ -38,29 +39,10 @@ bot_flag = 4
 
 # simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
 simulation = ComPASS.load_eos("diphasic")
-simulation.set_gravity(gravity)
 ComPASS.set_output_directory_and_logfile(__file__)
+simulation.set_gravity(gravity)
 
-# Capillary pressures
-Pc0 = 2.0e5
-Sg0 = 1.0 - 1.0e-2
-Sl0 = 1.0 - Sg0
-A = -Pc0 * np.log(Sl0) - (Pc0 / Sl0) * Sg0
-
-
-def Pc(Sg):
-    if Sg < Sg0:
-        return -Pc0 * np.log(1.0 - Sg)
-    return Pc0 * Sg / Sl0 + A
-
-
-def dPcdS(Sg):
-    if Sg < S0:
-        return Pc0 / (1.0 - Sg)
-    return Pc0 / Sl0
-
-
-simulation.set_liquid_capillary_pressure(Pc, dPcdS)
+simulation.set_liquid_capillary_pressure(*pc_curves.get())
 
 gas_context = simulation.Context.gas
 
