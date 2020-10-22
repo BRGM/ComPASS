@@ -48,3 +48,4 @@ from .utils import facenodes
 
 from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions
+from ..petrophysics.capillary import set_liquid_capillary_pressure
