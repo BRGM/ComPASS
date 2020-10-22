@@ -146,7 +146,16 @@ void add_specific_model_wrappers(py::module &module) {
 
    module.def(
        "build_state",
-       [](Context context, py::object p, py::object T, py::object Sg) {
+       [](py::object context, py::object p, py::object T, py::object Sg) {
+          auto find_context = [&]() {
+             if (!Sg.is_none() || p.is_none() || T.is_none())
+                throw std::runtime_error(
+                    "You must set a monophasic states providing p and T.");
+             double Tsat, foo;  // dummy value
+             FluidThermodynamics_Tsat(p.cast<double>(), Tsat, foo);
+             if (T.cast<double>() >= Tsat) return Context::gas;
+             return Context::liquid;
+          };
           auto set_monophasic_state = [&](X &state) {
              if (!Sg.is_none() || p.is_none() || T.is_none())
                 throw std::runtime_error(
@@ -154,11 +163,28 @@ void add_specific_model_wrappers(py::module &module) {
              state.p = p.cast<double>();
              state.T = T.cast<double>();
              state.S.fill(0);
-             for (auto &&Ck : state.C) Ck.fill(0);
+             for (auto &&Ck : state.C) Ck.fill(1);
           };
+          auto set_diphasic_state = [&](X &state) {
+             bool ok = !(p.is_none() && T.is_none());
+             ok &= p.is_none() || T.is_none();
+             ok &= !Sg.is_none();
+             if (!ok)
+                throw std::runtime_error(
+                    "You must set diphasic states providing p or T, and Sg.");
+             double foo;  // dummy value
+             state.p = p.cast<double>();
+             FluidThermodynamics_Tsat(state.p, state.T, foo);
+             const double S = Sg.cast<double>();
+             state.S[enum_to_rank(Phase::gas)] = S;
+             state.S[enum_to_rank(Phase::liquid)] = 1. - S;
+             for (auto &&Ck : state.C) Ck.fill(1);
+          };
+          Context context_value =
+              context.is_none() ? find_context() : context.cast<Context>();
           X result;
-          result.context = static_cast<int>(context);
-          switch (context) {
+          result.context = static_cast<int>(context_value);
+          switch (context_value) {
              case Context::gas:
                 set_monophasic_state(result);
                 result.S[enum_to_rank(Phase::gas)] = 1;
@@ -167,9 +193,11 @@ void add_specific_model_wrappers(py::module &module) {
                 set_monophasic_state(result);
                 result.S[enum_to_rank(Phase::liquid)] = 1;
                 break;
+             case Context::diphasic:
+                set_diphasic_state(result);
+                break;
              default:
-                throw std::runtime_error(
-                    "Requested context is not implemented!");
+                throw std::runtime_error("Requested context does not exist!");
           }
           // As we have a single component concentrations in both phases are
           // always 1
@@ -178,12 +206,14 @@ void add_specific_model_wrappers(py::module &module) {
           }
           return result;
        },
-       py::arg("context"), py::arg("p") = py::none{}, py::arg("T") = py::none{},
-       py::arg("Sg") = py::none{},
+       py::arg("context") = py::none{}, py::arg("p") = py::none{},
+       py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
        R"doc(
 Construct a state given a specific context and physical parameters.
 
 Monophasic states (i.e. liquid and gas) must be set-up using pressure and temperature.
+Diphasic state must be set-up using either pressure or temperature and gaz phase saturation.
+The saturation conditions will be use to compute missing parameters (pressure or temperature).
 
 Parameters
 ----------
@@ -191,7 +221,7 @@ Parameters
 :param context: context (i.e. liquid, gas or diphasic)
 :param p: pressure
 :param T: temperature
-:param Sg: gaz phase pressure
+:param Sg: gaz phase saturation
 
 )doc");
 }
