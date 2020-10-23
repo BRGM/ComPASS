@@ -15,7 +15,8 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import TimeStepManager
 import MeshTools as MT
 
-# ComPASS.load_eos('water2ph')
+# basename for tetgen mesh files
+basename = "47K/tetmesh-47K"
 
 H = 3 * km
 k_fracture = 1e-12  # fracture permeability in m^2
@@ -35,10 +36,9 @@ qmass = 1.0  # surface mass flux (kg/m2)
 # no flux first
 # bottom flux condion
 
-ComPASS.load_eos("water2ph")
-ComPASS.set_fracture_thickness(thfrac)
-
-basename = "47K/input.2"
+simulation = ComPASS.load_eos("water2ph")
+ComPASS.set_output_directory_and_logfile(__file__)
+simulation.set_fracture_thickness(thfrac)
 
 # extract information from TetGen file
 nodefile = basename + ".node"
@@ -71,18 +71,16 @@ fracture_faces = np.array(fracture_faces)
 
 
 def dirichlet_nodes():
-    vertices = ComPASS.global_vertices().view(np.double).reshape((-1, 3))
+    vertices = simulation.global_vertices().view(np.double).reshape((-1, 3))
     on_top = vertices[:, 2] >= H
     on_bottom = vertices[:, 2] <= 0
-    fracture_nodes = np.rec.array(ComPASS.global_node_info(), copy=False).frac == ord(
-        "y"
-    )
+    fracture_nodes = np.rec.array(
+        simulation.global_node_info(), copy=False
+    ).frac == ord("y")
     return on_top | (on_bottom & (np.logical_not(fracture_nodes)))
 
 
-ComPASS.set_output_directory_and_logfile(__file__)
-
-ComPASS.init(
+simulation.init(
     mesh=mesh,
     cell_permeability=k_matrix,
     cell_porosity=phi_matrix,
@@ -103,17 +101,17 @@ def set_states(states, z):
     states.C[:] = 1.0
 
 
-set_states(ComPASS.dirichlet_node_states(), ComPASS.vertices()[:, 2])
-set_states(ComPASS.node_states(), ComPASS.vertices()[:, 2])
-set_states(ComPASS.cell_states(), ComPASS.compute_cell_centers()[:, 2])
-set_states(ComPASS.fracture_states(), ComPASS.compute_fracture_centers()[:, 2])
+set_states(simulation.dirichlet_node_states(), simulation.vertices()[:, 2])
+set_states(simulation.node_states(), simulation.vertices()[:, 2])
+set_states(simulation.cell_states(), simulation.compute_cell_centers()[:, 2])
+set_states(simulation.fracture_states(), simulation.compute_fracture_centers()[:, 2])
 
 
 def set_fracture_dirichlet_bottom_temperature():
-    bottom_nodes = ComPASS.vertices()[:, 2] == 0
-    fracture_nodes = np.rec.array(ComPASS.node_info(), copy=False).frac == ord("y")
-    ComPASS.dirichlet_node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
-    ComPASS.node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
+    bottom_nodes = simulation.vertices()[:, 2] == 0
+    fracture_nodes = np.rec.array(simulation.node_info(), copy=False).frac == ord("y")
+    simulation.dirichlet_node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
+    simulation.node_states().T[bottom_nodes & fracture_nodes] = Tbot_fracture
 
 
 set_fracture_dirichlet_bottom_temperature()
@@ -122,19 +120,19 @@ set_fracture_dirichlet_bottom_temperature()
 def set_boundary_fluxes():
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = qmass
-    Neumann.heat_flux = qmass * ComPASS.liquid_molar_enthalpy(pbot, Tbot_fracture)
-    face_centers = np.rec.array(ComPASS.face_centers())
-    bottom_fracture_edges = ComPASS.find_fracture_edges(
-        ComPASS.compute_face_centers()[:, 2] <= 0
+    Neumann.heat_flux = qmass * simulation.liquid_molar_enthalpy(pbot, Tbot_fracture)
+    face_centers = np.rec.array(simulation.face_centers())
+    bottom_fracture_edges = simulation.find_fracture_edges(
+        simulation.compute_face_centers()[:, 2] <= 0
     )
-    ComPASS.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann)
+    simulation.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann)
 
 
 set_boundary_fluxes()
 
 final_time = 200 * year
 output_period = 0.1 * final_time
-standard_loop(
+simulation.standard_loop(
     final_time=final_time,
     output_period=output_period,
     time_step_manager=TimeStepManager(
