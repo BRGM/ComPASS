@@ -371,6 +371,7 @@ def postprocess(
     :param collect_procs_id: boolean flag to collect procs ids and output mesh partitioning
     :param collect_states: boolean flag to collect physical states
     :param convert_temperature: boolean flag to convert Kelvin to Celsius degrees
+    :param collect_wells: boolean flag to collect well information
     :param time_unit: a string among second, minute, hour, day, year, defaults to year
 
     """
