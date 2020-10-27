@@ -174,14 +174,38 @@ class PetscIterativeSolver(IterativeSolver):
         # with M11 an AMG v-cycle procedure on the pressure field
         # and M12 = 0 a NONE PC which "does nothing"
         block_size = self.linear_system.lsbuilder.get_block_size()
-        p_field = np.array([0], dtype="int32")
-        rest = np.arange(1, block_size, dtype="int32")
+        (sizes, d_nnz, o_nnz) = self.linear_system.lsbuilder.get_non_zeros()
+        n_rowl, n_rowg = sizes
+        n_coll, n_colg = sizes
+        n_wells = self.linear_system.lsbuilder.get_n_wells()
+        non_well_nrowl = n_rowl - n_wells
+        # p_field = np.array([0], dtype="int32")
+        # rest = np.arange(1, block_size, dtype="int32")
         fs_pc = cpramg_pc.getCompositePC(0)
-        fs_pc.setFieldSplitFields(
-            block_size, ("pressure", p_field), ("rest of unknowns", rest)
+        # fs_pc.setFieldSplitFields(block_size, ("pressure", p_field))
+        # fs_pc.setFieldSplitFields(block_size, ("rest of unknowns", rest))
+        p_indices = np.arange(non_well_nrowl, step=block_size, dtype="int32")
+        p_indices = np.concatenate(
+            (p_indices, np.arange(start=non_well_nrowl, stop=n_rowl, dtype="int32"))
         )
+
+        p_IS = PETSc.IS().createGeneral(p_indices, comm=comm)
+        # p_IS.setIndices()
+
+        rest_size = non_well_nrowl - (non_well_nrowl // block_size)
+        rest_indices = np.zeros(rest_size, dtype="int32")
+        for i in range(non_well_nrowl // block_size):
+            for j in range(block_size - 1):
+                k = i * (block_size - 1) + j
+                rest_indices[k] = k + i + 1
+        print(n_wells, len(rest_indices), len(p_indices), n_rowl)
+        rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
+
+        fs_pc.setFieldSplitIS(("pressure", p_IS), ("rest", rest_IS))
         fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
         sub_ksp_list = fs_pc.getFieldSplitSubKSP()
+        # print(p_indices[:100])
+        # print(rest_indices[:100])
 
         # Algebraic multigrid procedure on the pressure field
         pressure_ksp = sub_ksp_list[0]
