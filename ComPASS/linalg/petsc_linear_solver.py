@@ -188,7 +188,9 @@ class PetscIterativeSolver(IterativeSolver):
         pressure_ksp.setType(PETSc.KSP.Type.PREONLY)
         pressure_pc = pressure_ksp.getPC()
         pressure_pc.setType(PETSc.PC.Type.HYPRE)
-        PETSc.Options().setValue("-pc_hypre_boomeramg_strong_threshold", "0.5")
+        PETSc.Options().setValue(
+            "-sub_0_fieldsplit_pressure_pc_hypre_boomeramg_strong_threshold", 0.5
+        )
 
         # NONE Type PC on the rest of the unknowns
         rest_ksp = sub_ksp_list[1]
