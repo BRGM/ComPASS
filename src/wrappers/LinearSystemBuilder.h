@@ -48,4 +48,8 @@ class LinearSystemBuilder {
    std::size_t get_n_colg() { return n_colg; };
    std::size_t get_d_nnz(size_t i) { return d_nnz[i]; };
    std::size_t get_o_nnz(size_t i) { return o_nnz[i]; };
+   std::size_t get_n_wells() {
+      return myrank_part_info.producers.nb_owns +
+             myrank_part_info.injectors.nb_owns;
+   };
 };
