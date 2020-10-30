@@ -44,7 +44,7 @@ from .bc import (
 
 from ..io.mesh import write_mesh
 
-from .utils import facenodes
+from .utils import facenodes, postprocess
 
 from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions

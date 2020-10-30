@@ -3,6 +3,7 @@
 
 
 import numpy as np
+from ..postprocess import postprocess as postprocess_command
 
 
 def reshape_as_scalar_array(value, n):
@@ -75,3 +76,14 @@ def facenodes(simulation, fis):
         if fk in fis:
             nodes.append(np.array(face, copy=False))
     return np.unique(nodes) - 1  # Fortran -> C indexing
+
+
+def postprocess(
+    simulation, convert_temperature=True, collect_wells=True, collect_states=True
+):
+    postprocess_command(
+        simulation.runtime.output_directory,
+        convert_temperature=convert_temperature,
+        collect_wells=collect_wells,
+        collect_states=collect_states,
+    )

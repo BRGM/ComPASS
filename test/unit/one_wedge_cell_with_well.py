@@ -85,11 +85,4 @@ simulation.standard_loop(
 )
 
 # if necessary simulation results can be directly postprocessed here
-from ComPASS.postprocess import postprocess
-
-postprocess(
-    simulation.runtime.output_directory,
-    convert_temperature=True,
-    collect_wells=True,
-    collect_states=True,
-)
+simulation.postprocess()
