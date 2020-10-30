@@ -30,6 +30,8 @@ void IncCV_NewtonIncrement(const NewtonIncrements::Pointers<const double>,
 void DirichletContribution_update();
 void IncPrimSecd_compute();
 void IncPrimSecdFreeFlow_compute();
+void LoisThermoHydro_compute_phase_pressures();
+void LoisThermoHydro_compute_phase_pressures_derivatives();
 void LoisThermoHydro_compute();
 void Flux_DarcyFlux_Cell();
 void Flux_DarcyFlux_Frac();
@@ -62,6 +64,10 @@ void add_time_loop_wrappers(py::module& module) {
       IncPrimSecdFreeFlow_compute();
 #endif  // _WIP_FREEFLOW_STRUCTURES_
    });
+   module.def("LoisThermoHydro_compute_phase_pressures",
+              &LoisThermoHydro_compute_phase_pressures);
+   module.def("LoisThermoHydro_compute_phase_pressures_derivatives",
+              &LoisThermoHydro_compute_phase_pressures_derivatives);
    module.def("LoisThermoHydro_compute", &LoisThermoHydro_compute);
    module.def("Flux_DarcyFlux_Cell", &Flux_DarcyFlux_Cell);
    module.def("Flux_DarcyFlux_Frac", &Flux_DarcyFlux_Frac);

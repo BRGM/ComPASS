@@ -297,6 +297,8 @@ _a_verifier = [
     "IncCVWells_PressureDrop",
     "DirichletContribution_update",
     "IncPrimSecd_update_secondary_dependencies",
+    "LoisThermoHydro_compute_phase_pressures",
+    "LoisThermoHydro_compute_phase_pressures_derivatives",
     "LoisThermoHydro_compute",
     "Flux_DarcyFlux_Cell",
     "Flux_DarcyFlux_Frac",

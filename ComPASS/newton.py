@@ -90,13 +90,15 @@ class Newton:
 
     def init_iteration(self):
         kernel = get_kernel()
+        kernel.LoisThermoHydro_compute_phase_pressures()  # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
         # Enforce Dirichlet values
         kernel.DirichletContribution_update()
         # Update only Well Pressures (Well pressure drops are keep constant here)
         kernel.IncCVWells_UpdateWellPressures()
         #        mpi.master_print('init iteration - compute thermo')
         # Update local jacobian contributions (closure laws)
-        kernel.IncPrimSecd_update_secondary_dependencies()
+        kernel.IncPrimSecd_update_secondary_dependencies()  # FIXME: this is needed to update globals used in LoisThermoHydro_compute
+        kernel.LoisThermoHydro_compute_phase_pressures_derivatives()  # needs to be done IncPrimSecd_update_secondary_dependencies (needs NumIncTotalPrim)
         kernel.LoisThermoHydro_compute()
         #        mpi.master_print('init iteration - compute fluxes')
         kernel.Flux_DarcyFlux_Cell()

@@ -295,11 +295,6 @@ contains
    subroutine LoisThermoHydro_compute() &
       bind(C, name="LoisThermoHydro_compute")
 
-      ! CHECKME: might be more efficient to switch to array copy when single phase / NbPhase==1
-      call LoisThermoHydro_compute_phase_pressures( &
-         IncAll, AllDarcyRocktypesLocal, NumIncTotalPrimAll, &
-         PhasePressureAll, dPhasePressuredSAll, divPhasePressureAll)
-
       ! cell
       call LoisThermoHydro_divPrim_cv(NbCellLocal_Ncpus(commRank + 1), IncCell, &
                                       PhasePressureCell, dPhasePressuredSCell, &
@@ -1670,19 +1665,21 @@ contains
 
    end subroutine LoisThermoHydro_all_dpalphadXp
 
-   subroutine LoisThermoHydro_compute_phase_pressures( &
-      inc, rocktypes, NumIncTotalPrim, p, dpdS, divp)
-      type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
-      integer(c_int), dimension(:), target, intent(in) :: rocktypes
-      integer(c_int), dimension(:, :), intent(in) :: NumIncTotalPrim
-      real(c_double), dimension(:, :), target, intent(out) :: p
-      real(c_double), dimension(:, :), target, intent(out) :: dpdS
-      real(c_double), dimension(:, :, :), target, intent(out) :: divp
+   subroutine LoisThermoHydro_compute_phase_pressures() &
+      bind(C, name="LoisThermoHydro_compute_phase_pressures")
 
-      call LoisThermoHydro_compute_all_phase_pressures(inc, rocktypes, p, dpdS)
-      call LoisThermoHydro_all_dpalphadXp(inc, NumIncTotalPrim, dpdS, divp)
+      call LoisThermoHydro_compute_all_phase_pressures( &
+         IncAll, AllDarcyRocktypesLocal, PhasePressureAll, dPhasePressuredSAll)
 
    end subroutine LoisThermoHydro_compute_phase_pressures
+
+   subroutine LoisThermoHydro_compute_phase_pressures_derivatives() &
+      bind(C, name="LoisThermoHydro_compute_phase_pressures_derivatives")
+
+      call LoisThermoHydro_all_dpalphadXp( &
+         IncAll, NumIncTotalPrimAll, dPhasePressuredSAll, divPhasePressureAll)
+
+   end subroutine LoisThermoHydro_compute_phase_pressures_derivatives
 
 #ifdef _THERMIQUE_
 
