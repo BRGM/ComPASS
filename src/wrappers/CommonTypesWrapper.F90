@@ -132,6 +132,15 @@
 #endif
              retrieved_coc%container_offset = C_NULL_PTR
              retrieved_coc%container_content = C_NULL_PTR
+             ! FIXME: weird !!!
+          else if (n == 1 .and. fortran_csr%Pt(2) == 0) then
+             if (fortran_csr%Pt(1) /= 0) &
+                call CommonMPI_abort("Unconsistent CSR")
+#ifdef TRACK_ZERO_SIZE_ARRAY
+             write (*, *) 'WARNING - Retrieving zero size COC.'
+#endif
+             retrieved_coc%container_offset = C_NULL_PTR
+             retrieved_coc%container_content = C_NULL_PTR
           else
              if ((.not. allocated(fortran_csr%Pt)) .or. &
                  (.not. allocated(fortran_csr%Num))) then
