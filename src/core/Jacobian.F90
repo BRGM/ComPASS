@@ -24,7 +24,7 @@ module Jacobian
 
    use DefModel, only: &
       NumPhasePresente_ctx, NbPhasePresente_ctx, &
-      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod
+      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod, NbIncTotalPrimMax
 
    use LoisThermoHydro, only: &
       DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
@@ -54,7 +54,7 @@ module Jacobian
       divDensiteMolaireSatCompNode, divDensiteMolaireSatCompCell, divDensiteMolaireSatCompFrac, &
       divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
       divPressionNode, divPressionCell, divPressionFrac, &
-      divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
+      PhasePressureNode, divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
       SmDensiteMolaireSatComp
 
    use NumbyContext, only: &
@@ -1769,15 +1769,17 @@ contains
 
       integer :: k, rowk, colk, s, nums, rows, cols, m, mph, n, icp, nz
       double precision :: Pws, Ps, WIDws, WIFws, Ps_Pws
-      double precision :: &
-         dP_w(NbComp), dP_s(NbCompThermique, NbComp), &
-         dP_ER_w, der_ER_s(NbCompThermique)
-      logical :: something_is_produced, well_is_closed
+      real(c_double) :: dP_w(NbComp), dP_s(NbIncTotalPrimMax, NbComp) ! NbComp mass balance equation
+      real(c_double) :: dP_ER_w, der_ER_s(NbIncTotalPrimMax) ! energy balance equation
+      real(c_double) :: pfoo, Tfoo, Sfoo
+      real(c_double) :: foo(NbIncTotalPrimMax)
+      logical :: something_is_produced, well_is_own, well_is_closed, well_node_is_active
 
       nz = -1
 
       do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
          something_is_produced = .false.
+         well_is_own = (k <= NbWellProdOwn_Ncpus(commRank + 1))
          ! CHECKME: we could directly jump to regularization
          well_is_closed = (DataWellProdLocal(k)%IndWell == 'c')
 
@@ -1787,8 +1789,8 @@ contains
          colk = k + NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1) &
                 + NbCellLocal_Ncpus(commRank + 1) + NbWellInjLocal_Ncpus(commRank + 1)
 
-         ! assembly equaitons of own wells
-         if (k <= NbWellProdOwn_Ncpus(commRank + 1)) then
+         ! assembly equations for own wells
+         if (well_is_own) then
             do n = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
                csrK(JacBigA%Num(n)) = n - JacBigA%Pt(rowk)
             end do
@@ -1808,7 +1810,7 @@ contains
          ! Step 1. well equation: Pw - Pwmin = 0
          if (DataWellProdLocal(k)%IndWell == 'p') then
             something_is_produced = .true.
-            if (k <= NbWellProdOwn_Ncpus(commRank + 1)) then
+            if (well_is_own) then
                nz = JacBigA%Pt(rowk) + csrK(colk)
                JacBigA%Val(1, 1, nz) = 1.d0
             end if
@@ -1819,52 +1821,56 @@ contains
          ! nodes of well k
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
             nums = NodebyWellProdLocal%Num(s) ! nums is node num
-
-            Ps = IncNode(nums)%Pression       ! P_s
             Pws = PerfoWellProd(s)%Pression   ! P_{w,s}
-            Ps_Pws = Ps - Pws
-
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID ! WID_{w,s}
 #ifdef _THERMIQUE_
             WIFws = NodeDatabyWellProdLocal%Val(s)%WIF ! WIF_{w,s}
 #endif
-
-            if ((Ps_Pws > 0.d0) .AND. (.NOT. well_is_closed)) then ! if Ps_Pws < 0 then this term is zero
-               something_is_produced = .true.
-               ! derivative of
-               !   sum_{Q_s \cap P_i} q_{w,s,i}
-               !   sum_{Q_s \cap P_i} q_{w,s,e}
-               dP_w = 0.d0
-               dP_s = 0.d0
+            dP_w = 0.d0
+            dP_s = 0.d0
 #ifdef _THERMIQUE_
-               dP_ER_w = 0.d0
-               der_ER_s = 0.d0
+            dP_ER_w = 0.d0
+            der_ER_s = 0.d0
 #endif
+            well_node_is_active = .false.
 
-               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-                  mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
+            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+               Ps = PhasePressureNode(mph, nums) ! IncNode(nums)%Pression       ! P_s
+               Ps_Pws = Ps - Pws
+               if ((Ps_Pws > 0.d0) .AND. (.NOT. well_is_closed)) then ! if Ps_Pws < 0 then this term is zero
+                  something_is_produced = .true.
+                  well_node_is_active = .true.
+                  ! derivative of
+                  !   sum_{Q_s \cap P_i} q_{w,s,i}
+                  !   sum_{Q_s \cap P_i} q_{w,s,e}
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
                         ! p^w_s = p^w + {\Delta p}^(n-1)_s
                         ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s)
                         dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
                         ! No capillary pressure in the well
+                        pfoo = IncNode(nums)%Pression
+                        Tfoo = IncNode(nums)%Temperature
+                        Sfoo = IncNode(nums)%Saturation(mph)
+                        foo = divDensiteMolaireKrViscoCompNode(:, icp, m, nums)
                         dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, m, nums)*WIDws*Ps_Pws
-                        dP_s(1, icp) = dP_s(1, icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
-
+                        dP_s(:, icp) = dP_s(:, icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws &
+                                       *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
                      end if
                   end do
-
 #ifdef _THERMIQUE_
                   dP_ER_w = dP_ER_w - DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws
-
-                  der_ER_s(:) = der_ER_s(:) + divDensiteMolaireKrViscoEnthalpieNode(:, m, nums)*WIDws*Ps_Pws
-                  der_ER_s(1) = der_ER_s(1) + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws
+                  der_ER_s = der_ER_s + divDensiteMolaireKrViscoEnthalpieNode(:, m, nums)*WIDws*Ps_Pws
+                  der_ER_s = der_ER_s + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws &
+                             *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
 #endif
-               end do
+               end if
+            end do ! end loop over phases (Q_s)
 
-               if (k <= NbWellProdOwn_Ncpus(commRank + 1)) then ! own production well
+            if (well_node_is_active) then
+
+               if (well_is_own) then ! own production well
                   if (DataWellProdLocal(k)%IndWell == 'f') then
                      ! A_kk, k is own production well
                      nz = JacBigA%Pt(rowk) + csrK(colk)
@@ -1880,7 +1886,7 @@ contains
                   end if
                end if
 
-               if (IdNodeLocal(nums)%Proc == "o") then ! node own, this node can not be in the boundary (why ?)
+               if (IdNodeLocal(nums)%Proc == "o") then ! node own, this node can not be in the boundary (why ? boundary -> dirichlet ?)
 
                   rows = nums
                   cols = nums
@@ -1903,16 +1909,17 @@ contains
                      JacBigA%Val(:, icp, nz) = JacBigA%Val(:, icp, nz) + dP_s(:, icp) ! term q_{w,s,i}, derivative of node s
                   end do
 #ifdef _THERMIQUE_
-                  JacBigA%Val(:, NbComp + 1, nz) = JacBigA%Val(:, NbComp + 1, nz) + der_ER_s(:)
+                  JacBigA%Val(:, NbComp + 1, nz) = JacBigA%Val(:, NbComp + 1, nz) + der_ER_s
 #endif
                end if
 
             end if
-         end do
+
+         end do ! end of nodes of well k
 
          !Make sure Jacobian is not singular
          if (well_is_closed .OR. ((DataWellProdLocal(k)%IndWell == 'f') .AND. (.NOT. something_is_produced))) then
-            if (k <= NbWellProdOwn_Ncpus(commRank + 1)) then
+            if (well_is_own) then
                nz = JacBigA%Pt(rowk) + csrK(colk)
                JacBigA%Val(1, 1, nz) = 1.d0
             end if
