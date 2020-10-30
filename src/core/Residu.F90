@@ -39,7 +39,8 @@ module Residu
       DensitemolaireKrViscoEnthalpieCell, &
       DensitemolaireKrViscoEnthalpieFrac, &
       DensitemolaireSatComp, &
-      DensitemolaireEnergieInterneSat
+      DensitemolaireEnergieInterneSat, &
+      PhasePressureNode
 
    use Physics, only: CpRoche, atm_comp, rain_flux
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
@@ -644,7 +645,7 @@ contains
 
             Pws = PerfoWellInj(s)%Pression ! P_{w,s}
             Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
-            Ps = IncNode(nums)%Pression ! P_s DCQ-TODO: Add capilarry pressure for 2-phase
+            Ps = PhasePressureNode(LIQUID_PHASE, nums) ! IncNode(nums)%Pression ! P_s DCQ-TODO: Add capilarry pressure for 2-phase
             Ts = IncNode(nums)%Temperature ! T_s
 
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID
@@ -703,16 +704,16 @@ contains
          ! nodes of well k
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
             nums = NodebyWellProdLocal%Num(s)
+            Flux_ks(:) = 0.d0
+            FluxT_ks = 0.d0
             Pws = PerfoWellProd(s)%Pression ! P_{w,s}
-            Ps = IncNode(nums)%Pression ! P_s
-            Ps_Pws = Ps - Pws
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
-            if (Ps_Pws > 0.d0) then
-               something_is_produced = .true.
-               Flux_ks(:) = 0.d0
-               FluxT_ks = 0.d0
-               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-                  mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+               Ps = PhasePressureNode(mph, nums) ! IncNode(nums)%Pression ! P_s
+               Ps_Pws = Ps - Pws
+               if (Ps_Pws > 0.d0) then
+                  something_is_produced = .true.
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
                         Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*Ps_Pws
@@ -721,15 +722,22 @@ contains
 #ifdef _THERMIQUE_
                   FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*Ps_Pws
 #endif
-               end do
-               ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
+               end if
+            end do
+            ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
 #ifdef _THERMIQUE_
-               ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
+            ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
 #endif
+<<<<<<< HEAD
                qw = qw + sum(Flux_ks)
                qe = qe + FluxT_ks
             end if
             PerfoWellProd(s)%MolarFlowrate = qw
+=======
+            qw = qw + sum(Flux_ks)
+            qe = qe + FluxT_ks
+            PerfoWellProd(s)%MolarFlowrate = qw ! FIXME: add to parent well node  after intiailizing all fluxes to 0 !!!
+>>>>>>> BugFixes Use phase pressure and update them correctly
             PerfoWellProd(s)%EnergyFlowrate = qe
          end do ! end of node s in production well k
 

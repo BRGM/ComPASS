@@ -314,10 +314,12 @@ def total_accumulation(reset_states=True):
     kernel = get_kernel()
     # FIXME: reset_states is needed because we also use this function in legacy newton convergence
     if reset_states:
+        kernel.LoisThermoHydro_compute_phase_pressures()  # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
         # Enforce Dirichlet values
         kernel.DirichletContribution_update()
         # Update local jacobian contributions (closure laws)
         kernel.IncPrimSecd_update_secondary_dependencies()  # FIXME: this is needed to update globals used in LoisThermoHydro_compute
+        kernel.LoisThermoHydro_compute_phase_pressures_derivatives()  # needs to be done IncPrimSecd_update_secondary_dependencies (needs NumIncTotalPrim)
         kernel.LoisThermoHydro_compute()
         kernel.Residu_update_accumulation()
     local = np.zeros(_sw.Residuals.npv(), dtype=np.double)
