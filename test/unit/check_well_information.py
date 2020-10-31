@@ -71,3 +71,6 @@ welllist = list(wellgroup)
 wellinfo = welllist[0]  # watch out in parallel
 assert wellinfo.nb_perforations == 2
 assert np.all(wellinfo.vertices == [0, 3])
+
+print("Peaceman well indices for Darcy law:", wellinfo.well_index_Darcy)
+print("Peaceman well indices for Fourier law:", wellinfo.well_index_Fourier)
