@@ -139,7 +139,8 @@ auto unpack_well_information(const ComPASS::Well::Well_type well_type) {
           perforations.perforations_begin,
           wrapper.data + *(wrapper.well_offset + wk)});
    }
-   return Well_group_information{info, well_type};
+   return std::make_unique<Well_group_information>(
+       Well_group_information{info, well_type});
 }
 
 struct Well_perforations_iterator {
@@ -530,7 +531,7 @@ void add_well_wrappers(py::module& module) {
                                  [](auto i) { return i - 1; });
                   return result;
                },
-               py::return_value_policy::reference_internal);
+               py::keep_alive<0, 1>());
 
    auto add_perforation_state_property =
        [&pyWellInfo](const char* name, const std::size_t offset) {
@@ -549,7 +550,7 @@ void add_well_wrappers(py::module& module) {
                  return py::array_t<double, py::array::c_style>{shape, strides,
                                                                 ptr, self};
               },
-              py::return_value_policy::reference_internal);
+              py::keep_alive<0, 1>());
        };
 
    add_perforation_state_property("pressure",
@@ -583,7 +584,7 @@ void add_well_wrappers(py::module& module) {
                  return py::array_t<double, py::array::c_style>{shape, strides,
                                                                 ptr, self};
               },
-              py::return_value_policy::reference_internal);
+              py::keep_alive<0, 1>());
        };
 
    add_perforation_state_vector_property(
@@ -609,7 +610,7 @@ void add_well_wrappers(py::module& module) {
              return py::array_t<double, py::array::c_style>{shape, strides, ptr,
                                                             self};
           },
-          py::return_value_policy::reference_internal);
+          py::keep_alive<0, 1>());
    };
 
    add_perforation_data_property("well_index_Darcy",
@@ -657,9 +658,12 @@ void add_well_wrappers(py::module& module) {
        .def_property_readonly(
            "nb_wells",
            [](const Well_group_information& self) { return self.info.size(); })
-       .def("__iter__", [](const Well_group_information& self) {
-          return py::make_iterator(begin(self.info), end(self.info));
-       });
+       .def(
+           "__iter__",
+           [](const Well_group_information& self) {
+              return py::make_iterator(begin(self.info), end(self.info));
+           },
+           py::keep_alive<0, 1>());
 
    module.def("injectors_information", []() {
       return unpack_well_information(ComPASS::Well::Well_type::injector);
