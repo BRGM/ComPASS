@@ -1004,7 +1004,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               NodeRocktype_Ncpus(i + 1)%Array2d(1, :), nb_nodes, &
+               NodeRocktype_Ncpus(i + 1)%Array2d(1, :), NbNodeLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
          NodeDarcyRocktypesLocal = NodeRocktype_Ncpus(1)%Array2d(1, :)
@@ -1018,7 +1018,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               FracRocktype_Ncpus(i + 1)%Array2d(1, :), nb_fracs, &
+               FracRocktype_Ncpus(i + 1)%Array2d(1, :), NbFracLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
          FracDarcyRocktypesLocal = FracRocktype_Ncpus(1)%Array2d(1, :)
@@ -1032,7 +1032,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               CellRocktype_Ncpus(i + 1)%Array2d(1, :), nb_cells, &
+               CellRocktype_Ncpus(i + 1)%Array2d(1, :), NbCellLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 25, ComPASS_COMM_WORLD, Ierr)
          end do
          CellDarcyRocktypesLocal = CellRocktype_Ncpus(1)%Array2d(1, :)
@@ -1048,7 +1048,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               NodeRocktype_Ncpus(i + 1)%Array2d(2, :), nb_nodes, &
+               NodeRocktype_Ncpus(i + 1)%Array2d(2, :), NbNodeLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 28, ComPASS_COMM_WORLD, Ierr)
          end do
          NodeFourierRocktypesLocal = NodeRocktype_Ncpus(1)%Array2d(2, :)
@@ -1062,7 +1062,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               FracRocktype_Ncpus(i + 1)%Array2d(2, :), nb_fracs, &
+               FracRocktype_Ncpus(i + 1)%Array2d(2, :), NbFracLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 29, ComPASS_COMM_WORLD, Ierr)
          end do
          FracFourierRocktypesLocal = FracRocktype_Ncpus(1)%Array2d(2, :)
@@ -1076,7 +1076,7 @@ contains
       if (commRank == 0) then
          do i = 1, Ncpus - 1
             call MPI_Send( &
-               CellRocktype_Ncpus(i + 1)%Array2d(2, :), nb_cells, &
+               CellRocktype_Ncpus(i + 1)%Array2d(2, :), NbCellLocal_Ncpus(i + 1), &
                MPI_INTEGER, i, 30, ComPASS_COMM_WORLD, Ierr)
          end do
          CellFourierRocktypesLocal = CellRocktype_Ncpus(1)%Array2d(2, :)
