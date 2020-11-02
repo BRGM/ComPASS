@@ -718,7 +718,7 @@ contains
          ! nodes of well k
          do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
             nums = NodebyWellProdLocal%Num(s)
-            Flux_ks(:) = 0.d0
+            Flux_ks = 0.d0
             FluxT_ks = 0.d0
             Pws = PerfoWellProd(s)%Pression ! P_{w,s}
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
