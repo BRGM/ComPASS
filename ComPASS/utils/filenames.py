@@ -17,9 +17,6 @@ def create_directories(path):
         if not os.path.exists(path):
             os.makedirs(path)
         assert os.path.isdir(path)
-    # IMPROVE: depending on the way I/O are handled synchronization is not
-    #         necessary here
-    mpi.synchronize()  # wait for every process to synchronize
 
 
 def output_directory(case_name=None, rootname=None):
