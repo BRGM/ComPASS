@@ -1,5 +1,9 @@
 from itertools import product
+from pathlib import Path
+
 import numpy as np
+
+from .. import mpi
 
 
 def enum_to_list(enum):
@@ -47,6 +51,74 @@ def tensor_coordinates(tensor, name, diagonal_only=False):
         f"{name}{si}{sj}": tensor[..., i, j]
         for (i, si), (j, sj) in product(enumerate("xyz"[:dim]), enumerate("xyz"[:dim]))
     }
+
+
+def _reload(simulation, snapshot):
+    states_locations = simulation.states_locations()
+    phases = simulation.phases()
+    if len(phases) == 1:
+        phases = ["fluid"]
+    components = simulation.components()
+    for location, states in states_locations:
+        states.p[:] = snapshot[f"{location} pressure"]
+        states.T[:] = snapshot[f"{location} temperature"]
+        if len(phases) > 1:
+            for phk, phase in enumerate(phases):
+                states.S[:, phk] = snapshot[f"{location} {phase} saturation"]
+        else:
+            states.S.fill(1)
+        if len(components) > 1:
+            for ci, comp in enumerate(components):
+                for phk, phase in enumerate(phases):
+                    name = f"{location} {comp} fraction in {phase}"
+                    states.C[:, phk, ci] = snapshot[name]
+        else:
+            states.C.fill(1)
+
+
+def reload_snapshot(simulation, path, iteration, verbose=True):
+    """
+    This will reload a previous simulation state from snapshot outputs.
+    The method can also be used as a *fake* simulation method: `simulation.reload_snapshot(path, iteration...)`.
+
+    .. warning::
+        The mesh and its partition must be exactly the same.
+        Do not forget to reset Dirichlet conditions if necessary.
+
+    :param simulation: the simulation *object*
+    :param path: the path to the ComPASS output directory that will be used to reload simulation state
+    :param iteration: the ouput to reload (must be present in `path/snapshots` file)
+    :param verbose: if True will display a few information on master
+                    proc about the reloaded snapshot (defaults to True).
+    :return: the physical time in seconds of the reloaded snapshot
+    """
+    snapdir = Path(path)
+    snapshot_info = None
+    if mpi.is_on_master_proc:
+        snapfile = snapdir / "snapshots"
+        assert snapdir.is_dir(), f"Could not find snapshot directory: {str(snapdir)}"
+        assert snapfile.is_file(), f"Could not find snapshot file: {str(snapfile)}"
+        iterations = np.loadtxt(snapfile, usecols=(0,), dtype="i")
+        times = np.loadtxt(snapfile, usecols=(1,), dtype="d")
+        index = np.nonzero(iterations == iteration)[0]
+        assert (
+            len(index) != 0
+        ), f"Could not find iteration {iteration} in snapshots (cf. {str(snapfile)})."
+        assert (
+            len(index) < 2
+        ), f"Found several times iteration {iteration} in snapshots (cf. {str(snapfile)})."
+        index = index[0]
+        snapshot_info = (index, times[index])
+    index, t = mpi.communicator().bcast(snapshot_info, root=mpi.master_proc_rank)
+    snapshot = np.load(
+        snapdir / "states" / f"state_{index:05d}_proc_{mpi.proc_rank:06d}.npz"
+    )
+    _reload(simulation, snapshot)
+    if verbose:
+        mpi.master_print(
+            f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t}"
+        )
+    return t
 
 
 if __name__ == "__main__":

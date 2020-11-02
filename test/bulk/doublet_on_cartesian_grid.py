@@ -59,3 +59,11 @@ simulation.dirichlet_node_states().set(X0)
 simulation.standard_loop(
     initial_timestep=30 * day, final_time=30 * year, output_period=year,
 )
+
+# You can reload any simulation state from an output directory
+# Here we will use the current output directory
+snapshot_directory = simulation.runtime.output_directory
+# The mesh and its partition must be exactly the same
+t = simulation.reload_snapshot(snapshot_directory, 28)
+# From here you could use a new simulation.standard_loop
+# to continue simulation from the reloaded state
