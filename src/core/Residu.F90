@@ -616,10 +616,10 @@ contains
 
    subroutine Residu_add_flux_contributions_wells
 
-      integer :: k, s, nums, m, mph, icp
+      integer :: k, s, s_parent, nums, m, mph, icp
 
       double precision :: Flux_ks(NbComp), FluxT_ks
-      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, qw, qe, Ps_Pws
+      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, Ps_Pws
       logical something_is_produced, something_is_injected
 
       ! Injection well
@@ -635,8 +635,11 @@ contains
             cycle ! FIXME: if Fourier contribion is considered we should take it into account
          end if
 
-         qw = 0.d0
-         qe = 0.d0
+         ! reset fluxes
+         do s = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1)
+            PerfoWellInj(s)%MolarFlowrate = 0.d0
+            PerfoWellInj(s)%EnergyFlowrate = 0.d0
+         end do ! end of node s in production well k
          something_is_injected = .false.
 
          ! nodes of well k
@@ -665,11 +668,18 @@ contains
 #ifdef _THERMIQUE_
                ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks ! + WIFws * (Ts-Tws)
 #endif
-               qw = qw + sum(Flux_ks)
-               qe = qe + FluxT_ks
+               PerfoWellInj(s)%MolarFlowrate = PerfoWellInj(s)%MolarFlowrate + Flux_ks
+               PerfoWellInj(s)%EnergyFlowrate = PerfoWellInj(s)%EnergyFlowrate + FluxT_ks
+               s_parent = NodeDatabyWellInjLocal%Val(s)%PtParent
+#ifndef NDEBUG
+               if (s == NodebyWellInjLocal%Pt(k + 1) .and. s_parent /= -1) &
+                  call CommonMPI_abort("Inconsistent producer well head")
+#endif
+               if (s_parent /= -1) then
+                  PerfoWellInj(s_parent)%MolarFlowrate = PerfoWellInj(s_parent)%MolarFlowrate + PerfoWellInj(s)%MolarFlowrate
+                  PerfoWellInj(s_parent)%EnergyFlowrate = PerfoWellInj(s_parent)%EnergyFlowrate + PerfoWellProd(s)%EnergyFlowrate
+               end if
             end if
-            PerfoWellInj(s)%MolarFlowrate = qw
-            PerfoWellInj(s)%EnergyFlowrate = qe
          end do ! end of node s in injection well k
 
          ! inj well equation
@@ -677,7 +687,8 @@ contains
             ResiduWellInj(k) = DataWellInjLocal(k)%PressionMax - IncPressionWellInj(k)
          else if (DataWellInjLocal(k)%IndWell == 'f') then
             if (something_is_injected) then
-               ResiduWellInj(k) = qw - DataWellInjLocal(k)%ImposedFlowrate
+               ResiduWellInj(k) = sum(PerfoWellInj(NodebyWellInjLocal%Pt(k + 1))%MolarFlowrate) & ! wellhead total flowrate
+                                  - DataWellInjLocal(k)%ImposedFlowrate
             else
                ResiduWellInj(k) = 0.d0
             end if
@@ -697,8 +708,11 @@ contains
             cycle ! FIXME: if Fourier contribion is considered we should take it into account
          end if
 
-         qw = 0.d0
-         qe = 0.d0
+         ! reset fluxes
+         do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
+            PerfoWellProd(s)%MolarFlowrate = 0.d0
+            PerfoWellProd(s)%EnergyFlowrate = 0.d0
+         end do ! end of node s in production well k
          something_is_produced = .false.
 
          ! nodes of well k
@@ -728,17 +742,17 @@ contains
 #ifdef _THERMIQUE_
             ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
 #endif
-<<<<<<< HEAD
-               qw = qw + sum(Flux_ks)
-               qe = qe + FluxT_ks
+            PerfoWellProd(s)%MolarFlowrate = PerfoWellProd(s)%MolarFlowrate + Flux_ks
+            PerfoWellProd(s)%EnergyFlowrate = PerfoWellProd(s)%EnergyFlowrate + FluxT_ks
+            s_parent = NodeDatabyWellProdLocal%Val(s)%PtParent
+#ifndef NDEBUG
+            if (s == NodebyWellProdLocal%Pt(k + 1) .and. s_parent /= -1) &
+               call CommonMPI_abort("Inconsistent producer well head")
+#endif
+            if (s_parent /= -1) then
+               PerfoWellProd(s_parent)%MolarFlowrate = PerfoWellProd(s_parent)%MolarFlowrate + PerfoWellProd(s)%MolarFlowrate
+               PerfoWellProd(s_parent)%EnergyFlowrate = PerfoWellProd(s_parent)%EnergyFlowrate + PerfoWellProd(s)%EnergyFlowrate
             end if
-            PerfoWellProd(s)%MolarFlowrate = qw
-=======
-            qw = qw + sum(Flux_ks)
-            qe = qe + FluxT_ks
-            PerfoWellProd(s)%MolarFlowrate = qw ! FIXME: add to parent well node  after intiailizing all fluxes to 0 !!!
->>>>>>> BugFixes Use phase pressure and update them correctly
-            PerfoWellProd(s)%EnergyFlowrate = qe
          end do ! end of node s in production well k
 
          ! prod well equation
@@ -746,7 +760,8 @@ contains
             ResiduWellProd(k) = IncPressionWellProd(k) - DataWellProdLocal(k)%PressionMin
          else if (DataWellProdLocal(k)%IndWell == 'f') then
             if (something_is_produced) then
-               ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate - qw
+               ResiduWellProd(k) = DataWellProdLocal(k)%ImposedFlowrate &
+                                   - sum(PerfoWellProd(NodebyWellProdLocal%Pt(k + 1))%MolarFlowrate) ! wellhead total flowrate
             else
                ResiduWellProd(k) = 0.d0
             end if
