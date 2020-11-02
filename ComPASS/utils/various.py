@@ -53,30 +53,36 @@ def tensor_coordinates(tensor, name, diagonal_only=False):
     }
 
 
-def _reload(simulation, snapshot):
+def _reload(simulation, snapshot, old_style):
+    sep = "_" if old_style else " "
     states_locations = simulation.states_locations()
     phases = simulation.phases()
     if len(phases) == 1:
         phases = ["fluid"]
     components = simulation.components()
     for location, states in states_locations:
-        states.p[:] = snapshot[f"{location} pressure"]
-        states.T[:] = snapshot[f"{location} temperature"]
+        states.p[:] = snapshot[f"{location}{sep}pressure"]
+        states.T[:] = snapshot[f"{location}{sep}temperature"]
         if len(phases) > 1:
             for phk, phase in enumerate(phases):
-                states.S[:, phk] = snapshot[f"{location} {phase} saturation"]
+                states.S[:, phk] = snapshot[f"{location}{sep}{phase} saturation"]
         else:
             states.S.fill(1)
         if len(components) > 1:
             for ci, comp in enumerate(components):
                 for phk, phase in enumerate(phases):
-                    name = f"{location} {comp} fraction in {phase}"
+                    if old_style:
+                        name = f"{location}_{comp} in {phase}"
+                        if location == "fracture":  # this was a bug...
+                            name = f"fracture_comp_{comp} in {phase}"
+                    else:
+                        name = f"{location} {comp} fraction in {phase}"
                     states.C[:, phk, ci] = snapshot[name]
         else:
             states.C.fill(1)
 
 
-def reload_snapshot(simulation, path, iteration, verbose=True):
+def reload_snapshot(simulation, path, iteration, verbose=True, old_style=False):
     """
     This will reload a previous simulation state from snapshot outputs.
     The method can also be used as a *fake* simulation method: `simulation.reload_snapshot(path, iteration...)`.
@@ -90,6 +96,7 @@ def reload_snapshot(simulation, path, iteration, verbose=True):
     :param iteration: the ouput to reload (must be present in `path/snapshots` file)
     :param verbose: if True will display a few information on master
                     proc about the reloaded snapshot (defaults to True).
+    :param old_style: use old style output (defaults to False)
     :return: the physical time in seconds of the reloaded snapshot
     """
     snapdir = Path(path)
@@ -113,7 +120,7 @@ def reload_snapshot(simulation, path, iteration, verbose=True):
     snapshot = np.load(
         snapdir / "states" / f"state_{index:05d}_proc_{mpi.proc_rank:06d}.npz"
     )
-    _reload(simulation, snapshot)
+    _reload(simulation, snapshot, old_style)
     if verbose:
         mpi.master_print(
             f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t}"
