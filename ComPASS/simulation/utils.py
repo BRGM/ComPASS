@@ -3,6 +3,7 @@
 
 
 import numpy as np
+from .. import mpi
 from ..postprocess import postprocess as postprocess_command
 
 
@@ -81,9 +82,11 @@ def facenodes(simulation, fis):
 def postprocess(
     simulation, convert_temperature=True, collect_wells=True, collect_states=True
 ):
-    postprocess_command(
-        simulation.runtime.output_directory,
-        convert_temperature=convert_temperature,
-        collect_wells=collect_wells,
-        collect_states=collect_states,
-    )
+    mpi.synchronize()
+    if mpi.is_on_master_proc:
+        postprocess_command(
+            simulation.runtime.output_directory,
+            convert_temperature=convert_temperature,
+            collect_wells=collect_wells,
+            collect_states=collect_states,
+        )

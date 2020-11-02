@@ -230,6 +230,8 @@ def standard_loop(
     if shooter is None:
         if dumper is None:
             dumper = Dumper(simulation)
+            # as dumper will create directories slave must wait for directory creation by master
+            mpi.synchronize()
         shooter = Snapshooter(dumper)
 
     def output_actions(tick):
