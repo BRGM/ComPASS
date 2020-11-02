@@ -325,9 +325,15 @@ contains
          call CommonMPI_abort("Inconsistent Val in CSRDataNodeWell")
 
       wrapper%nb_wells = data%Nb
-      wrapper%well_offset = c_loc(data%Pt(1))
-      wrapper%node_vertex = c_loc(data%Num(1))
-      wrapper%data = c_loc(data%Val(1))
+      if (data%Nb == 0) then
+         wrapper%well_offset = c_null_ptr
+         wrapper%node_vertex = c_null_ptr
+         wrapper%data = c_null_ptr
+      else
+         wrapper%well_offset = c_loc(data%Pt(1))
+         wrapper%node_vertex = c_loc(data%Num(1))
+         wrapper%data = c_loc(data%Val(1))
+      end if
 
    end subroutine retrieve_CSRDataNodeWell
 
