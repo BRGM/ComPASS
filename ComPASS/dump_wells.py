@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from .utils.units import *
 from . import mpi
-from .utils.various import enum_to_list
 import MeshTools.vtkwriters as vtkw
 
 
@@ -158,14 +157,14 @@ def _dump_wells(
             ]
         }
 
-        phases = enum_to_list(simulation.Phase)
+        phases = simulation.phases()
         if len(phases) > 1:
             for phk, phase in enumerate(phases):
                 welldata[f"{phase} saturation"] = np.ascontiguousarray(
                     well.saturation[:, phk]
                 )
 
-        components = enum_to_list(simulation.Component)
+        components = simulation.components()
         for ck, component in enumerate(components):
             welldata[f"{component} flowrate"] = np.ascontiguousarray(
                 well.molar_flowrate[:, ck]

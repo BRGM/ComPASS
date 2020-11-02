@@ -9,6 +9,30 @@ def enum_to_list(enum):
     ]
 
 
+def phases(simulation):
+    return enum_to_list(simulation.Phase)
+
+
+def components(simulation):
+    return enum_to_list(simulation.Component)
+
+
+def states_locations(simulation):
+    return [
+        ("node", simulation.node_states()),
+        ("cell", simulation.cell_states()),
+        ("fracture", simulation.fracture_states()),
+    ]
+
+
+def mass_fluxes_locations(simulation):
+    cell_fluxes, fracture_fluxes = simulation.mass_fluxes()
+    return [
+        ("cell", cell_fluxes),
+        ("fracture", fracture_fluxes),
+    ]
+
+
 def tensor_coordinates(tensor, name, diagonal_only=False):
     tensor = np.asarray(tensor)
     assert tensor.ndim == 2 or tensor.ndim == 3, "wrong tensor array dimension"

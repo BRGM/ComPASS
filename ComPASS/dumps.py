@@ -13,7 +13,6 @@ from . import mpi
 from . import dump_wells as dw
 from .utils import create_directories
 from .runtime import to_output_directory
-from .utils.various import enum_to_list
 
 
 class Dumper:
@@ -121,40 +120,33 @@ class Dumper:
 
     def dump_states(self, tag="", dump_fluxes=True):
         assert self.simulation_running
-        node_states = self.simulation.node_states()
-        cell_states = self.simulation.cell_states()
-        fracture_states = self.simulation.fracture_states()
-        dumped_states = {
-            "node_pressure": node_states.p,
-            "node_temperature": node_states.T,
-            "cell_pressure": cell_states.p,
-            "cell_temperature": cell_states.T,
-            "fracture_pressure": fracture_states.p,
-            "fracture_temperature": fracture_states.T,
-        }
-
-        phases = enum_to_list(self.simulation.Phase)
-        components = enum_to_list(self.simulation.Component)
-        for phk, phase in enumerate(phases):
-            dumped_states[f"cell_{phase} saturation"] = cell_states.S[:, phk]
-            dumped_states[f"node_{phase} saturation"] = node_states.S[:, phk]
-            dumped_states[f"fracture_{phase} saturation"] = fracture_states.S[:, phk]
+        result = {}
+        simulation = self.simulation
+        states_locations = simulation.states_locations()
+        phases = simulation.phases()
+        if len(phases) == 1:
+            phases = ["fluid"]
+        components = simulation.components()
+        for location, states in states_locations:
+            result[f"{location} pressure"] = states.p
+            result[f"{location} temperature"] = states.T
+            if len(phases) > 1:
+                for phk, phase in enumerate(phases):
+                    result[f"{location} {phase} saturation"] = states.S[:, phk]
             if len(components) > 1:
                 for ci, comp in enumerate(components):
-                    dumped_states[f"cell_{comp} in {phase}"] = cell_states.C[:, phk, ci]
-                    dumped_states[f"node_{comp} in {phase}"] = node_states.C[:, phk, ci]
-                    dumped_states[
-                        f"fracture_comp_{comp} in {phase}"
-                    ] = fracture_states.C[:, phk, ci]
+                    for phk, phase in enumerate(phases):
+                        name = f"{location} {comp} fraction in {phase}"
+                        result[name] = states.C[:, phk, ci]
         if dump_fluxes:
-            cell_fluxes, fracture_fluxes = self.simulation.mass_fluxes()
-            dumped_states["cell_total mass flux"] = cell_fluxes.sum(axis=1)
-            dumped_states["fracture_total mass flux"] = fracture_fluxes.sum(axis=1)
-            for ci, comp in enumerate(components):
-                dumped_states[f"cell_{comp} mass flux"] = cell_fluxes[:, ci, :]
-                dumped_states[f"fracture_{comp} mass flux"] = fracture_fluxes[:, ci, :]
-        np.savez(self.states_filename(mpi.proc_rank, tag), **dumped_states)
-        dw.dump_all_wells(self.simulation, self.to_wells_directory(), tag)
+            fluxes_locations = simulation.mass_fluxes_locations()
+            for location, fluxes in fluxes_locations:
+                result[f"{location} total mass flux"] = fluxes.sum(axis=1)
+                if len(components) > 1:
+                    for ci, comp in enumerate(components):
+                        result[f"{location} {comp} mass flux"] = fluxes[:, ci, :]
+        np.savez(self.states_filename(mpi.proc_rank, tag), **result)
+        dw.dump_all_wells(simulation, self.to_wells_directory(), tag)
 
 
 def dump_mesh(simulation):

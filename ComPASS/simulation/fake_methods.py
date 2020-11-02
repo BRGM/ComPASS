@@ -23,6 +23,7 @@ from ..utils.grid import (
 )
 
 from ..utils.phase_computations import total_phase_volume
+from ..utils.various import phases, components, states_locations, mass_fluxes_locations
 
 from .bc import (
     set_global_dirichlet_nodes,
