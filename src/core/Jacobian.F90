@@ -1771,8 +1771,6 @@ contains
       double precision :: Pws, Ps, WIDws, WIFws, Ps_Pws
       real(c_double) :: dP_w(NbComp), dP_s(NbIncTotalPrimMax, NbComp) ! NbComp mass balance equation
       real(c_double) :: dP_ER_w, der_ER_s(NbIncTotalPrimMax) ! energy balance equation
-      real(c_double) :: pfoo, Tfoo, Sfoo
-      real(c_double) :: foo(NbIncTotalPrimMax)
       logical :: something_is_produced, well_is_own, well_is_closed, well_node_is_active
 
       nz = -1
@@ -1850,10 +1848,6 @@ contains
                         ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s)
                         dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
                         ! No capillary pressure in the well
-                        pfoo = IncNode(nums)%Pression
-                        Tfoo = IncNode(nums)%Temperature
-                        Sfoo = IncNode(nums)%Saturation(mph)
-                        foo = divDensiteMolaireKrViscoCompNode(:, icp, m, nums)
                         dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, m, nums)*WIDws*Ps_Pws
                         dP_s(:, icp) = dP_s(:, icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws &
                                        *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
