@@ -64,6 +64,15 @@ def set_dirichlet_nodes(
     )
 
 
+def reset_dirichlet_nodes_states(simulation):
+    """
+    Copy all dirichlet node states from the current node states.
+
+    :param simulation: the simulation object
+    """
+    simulation.dirichlet_node_states().copy(simulation.node_states())
+
+
 def reset_dirichlet_nodes(
     simulation,
     both_selection=lambda pts: None,
@@ -87,7 +96,7 @@ def reset_dirichlet_nodes(
                             to select temperature dirichlet nodes (default to no selection)
     """
     clear_dirichlet_nodes(simulation)
-    simulation.dirichlet_node_states().copy(simulation.node_states())
+    reset_dirichlet_nodes_states(simulation)
 
     def apply_if_callable(f):
         if callable(f):

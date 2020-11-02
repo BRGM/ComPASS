@@ -82,7 +82,9 @@ def _reload(simulation, snapshot, old_style):
             states.C.fill(1)
 
 
-def reload_snapshot(simulation, path, iteration, verbose=True, old_style=False):
+def reload_snapshot(
+    simulation, path, iteration, verbose=True, old_style=False, reset_dirichlet=True
+):
     """
     This will reload a previous simulation state from snapshot outputs.
     The method can also be used as a *fake* simulation method: `simulation.reload_snapshot(path, iteration...)`.
@@ -97,6 +99,7 @@ def reload_snapshot(simulation, path, iteration, verbose=True, old_style=False):
     :param verbose: if True will display a few information on master
                     proc about the reloaded snapshot (defaults to True).
     :param old_style: use old style output (defaults to False)
+    :param reset_dirichlet: reset dirichlet node values (defaults to True)
     :return: the physical time in seconds of the reloaded snapshot
     """
     snapdir = Path(path)
@@ -125,6 +128,12 @@ def reload_snapshot(simulation, path, iteration, verbose=True, old_style=False):
         mpi.master_print(
             f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t}"
         )
+    if reset_dirichlet:
+        simulation.reset_dirichlet_nodes_states()
+        if verbose:
+            mpi.master_print(
+                f"Dirichlet node states were updated according to reloaded snapshot."
+            )
     return t
 
 

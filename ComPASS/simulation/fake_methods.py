@@ -35,6 +35,7 @@ from .bc import (
     set_global_dirichlet_nodes,
     clear_dirichlet_nodes,
     set_dirichlet_nodes,
+    reset_dirichlet_nodes_states,
     reset_dirichlet_nodes,
     set_freeflow_faces,
     reset_freeflow_faces,

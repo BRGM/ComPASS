@@ -17,4 +17,5 @@ using the `simulation.reload_snapshot` method.
     Using the `simulation.reload_snapshot` method
     the mesh and its partition must be exactly the same
     (i.e. you must use exactly the same number of processors for parallel simulations).
-    Do NOT forget to reset Dirichlet conditions if necessary.
+    The default is that Dirichlet node states are updated according to the reloaded snapshot.
+    You can set the `reset_dirichlet` argument to `False` if you do not want this behavior.
