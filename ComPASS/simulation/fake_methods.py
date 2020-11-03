@@ -26,6 +26,7 @@ from ..utils.phase_computations import total_phase_volume
 from ..utils.various import (
     phases,
     components,
+    contexts,
     states_locations,
     mass_fluxes_locations,
     reload_snapshot,

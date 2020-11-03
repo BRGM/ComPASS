@@ -21,6 +21,10 @@ def components(simulation):
     return enum_to_list(simulation.Component)
 
 
+def contexts(simulation):
+    return enum_to_list(simulation.Context)
+
+
 def states_locations(simulation):
     return [
         ("node", simulation.node_states()),
