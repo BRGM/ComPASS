@@ -428,8 +428,13 @@ def part_mesh(use_Kway, connectivity_file=None):
     kernel = get_kernel()
     nparts = mpi.communicator().size
     cell_connectivity = _sw.get_global_connectivity().CellbyCell
-    neighbors = cell_connectivity.contiguous_content()
     offsets = cell_connectivity.offsets()
+    # FIXME: the following if clause is linked to a bug in single-cell mesh connectivity
+    if len(offsets) == 2 and np.all(offsets == 0):
+        assert _sw.global_number_of_cells() == 1
+        return np.zeros(_sw.global_number_of_cells(), dtype=np.int32)
+    assert not np.all(offsets == 0)
+    neighbors = cell_connectivity.contiguous_content()
     if connectivity_file is not None:
         connectivity_file = Path(connectivity_file)
         connectivity_file.parent.mkdir(parents=True, exist_ok=True)
