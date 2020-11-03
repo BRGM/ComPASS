@@ -65,6 +65,10 @@ def _reload(simulation, snapshot, old_style):
         phases = ["fluid"]
     components = simulation.components()
     for location, states in states_locations:
+        if not old_style:
+            states.context[:] = snapshot[f"{location} context"]
+        else:
+            states.context[:] = -1
         states.p[:] = snapshot[f"{location}{sep}pressure"]
         states.T[:] = snapshot[f"{location}{sep}temperature"]
         if len(phases) > 1:
@@ -96,6 +100,10 @@ def reload_snapshot(
     .. warning::
         The mesh and its partition must be exactly the same.
         Do not forget to reset Dirichlet conditions if necessary.
+
+    .. warning::
+        Using old style output physical context is not reloaded and will be set to -1.
+        This is made on purpose to block flash, set context to the appropriate value...
 
     :param simulation: the simulation *object*
     :param path: the path to the ComPASS output directory that will be used to reload simulation state
@@ -131,6 +139,12 @@ def reload_snapshot(
     if verbose:
         mpi.master_print(
             f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t}"
+        )
+    if old_style:
+        mpi.master_print(
+            f"WARNING: Using old style output physical context is not reloaded and will be set to -1"
+            f"WARNING: This is made on purpose to block flash"
+            f"WARNING: Set context to the appropriate value..."
         )
     if reset_dirichlet:
         simulation.reset_dirichlet_nodes_states()

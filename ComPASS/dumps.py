@@ -128,6 +128,7 @@ class Dumper:
             phases = ["fluid"]
         components = simulation.components()
         for location, states in states_locations:
+            result[f"{location} context"] = states.context
             result[f"{location} pressure"] = states.p
             result[f"{location} temperature"] = states.T
             if len(phases) > 1:
