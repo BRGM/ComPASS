@@ -677,7 +677,7 @@ contains
 #endif
                if (s_parent /= -1) then
                   PerfoWellInj(s_parent)%MolarFlowrate = PerfoWellInj(s_parent)%MolarFlowrate + PerfoWellInj(s)%MolarFlowrate
-                  PerfoWellInj(s_parent)%EnergyFlowrate = PerfoWellInj(s_parent)%EnergyFlowrate + PerfoWellProd(s)%EnergyFlowrate
+                  PerfoWellInj(s_parent)%EnergyFlowrate = PerfoWellInj(s_parent)%EnergyFlowrate + PerfoWellInj(s)%EnergyFlowrate
                end if
             end if
          end do ! end of node s in injection well k
