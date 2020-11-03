@@ -91,7 +91,12 @@ def _reload(simulation, snapshot, old_style):
 
 
 def reload_snapshot(
-    simulation, path, iteration, verbose=True, old_style=False, reset_dirichlet=True
+    simulation,
+    path,
+    iteration=None,
+    verbose=True,
+    old_style=False,
+    reset_dirichlet=True,
 ):
     """
     This will reload a previous simulation state from snapshot outputs.
@@ -108,6 +113,7 @@ def reload_snapshot(
     :param simulation: the simulation *object*
     :param path: the path to the ComPASS output directory that will be used to reload simulation state
     :param iteration: the ouput to reload (must be present in `path/snapshots` file)
+                      if None (the default) the latest output from snapshots will be reloaded.
     :param verbose: if True will display a few information on master
                     proc about the reloaded snapshot (defaults to True).
     :param old_style: use old style output (defaults to False)
@@ -122,14 +128,18 @@ def reload_snapshot(
         assert snapfile.is_file(), f"Could not find snapshot file: {str(snapfile)}"
         iterations = np.loadtxt(snapfile, usecols=(0,), dtype="i")
         times = np.loadtxt(snapfile, usecols=(1,), dtype="d")
-        index = np.nonzero(iterations == iteration)[0]
-        assert (
-            len(index) != 0
-        ), f"Could not find iteration {iteration} in snapshots (cf. {str(snapfile)})."
-        assert (
-            len(index) < 2
-        ), f"Found several times iteration {iteration} in snapshots (cf. {str(snapfile)})."
-        index = index[0]
+        if iteration is None:
+            assert len(iterations) > 0, "Snapshots file is empty..."
+            index = len(iterations) - 1
+        else:
+            index = np.nonzero(iterations == iteration)[0]
+            assert (
+                len(index) != 0
+            ), f"Could not find iteration {iteration} in snapshots (cf. {str(snapfile)})."
+            assert (
+                len(index) < 2
+            ), f"Found several times iteration {iteration} in snapshots (cf. {str(snapfile)})."
+            index = index[0]
         snapshot_info = (index, times[index])
     index, t = mpi.communicator().bcast(snapshot_info, root=mpi.master_proc_rank)
     snapshot = np.load(
