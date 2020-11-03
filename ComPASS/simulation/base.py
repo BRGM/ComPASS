@@ -8,6 +8,7 @@ In a futur evolution, it should become a class that accepts several instances.
 
 import os
 import atexit
+from pathlib import Path
 
 import numpy as np
 
@@ -32,7 +33,6 @@ from .utils import reshape_as_scalar_array, reshape_as_tensor_array
 from .data import set_fractures, collect_all_edges
 from . import _simulation_object
 
-
 # This is temporary but will be generalized in the future
 # here Properties will just be used as a namespace
 # FIXME never used -> to delete ?
@@ -54,6 +54,7 @@ def init(
     set_global_flags=None,
     set_global_rocktype=None,
     mesh_parts=None,
+    use_Kway_part_graph=False,
     **kwargs,
 ):
     """
@@ -69,6 +70,8 @@ def init(
 
     :param mesh: the mesh the simulation is run on, it can be a grid generated with ComPASS.Grid,
         or a MeshTools object. MeshTools provides several helpers modules to load and modify meshes.
+    :param mesh_parts: directly provide mesh partitioning with a sequence of integer representing a color
+    :param use_Kway_part_graph: if True use METIS_PartGraphKway to part mesh else use METIS_PartGraphRecursive (the default)
 
     :param wells: a python sequence of well objects
     :param display_well_ids: a boolean to output well ids at the beginning of the simulation (defaults to False)
@@ -195,11 +198,19 @@ def init(
         kernel.compute_well_indices()
         summarize_simulation()
         if mesh_parts is None:
-            mesh_parts = part_mesh()
-        else:
-            ucolors = np.unique(mesh_parts)
-            assert ucolors.min() >= 0
-            assert ucolors.max() < mpi.communicator().size
+            use_Kway = use_Kway_part_graph
+            mesh_parts = part_mesh(
+                use_Kway=use_Kway,
+                # connectivity_file=simulation.runtime.to_output_directory(
+                #     "mesh/connectivity"
+                # ),
+            )
+        ucolors = np.unique(mesh_parts)
+        assert ucolors.min() >= 0
+        assert ucolors.max() < mpi.communicator().size
+        parts_file = Path(simulation.runtime.to_output_directory("mesh/parts"))
+        parts_file.parent.mkdir(parents=True, exist_ok=True)
+        np.save(parts_file, mesh_parts)
         kernel.init_phase2_partition(mesh_parts)
     simulation.mesh_is_local = True
     mpi.synchronize()
@@ -408,14 +419,24 @@ def cell_distribution(colors):
     return domains, ghost_layers
 
 
-def part_mesh():
+def part_mesh(use_Kway, connectivity_file=None):
+    assert mpi.is_on_master_proc
     kernel = get_kernel()
     nparts = mpi.communicator().size
-    if nparts > 1:
-        cell_colors = kernel.metis_part_graph(
-            _sw.get_global_connectivity().CellbyCell, nparts,
+    cell_connectivity = _sw.get_global_connectivity().CellbyCell
+    neighbors = cell_connectivity.contiguous_content()
+    offsets = cell_connectivity.offsets()
+    if connectivity_file is not None:
+        connectivity_file = Path(connectivity_file)
+        connectivity_file.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(
+            connectivity_file, neighbors=neighbors, offsets=offsets,
         )
-        cell_colors -= 1  # Fortran indexing
+    if nparts > 1:
+        # Fortran indexing of neighbors
+        cell_colors = kernel.metis_part_graph(
+            neighbors - 1, offsets, nparts, Kway=use_Kway
+        )
     else:
         cell_colors = np.zeros(_sw.global_number_of_cells(), dtype=np.int32)
     return cell_colors
