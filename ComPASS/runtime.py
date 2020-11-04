@@ -16,7 +16,7 @@ logfile = None
 
 
 def to_output_directory(filename):
-    assert os.path.isdir(output_directory)
+    assert os.path.isdir(output_directory), f"{output_directory} is not a directory"
     return os.path.abspath(os.path.join(output_directory, filename))
 
 
