@@ -8,7 +8,7 @@
 # Cartesian grid, box similar in size with Bouillante
 # Dirichlet at the top bondary with Liquid in half and gas in the other half
 # Imposed molar and heat flux at the bottom boundary
-
+import os
 import ComPASS
 import numpy as np
 import MeshTools as MT
@@ -17,6 +17,9 @@ import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.mpi
+from ComPASS.timestep_management import TimeStepManager
+from ComPASS.linalg.factory import linear_solver
+from ComPASS.newton import Newton
 
 
 omega_reservoir = 0.35  # reservoir porosity  .1
@@ -53,9 +56,9 @@ diphasic_context = 3
 bot_flag = 4
 
 
-ComPASS.load_eos("diphasic")
-ComPASS.set_gravity(gravity)
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
+simulation = ComPASS.load_eos("diphasic")
+simulation.set_gravity(gravity)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if ComPASS.mpi.is_on_master_proc:
@@ -63,7 +66,7 @@ if ComPASS.mpi.is_on_master_proc:
     grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
     def Dirichlet_node():
-        vertices = np.rec.array(ComPASS.global_vertices())
+        vertices = np.rec.array(simulation.global_vertices())
         return vertices[:, 2] >= Topz
 
     def set_top_flags(pts, flags):
@@ -76,12 +79,12 @@ if ComPASS.mpi.is_on_master_proc:
                     flags[i] = gas_context
 
     def set_global_flags():
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         set_top_flags(vertices, nodeflags)
 
-        face_centers = np.rec.array(ComPASS.compute_global_face_centers())
-        faceflags = ComPASS.global_faceflags()
+        face_centers = np.rec.array(simulation.compute_global_face_centers())
+        faceflags = simulation.global_faceflags()
         faceflags[:] = 0
         faceflags[face_centers[:, 2] <= Oz] = bot_flag
 
@@ -91,7 +94,7 @@ if not ComPASS.mpi.is_on_master_proc:
         Dirichlet_node
     ) = omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     set_dirichlet_nodes=Dirichlet_node,
     cell_porosity=omega_reservoir,
@@ -121,7 +124,7 @@ def inside_heat_source(pts):
 
 def molar_fraction_balance(Pg, T):
     Hur = 0.5
-    Cwg = Hur * ComPASS.Psat(T) / Pg
+    Cwg = Hur * simulation.Psat(T) / Pg
     Cag = 1.0 - Cwg
     Ha = 1.0e8
     Cal = Cag * Pg / Ha
@@ -130,7 +133,7 @@ def molar_fraction_balance(Pg, T):
 
 
 def set_Dirichlet_state(state):
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # liq
     state.context[node_flags == liquid_context] = liquid_context
     state.p[node_flags == liquid_context] = p0
@@ -154,15 +157,15 @@ def set_states(state, depths):
 
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), Topz - ComPASS.vertices()[:, 2])
-    set_states(ComPASS.cell_states(), Topz - ComPASS.compute_cell_centers()[:, 2])
-    set_Dirichlet_state(ComPASS.dirichlet_node_states())
+    set_states(simulation.node_states(), Topz - simulation.vertices()[:, 2])
+    set_states(simulation.cell_states(), Topz - simulation.compute_cell_centers()[:, 2])
+    set_Dirichlet_state(simulation.dirichlet_node_states())
 
 
 # in some part of the bottom, molar flux and energy flux.
 def set_variable_boundary_heat_flux():
-    face_centers = np.rec.array(ComPASS.face_centers())
-    face_flags = ComPASS.faceflags()
+    face_centers = np.rec.array(simulation.face_centers())
+    face_flags = simulation.faceflags()
 
     neumann_heat_faces = np.zeros(len(face_flags), dtype=bool)
     neumann_faces = np.zeros(len(face_flags), dtype=bool)
@@ -174,15 +177,15 @@ def set_variable_boundary_heat_flux():
     # heat source
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = liq_molar_fraction_qbin[:] * qbin
-    Neumann.heat_flux = qbin * ComPASS.liquid_molar_enthalpy(
+    Neumann.heat_flux = qbin * simulation.liquid_molar_enthalpy(
         p_bot, Tbot_input, liq_molar_fraction_qbin
     )
-    ComPASS.set_Neumann_faces(neumann_heat_faces, Neumann)
+    simulation.set_Neumann_faces(neumann_heat_faces, Neumann)
     # outside heat source
     Neumann = ComPASS.NeumannBC()
     Neumann.molar_flux[:] = 0.0
-    Neumann.heat_flux = ComPASS.liquid_molar_enthalpy(p_bot, 400.0, [0.0, 1.0])
-    ComPASS.set_Neumann_faces(neumann_faces, Neumann)
+    Neumann.heat_flux = simulation.liquid_molar_enthalpy(p_bot, 400.0, [0.0, 1.0])
+    simulation.set_Neumann_faces(neumann_faces, Neumann)
 
 
 sys.stdout.write("set initial and BC" + "\n")
@@ -193,9 +196,9 @@ sys.stdout.flush()
 
 
 init_dt = 1.0e-3
+max_dt = 0.7 * year
 final_time = 100.0 * year
 output_period = 0.01 * final_time
-ComPASS.set_maximum_timestep(0.7 * year)
 
 
 def ma_fonction(it_timestep, time):
@@ -203,10 +206,24 @@ def ma_fonction(it_timestep, time):
         ComPASS.mpi.abort()
 
 
+lsolver = linear_solver(simulation, from_options=True)
+newton = Newton(simulation, 1e-5, 8, lsolver)
+
 standard_loop(
-    initial_timestep=init_dt,
+    simulation,
     final_time=final_time,
     output_every=20,
+    time_step_manager=TimeStepManager(
+        initial_timestep=init_dt, maximum_timestep=max_dt,
+    ),
+    newton=newton,
     # iteration_callbacks=[ma_fonction],
     # output_period = output_period, specific_outputs=[1. * day], output_every=20,
 )
+
+try:
+    os.mkdir("last_system/")
+    mpi.master_print(">>>>  Dumping the last system")
+    newton.lsolver.linear_system.dump_binary("last_system/")
+except OSError:
+    pass

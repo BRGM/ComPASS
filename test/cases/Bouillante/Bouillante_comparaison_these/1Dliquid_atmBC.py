@@ -67,8 +67,7 @@ state = dict(p=Pporous, T=Tporous, S=[0, 1], C=[[1.0, 0.0], [0.01, 0.99]])
 X0 = simulation.build_state(simulation.Context.liquid, **state)
 X_bottom = simulation.build_state(X0)
 X_bottom.C[1][:] = [0.0, 1.0]
-stateTop = dict(p=Pporous, T=Tporous, S=[0.5, 0.5], C=[[1.0, 0.0], [0.01, 0.99]])
-X_top = simulation.build_state(simulation.Context.diphasic_FF_liq_outflow, **stateTop)
+X_top = simulation.build_state(simulation.Context.diphasic_FF_liq_outflow, **state)
 X_top.T = 250  # between Tporous and Tatm
 
 simulation.all_states().set(X0)
