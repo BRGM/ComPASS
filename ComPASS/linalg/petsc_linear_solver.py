@@ -113,7 +113,7 @@ class PetscIterativeSolver(IterativeSolver):
         self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         self.pc = self.ksp.getPC()
         if self.activate_cpramg:
-            self.set_cpramg_pc()
+            self.set_cpramg_pc(comm)
         else:
             self.activate_cpramg = False
             self.pc.setFactorLevels(1)
@@ -155,7 +155,7 @@ class PetscIterativeSolver(IterativeSolver):
 
         return self.linear_system.x, nit, ksp_reason
 
-    def set_cpramg_pc(self):
+    def set_cpramg_pc(self, comm):
 
         # CPR-AMG is a multiplicative composite PC :
         # CPR-AMG = M2*(I - A*M1) + M1
@@ -172,25 +172,19 @@ class PetscIterativeSolver(IterativeSolver):
         # We now define M1 as an additive fieldsplit pc
         # M1 = M11 + M12
         # with M11 an AMG v-cycle procedure on the pressure field
-        # and M12 = 0 a NONE PC which "does nothing"
+        # and M12 = 0 a Null PC which returns zero on the T/s field
         block_size = self.linear_system.lsbuilder.get_block_size()
         (sizes, d_nnz, o_nnz) = self.linear_system.lsbuilder.get_non_zeros()
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
         n_wells = self.linear_system.lsbuilder.get_n_wells()
         non_well_nrowl = n_rowl - n_wells
-        # p_field = np.array([0], dtype="int32")
-        # rest = np.arange(1, block_size, dtype="int32")
         fs_pc = cpramg_pc.getCompositePC(0)
-        # fs_pc.setFieldSplitFields(block_size, ("pressure", p_field))
-        # fs_pc.setFieldSplitFields(block_size, ("rest of unknowns", rest))
         p_indices = np.arange(non_well_nrowl, step=block_size, dtype="int32")
         p_indices = np.concatenate(
             (p_indices, np.arange(start=non_well_nrowl, stop=n_rowl, dtype="int32"))
         )
 
-        p_IS = PETSc.IS().createGeneral(p_indices, comm=comm)
-        # p_IS.setIndices()
 
         rest_size = non_well_nrowl - (non_well_nrowl // block_size)
         rest_indices = np.zeros(rest_size, dtype="int32")
@@ -198,14 +192,15 @@ class PetscIterativeSolver(IterativeSolver):
             for j in range(block_size - 1):
                 k = i * (block_size - 1) + j
                 rest_indices[k] = k + i + 1
-        print(n_wells, len(rest_indices), len(p_indices), n_rowl)
-        rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
 
+
+        # The Index Set for the pressure field
+        p_IS = PETSc.IS().createGeneral(p_indices, comm=comm)
+        # The Index Set for the temperature and saturation field
+        rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
         fs_pc.setFieldSplitIS(("pressure", p_IS), ("rest", rest_IS))
         fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
         sub_ksp_list = fs_pc.getFieldSplitSubKSP()
-        # print(p_indices[:100])
-        # print(rest_indices[:100])
 
         # Algebraic multigrid procedure on the pressure field
         pressure_ksp = sub_ksp_list[0]
@@ -216,10 +211,20 @@ class PetscIterativeSolver(IterativeSolver):
             "-sub_0_fieldsplit_pressure_pc_hypre_boomeramg_strong_threshold", 0.5
         )
 
-        # NONE Type PC on the rest of the unknowns
+        class NullPC(object):
+            """ A PC-Python Context which returns zero. Used on the T/s field """
+
+            def setUp(self, pc):
+                pass
+
+            def apply(self, pc, x, y):
+                y.set(0.0)
+
         rest_ksp = sub_ksp_list[1]
         rest_ksp.setType(PETSc.KSP.Type.PREONLY)
-        rest_ksp.getPC().setType(PETSc.PC.Type.NONE)
+        null_pc = rest_ksp.getPC()
+        null_pc.setType(PETSc.PC.Type.PYTHON)
+        null_pc.setPythonContext(NullPC())
 
     def __str__(self):
 
