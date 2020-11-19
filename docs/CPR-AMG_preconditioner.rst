@@ -1,5 +1,5 @@
 The CPR-AMG preconditioner in ComPASS
-================================
+=======================================
 
 Introduction
 -----------------
@@ -11,14 +11,14 @@ Usual preconditioning methods like ILU, Schwarz methods and multigrid
 algorithms prove to be unsufficient on large systems because they treat
 all unknowns the same way, thus losing knowledge of their physical and
 numerical properties. The default preconditioner in ComPASS is CPR-AMG,
-a method which uses the knowledge of the unknowns blocks in the linear
+a method which uses the splitting of the blocks of unknowns in the linear
 operator to improve the convergence of Krylov methods. This document
 describes the CPR-AMG preconditioning procedure and its Python
 implementation in the framework of the linear algebra package for
 ComPASS.
 
 The CPR-AMG preconditioning method
------------------
+----------------------------------
 
 Let :math:`A` be a linear operator describing the behaviour of type of
 unknowns : pressure and temperature.
@@ -39,11 +39,19 @@ vector :math:`b` is performed like so :
 
 .. math::
 
-   \left\{\begin{array}{l}
-   \tilde{A}_{p p} x_{p}=b_{p} \\
-   b'_{T}=b_{T}-A_{T p} x_{p} \\
-   \tilde{A} y=b'
-   \end{array}\right.
+      \left\{\begin{array}{l}
+      y=\left(\begin{array}{l}
+      y_{p} \\
+      y_{T}
+      \end{array}\right)=\left(\begin{array}{l}
+      0 \\
+      0
+      \end{array}\right) \\
+      \tilde{A}_{p p} y_{p}=b_{p} \\
+      r=b-A y \\
+      \tilde{L} \tilde{U} x=r \\
+      x=x+y
+      \end{array}\right.
 
 First a partial resolution is performed on the pressure block, then a
 correction is made to the original vector :math:`b`. Finally a
@@ -55,13 +63,13 @@ by this matrix :
 
 .. math::
 
-   \text{CPR}(A) = \tilde{A}^{-1}\left(I-A M\right)+M
+   \text{CPR}(A) = (\tilde{L}\tilde{U})^{-1}\left(I-A M\right)+M
 
 with
 :math:`M=\left(\begin{array}{cc} \tilde{A}_{p p}^{-1} & 0 \\ 0 & 0 \end{array}\right)`.
 
 Implementation with petsc4py
------------------
+----------------------------
 
 Preconditioners of the form
 :math:`M^{-1} = M_2^{-1}\left(I-A M_1^{-1}\right)  + M_1^{-1}` like CPR
@@ -70,18 +78,11 @@ in multiplicative mode (additive application corresponds to the matrix
 :math:`M^{-1} = M_2^{-1} + M_1^{-1}`). Documentation can be found at
 page 90 in [PETSc_manual]_.
 
-::
-
-     import petsc4py
-     petsc4py.init(sys.argv)
-     from petsc4py import PETSc
-
-     cpramg_pc = PETSc.PC().create(comm=comm)
-     cpramg_pc.setOperators(A, A)
-     cpramg_pc.setType(PETSc.PC.Type.COMPOSITE)
-     cpramg_pc.setCompositeType(PETSc.PC.CompositeType.MULTIPLICATIVE)
-     cpramg_pc.addCompositePC(PETSc.PC.Type.FIELDSPLIT)
-     cpramg_pc.addCompositePC(PETSc.PC.Type.BJACOBI)
+.. literalinclude:: ../ComPASS/linalg/petsc_linear_solver.py
+   :language: python
+   :pyobject: PetscIterativeSolver.set_cpramg_pc
+   :start-at: cpramg_pc = self.pc
+   :end-before: setUp
 
 | The ``PC`` objects must be instanciated in the required order. In the
   case of CPR-AMG, the ``PC`` :math:`M_2` is an ILU resolution (default
@@ -99,28 +100,13 @@ page 90 in [PETSc_manual]_.
   ComPASS).
 | The type of the fieldsplit ``PC`` is ``ADDITIVE``, e.g.
   :math:`M_{FS} = M_{FSp} + M_{FST}` with :math:`M_{FST} = 0`, set with
-  type ``PETSc.PC.Type.NONE``
+  a custom PC which returns zero.
 
-::
-
-     # Split blocks into pressure and the rest of unknowns
-     p_field = np.array([0], dtype='int32')
-     rest = np.arange(1, block_size, dtype='int32')
-     fs_pc = cpramg_pc.getCompositePC(0)
-     fs_pc.setFieldSplitFields(block_size, ('pressure', p_field), ('rest of unknowns', rest))
-     fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
-     sub_ksp_list = fs_pc.getFieldSplitSubKSP() # Default KSP is PREONLY in a FieldSplit PC
-
-     # Algebraic multigrid on the pressure field
-     pressure_ksp = sub_ksp_list[0]
-     pressure_pc = pressure_ksp.getPC()
-     pressure_pc.setType(PETSc.PC.Type.HYPRE)
-     PETSc.Options().setValue("-pc_hypre_boomeramg_strong_threshold", "0.5")
-
-
-     # NONE PC on the rest of the unknowns
-     rest_ksp = sub_ksp_list[1]
-     rest_ksp.getPC().setType(PETSc.PC.Type.NONE)
+.. literalinclude:: ../ComPASS/linalg/petsc_linear_solver.py
+   :language: python
+   :pyobject: PetscIterativeSolver.set_cpramg_pc
+   :start-at: # The Index Set for the pressure field
+   :end-before: null_pc.setPythonContext(NullPC())
 
 References
 -----------------
