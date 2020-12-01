@@ -195,7 +195,8 @@ class PetscIterativeSolver(IterativeSolver):
         # The Index Set for the pressure field
         p_IS = PETSc.IS().createGeneral(p_indices, comm=comm)
         # The Index Set for the temperature and saturation field
-        rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
+        # rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
+        rest_IS = p_IS.complement(0, n_rowg)
         fs_pc.setFieldSplitIS(("pressure", p_IS), ("rest", rest_IS))
         fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
         sub_ksp_list = fs_pc.getFieldSplitSubKSP()
