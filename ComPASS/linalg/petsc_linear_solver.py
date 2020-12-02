@@ -193,17 +193,10 @@ class PetscIterativeSolver(IterativeSolver):
             )
         )
 
-        rest_size = non_well_nrowl - (non_well_nrowl // block_size)
-        rest_indices = np.zeros(rest_size, dtype="int32")
-        for i in range(non_well_nrowl // block_size):
-            for j in range(block_size - 1):
-                k = i * (block_size - 1) + j
-                rest_indices[k] = k + i + 1
-
         # The Index Set for the pressure field
         p_IS = PETSc.IS().createGeneral(p_indices, comm=comm)
         # The Index Set for the temperature and saturation field
-        # rest_IS = PETSc.IS().createGeneral(rest_indices, comm=comm)
+        # is simply the complement of the pressure IndexSet
         rest_IS = p_IS.complement(0, n_rowg)
         fs_pc.setFieldSplitIS(("pressure", p_IS), ("rest", rest_IS))
         fs_pc.setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
