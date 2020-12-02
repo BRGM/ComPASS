@@ -27,6 +27,7 @@ class LinearSystemBuilder {
    std::size_t n_rowl = 0, n_coll = 0, n_rowg = 0, n_colg = 0;
    std::vector<int> d_nnz;
    std::vector<int> o_nnz;
+   std::vector<size_t> rowstarts;
 
   public:
    LinearSystemBuilder();
@@ -52,4 +53,5 @@ class LinearSystemBuilder {
       return myrank_part_info.producers.nb_owns +
              myrank_part_info.injectors.nb_owns;
    };
+   std::size_t get_rowstart(size_t proc) { return rowstarts[proc]; };
 };

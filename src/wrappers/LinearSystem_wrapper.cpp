@@ -88,10 +88,14 @@ void LinearSystemBuilder::compute_nonzeros() {
    n_coll = n_rowl;
    // global row/col size: sum of all procs
    n_rowg = 0;
+   // rowstarts : proc i possesses rows rowstarts[i] to rowstarts[i+1]-1
+   rowstarts.resize(ncpus + 1);
+   rowstarts[0] = 0;
    for (size_t i = 0; i < ncpus; i++) {
       n_rowg += (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) *
                     nb_comp_thermique +
                 part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
+      rowstarts[i + 1] = n_rowg;
    }
    n_colg = n_rowg;
 
@@ -440,6 +444,7 @@ void add_LinearSystem_wrapper(py::module& module) {
        .def("get_non_zeros", &LinearSystemBuilder::get_non_zeros)
        .def("get_block_size", &LinearSystemBuilder::get_block_size)
        .def("get_n_wells", &LinearSystemBuilder::get_n_wells)
+       .def("get_rowstart", &LinearSystemBuilder::get_rowstart)
        .def("set_AMPI", &LinearSystemBuilder::set_AMPI)
        .def("set_RHS", &LinearSystemBuilder::set_RHS);
 }
