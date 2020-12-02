@@ -178,11 +178,19 @@ class PetscIterativeSolver(IterativeSolver):
         n_rowl, n_rowg = sizes
         n_coll, n_colg = sizes
         n_wells = self.linear_system.lsbuilder.get_n_wells()
+        my_rowstart = self.linear_system.lsbuilder.get_rowstart(mpi.proc_rank)
+
         non_well_nrowl = n_rowl - n_wells
         fs_pc = cpramg_pc.getCompositePC(0)
-        p_indices = np.arange(non_well_nrowl, step=block_size, dtype="int32")
+        p_indices = my_rowstart + np.arange(
+            non_well_nrowl, step=block_size, dtype="int32"
+        )
         p_indices = np.concatenate(
-            (p_indices, np.arange(start=non_well_nrowl, stop=n_rowl, dtype="int32"))
+            (
+                p_indices,
+                my_rowstart
+                + np.arange(start=non_well_nrowl, stop=n_rowl, dtype="int32"),
+            )
         )
 
         rest_size = non_well_nrowl - (non_well_nrowl // block_size)
