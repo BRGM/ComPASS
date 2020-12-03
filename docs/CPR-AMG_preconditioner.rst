@@ -90,23 +90,29 @@ page 90 in [PETSc_manual]_.
   parallel compatibility. The ``PC`` :math:`M_1` is set as a
   ``FIELDSPLIT`` type preconditioner ([PETSc_manual]_
   page 93). This type is a special case of ``COMPOSITE`` where sub-PCs
-  are restricted to selected sets of unknowns : "``fields``". It is
-  possible to distinguish these sets specifically using the ``IS``
-  (index sets) object type in PETSc, but if the unknowns are stored in
-  blocks, which is the case of the matrices from ComPASS, PETSc will
-  instanciate these objects internally from the provision of the blocks
-  size (physics dependent in ComPASS) and the position of the different
-  unknowns in each block (pressure is always the first of each block in
-  ComPASS).
-| The type of the fieldsplit ``PC`` is ``ADDITIVE``, e.g.
-  :math:`M_{FS} = M_{FSp} + M_{FST}` with :math:`M_{FST} = 0`, set with
-  a custom PC which returns zero.
+  are restricted to selected sets of unknowns called "fields". Here the
+  fields are set using the IS (Index Sets) objects in PETSc. These
+  consist in integer arrays which map the indices of the local
+  pressure submatrix with the corresponding global indices of the
+  pressure unknowns in the global matrix. (e.g. Let :math:`N_p` be the number
+  of pressure unknowns on current processor :math:`p`. Then for :math:`i \in
+  [0, Np-1]`, :math:`\text{p_IS}[i]` is the global index of the
+  local :math:`i`-th pressure unknown in matrix :math:`A`). Note that the
+  well unknowns are included in the pressure field, because we want them
+  to be affected by the AMG procedure together with the pressure unknowns.
+  Then the IndexSet for the remaining unknowns is built using the PETSc
+  function ``complement``, (e.g. every index which is not in the pressure
+  IS).
+| The type of the fieldsplit ``PC`` is set on ``ADDITIVE``, e.g.
+  :math:`M_{FS} = M_{FSp} + M_{FST}` with :math:`M_{FST} = 0`. This type
+  of preconditioner is not defined in PETSc, meaning we have to set it
+  ourselves with a custom PC class which returns zero.
 
 .. literalinclude:: ../ComPASS/linalg/petsc_linear_solver.py
    :language: python
    :pyobject: PetscIterativeSolver.set_cpramg_pc
    :start-at: # The Index Set for the pressure field
-   :end-before: null_pc.setPythonContext(NullPC())
+   :end-at: null_pc.setPythonContext(NullPC())
 
 References
 -----------------
