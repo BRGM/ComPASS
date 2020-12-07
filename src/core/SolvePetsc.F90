@@ -1776,7 +1776,7 @@ contains
       PetscErrorCode :: Ierr
 
       call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr); CHKERRQ(Ierr)
-      NkspIter = NkspIter + 1 ! CHECKME: why + 1?
+      NkspIter = NkspIter
 
    end function SolvePetsc_KspSolveIterationNumber
 

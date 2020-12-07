@@ -75,6 +75,7 @@ class Newton:
         self.number_of_useful_linear_iterations = 0
         self.number_of_succesful_iterations = 0
         self.number_of_useless_iterations = 0
+        self.lsolver_iterations = []
         self.relative_residuals = None
         self.increments = get_kernel().NewtonIncrements()
         self.increments.init()
@@ -134,7 +135,7 @@ class Newton:
         relative_residuals = []
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
-        total_lsolver_iterations = 0
+        self.lsolver_iterations = []
         self.init_iteration()
         # CHECKME: does this need to be done after newton_init_iteration?
         kernel.Residu_reset_history()
@@ -157,7 +158,7 @@ class Newton:
                 raise e
 
             mpi.master_print("Linear solver status :", ls_status)
-            total_lsolver_iterations += nit if nit is not None else 0
+            self.lsolver_iterations += [nit] if nit is not None else [1]
             self.increment(x)
             self.init_iteration()
             kernel.Residu_compute(dt)
@@ -172,11 +173,11 @@ class Newton:
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:
                     self.check_well_residuals()
-                return NewtonStatus(iteration + 1, total_lsolver_iterations)
+                return NewtonStatus(iteration + 1, self.lsolver_iterations)
         mpi.master_print("Newton relative residuals:")
         for i, r in enumerate(relative_residuals):
             mpi.master_print("%02d: %15.9e" % (i, r))
-        raise IterationExhaustion(NewtonStatus(iteration, total_lsolver_iterations))
+        raise IterationExhaustion(NewtonStatus(iteration, self.lsolver_iterations))
 
     def check_well_residuals(self):
         simulation = self.simulation
@@ -216,6 +217,6 @@ def default_Newton(simulation):
     # The default lsolver is a legacy iterative solver
     # which uses the CPR-AMG preconditioner
     default_lsolver = linear_solver(
-        simulation, legacy=True, direct=False, activate_cpramg=True, from_options=True,
+        simulation, legacy=True, direct=False, from_options=True,
     )
     return Newton(simulation, 1e-5, 8, default_lsolver)
