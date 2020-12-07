@@ -47,23 +47,37 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf)
+      subroutine f_Fugacity(rt, iph, icp, P, T, C, S, f, DPf, DTf, DCf, DSf, set_Pc_to_zero)
 
       ! input
       integer(c_int), intent(in) :: rt(IndThermique + 1)
       integer(c_int), intent(in) :: iph, icp
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
+      ! optional input
+      logical, optional, intent(in):: set_Pc_to_zero
+
       real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
 
       real(c_double) :: PSat, dTSat, Pc, DSPc(NbPhase)
+      logical :: set_Pc_to_zero_value
 
       dPf = 0.d0
       dTf = 0.d0
       dCf = 0.d0
       dSf = 0.d0
 
+      set_Pc_to_zero_value = .false. ! default behavior
+      if (present(set_Pc_to_zero)) set_Pc_to_zero_value = set_Pc_to_zero
+
       if (iph == GAS_PHASE) then
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
+
+         if (set_Pc_to_zero_value) then
+            Pc = 0.d0
+            DSPc = 0.d0
+         else
+            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)  ! Pg=Pref + Pc
+         end if
+
          f = P + Pc
 
          dPf = 1.d0
@@ -92,11 +106,13 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf) &
+      subroutine f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf, set_Pc_to_zero) &
       bind(C, name="FluidThermodynamics_molar_density")
       integer(c_int), value, intent(in) :: iph
       real(c_double), value, intent(in) :: P, T
       real(c_double), intent(in) :: C(NbComp), S(NbPhase)
+      ! optional input
+      logical, optional, intent(in):: set_Pc_to_zero
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
 
       real(c_double) :: Cs, rho0, a, b, a1, a2, b1, b2, c1, c2, cw, dcwp, dcwt
@@ -105,15 +121,24 @@ contains
       real(c_double) :: Pc, DSPc(NbPhase), Pg, Pl
 
       integer(c_int) :: rt(IndThermique + 1)
+      logical :: set_Pc_to_zero_value
+
+      set_Pc_to_zero_value = .false. ! default behavior
+      if (present(set_Pc_to_zero)) set_Pc_to_zero_value = set_Pc_to_zero
 
       if (iph == GAS_PHASE) then
 
-         rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
-         call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
+         if (set_Pc_to_zero_value) then
+            Pc = 0.d0
+            DSPc = 0.d0
+         else
+            rt = 0 ! FIXME: rt is not used because Pref=Pg so Pc=0.
+            call f_PressionCapillaire(rt, iph, S, Pc, DSPc)
 #ifndef NDEBUG
-         if (Pc .ne. 0.d0) &
-            call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
+            if (Pc .ne. 0.d0) &
+               call CommonMPI_abort('possible error in f_DensiteMolaire (change rt)')
 #endif
+         end if
          Pg = P + Pc
 
          u = 0.018016d0
@@ -191,12 +216,19 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      subroutine f_DensiteMassique(iph, P, T, C, S, f, dPf, dTf, dCf, dSf, set_Pc_to_zero)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp), S(NbPhase)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      ! optional input
+      logical, optional, intent(in):: set_Pc_to_zero
 
-      call f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      logical :: set_Pc_to_zero_value
+
+      set_Pc_to_zero_value = .false. ! default behavior
+      if (present(set_Pc_to_zero)) set_Pc_to_zero_value = set_Pc_to_zero
+
+      call f_DensiteMolaire(iph, P, T, C, S, f, dPf, dTf, dCf, dSf, set_Pc_to_zero_value)
 
    end subroutine f_DensiteMassique
 
