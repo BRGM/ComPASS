@@ -12,7 +12,7 @@ from ComPASS.linalg.factory import linear_solver
 # import ComPASS.mpi as mpi
 # from ComPASS.mpi import MPI # underlying mpi4py.MPI
 
-from angular_sector import extruded_sector
+from ComPASS.utils.angular_sector import extruded_sector
 
 
 R = 1000  # radius of the angular sector

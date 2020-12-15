@@ -88,8 +88,6 @@ sanity_check:
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_column_temperature.py
     - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_fracture.py
-    - docker run --rm -v $PWD/test/sanity/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO1.py
-    - docker run --rm -v $PWD/test/sanity/SO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO2.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_settings.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run init_states.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_well.py
@@ -108,6 +106,39 @@ sanity_check:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run display_model_elements.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_standalone.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_with_compass.py
+
+baseline tests:
+  stage: test
+  tags:
+    - test
+  image: docker:stable
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-casea.py
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-caseb.py
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-casec.py
+    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO3-casea.py
+    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO3-caseb.py
+    - docker run --rm -v $PWD/test/baseline/MO4:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO4.py
+    - docker run --rm -v $PWD/test/baseline/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO1.py
+    - docker run --rm -v $PWD/test/baseline/SO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO2.py
+
+baseline tests parallel:
+  stage: test
+  tags:
+    - test
+  image: docker:stable
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-casea.py
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-caseb.py
+    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-casec.py
+    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO3-casea.py
+    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO3-caseb.py
+    - docker run --rm -v $PWD/test/baseline/MO4:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO4.py
+    - docker run --rm -v $PWD/test/baseline/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO1.py
+    - docker run --rm -v $PWD/test/baseline/SO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO2.py
+    - docker run --rm -v $PWD/test/baseline/SO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO3.py
 
 pytest_run:
   stage: test
