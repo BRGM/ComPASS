@@ -4,3 +4,5 @@ This folder contains subfolders with several types of tests:
 + *cases* contains work on real data (not versioned on the main git repository) the folder is as is and may not run with the current production version - check the git log of the files you are interested in
 + *bugs* should hopefuly be empty but is a transitory place to store scripts used to find a bug. It is a good practice to transform this scripts into generic test when the bug is found.
 + *linalg* contains tests that check the behaviour of LinearSolver features in real-test conditions and with stand-alone tests
++ *sanity* contains small sanity test that pass on production branches
++ *baseline* contains simple benchmark tests that pass on production branches both in sequential and parallel

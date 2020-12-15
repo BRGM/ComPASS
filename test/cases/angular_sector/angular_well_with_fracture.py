@@ -10,7 +10,7 @@ from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.timeloops import TimeStepManager, Event
 
-from angular_sector import extruded_sector
+from ComPASS.utils.angular_sector import extruded_sector
 
 # The topmost fracture is finite (cf. fracture_radius)
 # The bottommost fracture is infinite and ensures recharge.
