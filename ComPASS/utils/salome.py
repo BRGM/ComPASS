@@ -250,17 +250,20 @@ class SalomeGroup:
         return self._cells.ids
 
 
+def _extract_groups_module_info(groups_module="GROUPS"):
+    groups = importlib.import_module(groups_module)
+    group_names = [name for name in dir(groups) if not name.startswith("__")]
+    return {name: MT.idarray(getattr(groups, name)) - 1 for name in group_names}
+
+
 class SalomeMeshInfo:
     def __init__(self, mesh=None):
         self._dict = OrderedDict()
         self._mesh = mesh
 
-    def build_from_groups_module(self, groups_module="GROUPS"):
+    def _build_from_groups(self, groups):
         mesh = self._mesh
-        groups = importlib.import_module(groups_module)
-        group_names = [name for name in dir(groups) if not name.startswith("__")]
-        for name in group_names:
-            vids = MT.idarray(getattr(groups, name)) - 1
+        for name, vids in groups.items():
             if vids.ndim == 1:  # nodes
                 self._dict[name] = SalomeGroup(mesh, nodes=vids)
             elif vids.ndim == 2 and vids.shape[1] == 3:  # triangles
@@ -269,6 +272,14 @@ class SalomeMeshInfo:
                 self._dict[name] = SalomeGroup(mesh, cellnodes=vids)
             else:
                 assert False, f"Could not handle group: {name}"
+
+    def build_from_groups_module(self, groups_module="GROUPS"):
+        groups = _extract_groups_module_info(groups_module)
+        self._build_from_groups(groups)
+
+    def build_from_npz(self, filename):
+        groups = np.load(filename)
+        self._build_from_groups(groups)
 
     def __getattr__(self, name):
         try:
@@ -414,18 +425,55 @@ class SalomeMeshInfo:
                         self._dict[name] = SalomeGroup(mesh, **{location: where})
 
 
-def _build_mesh(nodes_file, tets_file):
+def _load_mesh_elements(nodes_file, tets_file):
     vertices = np.loadtxt(nodes_file, usecols=(1, 2, 3))
     tets = np.loadtxt(tets_file, dtype=np.ulonglong, usecols=(1, 2, 3, 4))
     assert np.all(tets > 0)
     cells = MT.idarray(tets - 1)  # Salome indexing starts at 1
-    return MT.TetMesh.make(vertices, cells)
+    return vertices, cells
+
+
+def _build_mesh(nodes_file, tets_file):
+    return MT.TetMesh.make(*_load_mesh_elements(nodes_file, tets_file))
 
 
 def load(nodes_file="NODES.txt", tets_file="TETRAS.txt", groups_module="GROUPS"):
     mesh = _build_mesh(nodes_file, tets_file)
     mesh_info = SalomeMeshInfo(MTWrapper(mesh))
     mesh_info.build_from_groups_module(groups_module)
+    return mesh, mesh_info
+
+
+def _groups_npz(basename):
+    return basename + ".groups"
+
+
+def compress(
+    basename,
+    nodes_file="NODES.txt",
+    tets_file="TETRAS.txt",
+    groups_module="GROUPS",
+    verbose=False,
+):
+    if verbose:
+        print("Extracting mesh elements")
+    vertices, cells = _load_mesh_elements(nodes_file, tets_file)
+    if verbose:
+        print(f"{vertices.shape[0]} vertices and {cells.shape[0]} cells were extracted")
+    np.savez(basename, vertices=vertices, cells=cells)
+    if verbose:
+        print("Extracting groups")
+    groups = _extract_groups_module_info(groups_module)
+    if verbose:
+        print("Extracted groups:", ", ".join(groups.keys()))
+    np.savez(_groups_npz(basename), **groups)
+
+
+def load_compressed(basename):
+    data = np.load(basename + ".npz")
+    mesh = MT.TetMesh.make(data["vertices"], data["cells"])
+    mesh_info = SalomeMeshInfo(MTWrapper(mesh))
+    mesh_info.build_from_npz(_groups_npz(basename) + ".npz")
     return mesh, mesh_info
 
 
@@ -437,10 +485,14 @@ class SalomeWrapper:
         tets_file="TETRAS.txt",
         groups_module="GROUPS",
         verbose=True,
+        compressed_basename=None,
     ):
         self._simulation = simulation
         if mpi.is_on_master_proc:
-            mesh, info = load(nodes_file, tets_file, groups_module)
+            if compressed_basename is None:
+                mesh, info = load(nodes_file, tets_file, groups_module)
+            else:
+                mesh, info = load_compressed(compressed_basename)
             masks = info.compute_and_collect_masks()
             if verbose:
                 print("Available Salome groups:", ", ".join(info.groups()))
