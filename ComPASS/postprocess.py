@@ -266,7 +266,7 @@ class PostProcessor:
                 if convert_temperature:
                     for location in data_arrays.keys():
                         for property in data_arrays[location].keys():
-                            if property == "temperature":
+                            if "temperature" in property:
                                 data_arrays[location][property] -= 273.15
                 pieces = self.write_mesh_vtu(
                     proc,
