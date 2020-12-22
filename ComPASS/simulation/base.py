@@ -296,7 +296,10 @@ def check_well_geometry(wells):
         well_edges = to_edge_array(well_edges)
         if not np.all(np.isin(well_edges, edges)):
             message = "Well %d has edges that are not in mesh edges" % wi
-            explanation = "Well %d edges:\n" % wi + str(well_segments) + "\n"
+            explanation = ""
+            for edge in well_edges:
+                if not np.isin(edge, edges):
+                    explanation += f"edge {edge} is not in mesh\n"
             messages.error(message, explanation=explanation)
 
 
