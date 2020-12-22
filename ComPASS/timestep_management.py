@@ -22,6 +22,8 @@ class TimeStepManager:
         increase_factor=1.2,
         decrease_factor=0.8,
         minimum_timestep=1e-14,  # CHECKME: machine precision, should not happen when solving
+        karma_threshold=None,
+        karma_reset=True,
     ):
         self.previous = None
         self.step = initial_timestep
@@ -32,6 +34,9 @@ class TimeStepManager:
         self.increase_factor = increase_factor
         assert 0 < decrease_factor < 1
         self.decrease_factor = decrease_factor
+        self.karma_threshold = karma_threshold or 1
+        self.karma_status = self.karma_threshold
+        self.karma_reset = karma_reset
 
     @property
     def current_step(self):
@@ -44,7 +49,12 @@ class TimeStepManager:
 
     def steps(self, upper_bound=None):
         if self.previous:
-            self.previous *= self.increase_factor
+            if self.karma_status >= self.karma_threshold:
+                self.previous *= self.increase_factor
+                if self.karma_reset:
+                    self.karma_status = 1
+            else:
+                self.karma_status += 1
             self.step = self.previous
             if self.maximum is not None:
                 self.step = min(self.step, self.maximum)
@@ -55,15 +65,8 @@ class TimeStepManager:
         def attempts():
             while self.current_step > self.minimum:
                 yield self.step
+                self.karma_status = 1
                 self.step *= self.decrease_factor
                 self.previous = self.step
 
         return attempts()
-
-
-if __name__ == "__main__":
-    print(list(FixedTimeStep(1).steps()))
-    tsm = TimeStepManager(1, decrease_factor=0.1)
-    print(list(tsm.steps()))
-    tsm.current_step = 2e-6
-    print(list(tsm.steps()))
