@@ -157,9 +157,14 @@ void add_specific_model_wrappers(py::module &module) {
              if (!ok)
                 throw std::runtime_error(
                     "You must set diphasic states providing p or T, and Sg.");
-             double foo;  // dummy value
-             state.p = p.cast<double>();
-             FluidThermodynamics_Tsat(state.p, state.T, foo);
+             double dummy;
+             if (T.is_none()) {
+                state.p = p.cast<double>();
+                FluidThermodynamics_Tsat(state.p, state.T, dummy);
+             } else {
+                state.T = T.cast<double>();
+                FluidThermodynamics_Psat(state.T, state.p, dummy);
+             }
              const double S = Sg.cast<double>();
              state.S[enum_to_rank(Phase::gas)] = S;
              state.S[enum_to_rank(Phase::liquid)] = 1. - S;
