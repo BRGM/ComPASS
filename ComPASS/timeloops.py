@@ -132,6 +132,7 @@ def standard_loop(
     output_after_loop=True,
     well_connections=None,
     no_output=False,
+    timeloop_statistics=False,
 ):
     """
     Performs a standard timeloop.
@@ -294,6 +295,10 @@ def standard_loop(
         output_actions(tick0)
     process_events(tick0)
 
+    if mpi.is_on_master_proc and timeloop_statistics:
+        with open(f"{simulation.runtime.output_directory}/timeloop", "w") as f:
+            pass
+
     if well_pressure_offset is not None:
         check_well_pressure(simulation, well_pressure_offset)
     # InitPressureDrop
@@ -321,6 +326,12 @@ def standard_loop(
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,
         )
+        if mpi.is_on_master_proc and timeloop_statistics:
+            with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
+                print(
+                    f"{n} {dt} {newton.number_of_succesful_iterations} {newton.number_of_useless_iterations}",
+                    file=f,
+                )
         well_connections.synchronize()
         assert (
             dt == ts_manager.current_step
