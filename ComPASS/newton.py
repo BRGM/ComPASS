@@ -157,6 +157,7 @@ class Newton:
             try:
                 x, nit, ls_status = lsolver.solve()
             except LinearSolverFailure as e:
+                self.number_of_useless_iterations += iteration + 1
                 raise e
 
             mpi.master_print("Linear solver status :", ls_status)
@@ -175,10 +176,12 @@ class Newton:
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:
                     self.check_well_residuals()
+                self.number_of_succesful_iterations += iteration + 1
                 return NewtonStatus(iteration + 1, self.lsolver_iterations)
         mpi.master_print("Newton relative residuals:")
         for i, r in enumerate(relative_residuals):
             mpi.master_print("%02d: %15.9e" % (i, r))
+        self.number_of_useless_iterations += iteration + 1
         raise IterationExhaustion(NewtonStatus(iteration, self.lsolver_iterations))
 
     def check_well_residuals(self):
