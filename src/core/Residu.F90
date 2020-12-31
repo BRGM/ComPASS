@@ -61,8 +61,6 @@ module Residu
       WellPerforationState_type
    use DefWell, only: &
       WellData_type
-   use WellState, only: &
-      WellState_solve_for_temperature
    use VAGFrac, only: &
       ThermalSourceVol, &
       PoroVolDarcy, &
