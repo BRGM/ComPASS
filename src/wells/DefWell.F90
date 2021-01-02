@@ -258,7 +258,7 @@ contains
       k = sum_permeabilities/dble(nb_contributors)
 #ifndef NDEBUG
       if (d <= 0) call CommonMPI_abort('negative distance')
-      if (k <= 0) call CommonMPI_abort('negative permeability')
+      if (k < 0) call CommonMPI_abort('non positive permeability')
 #endif
       peaceman_radius = 0.14036d0*dsqrt(2.d0)*d
 
