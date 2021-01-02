@@ -138,6 +138,8 @@ setup(
         "ComPASS.io",
         "ComPASS.linalg",
         "ComPASS.petrophysics",
+        "ComPASS.physics",
+        "ComPASS.physics.water2ph",
         "ComPASS.schemes",
         "ComPASS.simulation",
         "ComPASS.utils",
