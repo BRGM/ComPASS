@@ -15,7 +15,7 @@ module Thermodynamics
 
    use, intrinsic :: iso_c_binding, only: c_double, c_int
    use DefModel, only: NbPhase, NbComp, IndThermique
-   use IncCVReservoir, only: TYPE_IncCVReservoir
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
 
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort

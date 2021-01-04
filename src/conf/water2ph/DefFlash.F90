@@ -14,7 +14,7 @@
 module DefFlash
 
    use iso_c_binding, only: c_double
-   use IncCVReservoir, only: Type_IncCVReservoir
+   use IncCVReservoirTypes, only: Type_IncCVReservoir
    use DefModel, only: &
       locked_context, &
       IndThermique, NbPhase, NbComp, &
