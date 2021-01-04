@@ -11,7 +11,8 @@
        use, intrinsic :: iso_c_binding
        use CommonMPI, only: commRank, CommonMPI_abort
        use DefModel, only: NbComp, NbPhase
-       use IncCVReservoir, only: TYPE_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac
+       use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+       use IncCVReservoir, only: IncAll, IncNode, IncCell, IncFrac
        use MeshSchema, only: NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus
        use IncCVWells, only: IncPressionWellProd, IncPressionWellInj
        use DirichletContribution, only: IncNodeDirBC

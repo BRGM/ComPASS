@@ -9,7 +9,8 @@
 module DirichletContribution
 
    use CommonMPI, only: commRank
-   use IncCVReservoir, only: TYPE_IncCVReservoir, IncNode
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use IncCVReservoir, only: IncNode
    use MeshSchema, only: IdNodeLocal, NbNodeLocal_Ncpus
 
    implicit none

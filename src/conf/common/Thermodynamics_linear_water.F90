@@ -14,7 +14,7 @@ module Thermodynamics
    use mpi, only: MPI_Abort
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
-   use IncCVReservoir, only: TYPE_IncCVReservoir
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
 
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort

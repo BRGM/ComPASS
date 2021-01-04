@@ -81,6 +81,7 @@ set(ComPASSCore_SRCS
     GlobalMesh.F90
     IncCV.F90
     IncCVReservoir.F90
+    IncCVReservoirTypes.F90
     IncCVWells.F90
     DirichletContribution.F90
     NeumannContribution.F90

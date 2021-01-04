@@ -18,7 +18,7 @@ module Thermodynamics
    use DefModel, only: &
       NbPhase, NbComp, IndThermique, &
       GAS_PHASE, LIQUID_PHASE
-   use IncCVReservoir, only: TYPE_IncCVReservoir
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
 
    implicit none
 

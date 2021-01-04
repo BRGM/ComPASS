@@ -15,7 +15,7 @@ module Thermodynamics
                        GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
                        get_model_configuration, MCP
    use CommonType, only: ModelConfiguration
-   use IncCVReservoir, only: TYPE_IncCVReservoir
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
 
    implicit none
 
