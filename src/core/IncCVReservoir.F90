@@ -40,6 +40,7 @@ module IncCVReservoir
       eps
 
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use Thermodynamics, only: f_DensiteMassique
 
    implicit none
 
@@ -75,7 +76,8 @@ module IncCVReservoir
       IncCVReservoir_NewtonIncrement, &
       IncCVReservoir_LoadIncPreviousTimeStep, &
       IncCVReservoir_SaveIncPreviousTimeStep, &
-      IncCVReservoir_free
+      IncCVReservoir_free, &
+      IncCVReservoir_compute_density
 
    private :: &
       IncCVReservoir_NewtonIncrement_reservoir
@@ -581,5 +583,21 @@ contains
       datavisuwellinj = 1.d0 ! not implemented
       datavisuwellprod = 1.d0 ! not implemented
    ENDSUBROUTINE IncCVReservoir_ToVec
+
+   function IncCVReservoir_compute_density(inc) result(rho)
+      type(TYPE_IncCVReservoir), intent(in) :: inc
+      real(c_double) :: rho
+      integer :: m, mph
+      real(c_double) :: rhoph, drhodp, drhodT, drhodC(NbComp)
+
+      rho = 0.d0
+      do m = 1, NbPhasePresente_ctx(inc%ic)
+         mph = NumPhasePresente_ctx(m, inc%ic)
+         call f_DensiteMassique(mph, inc%Pression, inc%Temperature, &
+                                inc%Comp(:, mph), rhoph, drhodp, drhodT, drhodC)
+         rho = rho + rhoph*inc%Saturation(mph)
+      end do
+
+   end function IncCVReservoir_compute_density
 
 end module IncCVReservoir
