@@ -135,7 +135,7 @@ contains
       logical, intent(in) :: use_avg_dens
 
       integer :: k, s, nums, sparent
-      double precision :: Pws, zp, zs, Pdrop
+      double precision :: zp, zs, Pdrop
 
 #ifndef NDEBUG
       if (NbWellProdLocal_Ncpus(commRank + 1) /= NodebyWellProdLocal%Nb) &
@@ -155,8 +155,7 @@ contains
 
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
 
-               Pws = IncPressionWellProd(k) ! P_{w,s} = Pw
-               PerfoWellProd(s)%Pression = Pws
+               PerfoWellProd(s)%Pression = IncPressionWellProd(k)
                PerfoWellProd(s)%PressureDrop = 0.d0
 
             else ! Pws = P_{w,parent} + \Delta P_{w,parent}
@@ -167,10 +166,9 @@ contains
                sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
                Pdrop = PerfoWellProd(sparent)%Density*gravity*(zp - zs)
-               Pws = PerfoWellProd(sparent)%Pression + Pdrop ! Pws
-
-               PerfoWellProd(s)%Pression = Pws
+               PerfoWellProd(s)%Pression = PerfoWellProd(sparent)%Pression + Pdrop
                PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop + Pdrop
+
             end if
 
          end do
