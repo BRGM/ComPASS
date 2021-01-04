@@ -28,7 +28,7 @@ module IncCVWells
 
    use Thermodynamics, only: f_DensiteMassique
 
-   use IncCVReservoir, only: IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx
+   use IncCVReservoir, only: IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx, IncCVReservoir_compute_density
 
    use MeshSchema, only: &
       XNodeLocal, &
@@ -134,9 +134,8 @@ contains
       !We want to use the avg_density usually to init the pressure drops
       logical, intent(in) :: use_avg_dens
 
-      integer :: k, s, m, mph, nums, sparent
-      double precision :: Pws, zp, zs, Pdrop, Rhotmp
-      double precision :: dPf, dTf, dCf(NbComp)
+      integer :: k, s, nums, sparent
+      double precision :: Pws, zp, zs, Pdrop
 
 #ifndef NDEBUG
       if (NbWellProdLocal_Ncpus(commRank + 1) /= NodebyWellProdLocal%Nb) &
@@ -152,17 +151,7 @@ contains
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
 
-            if (use_avg_dens) then
-               ! average density
-               PerfoWellProd(s)%Density = 0.d0
-               do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
-                  mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-                  call f_DensiteMassique(mph, IncNode(nums)%Pression, IncNode(nums)%Temperature, &
-                                         IncNode(nums)%Comp(:, mph), Rhotmp, dPf, dTf, dCf)
-                  PerfoWellProd(s)%Density = PerfoWellProd(s)%Density + Rhotmp*IncNode(nums)%Saturation(mph)
-               end do
-            end if
+            if (use_avg_dens) PerfoWellProd(s)%Density = IncCVReservoir_compute_density(IncNode(nums))
 
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
 
