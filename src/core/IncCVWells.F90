@@ -183,12 +183,12 @@ contains
    subroutine IncCVWells_PressureDropWellInj
 
       integer :: s, sp, n, k, nbwells, nums, nump
-      double precision :: Pw_head, Pws, zp, zs, Pdrop, T, C(NbComp)
+      double precision :: Pw_head, Pws, zp, zs, T, C(NbComp)
 
       ! nb pieces for discrete integration
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
-      double precision :: Ptmp, z1, z2, dz, Rhotmp, dPf, dTf, dCf(NbComp)
+      double precision :: dz, Rhotmp, dPf, dTf, dCf(NbComp)
 
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
 
@@ -259,7 +259,7 @@ contains
 
    !   !> \brief Update well Pressures of injection well,
    subroutine IncCVWells_UpdateInjWellPressures
-      integer :: s, n, k, nbwells
+      integer :: s, k, nbwells
       double precision :: Pw_head
 
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
@@ -280,7 +280,7 @@ contains
    !> \brief Update  well pressures of producer well
    subroutine IncCVWells_UpdateProdWellPressures
 
-      integer :: s, n, k, nbwells
+      integer :: s, k, nbwells
       double precision :: Pw_head
 
       nbwells = NbWellProdLocal_Ncpus(commRank + 1)
