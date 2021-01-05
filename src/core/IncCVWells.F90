@@ -128,6 +128,18 @@ contains
 
    end function get_injecting_perforations
 
+   subroutine IncCVWells_set_density_from_reservoir(producer)
+      integer, intent(in) :: producer
+
+      integer :: s, nums
+
+      do s = NodebyWellProdLocal%Pt(producer) + 1, NodebyWellProdLocal%Pt(producer + 1)
+         nums = NodebyWellProdLocal%Num(s)
+         PerfoWellProd(s)%Density = IncCVReservoir_compute_density(IncNode(nums))
+      end do
+
+   end subroutine IncCVWells_set_density_from_reservoir
+
    !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
    subroutine IncCVWells_PressureDropWellProd(use_avg_dens)
       !Flag to use the an avg_density  from the reservoir or the density computed from  the function DefFlashWells_TimeFlash  to compute the pressure drops
@@ -147,11 +159,11 @@ contains
          ! Check if the well is closed
          if (DataWellProdLocal(k)%IndWell == 'c') cycle
 
+         if (use_avg_dens) call IncCVWells_set_density_from_reservoir(k)
+
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
             nums = NodebyWellProdLocal%Num(s)
-
-            if (use_avg_dens) PerfoWellProd(s)%Density = IncCVReservoir_compute_density(IncNode(nums))
 
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
 
