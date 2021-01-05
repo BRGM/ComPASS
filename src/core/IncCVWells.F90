@@ -20,6 +20,7 @@ module IncCVWells
 #else
 ! use, intrinsic :: iso_c_binding
    use iso_c_binding
+   use ieee_arithmetic
    use mpi, only: MPI_Abort
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
@@ -132,13 +133,38 @@ contains
       integer, intent(in) :: producer
 
       integer :: s, nums
-
       do s = NodebyWellProdLocal%Pt(producer) + 1, NodebyWellProdLocal%Pt(producer + 1)
          nums = NodebyWellProdLocal%Num(s)
          PerfoWellProd(s)%Density = IncCVReservoir_compute_density(IncNode(nums))
       end do
 
    end subroutine IncCVWells_set_density_from_reservoir
+
+   function IncCVWells_minimum_density(producer) result(rhomin)
+      integer, intent(in) :: producer
+      real(c_double) :: rhomin
+
+      integer :: s
+
+      rhomin = ieee_value(rhomin, ieee_positive_inf)
+      do s = NodebyWellProdLocal%Pt(producer) + 1, NodebyWellProdLocal%Pt(producer + 1)
+         rhomin = min(rhomin, PerfoWellProd(s)%Density)
+      end do
+
+   end function IncCVWells_minimum_density
+
+   subroutine IncCVWells_use_minimum_density(producer)
+      integer, intent(in) :: producer
+
+      integer :: s
+      real(c_double) :: rhomin
+
+      rhomin = IncCVWells_minimum_density(producer)
+      do s = NodebyWellProdLocal%Pt(producer) + 1, NodebyWellProdLocal%Pt(producer + 1)
+         if (abs(NodeDatabyWellProdLocal%Val(s)%WID) < 1d-20) PerfoWellProd(s)%Density = rhomin
+      end do
+
+   end subroutine IncCVWells_use_minimum_density
 
    !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
    subroutine IncCVWells_PressureDropWellProd(use_avg_dens)
@@ -159,7 +185,10 @@ contains
          ! Check if the well is closed
          if (DataWellProdLocal(k)%IndWell == 'c') cycle
 
-         if (use_avg_dens) call IncCVWells_set_density_from_reservoir(k)
+         if (use_avg_dens) then
+            call IncCVWells_set_density_from_reservoir(k)
+            call IncCVWells_use_minimum_density(k)
+         endif
 
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
