@@ -155,7 +155,6 @@ contains
 
             if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
 
-               PerfoWellProd(s)%Pression = IncPressionWellProd(k)
                PerfoWellProd(s)%PressureDrop = 0.d0
 
             else ! Pws = P_{w,parent} + \Delta P_{w,parent}
@@ -166,12 +165,17 @@ contains
                sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
 
                Pdrop = PerfoWellProd(sparent)%Density*gravity*(zp - zs)
-               PerfoWellProd(s)%Pression = PerfoWellProd(sparent)%Pression + Pdrop
                PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop + Pdrop
 
             end if
 
          end do
+
+         ! recompute pressure
+         do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
+            PerfoWellProd(s)%Pression = IncPressionWellProd(k) + PerfoWellProd(s)%PressureDrop
+         end do
+
       end do
 
    end subroutine IncCVWells_PressureDropWellProd
