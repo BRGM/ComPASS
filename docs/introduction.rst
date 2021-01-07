@@ -20,6 +20,14 @@ Packages used to build and run simulations:
     wget build-essential gcc gfortran cmake libopenmpi-dev \
     libmetis-dev libpetsc-real-dev python3-mpi4py cmake-curses-gui
 
+Add the following definitions at the end your ``.bashrc`` file.
+``mpicc`` is used to find PETSC through linker flags.
+
+.. code-block:: shell
+
+  export CC=mpicc
+  export PETSC_DIR=/usr/lib/petsc
+
 Manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 20.04)
 
 .. code-block:: shell
@@ -29,15 +37,6 @@ Manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 2
   cd petsc4py-3.12.0
   sudo python3 setup.py install
   python3 -m pip install sortedcontainers
-
-
-Add the following definitions at the end your ```.bashrc`` file.
-``mpicc`` is used to find PETSC through linker flags.
-
-.. code-block:: shell
-
-  export CC=mpicc
-  export PETSC_DIR=/usr/lib/petsc
 
 Then clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
 
