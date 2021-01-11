@@ -19,24 +19,26 @@ def create_directories(path):
         assert os.path.isdir(path)
 
 
-def output_directory(case_name=None, rootname=None):
+def output_directory(case_name=None, rootname=None, process_case_name=True):
     if rootname is None:
         rootname = os.getcwd()
     if case_name is None:
         case_name = default_case_name
     else:
-        case_name = os.path.splitext(os.path.basename(case_name))[0]
-    output = os.path.join("output-" + os.path.splitext(os.path.basename(case_name))[0])
-    output = os.path.abspath(output)
+        if process_case_name:
+            case_name = os.path.splitext(os.path.basename(case_name))[0]
+        output = os.path.join("output-" + case_name)
+        output = os.path.abspath(output)
     # master proc manages directory creation
     create_directories(output)
     return output
 
 
-def output_directory_and_logfile(case_name=None):
+def output_directory_and_logfile(case_name=None, process_case_name=True):
     output = output_directory(case_name)
     if case_name is None:
         case_name = default_case_name
-    case_name = os.path.splitext(os.path.basename(case_name))[0]
+    elif process_case_name:
+        case_name = os.path.splitext(os.path.basename(case_name))[0]
     logfile = os.path.join(output, case_name + ".log")
     return output, logfile
