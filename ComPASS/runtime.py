@@ -20,6 +20,6 @@ def to_output_directory(filename):
     return os.path.abspath(os.path.join(output_directory, filename))
 
 
-def set_output_directory_and_logfile(case_name):
+def set_output_directory_and_logfile(case_name, process_case_name=True):
     global output_directory, logfile
     output_directory, logfile = output_directory_and_logfile(case_name)
