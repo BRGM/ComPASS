@@ -326,18 +326,18 @@ def standard_loop(
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,
         )
-        if mpi.is_on_master_proc and timeloop_statistics:
-            with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
-                print(
-                    f"{n} {dt} {newton.number_of_succesful_iterations} {newton.number_of_useless_iterations}",
-                    file=f,
-                )
         well_connections.synchronize()
         assert (
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
         tick = LoopTick(time=t, iteration=n, latest_timestep=dt)
+        if mpi.is_on_master_proc and timeloop_statistics:
+            with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
+                print(
+                    f"{n} {t} {dt} {newton.number_of_succesful_iterations} {newton.number_of_useless_iterations}",
+                    file=f,
+                )
         mpi.master_print(
             "max p variation", np.fabs(simulation.cell_states().p - pcsp).max()
         )
