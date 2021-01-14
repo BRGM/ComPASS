@@ -9,12 +9,13 @@
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.utils.grid import grid_center
+from ComPASS.timestep_management import TimeStepManager
 
 # fmt: off
-pres = 50. * MPa            # initial reservoir pressure
+pres = 50. * bar            # initial reservoir pressure
 Tres = degC2K( 350. )        # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 Tinjection = degC2K( 110. )  # injection temperature - convert Celsius to Kelvin degrees
-Qm = 300. * ton / hour      # production flowrate
+Qm = 50. * ton / hour      # production flowrate
 interwell_distance = 1 * km # distance between wells
 omega_reservoir = 0.15      # reservoir porosity
 k_reservoir = 1E-12         # reservoir permeability in m^2
@@ -23,7 +24,7 @@ K_reservoir = 2             # bulk thermal conductivity in W/m/K
 
 Lx, Ly, Lz = 3000.0, 2000.0, 100.0
 Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
-nx, ny, nz = 30, 20, 10
+nx, ny, nz = 30, 20, 1
 
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
@@ -56,14 +57,16 @@ X0 = simulation.build_state(simulation.Context.gas, p=pres, T=Tres)
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
 
-simulation.standard_loop(
-    initial_timestep=1 * hour, final_time=30 * year, output_period=year,
+tsmger = TimeStepManager(
+    initial_timestep=1 * day,
+    increase_factor=1.2,
+    decrease_factor=0.5,
+    karma_threshold=10,
+    karma_reset=False,
 )
 
-# You can reload any simulation state from an output directory
-# Here we will use the current output directory
-snapshot_directory = simulation.runtime.output_directory
-# The mesh and its partition must be exactly the same
-t = simulation.reload_snapshot(snapshot_directory, 28)
-# From here you could use a new simulation.standard_loop
-# to continue simulation from the reloaded state
+simulation.standard_loop(
+    final_time=1 * year, output_period=year, time_step_manager=tsmger,
+)
+
+simulation.postprocess()
