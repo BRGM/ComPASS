@@ -118,6 +118,7 @@ def standard_loop(
     output_every=None,
     nb_output=None,
     nitermax=None,
+    reset_iteration_counter=False,
     dumper=None,
     iteration_callbacks=None,
     output_callbacks=None,
@@ -150,6 +151,7 @@ def standard_loop(
             ``nb_output`` dumps of simulation info. This parameter will not have effect if
             ``output_period`` is defined.
     :param nitermax: Maximum number of iterations.
+    :param reset_iteration_counter: Reset iteration counter if True (default to false)
     :param dumper: The object used to dump simulation (snaphots).
     :param iteration_callbacks: A sequence that holds callbacks that will be called after each iteration.
         The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
@@ -176,6 +178,8 @@ def standard_loop(
     """
     # FIXME: horrible global variables... to be removed... using OOP?
     global n, shooter, default_newton_instance
+    if reset_iteration_counter:
+        n = 0
     assert not (final_time is None and nitermax is None)
     if newton is None:
         if default_newton_instance is None:
