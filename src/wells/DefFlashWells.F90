@@ -425,10 +425,10 @@ contains
          Ps = IncNode(nums)%Pression
          deltaPs = Ps - Pws
          if (deltaPs < 0.d0) then
-#ifndef NDEBUG
-            if (NbPhasePresente_ctx(IncNode(nums)%ic) /= 1) &
-               call CommonMPI_abort("Injectors are supposed to be monophasic.")
-#endif
+! #ifndef NDEBUG
+!             if (NbPhasePresente_ctx(IncNode(nums)%ic) /= 1) &
+!                call CommonMPI_abort("Injectors are supposed to be monophasic.")
+! #endif
             qws = NodeDatabyWellInjLocal%Val(s)%WID*deltaPs
             do icp = 1, NbComp
                Flux_ks(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*qws
