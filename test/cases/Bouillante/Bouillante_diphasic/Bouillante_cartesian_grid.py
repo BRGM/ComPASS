@@ -220,10 +220,3 @@ standard_loop(
     # iteration_callbacks=[ma_fonction],
     # output_period = output_period, specific_outputs=[1. * day], output_every=20,
 )
-
-try:
-    os.mkdir("last_system/")
-    mpi.master_print(">>>>  Dumping the last system")
-    newton.lsolver.linear_system.dump_binary("last_system/")
-except OSError:
-    pass
