@@ -666,9 +666,9 @@ contains
 #endif
                qw = qw + sum(Flux_ks)
                qe = qe + FluxT_ks
-               PerfoWellInj(s)%MolarFlowrate = qw
-               PerfoWellInj(s)%EnergyFlowrate = qe
             end if
+            PerfoWellInj(s)%MolarFlowrate = qw
+            PerfoWellInj(s)%EnergyFlowrate = qe
          end do ! end of node s in injection well k
 
          ! inj well equation
@@ -728,9 +728,9 @@ contains
 #endif
                qw = qw + sum(Flux_ks)
                qe = qe + FluxT_ks
-               PerfoWellProd(s)%MolarFlowrate = qw
-               PerfoWellProd(s)%EnergyFlowrate = qe
             end if
+            PerfoWellProd(s)%MolarFlowrate = qw
+            PerfoWellProd(s)%EnergyFlowrate = qe
          end do ! end of node s in production well k
 
          ! prod well equation
