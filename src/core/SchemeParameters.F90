@@ -12,32 +12,6 @@ module SchemeParameters
 
    implicit none
 
-   ! ****** Times ****** ! !
-
-   ! One day
-   real(c_double), parameter :: OneSecond = 1.d0
-   real(c_double), parameter :: OneDay = 24.d0*3600.d0
-   real(c_double), parameter :: OneMonth = 3.d1*OneDay
-   real(c_double), parameter :: OneYear = 3.6525d2*OneDay
-
-   ! time step init and max
-   ! FIXME: parameter is removed to assign variable from python
-   real(c_double) :: TimeFinal = 30*OneYear
-
-   real(c_double) :: TimeStepInit = OneDay
-   real(c_double) :: TimeStepMax = OneYear
-
-   ! output_frequency for visu
-   real(c_double), parameter :: output_frequency = OneYear
-
-   ! ! ****** Newton iters max and stop condition ****** ! !
-   integer, parameter :: NewtonNiterMax = 8
-   real(c_double), parameter :: NewtonTol = 1.d-5
-
-   ! ! ****** ksp linear solver iters max and stop condition ****** ! !
-   integer, parameter :: KspNiterMax = 150 ! max nb of iterations
-   real(c_double), parameter :: KspTol = 1.d-6 ! tolerance
-
    ! ! ****** Obj values used to compute Newton increment ****** ! !
 
    real(c_double), parameter :: &
@@ -45,16 +19,6 @@ module SchemeParameters
       NewtonIncreObj_T = 20.d0, &
       NewtonIncreObj_C = 1.d0, &
       NewtonIncreObj_S = 0.2d0
-
-   ! ! ****** Obj values used to compute next time step ****** ! !
-
-   real(c_double), parameter :: &
-      TimeStepObj_P = 5.d5, &
-      TimeStepObj_T = 20.d0, &
-      TimeStepObj_C = 1.d0, &
-      TimeStepObj_S = 0.6d0
-
-   ! ! ****** Others ****** ! !
 
    ! eps
    real(c_double), parameter :: eps = 1.0d-10

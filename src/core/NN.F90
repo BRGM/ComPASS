@@ -15,8 +15,6 @@ module NN
    use CommonMPI, only: &
       commSize, commRank, Ncpus, ComPASS_COMM_WORLD, CommonMPI_init, CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
-   use SchemeParameters, only: &
-      NewtonNiterMax, KspNiterMax, KspTol, OneSecond, TimeFinal, TimeStepInit
 
    use GlobalMesh, only: &
       GlobalMesh_free, CellbyCell, &
