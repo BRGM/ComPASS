@@ -6,4 +6,4 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-#include "../common/RelativePermeabilities_two_phases_no_interaction.F90"
+#include "../common/RelativePermeabilities_two_phases_Corey_simple.F90"
