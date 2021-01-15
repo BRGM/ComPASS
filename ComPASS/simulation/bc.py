@@ -45,7 +45,7 @@ def set_global_dirichlet_nodes(
     kernel.global_mesh_count_dirichlet_nodes()
 
 
-def clear_dirichlet_nodes(simulation):
+def clear_dirichlet_nodes(simulation, update_scheme=True):
     def clear(a):
         a[:] = ord("i")
 
@@ -53,6 +53,8 @@ def clear_dirichlet_nodes(simulation):
     clear(info.pressure)
     if simulation.has_energy_transfer_enabled():
         clear(info.temperature)
+    if update_scheme:
+        simulation.scheme.compute_volumes()
 
 
 def set_dirichlet_nodes(
@@ -95,7 +97,7 @@ def reset_dirichlet_nodes(
     :param temperature_selection: a function that will be called on vertices coordinates
                             to select temperature dirichlet nodes (default to no selection)
     """
-    clear_dirichlet_nodes(simulation)
+    clear_dirichlet_nodes(simulation, update_scheme=False)
     reset_dirichlet_nodes_states(simulation)
 
     def apply_if_callable(f):
