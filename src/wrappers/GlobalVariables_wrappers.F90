@@ -13,7 +13,6 @@
        use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax, LIQUID_PHASE
        use Physics, only: Thickness, gravity, CpRoche, atm_pressure, atm_temperature, &
                           atm_flux_radiation, soil_emissivity, rain_flux
-       use SchemeParameters, only: TimeStepMax, TimeStepInit, TimeFinal
 
        implicit none
 
