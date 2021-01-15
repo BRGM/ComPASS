@@ -1648,9 +1648,7 @@ contains
             something_is_injected = .true.
          end if
 
-         ! Step 2.
-
-         ! nodes in well k
+         ! Step 2. nodes in well k
          do s = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1)
             nums = NodebyWellInjLocal%Num(s) ! num node
 
