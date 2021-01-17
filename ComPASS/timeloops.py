@@ -265,6 +265,7 @@ def standard_loop(
 
     pcsp = np.copy(simulation.cell_states().p)
     pcsT = np.copy(simulation.cell_states().T)
+    pcsS = np.copy(simulation.cell_states().S)
     dt = None
 
     def process_events(tick):
@@ -329,6 +330,9 @@ def standard_loop(
         )
         mpi.master_print(
             "max T variation", np.fabs(simulation.cell_states().T - pcsT).max()
+        )
+        mpi.master_print(
+            "max S variation", np.fabs(simulation.cell_states().S - pcsS).max()
         )
         if output_every is not None and n % output_every == 0:
             add_output_event(t)
