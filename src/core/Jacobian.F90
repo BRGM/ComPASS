@@ -23,7 +23,7 @@ module Jacobian
       commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
    use DefModel, only: &
-      NumPhasePresente_ctx, NbPhasePresente_ctx, &
+      NumPhasePresente_ctx, NbPhasePresente_ctx, LIQUID_PHASE, &
       NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod, NbIncTotalPrimMax
 
    use LoisThermoHydro, only: &
@@ -1601,7 +1601,8 @@ contains
 
       integer :: k, rowk, colk, s, nums, rows, cols, m, icp, nz
       double precision :: Tws, Ps_Pws, Ts, WIDws, WIFws
-      double precision :: dP_w(NbComp), dP_s(NbComp), dP_ER_w, dP_ER_s
+      real(c_double) :: dP_w(NbComp), dP_s(NbIncTotalPrimMax, NbComp) ! NbComp mass balance equation
+      real(c_double) :: dP_ER_w, der_ER_s(NbIncTotalPrimMax) ! energy balance equation
       logical :: something_is_injected, well_is_closed
 
       nz = -1
@@ -1651,18 +1652,18 @@ contains
          do s = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1)
             nums = NodebyWellInjLocal%Num(s) ! num node
 
-            Ps_Pws = IncNode(nums)%Pression - PerfoWellInj(s)%Pression ! P_s - P_{w,s}
+            Ps_Pws = PhasePressureNode(LIQUID_PHASE, nums) - PerfoWellInj(s)%Pression ! P_s - P_{w,s}
             Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
             Ts = IncNode(nums)%Temperature    ! T_s
 
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID
             WIFws = NodeDatabyWellInjLocal%Val(s)%WIF
 
-            dP_w(:) = 0.d0
-            dP_s(:) = 0.d0
+            dP_w = 0.d0
+            dP_s = 0.d0
 #ifdef _THERMIQUE_
             dP_ER_w = 0.d0
-            dP_ER_s = 0.d0
+            der_ER_s = 0.d0
 #endif
 
             if (IdNodeLocal(nums)%Proc == "o") then ! ps. this node can be in the boundary
@@ -1680,16 +1681,15 @@ contains
                do icp = 1, NbComp
                   dP_w(icp) = divDensiteMolaireKrViscoCompWellInj(icp, s)*WIDws*Ps_Pws &
                               - DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws
-               end do
-
-               do icp = 1, NbComp
-                  dP_s(icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws
+                  dP_s(:, icp) = DensiteMolaireKrViscoCompWellInj(icp, s)*WIDws &
+                                 *(divPressionNode(:, nums) + divPhasePressureNode(:, LIQUID_PHASE, nums))
                end do
 
 #ifdef _THERMIQUE_
                dP_ER_w = divDensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws*Ps_Pws &
                          - DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws
-               dP_ER_s = DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws
+               der_ER_s = DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws &
+                          *(divPressionNode(:, nums) + divPhasePressureNode(:, LIQUID_PHASE, nums))
 #endif
 
                if (k <= NbWellInjOwn_Ncpus(commRank + 1)) then ! own injection well
@@ -1705,7 +1705,7 @@ contains
                      ! A_ks, k is own injection well, s is node
                      nz = JacBigA%Pt(rowk) + csrK(cols)
                      do icp = 1, NbComp
-                        JacBigA%Val(1, 1, nz) = JacBigA%Val(1, 1, nz) + dP_s(icp)
+                        JacBigA%Val(:, 1, nz) = JacBigA%Val(:, 1, nz) + dP_s(:, icp)
                      end do
                   end if
                end if
@@ -1722,10 +1722,10 @@ contains
 
                   ! Ass, s is node
                   nz = JacBigA%Pt(rows) + csrSR(cols)
-                  JacBigA%Val(1, 1:NbComp, nz) = JacBigA%Val(1, 1:NbComp, nz) + dP_s(:) ! term q_{w,s,i}, derivative of P_w
+                  JacBigA%Val(:, 1:NbComp, nz) = JacBigA%Val(:, 1:NbComp, nz) + dP_s(:, 1:NbComp) ! term q_{w,s,i}, derivative of P_w
 
 #ifdef _THERMIQUE_
-                  JacBigA%Val(1, NbComp + 1, nz) = JacBigA%Val(1, NbComp + 1, nz) + dP_ER_s
+                  JacBigA%Val(:, NbComp + 1, nz) = JacBigA%Val(:, NbComp + 1, nz) + der_ER_s
 #endif
                end if
 
