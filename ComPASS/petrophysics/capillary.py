@@ -1,9 +1,9 @@
 import numpy as np
 
 
-def _convert_pc_to_phase_pressure_function(pc, dpcdSg):
+def _convert_pc_to_phase_pressure_function(pc, dpcdS):
     pc = np.vectorize(pc)
-    dpcdSg = np.vectorize(dpcdSg)
+    dpcdS = np.vectorize(dpcdS)
 
     def phase_pressure_function(states, rocktypes, pa, dpadS):
         nb_phases = pa.shape[1]
@@ -12,7 +12,7 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdSg):
         pa[:, 0] = p
         Sg = states.S[:, 0]
         pa[:, 1] = p - pc(Sg)
-        dpadS[:, 1] = dpcdSg(Sg)  # Sg = 1 - Sl
+        dpadS[:, 1] = dpcdS(Sg)  # pc(Sl) with Sg = 1 - Sl
 
     return phase_pressure_function
 
