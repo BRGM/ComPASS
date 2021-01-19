@@ -1619,7 +1619,7 @@ contains
          colk = k + NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1) &
                 + NbCellLocal_Ncpus(commRank + 1)
 
-         ! assembly equaitons of own wells
+         ! assembly equations of own wells
          if (k <= NbWellInjOwn_Ncpus(commRank + 1)) then
             do m = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
                csrK(JacBigA%Num(m)) = m - JacBigA%Pt(rowk)
