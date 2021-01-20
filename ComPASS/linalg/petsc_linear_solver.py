@@ -110,6 +110,7 @@ class PetscIterativeSolver(IterativeSolver):
         self.activate_cpramg = activate_cpramg
         super().__init__(linear_system, settings)
         self.ksp = PETSc.KSP().create(comm=comm)
+        self.ksp.setType("gmres")
         self.ksp.setOperators(self.linear_system.A, self.linear_system.A)
         self.pc = self.ksp.getPC()
         if self.activate_cpramg:
@@ -132,9 +133,7 @@ class PetscIterativeSolver(IterativeSolver):
         doc="Maximum number of iterations accepted before convergence failure",
     )
     restart_size = property(
-        # restart_size is not available in petsc4py,
-        # but can be set using the command line petsc option -ksp_gmres_restart restart
-        fget=None,
+        fget=lambda self: self.settings.restart_size,
         fset=lambda self, value: self.ksp.setGMRESRestart(value),
         doc="Number of iterations at which GMRES restarts",
     )
