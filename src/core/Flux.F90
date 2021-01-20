@@ -86,7 +86,7 @@ contains
 
    end subroutine Flux_free
 
-   subroutine Flux_compute_density_gravity_term(X1, rho1, X2, rho2, rho)
+   subroutine Flux_compute_density_gravity_term_legacy(X1, rho1, X2, rho2, rho)
       type(TYPE_IncCVReservoir), intent(in) :: X1
       double precision, intent(in) :: rho1(NbPhase)
       type(TYPE_IncCVReservoir), intent(in) :: X2
@@ -111,6 +111,48 @@ contains
       end do
 
       rho = rho/max(n, 1)
+
+   end subroutine Flux_compute_density_gravity_term_legacy
+
+   subroutine Flux_compute_density_gravity_term(X1, rho1, X2, rho2, rho)
+      type(TYPE_IncCVReservoir), intent(in) :: X1
+      double precision, intent(in) :: rho1(NbPhase)
+      type(TYPE_IncCVReservoir), intent(in) :: X2
+      double precision, intent(in) :: rho2(NbPhase)
+      double precision, intent(out) :: rho(NbPhase)
+
+      integer :: k
+      logical :: is_present(NbPhase, 2)
+      double precision :: Stot
+      double precision, parameter :: epsilon = 1.d-6
+
+      rho = 0.d0 ! should be ok by Fortran standard (intent(out))
+      is_present = .false.
+
+      do k = 1, NbPhasePresente_ctx(X1%ic)
+         is_present(NumPhasePresente_ctx(k, X1%ic), 1) = .true.
+      end do
+
+      do k = 1, NbPhasePresente_ctx(X2%ic)
+         is_present(NumPhasePresente_ctx(k, X2%ic), 2) = .true.
+      end do
+
+      do k = 1, NbPhase
+         if (is_present(k, 1)) then
+            if (is_present(k, 2)) then
+               Stot = X1%Saturation(k) + X2%Saturation(k)
+               if (Stot > epsilon) then
+                  rho(k) = (X1%Saturation(k)*rho1(k) + X2%Saturation(k)*rho2(k))/Stot
+               else
+                  rho(k) = 0.5*(rho1(k) + rho2(k))
+               end if
+            else
+               rho(k) = rho1(k)
+            end if
+         else
+            if (is_present(k, 2)) rho(k) = rho2(k)
+         endif
+      end do
 
    end subroutine Flux_compute_density_gravity_term
 
