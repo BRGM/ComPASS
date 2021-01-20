@@ -188,7 +188,7 @@ contains
       logical :: Id_Qki(NbPhase)
       double precision :: Tkij, dpkj, zkj
 
-      FluxDarcyKI(:, :, :) = 0.d0
+      FluxDarcyKI = 0.d0
 
       ! FluxDarcyKI
       do k = 1, NbCellLocal_Ncpus(commRank + 1) ! loop of cell
