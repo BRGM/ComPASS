@@ -15,6 +15,8 @@ module Flux
       IncNode, IncCell, IncFrac, &
       NbCellLocal_Ncpus, NbFracLocal_Ncpus
 
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+
    use LoisThermoHydro, only: &
       DensiteMassiqueNode, DensiteMassiqueCell, DensiteMassiqueFrac, &
       PhasePressureNode, PhasePressureCell, PhasePressureFrac
@@ -84,6 +86,34 @@ contains
 
    end subroutine Flux_free
 
+   subroutine Flux_compute_density_gravity_term(X1, rho1, X2, rho2, rho)
+      type(TYPE_IncCVReservoir), intent(in) :: X1
+      double precision, intent(in) :: rho1(NbPhase)
+      type(TYPE_IncCVReservoir), intent(in) :: X2
+      double precision, intent(in) :: rho2(NbPhase)
+      double precision, intent(out) :: rho(NbPhase)
+
+      integer :: k, phik, n(NbPhase)
+
+      rho = 0.d0 ! should be ok by Fortran standard (intent(out))
+      n = 0
+
+      do k = 1, NbPhasePresente_ctx(X1%ic) ! set of present phases: Q_1
+         phik = NumPhasePresente_ctx(k, X1%ic)
+         rho(phik) = rho(phik) + rho1(phik)
+         n(phik) = n(phik) + 1
+      end do
+
+      do k = 1, NbPhasePresente_ctx(X2%ic) ! set of present phases: Q_2
+         phik = NumPhasePresente_ctx(k, X2%ic)
+         rho(phik) = rho(phik) + rho2(phik)
+         n(phik) = n(phik) + 1
+      end do
+
+      rho = rho/max(n, 1)
+
+   end subroutine Flux_compute_density_gravity_term
+
    !> \brief Structure of this subroutine:                             <br>
    !! loop of cell k                             <br>
    !!   a. loop of node i of cell k                             <br>
@@ -108,7 +138,7 @@ contains
    subroutine Flux_DarcyFlux_Cell() &
       bind(C, name="Flux_DarcyFlux_Cell")
 
-      integer :: k, i, j, fj, fi, tmp_compt(NbPhase)
+      integer :: k, i, j, fj, fi
       integer :: numi, numj, nph_i, nph_k, numph_i, numph_k
       integer :: NbNodeCell, NbFracCell
 
@@ -132,24 +162,10 @@ contains
 
             numi = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + i) ! num of node i
 
-            ! compute rho_ki^alpha: loop of Q_k and loop of Q_i
-
-            rho_ki_alpha(:) = 0.d0
-            tmp_compt(:) = 0
-
-            do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! phases present: Q_k
-               numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-               rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueCell(numph_k, k) ! Attention: numph_k used for densitemassique
-               tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-            end do
-
-            do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic) ! phases present: Q_i
-               numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-               rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
-               tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-            end do
-
-            rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
+            call Flux_compute_density_gravity_term( &
+               IncCell(k), DensiteMassiqueCell(:, k), &
+               IncNode(numi), DensiteMassiqueNode(:, numi), &
+               rho_ki_alpha)
 
             ! i is node, j is node
             do j = 1, NbNodeCell
@@ -229,23 +245,10 @@ contains
             fi = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + i) ! fi is face number
             numi = FaceToFracLocal(fi) ! numi is frac number
 
-            rho_ki_alpha(:) = 0.d0
-            tmp_compt(:) = 0.d0
-
-            do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! phases present: Q_k
-               numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-               tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-               rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueCell(numph_k, k) ! Attention: numph_k used for densitemassique
-            end do
-
-            do nph_i = 1, NbPhasePresente_ctx(IncFrac(numi)%ic) ! phases present: Q_i
-               numph_i = NumPhasePresente_ctx(nph_i, IncFrac(numi)%ic)
-               tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-               rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueFrac(numph_i, numi) ! Attention: numph_k used for densitemassique
-            end do
-
-            rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
+            call Flux_compute_density_gravity_term( &
+               IncCell(k), DensiteMassiqueCell(:, k), &
+               IncFrac(numi), DensiteMassiqueFrac(:, numi), &
+               rho_ki_alpha)
 
             ! i is frac, j is node
             do j = 1, NbNodeCell
