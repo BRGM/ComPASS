@@ -379,6 +379,8 @@ contains
 
       do i = 1, NbPhase ! S^alpha
          if (abs(incremaxlocal_S(i)) > eps) then
+            ! if(relaxlocal>NewtonIncreObj_S/incremaxlocal_S(i)) &
+            !     write(*,*) "Relaxation induced by delta S max = ", incremaxlocal_S(i), " > ", NewtonIncreObj_S, " for phase ", i
             relaxlocal = min(relaxlocal, NewtonIncreObj_S/incremaxlocal_S(i))
          end if
       end do
