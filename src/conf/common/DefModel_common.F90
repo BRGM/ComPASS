@@ -1,5 +1,7 @@
    logical(c_bool) :: locked_context(NbContexte)
 
+   logical(c_bool), public :: phase_can_be_present(NbPhase, NbContexte)
+
    public :: &
       is_context_locked, &
       lock_context, &
@@ -73,3 +75,16 @@
       configuration%MCP = MCP
       configuration%pssecd = pssecd
    end function get_model_configuration
+
+   subroutine DefModel_build_phase_table()
+
+      integer :: ic, k
+
+      phase_can_be_present = .false.
+      do ic = 1, NbContexte
+         do k = 1, NbPhasePresente_ctx(ic)
+            phase_can_be_present(NumPhasePresente_ctx(k, ic), ic) = .true.
+         end do
+      end do
+
+   end subroutine DefModel_build_phase_table

@@ -22,7 +22,7 @@ module NN
 
    use CommonType, only: ModelConfiguration
    use DefModel, only: &
-      NbComp, NbPhase, IndThermique, NbIncTotalMax, get_model_configuration
+      NbComp, NbPhase, IndThermique, NbIncTotalMax, get_model_configuration, DefModel_build_phase_table
 
    use IncCVReservoir, only: &
       Type_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac, PhasePressureAll, dPhasePressuredSAll
@@ -174,6 +174,7 @@ contains
    subroutine NN_init_phase2_setup_contexts() &
       bind(C, name="init_phase2_setup_contexts")
 
+      call DefModel_build_phase_table
       call NumbyContext_make(get_model_configuration())
 
    end subroutine NN_init_phase2_setup_contexts
