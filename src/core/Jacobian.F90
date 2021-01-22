@@ -24,7 +24,8 @@ module Jacobian
 
    use DefModel, only: &
       NumPhasePresente_ctx, NbPhasePresente_ctx, LIQUID_PHASE, &
-      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod, NbIncTotalPrimMax
+      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod, NbIncTotalPrimMax, &
+      phase_can_be_present
 
    use LoisThermoHydro, only: &
       DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
@@ -3161,7 +3162,6 @@ contains
          Smrho_s(NbPhase)
 
       integer :: NbNodeCell, NbFracCell
-      logical :: Id_Qks(NbPhase)
 
       integer :: r, numr, rf, j, m, mph
       double precision :: sum_aks, sum_aksgz
@@ -3201,12 +3201,8 @@ contains
          IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
          IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
 
-      Id_Qks(:) = .false.
-
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
-
-         Id_Qks(mph) = .true.
 
          ! divDarcyFlux_k
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3270,7 +3266,7 @@ contains
       do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-         if (.NOT. Id_Qks(mph)) then ! this phase is not in Q_k
+         if (.not. phase_can_be_present(mph, IncCell(k)%ic)) then ! this phase is not in Q_k
 
             ! divDarcyFlux_k
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3368,7 +3364,6 @@ contains
          Smrho_s(NbPhase)
 
       integer :: NbNodeCell, NbFracCell
-      logical :: Id_Qks(NbPhase)
 
       integer :: r, numr, j, m, mph, sf, rf
       double precision :: sum_aks, sum_aksgz
@@ -3411,12 +3406,8 @@ contains
          IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
          IncFrac(nums), divDensiteMassiqueFrac(:, :, nums), SmDensiteMassiqueFrac(:, nums), divrho_s, Smrho_s)
 
-      Id_Qks(:) = .false.
-
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
-
-         Id_Qks(mph) = .true.
 
          ! divDarcyFlux_k
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3480,7 +3471,7 @@ contains
       do m = 1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
 
-         if (.NOT. Id_Qks(mph)) then ! this phase is not in Q_k
+         if (.not. phase_can_be_present(mph, IncCell(k)%ic)) then ! this phase is not in Q_k
 
             ! divDarcyFlux_k
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -3578,7 +3569,6 @@ contains
          Smrho_s(NbPhase)
 
       integer :: NbNodeFrac
-      logical :: Id_Qks(NbPhase)
 
       integer :: r, numr, j, m, mph, fk
       double precision :: sum_aks, sum_aksgz
@@ -3611,12 +3601,8 @@ contains
          IncFrac(k), divDensiteMassiqueFrac(:, :, k), SmDensiteMassiqueFrac(:, k), divrho_k, Smrho_k, &
          IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
 
-      Id_Qks(:) = .false.
-
       do m = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k, k is frac
          mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
-
-         Id_Qks(mph) = .true.
 
          ! divDarcyFlux_k
          do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
@@ -3662,7 +3648,7 @@ contains
       do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
 
-         if (.NOT. Id_Qks(mph)) then ! this phase is not in Q_k
+         if (.not. phase_can_be_present(mph, IncFrac(k)%ic)) then ! this phase is not in Q_k
 
             ! divDarcyFlux_k
             do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
