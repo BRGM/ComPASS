@@ -9,7 +9,8 @@
 module Flux
 
    use CommonMPI, only: commRank
-   use DefModel, only: NbPhase, NumPhasePresente_ctx, NbPhasePresente_ctx
+   use DefModel, only: &
+      NbPhase, NumPhasePresente_ctx, NbPhasePresente_ctx, phase_can_be_present
 
    use IncCVReservoir, only: &
       IncNode, IncCell, IncFrac, &
@@ -122,24 +123,14 @@ contains
       double precision, intent(out) :: rho(NbPhase)
 
       integer :: k
-      logical :: is_present(NbPhase, 2)
       double precision :: Stot
       double precision, parameter :: epsilon = 1.d-6
 
       rho = 0.d0 ! should be ok by Fortran standard (intent(out))
-      is_present = .false.
-
-      do k = 1, NbPhasePresente_ctx(X1%ic)
-         is_present(NumPhasePresente_ctx(k, X1%ic), 1) = .true.
-      end do
-
-      do k = 1, NbPhasePresente_ctx(X2%ic)
-         is_present(NumPhasePresente_ctx(k, X2%ic), 2) = .true.
-      end do
 
       do k = 1, NbPhase
-         if (is_present(k, 1)) then
-            if (is_present(k, 2)) then
+         if (phase_can_be_present(k, X1%ic)) then
+            if (phase_can_be_present(k, X2%ic)) then
                Stot = X1%Saturation(k) + X2%Saturation(k)
                if (Stot > epsilon) then
                   rho(k) = (X1%Saturation(k)*rho1(k) + X2%Saturation(k)*rho2(k))/Stot
@@ -150,7 +141,7 @@ contains
                rho(k) = rho1(k)
             end if
          else
-            if (is_present(k, 2)) rho(k) = rho2(k)
+            if (phase_can_be_present(k, X2%ic)) rho(k) = rho2(k)
          endif
       end do
 
