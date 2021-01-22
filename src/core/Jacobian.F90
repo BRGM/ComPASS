@@ -67,6 +67,9 @@ module Jacobian
 
    use IncCVReservoir, only: &
       IncNode, IncCell, IncFrac
+
+   use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+
    use IncCVWells, only: &
       PerfoWellInj, DataWellInjLocal, &
       PerfoWellProd, PerfoWellInj
@@ -180,9 +183,7 @@ module Jacobian
       Jacobian_divDarcyFlux_cellfrac, & ! k is cell, s is frac
       Jacobian_divDarcyFlux_fracnode, & ! k is frac, s is node
       ! div(rho)
-      Jacobian_divrho_cellnode, &
-      Jacobian_divrho_cellfrac, &
-      Jacobian_divrho_fracnode, &
+      Jacobian_divrho_gravity, &
       ! For thermique, we compute div(FluxFourier)
       ! then div( DensiteMolaire*Kr*Visco*Enthalpie*FluxFourier )
       Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode, &
@@ -3196,10 +3197,9 @@ contains
 
       sum_aksgz = sum_aksgz*gravity
 
-      ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
-      call Jacobian_divrho_cellnode(k, s, nums, &
-                                    divrho_k, Smrho_k, &
-                                    divrho_s, Smrho_s)
+      call Jacobian_divrho_gravity( & ! cell <-> node
+         IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
+         IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
 
       Id_Qks(:) = .false.
 
@@ -3407,9 +3407,9 @@ contains
       sum_aksgz = sum_aksgz*gravity
 
       ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
-      call Jacobian_divrho_cellfrac(k, s, nums, &
-                                    divrho_k, Smrho_k, &
-                                    divrho_s, Smrho_s)
+      call Jacobian_divrho_gravity( & ! cell <-> frac
+         IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
+         IncFrac(nums), divDensiteMassiqueFrac(:, :, nums), SmDensiteMassiqueFrac(:, nums), divrho_s, Smrho_s)
 
       Id_Qks(:) = .false.
 
@@ -3607,10 +3607,9 @@ contains
 
       sum_aksgz = sum_aksgz*gravity
 
-      ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
-      call Jacobian_divrho_fracnode(k, s, nums, &
-                                    divrho_k, Smrho_k, &
-                                    divrho_s, Smrho_s)
+      call Jacobian_divrho_gravity( & ! frac <-> node
+         IncFrac(k), divDensiteMassiqueFrac(:, :, k), SmDensiteMassiqueFrac(:, k), divrho_k, Smrho_k, &
+         IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
 
       Id_Qks(:) = .false.
 
@@ -3709,189 +3708,51 @@ contains
 
    end subroutine Jacobian_divDarcyFlux_fracnode
 
-   ! div ( rho_{k,s}^alpha )
-   !   = divrho_k * div(X_k) + divrho_s * div(X_s)
-   !   + Smrho_k + Smrho_s
-   subroutine Jacobian_divrho_cellnode(k, s, nums, &
-                                       divrho_k, Smrho_k, &
-                                       divrho_s, Smrho_s)
+   subroutine Jacobian_divrho_gravity( &
+      X1, divrho1, Smrho1, divrhog1, Smrhog1, &
+      X2, divrho2, Smrho2, divrhog2, Smrhog2)
+      type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: divrho1, divrho2
+      double precision, dimension(NbPhase), intent(in) :: Smrho1, Smrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: divrhog1, divrhog2
+      double precision, dimension(NbPhase), intent(out) :: Smrhog1, Smrhog2
 
-      integer, intent(in) :: k, s, nums
+      integer :: j, m, n, mph, tmp_compt(NbPhase)
 
-      double precision, intent(out) :: &
-         divrho_k(NbIncTotalPrimMax, NbPhase), &
-         divrho_s(NbIncTotalPrimMax, NbPhase), &
-         Smrho_k(NbPhase), &
-         Smrho_s(NbPhase)
-
-      ! double precision :: Satki
-      integer :: j, m, mph, tmp_compt(NbPhase)
-
-      divrho_k(:, :) = 0.d0
-      divrho_s(:, :) = 0.d0
-      Smrho_k(:) = 0.d0
-      Smrho_s(:) = 0.d0
-      tmp_compt(:) = 0
-
-      do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
-
-         ! Satki = IncCell(k)%Saturation(mph) + IncNode(nums)%Saturation(mph) ! S_k^alpha+S_i^alpha
-         tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-            divrho_k(j, mph) = divDensiteMassiqueCell(j, mph, k)
-         end do
-
-         Smrho_k(mph) = SmDensiteMassiqueCell(mph, k)
-
-      end do ! end of Q_k
-
-      do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-         tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-            divrho_s(j, mph) = divDensiteMassiqueNode(j, mph, nums)
-         end do
-
-         Smrho_s(mph) = SmDensiteMassiqueNode(mph, nums)
-
-      end do
-
-      do m = 1, NbPhase
-         divrho_k(:, m) = divrho_k(:, m)/max(tmp_compt(m), 1)
-         divrho_s(:, m) = divrho_s(:, m)/max(tmp_compt(m), 1)
-         Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
-         Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
-      enddo
-
-   end subroutine Jacobian_divrho_cellnode
-
-   ! div ( rho_{k,s}^alpha )
-   !   = divrho_k * div(X_k) + divrho_s * div(X_s)
-   !   + Smrho_k + Smrho_s
-   subroutine Jacobian_divrho_cellfrac(k, s, nums, &
-                                       divrho_k, Smrho_k, &
-                                       divrho_s, Smrho_s)
-
-      ! k: cell num
-      ! s: frac num in cell k
-      ! nums: frac num in mesh
-
-      integer, intent(in) :: k, s, nums
-
-      double precision, intent(out) :: &
-         divrho_k(NbIncTotalPrimMax, NbPhase), &
-         divrho_s(NbIncTotalPrimMax, NbPhase), &
-         Smrho_k(NbPhase), &
-         Smrho_s(NbPhase)
-
-      ! double precision :: Satki
-      integer :: j, m, mph, tmp_compt(NbPhase)
-
-      divrho_k(:, :) = 0.d0
-      divrho_s(:, :) = 0.d0
-      Smrho_k(:) = 0.d0
-      Smrho_s(:) = 0.d0
+      divrhog1 = 0.d0
+      divrhog2 = 0.d0
+      Smrhog1 = 0.d0
+      Smrhog2 = 0.d0
       tmp_compt = 0
 
-      do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
-
+      do m = 1, NbPhasePresente_ctx(X1%ic)
+         mph = NumPhasePresente_ctx(m, X1%ic)
          tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divrho_k
-            divrho_k(j, mph) = divDensiteMassiqueCell(j, mph, k)
+         do j = 1, NbIncTotalPrim_ctx(X1%ic)
+            divrhog1(j, mph) = divrho1(j, mph)
          end do
+         Smrhog1(mph) = Smrho1(mph)
+      end do
 
-         Smrho_k(mph) = SmDensiteMassiqueCell(mph, k)
-
-      end do ! end of Q_k
-
-      do m = 1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
-
+      do m = 1, NbPhasePresente_ctx(X2%ic)
+         mph = NumPhasePresente_ctx(m, X2%ic)
          tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divrho_s
-            divrho_s(j, mph) = divDensiteMassiqueFrac(j, mph, nums)
+         do j = 1, NbIncTotalPrim_ctx(X2%ic)
+            divrhog2(j, mph) = divrho2(j, mph)
          end do
-
-         Smrho_s(mph) = SmDensiteMassiqueFrac(mph, nums)
-
+         Smrhog2(mph) = Smrho2(mph)
       end do
 
       do m = 1, NbPhase
-         divrho_k(:, m) = divrho_k(:, m)/max(tmp_compt(m), 1)
-         divrho_s(:, m) = divrho_s(:, m)/max(tmp_compt(m), 1)
-         Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
-         Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
+         n = max(tmp_compt(m), 1)
+         divrhog1(:, m) = divrhog1(:, m)/n
+         divrhog2(:, m) = divrhog2(:, m)/n
+         Smrhog1(m) = Smrhog1(m)/n
+         Smrhog2(m) = Smrhog2(m)/n
       enddo
 
-   end subroutine Jacobian_divrho_cellfrac
+   end subroutine Jacobian_divrho_gravity
 
-   ! div ( rho_{k,s}^alpha )
-   !   = divrho_k * div(X_k) + divrho_s * div(X_s)
-   !   + Smrho_k + Smrho_s
-   subroutine Jacobian_divrho_fracnode(k, s, nums, &
-                                       divrho_k, Smrho_k, &
-                                       divrho_s, Smrho_s)
-
-      integer, intent(in) :: k, s, nums
-
-      double precision, intent(out) :: &
-         divrho_k(NbIncTotalPrimMax, NbPhase), &
-         divrho_s(NbIncTotalPrimMax, NbPhase), &
-         Smrho_k(NbPhase), &
-         Smrho_s(NbPhase)
-
-      ! double precision :: Satki
-      integer :: j, m, mph, tmp_compt(NbPhase)
-
-      divrho_k(:, :) = 0.d0
-      divrho_s(:, :) = 0.d0
-      Smrho_k(:) = 0.d0
-      Smrho_s(:) = 0.d0
-      tmp_compt(:) = 0
-
-      do m = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
-
-         tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divrho_k
-            divrho_k(j, mph) = divDensiteMassiqueFrac(j, mph, k)
-         end do
-
-         Smrho_k(mph) = SmDensiteMassiqueFrac(mph, k)
-
-      end do ! end of Q_k
-
-      do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-         tmp_compt(mph) = tmp_compt(mph) + 1
-
-         do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divrho_s
-            divrho_s(j, mph) = divDensiteMassiqueNode(j, mph, nums)
-         end do
-
-         Smrho_s(mph) = SmDensiteMassiqueNode(mph, nums)
-
-      end do
-
-      do m = 1, NbPhase
-         divrho_k(:, m) = divrho_k(:, m)/max(tmp_compt(m), 1)
-         divrho_s(:, m) = divrho_s(:, m)/max(tmp_compt(m), 1)
-         Smrho_k(m) = Smrho_k(m)/max(tmp_compt(m), 1)
-         Smrho_s(m) = Smrho_s(m)/max(tmp_compt(m), 1)
-      enddo
-
-   end subroutine Jacobian_divrho_fracnode
-
-   ! div Flux Fourier
    subroutine Jacobian_divFourierFlux_cellnode(k, s, nums, &
                                                divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
                                                divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
