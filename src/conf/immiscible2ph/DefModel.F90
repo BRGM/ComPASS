@@ -40,7 +40,7 @@ module DefModel
    integer, parameter :: DIPHASIC_CONTEXT = ComPASS_DIPHASIC_CONTEXT
 
    ! Number of phases that are present in each context
-! careful, the lignes must coincide with index defined in cmake.conf
+! careful, the lines must coincide with index defined in cmake.conf
    integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
                                                 1, & ! GAS_CONTEXT
                                                 1, & ! LIQUID_CONTEXT
