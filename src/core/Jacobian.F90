@@ -3695,46 +3695,42 @@ contains
    end subroutine Jacobian_divDarcyFlux_fracnode
 
    subroutine Jacobian_divrho_gravity( &
-      X1, divrho1, Smrho1, divrhog1, Smrhog1, &
-      X2, divrho2, Smrho2, divrhog2, Smrhog2)
+      X1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
       type(TYPE_IncCVReservoir), intent(in) :: X1, X2
-      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: divrho1, divrho2
-      double precision, dimension(NbPhase), intent(in) :: Smrho1, Smrho2
-      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: divrhog1, divrhog2
-      double precision, dimension(NbPhase), intent(out) :: Smrhog1, Smrhog2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
+      double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
+      double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
 
-      integer :: j, m, n, mph, tmp_compt(NbPhase)
+      integer :: j, m, mph, n(NbPhase), nmax
 
-      divrhog1 = 0.d0
-      divrhog2 = 0.d0
-      Smrhog1 = 0.d0
-      Smrhog2 = 0.d0
-      tmp_compt = 0
+      davrhodXp1 = 0.d0
+      davrhodXp2 = 0.d0
+      rhsavrho1 = 0.d0
+      rhsavrho2 = 0.d0
+      n = 0
 
       do m = 1, NbPhasePresente_ctx(X1%ic)
          mph = NumPhasePresente_ctx(m, X1%ic)
-         tmp_compt(mph) = tmp_compt(mph) + 1
-         do j = 1, NbIncTotalPrim_ctx(X1%ic)
-            divrhog1(j, mph) = divrho1(j, mph)
-         end do
-         Smrhog1(mph) = Smrho1(mph)
+         n(mph) = n(mph) + 1
+         davrhodXp1(:, mph) = drhodXp1(:, mph)
+         rhsavrho1(mph) = rhsrho1(mph)
       end do
 
       do m = 1, NbPhasePresente_ctx(X2%ic)
          mph = NumPhasePresente_ctx(m, X2%ic)
-         tmp_compt(mph) = tmp_compt(mph) + 1
-         do j = 1, NbIncTotalPrim_ctx(X2%ic)
-            divrhog2(j, mph) = divrho2(j, mph)
-         end do
-         Smrhog2(mph) = Smrho2(mph)
+         n(mph) = n(mph) + 1
+         davrhodXp2(:, mph) = drhodXp2(:, mph)
+         rhsavrho2(mph) = rhsrho2(mph)
       end do
 
       do m = 1, NbPhase
-         n = max(tmp_compt(m), 1)
-         divrhog1(:, m) = divrhog1(:, m)/n
-         divrhog2(:, m) = divrhog2(:, m)/n
-         Smrhog1(m) = Smrhog1(m)/n
-         Smrhog2(m) = Smrhog2(m)/n
+         nmax = max(n(m), 1)
+         davrhodXp1(:, m) = davrhodXp1(:, m)/nmax
+         davrhodXp2(:, m) = davrhodXp2(:, m)/nmax
+         rhsavrho1(m) = rhsavrho1(m)/nmax
+         rhsavrho2(m) = rhsavrho2(m)/nmax
       enddo
 
    end subroutine Jacobian_divrho_gravity
