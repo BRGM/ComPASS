@@ -167,7 +167,7 @@ module DefModel
    ! aligmethod=2, inverse diagnal
    !     it is necessary to define aligmat formally for compile
 
-   integer, parameter :: aligmethod = 1
+   integer, parameter :: aligmethod = 2
 
    ! GAS_CONTEXT we sum conservation equations to have non degenerate conservation equation -> pressure block in CPR-AMG
    ! combine row corresponding to equations (must be invertible)
