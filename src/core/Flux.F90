@@ -43,6 +43,8 @@ module Flux
       FluxFourierKI, &  !< Fourier flux from cell K to dof I (may be node or frac)
       FluxFourierFI     !< Fourier flux from frac F to dof I (may be cell or frac)
 
+   double precision, public, parameter :: epsilon_avrho = 1.d-6
+
    public :: &
       Flux_allocate, &
       Flux_free, &
@@ -124,7 +126,6 @@ contains
 
       integer :: k
       double precision :: Stot
-      double precision, parameter :: epsilon = 1.d-6
 
       rho = 0.d0 ! should be ok by Fortran standard (intent(out))
 
@@ -132,10 +133,10 @@ contains
          if (phase_can_be_present(k, X1%ic)) then
             if (phase_can_be_present(k, X2%ic)) then
                Stot = X1%Saturation(k) + X2%Saturation(k)
-               if (Stot > epsilon) then
+               if (Stot > epsilon_avrho) then
                   rho(k) = (X1%Saturation(k)*rho1(k) + X2%Saturation(k)*rho2(k))/Stot
                else
-                  rho(k) = 0.5*(rho1(k) + rho2(k))
+                  rho(k) = 0.5d0*(rho1(k) + rho2(k))
                end if
             else
                rho(k) = rho1(k)

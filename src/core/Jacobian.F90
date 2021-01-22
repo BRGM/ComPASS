@@ -37,6 +37,7 @@ module Jacobian
       divDensiteMolaireKrViscoEnthalpieNode, divDensiteMolaireKrViscoEnthalpieCell, divDensiteMolaireKrViscoEnthalpieFrac, &
       divTemperatureNode, divTemperatureCell, divTemperatureFrac, &
       SmTemperatureNode, SmTemperatureCell, SmTemperatureFrac, &
+      DensiteMassiqueNode, DensiteMassiqueCell, DensiteMassiqueFrac, &
       SmDensiteMassiqueNode, SmDensiteMassiqueCell, SmDensiteMassiqueFrac, &
       SmPressionNode, SmPressionCell, SmPressionFrac, &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
@@ -56,7 +57,7 @@ module Jacobian
       divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
       divPressionNode, divPressionCell, divPressionFrac, &
       PhasePressureNode, divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
-      SmDensiteMolaireSatComp
+      SmDensiteMolaireSatComp, divSaturationNode, divSaturationCell, divSaturationFrac
 
    use NumbyContext, only: &
       NbCompCtilde_ctx, NumCompCtilde_ctx, NbIncPTC_ctx
@@ -106,7 +107,7 @@ module Jacobian
       SurfFreeFlowLocal
 
    use Flux, only: &
-      FluxDarcyKI, FluxDarcyFI
+      FluxDarcyKI, FluxDarcyFI, epsilon_avrho
    use Residu, only: &
       ResiduNode, ResiduCell, ResiduFrac, &
       ResiduWellInj, ResiduWellProd
@@ -3198,8 +3199,12 @@ contains
       sum_aksgz = sum_aksgz*gravity
 
       call Jacobian_divrho_gravity( & ! cell <-> node
-         IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
-         IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
+         IncCell(k), divSaturationCell(:, :, k), &
+         DensiteMassiqueCell(:, k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), &
+         divrho_k, Smrho_k, &
+         IncNode(nums), divSaturationNode(:, :, nums), &
+         DensiteMassiqueNode(:, nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), &
+         divrho_s, Smrho_s)
 
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
@@ -3403,8 +3408,12 @@ contains
 
       ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
       call Jacobian_divrho_gravity( & ! cell <-> frac
-         IncCell(k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), divrho_k, Smrho_k, &
-         IncFrac(nums), divDensiteMassiqueFrac(:, :, nums), SmDensiteMassiqueFrac(:, nums), divrho_s, Smrho_s)
+         IncCell(k), divSaturationCell(:, :, k), &
+         DensiteMassiqueCell(:, k), divDensiteMassiqueCell(:, :, k), SmDensiteMassiqueCell(:, k), &
+         divrho_k, Smrho_k, &
+         IncFrac(nums), divSaturationFrac(:, :, nums), &
+         DensiteMassiqueFrac(:, nums), divDensiteMassiqueFrac(:, :, nums), SmDensiteMassiqueFrac(:, nums), &
+         divrho_s, Smrho_s)
 
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
@@ -3598,8 +3607,12 @@ contains
       sum_aksgz = sum_aksgz*gravity
 
       call Jacobian_divrho_gravity( & ! frac <-> node
-         IncFrac(k), divDensiteMassiqueFrac(:, :, k), SmDensiteMassiqueFrac(:, k), divrho_k, Smrho_k, &
-         IncNode(nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), divrho_s, Smrho_s)
+         IncFrac(k), divSaturationFrac(:, :, k), &
+         DensiteMassiqueFrac(:, k), divDensiteMassiqueFrac(:, :, k), SmDensiteMassiqueFrac(:, k), &
+         divrho_k, Smrho_k, &
+         IncNode(nums), divSaturationNode(:, :, nums), &
+         DensiteMassiqueNode(:, nums), divDensiteMassiqueNode(:, :, nums), SmDensiteMassiqueNode(:, nums), &
+         divrho_s, Smrho_s)
 
       do m = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k, k is frac
          mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
@@ -3694,10 +3707,12 @@ contains
 
    end subroutine Jacobian_divDarcyFlux_fracnode
 
-   subroutine Jacobian_divrho_gravity( &
-      X1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
-      X2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
+   subroutine Jacobian_divrho_gravity_legacy( &
+      X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
       type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: dSdXp1, dSdXp2
+      double precision, dimension(NbPhase), intent(in) :: rho1, rho2
       double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
       double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
       double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
@@ -3732,6 +3747,54 @@ contains
          rhsavrho1(m) = rhsavrho1(m)/nmax
          rhsavrho2(m) = rhsavrho2(m)/nmax
       enddo
+
+   end subroutine Jacobian_divrho_gravity_legacy
+
+   subroutine Jacobian_divrho_gravity( &
+      X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
+      type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: dSdXp1, dSdXp2
+      double precision, dimension(NbPhase), intent(in) :: rho1, rho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
+      double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
+      double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
+
+      integer :: k
+      double precision :: Stot
+
+      davrhodXp1 = 0.d0
+      davrhodXp2 = 0.d0
+      rhsavrho1 = 0.d0
+      rhsavrho2 = 0.d0
+
+      do k = 1, NbPhase
+         if (phase_can_be_present(k, X1%ic)) then
+            if (phase_can_be_present(k, X2%ic)) then
+               Stot = X1%Saturation(k) + X2%Saturation(k)
+               if (Stot > epsilon_avrho) then
+                  davrhodXp1(:, k) = (dSdXp1(:, k)*rho1(k) + X1%Saturation(k)*drhodXp1(:, k))/Stot
+                  rhsavrho1(k) = X1%Saturation(k)*rhsrho1(k)/Stot
+                  davrhodXp2(:, k) = (dSdXp2(:, k)*rho2(k) + X2%Saturation(k)*drhodXp2(:, k))/Stot
+                  rhsavrho2(k) = X2%Saturation(k)*rhsrho2(k)/Stot
+               else
+                  davrhodXp1(:, k) = 0.5d0*drhodXp1(:, k)
+                  rhsavrho1(k) = 0.5d0*rhsrho1(k)
+                  davrhodXp2(:, k) = 0.5d0*drhodXp2(:, k)
+                  rhsavrho2(k) = 0.5d0*rhsrho2(k)
+               end if
+            else
+               davrhodXp1(:, k) = drhodXp1(:, k)
+               rhsavrho1(k) = rhsrho1(k)
+            end if
+         else
+            if (phase_can_be_present(k, X2%ic)) then
+               davrhodXp2(:, k) = drhodXp2(:, k)
+               rhsavrho2(k) = rhsrho2(k)
+            endif
+         endif
+      end do
 
    end subroutine Jacobian_divrho_gravity
 
