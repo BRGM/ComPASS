@@ -6,6 +6,8 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
+#include "gravity_average_rho.def"
+
 module Jacobian
 
    ! workflow:
@@ -106,8 +108,12 @@ module Jacobian
       FracToFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
       SurfFreeFlowLocal
 
-   use Flux, only: &
-      FluxDarcyKI, FluxDarcyFI, epsilon_avrho
+   use Flux, only: FluxDarcyKI, FluxDarcyFI
+
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS_SINGULARITY
+   use Flux, only: epsilon_avrho
+#endif
+
    use Residu, only: &
       ResiduNode, ResiduCell, ResiduFrac, &
       ResiduWellInj, ResiduWellProd
@@ -3707,7 +3713,9 @@ contains
 
    end subroutine Jacobian_divDarcyFlux_fracnode
 
-   subroutine Jacobian_divrho_gravity_legacy( &
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES
+
+   subroutine Jacobian_divrho_gravity( &
       X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
       X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
       type(TYPE_IncCVReservoir), intent(in) :: X1, X2
@@ -3748,7 +3756,111 @@ contains
          rhsavrho2(m) = rhsavrho2(m)/nmax
       enddo
 
-   end subroutine Jacobian_divrho_gravity_legacy
+   end subroutine Jacobian_divrho_gravity
+
+! ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES
+#endif
+
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_EXTRAPOLATE
+
+   subroutine Jacobian_divrho_gravity( &
+      X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
+      type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: dSdXp1, dSdXp2
+      double precision, dimension(NbPhase), intent(in) :: rho1, rho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
+      double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
+      double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
+
+      integer :: k
+
+      davrhodXp1 = 0.d0
+      davrhodXp2 = 0.d0
+      rhsavrho1 = 0.d0
+      rhsavrho2 = 0.d0
+
+      do k = 1, NbPhase
+         if (phase_can_be_present(k, X1%ic)) then
+            if (phase_can_be_present(k, X2%ic)) then
+               davrhodXp1(:, k) = 0.5*drhodXp1(:, k)
+               davrhodXp2(:, k) = 0.5*drhodXp2(:, k)
+               rhsavrho1(k) = 0.5*rhsrho1(k)
+               rhsavrho2(k) = 0.5*rhsrho2(k)
+            else
+               ! FIXME: how to use phase pressure?
+               !    call f_DensiteMassique(k, X2%Pression, X2%Temperature, X2%Comp, rhoext, dP, dT, dC)
+               davrhodXp1(:, k) = 0.5*drhodXp1(:, k)
+               !   davrhodXp2(:, k) = 0.5*drhodXp2(:, k)
+               rhsavrho1(k) = 0.5*rhsrho1(k)
+               !   rhsavrho2(k) = 0.5*rhsrho2(k)
+            endif
+         else
+            if (phase_can_be_present(k, X2%ic)) then
+               ! FIXME: how to use phase pressure?
+               !    call f_DensiteMassique(k, X1%Pression, X1%Temperature, X1%Comp, rhoext, dP, dT, dC)
+               ! davrhodXp1(:, k) = 0.5*drhodXp1(:, k)
+               davrhodXp2(:, k) = 0.5*drhodXp2(:, k)
+               !   rhsavrho1(k) = 0.5*rhsrho1(k)
+               rhsavrho2(k) = 0.5*rhsrho2(k)
+            endif
+         endif
+      end do
+
+   end subroutine Jacobian_divrho_gravity
+
+! ComPASS_GRAVITY_AVERAGE_RHO_EXTRAPOLATE
+#endif
+
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_MIN
+
+   subroutine Jacobian_divrho_gravity( &
+      X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
+      type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: dSdXp1, dSdXp2
+      double precision, dimension(NbPhase), intent(in) :: rho1, rho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
+      double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
+      double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
+
+      integer :: k
+
+      davrhodXp1 = 0.d0
+      davrhodXp2 = 0.d0
+      rhsavrho1 = 0.d0
+      rhsavrho2 = 0.d0
+
+      do k = 1, NbPhase
+         if (phase_can_be_present(k, X1%ic)) then
+            if (phase_can_be_present(k, X2%ic)) then
+               if (rho1(k) < rho2(k)) then
+                  davrhodXp1(:, k) = drhodXp1(:, k)
+                  rhsavrho1(k) = rhsrho1(k)
+               else
+                  davrhodXp2(:, k) = drhodXp2(:, k)
+                  rhsavrho2(k) = rhsrho2(k)
+               endif
+            else
+               davrhodXp1(:, k) = drhodXp1(:, k)
+               rhsavrho1(k) = rhsrho1(k)
+            endif
+         else
+            if (phase_can_be_present(k, X2%ic)) then
+               davrhodXp2(:, k) = drhodXp2(:, k)
+               rhsavrho2(k) = rhsrho2(k)
+            endif
+         end if
+      end do
+
+   end subroutine Jacobian_divrho_gravity
+
+! ComPASS_GRAVITY_AVERAGE_RHO_MIN
+#endif
+
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS_SINGULARITY
 
    subroutine Jacobian_divrho_gravity( &
       X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
@@ -3797,6 +3909,75 @@ contains
       end do
 
    end subroutine Jacobian_divrho_gravity
+
+! ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS_SINGULARITY
+#endif
+
+#ifdef ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS
+
+   subroutine Jacobian_divrho_gravity( &
+      X1, dSdXp1, rho1, drhodXp1, rhsrho1, davrhodXp1, rhsavrho1, &
+      X2, dSdXp2, rho2, drhodXp2, rhsrho2, davrhodXp2, rhsavrho2)
+      type(TYPE_IncCVReservoir), intent(in) :: X1, X2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: dSdXp1, dSdXp2
+      double precision, dimension(NbPhase), intent(in) :: rho1, rho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(in) :: drhodXp1, drhodXp2
+      double precision, dimension(NbPhase), intent(in) :: rhsrho1, rhsrho2
+      double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
+      double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
+
+      integer :: k
+      double precision :: chi
+      double precision, dimension(NbIncTotalPrimMax) :: dchidXp1, dchidXp2
+
+      davrhodXp1 = 0.d0
+      davrhodXp2 = 0.d0
+      rhsavrho1 = 0.d0
+      rhsavrho2 = 0.d0
+
+      do k = 1, NbPhase
+         if (phase_can_be_present(k, X1%ic)) then
+            if (phase_can_be_present(k, X2%ic)) then
+               if (X1%Saturation(k) < X2%Saturation(k)) then
+                  if (X2%Saturation(k) > 0.d0) then
+                     chi = X1%Saturation(k)/X2%Saturation(k)
+                     dchidXp1 = dSdXp1(:, k)/X2%Saturation(k)
+                     dchidXp2 = -chi*dSdXp2(:, k)/X2%Saturation(k)
+                     !  rho(k) = (chi*rho1(k) + rho2(k))/(1 + chi)
+                     !  davrhodX(:, k) = (dchidX*rho1(k) + chi * drhodX(:, k)) / (1 + chi) - dchidX * (chi*rho1(k) + rho2(k)) / (1 + chi)**2
+                     !  davrhodX(:, k) = (dchidX*rho1(k)*(1+chi) - dchidX * (chi*rho1(k) + rho2(k)) / (1 + chi)**2  + (chi  / (1 + chi)) * drhodX(:, k)
+                     davrhodXp1(:, k) = dchidXp1*(rho1(k) - rho2(k))/(1 + chi)**2 + (chi/(1 + chi))*drhodXp1(:, k)
+                     davrhodXp2(:, k) = dchidXp2*(rho1(k) - rho2(k))/(1 + chi)**2 + (chi/(1 + chi))*drhodXp2(:, k)
+                     rhsavrho1(k) = (chi*rhsrho1(k))/(1 + chi)
+                     rhsavrho2(k) = rhsrho2(k)/(1 + chi)
+                  endif
+               else
+                  if (X1%Saturation(k) > 0.d0) then
+                     chi = X2%Saturation(k)/X1%Saturation(k)
+                     dchidXp1 = -chi*dSdXp1(:, k)/X1%Saturation(k)
+                     dchidXp2 = dSdXp2(:, k)/X1%Saturation(k)
+                     davrhodXp1(:, k) = dchidXp1*(rho2(k) - rho1(k))/(1 + chi)**2 + (chi/(1 + chi))*drhodXp1(:, k)
+                     davrhodXp2(:, k) = dchidXp2*(rho2(k) - rho1(k))/(1 + chi)**2 + (chi/(1 + chi))*drhodXp2(:, k)
+                     rhsavrho1(k) = rhsrho1(k)/(1 + chi)
+                     rhsavrho2(k) = (chi*rhsrho2(k))/(1 + chi)
+                  endif
+               endif
+            else
+               davrhodXp1(:, k) = drhodXp1(:, k)
+               rhsavrho1(k) = rhsrho1(k)
+            endif
+         else
+            if (phase_can_be_present(k, X2%ic)) then
+               davrhodXp2(:, k) = drhodXp2(:, k)
+               rhsavrho2(k) = rhsrho2(k)
+            endif
+         endif
+      end do
+
+   end subroutine Jacobian_divrho_gravity
+
+! ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS
+#endif
 
    subroutine Jacobian_divFourierFlux_cellnode(k, s, nums, &
                                                divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
