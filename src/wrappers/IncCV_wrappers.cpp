@@ -69,6 +69,7 @@ void add_IncCV_wrappers(py::module& module) {
 
    py::class_<X>(module, "State")
        .def(py::init<const X&>())
+       .def_readwrite("context", &X::context)
        .def_readwrite("p", &X::p)
        .def_readwrite("T", &X::T)
        .def_property_readonly("S",
