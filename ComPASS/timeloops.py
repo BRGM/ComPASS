@@ -9,6 +9,8 @@
 from collections import namedtuple
 import logging
 
+from time import process_time
+
 import numpy as np
 
 from sortedcontainers import SortedKeyList
@@ -306,6 +308,8 @@ def standard_loop(
     kernel.IncCVWells_InitPressureDrop()
     t = t0
     tick = tick0
+    cpu_start_time = process_time()
+    elapsed_computing_cpu_time = 0
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
         if len(events) > 0:
@@ -321,12 +325,16 @@ def standard_loop(
         n += 1
         print_iteration_info(t, n)
         # --
+        mpi.synchronize()
+        newton_cpu_start_time = process_time()
         dt = timestep.make_one_timestep(
             newton,
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,
         )
         well_connections.synchronize()
+        mpi.synchronize()
+        elapsed_computing_cpu_time = process_time() - newton_cpu_start_time
         assert (
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
@@ -335,7 +343,11 @@ def standard_loop(
         if mpi.is_on_master_proc and timeloop_statistics:
             with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
                 print(
-                    f"{n} {t} {dt} {newton.number_of_succesful_iterations} {newton.number_of_useless_iterations}",
+                    f"{n} {t} {dt}",
+                    f"{newton.number_of_succesful_iterations}",
+                    f"{newton.number_of_useless_iterations}",
+                    f"{process_time() - cpu_start_time}",
+                    f"{elapsed_computing_cpu_time}",
                     file=f,
                 )
         mpi.master_print(
@@ -364,6 +376,9 @@ def standard_loop(
         output_actions(tick)
     # Check if some events were left unprocessed
     if mpi.is_on_master_proc:
+        mpi.master_print(
+            f"Elapsed computing time (including output): {process_time() - cpu_start_time}"
+        )
         for event in events:
             mpi.master_print(
                 f"WARNING: Event at time {event.time} = {event.time / year} y was not reached."
