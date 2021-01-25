@@ -1,6 +1,6 @@
 import numpy as np
 
-Pc0 = 2.0e5
+Pc0 = 2e5
 Sg0 = 1.0 - 1.0e-2
 Sl0 = 1.0 - Sg0
 A = -Pc0 * np.log(Sl0) - (Pc0 / Sl0) * Sg0
@@ -15,7 +15,7 @@ def Pc(Sg):
 
 @np.vectorize
 def dPcdS(Sg):
-    if Sg < S0:
+    if Sg < Sg0:
         return Pc0 / (1.0 - Sg)
     return Pc0 / Sl0
 
