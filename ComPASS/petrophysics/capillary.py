@@ -7,7 +7,7 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdS):
 
     def phase_pressure_function(states, rocktypes, pa, dpadS):
         nb_phases = pa.shape[1]
-        assert np_phases == 2
+        assert nb_phases == 2
         p = states.p  # reference pressure
         pa[:, 0] = p
         Sg = states.S[:, 0]
