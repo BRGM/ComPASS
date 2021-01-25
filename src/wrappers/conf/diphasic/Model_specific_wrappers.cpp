@@ -1,12 +1,20 @@
 #include <pybind11/numpy.h>
 
+#include <array>
+
+#include "../common/enum_to_rank.h"
 #include "Model_wrappers.h"
+#include "StateObjects.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
 static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 2, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
+
+extern "C" {
+void DiphasicFlash_enforce_consistent_molar_fractions(X &);
+}
 
 enum struct Component {
    air = ComPASS_AIR_COMPONENT,
@@ -155,4 +163,93 @@ void add_specific_model_wrappers(py::module &module) {
    py::enum_<Phase>(module, "Phase")
        .value("gas", Phase::gas)
        .value("liquid", Phase::liquid);
+
+   module.def(
+       "build_state",
+       [](py::object context, py::object p, py::object T, py::object Sg,
+          py::object Cag, py::object Cal) {
+          constexpr auto gas = enum_to_rank(Phase::gas);
+          constexpr auto liquid = enum_to_rank(Phase::liquid);
+          constexpr auto air = enum_to_rank(Component::air);
+
+          auto set_gas_state = [&](X &state) {
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for gas state.");
+             if (!Cal.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide liquid molar fractions for gas "
+                    "state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[gas] = 1;
+             state.C[gas][air] = Cag.is_none() ? 1. : Cag.cast<double>();
+             state.C[liquid][air] = 0;
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          auto set_liquid_state = [&](X &state) {
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for liquid state.");
+             if (!Cag.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide gas molar fractions for liquid "
+                    "state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[liquid] = 1;
+             state.C[gas][air] = 1;
+             state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          auto set_diphasic_state = [&](X &state) {
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             const double S = Sg.cast<double>();
+             state.S[gas] = S;
+             state.S[liquid] = 1. - S;
+             state.C[gas][air] = Cag.is_none() ? 1. : Cag.cast<double>();
+             state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          Context context_value = context.cast<Context>();
+          X result;
+          result.context = static_cast<int>(context_value);
+          switch (context_value) {
+             case Context::gas:
+                set_gas_state(result);
+                break;
+             case Context::liquid:
+                set_liquid_state(result);
+                break;
+             case Context::diphasic:
+                set_diphasic_state(result);
+                break;
+             default:
+                throw std::runtime_error("Requested context does not exist!");
+          }
+          return result;
+       },
+       py::arg("context").none(false), py::arg("p") = py::none{},
+       py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
+       py::arg("Cag") = py::none{}, py::arg("Cal") = py::none{},
+       R"doc(
+Construct a state given a specific context and physical parameters.
+
+Parameters
+----------
+
+:param context: context (i.e. liquid, gas or diphasic)
+:param p: pressure
+:param T: temperature
+:param Sg: gaz phase saturation
+:param Cag: gaz phase air molar fraction
+:param Cal: liquid phase air molar fraction
+
+)doc");
 }

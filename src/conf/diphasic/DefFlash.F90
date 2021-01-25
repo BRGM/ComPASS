@@ -13,6 +13,7 @@
 !! the mode of the well (flowrate or pressure).
 module DefFlash
 
+   use, intrinsic :: iso_c_binding, only: c_double
    use CommonMPI, only: CommonMPI_abort
    use IncCVReservoir, only: Type_IncCVReservoir
    use DefModel, only: &
@@ -135,5 +136,7 @@ contains
       endif
 
    end subroutine DefFlash_Flash_cv
+
+#include "../common/DiphasicFlash.F90"
 
 end module DefFlash
