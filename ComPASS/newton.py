@@ -89,9 +89,10 @@ class Newton:
 
     def init_iteration(self):
         kernel = get_kernel()
-        kernel.LoisThermoHydro_compute_phase_pressures()  # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
         # Enforce Dirichlet values
         kernel.DirichletContribution_update()
+        # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
+        kernel.LoisThermoHydro_compute_phase_pressures()
         # Update only Well Pressures (Well pressure drops are keep constant here)
         kernel.IncCVWells_UpdateWellPressures()
         #        mpi.master_print('init iteration - compute thermo')
@@ -126,6 +127,8 @@ class Newton:
         # mpi.master_print('relaxation:', relaxation)
         kernel.IncCV_NewtonIncrement(self.increments, relaxation)
         kernel.DirichletContribution_update()
+        # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
+        kernel.LoisThermoHydro_compute_phase_pressures()
         #        mpi.master_print('flash all volumes')
         kernel.NN_flash_all_control_volumes()
 
