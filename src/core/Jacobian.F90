@@ -251,24 +251,26 @@ contains
       double precision :: a
 
       do s = 1, NbNodeOwn_Ncpus(commRank + 1)
-         if (.not. present(specific_row) .or. s == specific_row) then
-            do n = JacBigA%Pt(s) + 1, JacBigA%Pt(s + 1)
-               if (.not. present(specific_col) .or. JacBigA%Num(n) == specific_col) then
-                  write (*, *) 'nodes', s, JacBigA%Num(n), 'nonzero', n, 'on proc', commRank
-                  do j = 1, NbCompThermique
-                     do i = 1, NbCompThermique
-                        a = JacBigA%Val(i, j, n)
-                        if (a == 0. .or. a == 1.) then
-                           write (*, "(I15)", advance="no") int(a)
-                        else
-                           write (*, "(E15.7)", advance="no") a
-                        end if
-                     end do
-                     write (*, *)
-                  end do
-               end if
+         if (present(specific_row)) then
+            if (s /= specific_row) cycle
+         endif
+         do n = JacBigA%Pt(s) + 1, JacBigA%Pt(s + 1)
+            if (present(specific_col)) then
+               if (JacBigA%Num(n) /= specific_col) cycle
+            endif
+            write (*, *) 'nodes', s, JacBigA%Num(n), 'nonzero', n, 'on proc', commRank
+            do j = 1, NbCompThermique
+               do i = 1, NbCompThermique
+                  a = JacBigA%Val(i, j, n)
+                  if (a == 0. .or. a == 1.) then
+                     write (*, "(I15)", advance="no") int(a)
+                  else
+                     write (*, "(E15.7)", advance="no") a
+                  end if
+               end do
+               write (*, *)
             end do
-         end if
+         end do
       end do
 
    end subroutine dump_jacobian
