@@ -118,12 +118,11 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: Pc, DSPc(NbPhase), Pg
       real(c_double), parameter :: Rgp = 8.314d0
 
       f = p/(Rgp*T)
       dPf = 1/(Rgp*T)
-      dTf = -Pg/Rgp/T**2
+      dTf = -p/Rgp/T**2
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_gas
