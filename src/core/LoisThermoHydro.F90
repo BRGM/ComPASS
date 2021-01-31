@@ -1643,23 +1643,25 @@ contains
          nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
          if (nb_phases > 1) then
             iphl = NumPhasePresente_ctx(nb_phases, context)
-            dpdSl = dpdS(iphl, k) ! FIXME: Last saturation is eliminated
             do i = 1, nb_phases - 1
                ! Look for S, is it primary or secondary unknowns ?
                ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
                pui = i + NbIncPTC_ctx(context)
-               if (any(NumIncTotalPrim(:, k) == pui)) then
-                  do pu = 1, NbIncTotalPrimMax ! pu: primary unknown
-                     if (NumIncTotalPrim(pu, k) == pui) then ! Sjph is primary
-                        iph = NumPhasePresente_ctx(i, context)
-                        divp(pu, iph, k) = dpdS(iph, k) - dpdSl ! FIXME: Last saturation is eliminated
-                        exit
-                     endif
-                  enddo
-               else if (context < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
-                  call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, S not found ')
-               end if
+               do pu = 1, NbIncTotalPrimMax ! pu: primary unknown
+                  if (NumIncTotalPrim(pu, k) == pui) then ! Sjph is primary
+                     iph = NumPhasePresente_ctx(i, context)
+                     divp(pu, iph, k) = dpdS(iph, k)
+                     divp(pu, iphl, k) = -dpdS(iphl, k) ! FIXME: Last saturation is eliminated
+                     exit
+                  endif
+               enddo
             end do
+#ifndef NDEBUG
+         else
+            if (any(NumIncTotalPrim(:, k) == 1 + NbIncPTC_ctx(context))) then
+               call CommonMPI_abort('Saturation cannot be primary in single phase contexts.')
+            end if
+#endif
          end if
       end do ! k
 
