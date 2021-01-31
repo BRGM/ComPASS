@@ -253,9 +253,8 @@ contains
 
    end subroutine f_EnergieInterne
 
-   pure subroutine f_specific_enthalpy_gas(p, T, is_present, f, dPf, dTf)
+   pure subroutine f_gas_specific_enthalpy(p, T, f, dPf, dTf)
       real(c_double), intent(in) :: p, T
-      integer, intent(in) :: is_present(NbComp)
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
       real(c_double), parameter :: a = 1990.89d+3
@@ -270,19 +269,37 @@ contains
       ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
       dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
       ! CHECKME: could we assume that MCP(AIR_COMP, iph)==.false. => C(AIR_COMP) = 0
-      beta_air = is_present(AIR_COMP)*cp*M_air
-      beta_water = is_present(WATER_COMP)*M_H2O
+      beta_air = MCP(AIR_COMP, GAS_PHASE)*cp*M_air
+      beta_water = MCP(WATER_COMP, GAS_PHASE)*M_H2O
       f(AIR_COMP) = beta_air*T
       f(WATER_COMP) = beta_water*ss
       dPf = 0.d0
       dTf(AIR_COMP) = beta_air
       dTf(WATER_COMP) = beta_water*dTss
 
-   end subroutine f_specific_enthalpy_gas
+   end subroutine f_gas_specific_enthalpy
 
-   pure subroutine f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
+   pure subroutine f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
       real(c_double), intent(in) :: p, T
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+
+      real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
+
+      call f_gas_specific_enthalpy(p, T, fspec, dfspecdP, dfspecdT)
+
+      f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
+      dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
+      dTf = dfspecdT(AIR_COMP)*C(AIR_COMP) + dfspecdT(WATER_COMP)*C(WATER_COMP)
+      dCf(AIR_COMP) = fspec(AIR_COMP)
+      dCf(WATER_COMP) = fspec(WATER_COMP)
+
+   end subroutine f_gas_enthalpy
+
+   pure subroutine f_liquid_enthalpy(p, T, C, f, dPf, dTf, dCf)
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       real(c_double), parameter :: a = -14.4319d+3
       real(c_double), parameter :: b = +4.70915d+3
@@ -298,8 +315,9 @@ contains
       f = ss*M_H2O
       dPf = 0.d0
       dTf = dTss*M_H2O
+      dCf = 0.d0
 
-   end subroutine f_specific_enthalpy_liquid
+   end subroutine f_liquid_enthalpy
 
    ! Enthalpie
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
@@ -317,23 +335,15 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
-
       if (iph == GAS_PHASE) then
-         call f_specific_enthalpy_gas(p, T, MCP(:, GAS_PHASE), fspec, dfspecdP, dfspecdT)
+         call f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
       else if (iph == LIQUID_PHASE) then
-         call f_specific_enthalpy_liquid(p, T, fspec, dfspecdP, dfspecdT)
+         call f_liquid_enthalpy(p, T, C, f, dPf, dTf, dCf)
 #ifndef NDEBUG
       else
          call CommonMPI_abort("Unknow phase in f_Enthalpie.")
 #endif
       endif
-
-      f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
-      dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
-      dTf = dfspecdT(AIR_COMP)*C(AIR_COMP) + dfspecdT(WATER_COMP)*C(WATER_COMP)
-      dCf(AIR_COMP) = fspec(AIR_COMP)
-      dCf(WATER_COMP) = fspec(WATER_COMP)
 
    end subroutine f_Enthalpie
 
@@ -352,10 +362,18 @@ contains
       real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
+      real(c_double) :: C(NbComp)
+      real(c_double) :: dCf(NbComp)
+
       if (iph == GAS_PHASE) then
-         call f_specific_enthalpy_gas(p, T, MCP(:, GAS_PHASE), f, dPf, dTf)
+         call f_gas_specific_enthalpy(p, T, f, dPf, dTf)
       else if (iph == LIQUID_PHASE) then
-         call f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
+         C = 0.d0
+         C(WATER_COMP) = 1.d0
+         f = 0.d0
+         dPf = 0.d0
+         dTf = 0.d0
+         call f_liquid_enthalpy(p, T, C, f(WATER_COMP), dPf(WATER_COMP), dTf(WATER_COMP), dCf)
 #ifndef NDEBUG
       else
          call CommonMPI_abort("Unknow phase in f_SpecificEnthalpy.")
