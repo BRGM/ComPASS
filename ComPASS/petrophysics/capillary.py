@@ -1,5 +1,12 @@
 import numpy as np
 
+# FIXME: is this a pybind11 bug?
+# This is used as global variable
+# If not use the reference counter of the closure
+# returned by _convert_pc_to_phase_pressure_function
+# goes mad at the end of the program execution
+holder = None
+
 
 def _convert_pc_to_phase_pressure_function(pc, dpcdS):
     pc = np.vectorize(pc)
@@ -37,6 +44,7 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdS):
 
 
 def set_liquid_capillary_pressure(simulation, f, df):
-    simulation.set_phase_pressure_functions(
-        _convert_pc_to_phase_pressure_function(f, df)
-    )
+    # FIXME: cf. holder definition above
+    global holder
+    holder = _convert_pc_to_phase_pressure_function(f, df)
+    simulation.set_phase_pressure_functions(holder)
