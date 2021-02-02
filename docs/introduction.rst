@@ -6,8 +6,18 @@ About ComPASS
 Installation instructions
 =========================
 
+Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
+
+    There should be one -- and preferably only one -- obvious way to do it
+
+Unfortunately subtle differences may exist from one system to another.
+Please do not hesitate to submit issues/comments to improve this section.
+
 Install on `Ubuntu 20.04 focal <https://releases.ubuntu.com/20.04/>`_
 ---------------------------------------------------------------------
+
+Requirements
+^^^^^^^^^^^^
 
 All python packages can obviously be installed using your favorite package manager.
 
@@ -38,7 +48,22 @@ Manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 2
   sudo python3 setup.py install
   python3 -m pip install sortedcontainers
 
-Then clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
+.. note::
+   The installation of PETSc is undoubtedly one of the trickiest part.
+   If you need to build PETSc from source please refer to
+   `PETSc installation instructions <https://www.mcs.anl.gov/petsc/documentation/installation.html>`_.
+
+   You will probably want to install `mpi4py` and `petsc4py` along with PETSc, using the
+   `--download-petsc4py=yes --download-mpi4py=yes --with-mpi4py=yes --with-petsc4py=yes` configuration flags.
+
+   It's likely that you need to define `PETSC_ARCH` environment variable along with `PETSC_DIR`.
+
+   Try to follow carefully hints given at each stage of the compilation / installation steps of PETSc.
+
+ComPASS compilation and installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
 
   - through ssh:
 
@@ -51,6 +76,9 @@ Then clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
   .. code-block:: shell
 
     git clone https://gitlab.inria.fr/charms/ComPASS.git
+
+  .. note::
+    You may also replace `gitlab.inria.fr/charms` with `github.com/BRGM` in the previous URL.
 
 Then cd to the root directory and run the installation:
 
