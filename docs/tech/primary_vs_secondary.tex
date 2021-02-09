@@ -80,23 +80,24 @@ Indeed:
 $$
 \nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}} +
 \nabla_{X^{\secdu}_{\nu}} L_{\nu} \Delta_{X^{\secdu}_{\nu}}
-= L_{\nu}
+= -L_{\nu}
 $$
 
 gives:
 
-$$
+\begin{eqnarray}
+\label{eq:scd_variations}
 \Delta_{X^{\secdu}_{\nu}}
-=  \(\nabla_{X^{\secdu}_{\nu}} L_{\nu} \)^{-1} \(
-L^{\sol}_{\nu} -
+=  - \(\nabla_{X^{\secdu}_{\nu}} L_{\nu} \)^{-1} \(
+L_{\nu} +
 \nabla_{X^{\primu}_{\nu}} L_{\nu} \Delta_{X^{\primu}_{\nu}}
 \)
-$$
+\end{eqnarray}
 
 At each step of the Newton algorithm we can choose
 $( X^{\sol}_{\nu} )_{\nu\in\CV}$ that
-$ L^{\sol}_{\nu} = 0 $ (projection onto the closure laws ? is this the role
-of the {\em flash}?).
+$ L^{\sol}_{\nu} = 0 $. \footnote{This corresponds to a projection
+onto the closure laws and can be implemented in the {\em flash}.}
 
 Then for each degree of freedom $\nu'$ the rows involving $R^{\sol}_{\nu}$
 rewrite:
@@ -112,10 +113,10 @@ $$
 $$
 \sum_{\nu'}
 \[
-\nabla_{X^{\primu}_{\nu'}} R_{\nu} \Delta_{X^{\primu}_{\nu'}}+
+\nabla_{X^{\primu}_{\nu'}} R_{\nu} \Delta_{X^{\primu}_{\nu'}}-
 \nabla_{X^{\secdu}_{\nu'}} R_{\nu} \(
 \(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} \(
-L_{\nu'} -
+L_{\nu'} +
 \nabla_{X^{\primu}_{\nu'}} L_{\nu'} \Delta_{X^{\primu}_{\nu'}}
 \)
 \)
@@ -134,7 +135,7 @@ $$
 \nabla_{X^{\primu}_{\nu'}} L_{\nu'}
 \] \Delta_{X^{\primu}_{\nu'}}
 = \\
-R_{\nu} - \sum_{\nu'} \[
+R_{\nu} + \sum_{\nu'} \[
 \nabla_{X^{\secdu}_{\nu'}} R_{\nu}
 \(\nabla_{X^{\secdu}_{\nu'}} L_{\nu'} \)^{-1} L_{\nu'}
 \]
@@ -150,12 +151,12 @@ and:
 $$
 \nabla_{X^{\sol}_{\nu}} X^{\nat}_{\nu}
 = \nabla_{X^{\sol}_{\nu}} \( \cG_{\nu}^{-1}\)
-= \( \nabla_{X^{\sol}_{\nu}} \cG_{\nu} \) ^{-1}
+= \( \nabla_{X^{\nat}_{\nu}} \cG_{\nu} \) ^{-1}
 $$
 
 Let us note :
 $$
-\G_\nu := \nabla_{X^{\sol}_{\nu}} \cG_{\nu}
+\G_\nu := \nabla_{X^{\nat}_{\nu}} \cG_{\nu}
 $$
 
 And:
@@ -164,7 +165,8 @@ $$
 = \nabla_{X^{\nat}_{\nu}} F {\G_{\nu}}^{-1}
 $$
 
-with the notations:
+Introducing the notations
+\footnote{note that when $\nu\neq\nu'$ we have $ \nabla_{X^{\nat}_{\nu'}} L_{\nu}=0$}:
 
 $$
 {\G_{\nu}}^{-1} = \[\,
@@ -175,12 +177,27 @@ $$
 J^{R}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} R_{\nu}
 $$
 $$
-J^{L}_{\nu,\nu'} = \nabla_{X^{\nat}_{\nu'}} L_{\nu}
+J^{L}_{\nu} = \nabla_{X^{\nat}_{\nu}} L_{\nu}
 $$
 
-(note that when $\nu\neq\nu'$ we have $J^{L}_{\nu,\nu'}=0$).
+we have:
 
-Finally, \eqref{eq:newtonjacobian} becomes:
+$$
+\nabla_{X^{\sol}_{\nu'}} R_{\nu}
+=
+\[\, \nabla_{X^{\primu}_{\nu'}} R_{\nu} \; \nabla_{X^{\secdu}_{\nu'}} R_{\nu} \,\]
+ =
+\[\, J^{R}_{\nu,\nu'} \iGcol^{\primu}_{\nu'} \; J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'} \,\]
+$$
+$$
+\nabla_{X^{\sol}_{\nu}} L_{\nu}
+=
+\[\, \nabla_{X^{\primu}_{\nu}} L_{\nu} \; \nabla_{X^{\secdu}_{\nu}} L_{\nu} \,\]
+=
+\[\, J^{L}_{\nu} \iGcol^{\primu}_{\nu} \; J^{L}_{\nu} \iGcol^{\secdu}_{\nu} \,\]
+$$
+
+so that \eqref{eq:newtonjacobian} rewrites :
 
 \begin{eqnarray}
 \label{eq:newtonjacobian2}
@@ -189,17 +206,29 @@ Finally, \eqref{eq:newtonjacobian} becomes:
 \[
  J^{R}_{\nu,\nu'}
 -  J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
-\(  J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
- J^{L}_{\nu',\nu'}
+\(  J^{L}_{\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
+ J^{L}_{\nu'}
 \] \iGcol^{\primu}_{\nu'} \Delta_{X^{\primu}_{\nu'}}
 \\ =
 R_{\nu} - \sum_{\nu'} \[
 J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
-\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
+\( J^{L}_{\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}
 L_{\nu'}
 \]
 \end{array}\right.
 \end{eqnarray}
+
+And finally \ref{eq:scd_variations} writes:
+
+$$
+\Delta_{X^{\secdu}_{\nu}}
+=  - \( J^{L}_{\nu} \iGcol^{\secdu}_{\nu} \)^{-1} \(
+L_{\nu} +
+J^{L}_{\nu} \iGcol^{\primu}_{\nu} \Delta_{X^{\primu}_{\nu}}
+\)
+$$
+
+
 
 \begin{rmk}
 When $\cG$ is a permutation matrix the effect of  the $\iGcol^{\cdot}_{\nu}$
@@ -208,7 +237,7 @@ terms is just to extract columns/rows and is implemented manually in the code.
 
 \begin{rmk}
 The terms $A_{\nu,\nu'}=J^{R}_{\nu,\nu'} \iGcol^{\secdu}_{\nu'}
-\( J^{L}_{\nu',\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}$ may be stored as they
+\( J^{L}_{\nu'} \iGcol^{\secdu}_{\nu'} \)^{-1}$ may be stored as they
 appear twice, so that \eqref{eq:newtonjacobian2} would become:
 \begin{eqnarray}
 \sum_{\nu'}
@@ -230,6 +259,114 @@ $\sum_{\nu'} A_{\nu,\nu'} L_{\nu'}$
 may vanish from the right hand side.
 \end{rmk}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Special case}
+
+Let's suppose that: $\cG$ is such that:
+
+$$\cG: X^{\nat} = \[X^{\nat}_k\]_{1\leq k \leq n}
+\mapsto X^{\sol} = \cG \(X^{\nat}\) = \[X^{\nat}_{\tau\(k\)}\]_{1\leq k \leq n} $$
+
+where $\tau$ is a permutation over $\llbracket 1, n \rrbracket$.
+Then we have trivially:
+$$\G=\nabla_{X^{\nat}} \cG=\[ \delta_{\tau\(i\),j}\]_{1\leq i,j \leq n}$$
+
+and:
+\begin{eqnarray}
+\label{eq:invG}
+\G^{-1}=\[ \delta_{\tau^{-1}\(i\),j}\]_{1\leq i,j \leq n}
+\end{eqnarray}
+
+Let us note $\ns$ the number of primary variables and  $\ns$ the number of secondary
+variables such that we have $\np + \ns = n$. From \ref{eq:invG} it comes:
+
+$$\iGcol^{\primu}=\[ \delta_{\tau^{-1}\(i\),j}\]_{1\leq j \leq \np}$$
+$$\iGcol^{\secdu}=\[ \delta_{\tau^{-1}\(i\),n_p+j}\]_{1\leq j \leq \ns}$$
+
+Considering the matrix $A$, the effect of the multiplication $A\iGcol^{\primu}$
+({\em resp.} $A\iGcol^{\secdu}$)
+is just to extract the columns of A corresponding to the primary variables
+({\em resp.} the secondary variables)\footnote{
+Considering $A=\[ a_{i,j}\]$, we have:
+$$
+A \iGcol^{\primu} = \[
+ \sum_{1\leq k \leq n} a_{i,k} \delta_{\tau^{-1}\(k\),j}
+ \]_{\(i, j\) \in \llbracket 1, n \rrbracket \times \llbracket 1, \np \rrbracket}
+$$
+$$
+A \iGcol^{\primu} = \[
+ a_{i,\tau\(j\)}
+ \]_{\(i, j\) \in \llbracket 1, n \rrbracket \times \llbracket 1, \np \rrbracket}
+$$}.
+
+Considering $\mathcal{X}$ the set of all the Coats {\em natural variables}
+$\mathcal{X}^{\nat}_\ctx$ may be a subset of  $\mathcal{X}$ that depends on the
+ so-called {\em physical context $\ctx$}. Whereas $\np$ is equal to the number of balance
+equations invloving fluxes between degrees of freedom, $\ns$ may vary, depending
+on the context $\ctx$. Variables that belong to $\mathcal{X} \setminus \mathcal{X}^{\nat}_\ctx$ have a constant
+value in the context $\ctx$, so that their value is set upon entering the context.
+
+\begin{rmk}
+Considering that whe select $\mathcal{X}^{\nat}_\ctx$ in $\mathcal{X}$ we can
+always make this selection such that $\tau$ is the identity. In this case
+derivatives must be carefully indexed.
+\end{rmk}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{One component two phases}
+
+We have two monophasic contexts and one diphasic context.
+
+Molar fractions are always constant (a single component) with $C^\alpha=1$
+
+\begin{itemize}
+
+\item In monophasic contexts $\mathcal{X}^{\nat}_\ctx = \{ p, T\}$ and $\np=2$, $\ns=0$.
+Saturations are constant with $S^\alpha\in\{0,1\}$ depending on the context.
+
+\item In diphasic context $\mathcal{X}^{\nat}_{diphasic} = \{ p, T, S^g, S^l\}$ and $\np=\ns=2$ with
+ $\mathcal{X}^{\primu}_{diphasic} = \{ p, S^g\}$ and $\mathcal{X}^{\secdu}_{diphasic} = \{ T, S^l\}$.
+We have :
+$$
+L = \left\{
+\begin{array}{l}
+T - T_{sat}\(p\) = 0 \\
+S^g + S^l - 1 = 0 \\
+\end{array}
+\right.
+$$
+
+So that:
+
+$$
+ J^{L}_{\nu} = \[
+\begin{array}{cccc}
+-\frac{\partial T_{sat}}{\partial p} & 1 & 0 & 0 \\
+0 & 0 & 1 & 1 \\
+\end{array}
+\]
+$$
+
+and:
+
+$$
+\nabla_{X^{\secdu}} L
+=
+J^{L} \iGcol^{\secdu}
+= \[
+\begin{array}{cccc}
+1 & 0 \\
+0 & 1 \\
+\end{array}
+\]
+= I
+$$
+
+
+\end{itemize}
+
 % The elimination of the local closure laws (Step 1) is achieved
 % for each control volume $\nu\in{\mathcal{M} \cup \mathcal{F}_\Gamma \cup \mathcal{V}} $ by splitting the unknowns $X_{Q_\nu}$ into $\#{\cal C}+1$ primary unknowns
 % $X_{Q_\nu}^{pr}$ and $N^{sd}_\nu$ secondary unknowns $X_{Q_\nu}^{sd}$ with
@@ -247,7 +384,5 @@ may vanish from the right hand side.
 % or defined once and for all for each set of present phases $Q_\nu$
 % for specific physical cases. Here we remark that the unknowns $(n_{i,\nu})_{i\in\overline{\cal C}_{Q_\nu}}$ are not involved in the closure laws \eqref{VAG_closure} and hence are
 % always chosen as primary unknowns.
-
-
 
 \end{document}
