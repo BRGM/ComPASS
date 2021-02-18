@@ -14,8 +14,6 @@ import numpy as np
 
 import MeshTools as MT
 import MeshTools.GridTools as GT
-from MeshTools.vtkwriters import vtk_celltype
-
 
 from .. import mpi
 from .. import runtime
@@ -236,33 +234,23 @@ def init_and_load_mesh(mesh):
     kernel.init_warmup(runtime.logfile)
     if mpi.is_on_master_proc:
         # this is a bit redundant but we want to rely entirely on MeshTools
-        if type(mesh) is RawMesh:
-            subsizes = lambda collection: np.array([len(a) for a in collection])
-            make_pointers = lambda a: np.cumsum(np.hstack([[0], a]))
-            cell_nbnodes = subsizes(mesh.cell_nodes)
-            face_nbnodes = subsizes(mesh.face_nodes)
-            int_array = lambda a: np.asarray(a, dtype=np.int32)
-            double_array = lambda a: np.asarray(a, dtype=np.double)
+        if isinstance(mesh, RawMesh):
+            cn = mesh.get_cell_nodes()
+            cf = mesh.get_cell_faces()
+            fn = mesh.get_face_nodes()
+
             kernel.create_mesh(
-                double_array(mesh.vertices),
-                int_array(make_pointers(cell_nbnodes)),
-                int_array(np.hstack(mesh.cell_nodes)),
-                int_array(make_pointers(subsizes(mesh.cell_faces))),
-                int_array(np.hstack(mesh.cell_faces)),
-                int_array(make_pointers(face_nbnodes)),
-                int_array(np.hstack(mesh.face_nodes)),
+                mesh.get_vertices(),
+                cn.pointers,
+                cn.contents,
+                cf.pointers,
+                cf.contents,
+                fn.pointers,
+                fn.contents,
             )
-            # cell and face types default to -1
-            # try hint with simple geometries
-            celltypes = _sw.global_celltypes()
-            celltypes[:] = -1
-            celltypes[cell_nbnodes == 4] = vtk_celltype["tet"]
-            celltypes[cell_nbnodes == 8] = vtk_celltype["voxel"]
-            facetypes = _sw.global_facetypes()
-            print(">" * 10, facetypes.shape)
-            facetypes[:] = -1
-            facetypes[face_nbnodes == 3] = vtk_celltype["triangle"]
-            facetypes[face_nbnodes == 4] = vtk_celltype["pixel"]
+
+            mesh.fill_cell_types(_sw.global_celltypes())
+            mesh.fill_face_types(_sw.global_facetypes())
         else:
             if type(mesh) is GT.GridInfo:
                 mesh = MT.grid3D(gridinfo=mesh)
