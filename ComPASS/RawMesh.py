@@ -4,10 +4,17 @@ import numpy as np
 
 class RawMesh:
     def __init__(self, **kwds):
-        assert "vertices" in kwds
-        assert "cell_nodes" in kwds
-        assert "cell_faces" in kwds
-        assert "face_nodes" in kwds
+        if len(kwds) > 0:
+            self.build(**kwds)
+
+    def build(self, **kwds):
+        for param in ["vertices", "cell_nodes", "cell_faces", "face_nodes"]:
+            if param not in kwds:
+                raise RuntimeError(
+                    f"Cannot build a RawMesh object without {param} argument."
+                )
+            if hasattr(self, param):
+                raise RuntimeError(f"RawMesh object already has a {param} attribute.")
         for name, value in kwds.items():
             setattr(self, name, value)
 
