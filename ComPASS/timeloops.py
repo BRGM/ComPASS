@@ -134,7 +134,7 @@ def standard_loop(
     output_after_loop=True,
     well_connections=None,
     no_output=False,
-    timeloop_statistics=False,
+    timeloop_statistics=True,
 ):
     """
     Performs a standard timeloop.
