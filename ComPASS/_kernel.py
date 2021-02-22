@@ -222,6 +222,7 @@ simulation_wrapper = Wrapper(
         # "fracture_thermal_conductivity",
         "Psat",
         "Tsat",
+        "specific_mass",
         "liquid_molar_density",
         "liquid_molar_enthalpy",
         "liquid_dynamic_viscosity",

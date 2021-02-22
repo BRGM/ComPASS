@@ -52,7 +52,7 @@ module Residu
       NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
-      IncAll, IncNode, IncCell, IncFrac
+      IncAll, IncNode, IncCell, IncFrac, TYPE_IncCVReservoir
    use IncCVWells, only: &
       PerfoWellInj, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, &
@@ -840,6 +840,27 @@ contains
 
    end subroutine Residu_add_flux_contributions_FF_node
 #endif
+
+   pure function Residu_dof_closure_relative_norm(X, n, rhs) result(norm)
+
+      integer(c_int), intent(in) :: n
+      type(TYPE_IncCVReservoir), dimension(:), intent(in) :: X
+      real(c_double), dimension(:, :), intent(in) :: rhs
+      real(c_double) :: norm
+
+      integer(c_int) :: i, k, ic, start
+
+      norm = 0.d0
+
+      do k = 1, n
+         ic = X(k)%ic
+         start = NbPhasePresente_ctx(ic)
+         do i = 1, NbEqEquilibre_ctx(ic)
+            norm = norm + abs(rhs(start + i, k))
+         enddo
+      enddo
+
+   end function Residu_dof_closure_relative_norm
 
    function Residu_RelativeNorm_local_closure() &
       result(ResClosLocal) &
