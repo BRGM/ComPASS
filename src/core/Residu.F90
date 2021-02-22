@@ -865,38 +865,11 @@ contains
    function Residu_RelativeNorm_local_closure() &
       result(ResClosLocal) &
       bind(C, name="Residu_RelativeNorm_local_closure")
-
       real(c_double) :: ResClosLocal
-      integer :: i, k, ic, start
 
-      ResClosLocal = 0.d0
-
-      do k = 1, NbNodeOwn_Ncpus(commRank + 1) ! node
-         ic = IncNode(k)%ic
-
-         start = NbPhasePresente_ctx(ic)
-         do i = 1, NbEqEquilibre_ctx(ic)
-            ResClosLocal = ResClosLocal + abs(SmFNode(start + i, k))
-         enddo
-      enddo
-
-      do k = 1, NbFracOwn_Ncpus(commRank + 1) ! frac
-         ic = IncFrac(k)%ic
-
-         start = NbPhasePresente_ctx(ic)
-         do i = 1, NbEqEquilibre_ctx(ic)
-            ResClosLocal = ResClosLocal + abs(SmFFrac(start + i, k))
-         enddo
-      enddo
-
-      do k = 1, NbCellOwn_Ncpus(commRank + 1) ! cell
-         ic = IncCell(k)%ic
-
-         start = NbPhasePresente_ctx(ic)
-         do i = 1, NbEqEquilibre_ctx(ic)
-            ResClosLocal = ResClosLocal + abs(SmFCell(start + i, k))
-         enddo
-      enddo
+      ResClosLocal = Residu_dof_closure_relative_norm(IncNode, NbNodeOwn_Ncpus(commRank + 1), SmFNode)
+      ResClosLocal = ResClosLocal + Residu_dof_closure_relative_norm(IncFrac, NbFracOwn_Ncpus(commRank + 1), SmFFrac)
+      ResClosLocal = ResClosLocal + Residu_dof_closure_relative_norm(IncCell, NbCellOwn_Ncpus(commRank + 1), SmFCell)
 
    end function Residu_RelativeNorm_local_closure
 
