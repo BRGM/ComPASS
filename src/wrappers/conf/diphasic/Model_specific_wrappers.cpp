@@ -15,6 +15,9 @@ static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
 
 extern "C" {
 void DiphasicFlash_enforce_consistent_molar_fractions(X &);
+void FluidThermodynamics_specific_mass(const int &, const double &,
+                                       const double &, const double *, double &,
+                                       double &, double &, double *);
 }
 
 enum struct Component {
@@ -118,6 +121,15 @@ inline double Tsat(double p) {
    double dTsatdp;
    FluidThermodynamics_Tsat(p, result, dTsatdp);
    return result;
+}
+
+inline double specific_mass(const Phase &phase, const X &x) {
+   double rho, drhodp, drhodT;
+   double drhodC[NC];
+   FluidThermodynamics_specific_mass(enum_to_rank(phase) + 1, x.p, x.T,
+                                     x.C[enum_to_rank(phase)].data(), rho,
+                                     drhodp, drhodT, drhodC);
+   return rho;
 }
 
 void add_specific_model_wrappers(py::module &module) {
@@ -232,4 +244,6 @@ Parameters
 :param Cal: liquid phase air molar fraction
 
 )doc");
+
+   module.def("specific_mass", &specific_mass);
 }

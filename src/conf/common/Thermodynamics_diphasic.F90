@@ -178,7 +178,8 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf)
+      subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf) &
+      bind(C, name="FluidThermodynamics_specific_mass")
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
