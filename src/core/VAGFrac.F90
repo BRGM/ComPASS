@@ -25,12 +25,14 @@ module VAGFrac
 
    use DebugUtils, only: DebugUtils_is_own_frac_node
 
+   use DefModel, only: NbComp
    use MeshSchema, only: &
       PermCellLocal, PermFracLocal, CondThermalCellLocal, CondThermalFracLocal, &
       NodebyCellLocal, FracbyCellLocal, FacebyCellLocal, &
       NodebyFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
       CellDarcyRocktypesLocal, NodeDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
       CellFourierRocktypesLocal, NodeFourierRocktypesLocal, FracFourierRocktypesLocal, &
+      CellComponentSourceLocal, FracComponentSourceLocal, &
       CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       IsFreeflowNode, &
@@ -40,7 +42,7 @@ module VAGFrac
       IdNodeLocal, IdFaceLocal, FracToFaceLocal, &
       SubArrayView, MeshSchema_subarrays_views, &
       DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
-      number_of_nodes
+      number_of_nodes, CompDOFFamilyArray, MeshSchema_allocate_CompDOFFamilyArray, MeshSchema_free_CompDOFFamilyArray
 
    use Physics, only: Thickness
    use SchemeParameters, only: &
@@ -66,7 +68,7 @@ module VAGFrac
    ! Porous volume Darcy
    ! = sum_{M_s} alpha_{k,s} phi * vol_K ...
    type(DOFFamilyArray), target, protected :: PoroVolDarcy
-
+   type(CompDOFFamilyArray), target, protected :: ComponentSourceVol
 #ifdef _THERMIQUE_
 
    ! Two porous volume Fourier
@@ -533,6 +535,7 @@ contains
 
       call MeshSchema_allocate_DOFFamilyArray(VolDarcy)
       call MeshSchema_allocate_DOFFamilyArray(PoroVolDarcy)
+      call MeshSchema_allocate_CompDOFFamilyArray(ComponentSourceVol)
 
    end subroutine VAGFrac_allocate_Darcy_volumes
 
@@ -605,7 +608,9 @@ contains
       bind(C, name="VAGFrac_VolsDarcy")
       real(c_double), value, intent(in) :: omegaDarcyCell
       real(c_double), value, intent(in) :: omegaDarcyFrac
+
       logical, allocatable, dimension(:) :: nz_node_vol
+      integer :: ic
 
       allocate (nz_node_vol(number_of_nodes()))
 
@@ -690,6 +695,34 @@ contains
          PoroVolDarcy%nodes)
 
       call VAGFrac_check_volumes()
+
+      do ic = 1, NbComp ! TODO: Not sure it's going to work, check values
+         ComponentSourceVol%cells(ic, :) = CellComponentSourceLocal(ic, :)*VolCellLocal
+         ComponentSourceVol%fractures(ic, :) = FracComponentSourceLocal(ic, :)*Thickness*SurfFracLocal
+         ComponentSourceVol%nodes(ic, :) = 0.d0
+
+         CALL VAGFrac_SplitCellVolume( &
+            NbCellLocal_Ncpus(commRank + 1), &
+            CellDarcyRocktypesLocal, &
+            NbNodeLocal_Ncpus(commRank + 1), &
+            NodeDarcyRocktypesLocal, &
+            IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+            omegaDarcyCell, &
+            NodebyCellLocal, &
+            ComponentSourceVol%cells(ic, :), &
+            ComponentSourceVol%nodes(ic, :))
+
+         CALL VAGFrac_SplitCellVolume( &
+            NbFracLocal_Ncpus(commRank + 1), &
+            FracDarcyRocktypesLocal, &
+            NbNodeLocal_Ncpus(commRank + 1), &
+            NodeDarcyRocktypesLocal, &
+            IdNodeLocal(:)%P /= "d", &
+            omegaDarcyFrac, &
+            NodebyFractureLocal, &
+            ComponentSourceVol%fractures(ic, :), &
+            ComponentSourceVol%nodes(ic, :))
+      end do
 
       deallocate (nz_node_vol)
 
@@ -871,6 +904,7 @@ contains
 
       call MeshSchema_free_DOFFamilyArray(VolDarcy)
       call MeshSchema_free_DOFFamilyArray(PoroVolDarcy)
+      call MeshSchema_free_CompDOFFamilyArray(ComponentSourceVol)
 #ifdef _THERMIQUE_
       call MeshSchema_free_DOFFamilyArray(PoroVolFourier)
       call MeshSchema_free_DOFFamilyArray(Poro_1VolFourier)

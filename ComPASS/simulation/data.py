@@ -168,3 +168,31 @@ def set_Neumann_fracture_edges(edges, Neumann):
     edges = np.asarray(edges)
     # Fortran indexing starts at 1
     _sw.set_Neumann_fracture_edges(edges + 1, Neumann)
+
+
+def all_molar_sources_vol():
+    return np.array(_sw.get_local_all_molar_sources_vol_buffer(), copy=False)
+
+
+def cell_molar_sources_vol():
+    return np.array(_sw.get_local_cell_molar_sources_vol_buffer(), copy=False)
+
+
+def node_molar_sources_vol():
+    return np.array(_sw.get_local_node_molar_sources_vol_buffer(), copy=False)
+
+
+def fracture_molar_sources_vol():
+    return np.array(_sw.get_local_fracture_molar_sources_vol_buffer(), copy=False)
+
+
+def cell_molar_sources():
+    return np.array(_sw.get_local_cell_molar_sources_buffer(), copy=False)
+
+
+def node_molar_sources():
+    return np.array(_sw.get_local_node_molar_sources_buffer(), copy=False)
+
+
+def fracture_molar_sources():
+    return np.array(_sw.get_local_fracture_molar_sources_buffer(), copy=False)

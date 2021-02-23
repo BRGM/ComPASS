@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "ArrayWrapper.h"
+#include "StateObjects.h"
 
 namespace py = pybind11;
 
@@ -65,5 +66,6 @@ auto retrieve_buffer(std::function<void(ArrayWrapper&)> retrieve) {
 
 typedef PyBufferWrapper<int> IntBuffer;
 typedef PyBufferWrapper<double> DoubleBuffer;
+using CompBuffer = PyBufferWrapper<double, X::Model::nc>;
 typedef PyBufferWrapper<double, 3> CoordinatesBuffer;
 typedef PyBufferWrapper<double, 3, 3> TensorBuffer;

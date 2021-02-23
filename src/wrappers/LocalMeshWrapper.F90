@@ -18,7 +18,7 @@ module LocalMeshWrapper
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
       NbMSWellNodeLocal_Ncpus
    use VAGFrac, only: &
-      ThermalSourceVol, &
+      ThermalSourceVol, ComponentSourceVol, &
       PoroVolFourier
 
    implicit none
@@ -30,6 +30,10 @@ module LocalMeshWrapper
       retrieve_pointed_array  ! FIXME: to be moved elsewhere
 
    public :: &
+      retrieve_all_molar_sources_vol, &
+      retrieve_cell_molar_sources_vol, &
+      retrieve_node_molar_sources_vol, &
+      retrieve_fracture_molar_sources_vol, &
 #ifdef _THERMIQUE_
       retrieve_allthermalsources, &
       retrieve_cellthermalsource, &
@@ -166,6 +170,56 @@ contains
 
    end subroutine retrieve_array
 
+   subroutine retrieve_array_2d(array, cpp_array)
+
+      real(c_double), dimension(:, :), allocatable, target, intent(in) :: array
+      type(cpp_array_wrapper), intent(out) :: cpp_array
+      integer(c_size_t) :: n
+
+      if (.not. allocated(array)) then
+         cpp_array%p = C_NULL_PTR
+         cpp_array%n = 0
+      else
+         n = size(array, 2)
+         cpp_array%n = n
+         if (n == 0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+            ! FIXME: Remove comment
+            write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+            cpp_array%p = C_NULL_PTR
+         else
+            cpp_array%p = c_loc(array(1, 1))
+         end if
+      end if
+
+   end subroutine retrieve_array_2d
+
+   subroutine retrieve_pointed_array_2d(array, cpp_array)
+
+      real(c_double), dimension(:, :), pointer, intent(in) :: array
+      type(cpp_array_wrapper), intent(out) :: cpp_array
+      integer(c_size_t) :: n
+
+      if (.not. associated(array)) then
+         cpp_array%p = C_NULL_PTR
+         cpp_array%n = 0
+      else
+         n = size(array, 2)
+         cpp_array%n = n
+         if (n == 0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+            ! FIXME: Remove comment
+            write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+            cpp_array%p = C_NULL_PTR
+         else
+            cpp_array%p = c_loc(array(1, 1))
+         end if
+      end if
+
+   end subroutine retrieve_pointed_array_2d
+
    subroutine retrieve_pointed_array(array, cpp_array)
 
       real(c_double), dimension(:), pointer, intent(in) :: array
@@ -190,6 +244,38 @@ contains
       end if
 
    end subroutine retrieve_pointed_array
+
+   subroutine retrieve_all_molar_sources_vol(cpp_array) &
+      bind(C, name="retrieve_all_molar_sources_vol")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+      call retrieve_array_2d(ComponentSourceVol%values, cpp_array)
+
+   end subroutine retrieve_all_molar_sources_vol
+
+   subroutine retrieve_cell_molar_sources_vol(cpp_array) &
+      bind(C, name="retrieve_cell_molar_sources_vol")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+      call retrieve_pointed_array_2d(ComponentSourceVol%cells, cpp_array)
+
+   end subroutine retrieve_cell_molar_sources_vol
+
+   subroutine retrieve_node_molar_sources_vol(cpp_array) &
+      bind(C, name="retrieve_node_molar_sources_vol")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+      call retrieve_pointed_array_2d(ComponentSourceVol%nodes, cpp_array)
+
+   end subroutine retrieve_node_molar_sources_vol
+
+   subroutine retrieve_fracture_molar_sources_vol(cpp_array) &
+      bind(C, name="retrieve_fracture_molar_sources_vol")
+      type(cpp_array_wrapper), intent(inout):: cpp_array
+
+      call retrieve_pointed_array_2d(ComponentSourceVol%fractures, cpp_array)
+
+   end subroutine retrieve_fracture_molar_sources_vol
 
 #ifdef _THERMIQUE_
 

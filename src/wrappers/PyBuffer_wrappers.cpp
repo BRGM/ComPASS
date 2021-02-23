@@ -14,4 +14,5 @@ void add_pybuffer_wrappers(py::module& module) {
    DoubleBuffer::add_buffer_class(module, "DoubleBuffer");
    CoordinatesBuffer::add_buffer_class(module, "CoordinatesBuffer");
    TensorBuffer::add_buffer_class(module, "TensorBuffer");
+   CompBuffer::add_buffer_class(module, "CompBuffer");
 }

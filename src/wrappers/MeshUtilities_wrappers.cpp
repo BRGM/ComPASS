@@ -65,6 +65,13 @@ void retrieve_cell_permeability(ArrayWrapper&);
 void retrieve_fracture_permeability(ArrayWrapper&);
 void retrieve_cell_porosity(ArrayWrapper&);
 void retrieve_fracture_porosity(ArrayWrapper&);
+void retrieve_global_cell_molar_sources(ArrayWrapper&);
+void retrieve_cell_molar_sources(ArrayWrapper&);
+void retrieve_fracture_molar_sources(ArrayWrapper&);
+void retrieve_all_molar_sources_vol(ArrayWrapper&);
+void retrieve_cell_molar_sources_vol(ArrayWrapper&);
+void retrieve_fracture_molar_sources_vol(ArrayWrapper&);
+void retrieve_node_molar_sources_vol(ArrayWrapper&);
 #ifdef _THERMIQUE_
 void retrieve_allthermalsources(XArrayWrapper<double>&);
 void retrieve_global_cell_thermal_conductivity(ArrayWrapper&);
@@ -145,6 +152,7 @@ void add_mesh_utilities_wrappers(py::module& module) {
    add_array_wrapper(module, "nb_fractures_own", retrieve_nb_fractures_own);
    add_array_wrapper(module, "nb_wellinj_own", retrieve_nb_wellinj_own);
    add_array_wrapper(module, "nb_wellprod_own", retrieve_nb_wellprod_own);
+
 #ifdef _THERMIQUE_
    add_array_wrapper(module, "all_thermal_sources", retrieve_allthermalsources);
    add_array_wrapper(module, "cellthermalsource", retrieve_cellthermalsource);
@@ -174,6 +182,10 @@ void add_mesh_utilities_wrappers(py::module& module) {
        []() { return retrieve_buffer<IntBuffer>(retrieve_global_id_faces); },
        "Get faces integer flag. Can be used to specify fracture faces setting "
        "the flag to -2.");
+
+   module.def("get_global_cell_molar_sources_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_global_cell_molar_sources);
+   });
 
    module.def("get_global_cell_heat_source_buffer", []() {
       return retrieve_buffer<DoubleBuffer>(retrieve_cell_heat_source);
@@ -209,6 +221,26 @@ void add_mesh_utilities_wrappers(py::module& module) {
    });
 
 #endif
+
+   module.def("get_local_cell_molar_sources_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_cell_molar_sources);
+   });
+
+   module.def("get_local_all_molar_sources_vol_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_all_molar_sources_vol);
+   });
+
+   module.def("get_local_cell_molar_sources_vol_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_cell_molar_sources_vol);
+   });
+
+   module.def("get_local_node_molar_sources_vol_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_node_molar_sources_vol);
+   });
+
+   module.def("get_local_fracture_molar_sources_vol_buffer", []() {
+      return retrieve_buffer<CompBuffer>(retrieve_fracture_molar_sources_vol);
+   });
 
    // A holder class that could grow later
    // This is used so that numpy arrays are views and not copies

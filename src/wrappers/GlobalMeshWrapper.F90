@@ -17,6 +17,8 @@
 
        use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
+       use DefModel, only: NbComp
+
        use GlobalMesh, only: &
           NbNode, NbCell, &
           IdNode, IdFace, &
@@ -28,7 +30,7 @@
           NodeRocktype, CellRocktype, FracRocktype, &
           CondThermalCell, CondThermalFrac, &
           PorositeCell, PorositeFrac, &
-          CellThermalSource
+          CellThermalSource, CellComponentSource
 
        use MeshSchema, only: &
           NodebyFractureLocal, FacebyCellLocal, NodebyCellLocal, NodebyFaceLocal
@@ -335,6 +337,23 @@
           cpp_array%n = size(FracRocktype, 2)
 
        end subroutine retrieve_global_fracture_rocktypes
+
+       subroutine retrieve_global_cell_molar_sources(cpp_array) &
+          bind(C, name="retrieve_global_cell_molar_sources")
+
+          type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+          if (commRank /= 0) &
+             call CommonMPI_abort("global values must be read by master process")
+          if (.not. allocated(CellComponentSource)) &
+             call CommonMPI_abort("cell component sources are not allocated")
+          if (size(CellComponentSource) /= NbCell*NbComp) & !FIXME tester chaque dimension
+             call CommonMPI_abort("cell component sources have inconsistent size")
+
+          cpp_array%p = c_loc(CellComponentSource(1, 1))
+          cpp_array%n = size(CellComponentSource, 2)
+
+       end subroutine retrieve_global_cell_molar_sources
 
        subroutine retrieve_cell_heat_source(cpp_array) &
           bind(C, name="retrieve_cell_heat_source")

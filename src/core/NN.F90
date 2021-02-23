@@ -27,7 +27,6 @@ module NN
    use IncCVReservoir, only: &
       Type_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac
    use MeshSchema, only: &
-      AllDarcyRocktypesLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
       MeshSchema_make, MeshSchema_free

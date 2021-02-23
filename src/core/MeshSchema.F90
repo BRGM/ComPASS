@@ -64,6 +64,7 @@ module MeshSchema
       FracToFaceLocal_Ncpus, FaceToFracLocal_Ncpus, &
       PorositeCell_Ncpus, PorositeFrac_Ncpus, &
       PermCellLocal_Ncpus, PermFracLocal_Ncpus, &
+      CellComponentSource_Ncpus, FracComponentSource_Ncpus, &
       CondThermalCellLocal_Ncpus, CondThermalFracLocal_Ncpus, &
       CellThermalSource_Ncpus, FracThermalSource_Ncpus, &
       NodebyNodeOwn_Ncpus, FracbyNodeOwn_Ncpus, CellbyNodeOwn_Ncpus, &
@@ -250,6 +251,10 @@ module MeshSchema
    real(c_double), dimension(:), allocatable, target :: &
       PermFracLocal
 
+   ! Component Source
+   real(c_double), DIMENSION(:, :), ALLOCATABLE, PUBLIC, target :: CellComponentSourceLocal
+   real(c_double), DIMENSION(:, :), ALLOCATABLE, PUBLIC, target :: FracComponentSourceLocal
+
 #ifdef _THERMIQUE_
    ! Thermal conductivity
    real(c_double), dimension(:, :, :), allocatable, target :: &
@@ -301,6 +306,12 @@ module MeshSchema
       real(c_double), pointer, dimension(:, :, :) :: nodes, fractures, cells
    end type CompPhaseDOFFamilyArray
 
+   !FIXME: use parametrized types
+   type CompDOFFamilyArray
+      real(c_double), allocatable, dimension(:, :) :: values
+      real(c_double), pointer, dimension(:, :) :: nodes, fractures, cells
+   end type CompDOFFamilyArray
+
    private :: &
       MeshSchema_csrsend, &   ! send csr
       MeshSchema_csrrecv, &   ! recv csr
@@ -332,6 +343,7 @@ module MeshSchema
       MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
       MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray, &
+      MeshSchema_allocate_CompDOFFamilyArray, MeshSchema_free_CompDOFFamilyArray, &
       MeshSchema_part_info
 
 contains
@@ -523,6 +535,28 @@ contains
 
    end subroutine MeshSchema_retrieve_local_fracture_permeability
 
+   subroutine MeshSchema_retrieve_local_cell_molar_sources(buffer) &
+      bind(C, name="retrieve_cell_molar_sources")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if (.not. (allocated(CellComponentSourceLocal))) &
+         call CommonMPI_abort("CellComponentSourceLocal is not allocated")
+      buffer%p = c_loc(CellComponentSourceLocal(1, 1))
+      buffer%n = size(CellComponentSourceLocal, 2, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_cell_molar_sources
+
+   subroutine MeshSchema_retrieve_local_fracture_molar_sources(buffer) &
+      bind(C, name="retrieve_fracture_molar_sources")
+      type(cpp_array_wrapper), intent(inout) :: buffer
+
+      if (.not. (allocated(FracComponentSourceLocal))) &
+         call CommonMPI_abort("FracComponentSourceLocal is not allocated")
+      buffer%p = c_loc(FracComponentSourceLocal(1, 1))
+      buffer%n = size(FracComponentSourceLocal, 2, c_size_t)
+
+   end subroutine MeshSchema_retrieve_local_fracture_molar_sources
+
 #ifdef _THERMIQUE_
 
    subroutine MeshSchema_retrieve_local_cell_thermal_conductivity(buffer) &
@@ -600,6 +634,36 @@ contains
       nullify (a%nodes, a%fractures, a%cells)
 
    end subroutine MeshSchema_free_DOFFamilyArray
+
+   subroutine MeshSchema_allocate_CompDOFFamilyArray(a)
+      type(CompDOFFamilyArray), target, intent(inout) :: a
+
+      type(SubArraySizes) :: nb
+      type(SubArrayOffsets) :: offset
+
+      call MeshSchema_subarrays_compute_info(nb, offset)
+
+      if (allocated(a%values)) then
+         if (size(a%values, 1) /= NbComp .or. size(a%values, 2) /= nb%nodes + nb%fractures + nb%cells) &
+            call CommonMPI_abort('MeshSchema_allocate_CompDOFFamilyArray: already allocated with incompatible size.')
+      else
+         allocate (a%values(NbComp, nb%nodes + nb%fractures + nb%cells))
+      endif
+
+      nullify (a%nodes, a%fractures, a%cells)
+      a%nodes => a%values(:, offset%nodes:offset%nodes - 1 + nb%nodes)
+      a%fractures => a%values(:, offset%fractures:offset%fractures - 1 + nb%fractures)
+      a%cells => a%values(:, offset%cells:offset%cells - 1 + nb%cells)
+
+   end subroutine MeshSchema_allocate_CompDOFFamilyArray
+
+   subroutine MeshSchema_free_CompDOFFamilyArray(a)
+      type(CompDOFFamilyArray), intent(inout) :: a
+
+      if (allocated(a%values)) deallocate (a%values)
+      nullify (a%nodes, a%fractures, a%cells)
+
+   end subroutine MeshSchema_free_CompDOFFamilyArray
 
    subroutine MeshSchema_allocate_PhaseDOFFamilyArray(a)
       type(PhaseDOFFamilyArray), target, intent(inout) :: a
@@ -1711,6 +1775,60 @@ contains
          deallocate (PermFracLocal_Ncpus)
       end if
 
+      ! send CellComponentSourceLocal
+      if (commRank == 0) then
+
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbCellLocal_Ncpus(i + 1)
+            call MPI_Send(CellComponentSource_Ncpus(i + 1)%Array2d, Nb*NbComp, MPI_DOUBLE, i, 17, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         ! proc=0, copy
+         Nb = NbCellLocal_Ncpus(1)
+         allocate (CellComponentSourceLocal(NbComp, Nb))
+         CellComponentSourceLocal(:, :) = CellComponentSource_Ncpus(1)%Array2d(:, :)
+
+      else
+         Nb = NbCellLocal_Ncpus(commRank + 1)
+         allocate (CellComponentSourceLocal(NbComp, Nb))
+         call MPI_Recv(CellComponentSourceLocal, Nb*NbComp, MPI_DOUBLE, 0, 17, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (CellComponentSource_Ncpus(i)%Array2d)
+         end do
+         deallocate (CellComponentSource_Ncpus)
+      end if
+
+      ! send FracComponentSourceLocal
+      if (commRank == 0) then
+
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbFracLocal_Ncpus(i + 1)
+            call MPI_Send(FracComponentSource_Ncpus(i + 1)%Array2d, Nb*NbComp, MPI_DOUBLE, i, 18, ComPASS_COMM_WORLD, Ierr)
+         end do
+
+         ! proc=0, copy
+         Nb = NbFracLocal_Ncpus(1)
+         allocate (FracComponentSourceLocal(NbComp, Nb))
+         FracComponentSourceLocal(:, :) = FracComponentSource_Ncpus(1)%Array2d(:, :)
+
+      else
+         Nb = NbFracLocal_Ncpus(commRank + 1)
+         allocate (FracComponentSourceLocal(NbComp, Nb))
+         call MPI_Recv(FracComponentSourceLocal, NbComp*Nb, MPI_DOUBLE, 0, 18, ComPASS_COMM_WORLD, stat, Ierr)
+      end if
+
+      if (commRank == 0) then
+         do i = 1, Ncpus
+            deallocate (FracComponentSource_Ncpus(i)%Array2d)
+         end do
+         deallocate (FracComponentSource_Ncpus)
+      end if
+
 #ifdef _THERMIQUE_
       ! send CondThermalCellLocal
       if (commRank == 0) then
@@ -2477,6 +2595,8 @@ contains
       deallocate (PorositeFracLocal)
       deallocate (PermCellLocal)
       deallocate (PermFracLocal)
+      deallocate (CellComponentSourceLocal)
+      deallocate (FracComponentSourceLocal)
 #ifdef _THERMIQUE_
       deallocate (CondThermalCellLocal)
       deallocate (CondThermalFracLocal)

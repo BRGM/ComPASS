@@ -43,6 +43,7 @@ def init(
     fracture_thermal_conductivity=lambda: None,
     fracture_omega_Darcy=lambda: None,
     fracture_omega_Fourier=lambda: None,
+    cell_molar_sources=None,
     cell_heat_source=None,
     wells=lambda: [],
     display_well_ids=False,
@@ -83,6 +84,9 @@ def init(
         or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
     :param set_temperature_dirichlet_nodes: the ids of all nodes that hold constant temperature boundary conditions,
         or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
+    :param cell_molar_sources: volumic molar source terms for each cell (one for each component), will be multiplicated
+        by the cell volume. Can be a scalar or an array with as many elements as mesh cells,
+        or a function with no argument which constructs one of the previous elements.
     :param cell_heat_source: volumic thermal source term (will be multiplicated by the cell volume)
         for each cell. Can be a scalar or an array with as many elements as mesh cells, or a function with no argument
         which constructs one of the previous elements.
@@ -184,6 +188,9 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         _set_petrophysics_on_global_mesh(properties, fractures)
+        if cell_molar_sources is not None:
+            value = call_if_callable(cell_molar_sources)
+            _set_property_on_global_mesh("molar_sources", "cell", value)
         if cell_heat_source is not None:
             value = call_if_callable(cell_heat_source)
             _set_property_on_global_mesh("heat_source", "cell", value)

@@ -38,7 +38,7 @@ module GlobalMesh
    use CommonMPI, only: compass_comm_world
    use CommonType, only: Type_IdNode, CSR, &
                          CommonType_deallocCSR
-   use DefModel, only: indthermique
+   use DefModel, only: indthermique, NbComp
 
    use DefWell, only: &
       TYPE_CSRDataNodeWell, NodeDatabyWellInj, NodeDatabyWellProd, &
@@ -154,6 +154,10 @@ module GlobalMesh
    ! FIXME: protected has been removed to access array from C
    real(c_double), allocatable, dimension(:), target :: &
       PermFrac !< Permeability scalr value for each fracture face
+
+   ! Component Source
+   real(c_double), allocatable, dimension(:, :), target :: CellComponentSource
+   real(c_double), allocatable, dimension(:, :), target :: FracComponentSource
 
 #ifdef _THERMIQUE_
    ! Thermal conductivity
@@ -306,6 +310,11 @@ contains
 
       allocate (PermFrac(NbFace))
       PermFrac(:) = 0.d0
+
+      allocate (CellComponentSource(NbComp, NbCell))
+      CellComponentSource = 0.d0
+      allocate (FracComponentSource(NbComp, NbFace))
+      FracComponentSource = 0.d0
 
 #ifdef _THERMIQUE_
 
@@ -745,6 +754,8 @@ contains
       deallocate (PermCell)
       deallocate (PermFrac)
       deallocate (MSWellNodebyNode)
+      deallocate (CellComponentSource)
+      deallocate (FracComponentSource)
 
 #ifdef _THERMIQUE_
       deallocate (CondThermalCell)

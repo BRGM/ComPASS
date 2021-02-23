@@ -96,6 +96,7 @@ module Residu
    use DefWell, only: &
       WellData_type
    use VAGFrac, only: &
+      ComponentSourceVol, &
       ThermalSourceVol, &
       PoroVolDarcy, &
       PoroVolFourier, &
@@ -297,6 +298,12 @@ contains
             ResiduNode(i, k) = &
                (IncNode(k)%AccVol(i) - AccVolNode_1(i, k))/Delta_t
          end do
+      end do
+
+      do i = 1, NbComp
+         ResiduCell(i, :) = ResiduCell(i, :) - ComponentSourceVol%cells(i, :)
+         ResiduFrac(i, :) = ResiduFrac(i, :) - ComponentSourceVol%fractures(i, :)
+         ResiduNode(i, :) = ResiduNode(i, :) - ComponentSourceVol%nodes(i, :)
       end do
 
 #ifdef _THERMIQUE_

@@ -49,6 +49,7 @@ module LocalMesh
       GeomInj, GeomProd, GeomMSWell, &
       NbFace, NbCell, NbNode, &
       CellThermalSource, FracThermalSource, CondThermalFrac, &
+      CellComponentSource, FracComponentSource, &
       PermFrac, PorositeCell, PorositeFrac, NodeFlags, &
       CellTypes, FaceTypes, &
       NodeRocktype, CellRocktype, FracRocktype, &
@@ -58,7 +59,7 @@ module LocalMesh
    ! ProcbyCell
 
    use DefModel, only: &
-      IndThermique
+      IndThermique, NbComp
 
    use DefWell, only: &
       TYPE_CSRDataNodeWell, WellData_type, &
@@ -248,6 +249,11 @@ module LocalMesh
       PermCellLocal_Ncpus
    type(ARRAY1dble), dimension(:), allocatable, public :: &
       PermFracLocal_Ncpus
+
+   ! Component Source
+   type(ARRAY2dble), dimension(:), allocatable, public :: &
+      CellComponentSource_Ncpus, &
+      FracComponentSource_Ncpus
 
 #ifdef _THERMIQUE_
    ! Thermal conductivity
@@ -447,6 +453,10 @@ contains
       allocate (PermCellLocal_Ncpus(Ncpus))
       allocate (PermFracLocal_Ncpus(Ncpus))
 
+      ! Component source
+      allocate (CellComponentSource_Ncpus(Ncpus))
+      allocate (FracComponentSource_Ncpus(Ncpus))
+
 #ifdef _THERMIQUE_
       ! Thermal conductivity
       allocate (CondThermalCellLocal_Ncpus(Ncpus))
@@ -564,6 +574,9 @@ contains
 
          ! permeability
          call LocalMesh_Perm(i)
+
+         ! Component source
+         call LocalMesh_ComponentSource(i)
 
 #ifdef _THERMIQUE_
          ! permeability
@@ -1990,6 +2003,31 @@ contains
       end do
 
    end subroutine LocalMesh_Perm
+
+   ! Output:
+   !  CellComponentSource_Ncpus(ip), FracComponentSource_Ncpus(ip)
+   ! Use:
+   !  CellbyProc(ip), CellComponentSource,
+   !  FracbyProc(ip), FracComponentSource,
+   subroutine LocalMesh_ComponentSource(ip)
+
+      integer, intent(in) :: ip
+      integer :: ip1, Nb, i
+
+      ip1 = ip + 1
+
+      Nb = CellbyProc(ip1)%Pt(CellbyProc(ip1)%Nb + 1)
+      allocate (CellComponentSource_Ncpus(ip1)%Array2d(NbComp, Nb))
+      do i = 1, Nb
+         CellComponentSource_Ncpus(ip1)%Array2d(:, i) = CellComponentSource(:, CellbyProc(ip1)%Num(i))
+      end do
+
+      Nb = FracbyProc(ip1)%Pt(FracbyProc(ip1)%Nb + 1)
+      allocate (FracComponentSource_Ncpus(ip1)%Array2d(NbComp, Nb))
+      do i = 1, Nb
+         FracComponentSource_Ncpus(ip1)%Array2d(:, i) = FracComponentSource(:, FracbyProc(ip1)%Num(i))
+      end do
+   end subroutine LocalMesh_ComponentSource
 
 #ifdef _THERMIQUE_
 

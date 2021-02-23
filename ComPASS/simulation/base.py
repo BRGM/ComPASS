@@ -352,8 +352,13 @@ def _set_property_on_global_mesh(property, location, value, fractures=None):
             assert fractures.ndim == 1
             n = fractures.shape[0]
         dim = 2
+
     if property in ["permeability", "thermal_conductivity"] and location == "cell":
         value = utils.reshape_as_tensor_array(value, n, dim)
+    elif property == "molar_sources":
+        assert (
+            value.shape == buffer.shape
+        ), f"molar_sources shape must be (NbCell, NbComp), not {value.shape}"
     else:
         value = utils.reshape_as_scalar_array(value, n)
     if location == "fracture":
