@@ -221,25 +221,20 @@ contains
    !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
    subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
-
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
       real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
-
-      double precision, intent(out) :: &  ! (col, row) index order
-         dFsurdX(NbIncTotalMax, NbEqFermetureMax)
-
-      double precision, intent(out) :: &
-         SmF(NbEqFermetureMax)
+      real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
+      real(c_double), intent(out) :: SmF(NbEqFermetureMax)
 
       integer :: i, mi, iph, iph1, iph2, icp, j, jph, jph_scd, numj, numc1, numc2
-      double precision :: &
+      real(c_double) :: &
          f1, dPf1, dTf1, dCf1(NbComp), dSf1(NbPhase), &
          f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase)
 
-      dFsurdX(:, :) = 0.d0
-      SmF(:) = 0.d0
+      dFsurdX = 0.d0  ! local to this file, cannot rely on previous computation in IncPrimSecd
+      SmF = 0.d0
 
       ! --------------------------------------------------------------------------
       ! molar fractions sum to 1
@@ -252,8 +247,7 @@ contains
          do icp = 1, NbComp ! loop for cols
             if (MCP(icp, iph) == 1) then
                j = cv_info%NumIncComp2NumIncPTC(icp, iph)  ! num of C_icp^iph in IncPTC
-               dFsurdX(j, i) = 1.d0
-
+               dFsurdX(j, i) = 1.d0  ! derivative wrt C
                SmF(i) = SmF(i) + inc%Comp(icp, iph)
             end if
          end do
@@ -275,29 +269,27 @@ contains
 
          do i = 1, cv_info%NbEqEquilibre !
 
-            icp = cv_info%NumCompEqEquilibre(i) ! component
-
+            icp = cv_info%NumCompEqEquilibre(i) ! component i
             iph1 = cv_info%Num2PhasesEqEquilibre(1, i) ! phase alpha
             iph2 = cv_info%Num2PhasesEqEquilibre(2, i) ! phase beta
-
             numc1 = cv_info%NumIncComp2NumIncPTC(icp, iph1) ! num of C_i^alpha in IncPTC
             numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
-            ! fugacity and derivative
+            ! fugacity
             call f_Fugacity(iph1, icp, inc, pa, dpadS, f1, dPf1, dTf1, dCf1, dSf1)
             call f_Fugacity(iph2, icp, inc, pa, dpadS, f2, dPf2, dTf2, dCf2, dSf2)
 
-            ! derivative reference Pression
+            ! derivative reference pressure
             dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)
 
 #ifdef _THERMIQUE_
-            ! derivative Temperature
+            ! derivative temperature
             dFsurdX(2, i + mi) = dTf1*inc%Comp(icp, iph1) - dTf2*inc%Comp(icp, iph2)
 #endif
 
             ! derivative Components
-            ! d (f(P,T,C,S)*C_i)/dC_i = f + df/dC_i*C_i
-            ! d (f(P,T,C,S)*C_i)/dC_j =     df/dC_j*C_i, j!=i
+            ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
+            ! d (f(P,T,C)*C_i)/dC_j =     df/dC_j*C_i, j!=i
             dFsurdX(numc1, i + mi) = f1   ! first part of   d (f1(P,T,C)*C_i)/dC_i
 
             do j = 1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
@@ -320,10 +312,10 @@ contains
                end if
             end do
 
-            ! derivative principal Saturations
+            ! derivative primary saturations
             ! with contribution of secondary Saturation
             ! because sum(saturations)=1 is eliminated
-            jph_scd = cv_info%NumPhasePresente(cv_info%NbPhasePresente) ! secd saturation
+            jph_scd = cv_info%NumPhasePresente(cv_info%NbPhasePresente)
             do j = 1, cv_info%NbPhasePresente - 1
                numj = j + cv_info%NbIncPTC
                jph = cv_info%NumPhasePresente(j)
