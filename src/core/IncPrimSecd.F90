@@ -228,10 +228,10 @@ contains
       real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
       real(c_double), intent(out) :: SmF(NbEqFermetureMax)
 
-      integer :: i, mi, iph, iph1, iph2, icp, j, jph, jph_scd, numj, numc1, numc2
+      integer :: i, mi, iph, iph1, iph2, icp, j, jph, n, jph_n, numj, numc1, numc2
       real(c_double) :: &
-         f1, dPf1, dTf1, dCf1(NbComp), dSf1(NbPhase), &
-         f2, dPf2, dTf2, dCf2(NbComp), dSf2(NbPhase)
+         f1, df1dpa, dTf1, dCf1(NbComp), &
+         f2, df2dpa, dTf2, dCf2(NbComp)
 
       dFsurdX = 0.d0  ! local to this file, cannot rely on previous computation in IncPrimSecd
       SmF = 0.d0
@@ -275,12 +275,14 @@ contains
             numc1 = cv_info%NumIncComp2NumIncPTC(icp, iph1) ! num of C_i^alpha in IncPTC
             numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
-            ! fugacity
-            call f_Fugacity(iph1, icp, inc, pa, dpadS, f1, dPf1, dTf1, dCf1, dSf1)
-            call f_Fugacity(iph2, icp, inc, pa, dpadS, f2, dPf2, dTf2, dCf2, dSf2)
+            ! fugacity and derivative
+            call f_Fugacity(icp, iph1, pa(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, dTf1, dCf1)
+            call f_Fugacity(icp, iph2, pa(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, dTf2, dCf2)
 
-            ! derivative reference pressure
-            dFsurdX(1, i + mi) = dPf1*inc%Comp(icp, iph1) - dPf2*inc%Comp(icp, iph2)
+            ! derivative wrt reference pressure
+            ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
+            ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa
+            dFsurdX(1, i + mi) = df1dpa*inc%Comp(icp, iph1) - df2dpa*inc%Comp(icp, iph2)
 
 #ifdef _THERMIQUE_
             ! derivative temperature
@@ -294,10 +296,8 @@ contains
 
             do j = 1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
                if (MCP(j, iph1) == 1) then ! phase iph1 contains component j
-
                   numj = cv_info%NumIncComp2NumIncPTC(j, iph1) ! num of C_j^iph1 in Inc
-                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                          + inc%Comp(icp, iph1)*dCf1(j)
+                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + inc%Comp(icp, iph1)*dCf1(j)
                end if
             end do
 
@@ -305,24 +305,30 @@ contains
 
             do j = 1, NbComp     ! - df2/dC_j*C_i    for every j which is in iph2
                if (MCP(j, iph2) == 1) then ! phase iph2 contains component j
-
                   numj = cv_info%NumIncComp2NumIncPTC(j, iph2) ! num of C_j^iph2 in Inc
-                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                          - inc%Comp(icp, iph2)*dCf2(j)
+                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - inc%Comp(icp, iph2)*dCf2(j)
                end if
             end do
 
             ! derivative primary saturations
             ! with contribution of secondary Saturation
             ! because sum(saturations)=1 is eliminated
-            jph_scd = cv_info%NumPhasePresente(cv_info%NbPhasePresente)
-            do j = 1, cv_info%NbPhasePresente - 1
+            ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
+            ! f(pa, ....) -> df/dS = -dPc/dS * df/dpa = dpa/dS * df/dpa
+            ! for last saturation S_n = 1 - \Sum_{1 \leq k \leq n-1} S_k
+            ! pa_n = Pref - Pc_n(1 - \Sum_{1 \leq k \leq n-1} S_k) -> dpa_n / dS_k = dPc_n/dS_n
+            n = cv_info%NbPhasePresente
+            jph_n = cv_info%NumPhasePresente(n) ! secd saturation
+            do j = 1, n - 1
                numj = j + cv_info%NbIncPTC
                jph = cv_info%NumPhasePresente(j)
-
-               dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) &
-                                       + dSf1(jph)*inc%Comp(icp, iph1) - dSf2(jph)*inc%Comp(icp, iph2) &
-                                       - dSf1(jph_scd)*inc%Comp(icp, iph1) + dSf2(jph_scd)*inc%Comp(icp, iph2)
+#ifndef NDEBUG
+               if (jph == jph_n) call CommonMPI_abort("IncPrimSecd_dFsurdX_cv inconsistent phase indexing.")
+#endif
+               if (iph1 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph1)*df1dpa*inc%Comp(icp, iph1)
+               if (iph1 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph1)*df1dpa*inc%Comp(icp, iph1)
+               if (iph2 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph2)*df2dpa*inc%Comp(icp, iph2)
+               if (iph2 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph2)*df2dpa*inc%Comp(icp, iph2)
             end do
 
             ! SmF

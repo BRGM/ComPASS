@@ -24,8 +24,7 @@ module Thermodynamics
       f_DensiteMolaire, &  !< \xi^alpha(P,T,C,S)
       f_DensiteMassique, &  !< \rho^alpha(P,T,C,S)
       f_Viscosite, &  !< \mu^alpha(P,T,C,S)
-      air_henry, &  !< Henry coef for air comp
-      air_henry_dT  !< derivative of the Henry coef for air comp
+      air_Henry  !< Henry coef for air comp
 
 #ifdef _THERMIQUE_
    public :: &
@@ -38,78 +37,76 @@ module Thermodynamics
 
 contains
 
+   pure subroutine f_Fugacity_air_liquid(p, T, C, f, dfdp, dfdT, dfdC)
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
+
+      integer :: i
+      real(c_double) :: Psat, dPsatdT
+      real(c_double) :: beta, dbetadp, dbetadT
+      real(c_double) :: zeta, dzetadp, dzetadT, dzetadC(NbComp)
+      real(c_double) :: deltap, RTzeta, ebeta
+      real(c_double), parameter :: R = 8.314d0
+
+      call FluidThermodynamics_Psat(T, Psat, dPsatdT)
+      call f_DensiteMolaire_liquid(p, T, C, zeta, dzetadp, dzetadT, dzetadC)
+      deltap = Psat - p
+      RTzeta = R*T*zeta
+      beta = deltap/RTzeta
+      dbetadp = (-1.d0 - deltap*dzetadp/RTzeta)/RTzeta
+      dbetadT = (dPsatdT - deltap*dzetadT/RTzeta)/RTzeta
+      ebeta = exp(beta)
+      f = Psat*ebeta
+      dfdp = dbetadp*Psat*ebeta
+      dfdT = (dPsatdT + dbetadT*Psat)*ebeta
+      do i = 1, NbComp
+         dfdC(i) = (-deltap*dzetadC(i)/(RTzeta**2))*Psat*ebeta
+      enddo
+
+   end subroutine f_Fugacity_air_liquid
+
    ! Fugacity coefficient
-   !< rt is the rocktype identifier
-   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< icp component identifier
-   !< P is the reference pressure
-   !< T is the temperature
+   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
+   !< p is the phase pressure
+   !< T is the phase temperature
    !< C is the phase molar frcations
-   !< S is all the saturations
-   pure subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
-      integer(c_int), intent(in) :: iph, icp
-      type(TYPE_IncCVReservoir), intent(in) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
-      real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
+   pure subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_fugacity")
+      integer(c_int), intent(in) :: icp, iph
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
 
-      real(c_double) :: T, PSat, dTSat, Pc, dPcdS(NbPhase)
-      real(c_double), parameter :: RZetal = 8.314d0*1000.d0/0.018d0
-
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-      dSf = 0.d0
+      dfdp = 0.d0
+      dfdT = 0.d0
+      dfdC = 0.d0
 
       if (iph == GAS_PHASE) then
-         f = pa(GAS_PHASE)
-         dPf = 1.d0
-         dSf(GAS_PHASE) = dpadS(GAS_PHASE)
+         f = p
+         dfdp = 1.d0
       else if (iph == LIQUID_PHASE) then
-         T = inc%Temperature
          if (icp == AIR_COMP) then
-            call air_henry(T, f)
-            call air_henry_dT(dTf)
+            call air_Henry(T, f, dfdT)
          else if (icp == WATER_COMP) then
-            Pc = pa(GAS_PHASE) - pa(LIQUID_PHASE)
-            dPcdS = 0.d0
-            dPcdS(GAS_PHASE) = dpadS(GAS_PHASE)
-            dPcdS(LIQUID_PHASE) = -dpadS(LIQUID_PHASE)
-            call FluidThermodynamics_Psat(T, Psat, dTSat)
-            f = Psat*dexp(Pc/(T*RZetal))
-            dTf = (dTSat - Psat*Pc/RZetal/(T**2))*dexp(Pc/(T*RZetal))
-            dCf = 0.d0
-            dSf = dPcdS*f/(T*RZetal)
+            call f_Fugacity_air_liquid(p, T, C, f, dfdp, dfdT, dfdC)
          endif
       endif
+
    end subroutine f_Fugacity
 
    !> \brief Henry coef for air comp
-   pure subroutine air_henry(T, H)
-
+   pure subroutine air_Henry(T, H, dHdT)
       real(c_double), intent(in) :: T
       real(c_double), intent(out) :: H
+      real(c_double), intent(out) :: dHdT
 
       real(c_double), parameter :: T1 = 293.d0
       real(c_double), parameter :: T2 = 353.d0
       real(c_double), parameter :: H1 = 6.d+9
       real(c_double), parameter :: H2 = 10.d+9
 
-      H = H1 + (H2 - H1)*(T - T1)/(T2 - T1)
-
-   end subroutine
-
-   !> \brief Derivative of the Henry coef for air comp wrt Temperature
-   pure subroutine air_henry_dT(H_dt)
-
-      real(c_double), intent(out) :: H_dt
-
-      real(c_double), parameter :: T1 = 293.d0
-      real(c_double), parameter :: T2 = 353.d0
-      real(c_double), parameter :: H1 = 6.d+9
-      real(c_double), parameter :: H2 = 10.d+9
-
-      H_dt = (H2 - H1)/(T2 - T1)
+      dHdT = (H2 - H1)/(T2 - T1)
+      H = H1 + (T - T1)*dHdT
 
    end subroutine
 
