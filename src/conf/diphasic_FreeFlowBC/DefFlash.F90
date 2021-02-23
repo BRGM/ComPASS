@@ -62,7 +62,7 @@ contains
 
       if (context == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
-         call DiphasicFlash_gas_to_diphasic(inc, pa, dpadS)
+         call DiphasicFlash_gas_to_diphasic(inc, pa)
          if (inc%ic == DIPHASIC_CONTEXT) inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
 
       elseif (context == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
@@ -86,7 +86,7 @@ contains
 
       else
 
-         call DiphasicFlash_Flash_cv(inc, pa, dpadS)
+         call DiphasicFlash_Flash_cv(inc, pa)
 
       endif
 

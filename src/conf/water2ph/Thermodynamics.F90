@@ -46,24 +46,21 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Fugacity(iph, icp, inc, pa, dpadS, f, DPf, DTf, DCf, DSf)
-      integer(c_int), intent(in) :: iph, icp
-      type(TYPE_IncCVReservoir), intent(in) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
-      real(c_double), intent(out) :: f, DPf, DTf, DCf(NbComp), DSf(NbPhase)
+      subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_fugacity")
+      integer(c_int), intent(in) :: icp, iph
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
 
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-      dSf = 0.d0
+      dfdp = 0.d0
+      dfdT = 0.d0
+      dfdC = 0.d0
 
       if (iph == GAS_PHASE) then
-         f = pa(GAS_PHASE)
-         dPf = 1.d0
-         dSf = dpadS(GAS_PHASE)
+         f = p
+         dfdp = 1.d0
       else if (iph == LIQUID_PHASE) then
-         call FluidThermodynamics_Psat(inc%Temperature, f, dTf)
+         call FluidThermodynamics_Psat(T, f, dfdT)
 #ifndef NDEBUG
       else
          call CommonMPI_abort('Unknow phase in f_Fugacity')

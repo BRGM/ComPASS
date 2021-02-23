@@ -47,7 +47,7 @@ contains
       endif
 #endif
 
-      call DiphasicFlash_Flash_cv(inc, pa, dpadS)
+      call DiphasicFlash_Flash_cv(inc, pa)
       call DiphasicFlash_enforce_consistent_molar_fractions(inc)
 
    end subroutine DefFlash_Flash_cv

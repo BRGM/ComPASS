@@ -155,7 +155,7 @@ contains
       real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
       real(c_double), intent(out) :: SmF(NbEqFermetureMax)
 
-      integer :: mi, j, jph, jph_scd, numj
+      integer :: mi, j, jph, n, jph_n, numj
 
       call IncPrimSecd_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
 
@@ -164,16 +164,27 @@ contains
 
       mi = cv_info%NbPhasePresente + cv_info%NbEqEquilibre + 1 ! row of dFsurdX and SmF
 
-      ! derivative reference pressure
+      ! derivative wrt reference pressure
+      ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
+      ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa
       dFsurdX(1, mi) = 1.d0
 
-      ! derivative primary saturations with contribution of secondary Saturation
+      ! derivative wrt primary saturations with contribution of secondary saturation
       ! because sum(saturations)=1 is eliminated
-      jph_scd = cv_info%NumPhasePresente(cv_info%NbPhasePresente)
-      do j = 1, cv_info%NbPhasePresente - 1
+      ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
+      ! f(pa, ....) -> df/dS = -dPc/dS * df/dpa = dpa/dS * df/dpa
+      ! for last saturation S_n = 1 - \Sum_{1 \leq k \leq n-1} S_k
+      ! pa_n = Pref - Pc_n(1 - \Sum_{1 \leq k \leq n-1} S_k) -> dpa_n / dS_k = dPc_n/dS_n
+      n = cv_info%NbPhasePresente
+      jph_n = cv_info%NumPhasePresente(n)
+      do j = 1, n - 1
          numj = j + cv_info%NbIncPTC
          jph = cv_info%NumPhasePresente(j)
-         dFsurdX(numj, mi) = dpadS(jph) - dpadS(jph_scd)
+#ifndef NDEBUG
+         if (jph == jph_n) call CommonMPI_abort("IncPrimSecdFreeflow_dFsurdX_cv inconsistent phase indexing.")
+#endif
+         if (GAS_PHASE == jph) dFsurdX(numj, mi) = dpadS(GAS_PHASE)
+         if (GAS_PHASE == jph_scd) dFsurdX(numj, mi) = -dpadS(GAS_PHASE)
       end do
 
       SmF(mi) = pa(GAS_PHASE) - atm_pressure
