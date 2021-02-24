@@ -38,7 +38,7 @@ endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 # https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling#common-questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(COMPASS_CONFIG_DIRECTORY
