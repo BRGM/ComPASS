@@ -22,7 +22,7 @@ extern "C" {
 
 void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
                     int* p_rocktypes, double* p_kr, double* p_dkrdS) {
-   StateArray states{reinterpret_cast<X*>(p_states), n};
+   StateArray states{p_states, n};
    auto simulation = ComPASS::get_simulation();
    py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
    py::array_t<double, py::array::c_style> kr{
@@ -35,7 +35,7 @@ void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
 void fill_phase_pressure_arrays(const std::size_t n, const int np, X* p_states,
                                 int* p_rocktypes, double* p_pa,
                                 double* p_dpadS) {
-   StateArray states{reinterpret_cast<X*>(p_states), n};
+   StateArray states{p_states, n};
    auto simulation = ComPASS::get_simulation();
    py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
    // p^\alpha : phase pressure
