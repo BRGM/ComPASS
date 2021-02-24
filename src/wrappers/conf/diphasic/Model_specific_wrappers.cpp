@@ -33,6 +33,9 @@ enum struct Context {
    diphasic = ComPASS_DIPHASIC_CONTEXT
 };
 
+using Phase_vector = X::Model::Phase_vector;
+using Real = X::Model::Real;
+
 // FIXME: assuming liquid phase is the latest phase
 constexpr int GAS_PHASE = 0;
 constexpr int LIQUID_PHASE = 1;
@@ -130,6 +133,51 @@ inline double specific_mass(const Phase &phase, const X &x) {
                                      x.C[enum_to_rank(phase)].data(), rho,
                                      drhodp, drhodT, drhodC);
    return rho;
+}
+
+// Fugacity function of Cpha = air fraction in phase ph
+template <Component cp, Phase ph>
+inline auto fugacity(const Real &p, const Real &T, const Real &Cpha) {
+   Real f, _, Cph[2], dfdC[2];
+   Cph[enum_to_rank(Component::air)] = Cpha;
+   Cph[enum_to_rank(Component::water)] = 1 - Cpha;
+   FluidThermodynamics_fugacity(static_cast<int>(cp), static_cast<int>(ph), p,
+                                T, Cph, f, _, _, dfdC);
+   return std::make_tuple(
+       f, dfdC[enum_to_rank(Phase::gas)] - dfdC[enum_to_rank(Phase::liquid)]);
+}
+
+auto diphasic_equilibrium(const Phase_vector &pa, const Real &T,
+                          const double atol = 1e-7,
+                          std::size_t maxiter = 1000) {
+   const Real pg = pa[enum_to_rank(Phase::gas)];
+   const Real pl = pa[enum_to_rank(Phase::liquid)];
+   Real Cga = 1, Cla = 0;  // Newton start: no water in gas no air in liquid
+   Real f, df, Jag, Jal, Jwg, Jwl, det, Ra, Rw;
+
+   for (; maxiter != 0; --maxiter) {
+      std::tie(f, df) = fugacity<Component::air, Phase::gas>(pg, T, Cga);
+      Ra = f * Cga;
+      Jag = df * Cga + f;
+      std::tie(f, df) = fugacity<Component::air, Phase::liquid>(pl, T, Cla);
+      Ra -= f * Cla;
+      Jal = -df * Cla - f;
+      std::tie(f, df) = fugacity<Component::water, Phase::gas>(pg, T, Cga);
+      Rw = f * (1 - Cga);
+      Jwg = df * (1 - Cga) - f;
+      std::tie(f, df) = fugacity<Component::water, Phase::liquid>(pl, T, Cla);
+      Rw -= f * (1 - Cla);
+      Jwl = -df * (1 - Cla) + f;
+      if (fabs(Ra) + fabs(Rw) < atol) return std::make_tuple(Cga, Cla);
+      // Newton: X -> X - J^-1 R
+      det = Jag * Jwl - Jwg * Jal;
+      assert(det != 0);
+      Cga -= (Jwl * Ra - Jal * Rw) / det;
+      Cla -= (-Jwg * Ra + Jag * Rw) / det;
+   }
+
+   throw std::runtime_error(
+       "Maximum number of iterations in diphasic_equilibrium exceeded.");
 }
 
 void add_specific_model_wrappers(py::module &module) {
@@ -246,4 +294,14 @@ Parameters
 )doc");
 
    module.def("specific_mass", &specific_mass);
+
+   module.def(
+       "diphasic_equilibrium",
+       [](py::tuple pa, const double T, const double atol,
+          const std::size_t maxiter) {
+          return diphasic_equilibrium({pa[0].cast<Real>(), pa[1].cast<Real>()},
+                                      T, atol, maxiter);
+       },
+       py::arg("pa"), py::arg("T"), py::arg("atol") = 1.e-8,
+       py::arg("maxiter") = 1000);
 }
