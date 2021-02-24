@@ -7,11 +7,12 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include "LoisThermoHydro.h"
+
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
 #include "Simulation.h"
-#include "StateObjects.h"
 namespace py = pybind11;
 
 py::function py_fill_kr_arrays;
@@ -44,6 +45,14 @@ void fill_phase_pressure_arrays(const std::size_t n, const int np, X* p_states,
        {n, X::Model::np}, p_dpadS, simulation};
    py_fill_phase_pressure_arrays(states, rocktypes, pa, dpadS);
 }
+}
+
+Phase_vector phase_pressures(X& x) {
+   int rt[1] = {1};
+   Phase_vector pa;
+   Phase_vector _;
+   fill_phase_pressure_arrays(1, X::Model::np, &x, rt, pa.data(), _.data());
+   return pa;
 }
 
 void add_petrophysics_pyinternals(py::module& module) {

@@ -1,0 +1,86 @@
+
+\documentclass{article}
+
+\usepackage{ComPASS_notations}
+
+\begin{document}
+
+We consider the diphasic eos with phases $\{g, l\}$ and components $\{a, w\}$ the thermodynamical equilibrium writes:
+
+\begin{equation} \label{eq:equilibrium}
+\left\{
+\begin{array}{rcl}
+f^g_i(p^g, T, C^g) C^g_i & = & f^l_i(p^l, T, C^l) C^l_i \quad i\in\left\{a, w\right\} \\
+\sum_{i\in\left\{a, w\right\}} C^\alpha_i & = & 1 \quad \alpha \in\left\{g, l\right\}
+\end{array}
+\right.
+\end{equation}
+
+Considering diphasic state Dirichlet conditions we look for $\left(C^\alpha_i\right)_{\left(\alpha, i\right)\in\left\{g, l\right\}\times\left\{a, w\right\}}$.
+
+System \eqref{eq:equilibrium} rewrites:
+
+\begin{equation}
+\left\{
+\begin{array}{rcl}
+f^g_a(p^g, T, C^g_a, 1 - C^g_a) C^g_a & = & f^l_a(p^l, T, C^l_a, 1 - C^l_a)C^l_a \\
+f^g_w(p^g, T, C^g_a, 1 - C^g_a)\left(1 - C^g_a\right) & = & f^l_w(p^l, T, C^l_a, 1 - C^l_a)\left(1 - C^l_a\right) \\
+\sum_{i\in\left\{a, w\right\}} C^\alpha_i & = & 1 \quad \alpha \in\left\{g, l\right\}
+\end{array}
+\right.
+\end{equation}
+
+And we first solve :
+\begin{equation}
+\mathcal{L} =
+\left\{
+\begin{array}{rcl}
+\mathcal{L}_a = f^g_a(p^g, T, C^g_a, 1 - C^g_a) C^g_a -  f^l_a(p^l, T, C^l_a, 1 - C^l_a)C^l_a & = & 0 \\
+\mathcal{L}_w = f^g_w(p^g, T, C^g_a, 1 - C^g_a)\left(1 - C^g_a\right) -  f^l_w(p^l, T, C^l_a, 1 - C^l_a)\left(1 - C^l_a\right) & = & 0
+\end{array}
+\right.
+\end{equation}
+
+for $\left(C^\alpha_a\right)_{\alpha\in\left\{g, l\right\}}$.
+
+Considering the jacobian :
+
+\begin{equation}
+\left[
+\begin{array}{cc}
+\frac{\partial\mathcal{L}_a}{\partial C^g_a} & \frac{\partial\mathcal{L}_a}{\partial C^l_a} \\
+\frac{\partial\mathcal{L}_w}{\partial C^g_a} & \frac{\partial\mathcal{L}_w}{\partial C^l_a}
+\end{array}
+\right]
+\end{equation}
+
+We have:
+\begin{equation}
+\frac{\partial\mathcal{L}_a}{\partial C^g_a} =
+\(
+\frac{\partial f^g_a}{\partial C^g_a} - \frac{\partial f^g_a}{\partial C^g_w}
+\)  C^g_a + f^g_a
+ \end{equation}
+
+\begin{equation}
+\frac{\partial\mathcal{L}_a}{\partial C^l_a} =
+-\(
+\frac{\partial f^l_a}{\partial C^l_a} - \frac{\partial f^l_a}{\partial C^l_w}
+\) C^l_a - f^l_a
+\end{equation}
+
+\begin{equation}
+\frac{\partial\mathcal{L}_w}{\partial C^g_a} =
+\(
+\frac{\partial f^g_w}{\partial C^g_a} - \frac{\partial f^g_w}{\partial C^g_w}
+\)  \(1 - C^g_a\) - f^g_w
+ \end{equation}
+
+\begin{equation}
+\frac{\partial\mathcal{L}_w}{\partial C^l_a} =
+-\(
+\frac{\partial f^l_w}{\partial C^l_a} - \frac{\partial f^l_w}{\partial C^l_w}
+\) \(1 - C^l_a\) + f^l_w
+\end{equation}
+
+\end{document}
