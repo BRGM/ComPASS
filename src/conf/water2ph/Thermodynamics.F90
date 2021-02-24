@@ -60,6 +60,7 @@ contains
          f = p
          dfdp = 1.d0
       else if (iph == LIQUID_PHASE) then
+         ! FIXME: use Poynting correction?
          call FluidThermodynamics_Psat(T, f, dfdT)
 #ifndef NDEBUG
       else
