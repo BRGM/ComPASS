@@ -48,20 +48,13 @@ from data.kr import kr_functions
 
 simulation.set_kr_functions(kr_functions)
 
-
-def molar_fraction_balance(Pg, T):
-    Hur = 0.5
-    Cwg = Hur * simulation.Psat(T) / Pg
-    Cag = 1.0 - Cwg
-    Ha = 1.0e8
-    Cal = Cag * Pg / Ha
-    return Cag, Cal
-
-
-Cag, Cal = molar_fraction_balance(p0, T0)
-
 X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
-Xair = simulation.build_state(simulation.Context.gas, p=p0, T=T0, Cag=Cag)
+Xgas = simulation.build_state(simulation.Context.gas, p=p0, T=T0)
+# diphasic states will call phase pressure function
+# set the correct capillary pressure before using this function
+Xdiph = simulation.build_state(simulation.Context.diphasic, p=p0, T=T0, Sg=0.5)
+Xliq = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
+
 
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
@@ -79,14 +72,24 @@ simulation.standard_loop(
     no_output=True,
 )
 
-simulation.dirichlet_node_states().set(Xair)
-
-final_time = 10 * year
-simulation.standard_loop(
+run_loop = lambda final_time, no_output=True: simulation.standard_loop(
     reset_iteration_counter=True,
     initial_time=0,
     final_time=final_time,
     timeloop_statistics=True,
     newton=newton,
-    time_step_manager=TimeStepManager(1, increase_factor=2.0, decrease_factor=0.1),
+    time_step_manager=TimeStepManager(
+        1 * day, increase_factor=2.0, decrease_factor=0.1
+    ),
+    no_output=no_output,
 )
+
+
+simulation.dirichlet_node_states().set(Xgas)
+run_loop(10 * year)
+
+simulation.dirichlet_node_states().set(Xdiph)
+run_loop(10 * year)
+
+simulation.dirichlet_node_states().set(Xliq)
+run_loop(10 * year)

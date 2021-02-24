@@ -4,6 +4,7 @@
 
 #include "../common/enum_to_rank.h"
 #include "../common/fortran_thermodynamics.h"
+#include "LoisThermoHydro.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
 
@@ -211,6 +212,7 @@ void add_specific_model_wrappers(py::module &module) {
           constexpr auto gas = enum_to_rank(Phase::gas);
           constexpr auto liquid = enum_to_rank(Phase::liquid);
           constexpr auto air = enum_to_rank(Component::air);
+          constexpr auto water = enum_to_rank(Component::water);
 
           auto set_gas_state = [&](X &state) {
              if (!Sg.is_none())
@@ -247,13 +249,20 @@ void add_specific_model_wrappers(py::module &module) {
           };
 
           auto set_diphasic_state = [&](X &state) {
+             if (!(Cag.is_none() && Cal.is_none()))
+                throw std::runtime_error(
+                    "Don't prescribe molar fractions for diphasic contexts.");
              state.p = p.cast<double>();
              state.T = T.cast<double>();
              const double S = Sg.cast<double>();
              state.S[gas] = S;
              state.S[liquid] = 1. - S;
-             state.C[gas][air] = Cag.is_none() ? 1. : Cag.cast<double>();
-             state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             auto [Cga, Cla] =
+                 diphasic_equilibrium(phase_pressures(state), state.T);
+             state.C[gas][air] = Cga;
+             state.C[gas][water] = 1 - Cga;
+             state.C[liquid][air] = Cla;
+             state.C[liquid][water] = 1 - Cla;
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
