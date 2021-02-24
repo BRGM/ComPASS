@@ -223,6 +223,7 @@ simulation_wrapper = Wrapper(
         "Psat",
         "Tsat",
         "specific_mass",
+        "diphasic_equilibrium",
         "liquid_molar_density",
         "liquid_molar_enthalpy",
         "liquid_dynamic_viscosity",

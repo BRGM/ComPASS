@@ -1,6 +1,9 @@
 #pragma once
 
 extern "C" {
+void FluidThermodynamics_fugacity(const int &, const int &, const double &,
+                                  const double &, const double *, double &,
+                                  double &, double &, double *);
 void FluidThermodynamics_molar_density(const int &, const double &,
                                        const double &, const double *, double &,
                                        double &, double &, double *);

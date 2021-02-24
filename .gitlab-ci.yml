@@ -104,6 +104,7 @@ sanity_check:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run one_wedge_cell_with_well.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_well_information.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run display_model_elements.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_diphasic_equilibrium.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_standalone.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_with_compass.py
 
