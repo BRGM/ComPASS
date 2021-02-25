@@ -16,8 +16,6 @@ from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
-from data import pc_curves
-
 Lz = 4000.0
 nz = 400
 dz = Lz / nz
@@ -42,7 +40,7 @@ simulation = ComPASS.load_eos("diphasic")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 
-simulation.set_liquid_capillary_pressure(*pc_curves.get())
+simulation.set_liquid_capillary_pressure("Beaude2018")
 
 gas_context = simulation.Context.gas
 

@@ -1,3 +1,5 @@
+from importlib import import_module
+
 import numpy as np
 
 # FIXME: is this a pybind11 bug?
@@ -25,27 +27,34 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdS):
     return phase_pressure_function
 
 
-# def Beaude():
-#     Pc_cst = 2.0e5
-#     Sg0 = 1.0 - 1.0e-2
-#     Sl0 = 1.0 - Sg0
-#     A = -Pc_cst * np.log(Sl0) - (Pc_cst / Sl0) * Sg0
-
-#     def f(Sg):
-#         if Sg < Sg0:
-#             return -Pc_cst * np.log(1.0 - Sg)
-#         return Pc_cst * Sg / Sl0 + A
-
-#     def df(Sg):
-#         if Sg < S0:
-#             return Pc_cst / (1.0 - Sg)
-#         return Pc_cst / Sl0
-
-#     return f, df
-
-
-def set_liquid_capillary_pressure(simulation, f, df):
+def set_liquid_capillary_pressure(simulation, model):
     # FIXME: cf. holder definition above
     global holder
+    if isinstance(model, str):
+        module = None
+        try:  # locally
+            module = import_module(model)
+        except ModuleNotFoundError:
+            try:  # in ComPASS models
+                module = import_module(
+                    f".petrophysics.models.{model}", package="ComPASS"
+                )
+            except ModuleNotFoundError:
+                raise RuntimeError(
+                    f"Could not find the petrophysics model {model} neither locally nor in ComPASS libraries."
+                )
+        try:
+            f, df = module.Pc, module.dPcdS
+        except:
+            raise RuntimeError(
+                f"Could not extact cappillary pressure functions from model {model} located at: {model.__file__}."
+            )
+    else:
+        try:
+            f, df = model
+        except:
+            raise RuntimeError(
+                "Could not extact cappillary pressure functions from model."
+            )
     holder = _convert_pc_to_phase_pressure_function(f, df)
     simulation.set_phase_pressure_functions(holder)
