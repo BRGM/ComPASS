@@ -2,17 +2,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-
-# Beaude 2018
-@np.vectorize
-def Pc(Sg):
-    Pc0 = 2e5
-    Sg0 = 1.0 - 1.0e-2
-    if Sg < Sg0:
-        return -Pc0 * np.log(1.0 - Sg)
-    Sl0 = 1.0 - Sg0
-    A = -Pc0 * np.log(Sl0) - (Pc0 / Sl0) * Sg0
-    return Pc0 * Sg / Sl0 + A
+from ComPASS.petrophysics.models.Beaude2018 import Pc
 
 
 simulation = ComPASS.load_eos("diphasic")

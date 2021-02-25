@@ -41,9 +41,8 @@ simulation.init(
     set_dirichlet_nodes=simulation.top_boundary(grid),
 )
 
-from data import pc_curves
 
-simulation.set_liquid_capillary_pressure(*pc_curves.get())
+simulation.set_liquid_capillary_pressure("Beaude2018")
 from data.kr import kr_functions
 
 simulation.set_kr_functions(kr_functions)
