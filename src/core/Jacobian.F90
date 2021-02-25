@@ -58,7 +58,7 @@ module Jacobian
       divDensiteMolaireSatCompNode, divDensiteMolaireSatCompCell, divDensiteMolaireSatCompFrac, &
       divDensiteMolaireEnergieInterneSatNode, divDensiteMolaireEnergieInterneSatCell, divDensiteMolaireEnergieInterneSatFrac, &
       divPressionNode, divPressionCell, divPressionFrac, &
-      PhasePressureNode, divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
+      divPhasePressureNode, divPhasePressureCell, divPhasePressureFrac, &
       SmDensiteMolaireSatComp, divSaturationNode, divSaturationCell, divSaturationFrac
 
    use NumbyContext, only: &
@@ -1663,7 +1663,7 @@ contains
          do s = NodebyWellInjLocal%Pt(k) + 1, NodebyWellInjLocal%Pt(k + 1)
             nums = NodebyWellInjLocal%Num(s) ! num node
 
-            Ps_Pws = PhasePressureNode(LIQUID_PHASE, nums) - PerfoWellInj(s)%Pression ! P_s - P_{w,s}
+            Ps_Pws = IncNode(nums)%phase_pressure(LIQUID_PHASE) - PerfoWellInj(s)%Pression ! P_s - P_{w,s}
             Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
             Ts = IncNode(nums)%Temperature    ! T_s
 
@@ -1845,7 +1845,7 @@ contains
 
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-               Ps = PhasePressureNode(mph, nums) ! IncNode(nums)%Pression       ! P_s
+               Ps = IncNode(nums)%phase_pressure(mph) ! IncNode(nums)%Pression       ! P_s
                Ps_Pws = Ps - Pws
                if ((Ps_Pws > 0.d0) .AND. (.NOT. well_is_closed)) then ! if Ps_Pws < 0 then this term is zero
                   something_is_produced = .true.

@@ -12,7 +12,8 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdS):
     pc = np.vectorize(pc)
     dpcdS = np.vectorize(dpcdS)
 
-    def phase_pressure_function(states, rocktypes, pa, dpadS):
+    def phase_pressure_function(states, rocktypes, dpadS):
+        pa = states.pa
         nb_phases = pa.shape[1]
         assert nb_phases == 2
         p = states.p  # reference pressure

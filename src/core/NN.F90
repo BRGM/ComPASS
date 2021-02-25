@@ -25,7 +25,7 @@ module NN
       NbComp, NbPhase, IndThermique, NbIncTotalMax, get_model_configuration, DefModel_build_phase_table
 
    use IncCVReservoir, only: &
-      Type_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac, PhasePressureAll, dPhasePressuredSAll
+      Type_IncCVReservoir, IncAll, IncNode, IncCell, IncFrac
    use MeshSchema, only: &
       AllDarcyRocktypesLocal, &
       NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
@@ -222,16 +222,14 @@ contains
 
    end subroutine NN_init_phase2_setup_solvers
 
-   subroutine NN_flash_control_volumes(states, pa, dpadS)
+   subroutine NN_flash_control_volumes(states)
       type(Type_IncCVReservoir), intent(inout) :: states(:)
-      real(c_double), intent(in) :: pa(:, :)
-      real(c_double), intent(in) :: dpadS(:, :)
 
       integer :: k, n
 
       n = size(states)
       do k = 1, n
-         call DefFlash_Flash_cv(states(k), pa(:, k), dpadS(:, k))
+         call DefFlash_Flash_cv(states(k))
       end do
 
    end subroutine NN_flash_control_volumes
@@ -243,7 +241,7 @@ contains
    subroutine NN_flash_all_control_volumes() &
       bind(C, name="NN_flash_all_control_volumes")
 
-      call NN_flash_control_volumes(IncAll, PhasePressureAll, dPhasePressuredSAll)
+      call NN_flash_control_volumes(IncAll)
 
       ! choose between linear or non-linear update of the Newton unknown Pw
       ! The next subroutines also compute the mode of the wells ('pressure' or 'flowrate')

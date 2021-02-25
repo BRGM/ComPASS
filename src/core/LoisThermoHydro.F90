@@ -32,10 +32,10 @@ module LoisThermoHydro
       TYPE_IncCVReservoir, &
       IncAll, IncNode, IncCell, IncFrac, &
       NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
-      PhasePressureAll, divPhasePressureAll, dPhasePressuredSAll, &
-      PhasePressureNode, divPhasePressureNode, dPhasePressuredSNode, &
-      PhasePressureFrac, divPhasePressureFrac, dPhasePressuredSFrac, &
-      PhasePressureCell, divPhasePressureCell, dPhasePressuredSCell
+      divPhasePressureAll, dPhasePressuredSAll, &
+      divPhasePressureNode, dPhasePressuredSNode, &
+      divPhasePressureFrac, dPhasePressuredSFrac, &
+      divPhasePressureCell, dPhasePressuredSCell
    use IncCVWells, only: &
       PerfoWellInj, DataWellInjLocal, NodeByWellInjLocal, NbWellInjLocal_Ncpus
    use IncPrimSecd, only: &
@@ -232,14 +232,13 @@ module LoisThermoHydro
    end interface
 
    interface
-      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, pa, dpadS) &
+      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, dpadS) &
          bind(C, name="fill_phase_pressure_arrays")
          use, intrinsic :: iso_c_binding, only: c_int, c_size_t, c_ptr
          integer(c_size_t), value, intent(in) :: n !< size of *states* array
          integer(c_int), value, intent(in)  :: np !< number of phases
          type(c_ptr), value, intent(in)  :: states
          type(c_ptr), value, intent(in)  :: rocktypes
-         type(c_ptr), value, intent(in)  :: pa
          type(c_ptr), value, intent(in)  :: dpadS
       end subroutine fill_phase_pressure_arrays
    end interface
@@ -297,7 +296,7 @@ contains
 
       ! cell
       call LoisThermoHydro_divPrim_cv(NbCellLocal_Ncpus(commRank + 1), IncCell, &
-                                      PhasePressureCell, dPhasePressuredSCell, &
+                                      dPhasePressuredSCell, &
                                       CellDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpCell, &
@@ -337,7 +336,7 @@ contains
 
       ! frac
       call LoisThermoHydro_divPrim_cv(NbFracLocal_Ncpus(commRank + 1), IncFrac, &
-                                      PhasePressureFrac, dPhasePressuredSFrac, &
+                                      dPhasePressuredSFrac, &
                                       FracDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpFrac, &
@@ -377,7 +376,7 @@ contains
 
       ! node
       call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                      PhasePressureNode, dPhasePressuredSNode, &
+                                      dPhasePressuredSNode, &
                                       NodeDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpNode, &
@@ -418,7 +417,7 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       ! FreeFlow nodes
       call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                               PhasePressureNode, dPhasePressuredSNode, &
+                                               dPhasePressuredSNode, &
                                                !
                                                dXssurdXpNode, &
                                                SmdXsNode, &
@@ -480,7 +479,7 @@ contains
 
    ! all operations for one cv
    subroutine LoisThermoHydro_divPrim_cv( &
-      NbIncLocal, inc, pa, dpadS, &
+      NbIncLocal, inc, dpadS, &
       rocktypes, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
@@ -497,7 +496,6 @@ contains
       integer, intent(in) :: NbIncLocal
 
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal)
       real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
       integer(c_int), intent(in) :: rocktypes(NbIncLocal)
 
@@ -556,19 +554,19 @@ contains
 
       do k = 1, NbIncLocal
          call LoisThermoHydro_viscosite_cv( &
-            inc(k), pa(:, k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            inc(k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k))
       end do
 
       do k = 1, NbIncLocal
          call LoisThermoHydro_densitemassique_cv( &
-            inc(k), pa(:, k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            inc(k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             DensiteMassique(:, k), divDensiteMassique(:, :, k), SmDensiteMassique(:, k))
       end do
 
       do k = 1, NbIncLocal
          call LoisThermoHydro_densitemolaire_cv( &
-            inc(k), pa(:, k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+            inc(k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             wa_DensiteMolaire(:, k), wa_divDensiteMolaire(:, :, k), wa_SmDensiteMolaire(:, k))
       end do
 
@@ -652,12 +650,12 @@ contains
                                      divTemperature(:, k), SmTemperature(k))
 
          ! energie interne
-         call LoisThermoHydro_EnergieInterne_cv(inc(k), pa(:, k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_EnergieInterne_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                 NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                 EnergieInterne, divEnergieInterne, SmEnergieInterne)
 
          ! Enthalpie
-         call LoisThermoHydro_Enthalpie_cv(inc(k), pa(:, k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_Enthalpie_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                            NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                            Enthalpie, divEnthalpie, SmEnthalpie)
 
@@ -700,7 +698,7 @@ contains
 #ifdef _WIP_FREEFLOW_STRUCTURES_
    ! Compute derivative of phase molar flowrates in the Freeflow dof
    subroutine LoisThermoHydro_divPrim_FreeFlow_cv( &
-      NbIncLocal, inc, pa, dpadS, &
+      NbIncLocal, inc, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
       divTemperature, SmTemperature, &
@@ -715,7 +713,6 @@ contains
       integer, intent(in) :: NbIncLocal
 
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal)
       real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
 
       double precision, intent(in) :: &
@@ -802,7 +799,7 @@ contains
 
 #ifdef _THERMIQUE_
          ! SpecificEnthalpy
-         call LoisThermoHydro_SpecificEnthalpy_cv(inc(k), pa(:, k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
+         call LoisThermoHydro_SpecificEnthalpy_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
                                                   NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
                                                   SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy)
 
@@ -1164,7 +1161,7 @@ contains
    subroutine LoisThermoHydro_divPrim_nodes
 
       call LoisThermoHydro_divPrim_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
-                                      PhasePressureNode, dPhasePressuredSNode, &
+                                      dPhasePressuredSNode, &
                                       NodeDarcyRocktypesLocal, &
                                       !
                                       dXssurdXpNode, &
@@ -1304,9 +1301,8 @@ contains
    end subroutine LoisThermoHydro_dfdX_ps
 
    subroutine LoisThermoHydro_densitemassique_cv( &
-      inc, pa, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(in) :: SmdXs(NbEqFermetureMax)
@@ -1331,7 +1327,7 @@ contains
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
          call f_DensiteMassique( &
-            iph, pa(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dPf, dTf, dCf)
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
@@ -1349,9 +1345,8 @@ contains
    end subroutine LoisThermoHydro_densitemassique_cv
 
    subroutine LoisThermoHydro_viscosite_cv( &
-      inc, pa, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(in) :: SmdXs(NbEqFermetureMax)
@@ -1374,7 +1369,7 @@ contains
       nb_phases = NbPhasePresente_ctx(context)
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
-         call f_Viscosite(iph, pa(iph), inc%Temperature, &
+         call f_Viscosite(iph, inc%phase_pressure(iph), inc%Temperature, &
                           inc%Comp(:, iph), &
                           f, dPf, dTf, dCf)
          dSf = 0.d0
@@ -1396,9 +1391,8 @@ contains
    end subroutine LoisThermoHydro_viscosite_cv
 
    subroutine LoisThermoHydro_densitemolaire_cv( &
-      inc, pa, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(in) :: SmdXs(NbEqFermetureMax)
@@ -1423,7 +1417,7 @@ contains
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
          call f_DensiteMolaire( &
-            iph, pa(iph), inc%Temperature, inc%Comp(:, iph), val(i), dPf, dTf, dCf)
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(i), dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
@@ -1602,10 +1596,9 @@ contains
 
    end subroutine LoisThermoHydro_Saturation_cv
 
-   subroutine LoisThermoHydro_compute_all_phase_pressures(inc, rocktypes, p, dpdS)
+   subroutine LoisThermoHydro_compute_all_phase_pressures(inc, rocktypes, dpdS)
       type(TYPE_IncCVReservoir), dimension(:), target, intent(in)  :: inc
       integer(c_int), dimension(:), target, intent(in) :: rocktypes
-      real(c_double), dimension(:, :), target, intent(out) :: p
       real(c_double), dimension(:, :), target, intent(out) :: dpdS
 
       integer(c_size_t) :: n
@@ -1613,8 +1606,7 @@ contains
       n = size(inc)
       if (n == 0) return ! nothing to do
       call fill_phase_pressure_arrays( &
-         n, NbPhase, c_loc(inc(1)), c_loc(rocktypes(1)), &
-         c_loc(p(1, 1)), c_loc(dpdS(1, 1)))
+         n, NbPhase, c_loc(inc(1)), c_loc(rocktypes(1)), c_loc(dpdS(1, 1)))
 
    end subroutine LoisThermoHydro_compute_all_phase_pressures
 
@@ -1671,7 +1663,7 @@ contains
       bind(C, name="LoisThermoHydro_compute_phase_pressures")
 
       call LoisThermoHydro_compute_all_phase_pressures( &
-         IncAll, AllDarcyRocktypesLocal, PhasePressureAll, dPhasePressuredSAll)
+         IncAll, AllDarcyRocktypesLocal, dPhasePressuredSAll)
 
    end subroutine LoisThermoHydro_compute_phase_pressures
 
@@ -1686,10 +1678,9 @@ contains
 #ifdef _THERMIQUE_
 
    subroutine LoisThermoHydro_EnergieInterne_cv( &
-      inc, pa, dpadS, ctxinfo, dXssurdXp, SmdXs, &
+      inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
 
       type(ContextInfo), intent(in) :: ctxinfo
@@ -1721,7 +1712,7 @@ contains
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
          call f_EnergieInterne( &
-            iph, pa(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
          val(i) = f ! val
          dSf = 0.d0
          dSf(iph) = dpf*dpadS(iph)
@@ -1739,11 +1730,10 @@ contains
 
    end subroutine LoisThermoHydro_EnergieInterne_cv
 
-   subroutine LoisThermoHydro_Enthalpie_cv(inc, pa, dpadS, ctxinfo, dXssurdXp, SmdXs, &
+   subroutine LoisThermoHydro_Enthalpie_cv(inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
                                            NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
 
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
@@ -1773,7 +1763,7 @@ contains
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         call f_Enthalpie(iph, pa(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
+         call f_Enthalpie(iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          val(i) = f ! val
@@ -1793,10 +1783,9 @@ contains
 
    ! Specific enthalpy
    subroutine LoisThermoHydro_SpecificEnthalpy_cv( &
-      inc, pa, dpadS, ctxinfo, dXssurdXp, SmdXs, &
+      inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: & ! (col, row) index order
@@ -1823,7 +1812,7 @@ contains
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         call f_SpecificEnthalpy(iph, pa(iph), inc%Temperature, f, dPf, dTf)
+         call f_SpecificEnthalpy(iph, inc%phase_pressure(iph), inc%Temperature, f, dPf, dTf)
          do icp = 1, NbComp
             val(icp, i) = f(icp) ! val
             ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)

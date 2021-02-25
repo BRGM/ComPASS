@@ -257,8 +257,8 @@ void add_specific_model_wrappers(py::module &module) {
              const double S = Sg.cast<double>();
              state.S[gas] = S;
              state.S[liquid] = 1. - S;
-             auto [Cga, Cla] =
-                 diphasic_equilibrium(phase_pressures(state), state.T);
+             update_phase_pressures(state);
+             auto [Cga, Cla] = diphasic_equilibrium(state.pa, state.T);
              state.C[gas][air] = Cga;
              state.C[gas][water] = 1 - Cga;
              state.C[liquid][air] = Cla;

@@ -71,6 +71,11 @@ void add_IncCV_wrappers(py::module& module) {
        .def(py::init<const X&>())
        .def_readwrite("context", &X::context)
        .def_readwrite("p", &X::p)
+       .def_property_readonly("pa",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     np, self.cast<X&>().pa.data(), self};
+                              })
        .def_readwrite("T", &X::T)
        .def_property_readonly("S",
                               [](py::object& self) {
@@ -115,6 +120,8 @@ void add_IncCV_wrappers(py::module& module) {
    add_attribute_array<StateArray, Context>(pyStateArray, "context",
                                             offsetof(X, context));
    add_attribute_array<StateArray, Real>(pyStateArray, "p", offsetof(X, p));
+   add_attribute_array<StateArray, Real>(pyStateArray, "pa", offsetof(X, pa),
+                                         {np}, {sizeof(Real)});
    add_attribute_array<StateArray, Real>(pyStateArray, "T", offsetof(X, T));
    add_attribute_array<StateArray, Real>(pyStateArray, "C", offsetof(X, C),
                                          {np, nc},

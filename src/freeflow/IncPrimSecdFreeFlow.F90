@@ -24,7 +24,7 @@ module IncPrimSecdFreeFlow
       NbEqEquilibre_ctx, NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
-      IncNode, PhasePressureNode, dPhasePressuredSNode
+      IncNode, dPhasePressuredSNode
    use IncPrimSecd, only: IncPrimSecd_ps_cv, IncPrimSecd_dFsurdX_cv, &
                           dXssurdXpCell, dXssurdXpFrac, dXssurdXpNode, &
                           SmdXsCell, SmdXsFrac, SmdXsNode, &
@@ -63,7 +63,7 @@ contains
       ! FreeFlow BC nodes
       call IncPrimSecdFreeFlow_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, PhasePressureNode, dPhasePressuredSNode, &
+         IncNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          NumIncTotalPrimNode, NumIncTotalSecondNode)
@@ -73,7 +73,7 @@ contains
    ! all operations for a set of cv (called with nodes only)
    subroutine IncPrimSecdFreeFlow_compute_cv( &
       NbIncLocal, &
-      inc, pa, dpadS, &
+      inc, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV)
       integer, intent(in) :: NbIncLocal
@@ -103,7 +103,7 @@ contains
 
          ! compute dF/dX
          ! dFsurdX: (col, row) index order
-         call IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc(k), pa(:, k), dpadS(:, k), dFsurdX, SmF(:, k))
+         call IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc(k), dpadS(:, k), dFsurdX, SmF(:, k))
 
          ! FIXME: si je peux faire IncPrimSecd_compute sur les dof FF, enlever ce call et remettre protected à NumIncTotal...
          ! (mais cela m'étonnerait car le numb d'eq de fermeture ne correspond pas au nb d'inconnus secds dans ce cas)
@@ -147,17 +147,16 @@ contains
    !      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
    !      dFsurdX(, :)                                            derivative freeflow flowrate(s)
-   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
+   subroutine IncPrimSecdFreeFlow_dFsurdX_cv(cv_info, inc, dpadS, dFsurdX, SmF)
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
       real(c_double), intent(out) :: SmF(NbEqFermetureMax)
 
       integer :: mi, j, jph, n, jph_n, numj
 
-      call IncPrimSecd_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
+      call IncPrimSecd_dFsurdX_cv(cv_info, inc, dpadS, dFsurdX, SmF)
 
       ! --------------------------------------------------------------------------
       ! P^g - P^atm = 0     ie      Pref + Pc(GAS_PHASE) - P^atm = 0

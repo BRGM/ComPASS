@@ -19,6 +19,7 @@ module IncCVReservoirTypes
       integer(c_int) :: ic !< context: index of the set of present phase(s)
       real(c_double) :: & !< values of Inc
          Pression, & !< Reference Pressure of the element
+         phase_pressure(NbPhase), &
          Temperature, & !< Temperature of the element
          Comp(NbComp, NbPhase), & !< Molar composition of the element
          Saturation(NbPhase), & !< Saturation of the element
@@ -45,14 +46,15 @@ contains
       inc2%ic = inc1%ic
 
       inc2%Pression = inc1%Pression
+      inc2%phase_pressure = inc1%phase_pressure
 #ifdef _THERMIQUE_
       inc2%Temperature = inc1%Temperature
 #endif
-      inc2%Comp(:, :) = inc1%Comp(:, :)
-      inc2%Saturation(:) = inc1%Saturation(:)
-      inc2%AccVol(:) = inc1%AccVol(:)
+      inc2%Comp = inc1%Comp
+      inc2%Saturation = inc1%Saturation
+      inc2%AccVol = inc1%AccVol
 #ifdef _WIP_FREEFLOW_STRUCTURES_
-      inc2%FreeFlow_flowrate(:) = inc1%FreeFlow_flowrate(:)
+      inc2%FreeFlow_flowrate = inc1%FreeFlow_flowrate
 #endif
    end subroutine assign_type_inccv
 

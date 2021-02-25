@@ -33,26 +33,21 @@ void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
 }
 
 void fill_phase_pressure_arrays(const std::size_t n, const int np, X* p_states,
-                                int* p_rocktypes, double* p_pa,
-                                double* p_dpadS) {
+                                int* p_rocktypes, double* p_dpadS) {
    StateArray states{p_states, n};
    auto simulation = ComPASS::get_simulation();
    py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
-   // p^\alpha : phase pressure
-   py::array_t<double, py::array::c_style> pa{
-       {n, X::Model::np}, p_pa, simulation};
    py::array_t<double, py::array::c_style> dpadS{
        {n, X::Model::np}, p_dpadS, simulation};
-   py_fill_phase_pressure_arrays(states, rocktypes, pa, dpadS);
+   py_fill_phase_pressure_arrays(states, rocktypes, dpadS);
 }
 }
 
-Phase_vector phase_pressures(X& x) {
+void update_phase_pressures(X& x) {
+   using Phase_vector = X::Model::Phase_vector;
    int rt[1] = {1};
-   Phase_vector pa;
-   Phase_vector _;
-   fill_phase_pressure_arrays(1, X::Model::np, &x, rt, pa.data(), _.data());
-   return pa;
+   Phase_vector _;  // dummy vector to store derivatives
+   fill_phase_pressure_arrays(1, X::Model::np, &x, rt, _.data());
 }
 
 void add_petrophysics_pyinternals(py::module& module) {

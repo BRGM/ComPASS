@@ -36,10 +36,8 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+   subroutine DefFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
 
 #ifndef NDEBUG
       if (NbPhase /= 2) then
@@ -47,7 +45,7 @@ contains
       endif
 #endif
 
-      call DiphasicFlash_Flash_cv(inc, pa)
+      call DiphasicFlash_Flash_cv(inc)
       call DiphasicFlash_enforce_consistent_molar_fractions(inc)
 
    end subroutine DefFlash_Flash_cv

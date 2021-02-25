@@ -39,8 +39,7 @@ module Residu
       DensitemolaireKrViscoEnthalpieCell, &
       DensitemolaireKrViscoEnthalpieFrac, &
       DensitemolaireSatComp, &
-      DensitemolaireEnergieInterneSat, &
-      PhasePressureNode
+      DensitemolaireEnergieInterneSat
 
    use Physics, only: CpRoche, atm_comp, rain_flux
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
@@ -646,7 +645,7 @@ contains
 
             Pws = PerfoWellInj(s)%Pression ! P_{w,s}
             Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
-            Ps = PhasePressureNode(LIQUID_PHASE, nums) ! IncNode(nums)%Pression ! P_s DCQ-TODO: Add capilarry pressure for 2-phase
+            Ps = IncNode(nums)%phase_pressure(LIQUID_PHASE)
             Ts = IncNode(nums)%Temperature ! T_s
 
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID
@@ -722,7 +721,7 @@ contains
             WIDws = NodeDatabyWellProdLocal%Val(s)%WID
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-               Ps = PhasePressureNode(mph, nums) ! IncNode(nums)%Pression ! P_s
+               Ps = IncNode(nums)%phase_pressure(mph) ! IncNode(nums)%Pression ! P_s
                Ps_Pws = Ps - Pws
                if (Ps_Pws > 0.d0) then
                   something_is_produced = .true.

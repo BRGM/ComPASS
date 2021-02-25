@@ -57,10 +57,6 @@ module IncCVReservoir
       IncFracPreviousTimeStep, & !< Fracture Face unknowns for previous time step
       IncNodePreviousTimeStep !< Node unknowns for previous time step
 
-   real(c_double), allocatable, dimension(:, :), target, public :: &
-      PhasePressureAll
-   real(c_double), dimension(:, :), pointer, public :: &
-      PhasePressureCell, PhasePressureFrac, PhasePressureNode
    real(c_double), allocatable, dimension(:, :, :), target, public :: &
       divPhasePressureAll
    real(c_double), dimension(:, :, :), pointer, public :: &
@@ -142,11 +138,6 @@ contains
       IncFrac => IncAll(begin_frac:end_frac)
       IncCell => IncAll(begin_cell:end_cell)
 
-      allocate (PhasePressureAll(NbPhase, n))
-      PhasePressureNode => PhasePressureAll(:, begin_node:end_node)
-      PhasePressureFrac => PhasePressureAll(:, begin_frac:end_frac)
-      PhasePressureCell => PhasePressureAll(:, begin_cell:end_cell)
-
       allocate (divPhasePressureAll(NbIncTotalPrimMax, NbPhase, n))
       divPhasePressureNode => divPhasePressureAll(:, :, begin_node:end_node)
       divPhasePressureFrac => divPhasePressureAll(:, :, begin_frac:end_frac)
@@ -173,11 +164,6 @@ contains
 
       nullify (IncNode, IncFrac, IncCell)
       deallocate (IncAll)
-
-      nullify (PhasePressureNode)
-      nullify (PhasePressureFrac)
-      nullify (PhasePressureCell)
-      deallocate (PhasePressureAll)
 
       nullify (divPhasePressureNode)
       nullify (divPhasePressureFrac)
