@@ -139,7 +139,7 @@ contains
       integer :: k
       double precision :: rhoext, dP, dT, dC(NbComp)
 
-      rho = 0.d0 ! should be ok by Fortran standard (intent(out))
+      rho = 0.d0
 
       do k = 1, NbPhase
          if (phase_can_be_present(k, X1%ic)) then
