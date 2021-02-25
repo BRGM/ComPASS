@@ -5,6 +5,7 @@ struct IncCV {
    using Model = Model_type;
    typename Model::Context context;
    typename Model::Real p;
+   typename Model::Phase_vector pa;
    typename Model::Real T;
    typename Model::Phase_component_matrix C;
    typename Model::Phase_vector S;

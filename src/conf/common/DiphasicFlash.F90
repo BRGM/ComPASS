@@ -1,31 +1,33 @@
 
-     pure subroutine DiphasicFlash_component_fugacities(icp, inc, pa, fg, fl)
+     pure subroutine DiphasicFlash_component_fugacities(icp, inc, fg, fl)
         integer(c_int), intent(in) :: icp
         type(Type_IncCVReservoir), intent(inout) :: inc
-        real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
         real(c_double), intent(out) :: fg, fl
 
         real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
 
-        call f_Fugacity(icp, GAS_PHASE, pa(GAS_PHASE), inc%Temperature, inc%Comp(:, GAS_PHASE), fg, dPf, dTf, dCf)
-        call f_Fugacity(icp, LIQUID_PHASE, pa(LIQUID_PHASE), inc%Temperature, inc%Comp(:, LIQUID_PHASE), fl, dPf, dTf, dCf)
+        call f_Fugacity(icp, GAS_PHASE, inc%phase_pressure(GAS_PHASE), &
+                        inc%Temperature, inc%Comp(:, GAS_PHASE), fg, dPf, dTf, dCf)
+        call f_Fugacity(icp, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                        inc%Temperature, inc%Comp(:, LIQUID_PHASE), fl, dPf, dTf, dCf)
 
      end subroutine DiphasicFlash_component_fugacities
 
-     pure subroutine DiphasicFlash_liquid_to_diphasic(inc, pa)
+     pure subroutine DiphasicFlash_liquid_to_diphasic(inc)
         type(Type_IncCVReservoir), intent(inout) :: inc
-        real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
 
         real(c_double) :: f
         real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
         real(c_double) :: PgCag, PgCwg
 
-        call f_Fugacity(AIR_COMP, LIQUID_PHASE, pa(LIQUID_PHASE), inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
+        call f_Fugacity(AIR_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                        inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
         PgCag = f*inc%Comp(AIR_COMP, LIQUID_PHASE)
-        call f_Fugacity(WATER_COMP, LIQUID_PHASE, pa(LIQUID_PHASE), inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
+        call f_Fugacity(WATER_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                        inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
         PgCwg = f*inc%Comp(WATER_COMP, LIQUID_PHASE)
         ! WARNING: don't divide inequality by Pg (migth be negative during Newton iteration)
-        if (PgCag + PgCwg > pa(GAS_PHASE)) then
+        if (PgCag + PgCwg > inc%phase_pressure(GAS_PHASE)) then
            inc%ic = DIPHASIC_CONTEXT
            inc%Saturation(GAS_PHASE) = 0.d0
            inc%Saturation(LIQUID_PHASE) = 1.d0
@@ -33,16 +35,15 @@
 
      end subroutine DiphasicFlash_liquid_to_diphasic
 
-     pure subroutine DiphasicFlash_gas_to_diphasic(inc, pa)
+     pure subroutine DiphasicFlash_gas_to_diphasic(inc)
         type(Type_IncCVReservoir), intent(inout) :: inc
-        real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
 
         real(c_double) :: fg, fl
         real(c_double) :: Cla, Clw
 
-        call DiphasicFlash_component_fugacities(AIR_COMP, inc, pa, fg, fl)
+        call DiphasicFlash_component_fugacities(AIR_COMP, inc, fg, fl)
         Cla = (fg/fl)*inc%Comp(AIR_COMP, GAS_PHASE)
-        call DiphasicFlash_component_fugacities(WATER_COMP, inc, pa, fg, fl)
+        call DiphasicFlash_component_fugacities(WATER_COMP, inc, fg, fl)
         Clw = (fg/fl)*inc%Comp(WATER_COMP, GAS_PHASE)
         if (Cla + Clw > 1.d0) then ! Liquid appears
            inc%ic = DIPHASIC_CONTEXT
@@ -74,9 +75,8 @@
 !! Applied to IncNode, IncFrac and IncCell.
 !! \param[in]      porovol   porous Volume ?????
 !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-     pure subroutine DiphasicFlash_Flash_cv(inc, pa)
+     pure subroutine DiphasicFlash_Flash_cv(inc)
         type(Type_IncCVReservoir), intent(inout) :: inc
-        real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
 
         integer(c_int) :: context
 
@@ -84,7 +84,7 @@
 
         if (context == LIQUID_CONTEXT) then
 
-           call DiphasicFlash_liquid_to_diphasic(inc, pa)
+           call DiphasicFlash_liquid_to_diphasic(inc)
 
         elseif (context == DIPHASIC_CONTEXT) then
 
@@ -92,7 +92,7 @@
 
         elseif (context == GAS_CONTEXT) then
 
-           call DiphasicFlash_gas_to_diphasic(inc, pa)
+           call DiphasicFlash_gas_to_diphasic(inc)
 
         endif
 

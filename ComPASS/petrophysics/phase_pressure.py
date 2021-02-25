@@ -9,17 +9,9 @@
 import numpy as np
 
 # p^\alpha = pref + \Delta_{pref} where \Delta_{pref} = f(S^\alpha)
-def no_differences(states, rocktypes, pa, dpadS):
-    # A lot of assertions that may slow down things...
-    # assert rocktypes.ndim == 1
-    # assert pa.ndim == 2
-    # assert dpadS.ndim == 2
-    # assert states.size() == rocktypes.shape[0] == pa.shape[0] == dpadS.shape[0]
-    nb_phases = pa.shape[1]
-
-    p = states.p  # reference pressure
-    for alpha in range(nb_phases):
-        pa[:, alpha] = p
+def no_differences(states, rocktypes, dpadS):
+    # all phase pressures set to reference pressure
+    states.pa[:] = states.p[:, None]
     # assert np.all(dpadS == 0)
     # dpadS.fill(0)
 

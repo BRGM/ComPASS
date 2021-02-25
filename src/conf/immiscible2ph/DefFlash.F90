@@ -43,12 +43,10 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+   subroutine DefFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
 
-      integer :: context, iph
+      integer :: context
       double precision :: eps, pure_phase_molar_fraction(2, 2)
 
       eps = 1.d-18 ! 0 reference

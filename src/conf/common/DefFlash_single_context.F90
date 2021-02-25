@@ -27,10 +27,8 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+   subroutine DefFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
 
       inc%ic = ComPASS_SINGLE_CONTEXT
 

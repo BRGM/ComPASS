@@ -28,9 +28,7 @@ module IncPrimSecd
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
       IncCell, IncFrac, IncNode, &
-      PhasePressureNode, dPhasePressuredSNode, &
-      PhasePressureFrac, dPhasePressuredSFrac, &
-      PhasePressureCell, dPhasePressuredSCell
+      dPhasePressuredSNode, dPhasePressuredSFrac, dPhasePressuredSCell
    use MeshSchema, only: &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
@@ -93,7 +91,7 @@ contains
       !< cell
       call IncPrimSecd_compute_cv( &
          NbCellLocal_Ncpus(commRank + 1), &
-         IncCell, PhasePressureCell, dPhasePressuredSCell, &
+         IncCell, dPhasePressuredSCell, &
          dXssurdXpCell, SmdXsCell, &
          SmFCell, &
          NumIncTotalPrimCell, NumIncTotalSecondCell)
@@ -101,7 +99,7 @@ contains
       !< frac
       call IncPrimSecd_compute_cv( &
          NbFracLocal_Ncpus(commRank + 1), &
-         IncFrac, PhasePressureFrac, dPhasePressuredSFrac, &
+         IncFrac, dPhasePressuredSFrac, &
          dXssurdXpFrac, SmdXsFrac, &
          SmFFrac, &
          !
@@ -110,7 +108,7 @@ contains
       !< node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, PhasePressureNode, dPhasePressuredSNode, &
+         IncNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -125,13 +123,12 @@ contains
    !> \brief  all operations for a set of cv (cell/frac/node)
    subroutine IncPrimSecd_compute_cv( &
       NbIncLocal, &
-      inc, pa, dpadS, &
+      inc, dpadS, &
       dXssurdXp, SmdXs, SmF, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, &
       skip_cv)
       integer, intent(in) :: NbIncLocal
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal) ! phase pressure
       real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
       integer, intent(out) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
@@ -180,7 +177,7 @@ contains
 
          !< compute dF/dX
          !< dFsurdX: (col, row) index order
-         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), pa(:, k), dpadS(:, k), dFsurdX, SmF(:, k))
+         call IncPrimSecd_dFsurdX_cv(cv_info, inc(k), dpadS(:, k), dFsurdX, SmF(:, k))
 
          !< choose inconnues prim and secd
          call IncPrimSecd_ps_cv(cv_info, inc(k), dFsurdX, pschoice, &
@@ -201,7 +198,7 @@ contains
       ! node
       call IncPrimSecd_compute_cv( &
          NbNodeLocal_Ncpus(commRank + 1), &
-         IncNode, PhasePressureNode, dPhasePressuredSNode, &
+         IncNode, dPhasePressuredSNode, &
          dXssurdXpNode, SmdXsNode, &
          SmFNode, &
          !
@@ -220,10 +217,9 @@ contains
    !!      #ifdef _THERMIQUE_ dFsurdX(2,:)                         derivative Temperature
    !!      dFsurdX(2+IndThermique:NbEquilibre+IndThermique+1,:)    derivative Components
    !!      dFsurdX(NbIncPTC+1:NbIncPTC+NbPhasePresente+1, :)       derivative principal Saturations
-   subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, pa, dpadS, dFsurdX, SmF)
+   subroutine IncPrimSecd_dFsurdX_cv(cv_info, inc, dpadS, dFsurdX, SmF)
       type(ControlVolumeInfo), intent(in) :: cv_info
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      real(c_double), intent(in) :: pa(NbPhase)
       real(c_double), intent(in) :: dpadS(NbPhase)
       real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
       real(c_double), intent(out) :: SmF(NbEqFermetureMax)
@@ -276,8 +272,8 @@ contains
             numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
             ! fugacity and derivative
-            call f_Fugacity(icp, iph1, pa(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, dTf1, dCf1)
-            call f_Fugacity(icp, iph2, pa(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, dTf2, dCf2)
+            call f_Fugacity(icp, iph1, inc%phase_pressure(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, dTf1, dCf1)
+            call f_Fugacity(icp, iph2, inc%phase_pressure(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, dTf2, dCf2)
 
             ! derivative wrt reference pressure
             ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS

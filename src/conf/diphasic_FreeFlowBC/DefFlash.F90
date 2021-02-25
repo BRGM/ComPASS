@@ -39,10 +39,8 @@ contains
    !! \param[in]      porovol   porous Volume
    !! \param[in]      rt        rocktype
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   subroutine DefFlash_Flash_cv(inc, pa, dpadS)
+   subroutine DefFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
-      real(c_double), intent(in) :: pa(NbPhase) ! p^\alpha: phase pressure
-      real(c_double), intent(in) :: dpadS(NbPhase)
 
       integer :: iph, context, i
       double precision :: T, f(NbPhase)
@@ -62,7 +60,7 @@ contains
 
       if (context == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
 
-         call DiphasicFlash_gas_to_diphasic(inc, pa)
+         call DiphasicFlash_gas_to_diphasic(inc)
          if (inc%ic == DIPHASIC_CONTEXT) inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
 
       elseif (context == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
@@ -86,7 +84,7 @@ contains
 
       else
 
-         call DiphasicFlash_Flash_cv(inc, pa)
+         call DiphasicFlash_Flash_cv(inc)
 
       endif
 
