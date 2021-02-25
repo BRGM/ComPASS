@@ -18,8 +18,6 @@ namespace py = pybind11;
 py::function py_fill_kr_arrays;
 py::function py_fill_phase_pressure_arrays;
 
-extern "C" {
-
 void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
                     int* p_rocktypes, double* p_kr, double* p_dkrdS) {
    StateArray states{p_states, n};
@@ -40,7 +38,6 @@ void fill_phase_pressure_arrays(const std::size_t n, const int np, X* p_states,
    py::array_t<double, py::array::c_style> dpadS{
        {n, X::Model::np}, p_dpadS, simulation};
    py_fill_phase_pressure_arrays(states, rocktypes, dpadS);
-}
 }
 
 void update_phase_pressures(X& x) {
