@@ -31,14 +31,6 @@ void init_model() {}
 void finalize_model() {}
 
 template <int PHASE>
-inline auto saturate_phase() {
-   auto S = std::array<double, NP>{};  // zero initialization
-   S[PHASE] = 1;
-   assert(std::accumulate(begin(S), end(S), 0) == 1);
-   return S;
-}
-
-template <int PHASE>
 inline double phase_molar_density(double p, double T) {
    double xsi, dxsidp, dxsidT;
    double C[NC] = {1};
