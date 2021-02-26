@@ -1,42 +1,21 @@
 #include <pybind11/numpy.h>
 
+#include "DefModel.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
+#include "Thermodynamics.h"
 
 static_assert(X::Model::np == 2, "Wrong numpber of phases.");
 static_assert(X::Model::nc == 2, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 6, "Wrong number of contexts.");
-
-enum struct Component {
-   air = ComPASS_AIR_COMPONENT,
-   water = ComPASS_WATER_COMPONENT
-};
-
-enum struct Phase { gas = ComPASS_GAS_PHASE, liquid = ComPASS_LIQUID_PHASE };
 
 // FIXME: assuming liquid phase is the latest phase
 // FIXME: cpp starts at 0 where fortran at 1
 static_assert(static_cast<int>(Phase::gas) == 1, "Wrong gas phase id.");
 static_assert(static_cast<int>(Phase::liquid) == 2, "Wrong liquid phase id.");
 
-enum struct Context {
-   gas = ComPASS_GAS_CONTEXT,
-   liquid = ComPASS_LIQUID_CONTEXT,
-   diphasic = ComPASS_DIPHASIC_CONTEXT,
-   gas_FF_no_liq_outflow = ComPASS_GAS_FF_NO_LIQ_OUTFLOW_CONTEXT,
-   diphasic_FF_no_liq_outflow = ComPASS_DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT,
-   diphasic_FF_liq_outflow = ComPASS_DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
-};
-
 // Fortran functions
 extern "C" {
-void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       double &, double &, double &, double *);
-void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        double &, double &, double &, double *);
-void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           double &, double &, double &,
-                                           double *);
 void FluidThermodynamics_Psat(double, double &, double &);
 void FluidThermodynamics_Tsat(double, double &, double &);
 }

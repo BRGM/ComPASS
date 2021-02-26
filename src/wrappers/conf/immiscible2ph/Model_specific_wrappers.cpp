@@ -1,6 +1,8 @@
 #include <pybind11/numpy.h>
 
+#include "DefModel.h"
 #include "Model_wrappers.h"
+#include "Thermodynamics.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
@@ -8,35 +10,9 @@ static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 2, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
 
-enum struct Component {
-   air = ComPASS_AIR_COMPONENT,
-   water = ComPASS_WATER_COMPONENT
-};
-
-enum struct Phase { gas = ComPASS_GAS_PHASE, liquid = ComPASS_LIQUID_PHASE };
-
-enum struct Context {
-   gas = ComPASS_GAS_CONTEXT,
-   liquid = ComPASS_LIQUID_CONTEXT,
-   diphasic = ComPASS_DIPHASIC_CONTEXT
-};
-
 // FIXME: assuming liquid phase is the latest phase
 constexpr int GAS_PHASE = 0;
 constexpr int LIQUID_PHASE = 1;
-
-// Fortran functions
-extern "C" {
-void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       double &, double &, double &, double *);
-void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        double &, double &, double &, double *);
-void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           double &, double &, double &,
-                                           double *);
-void FluidThermodynamics_Psat(double, double &, double &);
-void FluidThermodynamics_Tsat(double, double &, double &);
-}
 
 void init_model() {}
 
