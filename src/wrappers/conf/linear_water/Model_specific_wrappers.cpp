@@ -23,14 +23,12 @@ struct Fluid_properties {
 extern "C" {
 Fluid_properties *get_fluid_properties();
 void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       const double *, double &, double &,
-                                       double &, double *, double *);
+                                       double &, double &, double &, double *);
 void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        const double *, double &, double &,
-                                        double &, double *, double *);
+                                        double &, double &, double &, double *);
 void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           const double *, double &, double &,
-                                           double &, double *, double *);
+                                           double &, double &, double &,
+                                           double *);
 }
 
 void init_model() {
@@ -54,10 +52,8 @@ inline double call_physical_function(Function function, double p, double T) {
    static_assert(NP == 1, "we assume there is only one phase");
    double f, dfdp, dfdT;
    double C[NC] = {1};
-   double S[NP] = {1};
    double dfdC[NC] = {0};
-   double dfdS[NP] = {0};
-   function(1, f, T, C, S, f, dfdp, dfdT, dfdC, dfdS);
+   function(1, f, T, C, f, dfdp, dfdT, dfdC);
    return f;
 }
 

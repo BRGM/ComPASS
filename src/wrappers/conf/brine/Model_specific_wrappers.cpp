@@ -27,14 +27,12 @@ enum struct Context { single_context = ComPASS_SINGLE_CONTEXT };
 // Fortran functions
 extern "C" {
 void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       const double *, double &, double &,
-                                       double &, double *, double *);
+                                       double &, double &, double &, double *);
 void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        const double *, double &, double &,
-                                        double &, double *, double *);
+                                        double &, double &, double &, double *);
 void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           const double *, double &, double &,
-                                           double &, double *, double *);
+                                           double &, double &, double &,
+                                           double *);
 }
 
 using fluid_property = decltype(FluidThermodynamics_molar_density);
@@ -77,9 +75,8 @@ inline double compute_property(fluid_property f, double p, double T,
    auto state = build_state(p, T, Cs);
    X::Model::Phase_component_matrix dpropdC;
    X::Model::Phase_vector dpropdS;
-   f(ComPASS_SINGLE_PHASE, state.p, state.T, state.C.data()->data(),
-     state.S.data(), prop, dpropdp, dpropdT, dpropdC.data()->data(),
-     dpropdS.data());
+   f(ComPASS_SINGLE_PHASE, state.p, state.T, state.C.data()->data(), prop,
+     dpropdp, dpropdT, dpropdC.data()->data());
    return prop;
 }
 
