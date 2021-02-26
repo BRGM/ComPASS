@@ -1,13 +1,9 @@
 #include <pybind11/numpy.h>
 
+#include "DefModel.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
-
-enum struct Component { single_component = ComPASS_SINGLE_COMPONENT };
-
-enum struct Phase { single_phase = ComPASS_SINGLE_PHASE };
-
-enum struct Context { single_context = ComPASS_SINGLE_CONTEXT };
+#include "Thermodynamics.h"
 
 struct Fluid_properties {
    double specific_mass;
@@ -22,13 +18,6 @@ struct Fluid_properties {
 // Fortran functions
 extern "C" {
 Fluid_properties *get_fluid_properties();
-void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       double &, double &, double &, double *);
-void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        double &, double &, double &, double *);
-void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           double &, double &, double &,
-                                           double *);
 }
 
 void init_model() {

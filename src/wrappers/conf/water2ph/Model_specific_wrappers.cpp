@@ -2,29 +2,23 @@
 
 #include <array>
 
-#include "../common/enum_to_rank.h"
-#include "../common/fortran_thermodynamics.h"
+#include "DefModel.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
+#include "Thermodynamics.h"
+#include "enum_to_rank.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+static_assert(NP == X::Model::np, "Wrong numpber of phases.");
+static_assert(NC == X::Model::nc, "Wrong numpber of components.");
 static_assert(NP == 2, "Wrong numpber of phases.");
 static_assert(NC == 1, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
+
 // FIXME: assuming liquid phase is the latest phase
 constexpr int GAS_PHASE = 0;  // FIXME: cpp starts at 0 where fortran at 1
 constexpr int LIQUID_PHASE = 1;
-
-enum struct Component { water = ComPASS_SINGLE_COMPONENT };
-
-enum struct Phase { gas = ComPASS_GAS_PHASE, liquid = ComPASS_LIQUID_PHASE };
-
-enum struct Context {
-   gas = ComPASS_GAS_CONTEXT,
-   liquid = ComPASS_LIQUID_CONTEXT,
-   diphasic = ComPASS_DIPHASIC_CONTEXT
-};
 
 void init_model() {}
 

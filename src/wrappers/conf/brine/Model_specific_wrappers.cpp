@@ -3,9 +3,11 @@
 #include <array>
 #include <string>
 
-#include "../common/enum_to_rank.h"
+#include "DefModel.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
+#include "Thermodynamics.h"
+#include "enum_to_rank.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
@@ -14,26 +16,6 @@ static_assert(NC == 2, "Wrong numpber of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 1, "Wrong number of contexts.");
 // FIXME: assuming liquid phase is the latest phase
 constexpr int LIQUID_PHASE = 0;
-
-enum struct Component {
-   water = ComPASS_WATER_COMPONENT,
-   salt = ComPASS_SALT_COMPONENT
-};
-
-enum struct Phase { single_phase = ComPASS_SINGLE_PHASE };
-
-enum struct Context { single_context = ComPASS_SINGLE_CONTEXT };
-
-// Fortran functions
-extern "C" {
-void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       double &, double &, double &, double *);
-void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        double &, double &, double &, double *);
-void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           double &, double &, double &,
-                                           double *);
-}
 
 using fluid_property = decltype(FluidThermodynamics_molar_density);
 
