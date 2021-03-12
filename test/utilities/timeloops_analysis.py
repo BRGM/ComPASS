@@ -48,7 +48,7 @@ def timeloop_analysis(directory):
     nb_good = int(data[-1, 3])
     nb_failed = int(data[-1, 4])
     print(
-        f"Newon iterations: {nb_failed} failed out of {nb_good + nb_failed} "
+        f"Newton iterations: {nb_failed} failed out of {nb_good + nb_failed} "
         f"({nb_good} = {100*(nb_good/(nb_good + nb_failed)):.0f}% succeeded)"
     )
 
