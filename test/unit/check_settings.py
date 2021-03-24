@@ -81,6 +81,11 @@ celldata.update(
     tensor_coordinates(petrophysics.cell_permeability, "k", diagonal_only=True)
 )
 celldata.update(
+    tensor_coordinates(
+        petrophysics.cell_permeability, "k"
+    )  # write whole array as a tensor array
+)
+celldata.update(
     tensor_coordinates(petrophysics.cell_thermal_conductivity, "K", diagonal_only=True)
 )
 io.write_mesh(simulation, "simulation_mesh", pointdata=pointdata, celldata=celldata)

@@ -51,10 +51,15 @@ def tensor_coordinates(tensor, name, diagonal_only=False):
         return {
             f"{name}{si}{si}": tensor[..., i, i] for i, si in enumerate("xyz"[:dim])
         }
-    return {
-        f"{name}{si}{sj}": tensor[..., i, j]
-        for (i, si), (j, sj) in product(enumerate("xyz"[:dim]), enumerate("xyz"[:dim]))
-    }
+    # intended to be written to vtu as an array with numberofcomponents = 9
+    # can be visualized in paraview with the following procedure
+    # - create a Cell Centers filter as a child of the whole grid or a filter thereof
+    # - create a Tensor Glyph filter as child of the Cell Centers
+    # - in the Tensor Glyph filter's properties, select the property among the Tensors chooser
+    # - adjust radius
+    if tensor.ndim == 3:
+        tensor = tensor.reshape([tensor.shape[0], tensor.shape[1] * tensor.shape[2]])
+    return {name: tensor}
 
 
 def _reload(simulation, snapshot, old_style):
