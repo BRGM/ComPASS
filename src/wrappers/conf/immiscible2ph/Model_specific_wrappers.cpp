@@ -1,8 +1,11 @@
 #include <pybind11/numpy.h>
 
 #include "DefModel.h"
+#include "LoisThermoHydro.h"
 #include "Model_wrappers.h"
+#include "StateObjects.h"
 #include "Thermodynamics.h"
+#include "enum_to_rank.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
@@ -115,4 +118,103 @@ void add_specific_model_wrappers(py::module &module) {
    py::enum_<Phase>(module, "Phase")
        .value("gas", Phase::gas)
        .value("liquid", Phase::liquid);
+
+   module.def(
+       "build_state",
+       [](py::object context, py::object p, py::object T, py::object Sg) {
+          constexpr auto gas = enum_to_rank(Phase::gas);
+          constexpr auto liquid = enum_to_rank(Phase::liquid);
+          constexpr auto air = enum_to_rank(Component::air);
+          constexpr auto water = enum_to_rank(Component::water);
+
+          auto set_gas_state = [&](X &state) {
+             if (p.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide pressure for gas state.");
+             if (T.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide temperature for gas state.");
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for gas state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[gas] = 1;
+          };
+
+          auto set_liquid_state = [&](X &state) {
+             if (p.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide pressure for liquid state.");
+             if (T.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide temperature for liquid state.");
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for liquid state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[liquid] = 1;
+          };
+
+          auto set_diphasic_state = [&](X &state) {
+             if (p.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide pressure for diphasic state.");
+             if (T.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide temperature for diphasic state.");
+             if (Sg.is_none())
+                throw std::runtime_error(
+                    "You need to provide gas saturation for diphasic states.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             const double S = Sg.cast<double>();
+             state.S[gas] = S;
+             state.S[liquid] = 1. - S;
+          };
+
+          auto set_molar_fractions = [&](X &state) {
+             state.C[gas].fill(0);
+             state.C[liquid].fill(0);
+             state.C[gas][air] = 1;
+             state.C[liquid][water] = 1;
+          };
+
+          Context context_value = context.cast<Context>();
+          X result;
+          result.context = static_cast<int>(context_value);
+          switch (context_value) {
+             case Context::gas:
+                set_gas_state(result);
+                break;
+             case Context::liquid:
+                set_liquid_state(result);
+                break;
+             case Context::diphasic:
+                set_diphasic_state(result);
+                break;
+             default:
+                throw std::runtime_error("Requested context does not exist!");
+          }
+          set_molar_fractions(result);
+          update_phase_pressures(result);
+          return result;
+       },
+       py::arg("context").none(false), py::arg("p") = py::none{},
+       py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
+       R"doc(
+Construct a state given a specific context and physical parameters.
+
+Parameters
+----------
+
+:param context: context (i.e. liquid, gas or diphasic)
+:param p: pressure
+:param T: temperature
+:param Sg: gaz phase saturation
+
+)doc");
 }
