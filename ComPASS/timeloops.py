@@ -135,6 +135,7 @@ def standard_loop(
     well_connections=None,
     no_output=False,
     timeloop_statistics=True,
+    respect_final_time=True,
 ):
     """
     Performs a standard timeloop.
@@ -177,6 +178,7 @@ def standard_loop(
     :param well_connections: Well connections to be synchronized at the end of each time loop.
                              It must be a :py:class:`WellDataConnections` (defaults to simulation.well_connections).
     :param no_output: Flag that will prevent any output (defaults to False)
+    :param respect_final_time: Flag to adapt the final timestep to respect final time (defaults to False).
     :return: The time at the end of the time loop.
     """
     # FIXME: horrible global variables... to be removed... using OOP?
@@ -314,7 +316,7 @@ def standard_loop(
         dt_to_next_event = None
         if len(events) > 0:
             dt_to_next_event = events[0].time - t
-        if final_time is not None:
+        if final_time is not None and respect_final_time:
             if dt_to_next_event is None:
                 dt_to_next_event = final_time - t
             else:
