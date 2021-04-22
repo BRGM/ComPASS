@@ -333,7 +333,7 @@ contains
 
    end subroutine Residu_AccVol
 
-   subroutine Residu_add_flux_contributions
+   subroutine Residu_add_flux_contributions_reservoir
 
       integer :: k, s, fs, fk, nums, m, mph, icp
       integer :: NbNodeCell, NbFracCell, NbNodeFrac
@@ -582,6 +582,12 @@ contains
          end do ! end of node s in frac k
 
       end do ! end of frac k
+
+   end subroutine Residu_add_flux_contributions_reservoir
+
+   subroutine Residu_add_flux_contributions
+
+      call Residu_add_flux_contributions_reservoir
 
       call Residu_add_flux_contributions_wells
 
