@@ -312,7 +312,6 @@ contains
                PerfoWellInj(s)%Pression = Pw_head
             else ! explicit computation
                PerfoWellInj(s)%Pression = Pw_head + PerfoWellInj(s)%PressureDrop
-
             end if
          end do
       end do
