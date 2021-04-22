@@ -31,7 +31,8 @@ contains
    !! and the mean density.
    !! The well pressure and the pressure drop are taken from
    !! the previous Newton iteration and the previous time step respectively.
-   subroutine DefWellFlash_TimeFlashWellProd
+   subroutine DefWellFlash_TimeFlashWellProd() &
+      bind(C, name="DefWellFlash_TimeFlashWellProd")
 
       double precision :: T, ResT, Pws, Ci(NbComp), sumni, E
       double precision :: rhoMean

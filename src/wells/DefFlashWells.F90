@@ -66,7 +66,6 @@ module DefFlashWells
       IndThermique, NbPhase, NbComp, LIQUID_PHASE, GAS_PHASE, MCP, &
       NumPhasePresente_ctx, NbPhasePresente_ctx
    use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
-   use DefWellFlash, only: DefWellFlash_TimeFlashWellProd
 #endif
    implicit none
 
@@ -94,7 +93,7 @@ module DefFlashWells
    public :: &
       DefFlashWells_allocate, & ! Allocation, initialization and deallocation (in NN.F90)
       DefFlashWells_NewtonFlashLinWells, & ! Flash after each Newton iteration
-      DefFlashWells_TimeFlash, & ! Flash after each time step
+      DefFlashWells_TimeFlash_injectors, & ! Flash after each time step
       DefFlashWells_free
 
    private :: &
@@ -114,13 +113,11 @@ contains
 
    end subroutine DefFlashWells_NewtonFlashLinWells
 
-   !> \brief Main surboutine, after each time iteration
-   subroutine DefFlashWells_TimeFlash() &
-      bind(C, name="DefFlashWells_TimeFlash")
+   !> \brief Main subourtine, after each time iteration
+   subroutine DefFlashWells_TimeFlash_injectors() &
+      bind(C, name="DefFlashWells_TimeFlash_injectors")
 
       integer :: num_Well
-
-      call DefWellFlash_TimeFlashWellProd
 
       ! compute
       do num_Well = 1, NbWellInjLocal_Ncpus(commRank + 1)
@@ -128,7 +125,7 @@ contains
          ! print*, "head ", headmolarFluxInj(num_Well)
       end do
 
-   end subroutine DefFlashWells_TimeFlash
+   end subroutine DefFlashWells_TimeFlash_injectors
 
    !> Allocate global vectors used only in this file
    subroutine DefFlashWells_allocate
