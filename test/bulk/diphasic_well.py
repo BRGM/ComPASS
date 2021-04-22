@@ -62,6 +62,7 @@ simulation.init(
     cell_porosity=omega,
     cell_permeability=permeability,
     cell_thermal_conductivity=K,
+    well_model="two_phases",
 )
 
 Ttop = simulation.Tsat(ptop) - Teps

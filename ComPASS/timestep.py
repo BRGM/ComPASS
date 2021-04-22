@@ -62,7 +62,7 @@ def try_timestep(
 
 
 def make_one_timestep(
-    newton, timesteps, simulation_context=None,
+    simulation, newton, timesteps, simulation_context=None,
 ):
     attempts = []
     for deltat in timesteps:
@@ -77,7 +77,13 @@ def make_one_timestep(
         raise AllAttemptsFailed(attempts)
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
-    kernel.DefWellFlash_TimeFlashWellProd()
+    # FIXME: we should be able to have no well model at all
+    #        (when there are no wells)
+    if simulation.well_model == "single_phase":
+        kernel.DefFlashWells_TimeFlash_producers_single_phase()
+    else:
+        assert simulation.well_model == "two_phases"
+        kernel.DefFlashWells_TimeFlash_producers_two_phases()
     kernel.DefFlashWells_TimeFlash_injectors()
     kernel.IncCVWells_UpdatePressureDrop()
 

@@ -53,6 +53,7 @@ def init(
     set_global_rocktype=None,
     mesh_parts=None,
     use_Kway_part_graph=False,
+    well_model="single_phase",
     **kwargs,
 ):
     """
@@ -105,6 +106,7 @@ def init(
         to nodes for the discretisation of the temperature gradient (Fourier law)
     :param fracture_omega_Fourier: the fracture volume proportion that is distributed
         to nodes for the discretisation of the temperature gradient (Fourier law)
+    :param well_model: the well model to be used (can be "single_phase" (default) or "two_phases")
     """
     kernel = get_kernel()
     # FIXME: should be passed as argument
@@ -224,6 +226,7 @@ def init(
     mpi.synchronize()  # wait for every process to synchronize
     simulation.set_kr_functions()
     simulation.set_phase_pressure_functions()
+    simulation.set_well_model(well_model)
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
     atexit.register(_exit_eos_and_finalize)

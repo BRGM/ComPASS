@@ -22,7 +22,6 @@
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
-import ComPASS.timestep as timestep
 from ComPASS.simulation_context import SimulationContext
 from ComPASS.linalg.factory import linear_solver
 from scipy.optimize import newton_krylov
@@ -160,7 +159,7 @@ def clear_source_term():
 #%%---------------------------------------------------------
 
 
-def make_one_timestep(t, dt, cTold, c1old):
+def make_one_timestep(simulation, t, dt, cTold, c1old):
 
     ts_manager = FixedTimeStep(dt)
     # For this specific script the linear solver legacy version is deactivated.
@@ -174,7 +173,7 @@ def make_one_timestep(t, dt, cTold, c1old):
     set_injection("cT")
     clear_source_term()
 
-    timestep.make_one_timestep(newton, ts_manager.steps(), simulation_context=context)
+    simulation.make_one_timestep(newton, ts_manager.steps(), simulation_context=context)
 
     cTnew = retrieve_concentrations()
 
@@ -190,7 +189,7 @@ def make_one_timestep(t, dt, cTold, c1old):
         set_injection("c1")
         set_source_term((freac(cprev, cTnew) - fc1old) / dt)
 
-        timestep.make_one_timestep(
+        simulation.make_one_timestep(
             newton, ts_manager.steps(), simulation_context=context
         )
         return retrieve_concentrations()
@@ -242,7 +241,7 @@ c1old = np.tile(c1_init, nbDofs)
 while t < final_time:
     print("===== Doing time ", t)
 
-    cTnew, c1new = make_one_timestep(t, dt, cTold, c1old)
+    cTnew, c1new = make_one_timestep(simulation, t, dt, cTold, c1old)
     plot_1D_concentrations(t, cTnew, c1new)
     t = t + dt
     cTold = cTnew

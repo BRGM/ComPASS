@@ -135,9 +135,7 @@ foreach(_src ${ComPASSFreeFlow_SRCS})
 endforeach()
 set(ComPASSFreeFlow_SRCS ${_tmp})
 
-set(CONF_SRCS DefFlash.F90 DefModel.F90 DefWellFlash.F90 Equilibriums.cpp
-              Thermodynamics.F90
-)
+set(CONF_SRCS DefFlash.F90 DefModel.F90 Equilibriums.cpp Thermodynamics.F90)
 
 # set( WRAPPERS_CORE_SRCS MeshSchema_wrappers.F90 MeshUtilities_wrappers.cpp
 # NN_wrappers.cpp NN_wrappers.F90 )
