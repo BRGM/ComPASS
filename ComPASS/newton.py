@@ -93,7 +93,7 @@ class Newton:
         kernel.DirichletContribution_update()
         # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)
         kernel.LoisThermoHydro_compute_phase_pressures()
-        # Update only Well Pressures (Well pressure drops are keep constant here)
+        # Update only Well Pressures (well pressure drops are kept constant here)
         kernel.IncCVWells_UpdateWellPressures()
         #        mpi.master_print('init iteration - compute thermo')
         # Update local jacobian contributions (closure laws)
