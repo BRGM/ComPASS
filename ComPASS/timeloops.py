@@ -330,6 +330,7 @@ def standard_loop(
         mpi.synchronize()
         newton_cpu_start_time = process_time()
         dt = timestep.make_one_timestep(
+            simulation,
             newton,
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,

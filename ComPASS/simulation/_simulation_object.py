@@ -29,6 +29,7 @@ class SimmulationBase:
         self.mesh_is_local = False
         self.well_data_provider = well_data_provider
         self.well_connections = WellDataConnections()
+        self.well_model = None
         self.scheme = None
 
     def add_well_connections(self, well_pairs=None, proc_requests=None):

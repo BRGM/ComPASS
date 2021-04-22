@@ -12,6 +12,7 @@ from .. import mpi
 from ..timeloops import Event
 from ..mpi import master_print
 from ..dump_wells import _wells_info
+from ..exceptions import CompassException
 
 
 def create_well_from_segments(simulation, segments, well_radius=None):
@@ -353,3 +354,11 @@ def close_perforations(simulation, wid, above=None, below=None):
         close_perfs(z <= float(below))
     if above is None and below is None:
         close_perfs(np.ones(z.shape, dtype=np.bool))
+
+
+def set_well_model(simulation, well_model):
+    if simulation.well_model is not None:
+        raise CompassException("You cannot change well model at runtime.")
+    if not (well_model == "single_phase" or well_model == "two_phases"):
+        raise CompassException("Well model must be single_phase or two_phases.")
+    simulation.well_model = well_model

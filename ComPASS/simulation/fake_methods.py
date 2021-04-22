@@ -1,5 +1,7 @@
 from ..timeloops import standard_loop
 
+from ..timestep import make_one_timestep
+
 from ..wells.wells import (
     create_well_from_segments,
     create_single_branch_well,
@@ -13,6 +15,7 @@ from ..wells.wells import (
     well_production_history,
     well_injection_history,
     close_perforations,
+    set_well_model,
 )
 
 from ..utils.grid import (
