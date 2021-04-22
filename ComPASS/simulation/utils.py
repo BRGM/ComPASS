@@ -1,10 +1,11 @@
 """ simulation utils : "pure" functions
 """
 
-
+import re
 import numpy as np
 from .. import mpi
 from ..postprocess import postprocess as postprocess_command
+from ..exceptions import CompassException
 
 
 def reshape_as_scalar_array(value, n):
@@ -90,3 +91,12 @@ def postprocess(
             collect_wells=collect_wells,
             collect_states=collect_states,
         )
+
+
+def eos_name(simulation):
+    kernel = simulation.get_kernel()
+    m = re.match("ComPASS\.eos\.(\w*)", kernel.__name__)
+    if not m:
+        raise CompassException("Not a valid ComPASS eos!")
+    assert len(m.groups()) == 1
+    return m.groups()[0]
