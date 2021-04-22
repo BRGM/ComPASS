@@ -77,7 +77,8 @@ def make_one_timestep(
         raise AllAttemptsFailed(attempts)
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
-    kernel.DefFlashWells_TimeFlash()
+    kernel.DefWellFlash_TimeFlashWellProd()
+    kernel.DefFlashWells_TimeFlash_injectors()
     kernel.IncCVWells_UpdatePressureDrop()
 
     return deltat

@@ -44,7 +44,8 @@ void Jacobian_ComputeJacSm(double);
 void Jacobian_GetSolCell(NewtonIncrements::Pointers<double>);
 void IncPrimSecd_PrimToSecd(NewtonIncrements::Pointers<double>);
 void NN_flash_all_control_volumes();
-void DefFlashWells_TimeFlash();
+void DefWellFlash_TimeFlashWellProd();
+void DefFlashWells_TimeFlash_injectors();
 void pass_and_dump_array(double*, std::size_t*);
 }
 
@@ -79,7 +80,10 @@ void add_time_loop_wrappers(py::module& module) {
               &Residu_RelativeNorm_local_closure);
    module.def("Jacobian_ComputeJacSm", &Jacobian_ComputeJacSm);
    module.def("NN_flash_all_control_volumes", &NN_flash_all_control_volumes);
-   module.def("DefFlashWells_TimeFlash", &DefFlashWells_TimeFlash);
+   module.def("DefWellFlash_TimeFlashWellProd",
+              &DefWellFlash_TimeFlashWellProd);
+   module.def("DefFlashWells_TimeFlash_injectors",
+              &DefFlashWells_TimeFlash_injectors);
 
    auto as_primary_array = [](std::vector<double>& v) {
       auto res = py::array_t<double, py::array::c_style>{v.size(), v.data()};

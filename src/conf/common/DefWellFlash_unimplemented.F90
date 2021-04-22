@@ -17,7 +17,8 @@ module DefWellFlash
 
 contains
 
-   subroutine DefWellFlash_TimeFlashWellProd
+   subroutine DefWellFlash_TimeFlashWellProd() &
+      bind(C, name="DefWellFlash_TimeFlashWellProd")
 
       integer :: nWell
 
