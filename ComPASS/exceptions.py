@@ -6,5 +6,9 @@
 #
 
 
+class CompassException(Exception):
+    pass
+
+
 class SanityCheckFailure(Exception):
     pass
