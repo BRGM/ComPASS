@@ -459,7 +459,7 @@ contains
          if (IdNodeLocal(s)%P == "d") then
             ! Identity matrix for Darcy
 #ifndef NDEBUG
-            if (.not. all(JacBigA%Val(1:NbComp, 1:NbComp, nz) == 0.d0)) then
+            if (.not. all(JacBigA%Val(:, 1:NbComp, nz) == 0.d0)) then
                call CommonMPI_abort( &
                   "inconsitent initial value of jacobian diagonal block "// &
                   "for Darcy dirichlet conditions before filling")
@@ -474,7 +474,7 @@ contains
          if (IdNodeLocal(s)%T == "d") then
             ! Identity for Fourier
 #ifndef NDEBUG
-            if (.not. (all(JacBigA%Val(NbComp + 1, :, nz) == 0.d0) .and. all(JacBigA%Val(:, NbComp + 1, nz) == 0.d0))) then
+            if (.not. all(JacBigA%Val(:, NbComp + 1, nz) == 0.d0)) then
                call CommonMPI_abort( &
                   "inconsitent initial value of jacobian diagonal block "// &
                   "for Fourier dirichlet conditions before filling")
