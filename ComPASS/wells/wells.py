@@ -180,10 +180,6 @@ def close_well(simulation, wid):
     """
     data = get_well_data(simulation, wid)
     if data is not None:
-        # FIXME: to be generalized
-        assert (
-            data.operating_code in "cf"
-        ), f"Only wells operating on flowrate can be closed (found operating code {data.operating_code})."
         data.close()
 
 
