@@ -11,6 +11,7 @@ module IncCVWells
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
    use iso_c_binding
    use mpi
+   use CommonType
    use CommonMPI
    use DefModel
    use Physics
@@ -22,6 +23,7 @@ module IncCVWells
    use iso_c_binding
    use ieee_arithmetic
    use mpi, only: MPI_Abort
+   use CommonType, only: CSR
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
    use DefModel, only: NbComp, NbPhase, LIQUID_PHASE
@@ -80,8 +82,6 @@ module IncCVWells
       IncCVWells_PressureDropWellInj, &
       IncCVWells_estimate_producers_density, &
       IncCVWells_UpdatePressureDrop, &
-      IncCVWells_UpdateProdWellPressures, &
-      IncCVWells_UpdateInjWellPressures, &
       IncCVWells_UpdateWellPressures, &
       IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, &
@@ -301,54 +301,48 @@ contains
 
    end subroutine IncCVWells_UpdatePressureDrop
 
-   !   !> \brief Update well Pressures of injection well,
-   subroutine IncCVWells_UpdateInjWellPressures
-      integer :: s, k, nbwells
-      double precision :: Pw_head
-
-      nbwells = NbWellInjLocal_Ncpus(commRank + 1)
-      do k = 1, nbwells
-         Pw_head = IncPressionWellInj(k)
-         ! looping from head to queue
-         do s = NodebyWellInjLocal%Pt(k + 1), NodebyWellInjLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
-            if (s == NodebyWellInjLocal%Pt(k + 1)) then ! head node, P = Pw
-               PerfoWellInj(s)%Pression = Pw_head
-            else ! explicit computation
-               PerfoWellInj(s)%Pression = Pw_head + PerfoWellInj(s)%PressureDrop
-            end if
-         end do
-      end do
-   end subroutine IncCVWells_UpdateInjWellPressures
-
-   !> \brief Update  well pressures of producer well
-   subroutine IncCVWells_UpdateProdWellPressures
-
-      integer :: s, k, nbwells
-      double precision :: Pw_head
-
-      nbwells = NbWellProdLocal_Ncpus(commRank + 1)
-      do k = 1, nbwells
-         Pw_head = IncPressionWellProd(k)
-         ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
-            if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
-               PerfoWellProd(s)%Pression = Pw_head
-            else ! explicit computation
-               PerfoWellProd(s)%Pression = Pw_head + PerfoWellProd(s)%PressureDrop
-
-            end if
-         end do
-      end do
-   end subroutine IncCVWells_UpdateProdWellPressures
-
    !> \brief Update  only the  pressures of all wells, while the well pressures drops are kept constant.
    subroutine IncCVWells_UpdateWellPressures() &
       bind(C, name="IncCVWells_UpdateWellPressures")
 
-      call IncCVWells_UpdateInjWellPressures
-      call IncCVWells_UpdateProdWellPressures
+      call IncCVWells_UpdateWellPressures_loop(NodebyWellInjLocal, IncPressionWellInj, PerfoWellInj)
+      call IncCVWells_UpdateWellPressures_loop(NodebyWellProdLocal, IncPressionWellProd, PerfoWellProd)
 
    end subroutine IncCVWells_UpdateWellPressures
+
+   !> \brief Update well pressures actual loop implementation
+   subroutine IncCVWells_UpdateWellPressures_loop(wellnodes, reference_pressure, perforations)
+      type(CSR), intent(in) :: wellnodes
+      real(c_double), dimension(:), intent(in) :: reference_pressure
+      type(WellPerforationState_type), dimension(:), intent(inout) :: perforations
+
+      integer :: k, nbwells, s, s_head
+      double precision :: Pw_head
+
+      nbwells = wellnodes%Nb
+#ifndef NDEBUG
+      if (size(reference_pressure) /= nbwells) &
+         call CommonMPI_abort("Inconsistent well data.")
+#endif
+      do k = 1, nbwells
+         s_head = wellnodes%Pt(k + 1)
+         if (wellnodes%Pt(k) < s_head) then
+#ifndef NDEBUG
+            if (abs(perforations(s_head)%PressureDrop) > 0.d0) &
+               call CommonMPI_abort("There should be no pressure drop at well head.")
+#endif
+            Pw_head = reference_pressure(k)
+            do s = s_head, wellnodes%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
+               perforations(s)%Pression = Pw_head + perforations(s)%PressureDrop
+            end do
+#ifndef NDEBUG
+         else
+            call CommonMPI_abort("Well without nodes.")
+#endif
+         endif
+      end do
+
+   end subroutine IncCVWells_UpdateWellPressures_loop
 
    !> \brief Allocate well unknowns vectors
    subroutine IncCVWells_allocate() &
