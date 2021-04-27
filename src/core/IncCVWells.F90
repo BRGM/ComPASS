@@ -221,11 +221,6 @@ contains
 
          end do
 
-         ! recompute pressure
-         do s = NodebyWellProdLocal%Pt(k) + 1, NodebyWellProdLocal%Pt(k + 1)
-            PerfoWellProd(s)%Pression = IncPressionWellProd(k) + PerfoWellProd(s)%PressureDrop
-         end do
-
       end do
 
    end subroutine IncCVWells_PressureDropWellProd
@@ -235,12 +230,14 @@ contains
    subroutine IncCVWells_PressureDropWellInj
 
       integer :: s, sp, n, k, nbwells, nums, nump
-      double precision :: Pw_head, Pws, zp, zs, T, C(NbComp)
+      real(c_double) :: Pw_head, Pws, zp, zs, T, C(NbComp)
 
       ! nb pieces for discrete integration
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
-      double precision :: dz, Rhotmp, dPf, dTf, dCf(NbComp)
+      real(c_double) :: dz, Rhotmp, dPf, dTf, dCf(NbComp)
+      ! FIXME: this is temporary a work array, its size could be much smaller
+      real(c_double), dimension(NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)) :: parent_pressure
 
       nbwells = NbWellInjLocal_Ncpus(commRank + 1)
 
@@ -254,7 +251,6 @@ contains
          ! Check if the well is closed
          if (DataWellInjLocal(k)%IndWell == 'c') cycle
 
-         Pw_head = IncPressionWellInj(k)
          T = DataWellInjLocal(k)%InjectionTemperature
          C = DataWellInjLocal(k)%CompTotal
 
@@ -268,7 +264,7 @@ contains
             call CommonMPI_abort("Inconsistent well head node!")
 #endif
 
-         PerfoWellInj(s)%Pression = Pw_head
+         parent_pressure(s) = IncPressionWellInj(k)
          PerfoWellInj(s)%PressureDrop = 0.d0
 
          do while (s > NodebyWellInjLocal%Pt(k) + 1)
@@ -279,14 +275,14 @@ contains
             zp = XNodeLocal(3, nump) ! z-cordinate of parent of s
             dz = (zp - zs)/Npiece
             sp = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
-            Pws = PerfoWellInj(sp)%Pression
+            Pws = parent_pressure(sp)
             ! integrate from zp to zs
             do n = 1, Npiece
                call f_DensiteMassique(LIQUID_PHASE, Pws, T, C, Rhotmp, dPf, dTf, dCf)
                Pws = Pws + gravity*Rhotmp*dz
             end do
-            PerfoWellInj(s)%Pression = Pws
-            PerfoWellInj(s)%PressureDrop = Pws - Pw_head
+            parent_pressure(s) = Pws
+            PerfoWellInj(s)%PressureDrop = PerfoWellInj(sp)%PressureDrop + Pws - parent_pressure(sp)
          end do
 
       end do
