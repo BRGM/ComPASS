@@ -61,9 +61,30 @@ def try_timestep(
     return True
 
 
+def _flash_wells(simulation):
+    # CHECKME: do we need to retrieve kernel here???
+    kernel = get_kernel()
+    # FIXME: we should be able to have no well model at all
+    #        (when there are no wells)
+    if simulation.well_model == "single_phase":
+        kernel.DefFlashWells_TimeFlash_producers_single_phase()
+    else:
+        assert simulation.well_model == "two_phases"
+        kernel.DefFlashWells_TimeFlash_producers_two_phases()
+    kernel.DefFlashWells_TimeFlash_injectors()
+
+
 def make_one_timestep(
     simulation, newton, timesteps, simulation_context=None,
 ):
+    # CHECKME: do we need to retrieve kernel here???
+    kernel = get_kernel()
+    # pressure drop are set explicitely so we don't need to recompute
+    # in case of newton failure
+    if simulation.unknown_producers_density:
+        kernel.IncCVWells_estimate_producers_density(False)
+        simulation.unknown_producers_density = False
+    kernel.IncCVWells_UpdatePressureDrop()
     attempts = []
     for deltat in timesteps:
         if try_timestep(deltat, newton, simulation_context):
@@ -75,16 +96,5 @@ def make_one_timestep(
         newton.reset_loop()
     else:
         raise AllAttemptsFailed(attempts)
-    # CHECKME: do we need to retrieve kernel here???
-    kernel = get_kernel()
-    # FIXME: we should be able to have no well model at all
-    #        (when there are no wells)
-    if simulation.well_model == "single_phase":
-        kernel.DefFlashWells_TimeFlash_producers_single_phase()
-    else:
-        assert simulation.well_model == "two_phases"
-        kernel.DefFlashWells_TimeFlash_producers_two_phases()
-    kernel.DefFlashWells_TimeFlash_injectors()
-    kernel.IncCVWells_UpdatePressureDrop()
-
+    _flash_wells(simulation)
     return deltat

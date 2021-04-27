@@ -78,7 +78,7 @@ module IncCVWells
       IncCVWells_free, &
       IncCVWells_PressureDropWellProd, &
       IncCVWells_PressureDropWellInj, &
-      IncCVWells_InitPressureDrop, &
+      IncCVWells_estimate_producers_density, &
       IncCVWells_UpdatePressureDrop, &
       IncCVWells_UpdateProdWellPressures, &
       IncCVWells_UpdateInjWellPressures, &
@@ -166,12 +166,28 @@ contains
 
    end subroutine IncCVWells_use_minimum_density
 
-   !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
-   subroutine IncCVWells_PressureDropWellProd(use_avg_dens)
-      !Flag to use the an avg_density  from the reservoir or the density computed from  the function DefFlashWells_TimeFlash  to compute the pressure drops
-      !We want to use the avg_density usually to init the pressure drops
-      logical, intent(in) :: use_avg_dens
+   subroutine IncCVWells_estimate_producers_density(use_minimum_density) &
+      bind(C, name="IncCVWells_estimate_producers_density")
+      logical(c_bool), value, intent(in) :: use_minimum_density
 
+      integer :: k
+
+#ifndef NDEBUG
+      if (NbWellProdLocal_Ncpus(commRank + 1) /= NodebyWellProdLocal%Nb) &
+         call CommonMPI_abort("Well numbers are inconsistent")
+#endif
+
+      do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
+
+         call IncCVWells_set_density_from_reservoir(k)
+         if (use_minimum_density) call IncCVWells_use_minimum_density(k)
+
+      end do
+
+   end subroutine IncCVWells_estimate_producers_density
+
+   !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
+   subroutine IncCVWells_PressureDropWellProd
       integer :: k, s, nums, sparent
       double precision :: zp, zs
 
@@ -184,11 +200,6 @@ contains
 
          ! Check if the well is closed
          if (DataWellProdLocal(k)%IndWell == 'c') cycle
-
-         if (use_avg_dens) then
-            call IncCVWells_set_density_from_reservoir(k)
-            call IncCVWells_use_minimum_density(k)
-         endif
 
          ! looping from head to queue
          do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
@@ -282,19 +293,11 @@ contains
 
    end subroutine IncCVWells_PressureDropWellInj
 
-   subroutine IncCVWells_InitPressureDrop() &
-      bind(C, name="IncCVWells_InitPressureDrop")
-
-      call IncCVWells_PressureDropWellInj
-      call IncCVWells_PressureDropWellProd(.true.)
-
-   end subroutine IncCVWells_InitPressureDrop
-
    subroutine IncCVWells_UpdatePressureDrop() &
       bind(C, name="IncCVWells_UpdatePressureDrop")
 
       call IncCVWells_PressureDropWellInj
-      call IncCVWells_PressureDropWellProd(.false.)
+      call IncCVWells_PressureDropWellProd
 
    end subroutine IncCVWells_UpdatePressureDrop
 
