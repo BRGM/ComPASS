@@ -24,7 +24,6 @@ from . import mpi
 from .newton import Newton, default_Newton
 from .dumps import Dumper
 from .options import get_callbacks_from_options
-from ._kernel import get_kernel
 from .utils.units import bar, year
 
 
@@ -305,9 +304,6 @@ def standard_loop(
 
     if well_pressure_offset is not None:
         check_well_pressure(simulation, well_pressure_offset)
-    # InitPressureDrop
-    kernel = get_kernel()
-    kernel.IncCVWells_InitPressureDrop()
     t = t0
     tick = tick0
     cpu_start_time = process_time()

@@ -20,7 +20,7 @@
 extern "C" {
 void IncCV_SaveIncPreviousTimeStep();
 void IncCV_LoadIncPreviousTimeStep();
-void IncCVWells_InitPressureDrop();
+void IncCVWells_estimate_producers_density(const bool);
 void IncCVWells_UpdatePressureDrop();
 void IncCVWells_UpdateWellPressures();
 double IncCVReservoir_NewtonRelax(
@@ -55,7 +55,8 @@ namespace py = pybind11;
 void add_time_loop_wrappers(py::module& module) {
    module.def("IncCV_SaveIncPreviousTimeStep", &IncCV_SaveIncPreviousTimeStep);
    module.def("IncCV_LoadIncPreviousTimeStep", &IncCV_LoadIncPreviousTimeStep);
-   module.def("IncCVWells_InitPressureDrop", &IncCVWells_InitPressureDrop);
+   module.def("IncCVWells_estimate_producers_density",
+              &IncCVWells_estimate_producers_density);
    module.def("IncCVWells_UpdatePressureDrop", &IncCVWells_UpdatePressureDrop);
    module.def("IncCVWells_UpdateWellPressures",
               &IncCVWells_UpdateWellPressures);

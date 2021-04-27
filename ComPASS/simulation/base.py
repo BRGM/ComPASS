@@ -227,6 +227,7 @@ def init(
     simulation.set_kr_functions()
     simulation.set_phase_pressure_functions()
     simulation.set_well_model(well_model)
+    assert simulation.unknown_producers_density
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
     atexit.register(_exit_eos_and_finalize)

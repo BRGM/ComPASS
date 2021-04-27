@@ -705,7 +705,7 @@ contains
                E = sumnrjFluxProd(s) ! energy
                sumni = sum(summolarFluxProd(:, s))
                if (sumni < 1.0D-12) then
-                  cycle !keep everything as the previous  timestep
+                  cycle ! FIXME: keep everything as the previous timestep
                end if
                Cw = summolarFluxProd(:, s)/sumni
                ! suppose that the two phases are present at the node

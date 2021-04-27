@@ -86,7 +86,6 @@ class Newton:
     def reset_loop(self):
         kernel = get_kernel()
         kernel.IncCV_LoadIncPreviousTimeStep()
-        kernel.IncCVWells_InitPressureDrop()
 
     def init_iteration(self):
         kernel = get_kernel()
