@@ -13,10 +13,6 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from multiprocessing import cpu_count
 
-sys.path.insert(0, Path("sdk").as_posix())
-from PackageInfo import PackageInfo
-
-package = PackageInfo("ComPASS")
 config_cmake_path = Path("cmake/config.cmake")
 
 
@@ -123,8 +119,8 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name=package.name,
-    version=package.version,
+    name="ComPASS",
+    version_config=True,
     author="various contributors",
     author_email="anr-charms@brgm.fr",
     description="A parallel multiphase multicomponents simulator.",
@@ -152,4 +148,5 @@ setup(
     ],  # name (first argument) must match the name of the exported pybind11 module
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
+    setup_requires=["setuptools-git-versioning"],
 )

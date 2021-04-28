@@ -15,10 +15,6 @@ from .runtime import to_output_directory, set_output_directory_and_logfile
 from ._kernel import get_kernel, load_eos, common_wrapper
 
 
-# __variables__ with double-quoted values will be available in setup.py:
-__version__ = "4.3.0"
-
-
 def __getattr__(name):
     try:
         return getattr(common_wrapper, name)
