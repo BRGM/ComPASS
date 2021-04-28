@@ -62,8 +62,8 @@ build:
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - mkdir -p wheel
-    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/build-environment python3 setup.py egg_info --tag-build=$WHEEL_PRERELTAG bdist_wheel -d wheel
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WHEEL_TAG=${WHEEL_PRERELTAG//-/_} .
+    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/build-environment python3 setup.py egg_info bdist_wheel -d wheel
+    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
   artifacts:

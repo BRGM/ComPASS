@@ -34,8 +34,28 @@ def output_directory(case_name=None, rootname=None, process_case_name=True):
     return output
 
 
-def output_directory_and_logfile(case_name=None, process_case_name=True):
+def output_version_info(path):
+    if mpi.is_on_master_proc:  # output directory is created by master proc
+        with open(os.path.join(path, "version_info"), "w") as f:
+            import pkg_resources  # part of setuptools
+            import platform
+
+            egg_info = pkg_resources.require("ComPASS")[0]
+            print(f"{egg_info.project_name} {egg_info.version}", file=f)
+            print(
+                f"running python {platform.python_version()} on {platform.node()}",
+                file=f,
+            )
+            print(f"package location: {egg_info.location}", file=f)
+            print(f"system info: {platform.platform()}", file=f)
+
+
+def output_directory_and_logfile(
+    case_name=None, process_case_name=True, add_version_info=True
+):
     output = output_directory(case_name)
+    if add_version_info:
+        output_version_info(output)
     if case_name is None:
         case_name = default_case_name
     elif process_case_name:
