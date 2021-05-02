@@ -3,9 +3,10 @@
 cp -v ../../.pre-commit-config.yaml build/
 
 MESHTOOLS_WHEEL=${1:-"NO_MESHTOOLS_WHEEL"}
-REF_SLUG=${2:+":"}${2:-""}
+PYCGAL_WHEEL=${2:-"NO_PYCGAL_WHEEL"}
+REF_SLUG=${3:+":"}${3:-""}
 
-docker build -t registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG} --build-arg MESHTOOLS_WHEEL_PATH=$MESHTOOLS_WHEEL -f base/Dockerfile .
+docker build -t registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG} --build-arg MESHTOOLS_WHEEL_PATH=$MESHTOOLS_WHEEL --build-arg PYCGAL_WHEEL_PATH=$PYCGAL_WHEEL -f base/Dockerfile .
 docker push registry.gitlab.inria.fr/charms/compass/base-environment${REF_SLUG}
 
 # order is important because of environments dependencies

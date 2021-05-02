@@ -18,9 +18,12 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
 
 # Meshtools installation
 ARG MESHTOOLS_WHEEL_PATH
+ARG PYCGAL_WHEEL_PATH
 WORKDIR /wheel
 COPY $MESHTOOLS_WHEEL_PATH .
+COPY $PYCGAL_WHEEL_PATH .
 RUN pip3 install ${MESHTOOLS_WHEEL_PATH##*/} \
+ && pip3 install ${PYCGAL_WHEEL_PATH##*/} \
  && rm -rf /wheel
 
 RUN mkdir -p /localfs
