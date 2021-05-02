@@ -7,13 +7,25 @@ from pathlib import Path
 import platform
 import tempfile
 import subprocess
+from datetime import datetime
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
+import setuptools_git_versioning as sgv
 from distutils.version import LooseVersion
 from multiprocessing import cpu_count
 
 config_cmake_path = Path("cmake/config.cmake")
+package_name = "ComPASS"
+version_file = "version_info"
+
+with Path(f"./{package_name}/{version_file}").open("w") as f:
+    print(
+        f"{package_name} {sgv.version_from_git()} (branch: {sgv.get_branch()})", file=f,
+    )
+    print(f"built {datetime.now().isoformat()}", file=f)
+    print(f"with python {platform.python_version()} on {platform.node()}", file=f)
+    print(f"build system info: {platform.platform()}", file=f)
 
 
 class CMakeExtension(Extension):
@@ -119,7 +131,7 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name="ComPASS",
+    name=package_name,
     version_config=True,
     author="various contributors",
     author_email="anr-charms@brgm.fr",
@@ -128,25 +140,26 @@ setup(
     url="https://charms.gitlabpages.inria.fr/ComPASS/",
     license="GPLv3/CeCILLv2.1",
     packages=[
-        "ComPASS",
-        "ComPASS.eos",
-        "ComPASS.ghosts",
-        "ComPASS.io",
-        "ComPASS.linalg",
-        "ComPASS.petrophysics",
-        "ComPASS.petrophysics.models",
-        "ComPASS.physics",
-        "ComPASS.physics.water2ph",
-        "ComPASS.schemes",
-        "ComPASS.simulation",
-        "ComPASS.utils",
-        "ComPASS.wells",
+        package_name,
+        f"{package_name}.eos",
+        f"{package_name}.ghosts",
+        f"{package_name}.io",
+        f"{package_name}.linalg",
+        f"{package_name}.petrophysics",
+        f"{package_name}.petrophysics.models",
+        f"{package_name}.physics",
+        f"{package_name}.physics.water2ph",
+        f"{package_name}.schemes",
+        f"{package_name}.simulation",
+        f"{package_name}.utils",
+        f"{package_name}.wells",
     ],
-    ext_package="ComPASS",
+    ext_package=package_name,
     ext_modules=[
         CMakeExtension("water2ph")
     ],  # name (first argument) must match the name of the exported pybind11 module
     cmdclass=dict(build_ext=CMakeBuild),
+    package_data={package_name: [version_file],},
     zip_safe=False,
     setup_requires=["setuptools-git-versioning"],
 )
