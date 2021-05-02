@@ -1,8 +1,9 @@
+from math import sqrt
 import numpy as np
 
-import pyCGAL.kernels.Epick.Mesh_2 as Mesh_2
-from pyCGAL.kernels.Epick import Point_2 as Point
-from pyCGAL.kernels.Epick import distance
+import pycgal.Mesh_2 as Mesh_2
+from pycgal.Epick import Point_2 as Point
+from pycgal.Epick import squared_distance
 
 from MeshTools import Wedge, HybridMesh
 from MeshTools.utils import axis_extrusion
@@ -38,7 +39,7 @@ def mesh_2(R=1000, theta=np.pi / 6, ds=None, clean_mesh=True):
     cdt.insert_constraint(vAi, vO)
 
     def sizing_field(P):
-        r = distance(O, P)
+        r = sqrt(squared_distance(O, P))
         return ((R - r) / R) * ds_O + (r / R) * ds_R
 
     if ds_O == ds_R:
