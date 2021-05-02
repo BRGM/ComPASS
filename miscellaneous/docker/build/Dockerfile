@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     python3-mpi4py \
  && apt-get clean \
  && python3 -m pip install \
-    pre-commit
+    pre-commit setuptools_git_versioning
 
 COPY su-exec/su-exec.c /tmp/su-exec.c
 RUN gcc -O3 -Wall -Werror /tmp/su-exec.c -o /usr/local/sbin/su-exec \
