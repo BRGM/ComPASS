@@ -7,6 +7,7 @@
 #
 
 import os
+from pathlib import Path
 from .. import mpi
 
 default_case_name = "compass"
@@ -36,17 +37,18 @@ def output_directory(case_name=None, rootname=None, process_case_name=True):
 
 def output_version_info(path):
     if mpi.is_on_master_proc:  # output directory is created by master proc
-        with open(os.path.join(path, "version_info"), "w") as f:
-            import pkg_resources  # part of setuptools
-            import platform
+        import platform
 
-            egg_info = pkg_resources.require("ComPASS")[0]
-            print(f"{egg_info.project_name} {egg_info.version}", file=f)
+        root = Path(__file__).parent.parent
+        with open(os.path.join(path, "version_info"), "w") as f:
+            with (root / "version_info").open() as build_info:
+                for line in build_info:
+                    f.write(line)
             print(
                 f"running python {platform.python_version()} on {platform.node()}",
                 file=f,
             )
-            print(f"package location: {egg_info.location}", file=f)
+            print(f"package location: {str(root)}", file=f)
             print(f"system info: {platform.platform()}", file=f)
 
 
