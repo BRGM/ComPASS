@@ -221,18 +221,19 @@ def standard_loop(
             ts_manager = FixedTimeStep(fixed_timestep)
         else:
             ts_manager = TimeStepManager(initial_timestep)
+    t0 = initial_time if initial_time is not None else 0
+    tick0 = LoopTick(time=t0, iteration=n)
     if iteration_callbacks is None:
-        iteration_callbacks = get_callbacks_from_options(newton)
+        iteration_callbacks = get_callbacks_from_options(newton, tick0)
     else:
         iteration_callbacks = tuple(
             callback for callback in iteration_callbacks
-        ) + get_callbacks_from_options(newton)
+        ) + get_callbacks_from_options(newton, tick0)
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:
         specific_outputs = []
     events = _make_event_list(events)
-    t0 = initial_time if initial_time is not None else 0
     total_time = None if final_time is None else (final_time - t0)
     while len(events) > 0 and events[0].time < t0:
         mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
@@ -285,8 +286,6 @@ def standard_loop(
             for action in events[0].actions:
                 action(tick)
             events.pop(0)
-
-    tick0 = LoopTick(time=t0, iteration=n)
 
     if output_period is not None:
 

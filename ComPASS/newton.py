@@ -58,7 +58,9 @@ class Newton:
     A structure that manages the Newton loop.
     """
 
-    def __init__(self, simulation, tol, maxit, lsolver, convergence_scheme=None):
+    def __init__(
+        self, simulation, tol, maxit, lsolver, convergence_scheme=None, callbacks=None
+    ):
         """
         :param simulation: The simulation object.
         :param tol: The tolerance used for convergence.
@@ -81,6 +83,7 @@ class Newton:
         if not convergence_scheme:
             self.convergence_scheme = LegacyConvergence(simulation)
         self.check_well_errors_at_convergence = False
+        self.callbacks = callbacks or ()
 
     def reset_loop(self):
         kernel = get_kernel()
@@ -175,6 +178,9 @@ class Newton:
                 "rel",
                 relative_residuals[-1],
             )
+
+            for callback in self.callbacks:
+                callback(dt, iteration + 1)
             self.status = NewtonStatus(iteration + 1, self.lsolver_iterations)
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:

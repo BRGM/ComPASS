@@ -26,27 +26,31 @@ def get_bool(name, default=False):
 
 class Flag:
     def __init__(self):
-        self._status = False
-
-    @property
-    def on(self):
-        return self._status
+        self.is_on = False
 
 
 class AlwaysOnFlag(Flag):
     def __init__(self):
         super().__init__()
-        self._status = True
+        self.is_on = True
 
 
 class TimestepFlag(Flag):
     def __init__(self, t):
         super().__init__()
+        self.has_been_triggered = False
         self.t = t
 
     def __call__(self, tick):
-        if tick.time >= self.t:
-            self._status = True
+
+        if not self.has_been_triggered:
+            if tick.time >= self.t:
+                if not self.is_on:
+                    self.is_on = True
+                    self.tick = tick
+                elif self.is_on:
+                    self.is_on = False
+                    self.has_been_triggered = True
 
 
 class DumpLinearSystemTrigger:
@@ -59,11 +63,18 @@ class DumpLinearSystemTrigger:
         except FileExistsError:
             pass
 
-    def __call__(self, tick):
-        # Update flag
-        self.flag(tick)
-        if self.flag.on:
-            dump_dirname = self.dirname + f"/it={tick.iteration}_t={tick.time:.3e}/"
+    def __call__(self, dt, newton_it):
+
+        tick = self.flag.tick
+        if self.flag.is_on:
+            timestep_dirname = (
+                self.dirname + f"/it={tick.iteration}_t={tick.time:.3e}_dt={dt:.3e}/"
+            )
+            dump_dirname = timestep_dirname + f"Newton_{newton_it}/"
+            try:
+                os.mkdir(timestep_dirname)
+            except FileExistsError:
+                pass
             try:
                 os.mkdir(dump_dirname)
             except FileExistsError:
@@ -78,7 +89,7 @@ class InterruptTrigger:
     def __call__(self, tick):
         # Update flag
         self.flag(tick)
-        if self.flag.on:
+        if self.flag.is_on:
             print(">" * 30, "Kill execution")
             mpi.abort()
 
@@ -100,7 +111,7 @@ class NewtonLogCallback:
             )
 
 
-def get_callbacks_from_options(newton):
+def get_callbacks_from_options(newton, tick0):
     """ Possible options : --dump_ls <time>
                                   --> writes linear system in file in ASCII mode
                            --dump_ls_binary <time>
@@ -113,20 +124,26 @@ def get_callbacks_from_options(newton):
     example : --dump_ls 1.5e6 --kill 1.5e6 """
 
     callbacks = []
+    newton_callbacks = []
     linear_system = newton.lsolver.linear_system
+
     t_dump = get("--dump_ls")
     if t_dump is not None:
         t_dump = float(t_dump)
         dump_flag = TimestepFlag(t_dump)
+        dump_flag(tick0)
         dump_trigger = DumpLinearSystemTrigger(linear_system.dump_ascii, dump_flag)
-        callbacks.append(dump_trigger)
+        callbacks.append(dump_flag)
+        newton_callbacks.append(dump_trigger)
 
     t_dump_b = get("--dump_ls_binary")
     if t_dump_b is not None:
         t_dump_b = float(t_dump_b)
         dump_flag_b = TimestepFlag(t_dump_b)
+        dump_flag_b(tick0)
         dump_trigger = DumpLinearSystemTrigger(linear_system.dump_binary, dump_flag_b)
-        callbacks.append(dump_trigger)
+        callbacks.append(dump_flag_b)
+        newton_callbacks.append(dump_trigger)
 
     newton_log_filename = get("--newton_log")
     if newton_log_filename is not None:
@@ -140,6 +157,7 @@ def get_callbacks_from_options(newton):
         kill_trigger = InterruptTrigger(kill_flag)
         callbacks.append(kill_trigger)
 
+    newton.callbacks += tuple(newton_callbacks)
     return tuple(callbacks)
 
 
