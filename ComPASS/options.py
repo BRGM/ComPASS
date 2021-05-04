@@ -16,6 +16,14 @@ def get(name, default=None):
     return args[idx]
 
 
+def get_bool(name, default=False):
+    _, *args = sys.argv
+    if name not in args:
+        return default
+    else:
+        return True
+
+
 class Flag:
     def __init__(self):
         self._status = False

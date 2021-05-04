@@ -6,7 +6,7 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 from .__init__ import *
-from ..options import get
+from ..options import get, get_bool
 from .legacy_linear_solver import (
     LegacyDirectSolver,
     LegacyIterativeSolver,
@@ -38,27 +38,14 @@ def linear_solver(
 
     # Command line options override the function's arguments
     if from_options == True:
-        legacy_opt = get("--legacy_linear_solver")
-        if legacy_opt == "True":
-            legacy = True
-        elif legacy_opt == "False":
-            legacy = False
-        direct_opt = get("--direct_linear_solver")
-        if direct_opt == "True":
-            direct = True
-        elif direct_opt == "False":
-            direct = False
-        activate_cpramg_opt = get("--activate_cpramg")
-        if activate_cpramg_opt == "True":
-            activate_cpramg = True
-        elif activate_cpramg_opt == "False":
-            activate_cpramg = False
+        legacy_opt = get("--linear_solver_version", "legacy")
+        legacy = True if legacy_opt == "legacy" else False
+        direct = get_bool("--direct_linear_solver")
+        activate_cpramg = not get_bool("--disable_cpramg")
         cpr_amg_type = get("--cpr_amg_type")
 
     if direct:
-        if any(
-            (activate_cpramg, tolerance, max_iterations, restart_size, cpr_amg_type)
-        ):
+        if any((tolerance, max_iterations, restart_size, cpr_amg_type,)):
             mpi.master_print(
                 "Invalid parameter(s) passed to linear_solver()\nIterative solver parameter(s) will be ignored in direct solver instanciation"
             )
