@@ -18,6 +18,13 @@ def get_bool(name, default=False):
         return True
 
 
+class Database(dict):  # Inherit from dict ? or namedtuple to please Simon ?
+    def __init__(self):
+        pass
+
+
+database = Database()
+
 if __name__ == "__main__":
     print("toto=", get("--toto"))
     print("tutu=", get("--tutu", "pas de tutu"))
