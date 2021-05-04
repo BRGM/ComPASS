@@ -18,7 +18,6 @@ import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 from ComPASS.linalg.factory import linear_solver

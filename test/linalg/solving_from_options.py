@@ -11,11 +11,7 @@ command_line_lsolver = linear_solver(simulation, from_options=True)
 newton = Newton(simulation, 1e-5, 8, command_line_lsolver)
 
 simulation.standard_loop(
-    initial_timestep=30 * day,
-    final_time=100 * day,
-    output_period=year,
-    newton=newton,
-    context=context,
+    initial_timestep=30 * day, final_time=100 * day, output_period=year, newton=newton,
 )
 
 # You can try running this script with different options, for example this will setup a Petsc direct solver and display a short view :

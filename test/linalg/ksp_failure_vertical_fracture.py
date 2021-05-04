@@ -15,7 +15,7 @@ from ComPASS.newton import Newton
 from ComPASS.linalg.petsc_linear_solver import *
 from ComPASS.linalg.legacy_linear_solver import *
 from ComPASS.linalg.preconditioners import BlockJacobi
-from ComPASS.simulation_context import SimulationContext
+from ComPASS import options
 
 """
 This script runs a fracture case with a very basic preconditioning method, which leads to convergence failure.
@@ -117,10 +117,9 @@ newton = Newton(simulation, 1e-5, 8, lsolver)
 
 # We want to check that linear failure exceptions are well taken care of,
 # and that the following options work properly
-context = SimulationContext()
-context.dump_system_on_ksp_failure = True
-context.abort_on_ksp_failure = True
-context.abort_on_newton_failure = False
+options.database["abort_on_linear_failure"] = True
+options.database["dump_system_on_linear_failure"] = True
+
 
 final_time = 50 * year
 output_period = 0.1 * final_time
@@ -130,5 +129,4 @@ standard_loop(
     initial_timestep=1 * hour,
     final_time=final_time,
     output_period=output_period,
-    context=context,
 )

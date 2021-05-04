@@ -11,7 +11,6 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.exceptions import SanityCheckFailure
 
@@ -69,11 +68,6 @@ def set_boundary_heat_flux():
 
 set_boundary_heat_flux()
 
-context = SimulationContext()
-context.abort_on_ksp_failure = False
-context.dump_system_on_ksp_failure = False
-context.abort_on_newton_failure = False
-
 final_time = 2e6 * year
 # ComPASS.set_maximum_timestep(0.1*final_time)
 current_time = standard_loop(
@@ -86,7 +80,6 @@ current_time = standard_loop(
         decrease_factor=0.8,
         minimum_timestep=1e-6,
     ),
-    context=context,
 )
 
 T = simulation.cell_states().T

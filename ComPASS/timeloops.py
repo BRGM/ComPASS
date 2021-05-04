@@ -127,7 +127,6 @@ def standard_loop(
     output_callbacks=None,
     specific_outputs=None,
     newton=None,
-    context=None,
     time_step_manager=None,
     well_pressure_offset=1 * bar,
     events=None,
@@ -167,8 +166,6 @@ def standard_loop(
     :param specific_outputs: A sequence of additional output times.
     :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
-    :param context: A :class:`ComPASS.simulation_context.SimulationContext` object that is used to
-        control generic option. If not provided a default one will be created.
     :param time_step_manager: A specfic time manager that will override the parameters ``fixed_timestep``
         or  ``initial_timestep`` (cf. :mod:`ComPASS.timestep_management` module).
     :param well_pressure_offset: if given the corresponfing pressure offset will be apply to wells

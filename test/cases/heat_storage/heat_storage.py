@@ -7,7 +7,6 @@ from MeshTools.utils import axis_extrusion
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.timeloops import TimeStepManager, Event
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver

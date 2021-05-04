@@ -9,7 +9,6 @@
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.utils.grid import grid_center
-from ComPASS.simulation_context import SimulationContext
 
 # fmt: off
 pres = 20. * MPa            # initial reservoir pressure
@@ -56,6 +55,3 @@ simulation.init(
 X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
-
-context = SimulationContext()
-context.abort_on_ksp_failure = True

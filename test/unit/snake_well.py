@@ -12,7 +12,6 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-from ComPASS.simulation_context import SimulationContext
 
 
 nx = ny = nz = 4

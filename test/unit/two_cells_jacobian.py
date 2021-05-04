@@ -11,7 +11,6 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-from ComPASS.simulation_context import SimulationContext
 
 # initial reservoir pressure
 pL, pR = 2.0 * bar, 1.0 * bar
