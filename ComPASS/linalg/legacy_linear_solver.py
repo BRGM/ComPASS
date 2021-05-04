@@ -10,7 +10,7 @@ from .__init__ import *
 from .solver import IterativeSolver, DirectSolver, IterativeSolverSettings
 from .._kernel import get_kernel
 from .. import mpi
-from .exceptions import IterativeSolverFailure, DirectSolverFailure, explain_reason
+from .exceptions import IterativeSolverFailure, DirectSolverFailure
 
 
 class LegacyLinearSystem:
@@ -50,7 +50,7 @@ class LegacyLinearSystem:
         :comm: MPI communicator
         """
 
-        mpi.master_print(">" * 30, "Dump linear system")
+        mpi.master_print(">> Linear system dump")
         self.kernel.SolvePetsc_dump_system(basename)
         viewer = PETSc.Viewer().createASCII(basename + "x" + ".dat", "w", comm)
         self.x.view(viewer)
@@ -122,7 +122,7 @@ class LegacyIterativeSolver(IterativeSolver):
 
         if self.ksp_reason < 0:
             self.number_of_unsuccessful_iterations += self.nit
-            raise IterativeSolverFailure(explain_reason(self.ksp_reason), self.nit)
+            raise IterativeSolverFailure(self.ksp_reason, self.nit)
         else:
             self.number_of_successful_iterations += self.nit
 
@@ -157,7 +157,7 @@ class LegacyDirectSolver(DirectSolver):
 
         if self.ksp_reason < 0:
             raise DirectSolverFailure(
-                f"Legacy KSP object returned error code: {explain_reason(self.ksp_reason)}"
+                f"Legacy KSP object returned error code: {self.ksp_reason}"
             )
 
         return self.linear_system.x, self.nit

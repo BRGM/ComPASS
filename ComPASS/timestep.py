@@ -33,7 +33,9 @@ def try_timestep(
         iterations = newton.loop(deltat, display_residual_contributions)
         mpi.master_print(iterations)
     except LinearSolverFailure as e:
-        mpi.master_print(e)
+        mpi.master_print(newton.status)
+        mpi.master_print(f"Linear failure with timestep: {time_string(deltat)}")
+        mpi.master_print(e, "\n")
         if simulation_context and simulation_context.dump_system_on_ksp_failure:
             newton.lsolver.linear_system.dump_ascii(basename="ksp_failure_")
         if simulation_context and simulation_context.abort_on_ksp_failure:
@@ -43,10 +45,14 @@ def try_timestep(
             mpi.abort()
         return False
     except IterationExhaustion as e:
+        mpi.master_print(e.status)
+        mpi.master_print(f"Newton failure with timestep: {time_string(deltat)}\n")
         if simulation_context and simulation_context.abort_on_newton_failure:
             mpi.master_print("\nComPASS - Abortion requested on newton failure\n")
             mpi.abort()
         return False
+
+    mpi.master_print("Success with timestep: ", time_string(deltat))
     return True
 
 
@@ -83,10 +89,8 @@ def make_one_timestep(
         if try_timestep(
             deltat, newton, simulation_context, display_residual_contributions
         ):
-            mpi.master_print("Success with timestep: ", time_string(deltat))
             break
         attempts.append(deltat)
-        mpi.master_print("Failure with timestep: ", time_string(deltat))
         newton.failures += 1
         newton.reset_loop()
     else:

@@ -70,7 +70,9 @@ class InterruptTrigger:
         # Update flag
         self.flag(tick)
         if self.flag.is_on:
-            print(">" * 30, "Kill execution")
+            mpi.master_print(
+                f"\nComPASS - Abortion requested at time t > {self.flag.t:.4e} s\n"
+            )
             mpi.abort()
 
 

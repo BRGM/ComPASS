@@ -25,7 +25,7 @@ class LinearSolverFailure(Exception):
 
 class DirectSolverFailure(LinearSolverFailure):
     def __str__(self):
-        return f"Direct solver failed with reason :\n{self.reason}"
+        return f"Direct solver failed with reason : {explain_reason(self.reason)}"
 
 
 class IterativeSolverFailure(LinearSolverFailure):
@@ -34,4 +34,4 @@ class IterativeSolverFailure(LinearSolverFailure):
         self.nit = nit
 
     def __str__(self):
-        return f"Iterative solver failed after {self.nit} iterations with reason: {self.reason}"
+        return f"Iterative solver failed after {self.nit} iterations with reason: {explain_reason(self.reason)}"

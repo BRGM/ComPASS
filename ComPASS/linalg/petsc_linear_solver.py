@@ -8,7 +8,7 @@
 
 from .__init__ import mpi, PETSc
 from .solver import *
-from .exceptions import IterativeSolverFailure, DirectSolverFailure, explain_reason
+from .exceptions import IterativeSolverFailure, DirectSolverFailure
 from .preconditioners import CPRAMG
 
 
@@ -52,7 +52,7 @@ class PetscLinearSystem:
             item.view(viewer)
             viewer.destroy
 
-        mpi.master_print(">" * 30, "Dump linear system")
+        mpi.master_print(">> Linear system dump")
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")
@@ -88,7 +88,7 @@ Local number of rows : {self.lsbuilder.get_non_zeros()[0][0]}\n \
 Local number of wells : {self.lsbuilder.get_n_wells()}\n"
                 )
 
-        mpi.master_print(">" * 30, "Dump linear system")
+        mpi.master_print(">> Linear system dump")
         dump_part_data(self)
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
@@ -163,7 +163,7 @@ class PetscIterativeSolver(IterativeSolver):
 
         if self.ksp_reason < 0:
             self.number_of_unsuccessful_iterations += self.nit
-            raise IterativeSolverFailure(explain_reason(self.ksp_reason), self.nit)
+            raise IterativeSolverFailure(self.ksp_reason, self.nit)
         else:
             self.number_of_successful_iterations += self.nit
 
@@ -197,7 +197,7 @@ class PetscDirectSolver(DirectSolver):
 
         if self.ksp_reason < 0:
             raise DirectSolverFailure(
-                f"Petsc KSP object returned error code: {explain_reason(self.ksp_reason)}"
+                f"Petsc KSP object returned error code: {self.ksp_reason}"
             )
 
         return self.linear_system.x, self.nit

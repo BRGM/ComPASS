@@ -142,6 +142,7 @@ class Newton:
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
         self.lsolver_iterations = []
+        self.status = NewtonStatus(0, self.lsolver_iterations)
         self.init_iteration()
         # CHECKME: does this need to be done after newton_init_iteration?
         kernel.Residu_reset_history()
@@ -187,10 +188,6 @@ class Newton:
                     self.check_well_residuals()
                 self.number_of_succesful_iterations += iteration + 1
                 return self.status
-        mpi.master_print(self.status)
-        mpi.master_print("Newton relative residuals:")
-        for i, r in enumerate(relative_residuals):
-            mpi.master_print("%02d: %15.9e" % (i, r))
         self.number_of_useless_iterations += iteration + 1
         raise IterationExhaustion(self.status)
 
