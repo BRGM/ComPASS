@@ -1,4 +1,4 @@
-from .options import get
+from . import options
 from .runtime import to_output_directory
 import os
 from . import mpi
@@ -107,7 +107,7 @@ def get_callbacks_from_options(newton, tick0):
     newton_callbacks = []
     linear_system = newton.lsolver.linear_system
 
-    t_dump_raw = get("--dump_ls")
+    t_dump_raw = options.database["dump_ls"]
     if t_dump_raw is not None:
         t_dump_list = t_dump_raw.split(",")
         for t_dump in t_dump_list:
@@ -118,7 +118,7 @@ def get_callbacks_from_options(newton, tick0):
             callbacks.append(dump_flag)
             newton_callbacks.append(dump_trigger)
 
-    t_dump_b_raw = get("--dump_ls_binary")
+    t_dump_b_raw = options.database["dump_ls_binary"]
     if t_dump_b_raw is not None:
         t_dump_b_list = t_dump_b_raw.split(",")
         for t_dump_b in t_dump_b_list:
@@ -131,12 +131,12 @@ def get_callbacks_from_options(newton, tick0):
             callbacks.append(dump_flag_b)
             newton_callbacks.append(dump_trigger)
 
-    newton_log_filename = get("--newton_log")
+    newton_log_filename = options.database["newton_log"]
     if newton_log_filename is not None:
         newton_log_callback = NewtonLogCallback(newton_log_filename, newton)
         callbacks.append(newton_log_callback)
 
-    t_kill = get("--kill")
+    t_kill = options.database["kill"]
     if t_kill is not None:
         t_kill = float(t_kill)
         kill_flag = TimestepFlag(t_kill)

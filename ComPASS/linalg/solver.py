@@ -8,7 +8,7 @@
 
 from collections import namedtuple
 from ..mpi import master_print
-from ..options import get_bool
+from .. import options
 
 IterativeSolverSettings = namedtuple(
     "IterativeSolverSettings",
@@ -28,7 +28,7 @@ class LinearSolver:
         """
         self.failures = 0
         self.linear_system = linear_system
-        if get_bool("--linear_solver_view", False):
+        if options.database["linear_solver_view"]:
             master_print(self)
 
     def __str__(self):

@@ -6,7 +6,7 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 from .__init__ import *
-from ..options import get, get_bool
+from .. import options
 from .legacy_linear_solver import (
     LegacyDirectSolver,
     LegacyIterativeSolver,
@@ -38,11 +38,11 @@ def linear_solver(
 
     # Command line options override the function's arguments
     if from_options == True:
-        legacy_opt = get("--linear_solver_version", "legacy")
+        legacy_opt = options.database["linear_solver_version"]
         legacy = True if legacy_opt == "legacy" else False
-        direct = get_bool("--direct_linear_solver")
-        activate_cpramg = not get_bool("--disable_cpramg")
-        cpr_amg_type = get("--cpr_amg_type")
+        direct = options.database["direct_linear_solver"]
+        activate_cpramg = not options.database["disable_cpramg"]
+        cpr_amg_type = options.database["cpr_amg_type"]
 
     if direct:
         if any((tolerance, max_iterations, restart_size, cpr_amg_type,)):
