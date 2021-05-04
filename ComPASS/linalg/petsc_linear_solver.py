@@ -203,10 +203,17 @@ class PetscIterativeSolver(IterativeSolver):
         pressure_ksp = sub_ksp_list[0]
         pressure_ksp.setType(PETSc.KSP.Type.PREONLY)
         pressure_pc = pressure_ksp.getPC()
-        pressure_pc.setType(PETSc.PC.Type.HYPRE)
-        PETSc.Options().setValue(
-            "-sub_0_fieldsplit_pressure_pc_hypre_boomeramg_strong_threshold", 0.5
-        )
+        try:
+            pressure_pc.setType(PETSc.PC.Type.HYPRE)
+            PETSc.Options().setValue(
+                "-sub_0_fieldsplit_pressure_pc_hypre_boomeramg_strong_threshold", 0.5
+            )
+        except PETSc.Error:  # If HYPRE is not available use default AMG from PETSc
+            mpi.master_print(
+                "Hypre BoomerAMG is not available, using PETSc's GAMG procedure instead"
+            )
+            pressure_pc.setType(PETSc.PC.Type.GAMG)
+            pressure_pc.setGAMGType("agg")
 
         class NullPC(object):
             """ A PC-Python Context which returns zero. Used on the T/s field """
