@@ -23,7 +23,7 @@ from . import timestep
 from . import mpi
 from .newton import Newton, default_Newton
 from .dumps import Dumper
-from .options import get_callbacks_from_options
+from .callbacks import get_callbacks_from_options
 from .utils.units import bar, year
 
 
@@ -223,12 +223,11 @@ def standard_loop(
             ts_manager = TimeStepManager(initial_timestep)
     t0 = initial_time if initial_time is not None else 0
     tick0 = LoopTick(time=t0, iteration=n)
-    if iteration_callbacks is None:
-        iteration_callbacks = get_callbacks_from_options(newton, tick0)
+    if iteration_callbacks is not None:
+        iteration_callbacks = tuple(cb for cb in iteration_callbacks)
     else:
-        iteration_callbacks = tuple(
-            callback for callback in iteration_callbacks
-        ) + get_callbacks_from_options(newton, tick0)
+        iteration_callbacks = ()
+    iteration_callbacks += get_callbacks_from_options(newton, tick0)
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:
