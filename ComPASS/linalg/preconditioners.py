@@ -12,6 +12,17 @@ class NullPC(object):
         y.set(0.0)
 
 
+class BlockJacobi(PETSc.PC):
+    def __init__(self, linear_system, comm=PETSc.COMM_WORLD):
+        self.create(comm)
+        self.setOperators(linear_system.A, linear_system.A)
+        self.setType(PETSc.PC.Type.BJACOBI)
+        self.setFactorLevels(1)
+
+    def __repr__(self):
+        return "Block Jacobi performing ILU(1) on each block"
+
+
 class CPRAMG(PETSc.PC):
     """ PETSc implementation of the CPR-AMG preconditioning procedure"""
 
@@ -96,3 +107,6 @@ class CPRAMG(PETSc.PC):
         null_pc = rest_ksp.getPC()
         null_pc.setType(PETSc.PC.Type.PYTHON)
         null_pc.setPythonContext(NullPC())
+
+    def __repr__(self):
+        return f"CPR-AMG preconditioner using {self.amg_type} AMG procedure on the pressure unknowns"

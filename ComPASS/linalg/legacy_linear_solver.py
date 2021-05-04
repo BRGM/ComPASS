@@ -131,7 +131,7 @@ class LegacyIterativeSolver(IterativeSolver):
         cpramg_description = (
             "activated" if self.activate_cpramg == True else "not activated"
         )
-        return f"{super().__str__()}\n   Legacy Fortran90 implementation\n   Settings : {self.settings}\n   CPR-AMG : {cpramg_description}"
+        return f"{super().__str__()}\n   Legacy Fortran90 implementation\n   Settings : {self.settings}\n   Preconditioner : CPR-AMG {cpramg_description}"
 
 
 class LegacyDirectSolver(DirectSolver):

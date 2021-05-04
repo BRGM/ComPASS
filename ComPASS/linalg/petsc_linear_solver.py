@@ -105,19 +105,15 @@ class PetscIterativeSolver(IterativeSolver):
     """
 
     def __init__(
-        self, linear_system, settings, activate_cpramg=True, comm=PETSc.COMM_WORLD,
+        self, linear_system, settings, pc=None, comm=PETSc.COMM_WORLD,
     ):
 
-        self.activate_cpramg = activate_cpramg
+        self.activate_cpramg = None
         self.ksp = PETSc.KSP().create(comm=comm)
         self.ksp.setType("gmres")
         self.ksp.setOperators(linear_system.A, linear_system.A)
         self.pc = self.ksp.getPC()
-        if self.activate_cpramg:
-            self.pc = CPRAMG(linear_system)
-        else:
-            self.activate_cpramg = False
-            self.pc.setFactorLevels(1)
+        self.pc = pc if pc is not None else CPRAMG(linear_system)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
         self.tolerance, self.max_iterations, self.restart_size = settings[:]
         self.ksp.setFromOptions()
@@ -154,11 +150,7 @@ class PetscIterativeSolver(IterativeSolver):
         return self.linear_system.x, self.nit
 
     def __str__(self):
-
-        cpramg_description = (
-            "activated" if self.activate_cpramg == True else "not activated"
-        )
-        return f"{super().__str__()}\n   petsc4py new implementation\n   Settings : {self.settings}\n   CPR-AMG : {cpramg_description}"
+        return f"{super().__str__()}\n   petsc4py new implementation\n   Settings : {self.settings}\n   Preconditioner : {self.pc}"
 
 
 class PetscDirectSolver(DirectSolver):

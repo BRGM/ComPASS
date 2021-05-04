@@ -17,6 +17,7 @@ from .petsc_linear_solver import (
     PetscDirectSolver,
     PetscLinearSystem,
 )
+from .preconditioners import CPRAMG, BlockJacobi
 from .solver import IterativeSolverSettings
 
 
@@ -25,6 +26,7 @@ def linear_solver(
     legacy=True,
     direct=False,
     activate_cpramg=None,
+    cpr_amg_type=None,
     tolerance=None,
     max_iterations=None,
     restart_size=None,
@@ -51,9 +53,12 @@ def linear_solver(
             activate_cpramg = True
         elif activate_cpramg_opt == "False":
             activate_cpramg = False
+        cpr_amg_type = get("--cpr_amg_type")
 
     if direct:
-        if any((activate_cpramg, tolerance, max_iterations, restart_size)):
+        if any(
+            (activate_cpramg, tolerance, max_iterations, restart_size, cpr_amg_type)
+        ):
             mpi.master_print(
                 "Invalid parameter(s) passed to linear_solver()\nIterative solver parameter(s) will be ignored in direct solver instanciation"
             )
@@ -69,10 +74,18 @@ def linear_solver(
         # activate_cpramg defaults to True if not provided
         activate_cpramg = activate_cpramg if activate_cpramg is not None else True
         if legacy:
+            if cpr_amg_type not in (None, "hypre"):
+                mpi.master_print(
+                    "Legacy solver only supports Hypre AMG in CPR-AMG preconditioner"
+                )
             return LegacyIterativeSolver(
                 LegacyLinearSystem(simulation), settings, activate_cpramg
             )
         else:
-            return PetscIterativeSolver(
-                PetscLinearSystem(simulation), settings, activate_cpramg
-            )
+            linear_system = PetscLinearSystem(simulation)
+            if activate_cpramg:
+                cpr_amg_type = cpr_amg_type if cpr_amg_type is not None else "hypre"
+                pc = CPRAMG(linear_system, amg_type=cpr_amg_type)
+            else:
+                pc = BlockJacobi(linear_system)
+            return PetscIterativeSolver(linear_system, settings, pc=pc)
