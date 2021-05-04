@@ -33,9 +33,9 @@ class Database(dict):
         )
         self["abort_on_newton_failure"] = get_bool("--abort_on_newton_failure", False)
         # Linear solver parameters
-        self["linear_solver_version"] = get("--linear_solver_version", "legacy")
+        self["linear_solver_version"] = get("--linear_solver_version", None)
         self["direct_linear_solver"] = get_bool("--direct_linear_solver", False)
-        self["cpr_amg_type"] = get("--cpr_amg_type", "hypre")
+        self["cpr_amg_type"] = get("--cpr_amg_type", None)
         self["disable_cpramg"] = get_bool("--disable_cpramg", False)
         self["linear_solver_view"] = get_bool("--linear_solver_view", False)
         # Dump options

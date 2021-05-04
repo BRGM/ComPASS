@@ -137,6 +137,9 @@ class PetscIterativeSolver(IterativeSolver):
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
         self.tolerance, self.max_iterations, self.restart_size = settings[:]
         self.ksp.setFromOptions()
+        settings = IterativeSolverSettings(
+            self.tolerance, self.max_iterations, settings[2]
+        )
         super().__init__(linear_system, settings)
 
     tolerance = property(
