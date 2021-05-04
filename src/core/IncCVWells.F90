@@ -225,17 +225,48 @@ contains
 
    end subroutine IncCVWells_PressureDropWellProd
 
-   !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Injectors
-   !! integration from node head (w) to node (s)
-   subroutine IncCVWells_PressureDropWellInj
-
-      integer :: s, sp, n, k, nbwells, nums, nump
-      real(c_double) :: Pw_head, Pws, zp, zs, T, C(NbComp)
+   subroutine IncCVWells_welledge_monophasic_pressure_drop( &
+      phase, parent, son, p_p, T_p, p, T, use_reservoir_temperature)
+      integer, intent(in) :: phase, parent, son
+      real(c_double), intent(in) :: p_p, T_p
+      real(c_double), intent(out) :: p, T
+      logical, intent(in) :: use_reservoir_temperature
 
       ! nb pieces for discrete integration
       ! FIXME: call quad or something similar
       integer, parameter :: Npiece = 100
-      real(c_double) :: dz, Rhotmp, dPf, dTf, dCf(NbComp)
+      integer :: n
+      real(c_double) :: Cfoo(NbComp)
+      real(c_double) :: dz, rho, x
+      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy variables
+
+      p = p_p
+      if (use_reservoir_temperature) then
+         T = IncNode(son)%Temperature
+      else
+         T = T_p
+      end if
+      Cfoo = 0.d0
+      dz = (XNodeLocal(3, parent) - XNodeLocal(3, son))/Npiece
+      do n = 1, Npiece
+         x = (n - 1)/Npiece ! the last integration point is dz above s
+         call f_DensiteMassique(phase, p, x*T + (1.d0 - x)*T_p, Cfoo, rho, dPf, dTf, dCf)
+#ifndef NDEBUG
+         if (any(abs(dCf) > 0.d0)) &
+            call CommonMPI_abort("We assume density does not depend on molar fractions.")
+#endif
+         p = p + gravity*rho*dz
+      end do
+
+   end subroutine IncCVWells_welledge_monophasic_pressure_drop
+
+   !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Injectors
+   !! integration from node head (w) to node (s)
+   subroutine IncCVWells_PressureDropWellInj
+
+      integer :: s, sp, k, nbwells, nums, nump
+      real(c_double) :: Pp, Ps, T, Ts
+
       ! FIXME: this is temporary a work array, its size could be much smaller
       real(c_double), dimension(NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)) :: parent_pressure
 
@@ -252,7 +283,6 @@ contains
          if (DataWellInjLocal(k)%IndWell == 'c') cycle
 
          T = DataWellInjLocal(k)%InjectionTemperature
-         C = DataWellInjLocal(k)%CompTotal
 
          ! integrate over head to queue
          s = NodebyWellInjLocal%Pt(k + 1)
@@ -271,18 +301,12 @@ contains
             s = s - 1
             nums = NodebyWellInjLocal%Num(s)
             nump = NodeDatabyWellInjLocal%Val(s)%Parent
-            zs = XNodeLocal(3, nums) ! z-cordinate of node s
-            zp = XNodeLocal(3, nump) ! z-cordinate of parent of s
-            dz = (zp - zs)/Npiece
             sp = NodeDatabyWellInjLocal%Val(s)%PtParent ! parent pointer
-            Pws = parent_pressure(sp)
-            ! integrate from zp to zs
-            do n = 1, Npiece
-               call f_DensiteMassique(LIQUID_PHASE, Pws, T, C, Rhotmp, dPf, dTf, dCf)
-               Pws = Pws + gravity*Rhotmp*dz
-            end do
-            parent_pressure(s) = Pws
-            PerfoWellInj(s)%PressureDrop = PerfoWellInj(sp)%PressureDrop + Pws - parent_pressure(sp)
+            Pp = parent_pressure(sp)
+            call IncCVWells_welledge_monophasic_pressure_drop( &
+               LIQUID_PHASE, nump, nums, Pp, T, Ps, Ts, .false.)
+            parent_pressure(s) = Ps
+            PerfoWellInj(s)%PressureDrop = PerfoWellInj(sp)%PressureDrop + Ps - Pp
          end do
 
       end do
