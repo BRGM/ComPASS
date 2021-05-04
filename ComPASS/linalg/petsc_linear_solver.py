@@ -8,7 +8,7 @@
 
 from .__init__ import *
 from .solver import *
-from .exceptions import IterativeSolverFailure, DirectSolverFailure
+from .exceptions import IterativeSolverFailure, DirectSolverFailure, explain_reason
 
 
 class PetscLinearSystem:
@@ -141,18 +141,16 @@ class PetscIterativeSolver(IterativeSolver):
     def solve(self):
 
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
-        ksp_reason = self.ksp.getConvergedReason()
-        nit = self.ksp.getIterationNumber()
+        self.ksp_reason = self.ksp.getConvergedReason()
+        self.nit = self.ksp.getIterationNumber()
 
-        if ksp_reason < 0:
-            self.number_of_unsuccessful_iterations += nit
-            raise IterativeSolverFailure(
-                "Petsc KSP object returned error code: %s" % ksp_reason, nit
-            )
+        if self.ksp_reason < 0:
+            self.number_of_unsuccessful_iterations += self.nit
+            raise IterativeSolverFailure(explain_reason(self.ksp_reason), self.nit)
         else:
-            self.number_of_successful_iterations += nit
+            self.number_of_successful_iterations += self.nit
 
-        return self.linear_system.x, nit, ksp_reason
+        return self.linear_system.x, self.nit
 
     def set_cpramg_pc(self, comm):
 
@@ -252,14 +250,15 @@ class PetscDirectSolver(DirectSolver):
     def solve(self):
 
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
-        ksp_reason = self.ksp.getConvergedReason()
+        self.ksp_reason = self.ksp.getConvergedReason()
+        self.nit = 1
 
-        if ksp_reason < 0:
+        if self.ksp_reason < 0:
             raise DirectSolverFailure(
-                "Petsc KSP object returned error code: %s" % ksp_reason
+                f"Petsc KSP object returned error code: {explain_reason(self.ksp_reason)}"
             )
 
-        return self.linear_system.x, None, ksp_reason
+        return self.linear_system.x, self.nit
 
     def __str__(self):
         return f"{super().__str__()}\n   petsc4py new implementation"

@@ -72,10 +72,9 @@ class Newton:
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
         self.failures = 0
-        self.number_of_useful_linear_iterations = 0
-        self.number_of_succesful_iterations = 0
-        self.number_of_useless_iterations = 0
         self.lsolver_iterations = []
+        self.number_of_useless_iterations = 0
+        self.number_of_succesful_iterations = 0
         self.relative_residuals = None
         self.increments = get_kernel().NewtonIncrements()
         self.increments.init()
@@ -157,13 +156,12 @@ class Newton:
             lsolver.linear_system.set_from_jacobian()
 
             try:
-                x, nit, ls_status = lsolver.solve()
+                x, nit = lsolver.solve()
             except LinearSolverFailure as e:
                 self.number_of_useless_iterations += iteration + 1
                 raise e
 
-            mpi.master_print("Linear solver status :", ls_status)
-            self.lsolver_iterations += [nit] if nit is not None else [1]
+            self.lsolver_iterations += [nit]
             self.increment(x)
             self.init_iteration()
             kernel.Residu_compute(dt)
@@ -177,16 +175,18 @@ class Newton:
                 "rel",
                 relative_residuals[-1],
             )
+            self.status = NewtonStatus(iteration + 1, self.lsolver_iterations)
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:
                     self.check_well_residuals()
                 self.number_of_succesful_iterations += iteration + 1
-                return NewtonStatus(iteration + 1, self.lsolver_iterations)
+                return self.status
+        mpi.master_print(self.status)
         mpi.master_print("Newton relative residuals:")
         for i, r in enumerate(relative_residuals):
             mpi.master_print("%02d: %15.9e" % (i, r))
         self.number_of_useless_iterations += iteration + 1
-        raise IterationExhaustion(NewtonStatus(iteration, self.lsolver_iterations))
+        raise IterationExhaustion(self.status)
 
     def check_well_residuals(self):
         simulation = self.simulation

@@ -9,7 +9,7 @@
 from .__init__ import *
 from .solver import IterativeSolver, DirectSolver, IterativeSolverSettings
 from .._kernel import get_kernel
-from .exceptions import IterativeSolverFailure, DirectSolverFailure
+from .exceptions import IterativeSolverFailure, DirectSolverFailure, explain_reason
 
 
 class LegacyLinearSystem:
@@ -115,18 +115,16 @@ class LegacyIterativeSolver(IterativeSolver):
 
     def solve(self):
 
-        ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
-        nit = self.kernel.SolvePetsc_KspSolveIterationNumber()
+        self.ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        self.nit = self.kernel.SolvePetsc_KspSolveIterationNumber()
 
-        if ksp_reason < 0:
-            self.number_of_unsuccessful_iterations += nit
-            raise IterativeSolverFailure(
-                f"Legacy KSP object returned error code: {ksp_reason}", nit
-            )
+        if self.ksp_reason < 0:
+            self.number_of_unsuccessful_iterations += self.nit
+            raise IterativeSolverFailure(explain_reason(self.ksp_reason), self.nit)
         else:
-            self.number_of_successful_iterations += nit
+            self.number_of_successful_iterations += self.nit
 
-        return self.linear_system.x, nit, ksp_reason
+        return self.linear_system.x, self.nit
 
     def __str__(self):
 
@@ -137,8 +135,12 @@ class LegacyIterativeSolver(IterativeSolver):
 
 
 class LegacyDirectSolver(DirectSolver):
+    """
+    A structure that holds a direct Legacy KSP Object to solve the linear system
+    """
+
     def __init__(
-        self, linear_system, comm=None,
+        self, linear_system, comm=PETSc.COMM_WORLD,
     ):
         super().__init__(linear_system)
         self.linear_system = linear_system
@@ -148,15 +150,15 @@ class LegacyDirectSolver(DirectSolver):
 
     def solve(self):
 
-        ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
-        nit = None
+        self.ksp_reason = self.kernel.SolvePetsc_ksp_solve(self.linear_system.x)
+        self.nit = 1
 
-        if ksp_reason < 0:
+        if self.ksp_reason < 0:
             raise DirectSolverFailure(
-                f"Legacy KSP object returned error code: {ksp_reason}"
+                f"Legacy KSP object returned error code: {explain_reason(self.ksp_reason)}"
             )
 
-        return self.linear_system.x, nit, ksp_reason
+        return self.linear_system.x, self.nit
 
     def __str__(self):
         return f"{super().__str__()}\n   Legacy Fortran90 implementation"

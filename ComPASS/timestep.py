@@ -22,17 +22,6 @@ class AllAttemptsFailed(Exception):
         self.attempts = attempts
 
 
-def explain_reason(reason):
-    from petsc4py import PETSc
-
-    possible_reasons = [
-        name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
-    ]
-    for name in possible_reasons:
-        if getattr(PETSc.KSP.ConvergedReason, name) == reason:
-            return name
-
-
 def try_timestep(
     deltat, newton, simulation_context, display_residual_contributions=False
 ):

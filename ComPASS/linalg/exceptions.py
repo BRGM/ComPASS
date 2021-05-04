@@ -5,6 +5,17 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
+from .__init__ import PETSc
+
+
+def explain_reason(reason):
+
+    possible_reasons = [
+        name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
+    ]
+    for name in possible_reasons:
+        if getattr(PETSc.KSP.ConvergedReason, name) == reason:
+            return name
 
 
 class LinearSolverFailure(Exception):
