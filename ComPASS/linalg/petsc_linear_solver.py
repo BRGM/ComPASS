@@ -52,18 +52,18 @@ class PetscLinearSystem:
             item.view(viewer)
             viewer.destroy
 
-        print(">" * 30, "Dump linear system")
+        mpi.master_print(">" * 30, "Dump linear system")
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")
 
     def dump_binary(self, basename="", comm=PETSc.COMM_WORLD):
         """
-                Writes the linear system (Matrix, solution and RHS) in three different files in binary format
+        Writes the linear system (Matrix, solution and RHS) in three different files in binary format
 
-                :param basename: common part of the file names
-                :comm: MPI communicator
-                """
+        :param basename: common part of the file names
+        :comm: MPI communicator
+        """
         makeviewer = PETSc.Viewer().createBinary
 
         def dump_item(item, name):
@@ -71,7 +71,25 @@ class PetscLinearSystem:
             item.view(viewer)
             viewer.destroy
 
-        print(">" * 30, "Dump linear system")
+        def dump_part_data(self):
+            with open(basename + "part_data.txt", "w") as f:
+                # Clearing the file if it already exists
+                pass
+            with open(basename + "part_data.txt", "a") as f:
+                if mpi.is_on_master_proc:
+                    f.write(f"Number of procs : {mpi.communicator().Get_size()}\n")
+                    f.write(f"Block size : {self.lsbuilder.get_block_size()}\n")
+                mpi.synchronize()
+                f.write(
+                    f"\nProc rank : {mpi.proc_rank}\n \
+Number of wells : {self.lsbuilder.get_n_wells()}\n \
+Global index of first row : {self.lsbuilder.get_rowstart(mpi.proc_rank)}\n \
+Local number of rows : {self.lsbuilder.get_non_zeros()[0][0]}\n \
+Local number of wells : {self.lsbuilder.get_n_wells()}\n"
+                )
+
+        mpi.master_print(">" * 30, "Dump linear system")
+        dump_part_data(self)
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")

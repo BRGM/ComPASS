@@ -9,6 +9,7 @@
 from .__init__ import *
 from .solver import IterativeSolver, DirectSolver, IterativeSolverSettings
 from .._kernel import get_kernel
+from .. import mpi
 from .exceptions import IterativeSolverFailure, DirectSolverFailure, explain_reason
 
 
@@ -49,7 +50,7 @@ class LegacyLinearSystem:
         :comm: MPI communicator
         """
 
-        print(">" * 30, "Dump linear system")
+        mpi.master_print(">" * 30, "Dump linear system")
         self.kernel.SolvePetsc_dump_system(basename)
         viewer = PETSc.Viewer().createASCII(basename + "x" + ".dat", "w", comm)
         self.x.view(viewer)
