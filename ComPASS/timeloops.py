@@ -17,7 +17,6 @@ from sortedcontainers import SortedKeyList
 
 from .utils.units import day, year
 from .timestep_management import FixedTimeStep, TimeStepManager
-from .simulation_context import SimulationContext
 from .utils.units import time_string
 from . import timestep
 from . import mpi
@@ -198,8 +197,6 @@ def standard_loop(
         assert (
             newton.simulation == simulation
         ), "Unconsistent simulation object for default Newton instance"
-    if context is None:
-        context = SimulationContext()
     if well_connections is None:
         well_connections = simulation.well_connections
     if output_period is None:
@@ -333,7 +330,6 @@ def standard_loop(
             simulation,
             newton,
             ts_manager.steps(upper_bound=dt_to_next_event),
-            simulation_context=context,
             display_residual_contributions=display_residual_contributions,
         )
         well_connections.synchronize()

@@ -15,6 +15,7 @@ from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
 from .linalg.factory import linear_solver
 from .linalg.exceptions import LinearSolverFailure
+from .callbacks import InterruptTrigger
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 
@@ -59,7 +60,14 @@ class Newton:
     """
 
     def __init__(
-        self, simulation, tol, maxit, lsolver, convergence_scheme=None, callbacks=None
+        self,
+        simulation,
+        tol,
+        maxit,
+        lsolver,
+        convergence_scheme=None,
+        iteration_callbacks=None,
+        failure_callbacks=None,
     ):
         """
         :param simulation: The simulation object.
@@ -83,7 +91,8 @@ class Newton:
         if not convergence_scheme:
             self.convergence_scheme = LegacyConvergence(simulation)
         self.check_well_errors_at_convergence = False
-        self.callbacks = callbacks or ()
+        self.iteration_callbacks = iteration_callbacks or ()
+        self.failure_callbacks = failure_callbacks or ()
 
     def reset_loop(self):
         kernel = get_kernel()
@@ -179,10 +188,9 @@ class Newton:
                 "rel",
                 relative_residuals[-1],
             )
-
-            for callback in self.callbacks:
-                callback(dt, iteration + 1)
             self.status = NewtonStatus(iteration + 1, self.lsolver_iterations)
+            for callback in self.iteration_callbacks:
+                callback(dt, iteration + 1)
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:
                     self.check_well_residuals()

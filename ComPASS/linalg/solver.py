@@ -30,6 +30,7 @@ class LinearSolver:
         self.linear_system = linear_system
         if options.database["linear_solver_view"]:
             master_print(self)
+        self.failure_callbacks = ()
 
     def write_history(self, basename=""):
         with open(basename + "solver_log.txt", "w") as f:

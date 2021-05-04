@@ -22,9 +22,7 @@ class AllAttemptsFailed(Exception):
         self.attempts = attempts
 
 
-def try_timestep(
-    deltat, newton, simulation_context, display_residual_contributions=False
-):
+def try_timestep(deltat, newton, display_residual_contributions=False):
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
     kernel.IncCV_SaveIncPreviousTimeStep()
@@ -35,21 +33,15 @@ def try_timestep(
     except LinearSolverFailure as e:
         mpi.master_print(newton.status)
         mpi.master_print(f"Linear failure with timestep: {time_string(deltat)}")
-        mpi.master_print(e, "\n")
-        if simulation_context and simulation_context.dump_system_on_ksp_failure:
-            newton.lsolver.linear_system.dump_ascii(basename="ksp_failure_")
-        if simulation_context and simulation_context.abort_on_ksp_failure:
-            mpi.master_print(
-                "\nComPASS - Abortion requested on linear solver failure\n"
-            )
-            mpi.abort()
+        mpi.master_print(e)
+        for callback in newton.lsolver.failure_callbacks:
+            callback(deltat)
         return False
     except IterationExhaustion as e:
         mpi.master_print(e.status)
         mpi.master_print(f"Newton failure with timestep: {time_string(deltat)}\n")
-        if simulation_context and simulation_context.abort_on_newton_failure:
-            mpi.master_print("\nComPASS - Abortion requested on newton failure\n")
-            mpi.abort()
+        for callback in newton.failure_callbacks:
+            callback(deltat)
         return False
 
     mpi.master_print("Success with timestep: ", time_string(deltat))
@@ -70,12 +62,9 @@ def _flash_wells(simulation):
 
 
 def make_one_timestep(
-    simulation,
-    newton,
-    timesteps,
-    simulation_context=None,
-    display_residual_contributions=False,
+    simulation, newton, timesteps, display_residual_contributions=False,
 ):
+
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
     # pressure drop are set explicitely so we don't need to recompute
@@ -86,9 +75,7 @@ def make_one_timestep(
     kernel.IncCVWells_UpdatePressureDrop()
     attempts = []
     for deltat in timesteps:
-        if try_timestep(
-            deltat, newton, simulation_context, display_residual_contributions
-        ):
+        if try_timestep(deltat, newton, display_residual_contributions):
             break
         attempts.append(deltat)
         newton.failures += 1

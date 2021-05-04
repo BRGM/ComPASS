@@ -157,7 +157,7 @@ class PetscIterativeSolver(IterativeSolver):
 
     def solve(self):
 
-        self.ksp.setConvergenceHistory(self.max_iterations)
+        self.ksp.setConvergenceHistory(self.max_iterations + 1)
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
         self.ksp_reason = self.ksp.getConvergedReason()
         self.nit = self.ksp.getIterationNumber()
