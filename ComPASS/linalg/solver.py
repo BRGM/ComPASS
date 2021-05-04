@@ -31,6 +31,10 @@ class LinearSolver:
         if options.database["linear_solver_view"]:
             master_print(self)
 
+    def write_history(self, basename=""):
+        with open(basename + "solver_log.txt", "w") as f:
+            f.write("Linear solver used has no logging method implemented")
+
     def __str__(self):
         return "LinearSolver object view:"
 
@@ -51,6 +55,7 @@ class IterativeSolver(LinearSolver):
         self.number_of_successful_iterations = 0
         self.number_of_unsuccessful_iterations = 0
         self.settings = settings
+        self.residual_history = []
         super().__init__(linear_system)
 
     def __str__(self):

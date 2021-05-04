@@ -38,7 +38,7 @@ class PetscLinearSystem:
         self.x.createMPI((n_rowl, n_rowg))
         self.RHS.createMPI((n_rowl, n_rowg))
 
-    def dump_ascii(self, basename, comm=PETSc.COMM_WORLD):
+    def dump_ascii(self, basename="", comm=PETSc.COMM_WORLD):
         """
         Writes the linear system (Matrix, solution and RHS) in three different files in ASCII format
 
@@ -76,16 +76,16 @@ class PetscLinearSystem:
                 # Clearing the file if it already exists
                 pass
             with open(basename + "part_data.txt", "a") as f:
+                mpi.synchronize()
                 if mpi.is_on_master_proc:
                     f.write(f"Number of procs : {mpi.communicator().Get_size()}\n")
                     f.write(f"Block size : {self.lsbuilder.get_block_size()}\n")
                 mpi.synchronize()
                 f.write(
-                    f"\nProc rank : {mpi.proc_rank}\n \
-Number of wells : {self.lsbuilder.get_n_wells()}\n \
-Global index of first row : {self.lsbuilder.get_rowstart(mpi.proc_rank)}\n \
-Local number of rows : {self.lsbuilder.get_non_zeros()[0][0]}\n \
-Local number of wells : {self.lsbuilder.get_n_wells()}\n"
+                    f"\nProc rank : {mpi.proc_rank}\n"
+                    f"Global index of first row : {self.lsbuilder.get_rowstart(mpi.proc_rank)}\n"
+                    f"Local number of rows : {self.lsbuilder.get_non_zeros()[0][0]}\n"
+                    f"Local number of wells : {self.lsbuilder.get_n_wells()}\n"
                 )
 
         mpi.master_print(">> Linear system dump")
@@ -157,9 +157,11 @@ class PetscIterativeSolver(IterativeSolver):
 
     def solve(self):
 
+        self.ksp.setConvergenceHistory(self.max_iterations)
         self.ksp.solve(self.linear_system.RHS, self.linear_system.x)
         self.ksp_reason = self.ksp.getConvergedReason()
         self.nit = self.ksp.getIterationNumber()
+        self.residual_history = self.ksp.history
 
         if self.ksp_reason < 0:
             self.number_of_unsuccessful_iterations += self.nit
@@ -168,6 +170,23 @@ class PetscIterativeSolver(IterativeSolver):
             self.number_of_successful_iterations += self.nit
 
         return self.linear_system.x, self.nit
+
+    def write_history(self, basename=""):
+        """
+        Writes the linear solver residual history in a file
+
+        :param basename: base part of the file path
+        :comm: MPI communicator
+        """
+
+        def dump_residual_log(self):
+            with open(basename + "solver_log.txt", "w") as f:
+                f.write(f"{self}\n\n")
+                f.write(f"Iteration, Residual norm\n")
+                for it, residual in enumerate(self.residual_history):
+                    f.write(f"{it:<9}, {residual:.13e}\n")
+
+        mpi.on_master_proc(dump_residual_log)(self)
 
     def __str__(self):
         return f"{super().__str__()}\n   petsc4py new implementation\n   Settings : {self.settings}\n   Preconditioner : {self.pc}"
@@ -201,6 +220,20 @@ class PetscDirectSolver(DirectSolver):
             )
 
         return self.linear_system.x, self.nit
+
+    def write_history(self, basename=""):
+        """
+        Writes the linear solver residual history in a file
+
+        :param basename: base part of the file path
+        :comm: MPI communicator
+        """
+
+        def dump_residual_log(self):
+            with open(basename + "solver_log.txt", "w") as f:
+                f.write(f"{self}\n\n")
+
+        mpi.on_master_proc(dump_residual_log)(self)
 
     def __str__(self):
         return f"{super().__str__()}\n   petsc4py new implementation"

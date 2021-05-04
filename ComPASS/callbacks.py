@@ -117,8 +117,11 @@ def get_callbacks_from_options(newton, tick0):
             dump_flag = TimestepFlag(t_dump)
             dump_flag(tick0)
             dump_trigger = DumpLinearSystemTrigger(linear_system.dump_ascii, dump_flag)
+            solver_log_trigger = DumpLinearSystemTrigger(
+                newton.lsolver.write_history, dump_flag
+            )
             callbacks.append(dump_flag)
-            newton_callbacks.append(dump_trigger)
+            newton_callbacks.extend([dump_trigger, solver_log_trigger])
 
     t_dump_b_raw = options.database["dump_ls_binary"]
     if t_dump_b_raw is not None:
@@ -130,8 +133,11 @@ def get_callbacks_from_options(newton, tick0):
             dump_trigger = DumpLinearSystemTrigger(
                 linear_system.dump_binary, dump_flag_b
             )
+            solver_log_trigger = DumpLinearSystemTrigger(
+                newton.lsolver.write_history, dump_flag_b
+            )
             callbacks.append(dump_flag_b)
-            newton_callbacks.append(dump_trigger)
+            newton_callbacks.extend([dump_trigger, solver_log_trigger])
 
     newton_log_filename = options.database["newton_log"]
     if newton_log_filename is not None:
