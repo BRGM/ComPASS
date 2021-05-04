@@ -37,8 +37,14 @@ class CPRAMG(PETSc.PC):
         self.setOperators(linear_system.A, linear_system.A)
         self.setType(PETSc.PC.Type.COMPOSITE)
         self.setCompositeType(PETSc.PC.CompositeType.MULTIPLICATIVE)
-        self.addCompositePC(PETSc.PC.Type.FIELDSPLIT)
-        self.addCompositePC(PETSc.PC.Type.BJACOBI)
+        PETSc_version = PETSc.Sys.getVersion()
+        if PETSc_version[0] >= 3 and PETSc_version[1] > 14:
+            ## This function's name changed in version 3.15
+            addCompositePCType = self.addCompositePCType
+        else:
+            addCompositePCType = self.addCompositePC
+        addCompositePCType(PETSc.PC.Type.FIELDSPLIT)
+        addCompositePCType(PETSc.PC.Type.BJACOBI)
         self.setUp()
 
         # We now define M1 as an additive fieldsplit pc
