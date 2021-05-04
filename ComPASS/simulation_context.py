@@ -1,3 +1,6 @@
+from .options import get_bool
+
+
 class SimulationContext:
     """
     A structure that holds global parameter.
@@ -9,6 +12,10 @@ class SimulationContext:
     """
 
     def __init__(self):
-        self.abort_on_ksp_failure = False
-        self.dump_system_on_ksp_failure = False
-        self.abort_on_newton_failure = False
+        self.abort_on_ksp_failure = get_bool("--abort_on_linear_failure", default=False)
+        self.dump_system_on_ksp_failure = get_bool(
+            "--dump_system_on_linear_failure", default=False
+        )
+        self.abort_on_newton_failure = get_bool(
+            "--abort_on_newton_failure", default=False
+        )

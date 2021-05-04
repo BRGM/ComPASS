@@ -68,7 +68,6 @@ class DumpLinearSystemTrigger:
                 os.mkdir(dump_dirname)
             except FileExistsError:
                 pass
-            print(">" * 30, "Dump linear system")
             self.dump_function(basename=dump_dirname)
 
 

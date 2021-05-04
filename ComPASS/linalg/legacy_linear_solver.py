@@ -49,6 +49,7 @@ class LegacyLinearSystem:
         :comm: MPI communicator
         """
 
+        print(">" * 30, "Dump linear system")
         self.kernel.SolvePetsc_dump_system(basename)
         viewer = PETSc.Viewer().createASCII(basename + "x" + ".dat", "w", comm)
         self.x.view(viewer)

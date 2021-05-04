@@ -52,6 +52,7 @@ class PetscLinearSystem:
             item.view(viewer)
             viewer.destroy
 
+        print(">" * 30, "Dump linear system")
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")
@@ -70,6 +71,7 @@ class PetscLinearSystem:
             item.view(viewer)
             viewer.destroy
 
+        print(">" * 30, "Dump linear system")
         dump_item(self.A, "A")
         dump_item(self.RHS, "RHS")
         dump_item(self.x, "x")
