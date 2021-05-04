@@ -17,3 +17,5 @@ simulation.standard_loop(
     output_period=year,
     context=context,
 )
+
+print(lsolver)

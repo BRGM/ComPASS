@@ -17,3 +17,5 @@ simulation.standard_loop(
     newton=newton,
     context=context,
 )
+
+print(lsolver)

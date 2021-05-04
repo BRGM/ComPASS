@@ -14,6 +14,7 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.newton import Newton
 from ComPASS.linalg.petsc_linear_solver import *
 from ComPASS.linalg.legacy_linear_solver import *
+from ComPASS.linalg.preconditioners import BlockJacobi
 from ComPASS.simulation_context import SimulationContext
 
 """
@@ -104,12 +105,13 @@ def set_boundary_fluxes():
 
 set_boundary_fluxes()
 
-# Setting the preconditioner to a basic block Jacobi - ILU(0) PC,
+# Setting the preconditioner to a basic block Jacobi - ILU(1) PC,
 # which isn't robust enough for this test case
+linear_system = PetscLinearSystem(simulation)
 lsolver = PetscIterativeSolver(
-    PetscLinearSystem(simulation),
+    linear_system,
     IterativeSolverSettings(1.0e-6, 150, 30),
-    activate_cpramg=False,
+    pc=BlockJacobi(linear_system),
 )
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
