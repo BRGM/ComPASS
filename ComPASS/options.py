@@ -44,10 +44,10 @@ class TimestepFlag(Flag):
     def __call__(self, tick):
 
         if not self.has_been_triggered:
+            self.tick = tick
             if tick.time >= self.t:
                 if not self.is_on:
                     self.is_on = True
-                    self.tick = tick
                 elif self.is_on:
                     self.is_on = False
                     self.has_been_triggered = True
@@ -112,38 +112,44 @@ class NewtonLogCallback:
 
 
 def get_callbacks_from_options(newton, tick0):
-    """ Possible options : --dump_ls <time>
-                                  --> writes linear system in file in ASCII mode
-                           --dump_ls_binary <time>
-                                  --> writes linear system in file in binary mode (not available with Legacy implementation)
+    """ Possible options : --dump_ls <comma_separated_times>
+                                  --> writes linear systems in file in ASCII mode
+                           --dump_ls_binary <comma_separated_times>
+                                  --> writes linear systems in file in binary mode (not available with Legacy implementation)
                            --kill <time>
                                   --> kills execution
                            --newton_log <filename>
                                   --> Writes a history of the simulation timesteps, newton iterations
                                       and linear iterations in file filename
-    example : --dump_ls 1.5e6 --kill 1.5e6 """
+    example : --dump_ls 0.0,1.5e6 --kill 1.5e6 """
 
     callbacks = []
     newton_callbacks = []
     linear_system = newton.lsolver.linear_system
 
-    t_dump = get("--dump_ls")
-    if t_dump is not None:
-        t_dump = float(t_dump)
-        dump_flag = TimestepFlag(t_dump)
-        dump_flag(tick0)
-        dump_trigger = DumpLinearSystemTrigger(linear_system.dump_ascii, dump_flag)
-        callbacks.append(dump_flag)
-        newton_callbacks.append(dump_trigger)
+    t_dump_raw = get("--dump_ls")
+    if t_dump_raw is not None:
+        t_dump_list = t_dump_raw.split(",")
+        for t_dump in t_dump_list:
+            t_dump = float(t_dump)
+            dump_flag = TimestepFlag(t_dump)
+            dump_flag(tick0)
+            dump_trigger = DumpLinearSystemTrigger(linear_system.dump_ascii, dump_flag)
+            callbacks.append(dump_flag)
+            newton_callbacks.append(dump_trigger)
 
-    t_dump_b = get("--dump_ls_binary")
-    if t_dump_b is not None:
-        t_dump_b = float(t_dump_b)
-        dump_flag_b = TimestepFlag(t_dump_b)
-        dump_flag_b(tick0)
-        dump_trigger = DumpLinearSystemTrigger(linear_system.dump_binary, dump_flag_b)
-        callbacks.append(dump_flag_b)
-        newton_callbacks.append(dump_trigger)
+    t_dump_b_raw = get("--dump_ls_binary")
+    if t_dump_b_raw is not None:
+        t_dump_b_list = t_dump_b_raw.split(",")
+        for t_dump_b in t_dump_b_list:
+            t_dump_b = float(t_dump_b)
+            dump_flag_b = TimestepFlag(t_dump_b)
+            dump_flag_b(tick0)
+            dump_trigger = DumpLinearSystemTrigger(
+                linear_system.dump_binary, dump_flag_b
+            )
+            callbacks.append(dump_flag_b)
+            newton_callbacks.append(dump_trigger)
 
     newton_log_filename = get("--newton_log")
     if newton_log_filename is not None:
