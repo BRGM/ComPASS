@@ -27,7 +27,7 @@ the ComPASS context. The default preconditioning method in ComPASS is
 CPR-AMG, an efficient method designed for linear systems in the context
 of Darcy flow physics. In general, GMRES with CPR-AMG preconditioning is
 the best method in ComPASS simulations. A description of this method can
-be found in the wiki.
+be found in the docs.
 
 Each of these linear solvers has two different implementations : the
 ``Legacy`` and the ``Petsc`` versions. The default is still the
@@ -51,19 +51,20 @@ time loop. However, command line options for ComPASS linear solvers are
 available for basic usage, and can be used to set the default linear
 solver :
 
--  ``--legacy_linear_solver <True/False>`` : Switch between the Fortran
-   and the Python implementations
--  ``--direct_linear_solver <True/False>`` : Switch between direct and
-   iterative solver
--  ``--linear_solver_view <True/False>`` : Display a view of the linear
+-  ``--legacy_linear_solver <legacy/new>`` : Switch between the Fortran
+   and the Python implementations (defaults to legacy if not provided)
+-  ``--direct_linear_solver`` : Use a direct solver (iterative GMRES algorithm by default)
+-  ``--linear_solver_view`` : Display a view of the linear
    solver object at constructor call
--  ``--dump_ls <time>`` : Write the PETSc linear system (matrix and
-   right hand side) in an ASCII format file at the end of time step
+-  ``--dump_ls <time>`` : Write the PETSc linear systems (matrix, solution and
+   right hand side) in ASCII format files from the end of time step
    ``<time>`` (slow in parallel)
--  ``--dump_ls_binary <time>`` : Write the PETSc linear system (matrix
-   and right hand side) in a binary format file at the end of time step
-   ``<time>`` (useful for external processing of the linear system, not
-   available in the ``Legacy`` version)
+-  ``--dump_ls_binary <time>`` : Write the PETSc linear systems (matrix, solution
+   and right hand side) in binary format files from the end of time step
+   ``<time>`` (not available in the ``Legacy`` version)
+-  ``--abort_on_linear_failure`` : Stop computation if the linear solver fails
+-  ``--dump_system_on_linear_failure`` : Dump the linear system if the linear solver fails
+-  ``--abort_on_newton_failure`` : Stop computation if the newton loop fails to converge
 
 Examples
 ~~~~~~~~
@@ -80,15 +81,15 @@ with the command :
 
 .. code:: console
 
-   $ python3 solving_from_options.py --legacy_linear_solver False --direct_linear_solver True --linear_solver_view True
+   $ python3 solving_from_options.py --linear_solver_version new --direct_linear_solver --linear_solver_view
 
 should display the following, together with the simulation output :
 
 .. code:: console
 
-       LinearSolver object view:
-         Direct
-         petsc4py new implementation
+    LinearSolver object view:
+        Direct
+        petsc4py new implementation
 
 Instanciate your own linear solver object
 -----------------------------------------
@@ -115,6 +116,9 @@ Description of the factory function’s arguments
 -  ``activate_cpramg`` : A boolean switch to turn the CPR-AMG
    preconditioner on or off. Defaults to ``None`` in case of direct
    solver, and ``True`` if an iterative solver is chosen.
+-  ``cpr_amg_type`` : Select library used for AMG computation in the
+   CPR-AMG preconditioner. Possible values : "hypre" (HYPRE BoomerAMG implementation),
+   "amg" (PETSc built-in algorithm). Defaults to "hypre".
 -  ``tolerance`` : Relative decrease in the residual norm required for
    iterative solver convergence, defaults to 1e-6
 -  ``max_iterations`` : Maximum number of iterations accepted before
@@ -144,9 +148,9 @@ PETSc library, because we eventually want to get rid of the ``Legacy``
 implementation. The ``Legacy`` version uses the Fortran interface, and
 the ``Petsc`` version uses the petsc4py bindings. Since both strategies
 initialize PETSc, using multiple types of solvers in the same execution
-can lead to unexpected behaviour. This means **you should make a choice
-between** ``Legacy`` **and** ``Petsc`` when running an input script which
-explicitely uses linear solvers.
+can lead to unexpected behaviour. This means **you should not have
+instances of both the** ``Legacy`` **and** ``Petsc`` **versions at the
+same time during execution.**
 
 Both version are essentially identical, but there are a few things to
 note on the ``Legacy`` version :
