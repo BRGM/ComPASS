@@ -115,11 +115,6 @@ lsolver = PetscIterativeSolver(
 )
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
-# We want to check that linear failure exceptions are well taken care of,
-# and that the following options work properly
-options.database["abort_on_linear_failure"] = True
-options.database["dump_system_on_linear_failure"] = True
-
 
 final_time = 50 * year
 output_period = 0.1 * final_time

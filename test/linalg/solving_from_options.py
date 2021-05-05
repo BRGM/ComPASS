@@ -16,4 +16,4 @@ simulation.standard_loop(
 
 # You can try running this script with different options, for example this will setup a Petsc direct solver and display a short view :
 
-# python3 solving_from_options.py --legacy_linear_solver False --direct_linear_solver True --linear_solver_view True
+# python3 solving_from_options.py --linear_solver_version new --direct_linear_solver --linear_solver_view
