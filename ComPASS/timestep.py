@@ -34,14 +34,14 @@ def explain_reason(reason):
 
 
 def try_timestep(
-    deltat, newton, simulation_context,
+    deltat, newton, simulation_context, display_residual_contributions=False
 ):
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
     kernel.IncCV_SaveIncPreviousTimeStep()
     try:
         mpi.master_print("trying newton with timestep:", time_string(deltat))
-        iterations = newton.loop(deltat)
+        iterations = newton.loop(deltat, display_residual_contributions)
         mpi.master_print(iterations)
     except LinearSolverFailure as e:
         mpi.master_print(e)
@@ -75,7 +75,11 @@ def _flash_wells(simulation):
 
 
 def make_one_timestep(
-    simulation, newton, timesteps, simulation_context=None,
+    simulation,
+    newton,
+    timesteps,
+    simulation_context=None,
+    display_residual_contributions=False,
 ):
     # CHECKME: do we need to retrieve kernel here???
     kernel = get_kernel()
@@ -87,7 +91,9 @@ def make_one_timestep(
     kernel.IncCVWells_UpdatePressureDrop()
     attempts = []
     for deltat in timesteps:
-        if try_timestep(deltat, newton, simulation_context):
+        if try_timestep(
+            deltat, newton, simulation_context, display_residual_contributions
+        ):
             mpi.master_print("Success with timestep: ", time_string(deltat))
             break
         attempts.append(deltat)

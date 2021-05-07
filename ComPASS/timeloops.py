@@ -135,6 +135,7 @@ def standard_loop(
     no_output=False,
     timeloop_statistics=True,
     respect_final_time=True,
+    display_residual_contributions=False,
 ):
     """
     Performs a standard timeloop.
@@ -178,6 +179,8 @@ def standard_loop(
                              It must be a :py:class:`WellDataConnections` (defaults to simulation.well_connections).
     :param no_output: Flag that will prevent any output (defaults to False)
     :param respect_final_time: Flag to adapt the final timestep to respect final time (defaults to False).
+    :param display_residual_contributions: Detail contributions to the residual norm during
+                                           newton convergence (defaults to False).
     :return: The time at the end of the time loop.
     """
     # FIXME: horrible global variables... to be removed... using OOP?
@@ -330,6 +333,7 @@ def standard_loop(
             newton,
             ts_manager.steps(upper_bound=dt_to_next_event),
             simulation_context=context,
+            display_residual_contributions=display_residual_contributions,
         )
         well_connections.synchronize()
         mpi.synchronize()
