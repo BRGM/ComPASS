@@ -9,7 +9,7 @@
 import numpy as np
 
 # access to underlying MPI.py
-from .mpi import MPI
+from .mpi import MPI, is_on_master_proc
 from ._kernel import get_kernel
 
 
@@ -36,6 +36,24 @@ class Legacy:
         MPI.COMM_WORLD.Allreduce(local, global_norms, MPI.SUM)
         return global_norms
 
+    def pv_norms_contributions(self):
+        residuals = self.residuals
+        npv = self.simulation.Residuals.npv()
+
+        def reduce(v, n):
+            V = np.zeros(n, dtype=np.double)
+            MPI.COMM_WORLD.Allreduce(v, V, MPI.SUM)
+            return V
+
+        contributions = {}
+        for name in ["own_nodes", "own_fractures", "own_cells"]:
+            contributions[name] = reduce(
+                np.linalg.norm(getattr(residuals, name), 1, axis=0), npv
+            )
+        for name in ["own_injectors", "own_producers"]:
+            contributions[name] = reduce(np.linalg.norm(getattr(residuals, name), 1), 1)
+        return contributions
+
     def closure_norm(self):
         kernel = self.kernel
         assert kernel
@@ -54,12 +72,25 @@ class Legacy:
         self.reset_conservation_reference(dt)
         self.reset_closure_reference()
 
-    def relative_norm(self):
+    def relative_norm(self, display_contributions=False):
         assert self.reference_closure > 0
         assert np.all(
             self.reference_pv > 0
         ), "mininmum of reference value is %g" % np.min(self.reference_pv)
+        closure_norm = self.closure_norm()
+        if display_contributions:
+            contributions = self.pv_norms_contributions()
+            if is_on_master_proc:
+                for name, value in contributions.items():
+                    print(
+                        f"{name} residual contribution: "
+                        f"{value} ({value/self.reference_pv[:value.shape[0]]})"
+                    )
+                print(
+                    "closure residual: "
+                    f"{closure_norm} ({closure_norm/self.reference_closure})"
+                )
         return max(
-            self.closure_norm() / self.reference_closure,
+            closure_norm / self.reference_closure,
             np.max(self.pv_norms() / self.reference_pv),
         )

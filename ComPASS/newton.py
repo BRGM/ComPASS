@@ -132,7 +132,7 @@ class Newton:
         #        mpi.master_print('flash all volumes')
         kernel.NN_flash_all_control_volumes()
 
-    def loop(self, dt):
+    def loop(self, dt, display_contributions=False):
         kernel = get_kernel()
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
@@ -167,7 +167,9 @@ class Newton:
             self.increment(x)
             self.init_iteration()
             kernel.Residu_compute(dt)
-            relative_residuals.append(convergence_scheme.relative_norm())
+            relative_residuals.append(
+                convergence_scheme.relative_norm(display_contributions)
+            )
             mpi.master_print(
                 "Newton % 3d          residuals" % (iteration + 1),
                 # FIXME: performs computation and synchronization between procs
