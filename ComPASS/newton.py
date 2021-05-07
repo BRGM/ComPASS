@@ -122,7 +122,7 @@ class Newton:
         kernel.Jacobian_GetSolCell(self.increments)
         # mpi.master_print('after\n', self.increments.cells())
         kernel.IncPrimSecd_PrimToSecd(self.increments)
-        relaxation = kernel.IncCVReservoir_NewtonRelax(self.increments)
+        relaxation = kernel.Newton_compute_relaxation(self.increments)
         # mpi.master_print('relaxation:', relaxation)
         kernel.IncCV_NewtonIncrement(self.increments, relaxation)
         kernel.DirichletContribution_update()
