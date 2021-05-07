@@ -9,8 +9,6 @@
 module IncCVReservoir
 
    use iso_c_binding, only: c_int, c_double, c_size_t
-   use mpi, only: MPI_DOUBLE, MPI_MIN
-   use mpi !, only: MPI_Allreduce ! FIXME: otherwise MPI_Allreduce not found on some platform
 
    use CommonMPI, only: ComPASS_COMM_WORLD, commRank
 
@@ -21,10 +19,6 @@ module IncCVReservoir
       IndThermique, MCP, NbIncTotalPrimMax
 
    use MeshSchema, only: &
-      IdNodeLocal, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
-#endif
       NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
       SubArrayInfo, MeshSchema_subarrays_info
@@ -34,7 +28,6 @@ module IncCVReservoir
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
       NumCompCtilde_ctx, NbCompCtilde_ctx
 
-   use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
    use SchemeParameters, only: &
       NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, &
       eps
@@ -68,7 +61,6 @@ module IncCVReservoir
 
    public :: &
       IncCVReservoir_allocate, &
-      IncCVReservoir_NewtonRelax, &
       IncCVReservoir_NewtonIncrement, &
       IncCVReservoir_LoadIncPreviousTimeStep, &
       IncCVReservoir_SaveIncPreviousTimeStep, &
@@ -212,183 +204,6 @@ contains
       end do
 
    end subroutine IncCVReservoir_NewtonIncrement
-
-   function IncCVReservoir_NewtonRelax_C(increments_pointers) &
-      result(relaxation) &
-      bind(C, name="IncCVReservoir_NewtonRelax")
-
-      type(Newton_increments_pointers), intent(in), value :: increments_pointers
-      real(c_double) :: relaxation
-      type(Newton_increments) :: increments
-
-      call Newton_pointers_to_values(increments_pointers, increments)
-      call IncCVReservoir_NewtonRelax( &
-         increments%nodes, increments%fractures, increments%cells, relaxation &
-         )
-
-   end function IncCVReservoir_NewtonRelax_C
-
-   !> \brief Compute relaxation in Newton.
-   !!
-   !! relax = min(1, IncreObj/NewtonIncreObjMax) <br>
-   !! where IncreObj is set by the user in SchemeParameters.F90 <br>
-   !! and NewtonIncreObjMax is the maximum of the Nemton increment
-   !! in current iteration
-   subroutine IncCVReservoir_NewtonRelax( &
-      NewtonIncreNode, NewtonIncreFrac, NewtonIncreCell, relax &
-      )
-
-      real(c_double), dimension(:, :), intent(in) :: &
-         NewtonIncreNode, &
-         NewtonIncreFrac, &
-         NewtonIncreCell
-
-      real(c_double), intent(out) :: relax
-
-      double precision :: &
-         incremaxlocal_P, &
-         incremaxlocal_T, &
-         incremaxlocal_C(NbComp, NbPhase), &
-         incremaxlocal_S(NbPhase), &
-         relaxlocal
-
-      integer :: k, i, ic, iph, icp, j, Ierr
-      integer :: NbIncPTC
-
-      incremaxlocal_P = 0.d0
-
-#ifdef _THERMIQUE_
-      incremaxlocal_T = 0.d0
-#endif
-      incremaxlocal_C(:, :) = 0.d0
-      incremaxlocal_S(:) = 0.d0
-
-      ! max Newton increment node
-      do k = 1, NbNodeOwn_Ncpus(commRank + 1)
-
-         if (IdNodeLocal(k)%P /= "d") then
-
-            ic = IncNode(k)%ic
-            NbIncPTC = NbIncPTC_ctx(ic)
-
-            incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreNode(1, k)))
-
-            do i = 2 + IndThermique, NbIncPTC
-               icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
-               iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
-
-               incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreNode(i, k)))
-            enddo
-
-            do i = 1, NbPhasePresente_ctx(ic)
-               iph = NumPhasePresente_ctx(i, ic)
-
-               incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreNode(iph + NbIncPTC, k)))
-            end do
-         end if
-
-#ifdef _THERMIQUE_
-         if (IdNodeLocal(k)%T /= "d") then
-            incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreNode(2, k)))
-         end if
-#endif
-
-      end do
-
-      ! max Newton increment fracture face
-      do k = 1, NbFracOwn_Ncpus(commRank + 1)
-
-         ic = IncFrac(k)%ic
-         NbIncPTC = NbIncPTC_ctx(ic)
-
-         incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreFrac(1, k)))
-
-#ifdef _THERMIQUE_
-         incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreFrac(2, k)))
-#endif
-
-         do i = 2 + IndThermique, NbIncPTC
-            icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
-            iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
-
-            incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreFrac(i, k)))
-         enddo
-
-         do i = 1, NbPhasePresente_ctx(ic)
-            iph = NumPhasePresente_ctx(i, ic)
-
-            incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreFrac(iph + NbIncPTC, k)))
-         end do
-      end do
-
-      ! max Newton increment cell
-      do k = 1, NbCellOwn_Ncpus(commRank + 1)
-
-         ic = IncCell(k)%ic
-         NbIncPTC = NbIncPTC_ctx(ic)
-
-         incremaxlocal_P = max(incremaxlocal_P, abs(NewtonIncreCell(1, k)))
-
-#ifdef _THERMIQUE_
-         incremaxlocal_T = max(incremaxlocal_T, abs(NewtonIncreCell(2, k)))
-#endif
-
-         do i = 2 + IndThermique, NbIncPTC
-            icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
-            iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
-
-            incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(NewtonIncreCell(i, k)))
-         enddo
-
-         do i = 1, NbPhasePresente_ctx(ic)
-            iph = NumPhasePresente_ctx(i, ic)
-
-            incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(NewtonIncreCell(iph + NbIncPTC, k)))
-         end do
-      end do
-
-      ! relax local = min(1, increobj/incremax)
-      relaxlocal = min(1.d0, NewtonIncreObj_P/incremaxlocal_P) ! P
-
-#ifdef _THERMIQUE_
-      relaxlocal = min(relaxlocal, NewtonIncreObj_T/incremaxlocal_T) ! T
-#endif
-
-      do i = 1, NbPhase ! C_i^alpha
-         do j = 1, NbComp
-
-            if (MCP(j, i) == 1 .and. abs(incremaxlocal_C(j, i)) > eps) then
-               relaxlocal = min(relaxlocal, NewtonIncreObj_C/incremaxlocal_C(j, i))
-            end if
-         end do
-      end do
-
-      do i = 1, NbPhase ! S^alpha
-         if (abs(incremaxlocal_S(i)) > eps) then
-            ! if(relaxlocal>NewtonIncreObj_S/incremaxlocal_S(i)) &
-            !     write(*,*) "Relaxation induced by delta S max = ", incremaxlocal_S(i), " > ", NewtonIncreObj_S, " for phase ", i
-            relaxlocal = min(relaxlocal, NewtonIncreObj_S/incremaxlocal_S(i))
-         end if
-      end do
-
-      ! relax global
-      call MPI_Allreduce(relaxlocal, relax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-
-      ! pmaxlocal = increobj_P/incremaxlocal_P
-      ! !tmaxlocal = increobj_T/incremaxlocal_T
-      ! do i=1, NbPhase
-      !    smaxlocal(i) = increobj_S/incremaxlocal_S(i)
-      ! end do
-
-      ! call MPI_Allreduce(pmaxlocal, pmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-      ! call MPI_Allreduce(tmaxlocal, tmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-      ! call MPI_Allreduce(smaxlocal, smax, NbPhase, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-
-      ! if(commRank==0) then
-      !    write(*,'(F16.5,F16.5,F16.5)',advance="no"), pmax, smax(:)
-      ! end if
-
-   end subroutine IncCVReservoir_NewtonRelax
 
    !> \brief Realize Newton increment of each control volume           <br>
    !! NOMBERING IS FIXED:                                              <br>

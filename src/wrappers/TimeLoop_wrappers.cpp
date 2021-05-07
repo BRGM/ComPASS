@@ -23,7 +23,7 @@ void IncCV_LoadIncPreviousTimeStep();
 void IncCVWells_estimate_producers_density(const bool);
 void IncCVWells_UpdatePressureDrop();
 void IncCVWells_UpdateWellPressures();
-double IncCVReservoir_NewtonRelax(
+double Newton_compute_relaxation(
     const NewtonIncrements::Pointers<const double>);
 void IncCV_NewtonIncrement(const NewtonIncrements::Pointers<const double>,
                            const double);
@@ -127,9 +127,9 @@ void add_time_loop_wrappers(py::module& module) {
            },
            py::keep_alive<0, 1>());
 
-   module.def("IncCVReservoir_NewtonRelax",
+   module.def("Newton_compute_relaxation",
               [](const NewtonIncrements& increments) {
-                 return IncCVReservoir_NewtonRelax(increments.pointers());
+                 return Newton_compute_relaxation(increments.pointers());
               });
 
    module.def("IncCV_NewtonIncrement",

@@ -314,7 +314,7 @@ _a_verifier = [
     "DefFlashWells_TimeFlash_injectors",
     "DefFlashWells_TimeFlash_producers_single_phase",
     "DefFlashWells_TimeFlash_producers_two_phases",
-    "IncCVReservoir_NewtonRelax",
+    "Newton_compute_relaxation",
     "IncCV_NewtonIncrement",
     "IncPrimSecd_PrimToSecd",
     "Jacobian_GetSolCell",
