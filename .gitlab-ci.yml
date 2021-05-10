@@ -202,6 +202,17 @@ time_bulk_scripts:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
     - docker run -v $PWD/test:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 utilities/pool.py bulk
 
+linalg_tests:
+  stage: test
+  tags:
+    - build
+  except:
+    - /^doc_.*$/
+  image: docker:stable
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+    - docker run -v $PWD/test/linalg:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run options_test.py
+
 master_release:
   stage: release
   tags:
