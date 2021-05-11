@@ -622,7 +622,8 @@ contains
       integer :: k, s, s_parent, nums, m, mph, icp
 
       double precision :: Flux_ks(NbComp), FluxT_ks
-      double precision :: Pws, Tws, Ps, Ts, WIDws, WIFws, Ps_Pws
+      double precision :: Pws, Ps, WIDws, Ps_Pws
+      ! double precision :: Tws, Ts, WIFws
       logical something_is_produced, something_is_injected
 
       ! Injection well
@@ -650,12 +651,12 @@ contains
             nums = NodebyWellInjLocal%Num(s)
 
             Pws = PerfoWellInj(s)%Pression ! P_{w,s}
-            Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
+            ! Tws = PerfoWellInj(s)%Temperature ! T_{w,s}
             Ps = IncNode(nums)%phase_pressure(LIQUID_PHASE)
-            Ts = IncNode(nums)%Temperature ! T_s
+            ! Ts = IncNode(nums)%Temperature ! T_s
 
             WIDws = NodeDatabyWellInjLocal%Val(s)%WID
-            WIFws = NodeDatabyWellInjLocal%Val(s)%WIF
+            ! WIFws = NodeDatabyWellInjLocal%Val(s)%WIF
 
             ! Flux q_{w,s,i} and q_{w,s,e}
             Ps_Pws = Ps - Pws
@@ -665,6 +666,7 @@ contains
 #ifdef _THERMIQUE_
                FluxT_ks = DensiteMolaireKrViscoEnthalpieWellInj(s)*WIDws*Ps_Pws
 #endif
+
                ! node equation
                ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks
 
