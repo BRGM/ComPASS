@@ -18,6 +18,9 @@ from .linalg.exceptions import LinearSolverFailure
 from .callbacks import InterruptTrigger
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
+NewtonLoopTick = namedtuple(
+    "NewtonLoopTick", ["timeloop_tick", "current_dt", "iteration"]
+)
 
 
 class NewtonFailure(Exception):
@@ -143,7 +146,7 @@ class Newton:
         #        mpi.master_print('flash all volumes')
         kernel.NN_flash_all_control_volumes()
 
-    def loop(self, dt, display_contributions=False):
+    def loop(self, timeloop_tick, dt, display_contributions=False):
         kernel = get_kernel()
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
@@ -165,6 +168,7 @@ class Newton:
 
         for iteration in range(self.maximum_number_of_iterations):
 
+            newton_tick = NewtonLoopTick(timeloop_tick, dt, iteration + 1)
             kernel.Jacobian_ComputeJacSm(dt)
             lsolver.linear_system.set_from_jacobian()
 
@@ -190,7 +194,7 @@ class Newton:
             )
             self.status = NewtonStatus(iteration + 1, self.lsolver_iterations)
             for callback in self.iteration_callbacks:
-                callback(dt, iteration + 1)
+                callback(newton_tick)
             if relative_residuals[-1] < self.tolerance:
                 if self.check_well_errors_at_convergence:
                     self.check_well_residuals()

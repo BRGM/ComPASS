@@ -33,7 +33,7 @@ class LinearSolver:
         self.failure_callbacks = ()
 
     def write_history(self, basename=""):
-        with open(basename + "solver_log.txt", "w") as f:
+        with open(f"{basename}/solver_log.txt", "w") as f:
             f.write("Linear solver used has no logging method implemented")
 
     def __str__(self):
@@ -55,6 +55,7 @@ class IterativeSolver(LinearSolver):
         """
         self.number_of_successful_iterations = 0
         self.number_of_unsuccessful_iterations = 0
+        self.nit = 0
         self.settings = settings
         self.residual_history = []
         super().__init__(linear_system)

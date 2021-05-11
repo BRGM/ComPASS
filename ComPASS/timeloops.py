@@ -27,8 +27,8 @@ from .utils.units import bar, year
 
 
 Event = namedtuple("Event", ["time", "actions"])
-LoopTick = namedtuple(
-    "LoopTick", ["time", "iteration", "latest_timestep"], defaults=(None,) * 2
+TimeloopTick = namedtuple(
+    "TimeloopTick", ["time", "iteration", "latest_timestep"], defaults=(None,) * 2
 )
 
 
@@ -159,10 +159,10 @@ def standard_loop(
     :param reset_iteration_counter: Reset iteration counter if True (default to false)
     :param dumper: The object used to dump simulation (snaphots).
     :param iteration_callbacks: A sequence that holds callbacks that will be called after each iteration.
-        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
+        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`TimeloopTick`.
     :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
         (cf. ``ouput_period`` and ``output_every``).
-        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`LoopTick`.
+        The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`TimeloopTick`.
     :param specific_outputs: A sequence of additional output times.
     :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
@@ -216,7 +216,7 @@ def standard_loop(
         else:
             ts_manager = TimeStepManager(initial_timestep)
     t0 = initial_time if initial_time is not None else 0
-    tick0 = LoopTick(time=t0, iteration=n)
+    tick0 = TimeloopTick(time=t0, iteration=n)
     if iteration_callbacks is not None:
         iteration_callbacks = tuple(cb for cb in iteration_callbacks)
     else:
@@ -326,6 +326,7 @@ def standard_loop(
         dt = timestep.make_one_timestep(
             simulation,
             newton,
+            TimeloopTick(t, n),
             ts_manager.steps(upper_bound=dt_to_next_event),
             display_residual_contributions=display_residual_contributions,
         )
@@ -336,7 +337,7 @@ def standard_loop(
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
-        tick = LoopTick(time=t, iteration=n, latest_timestep=dt)
+        tick = TimeloopTick(time=t, iteration=n, latest_timestep=dt)
         if mpi.is_on_master_proc and timeloop_statistics:
             with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
                 print(
@@ -368,7 +369,7 @@ def standard_loop(
                 callback(tick)
             except TypeError:
                 mpi.master_print(
-                    "WARNING: use the LoopTick API for iteration callbacks"
+                    "WARNING: use the TimeloopTick API for iteration callbacks"
                 )
                 callback(n, t)
         pcsp[:] = simulation.cell_states().p

@@ -48,7 +48,7 @@ class PetscLinearSystem:
         makeviewer = PETSc.Viewer().createASCII
 
         def dump_item(item, name):
-            viewer = makeviewer(basename + name + ".dat", "w", comm)
+            viewer = makeviewer(f"{basename}/{name}.dat", "w", comm)
             item.view(viewer)
             viewer.destroy
 
@@ -67,15 +67,15 @@ class PetscLinearSystem:
         makeviewer = PETSc.Viewer().createBinary
 
         def dump_item(item, name):
-            viewer = makeviewer(basename + name + ".dat", "w", comm)
+            viewer = makeviewer(f"{basename}/{name}.dat", "w", comm)
             item.view(viewer)
             viewer.destroy
 
         def dump_part_data(self):
-            with open(basename + "part_data.txt", "w") as f:
+            with open(f"{basename}/part_data.txt", "w") as f:
                 # Clearing the file if it already exists
                 pass
-            with open(basename + "part_data.txt", "a") as f:
+            with open(f"{basename}/part_data.txt", "a") as f:
                 mpi.synchronize()
                 if mpi.is_on_master_proc:
                     f.write(f"Number of procs : {mpi.communicator().Get_size()}\n")
@@ -183,7 +183,7 @@ class PetscIterativeSolver(IterativeSolver):
         """
 
         def dump_residual_log(self):
-            with open(basename + "solver_log.txt", "w") as f:
+            with open(f"{basename}/solver_log.txt", "w") as f:
                 f.write(f"{self}\n\n")
                 f.write(f"Iteration, Residual norm\n")
                 for it, residual in enumerate(self.residual_history):

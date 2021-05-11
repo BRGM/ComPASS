@@ -51,8 +51,8 @@ class LegacyLinearSystem:
         """
 
         mpi.master_print(">> Linear system dump")
-        self.kernel.SolvePetsc_dump_system(basename)
-        viewer = PETSc.Viewer().createASCII(basename + "x" + ".dat", "w", comm)
+        self.kernel.SolvePetsc_dump_system(basename + "/")
+        viewer = PETSc.Viewer().createASCII(f"{basename}/x.dat", "w", comm)
         self.x.view(viewer)
         viewer.destroy
 
