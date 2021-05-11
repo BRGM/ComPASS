@@ -673,16 +673,18 @@ contains
 #endif
                PerfoWellInj(s)%MolarFlowrate = PerfoWellInj(s)%MolarFlowrate + Flux_ks
                PerfoWellInj(s)%EnergyFlowrate = PerfoWellInj(s)%EnergyFlowrate + FluxT_ks
-               s_parent = NodeDatabyWellInjLocal%Val(s)%PtParent
-#ifndef NDEBUG
-               if (s == NodebyWellInjLocal%Pt(k + 1) .and. s_parent /= -1) &
-                  call CommonMPI_abort("Inconsistent producer well head")
-#endif
-               if (s_parent /= -1) then
-                  PerfoWellInj(s_parent)%MolarFlowrate = PerfoWellInj(s_parent)%MolarFlowrate + PerfoWellInj(s)%MolarFlowrate
-                  PerfoWellInj(s_parent)%EnergyFlowrate = PerfoWellInj(s_parent)%EnergyFlowrate + PerfoWellInj(s)%EnergyFlowrate
-               end if
             end if
+
+            s_parent = NodeDatabyWellInjLocal%Val(s)%PtParent
+#ifndef NDEBUG
+            if (s == NodebyWellInjLocal%Pt(k + 1) .and. s_parent /= -1) &
+               call CommonMPI_abort("Inconsistent producer well head")
+#endif
+            if (s_parent /= -1) then
+               PerfoWellInj(s_parent)%MolarFlowrate = PerfoWellInj(s_parent)%MolarFlowrate + PerfoWellInj(s)%MolarFlowrate
+               PerfoWellInj(s_parent)%EnergyFlowrate = PerfoWellInj(s_parent)%EnergyFlowrate + PerfoWellInj(s)%EnergyFlowrate
+            end if
+
          end do ! end of node s in injection well k
 
          ! inj well equation
