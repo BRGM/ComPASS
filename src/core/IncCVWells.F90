@@ -188,7 +188,7 @@ contains
 
    !> \brief Compute well pressure drops and P_{w,s} using Pw (pressure head) and density for Well Producers
    subroutine IncCVWells_PressureDropWellProd
-      integer :: k, s, nums, sparent
+      integer :: k, s, nums, sparent, nbwells
       double precision :: zp, zs
 
 #ifndef NDEBUG
@@ -196,29 +196,35 @@ contains
          call CommonMPI_abort("Well numbers are inconsistent")
 #endif
 
-      do k = 1, NbWellProdLocal_Ncpus(commRank + 1)
+      nbwells = NbWellProdLocal_Ncpus(commRank + 1)
+
+      do k = 1, nbwells
+
+         ! integrate over head to queue
+         s = NodebyWellProdLocal%Pt(k + 1)
+
+#ifndef NDEBUG
+         if (s <= NodebyWellProdLocal%Pt(k)) &
+            call CommonMPI_abort("Well has no nodes!")
+         if (NodeDatabyWellProdLocal%Val(s)%Parent /= -1) &
+            call CommonMPI_abort("Inconsistent well head node!")
+#endif
+
+         ! No pressure drop at well head
+         PerfoWellProd(s)%PressureDrop = 0.d0
 
          ! Check if the well is closed
          if (DataWellProdLocal(k)%IndWell == 'c') cycle
 
          ! looping from head to queue
-         do s = NodebyWellProdLocal%Pt(k + 1), NodebyWellProdLocal%Pt(k) + 1, -1 !Reverse order, recall the numbering of parents & sons
+         do while (s > NodebyWellProdLocal%Pt(k) + 1)
+            s = s - 1
             nums = NodebyWellProdLocal%Num(s)
-
-            if (s == NodebyWellProdLocal%Pt(k + 1)) then ! head node, P = Pw
-
-               PerfoWellProd(s)%PressureDrop = 0.d0
-
-            else ! Pws = P_{w,parent} + \Delta P_{w,parent}
-
-               zs = XNodeLocal(3, nums) ! z-cordinate of node s
-               zp = XNodeLocal(3, NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
-               sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
-               PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop &
-                                               + PerfoWellProd(sparent)%Density*gravity*(zp - zs)
-
-            end if
-
+            zs = XNodeLocal(3, nums) ! z-cordinate of node s
+            zp = XNodeLocal(3, NodeDatabyWellProdLocal%Val(s)%Parent) ! z-cordinate of parent of s
+            sparent = NodeDatabyWellProdLocal%Val(s)%PtParent ! parent pointer
+            PerfoWellProd(s)%PressureDrop = PerfoWellProd(sparent)%PressureDrop &
+                                            + PerfoWellProd(sparent)%Density*gravity*(zp - zs)
          end do
 
       end do
