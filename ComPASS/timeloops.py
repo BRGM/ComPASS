@@ -356,14 +356,18 @@ def standard_loop(
                     f"{elapsed_computing_cpu_time}",
                     file=f,
                 )
+        allreduce = mpi.communicator().allreduce
         mpi.master_print(
-            "max p variation", np.fabs(simulation.cell_states().p - pcsp).max()
+            "max p variation",
+            allreduce(np.fabs(simulation.cell_states().p - pcsp).max(), mpi.MPI.MAX),
         )
         mpi.master_print(
-            "max T variation", np.fabs(simulation.cell_states().T - pcsT).max()
+            "max T variation",
+            allreduce(np.fabs(simulation.cell_states().T - pcsT).max(), mpi.MPI.MAX),
         )
         mpi.master_print(
-            "max S variation", np.fabs(simulation.cell_states().S - pcsS).max()
+            "max S variation",
+            allreduce(np.fabs(simulation.cell_states().S - pcsS).max(), mpi.MPI.MAX),
         )
         if output_every is not None and n % output_every == 0:
             add_output_event(t)
