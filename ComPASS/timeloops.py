@@ -48,8 +48,11 @@ def check_well_pressure(simulation, pressure_offset=1 * bar):
     :param simulation: the current simulation
     :param pressure_offset: the pressure offset to be applied (defaults to 1 bar)
     """
-    p_min = simulation.all_states().p.min()
-    p_max = simulation.all_states().p.max()
+    allreduce = mpi.communicator().allreduce
+    lp_min = simulation.all_states().p.min()
+    p_min = allreduce(lp_min, mpi.MPI.MIN)
+    lp_max = simulation.all_states().p.max()
+    p_max = allreduce(lp_min, mpi.MPI.MAX)
     # whp = well head pressure
     whp = simulation.production_whp()
     for wk, data in enumerate(simulation.producers_data()):
