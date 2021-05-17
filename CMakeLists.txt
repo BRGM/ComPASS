@@ -80,14 +80,14 @@ endif()
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
-find_package(pybind11 QUIET) # try locally
+find_package(pybind11 2.6 QUIET) # try locally
 if(NOT pybind11_FOUND) # else fetch it from github
   message(STATUS "Could NOT find pybind11 (fetching it from GitHub)")
   include(FetchContent)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG v2.4.3
+    GIT_TAG v2.6.2
   )
   if(${CMAKE_VERSION} VERSION_LESS 3.14)
     FetchContent_GetProperties(pybind11)

@@ -223,16 +223,14 @@ foreach(_conf ${CONFIGURATIONS})
   target_include_directories(
     ${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY}
   )
-  target_include_directories(${CONF_TARGETNAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
   target_include_directories(
     ${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH}
   )
   set_target_properties(
     ${CONF_TARGETNAME} PROPERTIES COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
   )
-  target_link_libraries(${CONF_TARGETNAME} pybind11)
+  target_link_libraries(${CONF_TARGETNAME} pybind11::pybind11)
   target_link_libraries(${CONF_TARGETNAME} ComPASSCommonCore)
-  target_link_libraries(${CONF_TARGETNAME} ${PYTHON_LIBRARIES})
   target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
   target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
   target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
@@ -252,8 +250,6 @@ foreach(_conf ${CONFIGURATIONS})
     ${eos_target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES
                              CXX_EXTENSIONS NO
   )
-  include_directories(${pybind11_INCLUDE_DIR})
-  target_include_directories(${eos_target} PUBLIC ${pybind11_INCLUDE_DIR})
   target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
 
   install(
