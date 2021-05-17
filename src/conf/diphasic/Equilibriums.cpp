@@ -1,6 +1,7 @@
 #include "Equilibriums.h"
 
 #include <cmath>
+#include <stdexcept>
 
 #include "DefModel.h"
 #include "Thermodynamics.h"
