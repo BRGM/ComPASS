@@ -79,6 +79,7 @@ endif()
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 find_package(pybind11 QUIET) # try locally
 if(NOT pybind11_FOUND) # else fetch it from github
   message(STATUS "Could NOT find pybind11 (fetching it from GitHub)")
@@ -103,16 +104,6 @@ set(PYBIND11_PYTHON_VERSION
     3
     CACHE STRING "Python version to use for compiling modules"
 )
-# The following test is not mandatory as python interpreter comes as a
-# by-product of requiring pybind11
-if(NOT ${PYTHONINTERP_FOUND})
-  message(FATAL_ERROR "python interpreter is mandatory, CMake will stop.")
-endif(NOT ${PYTHONINTERP_FOUND})
-# The following test is not mandatory as python interpreter comes as a
-# by-product of requiring pybind11
-if(NOT ${PYTHONLIBS_FOUND})
-  message(FATAL_ERROR "python libraries are mandatory, CMake will stop.")
-endif(NOT ${PYTHONLIBS_FOUND})
 
 if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
   set(CMAKE_Fortran_FLAGS_DEBUG
