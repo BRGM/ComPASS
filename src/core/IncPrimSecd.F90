@@ -255,7 +255,7 @@ contains
       ! --------------------------------------------------------------------------
       ! thermodynamic equilibrium - fugacities equality
       ! 2. F = f_i^alpha * C_i^alpha - f_i^beta * C_i^beta
-#if defined ComPASS_SINGLE_PHASE && defined ComPASS_SINGLE_COMPONENT
+#if defined ComPASS_SINGLE_PHASE
       ! FIXME: put this test in between NDEBUG preprocessors directives
       !        Once some CI tests are run in Debug mode
       if (cv_info%NbEqEquilibre /= 0) &
