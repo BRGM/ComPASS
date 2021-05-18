@@ -147,7 +147,7 @@ endif(COMPASS_USE_GDB_FORTRAN)
 get_directory_property(DirDefs COMPILE_DEFINITIONS)
 message(STATUS "COMPILE_DEFINITIONS ${DirDefs}")
 
-option(ComPASS_COMPILES_EXPERIMENTAL_PARTS "Compiles experimental parts" ON)
+option(ComPASS_COMPILES_EXPERIMENTAL_PARTS "Compiles experimental parts" OFF)
 
 # -- scorep intstrumentation ---------------------------------------------------
 
