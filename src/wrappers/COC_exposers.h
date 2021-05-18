@@ -12,6 +12,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cassert>
+#include <limits>
 #include <string>
 
 #include "COC.h"
@@ -71,9 +73,12 @@ auto expose_coc(py::module& module, std::string basename) {
                "offsets",
                [](py::object object) {
                   auto coc = object.cast<Coc&>();
+                  assert(coc.number_of_containers() + 1 <
+                         std::numeric_limits<py::ssize_t>::max());
                   return py::array_t<typename Coc::offset_type,
                                      py::array::c_style>{
-                      {coc.number_of_containers() + 1},
+                      {static_cast<py::ssize_t>(coc.number_of_containers() +
+                                                1)},
                       coc.offset_data(),
                       object};
                },
@@ -82,9 +87,12 @@ auto expose_coc(py::module& module, std::string basename) {
                "contiguous_content",
                [](py::object object) {
                   auto coc = object.cast<Coc&>();
+                  assert(coc.size() < std::numeric_limits<py::ssize_t>::max());
                   return py::array_t<typename Coc::value_type,
                                      py::array::c_style>{
-                      {coc.size()}, coc.content_data(), object};
+                      {static_cast<py::ssize_t>(coc.size())},
+                      coc.content_data(),
+                      object};
                },
                py::keep_alive<0, 1>());
 
