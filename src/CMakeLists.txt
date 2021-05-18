@@ -53,11 +53,8 @@ if(${ComPASS_NEEDS_CORE_COMPILATION})
     ComPASSCommonCore
     PROPERTIES POSITION_INDEPENDENT_CODE ON
                COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
-               Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/common
-               # CXX_STANDARD 14
-               # CXX_STANDARD_REQUIRED YES
-               # CXX_EXTENSIONS NO
-               # RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+               Fortran_MODULE_DIRECTORY
+               ${PROJECT_BINARY_DIR}/bin/fortran/common
   )
   # target_include_directories(ComPASSCommonCore PUBLIC ${CONF_DIR})
   target_include_directories(ComPASSCommonCore PUBLIC wrappers)
@@ -210,9 +207,8 @@ foreach(_conf ${CONFIGURATIONS})
     wrappers/conf/${_conf}/Model_specific_wrappers.cpp
   )
   set_target_properties(
-    ${CONF_TARGETNAME}
-    PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO
-               RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    ${CONF_TARGETNAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                  "${CMAKE_BINARY_DIR}/bin"
   )
   target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
   target_include_directories(${CONF_TARGETNAME} PUBLIC core/include)
@@ -245,10 +241,6 @@ foreach(_conf ${CONFIGURATIONS})
   pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
   target_compile_definitions(
     ${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target}
-  )
-  set_target_properties(
-    ${eos_target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES
-                             CXX_EXTENSIONS NO
   )
   target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
 
