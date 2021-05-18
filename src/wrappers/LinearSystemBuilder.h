@@ -12,6 +12,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cassert>
+#include <limits>
+
 #include "BlockMatrixWrapper.h"
 #include "SyncPetsc_wrappers.h"
 
@@ -35,9 +38,11 @@ class LinearSystemBuilder {
    auto get_non_zeros() {
       const std::size_t n = static_cast<std::size_t>(n_rowl);
       typedef py::array_t<int, py::array::c_style> nonzeros;
-      return py::make_tuple(py::make_tuple(n_rowl, n_rowg),
-                            nonzeros{n, d_nnz.data()},
-                            nonzeros{n, o_nnz.data()});
+      assert(n < std::numeric_limits<py::ssize_t>::max());
+      return py::make_tuple(
+          py::make_tuple(n_rowl, n_rowg),
+          nonzeros{static_cast<py::ssize_t>(n), d_nnz.data()},
+          nonzeros{static_cast<py::ssize_t>(n), o_nnz.data()});
    };
    void set_AMPI(py::object pyA);
    void set_RHS(py::object pyRHS);

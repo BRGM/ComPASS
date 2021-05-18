@@ -10,7 +10,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cassert>
 #include <cstddef>
+#include <limits>
 
 #include "CTVector.h"
 #include "NewtonIncrements.h"
@@ -90,7 +92,9 @@ void add_time_loop_wrappers(py::module& module) {
               &DefFlashWells_TimeFlash_injectors);
 
    auto as_primary_array = [](std::vector<double>& v) {
-      auto res = py::array_t<double, py::array::c_style>{v.size(), v.data()};
+      assert(v.size() < std::numeric_limits<py::ssize_t>::max());
+      auto res = py::array_t<double, py::array::c_style>{
+          static_cast<py::ssize_t>(v.size()), v.data()};
       res.attr("shape") = py::make_tuple(-1, NewtonIncrements::npv());
       return res;
    };

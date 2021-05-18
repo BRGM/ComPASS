@@ -12,6 +12,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cassert>
+#include <limits>
+
 namespace py = pybind11;
 
 #include "XArrayWrapper.h"
@@ -29,8 +32,9 @@ template <typename Wrapper>
 static auto retrieve_ndarray(std::function<void(Wrapper&)> bind) {
    auto wrapper = Wrapper{};
    bind(wrapper);
+   assert(wrapper.length < std::numeric_limits<py::ssize_t>::max());
    return py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{
-       wrapper.length, wrapper.pointer,
+       static_cast<py::ssize_t>(wrapper.length), wrapper.pointer,
        py::array_t<typename Wrapper::wrapped_type, py::array::c_style>{}};
 }
 
@@ -60,8 +64,10 @@ py::module& add_vertices_array_wrapper(py::module& module,
    module.def(getter_name, [bind]() {
       auto wrapper = Wrapper{};
       bind(wrapper);
+      assert(wrapper.length < std::numeric_limits<py::ssize_t>::max());
       return py::array_t<double, py::array::c_style>{
-          {wrapper.length, static_cast<std::size_t>(3)},
+          {static_cast<py::ssize_t>(wrapper.length),
+           static_cast<py::ssize_t>(3)},
           wrapper.pointer,
           encapsulate(wrapper.pointer)};
    });
@@ -81,11 +87,13 @@ py::module& add_rocktypes_array_wrapper(py::module& module,
    module.def(getter_name, [bind]() {
       auto wrapper = Wrapper{};
       bind(wrapper);
+      assert(wrapper.length < std::numeric_limits<py::ssize_t>::max());
       return py::array_t<int, py::array::c_style>{
 #ifdef _THERMIQUE_
-          {wrapper.length, static_cast<std::size_t>(2)},
+          {static_cast<py::ssize_t>(wrapper.length),
+           static_cast<py::ssize_t>(2)},
 #else
-            {wrapper.length},
+            {static_cast<py::ssize_t>(wrapper.length)},
 #endif
           wrapper.pointer,
           encapsulate(wrapper.pointer)};

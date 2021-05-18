@@ -13,6 +13,7 @@
 #include <pybind11/numpy.h>
 
 #include <cassert>
+#include <limits>
 #include <type_traits>
 
 #include "COC.h"
@@ -21,6 +22,7 @@ auto part_graph(
     py::array_t<idx_t, py::array::c_style | py::array::forcecast>& neighbors,
     py::array_t<idx_t, py::array::c_style | py::array::forcecast>& offsets,
     idx_t nb_parts, const bool Kway) {
+   assert(offsets.size() > 0);
    auto nb_vertices = static_cast<idx_t>(offsets.size() - 1);
 #ifndef NDEBUG
    assert(neighbors.ndim() == 1);
@@ -35,8 +37,9 @@ auto part_graph(
 #endif
    auto nb_constraints = static_cast<idx_t>(1);
    idx_t edge_cut;
+   assert(nb_vertices < std::numeric_limits<py::ssize_t>::max());
    auto result = py::array_t<idx_t, py::array::c_style>{
-       static_cast<std::size_t>(nb_vertices)};
+       static_cast<py::ssize_t>(nb_vertices)};
 
    idx_t options[METIS_NOPTIONS];
    METIS_SetDefaultOptions(options);

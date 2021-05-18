@@ -13,6 +13,7 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <set>
 #include <sstream>
 
@@ -525,7 +526,10 @@ void add_well_wrappers(py::module& module) {
                [](const Well_information& self) {
                   // Convert to C rank
                   const auto n = self.nb_perforations;
-                  auto result = py::array_t<int, py::array::c_style>{n};
+                  assert((n >= 0) &&
+                         (n < std::numeric_limits<py::ssize_t>::max()));
+                  auto result = py::array_t<int, py::array::c_style>{
+                      static_cast<py::ssize_t>(n)};
                   const auto p = self.perforations_vertex;
                   std::transform(p, p + n, result.mutable_data(0),
                                  [](auto i) { return i - 1; });
@@ -533,25 +537,30 @@ void add_well_wrappers(py::module& module) {
                },
                py::keep_alive<0, 1>());
 
-   auto add_perforation_state_property =
-       [&pyWellInfo](const char* name, const std::size_t offset) {
-          pyWellInfo.def_property_readonly(
-              name,
-              [offset](py::object& self) {
-                 auto info = self.cast<Well_information*>();
-                 std::vector<std::size_t> shape;
-                 shape.push_back(info->nb_perforations);
-                 std::vector<std::size_t> strides;
-                 strides.push_back(sizeof(Perforation_state));
-                 auto ptr = reinterpret_cast<const double*>(
-                     reinterpret_cast<const unsigned char*>(
-                         info->perforations_state) +
-                     offset);
-                 return py::array_t<double, py::array::c_style>{shape, strides,
-                                                                ptr, self};
-              },
-              py::keep_alive<0, 1>());
-       };
+   auto add_perforation_state_property = [&pyWellInfo](
+                                             const char* name,
+                                             const std::size_t offset) {
+      pyWellInfo.def_property_readonly(
+          name,
+          [offset](py::object& self) {
+             auto info = self.cast<Well_information*>();
+             std::vector<py::ssize_t> shape;
+             assert((info->nb_perforations >= 0) &&
+                    (info->nb_perforations <
+                     std::numeric_limits<py::ssize_t>::max()));
+             shape.push_back(static_cast<py::ssize_t>(info->nb_perforations));
+             std::vector<py::ssize_t> strides;
+             strides.push_back(
+                 static_cast<py::ssize_t>(sizeof(Perforation_state)));
+             auto ptr = reinterpret_cast<const double*>(
+                 reinterpret_cast<const unsigned char*>(
+                     info->perforations_state) +
+                 offset);
+             return py::array_t<double, py::array::c_style>{shape, strides, ptr,
+                                                            self};
+          },
+          py::keep_alive<0, 1>());
+   };
 
    add_perforation_state_property("pressure",
                                   offsetof(Perforation_state, pressure));
@@ -571,12 +580,20 @@ void add_well_wrappers(py::module& module) {
               name,
               [vector_size, offset](py::object& self) {
                  auto info = self.cast<Well_information*>();
-                 std::vector<std::size_t> shape;
-                 shape.push_back(info->nb_perforations);
-                 shape.push_back(vector_size);
-                 std::vector<std::size_t> strides;
-                 strides.push_back(sizeof(Perforation_state));
-                 strides.push_back(sizeof(double));
+                 std::vector<py::ssize_t> shape;
+                 assert((info->nb_perforations >= 0) &&
+                        (info->nb_perforations <
+                         std::numeric_limits<py::ssize_t>::max()));
+                 shape.push_back(
+                     static_cast<py::ssize_t>(info->nb_perforations));
+                 assert(
+                     (vector_size >= 0) &&
+                     (vector_size < std::numeric_limits<py::ssize_t>::max()));
+                 shape.push_back(static_cast<py::ssize_t>(vector_size));
+                 std::vector<py::ssize_t> strides;
+                 strides.push_back(
+                     static_cast<py::ssize_t>(sizeof(Perforation_state)));
+                 strides.push_back(static_cast<py::ssize_t>(sizeof(double)));
                  auto ptr = reinterpret_cast<const double*>(
                      reinterpret_cast<const unsigned char*>(
                          info->perforations_state) +
@@ -626,8 +643,10 @@ void add_well_wrappers(py::module& module) {
              reinterpret_cast<const unsigned char*>(info->perforations_data) +
              offset);
          const auto nbperfs = info->nb_perforations;
-         assert(nbperfs > 1);
-         auto result = py::array_t<int, py::array::c_style>{nbperfs - 1};
+         assert((nbperfs >= 1) &&
+                ((nbperfs - 1) < std::numeric_limits<py::ssize_t>::max()));
+         auto result = py::array_t<int, py::array::c_style>{
+             static_cast<py::ssize_t>(nbperfs - 1)};
          auto p = result.mutable_data(0);
          for (std::size_t k = 0; k + 1 < nbperfs; ++k, ++p) {
             auto rank = *reinterpret_cast<const int*>(

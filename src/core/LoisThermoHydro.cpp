@@ -12,6 +12,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <cassert>
+#include <limits>
+
 #include "Simulation.h"
 namespace py = pybind11;
 
@@ -20,23 +23,36 @@ py::function py_fill_phase_pressure_arrays;
 
 void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
                     int* p_rocktypes, double* p_kr, double* p_dkrdS) {
+   assert(n < std::numeric_limits<py::ssize_t>::max());
+   assert(X::Model::np < std::numeric_limits<py::ssize_t>::max());
    StateArray states{p_states, n};
    auto simulation = ComPASS::get_simulation();
-   py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
+   py::array_t<int, py::array::c_style> rocktypes{static_cast<py::ssize_t>(n),
+                                                  p_rocktypes, simulation};
    py::array_t<double, py::array::c_style> kr{
-       {n, X::Model::np}, p_kr, simulation};
+       {static_cast<py::ssize_t>(n), static_cast<py::ssize_t>(X::Model::np)},
+       p_kr,
+       simulation};
    py::array_t<double, py::array::c_style> dkrdS{
-       {n, X::Model::np, X::Model::np}, p_dkrdS, simulation};
+       {static_cast<py::ssize_t>(n), static_cast<py::ssize_t>(X::Model::np),
+        static_cast<py::ssize_t>(X::Model::np)},
+       p_dkrdS,
+       simulation};
    py_fill_kr_arrays(states, rocktypes, kr, dkrdS);
 }
 
 void fill_phase_pressure_arrays(const std::size_t n, const int np, X* p_states,
                                 int* p_rocktypes, double* p_dpadS) {
+   assert(n < std::numeric_limits<py::ssize_t>::max());
+   assert(X::Model::np < std::numeric_limits<py::ssize_t>::max());
    StateArray states{p_states, n};
    auto simulation = ComPASS::get_simulation();
-   py::array_t<int, py::array::c_style> rocktypes{n, p_rocktypes, simulation};
+   py::array_t<int, py::array::c_style> rocktypes{static_cast<py::ssize_t>(n),
+                                                  p_rocktypes, simulation};
    py::array_t<double, py::array::c_style> dpadS{
-       {n, X::Model::np}, p_dpadS, simulation};
+       {static_cast<py::ssize_t>(n), static_cast<py::ssize_t>(X::Model::np)},
+       p_dpadS,
+       simulation};
    py_fill_phase_pressure_arrays(states, rocktypes, dpadS);
 }
 

@@ -7,6 +7,8 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
+#include <cassert>
+#include <limits>
 #include <vector>
 
 #include "XArrayWrapper.h"
@@ -139,6 +141,28 @@ struct Residuals {
 
 #include "Residu_wrappers.h"
 
+namespace {
+template <typename N>
+bool is_valid_pysize(const N n) {
+   return (n >= 0) && (n < std::numeric_limits<py::ssize_t>::max());
+}
+
+template <typename N>
+auto cast_to_pyarray_shape(const N n) {
+   assert(is_valid_pysize(n));
+   return static_cast<py::ssize_t>(n);
+}
+
+template <typename N1, typename N2>
+auto cast_to_pyarray_shape(const N1 n1, const N2 n2) {
+   assert(is_valid_pysize(n1));
+   assert(is_valid_pysize(n2));
+   return std::array<py::ssize_t, 2>{
+       {static_cast<py::ssize_t>(n1), static_cast<py::ssize_t>(n2)}};
+}
+
+}  // namespace
+
 void add_Residu_wrappers(py::module& module) {
    py::class_<Residuals>(module, "Residuals")
        .def(py::init())
@@ -147,15 +171,17 @@ void add_Residu_wrappers(py::module& module) {
        .def_property_readonly(
            "nodes",
            [](Residuals& self) {
-              return py::array_t<double>{{self.nodes_size(), Residuals::npv()},
-                                         self.nodes_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.nodes_size(), Residuals::npv()),
+                  self.nodes_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "own_nodes",
            [](Residuals& self) {
               return py::array_t<double>{
-                  {self.own_nodes_size(), Residuals::npv()},
+                  cast_to_pyarray_shape(self.own_nodes_size(),
+                                        Residuals::npv()),
                   self.nodes_begin()};
            },
            py::keep_alive<0, 1>())
@@ -163,7 +189,8 @@ void add_Residu_wrappers(py::module& module) {
            "fractures",
            [](Residuals& self) {
               return py::array_t<double>{
-                  {self.fractures_size(), Residuals::npv()},
+                  cast_to_pyarray_shape(self.fractures_size(),
+                                        Residuals::npv()),
                   self.fractures_begin()};
            },
            py::keep_alive<0, 1>())
@@ -171,59 +198,67 @@ void add_Residu_wrappers(py::module& module) {
            "own_fractures",
            [](Residuals& self) {
               return py::array_t<double>{
-                  {self.own_fractures_size(), Residuals::npv()},
+                  cast_to_pyarray_shape(self.own_fractures_size(),
+                                        Residuals::npv()),
                   self.fractures_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "cells",
            [](Residuals& self) {
-              return py::array_t<double>{{self.cells_size(), Residuals::npv()},
-                                         self.cells_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.cells_size(), Residuals::npv()),
+                  self.cells_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "own_cells",
            [](Residuals& self) {
               return py::array_t<double>{
-                  {self.own_cells_size(), Residuals::npv()},
+                  cast_to_pyarray_shape(self.own_cells_size(),
+                                        Residuals::npv()),
                   self.cells_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "nodes_accumulation",
            [](Residuals& self) {
-              return py::array_t<double>{{self.nodes_size(), Residuals::npv()},
-                                         self.nodes_accumulation_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.nodes_size(), Residuals::npv()),
+                  self.nodes_accumulation_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "fractures_accumulation",
            [](Residuals& self) {
               return py::array_t<double>{
-                  {self.fractures_size(), Residuals::npv()},
+                  cast_to_pyarray_shape(self.fractures_size(),
+                                        Residuals::npv()),
                   self.fractures_accumulation_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "cells_accumulation",
            [](Residuals& self) {
-              return py::array_t<double>{{self.cells_size(), Residuals::npv()},
-                                         self.cells_accumulation_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.cells_size(), Residuals::npv()),
+                  self.cells_accumulation_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "own_injectors",
            [](Residuals& self) {
-              return py::array_t<double>{self.own_injectors_size(),
-                                         self.injectors_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.own_injectors_size()),
+                  self.injectors_begin()};
            },
            py::keep_alive<0, 1>())
        .def_property_readonly(
            "own_producers",
            [](Residuals& self) {
-              return py::array_t<double>{self.own_producers_size(),
-                                         self.producers_begin()};
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.own_producers_size()),
+                  self.producers_begin()};
            },
            py::keep_alive<0, 1>());
 
