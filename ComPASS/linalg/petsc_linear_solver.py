@@ -130,18 +130,24 @@ class PetscIterativeSolver(IterativeSolver):
 
         self.activate_cpramg = None
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.ksp.setType("gmres")
+        self.method, self.tolerance, self.max_iterations, self.restart_size = settings[
+            :
+        ]
         self.ksp.setOperators(linear_system.A, linear_system.A)
         self.pc = pc if pc is not None else CPRAMG(linear_system)
         self.ksp.setPC(self.pc)
         self.ksp.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
-        self.tolerance, self.max_iterations, self.restart_size = settings[:]
         self.ksp.setFromOptions()
         settings = IterativeSolverSettings(
-            self.tolerance, self.max_iterations, settings[2]
+            self.method, self.tolerance, self.max_iterations, settings.restart_size
         )
         super().__init__(linear_system, settings)
 
+    method = property(
+        fget=lambda self: self.ksp.getType(),
+        fset=lambda self, type: self.ksp.setType(type),
+        doc="Iterative method used to solve linear systems",
+    )
     tolerance = property(
         fget=lambda self: self.ksp.rtol,
         fset=lambda self, value: self.ksp.setTolerances(rtol=value),

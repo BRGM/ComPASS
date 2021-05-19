@@ -12,8 +12,8 @@ from .. import options
 
 IterativeSolverSettings = namedtuple(
     "IterativeSolverSettings",
-    ["tolerance", "max_iterations", "restart_size"],
-    defaults=[None, None, None],
+    ["method", "tolerance", "max_iterations", "restart_size"],
+    defaults=[None] * 4,
 )
 
 

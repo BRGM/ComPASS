@@ -25,6 +25,7 @@ def linear_solver(
     simulation,
     legacy=True,
     direct=False,
+    iterative_method=None,
     activate_cpramg=None,
     cpr_amg_type=None,
     tolerance=None,
@@ -38,6 +39,7 @@ def linear_solver(
     :param simulation: an instanciated simulation object
     :param legacy: Switch between the Fortran version of the solver (True) or the new petsc4py implementation (False), defaults to True
     :param direct: Switch between a direct LU solver (True) and GMRES (False), defaults to False
+    :param iterative_method: Iterative method used to solve linear systems (see https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html)
     :param activate_cpramg: Turn on (True) or off (False) the use of the CPR-AMG preconditioner, defaults to True (even if set to None)
     :param cpr_amg_type: Switch between Hypre BoomerAMG ("hypre") and PETSc's built-in ("gamg") AMG procedures, defaults to "hypre"
     :param tolerance: Relative decrease in residual required for convergence (iterative solvers only), defaults to 1e-6
@@ -76,7 +78,10 @@ def linear_solver(
     else:
         # Default settings if not provided
         settings = IterativeSolverSettings(
-            tolerance or 1e-6, max_iterations or 150, restart_size or 30,
+            iterative_method or "gmres",
+            tolerance or 1e-6,
+            max_iterations or 150,
+            restart_size or 30,
         )
         # activate_cpramg defaults to True if not provided
         activate_cpramg = activate_cpramg if activate_cpramg is not None else True
