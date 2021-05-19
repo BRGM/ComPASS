@@ -56,7 +56,7 @@ class IterativeSolver(LinearSolver):
         self.number_of_successful_iterations = 0
         self.number_of_unsuccessful_iterations = 0
         self.nit = 0
-        self.settings = settings
+        self.my_settings = settings
         self.residual_history = []
         super().__init__(linear_system)
 

@@ -110,7 +110,7 @@ set_boundary_fluxes()
 linear_system = PetscLinearSystem(simulation)
 lsolver = PetscIterativeSolver(
     linear_system,
-    IterativeSolverSettings(1.0e-6, 150, 30),
+    IterativeSolverSettings("gmres", 1.0e-6, 150, 30),
     pc=BlockJacobi(linear_system),
 )
 newton = Newton(simulation, 1e-5, 8, lsolver)
@@ -124,4 +124,5 @@ standard_loop(
     initial_timestep=1 * hour,
     final_time=final_time,
     output_period=output_period,
+    nitermax=200,
 )

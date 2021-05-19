@@ -79,39 +79,66 @@ class LegacyIterativeSolver(IterativeSolver):
         self.kernel = get_kernel()
         self.activate_cpramg = activate_cpramg
         super().__init__(linear_system, settings)
-        self.settings = (
-            self.settings._asdict()
-        )  # CHECKME: Is there a better way than storing it as a dictionary ?
         self.kernel.SolvePetsc_Init(
             settings.max_iterations, settings.tolerance, self.activate_cpramg, False,
         )
         # Good ol' Fortran doesn't set restart at initialization... We gotta do it ourselves
-        self.restart_size = settings.restart_size
+        self.restart_size = self.my_settings.restart_size
 
-    def make_setter(name):
-        def setter(self, value):
-            self.settings[name] = value
-            self.kernel.SolvePetsc_Ksp_configuration(
-                self.settings["tolerance"],
-                self.settings["max_iterations"],
-                self.settings["restart_size"],
-            )
+    def set_settings(self, settings):
+        self.my_settings = settings
+        self.kernel.SolvePetsc_Ksp_configuration(
+            self.my_settings.tolerance,
+            self.my_settings.max_iterations,
+            self.my_settings.restart_size,
+        )
 
-        return setter
-
+    settings = property(
+        fget=lambda self: self.my_settings,
+        fset=lambda self, value: self.set_settings(value),
+        doc="Iterative solver parameters",
+    )
+    method = property(
+        fget=lambda self: self.my_settings.method,
+        fset=lambda self, value: mpi.master_print(
+            "Method parameter of the legacy solver cannot be reset after initialization"
+        ),
+        doc="Iterative method used for linear solving",
+    )
     tolerance = property(
-        fget=lambda self: self.settings["tolerance"],
-        fset=make_setter("tolerance"),
+        fget=lambda self: self.my_settings.tolerance,
+        fset=lambda self, value: self.set_settings(
+            IterativeSolverSettings(
+                method=self.method,
+                tolerance=value,
+                max_iterations=self.max_iterations,
+                restart_size=self.restart_size,
+            )
+        ),
         doc="Relative decrease in the residual norm required for convergence",
     )
     max_iterations = property(
-        fget=lambda self: self.settings["max_iterations"],
-        fset=make_setter("max_iterations"),
+        fget=lambda self: self.my_settings.max_iterations,
+        fset=lambda self, value: self.set_settings(
+            IterativeSolverSettings(
+                method=self.method,
+                tolerance=self.tolerance,
+                max_iterations=value,
+                restart_size=self.restart_size,
+            )
+        ),
         doc="Maximum number of iterations accepted before convergence failure",
     )
     restart_size = property(
-        fget=lambda self: self.settings["restart_size"],
-        fset=make_setter("restart_size"),
+        fget=lambda self: self.my_settings.restart_size,
+        fset=lambda self, value: self.set_settings(
+            IterativeSolverSettings(
+                method=self.method,
+                tolerance=self.tolerance,
+                max_iterations=self.max_iterations,
+                restart_size=value,
+            )
+        ),
         doc="Number of iterations at which GMRES restarts",
     )
 

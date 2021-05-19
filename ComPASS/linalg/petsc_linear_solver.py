@@ -143,10 +143,23 @@ class PetscIterativeSolver(IterativeSolver):
         )
         super().__init__(linear_system, settings)
 
+    def set_settings(self, settings):
+        self.method = settings.method
+        self.tolerance = settings.tolerance
+        self.max_iterations = settings.max_iterations
+        self.restart_size = setting.restart_size
+
+    settings = property(
+        fget=lambda self: IterativeSolverSettings(
+            self.method, self.tolerance, self.max_iterations, self.restart_size,
+        ),
+        fset=lambda self, value: set_settings(value),
+        doc="Iterative solver settings",
+    )
     method = property(
         fget=lambda self: self.ksp.getType(),
         fset=lambda self, type: self.ksp.setType(type),
-        doc="Iterative method used to solve linear systems",
+        doc="Iterative method used for linear solving",
     )
     tolerance = property(
         fget=lambda self: self.ksp.rtol,
@@ -159,7 +172,7 @@ class PetscIterativeSolver(IterativeSolver):
         doc="Maximum number of iterations accepted before convergence failure",
     )
     restart_size = property(
-        fget=lambda self: self.settings.restart_size,
+        fget=lambda self: "RestartNotAvailable",
         fset=lambda self, value: self.ksp.setGMRESRestart(value),
         doc="Number of iterations at which GMRES restarts",
     )
