@@ -77,7 +77,7 @@ def set_porosity():
 simulation.init(
     mesh=grid,
     set_dirichlet_nodes=simulation.vertical_boundaries(grid),
-    # wells=make_wells,
+    wells=make_wells,
     cell_permeability=set_permeability,
     cell_porosity=set_porosity,
     cell_thermal_conductivity=K_reservoir,
