@@ -516,6 +516,9 @@ contains
 
       integer :: is, i, j, nj, j1
 
+      ! FIXME
+      call CommonMPI_abort("j1 is used unitialized")
+
       ! two steps for NumIncTotalSecondcv
       ! 1. first
       ! 2. others

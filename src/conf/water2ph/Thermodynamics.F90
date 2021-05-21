@@ -131,8 +131,9 @@ contains
 #endif
       subroutine f_DensiteMolaire(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       if (iph == GAS_PHASE) then
@@ -157,7 +158,7 @@ contains
    pure &
 #endif
       subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf)
-      integer(c_int), value, intent(in) :: iph
+      integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -175,8 +176,8 @@ contains
 #endif
       subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: p, T
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -215,7 +216,7 @@ contains
    pure &
 #endif
       subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
-      integer(c_int), value, intent(in) :: iph
+      integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -266,7 +267,7 @@ contains
 #endif
       subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_molar_enthalpy")
-      integer(c_int), value, intent(in) :: iph
+      integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
@@ -300,7 +301,7 @@ contains
 #endif
       subroutine f_SpecificEnthalpy(iph, p, T, f, dPf, dTf) &
       bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-      integer(c_int), value, intent(in) :: iph
+      integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
@@ -324,8 +325,7 @@ contains
    !< T is the Temperature
    pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
       bind(C, name="FluidThermodynamics_Psat")
-
-      real(c_double), value, intent(in) :: T
+      real(c_double), intent(in) :: T
       real(c_double), intent(out) :: Psat, dT_PSat
 
       Psat = (T - 273.d0)**4.d0/1.0d3
@@ -334,11 +334,20 @@ contains
    end subroutine FluidThermodynamics_Psat
 
    !< P is the Reference Pressure
-   pure subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine FluidThermodynamics_Tsat(P, Tsat, dP_Tsat) &
       bind(C, name="FluidThermodynamics_Tsat")
-
-      real(c_double), value, intent(in) :: P
+      real(c_double), intent(in) :: P
       real(c_double), intent(out) :: Tsat, dP_Tsat
+
+#ifndef NDEBUG
+      if (P < 0) then
+         write (*, *) "Saturation temperature at pressure:", P
+         call CommonMPI_abort("Negative reference pressure in FluidThermodynamics_Tsat!")
+      end if
+#endif
 
       Tsat = 100.d0*(P/1.d5)**0.25d0 + 273.d0
       dP_Tsat = 0.25d0*1.d-3*(P/1.d5)**(-0.75d0)

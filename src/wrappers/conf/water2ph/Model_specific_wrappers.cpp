@@ -27,17 +27,18 @@ enum struct Context {
 
 // Fortran functions
 extern "C" {
-void FluidThermodynamics_molar_density(int, double, double, const double *,
-                                       const double *, double &, double &,
-                                       double &, double *, double *);
-void FluidThermodynamics_molar_enthalpy(int, double, double, const double *,
-                                        const double *, double &, double &,
-                                        double &, double *, double *);
-void FluidThermodynamics_dynamic_viscosity(int, double, double, const double *,
-                                           const double *, double &, double &,
-                                           double &, double *, double *);
-void FluidThermodynamics_Psat(double, double &, double &);
-void FluidThermodynamics_Tsat(double, double &, double &);
+void FluidThermodynamics_molar_density(const int &, const double &,
+                                       const double &, const double *, double &,
+                                       double &, double &, double *);
+void FluidThermodynamics_molar_enthalpy(const int &, const double &,
+                                        const double &, const double *,
+                                        double &, double &, double &, double *);
+void FluidThermodynamics_dynamic_viscosity(const int &, const double &,
+                                           const double &, const double *,
+                                           double &, double &, double &,
+                                           double *);
+void FluidThermodynamics_Psat(const double &, double &, double &);
+void FluidThermodynamics_Tsat(const double &, double &, double &);
 }
 
 void init_model() {}
@@ -56,11 +57,9 @@ template <int PHASE>
 inline double phase_molar_density(double p, double T) {
    double xsi, dxsidp, dxsidT;
    double C[NC] = {1};
-   auto S = saturate_phase<PHASE>();
    double dxsidC[NC] = {0};
-   auto dxsidS = std::array<double, NP>{};  // zero initialization
-   FluidThermodynamics_molar_density(PHASE + 1, p, T, C, S.data(), xsi, dxsidp,
-                                     dxsidT, dxsidC, dxsidS.data());
+   FluidThermodynamics_molar_density(PHASE + 1, p, T, C, xsi, dxsidp, dxsidT,
+                                     dxsidC);
    return xsi;
 }
 
@@ -76,11 +75,8 @@ template <int PHASE>
 inline double phase_molar_enthalpy(double p, double T) {
    double h, dhdp, dhdT;
    double C[NC] = {1};
-   auto S = saturate_phase<PHASE>();
    double dhdC[NC] = {0};
-   auto dhdS = std::array<double, NP>{};  // zero initialization
-   FluidThermodynamics_molar_enthalpy(PHASE + 1, p, T, C, S.data(), h, dhdp,
-                                      dhdT, dhdC, dhdS.data());
+   FluidThermodynamics_molar_enthalpy(PHASE + 1, p, T, C, h, dhdp, dhdT, dhdC);
    return h;
 }
 
@@ -96,11 +92,9 @@ template <int PHASE>
 inline double phase_dynamic_viscosity(double p, double T) {
    double mu, dmudp, dmudT;
    double C[NC] = {1};
-   auto S = saturate_phase<PHASE>();
    double dmudC[NC] = {0};
-   auto dmudS = std::array<double, NP>{};  // zero initialization
-   FluidThermodynamics_dynamic_viscosity(PHASE + 1, p, T, C, S.data(), mu,
-                                         dmudp, dmudT, dmudC, dmudS.data());
+   FluidThermodynamics_dynamic_viscosity(PHASE + 1, p, T, C, mu, dmudp, dmudT,
+                                         dmudC);
    return mu;
 }
 

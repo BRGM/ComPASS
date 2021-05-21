@@ -44,41 +44,6 @@ def select_dirichlet_nodes():
     return on_the_left(x) | on_the_right(x)
 
 
-def set_boundary_conditions():
-    def set_states(states, x):
-        left = on_the_left(x)
-        states.p[left] = pleft
-        states.T[left] = Tleft
-        right = on_the_right(x)
-        states.p[right] = pright
-        states.T[right] = Tright
-        both = left | right
-        states.context[both] = 1
-        states.S[both] = 1
-        if onecomp:
-            states.C[both] = 1.0
-        else:
-            states.C[left] = (0, 1)
-            states.C[right] = (1, 0)
-
-    set_states(simulation.dirichlet_node_states(), simulation.vertices()[:, 0])
-
-
-def set_initial_values():
-    def set_states(states, x):
-        states.context[:] = 1
-        states.p[:] = pright  # pleft + (pright - pleft) * (x - grid.origin[0]) / Lx
-        states.T[:] = Tright
-        states.S[:] = 1
-        if onecomp:
-            states.C[:] = 1.0
-        else:
-            states.C[:] = (1, 0)
-
-    set_states(simulation.node_states(), simulation.vertices()[:, 0])
-    set_states(simulation.cell_states(), simulation.compute_cell_centers()[:, 0])
-
-
 # %%% Simulation %%%
 
 ComPASS.set_output_directory_and_logfile(__file__)
@@ -98,8 +63,13 @@ simulation.init(
     cell_thermal_conductivity=K_reservoir,
 )
 
-set_initial_values()
-set_boundary_conditions()
+X0 = simulation.build_state(simulation.Context.liquid, p=pright, T=Tright)
+simulation.all_states().set(X0)
+dirichlet = simulation.dirichlet_node_states()
+dirichlet.set(X0)
+left = on_the_left(simulation.vertices()[:, 0])
+dirichlet.p[left] = pleft
+dirichlet.T[left] = Tleft
 
 cell_temperatures = []
 

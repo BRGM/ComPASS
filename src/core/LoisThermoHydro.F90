@@ -197,7 +197,6 @@ module LoisThermoHydro
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_dfdS
    real(c_double), allocatable, target, dimension(:, :, :, :) :: wa_divComp
    real(c_double), allocatable, target, dimension(:, :, :) :: wa_SmComp
-   real(c_double), allocatable, target, dimension(:, :) :: wa_delta_pref ! p^\alpha = pref + \Delta_{pref} where \Delta_{pref} = f(S^\alpha)
    real(c_double), allocatable, target, dimension(:, :) :: wa_ddpdS      ! \frac{\partial\Delta_{pref}}{\partial S^\alpha}
 
    ! tmp values to simpfy notations of numerotation
@@ -233,15 +232,15 @@ module LoisThermoHydro
    end interface
 
    interface
-      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, p, dpdS) &
+      subroutine fill_phase_pressure_arrays(n, np, states, rocktypes, pa, dpadS) &
          bind(C, name="fill_phase_pressure_arrays")
          use, intrinsic :: iso_c_binding, only: c_int, c_size_t, c_ptr
          integer(c_size_t), value, intent(in) :: n !< size of *states* array
          integer(c_int), value, intent(in)  :: np !< number of phases
          type(c_ptr), value, intent(in)  :: states
          type(c_ptr), value, intent(in)  :: rocktypes
-         type(c_ptr), value, intent(in)  :: p
-         type(c_ptr), value, intent(in)  :: dpdS
+         type(c_ptr), value, intent(in)  :: pa
+         type(c_ptr), value, intent(in)  :: dpadS
       end subroutine fill_phase_pressure_arrays
    end interface
 
@@ -296,8 +295,8 @@ contains
    subroutine LoisThermoHydro_compute() &
       bind(C, name="LoisThermoHydro_compute")
 
-      if (NbPhase > 1) &
-         call LoisThermoHydro_compute_phase_pressures( &
+      ! CHECKME: might be more efficient to switch to array copy when single phase / NbPhase==1
+      call LoisThermoHydro_compute_phase_pressures( &
          IncAll, AllDarcyRocktypesLocal, NumIncTotalPrimAll, &
          PhasePressureAll, dPhasePressuredSAll, divPhasePressureAll)
 
@@ -1339,7 +1338,7 @@ contains
          call f_DensiteMassique( &
             iph, pa(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dPf, dTf, dCf)
          dSf = 0.d0
-         dSf = dPf*dpadS(iph)
+         dSf(iph) = dPf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
          call LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
@@ -1494,7 +1493,7 @@ contains
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
             call LoisThermoHydro_dfdX_ps( &
-               context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
+               context, NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
          end do
          ! FIXME: why not calling on RHS?
          !        because we don't use directly kr variations in Jacobian but divKrVisco...
@@ -1526,45 +1525,45 @@ contains
                                      NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                      dXssurdXp, SmdXs, &
                                      dval, Smval)
-      integer, intent(in) :: index_inc
+      integer(c_int), intent(in) :: index_inc
       type(TYPE_IncCVReservoir), intent(in) :: inc
-      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
-      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
-      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
-      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
-      double precision, intent(out) :: dval(NbIncTotalPrimMax)
-      double precision, intent(out) :: Smval
+      integer(c_int), intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer(c_int), intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
+      real(c_double), intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      real(c_double), intent(in) :: SmdXs(NbEqFermetureMax)
+      real(c_double), intent(out) :: dval(NbIncTotalPrimMax)
+      real(c_double), intent(out) :: Smval
 
-      integer :: i, context
+      integer(c_int) :: i, context
 
       dval = 0.d0
       Smval = 0.d0
-
       context = inc%ic
-      IF (ANY(NumIncTotalPrimCV == index_inc)) THEN ! index_inc (P or T) is prim
-         do i = 1, NbIncTotalPrimMax
-            if (NumIncTotalPrimCV(i) == index_inc) then
-               dval(i) = 1.d0
-            endif
-         enddo
-      ELSE IF (ANY(NumIncTotalSecondCV == index_inc)) THEN ! index_inc (P or T) is secd
-         do i = 1, NbEqFermeture_ctx(context)
-            if (NumIncTotalSecondCV(i) == index_inc) then
-               dval(:) = -dXssurdXp(:, i)
-               Smval = -SmdXs(i)
-            endif
-         enddo
-      ELSE ! index_inc (P or T) not found
-         write (*, *) "Looking for unknown ", index_inc, &
-            "(NumIncTotalPrimCV=", NumIncTotalPrimCV, &
-            " NumIncTotalSecondCV=", NumIncTotalSecondCV, ")"
-         if (index_inc == 1) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, P not found ')
+      ! Test primary variables
+      do i = 1, NbIncTotalPrimMax
+         if (NumIncTotalPrimCV(i) == index_inc) then
+            dval(i) = 1.d0
+            return
+         endif
+      enddo
+      ! Test secondary variables
+      do i = 1, NbEqFermeture_ctx(context)
+         if (NumIncTotalSecondCV(i) == index_inc) then
+            dval(:) = -dXssurdXp(:, i)
+            Smval = -SmdXs(i)
+            return
+         endif
+      enddo
+      ! Variable not found...
+      write (*, *) "Looking for unknown ", index_inc, &
+         "(NumIncTotalPrimCV=", NumIncTotalPrimCV, &
+         " NumIncTotalSecondCV=", NumIncTotalSecondCV, ")"
+      if (index_inc == 1) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, P not found ')
 #ifdef _THERMIQUE_
-         if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
+      if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
 #endif
-         if (index_inc > 1 + IndThermique .and. index_inc <= NbIncPTC_ctx(context)) &
-            call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, C not found ')
-      ENDIF
+      if (index_inc > 1 + IndThermique .and. index_inc <= NbIncPTC_ctx(context)) &
+         call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, C not found ')
 
    end subroutine LoisThermoHydro_Inc_cv
 
@@ -1643,7 +1642,8 @@ contains
       n = size(inc)
       if (n == 0) return ! nothing to do
       do k = 1, n
-         divp(1, :, k) = 1.d0 ! reference pressure - first primary unknown
+         ! FIXME: divphasepressure and divpression should be MERGED
+         ! divp(1, :, k) = 1.d0 ! reference pressure - first primary unknown
          context = inc(k)%ic
          nb_phases = NbPhasePresente_ctx(context) ! actual number of present phases for context
          if (nb_phases > 1) then
@@ -1930,7 +1930,7 @@ contains
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
 
-      integer :: i, iph, icp, k, j, jcp, jph, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
@@ -2085,15 +2085,11 @@ contains
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax), &
          SmdXs(NbEqFermetureMax)
-
-! output
       double precision, intent(out) :: &
          val(NbComp, NbPhase), &
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
-
-! tmp
-      integer :: i, iph, icp, k, j, jcp, jph, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
@@ -2185,7 +2181,7 @@ contains
          dval(NbIncTotalPrimMax, NbComp, NbPhase), &
          Smval(NbComp, NbPhase)
 
-      integer :: i, iph, icp, k, numj, s
+      integer :: i, iph, icp, k
       double precision :: dv, tmp_val
 
       double precision :: dvi(NbIncTotalPrimMax)
@@ -2623,8 +2619,6 @@ contains
       allocate (wa_dfdS(NbPhase, NbPhase, max_nb_control_volumes))
       allocate (wa_divComp(NbIncTotalPrimMax, NbComp, NbPhase, max_nb_control_volumes))
       allocate (wa_SmComp(NbComp, NbPhase, max_nb_control_volumes))
-      allocate (wa_delta_pref(NbPhase, max_nb_control_volumes))
-      wa_delta_pref = 0.d0
       allocate (wa_ddpdS(NbPhase, max_nb_control_volumes))
       wa_ddpdS = 0.d0
 
@@ -2646,7 +2640,6 @@ contains
       deallocate (wa_dfdS)
       deallocate (wa_divComp)
       deallocate (wa_SmComp)
-      deallocate (wa_delta_pref)
       deallocate (wa_ddpdS)
 
       ! densite massique

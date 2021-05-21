@@ -311,9 +311,11 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
+      subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf) &
+      bind(C, name="FluidThermodynamics_molar_enthalpy")
+      integer(c_int), value, intent(in) :: iph
+      real(c_double), value, intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
       real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
