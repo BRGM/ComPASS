@@ -10,6 +10,17 @@ from .__init__ import mpi, PETSc
 from .solver import *
 from .exceptions import IterativeSolverFailure, DirectSolverFailure
 from .preconditioners import CPRAMG
+import sys
+import yaml
+from yaml.loader import SafeLoader
+
+# This is a class for a yaml file with all the information we need to save
+class data_part(yaml.YAMLObject):
+    yaml_tag = "-------"
+
+    def __init__(self, proc_rank, proc_data):
+        self.proc = proc_rank
+        self.proc_data = proc_data
 
 
 class PetscLinearSystem:
@@ -72,20 +83,39 @@ class PetscLinearSystem:
             viewer.destroy
 
         def dump_part_data(self):
-            with open(f"{basename}/part_data.txt", "w") as f:
+
+            with open(f"{basename}/part_data.yaml", "w") as f:
                 # Clearing the file if it already exists
                 pass
-            with open(f"{basename}/part_data.txt", "a") as f:
+            with open(f"{basename}/part_data.yaml", "a") as f:
                 mpi.synchronize()
+                Number_of_procs = "None"
+                Block_size = "None"
                 if mpi.is_on_master_proc:
-                    f.write(f"Number of procs : {mpi.communicator().Get_size()}\n")
-                    f.write(f"Block size : {self.lsbuilder.get_block_size()}\n")
+                    yaml.dump(
+                        {
+                            "Number_of_procs": mpi.communicator().Get_size(),
+                            "Block_size": self.lsbuilder.get_block_size(),
+                        },
+                        f,
+                        default_flow_style=False,
+                    )
                 mpi.synchronize()
-                f.write(
-                    f"\nProc rank : {mpi.proc_rank}\n"
-                    f"Global index of first row : {self.lsbuilder.get_rowstart(mpi.proc_rank)}\n"
-                    f"Local number of rows : {self.lsbuilder.get_non_zeros()[0][0]}\n"
-                    f"Local number of wells : {self.lsbuilder.get_n_wells()}\n"
+                yaml.dump(
+                    data_part(
+                        mpi.proc_rank,
+                        {
+                            "global_index_of_first_row": self.lsbuilder.get_rowstart(
+                                mpi.proc_rank
+                            ),
+                            "local_number_of_rows": self.lsbuilder.get_non_zeros()[0][
+                                0
+                            ],
+                            "local_number_of_wells": self.lsbuilder.get_n_wells(),
+                        },
+                    ),
+                    f,
+                    default_flow_style=False,
                 )
 
         mpi.master_print(">> Linear system dump")
