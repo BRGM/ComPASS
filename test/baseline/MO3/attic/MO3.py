@@ -38,7 +38,6 @@ ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(2.65e6)  # SI units J/m^3/°C
-# simulation.set_kr_functions(kr_functions)
 
 mesh = extruded_sector(R, theta, ds, np.tile(H / nb_layers, nb_layers))
 # mesh_data = np.load("angular_mesh.npz")
@@ -73,6 +72,9 @@ simulation.init(
     cell_permeability=set_permeability,
     cell_thermal_conductivity=K,
 )
+
+# Set the kr functions after initialization
+simulation.set_kr_functions(kr_functions)
 
 # Set initial values
 X0 = simulation.build_state(simulation.Context.diphasic, p=30.5 * bar, Sg=1)

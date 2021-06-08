@@ -71,7 +71,6 @@ def make_hydrostatic_pressure(zbottom, ztop, nz, nbsteps=100):
 hydrostatic_pressure = make_hydrostatic_pressure(zbottom, ztop, 3 * nb_layers)
 
 simulation.set_rock_volumetric_heat_capacity(rock_heat_capacity * rock_density)
-# simulation.set_kr_functions(kr_functions)
 
 grid = ComPASS.Grid(
     shape=(1, 1, nb_layers), extent=(dx, dy, H), origin=(-0.5 * dx, -0.5 * dy, zbottom)
@@ -104,6 +103,9 @@ simulation.init(
     cell_permeability=set_permeability,
     cell_thermal_conductivity=K,
 )
+
+# Set the kr functions after initialization
+simulation.set_kr_functions(kr_functions)
 
 vertices = simulation.vertices()
 

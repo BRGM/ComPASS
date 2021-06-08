@@ -42,6 +42,7 @@ simulation.init(
 )
 
 
+# Set petrophyics functions after initialization
 simulation.set_liquid_capillary_pressure("Beaude2018")
 from data.kr import kr_functions
 

@@ -23,8 +23,6 @@ def kr_functions(states, rocktypes, kr, dkrdS):
     dkrdS[:, 1, 1] = dfkrdS(Sl)
 
 
-# simulation.set_kr_functions(kr_functions)
-
 # import matplotlib.pylab as plt
 
 # S = np.linspace(0, 1)
