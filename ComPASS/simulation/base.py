@@ -228,7 +228,10 @@ def init(
         messages.warning("not overriding kr function in init with default value")
     else:
         simulation.set_kr_functions()
-    simulation.set_phase_pressure_functions()
+    if kernel.get_fill_phase_pressure_arrays() is not None:
+        messages.warning("not overriding Pc function in init with default value")
+    else:
+        simulation.set_phase_pressure_functions()
     simulation.set_well_model(well_model)
     assert simulation.unknown_producers_density
     # FUTURE: This could be managed through a context manager ?

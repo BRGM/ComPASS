@@ -214,6 +214,7 @@ simulation_wrapper = Wrapper(
         "petrophysics",
         "get_fill_kr_arrays",
         "set_fill_kr_arrays",
+        "get_fill_phase_pressure_arrays",
         "set_fill_phase_pressure_arrays",
         # "cell_porosity",
         # "fracture_porosity",
