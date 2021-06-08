@@ -1,5 +1,65 @@
 import sys
 from . import mpi
+from inept import Config
+
+
+class LinalgConfig(Config):
+    """
+    Set of options for ComPASS linear solvers
+    """
+
+    with _.options.on:
+        view: bool
+        with _.switch.on:
+            with _.switch.on as legacy:
+                with _.group.on as iterative:
+                    with _.group.on as gmres:
+                        restart: int = 30
+                    tolerance: float = 1e-6
+                    maxit: int = 150
+                    activate_cpramg: bool = True
+                direct: bool
+            with _.switch as new:
+                with _.group.on as iterative:
+                    with _.switch:
+                        with _.group.on as gmres:
+                            restart: int = 30
+                        bcgs: bool
+                    tolerance: float = 1e-6
+                    maxit: int = 150
+                    with _.switch as pc:
+                        with _.switch.on as cpramg:
+                            hypre: bool = True
+                            gamg: bool
+                        bjacobi: bool
+                        none: bool
+                direct: bool
+
+
+class CallbackConfig(Config):
+    """
+    Options for triggering callbacks
+    """
+
+    with _.options:
+        abort_on_linear_failure: bool
+        abort_on_newton_failure: bool
+        dump_system_on_linear_failure: bool
+        abort: float  # Format : --abort <time>
+        newton_log: str  # Format --newton_log <filename>
+        linear_system_dump: str  # Format : --linear_system_dump t1,t2,t3
+        linear_system_binary_dump: str  # Format : --linear_system_binary_dump t1,t2,t3
+
+
+class ComPASSConfig(Config):
+
+    with _.options:
+        lsolver = LinalgConfig.root
+        callbacks = CallbackConfig.root
+
+
+compass_config = ComPASSConfig()
+compass_config.load_cli()
 
 
 def get(name, default=None):
@@ -17,33 +77,3 @@ def get_bool(name, default=False):
         return default
     else:
         return True
-
-
-class Database(dict):
-    """
-    A dictionary structure which holds the command line options
-    """
-
-    def __init__(self):
-
-        # Failure options
-        self["abort_on_linear_failure"] = get_bool("--abort_on_linear_failure", False)
-        self["dump_system_on_linear_failure"] = get_bool(
-            "--dump_system_on_linear_failure", False
-        )
-        self["abort_on_newton_failure"] = get_bool("--abort_on_newton_failure", False)
-        # Linear solver parameters
-        self["linear_solver_version"] = get("--linear_solver_version", None)
-        self["direct_linear_solver"] = get_bool("--direct_linear_solver", False)
-        self["cpr_amg_type"] = get("--cpr_amg_type", None)
-        self["disable_cpramg"] = get_bool("--disable_cpramg", False)
-        self["linear_solver_view"] = get_bool("--linear_solver_view", False)
-        # Dump options
-        self["dump_ls"] = get("--dump_ls", None)
-        self["dump_ls_binary"] = get("--dump_ls_binary", None)
-        # Miscellaneous
-        self["newton_log"] = get("--newton_log", None)
-        self["kill"] = get("--kill", None)
-
-
-database = Database()

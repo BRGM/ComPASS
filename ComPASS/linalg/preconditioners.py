@@ -1,6 +1,13 @@
 from .__init__ import PETSc, mpi, np
 
 
+class NonePC(PETSc.PC):
+    def __init__(self, linear_system, comm=PETSc.COMM_WORLD):
+        self.create(comm)
+        self.setOperators(linear_system.A, linear_system.A)
+        self.setType(PETSc.PC.Type.NONE)
+
+
 class NullPC(object):
     """ A PC-Python Context which returns zero. Applied on the
     T/s field in the CPRAMG procedure """

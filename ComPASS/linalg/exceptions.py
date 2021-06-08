@@ -18,6 +18,11 @@ def explain_reason(reason):
             return name
 
 
+class InvalidConfigError(Exception):
+    def __init__(self, config):
+        self.config = config
+
+
 class LinearSolverFailure(Exception):
     def __init__(self, reason):
         self.reason = reason

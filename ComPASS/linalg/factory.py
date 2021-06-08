@@ -7,6 +7,7 @@
 #
 from .__init__ import *
 from .. import options
+from .exceptions import InvalidConfigError
 from .legacy_linear_solver import (
     LegacyDirectSolver,
     LegacyIterativeSolver,
@@ -17,8 +18,62 @@ from .petsc_linear_solver import (
     PetscDirectSolver,
     PetscLinearSystem,
 )
-from .preconditioners import CPRAMG, BlockJacobi
+from .preconditioners import CPRAMG, BlockJacobi, NonePC
 from .solver import IterativeSolverSettings
+
+
+def inept_linear_solver(simulation):
+
+    """A factory function for option-defined linear solvers"""
+
+    conf = options.compass_config
+
+    if conf.get("lsolver.legacy"):
+        if conf.get("lsolver.legacy.iterative"):
+            return LegacyIterativeSolver(
+                LegacyLinearSystem(simulation),
+                IterativeSolverSettings(
+                    "gmres",
+                    conf["lsolver.legacy.iterative.tolerance"],
+                    conf["lsolver.legacy.iterative.maxit"],
+                    conf["lsolver.legacy.iterative.gmres.restart"],
+                ),
+                activate_cpramg=conf["lsolver.legacy.iterative.activate_cpramg"],
+            )
+        elif conf["lsolver.legacy.direct"]:
+            return LegacyDirectSolver(LegacyLinearSystem(simulation))
+    elif conf.get("lsolver.new"):
+        lsystem = PetscLinearSystem(simulation)
+        if conf.get("lsolver.new.iterative"):
+            if conf.get("lsolver.new.iterative.pc.cpramg"):
+                if conf.get("lsolver.new.iterative.pc.cpramg.hypre"):
+                    amg_type = "hypre"
+                elif conf.get("lsolver.new.iterative.pc.cpramg.gamg"):
+                    amg_type = "gamg"
+                pc = CPRAMG(lsystem, amg_type=amg_type)
+            elif conf.get("lsolver.new.iterative.pc.bjacobi"):
+                pc = BlockJacobi(lsystem)
+            elif conf.get("lsolver.new.iterative.pc.none"):
+                pc = NonePC(lsystem)
+            if conf.get("lsolver.new.iterative.gmres"):
+                method = "gmres"
+                restart = conf["lsolver.new.iterative.gmres.restart"]
+            elif conf.get("lsolver.new.iterative.bcgs"):
+                method = "bcgs"
+                restart = None
+            return PetscIterativeSolver(
+                lsystem,
+                IterativeSolverSettings(
+                    method,
+                    conf["lsolver.new.iterative.tolerance"],
+                    conf["lsolver.new.iterative.maxit"],
+                    restart,
+                ),
+                pc=pc,
+            )
+        elif conf.get("lsolver.new.direct"):
+            return PetscDirectSolver(lsystem)
+    raise InvalidConfigError(conf.to_dict())
 
 
 def linear_solver(
@@ -50,13 +105,7 @@ def linear_solver(
     """
 
     if from_options == True:
-        legacy_opt = options.database["linear_solver_version"]
-        legacy = (legacy_opt == "legacy") if legacy_opt is not None else legacy
-        direct = options.database["direct_linear_solver"] or direct
-        activate_cpramg = (
-            False if options.database["disable_cpramg"] else activate_cpramg
-        )
-        cpr_amg_type = options.database["cpr_amg_type"] or cpr_amg_type
+        return inept_linear_solver(simulation)
 
     if direct:
         if any(

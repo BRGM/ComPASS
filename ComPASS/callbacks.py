@@ -1,4 +1,4 @@
-from . import options
+from .options import compass_config
 from .runtime import to_output_directory
 import os
 from . import mpi
@@ -119,19 +119,19 @@ def get_callbacks_from_options(newton, tick0):
     linear_failure_callbacks = []
     linear_system = newton.lsolver.linear_system
 
-    if options.database["dump_system_on_linear_failure"]:
+    if compass_config.get("callbacks.dump_system_on_linear_failure"):
         dump_trigger = NewtonDumper(
             (linear_system.dump_binary, newton.lsolver.write_history),
             "linear_systems/",
         )
         linear_failure_callbacks.extend([dump_trigger])
-    if options.database["abort_on_linear_failure"]:
+    if compass_config.get("callbacks.abort_on_linear_failure"):
         linear_failure_callbacks.append(InterruptTrigger("on linear failure"))
-    if options.database["abort_on_newton_failure"]:
+    if compass_config.get("callbacks.abort_on_newton_failure"):
         newton_failure_callbacks.append(InterruptTrigger("on Newton failure"))
 
-    t_dump_raw = options.database["dump_ls"]
-    if t_dump_raw is not None:
+    if compass_config.get("callbacks.linear_system_dump"):
+        t_dump_raw = compass_config["callbacks.linear_system_dump"]
         t_dump_list = t_dump_raw.split(",")
         for t_dump in t_dump_list:
             dump_trigger = NewtonDumper(
@@ -141,8 +141,8 @@ def get_callbacks_from_options(newton, tick0):
             )
             newton_iteration_callbacks.extend([dump_trigger])
 
-    t_dump_raw = options.database["dump_ls_binary"]
-    if t_dump_raw is not None:
+    if compass_config.get("callbacks.linear_system_binary_dump"):
+        t_dump_raw = compass_config["callbacks.linear_system_binary_dump"]
         t_dump_list = t_dump_raw.split(",")
         for t_dump in t_dump_list:
             dump_trigger = NewtonDumper(
@@ -152,13 +152,13 @@ def get_callbacks_from_options(newton, tick0):
             )
             newton_iteration_callbacks.extend([dump_trigger])
 
-    newton_log_filename = options.database["newton_log"]
-    if newton_log_filename is not None:
+    if compass_config.get("callbacks.newton_log"):
+        newton_log_filename = compass_config["callbacks.newton_log"]
         newton_log_callback = NewtonLogCallback(newton_log_filename, newton)
         timestep_callbacks.append(newton_log_callback)
 
-    t_kill = options.database["kill"]
-    if t_kill is not None:
+    if compass_config.get("callbacks.abort") is not None:
+        t_kill = compass_config["callbacks.abort"]
         t_kill = float(t_kill)
         kill_flag = TimestepFlag(t_kill)
         kill_trigger = TimestepInterruptTrigger(kill_flag)

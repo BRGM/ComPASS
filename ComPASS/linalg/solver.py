@@ -8,7 +8,7 @@
 
 from collections import namedtuple
 from ..mpi import master_print
-from .. import options
+from ..options import compass_config
 
 IterativeSolverSettings = namedtuple(
     "IterativeSolverSettings",
@@ -28,7 +28,7 @@ class LinearSolver:
         """
         self.failures = 0
         self.linear_system = linear_system
-        if options.database["linear_solver_view"]:
+        if compass_config.get("lsolver.view"):
             master_print(self)
         self.failure_callbacks = ()
 
