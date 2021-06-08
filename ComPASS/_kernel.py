@@ -212,6 +212,7 @@ simulation_wrapper = Wrapper(
         "get_global_fracture_thermal_conductivity_buffer",
         "porous_volume_Darcy",
         "petrophysics",
+        "get_fill_kr_arrays",
         "set_fill_kr_arrays",
         "set_fill_phase_pressure_arrays",
         # "cell_porosity",

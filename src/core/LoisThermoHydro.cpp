@@ -18,7 +18,7 @@
 #include "Simulation.h"
 namespace py = pybind11;
 
-py::function py_fill_kr_arrays;
+py::object py_fill_kr_arrays = py::none{};
 py::function py_fill_phase_pressure_arrays;
 
 void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
@@ -65,7 +65,8 @@ void update_phase_pressures(X& x) {
 
 void add_petrophysics_pyinternals(py::module& module) {
    module.def("set_fill_kr_arrays",
-              [](py::function& f) { py_fill_kr_arrays = f; });
+              [](py::function f) { py_fill_kr_arrays = f; });
+   module.def("get_fill_kr_arrays", []() { return py_fill_kr_arrays; });
    module.def("set_fill_phase_pressure_arrays",
               [](py::function& f) { py_fill_phase_pressure_arrays = f; });
 }

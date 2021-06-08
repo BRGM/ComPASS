@@ -224,7 +224,10 @@ def init(
     if kernel.has_freeflow_structures:  # FIXME: to be removed
         kernel.clear_freeflow_faces()
     mpi.synchronize()  # wait for every process to synchronize
-    simulation.set_kr_functions()
+    if kernel.get_fill_kr_arrays() is not None:
+        messages.warning("not overriding kr function in init with default value")
+    else:
+        simulation.set_kr_functions()
     simulation.set_phase_pressure_functions()
     simulation.set_well_model(well_model)
     assert simulation.unknown_producers_density
