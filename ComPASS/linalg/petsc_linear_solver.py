@@ -130,9 +130,7 @@ class PetscIterativeSolver(IterativeSolver):
 
         self.activate_cpramg = None
         self.ksp = PETSc.KSP().create(comm=comm)
-        self.method, self.tolerance, self.max_iterations, self.restart_size = settings[
-            :
-        ]
+        self.settings = settings
         self.ksp.setOperators(linear_system.A, linear_system.A)
         self.pc = pc if pc is not None else CPRAMG(linear_system)
         self.ksp.setPC(self.pc)
@@ -147,13 +145,14 @@ class PetscIterativeSolver(IterativeSolver):
         self.method = settings.method
         self.tolerance = settings.tolerance
         self.max_iterations = settings.max_iterations
-        self.restart_size = setting.restart_size
+        if self.method == "gmres":
+            self.restart_size = settings.restart_size
 
     settings = property(
         fget=lambda self: IterativeSolverSettings(
-            self.method, self.tolerance, self.max_iterations, self.restart_size,
+            self.method, self.tolerance, self.max_iterations, None,
         ),
-        fset=lambda self, value: set_settings(value),
+        fset=lambda self, value: self.set_settings(value),
         doc="Iterative solver settings",
     )
     method = property(
@@ -172,7 +171,7 @@ class PetscIterativeSolver(IterativeSolver):
         doc="Maximum number of iterations accepted before convergence failure",
     )
     restart_size = property(
-        fget=lambda self: "RestartNotAvailable",
+        # fget will raise AttributeError because restart value cannot be retrieved through petsc4py API",
         fset=lambda self, value: self.ksp.setGMRESRestart(value),
         doc="Number of iterations at which GMRES restarts",
     )
@@ -185,7 +184,7 @@ class PetscIterativeSolver(IterativeSolver):
         self.nit = self.ksp.getIterationNumber()
         self.residual_history = self.ksp.history
 
-        if self.ksp_reason < 0:
+        if self.ksp_reason < 0:  # Negative reason corresponds to convergence failure
             self.number_of_unsuccessful_iterations += self.nit
             raise IterativeSolverFailure(self.ksp_reason, self.nit)
         else:
@@ -242,20 +241,6 @@ class PetscDirectSolver(DirectSolver):
             )
 
         return self.linear_system.x, self.nit
-
-    def write_history(self, basename=""):
-        """
-        Writes the linear solver residual history in a file
-
-        :param basename: base part of the file path
-        :comm: MPI communicator
-        """
-
-        def dump_residual_log(self):
-            with open(basename + "solver_log.txt", "w") as f:
-                f.write(f"{self}\n\n")
-
-        mpi.on_master_proc(dump_residual_log)(self)
 
     def __str__(self):
         return f"{super().__str__()}\n   petsc4py new implementation"
