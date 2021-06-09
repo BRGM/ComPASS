@@ -74,6 +74,10 @@ def coordinates(a):
 def facenodes(simulation, fis):
     face_nodes = simulation.get_connectivity().NodebyFace
     nodes = []
+    fis = np.asarray(fis)
+    assert fis.ndim == 1
+    if fis.dtype == np.bool:
+        fis = np.nonzero(fis)[0]
     for fk, face in enumerate(face_nodes):
         if fk in fis:
             nodes.append(np.array(face, copy=False))
