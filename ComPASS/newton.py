@@ -222,10 +222,10 @@ class Newton:
             print(f"  {dp} for well operatinf on pressure")
 
 
-def default_Newton(simulation):
+def default_Newton(simulation, tolerance=1e-5, max_iterations=8):
     # The default lsolver is a legacy iterative solver
     # which uses the CPR-AMG preconditioner
     default_lsolver = linear_solver(
         simulation, legacy=True, direct=False, from_options=True,
     )
-    return Newton(simulation, 1e-5, 8, default_lsolver)
+    return Newton(simulation, tolerance, max_iterations, default_lsolver)
