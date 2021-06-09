@@ -513,7 +513,10 @@ def setup_scheme(simulation, properties):
     vag.compute_volumes()
 
 
+# FIXME: we need fractures as argument because global_fracture_property_buffer
+#        has the size of faces and we need to pick only fracture faces
 def _set_property_on_global_mesh(property, location, value, fractures=None):
+    assert location == "cell" or location == "fracture"
     kernel = get_kernel()
     buffer = np.array(
         getattr(kernel, "get_global_%s_%s_buffer" % (location, property))(), copy=False,
@@ -525,7 +528,11 @@ def _set_property_on_global_mesh(property, location, value, fractures=None):
             property,
             location,
         )
-        n = np.count_nonzero(fractures)
+        if fractures.dtype == np.bool:
+            n = np.count_nonzero(fractures)
+        else:
+            assert fractures.ndim == 1
+            n = fractures.shape[0]
         dim = 2
     if property in ["permeability", "thermal_conductivity"] and location == "cell":
         value = reshape_as_tensor_array(value, n, dim)

@@ -106,6 +106,7 @@ sanity_check:
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run display_model_elements.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_diphasic_equilibrium.py
     - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run phase_pressure_absent_phase.py
+    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run two_cells_fracture_zero.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_standalone.py
     - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_with_compass.py
 
