@@ -6,14 +6,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-
-# from ComPASS.newton import Newton
-# from ComPASS.linalg.factory import linear_solver
-from ComPASS.timeloops import TimeStepManager
 import MeshTools as MT
-
-# import ComPASS.mpi as mpi
-# from ComPASS.mpi import MPI # underlying mpi4py.MPI
 
 from my_kr import kr_functions
 
@@ -23,7 +16,8 @@ simulation = ComPASS.load_eos("water2ph")
 ztop = 2000
 zinterface = 1000
 zbottom = 0
-nb_layers = 20  # number of horizontal layers
+# FIXME: for a weird reason timestep collapses around 37.428y with nb_layers=20
+nb_layers = 40  # number of horizontal layers
 H = ztop - zbottom
 dz = H / nb_layers
 dx = dy = dz
@@ -34,7 +28,7 @@ k_bottom = 1e-10  # reservoir permeability in m^2
 K = 1  # bulk thermal conductivity in W/m/K
 rock_heat_capacity = 1e3  # kJ/kg/K
 rock_density = 2500  # kg/m3
-mass_flux = 0.001 * 1e-4 * dx * dy  # 100 kg/km2
+mass_flux = 100.0e-6  # 100 kg/s/km^2
 Ttop = degC2K(10)
 Tinterface = degC2K(290)
 Tbottom = degC2K(310)
@@ -129,14 +123,37 @@ simulation.reset_dirichlet_nodes(vertices[:, 2] >= ztop)
 # Neumann at the bottom
 Neumann = ComPASS.NeumannBC()
 Neumann.molar_flux[:] = -mass_flux
-# we approximate the specific enthalpy of the bottom-most cell
-pbottom = hydrostatic_pressure(zbottom)
-hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)
-Neumann.heat_flux = -mass_flux * hbottom
-face_centers = simulation.face_centers()
-simulation.set_Neumann_faces(face_centers[:, 2] <= 0, Neumann)
-# breakpoint()
-simulation.standard_loop(initial_timestep=day, output_period=5 * day, final_time=year)
 
-# if necessary simulation results can be directly postprocessed here
+face_centers = simulation.face_centers()
+bottom_face = face_centers[:, 2] <= 0
+bottom_nodes = simulation.facenodes(face_centers[:, 2] <= 0)
+node_states = simulation.node_states()
+hg = simulation.gas_molar_enthalpy
+hl = simulation.liquid_molar_enthalpy
+rhog = simulation.gas_molar_density
+rhol = simulation.liquid_molar_density
+
+
+def update_flux(*args):
+    if len(bottom_nodes) == 0:
+        return  # Nothing to do, may happen in parallel
+    p = node_states.p[bottom_nodes]
+    T = node_states.T[bottom_nodes]
+    Sg = node_states.S[bottom_nodes, 0]
+    rhogSg = rhog(p, T) * Sg
+    gmf = rhogSg / (rhogSg + rhol(p, T) * (1 - Sg))  # gmf = gas mass fraction
+    Neumann.heat_flux = -mass_flux * np.mean(gmf * hg(p, T) + (1 - gmf) * hl(p, T))
+    simulation.clear_all_neumann_contributions()
+    simulation.set_Neumann_faces(bottom_face, Neumann)
+
+
+update_flux()
+
+simulation.standard_loop(
+    initial_timestep=day,
+    output_period=30 * day,
+    final_time=40 * year,
+    iteration_callbacks=[update_flux,],
+)
+
 simulation.postprocess()
