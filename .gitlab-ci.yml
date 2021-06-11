@@ -1,259 +1,257 @@
-# see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
-
 variables:
-  # When using dind, it's wise to use the overlayfs driver for
-  # improved performance.
-  # https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
-  # and https://gitlab.inria.fr/charms/ComPASS/issues/72
-  DOCKER_DRIVER: overlay2
-  # Specify to Docker where to create the certificates, Docker will
-  # create them automatically on boot, and will create
-  # `/certs/client` that will be shared between the service and job
-  # container, thanks to volume mount from config.toml
-  # cf. https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
-  DOCKER_TLS_CERTDIR: "/certs"
-  # Project specifc variables
-  CI_REGISTRY_IMAGE: registry.gitlab.inria.fr/charms/compass
-  WHEEL_PRERELTAG: ".dev_$CI_COMMIT_REF_SLUG"
+  COMPASS_SDK: 0.1.0
+  # We assume that is fine to run mpi as root in a docker container
+  OMPI_ALLOW_RUN_AS_ROOT: 1
+  OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
 
-services:
-  - docker:stable-dind
+image:
+  name: "registry.gitlab.inria.fr/charms/compass-images/sdk:${COMPASS_SDK}"
 
 stages:
-  - check-format
+  - check
   - build
   - test
   - release
   - documentation
 
-before_script:
-  - echo "Preparing build..."
-  # - docker info
-  # - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-
-after_script:
-  - echo "You might do some cleanup here"
-
-check:
-    stage: check-format
-    tags:
-        - build
-        - docker
-    image: $CI_REGISTRY_IMAGE/build-environment
-    #only:
-    #  - merge_requests
-    script:
-        # We could check format only for merge requests
-        # using only merge_requests
-        # and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA
-        # variables but the latest are not correclyt set
-        - git fetch origin ${CI_DEFAULT_BRANCH}
-        - merge_base=$(git merge-base origin/${CI_DEFAULT_BRANCH} HEAD)
-        - changed_files=$(git diff --no-ext-diff --name-only ${merge_base}...HEAD)
-        - echo "Changed files:" ${changed_files}
-        - pre-commit run --files ${changed_files}
-
+check format:
+  stage: check
+  tags:
+    - build
+    - docker
+  script:
+    # We could check format only for merge requests
+    # using only merge_requests
+    # and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA
+    # variables but the latest are not correclyt set
+    - git fetch origin ${CI_DEFAULT_BRANCH}
+    - merge_base=$(git merge-base origin/${CI_DEFAULT_BRANCH} HEAD)
+    - changed_files=$(git diff --no-ext-diff --name-only ${merge_base}...HEAD)
+    - echo "Changed files:" ${changed_files}
+    - pre-commit run --files ${changed_files}
 
 build:
   stage: build
   tags:
-    - build
-  image: docker:stable
+    - docker
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - mkdir -p wheel
-    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/build-environment python3 setup.py egg_info bdist_wheel -d wheel
-    - docker build --force-rm --cache-from $CI_REGISTRY_IMAGE:latest --pull --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-
+    - python3 setup.py bdist_wheel
   artifacts:
     paths:
-    - wheel
-
-#TODO
-#how to use docker cache ? split dockerfile to have a build image.fixed.
-#how to prevent from rebuild all code when only test change.
-# add gitlab runner docker in slave 2 to run dind
-# clean mechanism for docker images ?
-
-sanity_check:
-  stage: test
-  tags:
-    - test
-  image: docker:stable
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - echo "unit test with" $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical_1D.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run heat_source_analytical.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_column_temperature.py
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_fracture.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_settings.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run init_states.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run vertical_well.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run postprocess_producers.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_petrophysics.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run dof_families.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run well_connectivity.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_simulation_global_functions.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_balances_two_phases.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run random_wellheads.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_set_array.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_close_perforations.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run display_model_elements.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run one_wedge_cell_with_well.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run check_well_information.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run display_model_elements.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_diphasic_equilibrium.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run phase_pressure_absent_phase.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run two_cells_fracture_zero.py
-    - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_standalone.py
-    - docker run --rm -v $PWD/test/unit/salome:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run test_with_compass.py
+    - dist/
+    expose_as: wheel
+    when: on_success
 
 baseline tests:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-casea.py
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-caseb.py
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO2-1d-casec.py
-    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO3-casea.py
-    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO3-caseb.py
-    - docker run --rm -v $PWD/test/baseline/MO4:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run MO4.py
-    - docker run --rm -v $PWD/test/baseline/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO1.py
-    - docker run --rm -v $PWD/test/baseline/SO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run SO2.py
+    - cd test/baseline
+    - >
+      for f in \
+        MO2/MO2-1d-casea.py \
+        MO2/MO2-1d-caseb.py \
+        MO2/MO2-1d-casec.py \
+        MO3/MO3-casea.py \
+        MO3/MO3-caseb.py \
+        MO4/MO4.py \
+        SO1/SO1.py \
+        SO2/SO2.py
+      do
+        python3 $f
+      done
 
-baseline tests parallel:
+baseline parallel tests:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-casea.py
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-caseb.py
-    - docker run --rm -v $PWD/test/baseline/MO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO2-1d-casec.py
-    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO3-casea.py
-    - docker run --rm -v $PWD/test/baseline/MO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO3-caseb.py
-    - docker run --rm -v $PWD/test/baseline/MO4:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel MO4.py
-    - docker run --rm -v $PWD/test/baseline/SO1:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO1.py
-    - docker run --rm -v $PWD/test/baseline/SO2:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO2.py
-    - docker run --rm -v $PWD/test/baseline/SO3:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel SO3.py
+    - cd test/baseline
+    - >
+      for f in \
+        MO2/MO2-1d-casea.py \
+        MO2/MO2-1d-caseb.py \
+        MO2/MO2-1d-casec.py \
+        MO3/MO3-casea.py \
+        MO3/MO3-caseb.py \
+        MO4/MO4.py \
+        SO1/SO1.py \
+        SO2/SO2.py
+      do
+        mpirun -n `nproc` python3 $f
+      done
 
-pytest_run:
+pytest:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG test
+    - cd test/fast # change directory otherwise import ComPASS conflicts with source
+    - python3 -m pytest
 
-postprocess_test:
+time bulk scripts:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run two_cells.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG postprocess -s -C output-two_cells
+    - cd test
+    - python3 utilities/pool.py bulk
 
-petrel_test:
+linalg:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/cases/petrel:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run doublet_on_cartesian_grid_petrel.py
+    - cd test/linalg
+    - python3 options_test.py
 
-parallel_test:
+more sanity tests:
   stage: test
   tags:
+    - docker
     - test
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run --rm -v $PWD/test/sanity:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel vertical_column_temperature.py
-    - docker run --rm -v $PWD/test/fast:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel test_nodeflags_on_tetmesh.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel distribute_fracture_edge_info.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel select_fracture_edges_with_node_info.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_balances.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_settings.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel vertical_wells.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel check_petrophysics.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel dof_families.py
-    - docker run --rm -v $PWD/test/bulk:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel chain_random_wells.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel well_connectivity.py
-    - docker run --rm -v $PWD/test/unit:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run --parallel test_close_perforations.py
+    - cd test
+    - >
+      for f in \
+        sanity/heat_source_analytical_1D.py \
+        sanity/heat_source_analytical.py \
+        sanity/vertical_column_temperature.py \
+        sanity/vertical_fracture.py \
+        unit/check_settings.py \
+        unit/init_states.py \
+        unit/vertical_well.py \
+        unit/postprocess_producers.py \
+        unit/check_petrophysics.py \
+        unit/dof_families.py \
+        unit/well_connectivity.py \
+        unit/test_simulation_global_functions.py \
+        unit/check_balances_two_phases.py \
+        unit/random_wellheads.py \
+        unit/test_set_array.py \
+        unit/test_close_perforations.py \
+        unit/display_model_elements.py \
+        unit/one_wedge_cell_with_well.py \
+        unit/check_well_information.py \
+        unit/display_model_elements.py \
+        unit/test_diphasic_equilibrium.py \
+        unit/phase_pressure_absent_phase.py \
+        unit/two_cells_fracture_zero.py \
+        unit/salome/test_standalone.py \
+        unit/salome/test_with_compass.py
+      do
+        ( cd ${f%/*}; python3 ${f##*/} )
+      done
 
-time_bulk_scripts:
+postprocess:
   stage: test
   tags:
-    - build
-  except:
-    - /^doc_.*$/
-  image: docker:stable
+    - docker
+    - test
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run -v $PWD/test:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG bash python3 utilities/pool.py bulk
+    - cd test/unit
+    - python3 two_cells.py
+    - python3 -m ComPASS.postprocess -s -C output-two_cells
 
-linalg_tests:
+petrel:
   stage: test
   tags:
-    - build
-  except:
-    - /^doc_.*$/
-  image: docker:stable
+    - docker
+    - test
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker run -v $PWD/test/linalg:/localfs $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG run options_test.py
+    - cd test/cases/petrel
+    - python3 doublet_on_cartesian_grid_petrel.py
 
-master_release:
+various parallel test:
+  stage: test
+  tags:
+    - docker
+    - test
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
+  script:
+    - cd test
+    - >
+      for f in \
+        sanity/vertical_column_temperature.py \
+        fast/test_nodeflags_on_tetmesh.py \
+        unit/distribute_fracture_edge_info.py \
+        unit/select_fracture_edges_with_node_info.py \
+        unit/check_balances.py \
+        unit/check_settings.py \
+        unit/vertical_wells.py \
+        unit/check_petrophysics.py \
+        unit/dof_families.py \
+        bulk/chain_random_wells.py \
+        unit/well_connectivity.py \
+        unit/test_close_perforations.py
+      do
+        mpirun -n `nproc` python3 $f
+      done
+
+container release:
   stage: release
   tags:
-    - release
-  image: docker:stable
+    - build
+    - docker
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    TARGET_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_COMMIT_TAG}
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:latest
-    - docker push $CI_REGISTRY_IMAGE:latest
-   # - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-  only:
-    - master
-  when: on_success
-
-tag_release:
-  stage: release
-  tags:
-    - release
-  image: docker:stable
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
-  only:
-    - tags
-  when: on_success
+    - cp -rv dist docker/
+    - docker build --force-rm -t $TARGET_IMAGE --build-arg SDK_TAG="${COMPASS_SDK}" docker
+    - docker push $TARGET_IMAGE
+    - docker tag $TARGET_IMAGE ${TARGET_IMAGE%\:*}:latest
+    - docker push ${TARGET_IMAGE%\:*}:latest
+  after_script:
+    - docker logout $CI_REGISTRY
+    - docker rm -f $TARGET_IMAGE
+    - docker rm -f ${TARGET_IMAGE%\:*}:latest
 
 pages:
   stage: documentation
   tags:
+    - docker
     - build
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH =~ /^doc_.*$/'
-  image: docker:stable
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.inria.fr
+    - rootdir=$(pwd)
+    - cd ${rootdir}/docs/doxygen
+    - doxygen Doxyfile
+    - cd ${rootdir}/docs
+    - cp -vf ../README.rst ../INSTALL.rst ../LICENSE.rst .
+    - sphinx-apidoc ../ComPASS -o python_reference
+    - sphinx-build . html
+    - cd ${rootdir}
     - mkdir -p public/core_reference
-    - docker run --rm -v $PWD:/localfs $CI_REGISTRY_IMAGE/doc-environment bash /localfs/docs/generate_doc.bash /localfs ${WHEEL_PRERELTAG}
     - cp -rf docs/html/* public
     - cp -rf docs/doxygen/html/* public/core_reference
   artifacts:
