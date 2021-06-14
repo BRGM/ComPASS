@@ -17,7 +17,7 @@ stages:
 check format:
   stage: check
   tags:
-    - build
+    - sequential
     - docker
   script:
     # We could check format only for merge requests
@@ -33,6 +33,7 @@ check format:
 build:
   stage: build
   tags:
+    - build
     - docker
   script:
     - python3 setup.py bdist_wheel
@@ -45,8 +46,8 @@ build:
 baseline tests:
   stage: test
   tags:
+    - sequential
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -62,14 +63,17 @@ baseline tests:
         SO1/SO1.py \
         SO2/SO2.py
       do
+        echo "------------------------------------------------------------"
+        echo "Running: $f"
+        echo "------------------------------------------------------------"
         python3 $f
       done
 
 baseline parallel tests:
   stage: test
   tags:
+    - parallel
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -85,14 +89,17 @@ baseline parallel tests:
         SO1/SO1.py \
         SO2/SO2.py
       do
+        echo "------------------------------------------------------------"
+        echo "Running: $f"
+        echo "------------------------------------------------------------"
         mpirun -n `nproc` python3 $f
       done
 
 pytest:
   stage: test
   tags:
+    - parallel
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -102,8 +109,8 @@ pytest:
 time bulk scripts:
   stage: test
   tags:
+    - parallel
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -113,8 +120,8 @@ time bulk scripts:
 linalg:
   stage: test
   tags:
+    - sequential
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -124,8 +131,8 @@ linalg:
 more sanity tests:
   stage: test
   tags:
+    - sequential
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -158,14 +165,17 @@ more sanity tests:
         unit/salome/test_standalone.py \
         unit/salome/test_with_compass.py
       do
+        echo "------------------------------------------------------------"
+        echo "Running: $f"
+        echo "------------------------------------------------------------"
         ( cd ${f%/*}; python3 ${f##*/} )
       done
 
 postprocess:
   stage: test
   tags:
+    - sequential
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -176,8 +186,8 @@ postprocess:
 petrel:
   stage: test
   tags:
+    - sequential
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -187,8 +197,8 @@ petrel:
 various parallel test:
   stage: test
   tags:
+    - parallel
     - docker
-    - test
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
@@ -208,13 +218,16 @@ various parallel test:
         unit/well_connectivity.py \
         unit/test_close_perforations.py
       do
+        echo "------------------------------------------------------------"
+        echo "Running: $f"
+        echo "------------------------------------------------------------"
         mpirun -n `nproc` python3 $f
       done
 
 container release:
   stage: release
   tags:
-    - build
+    - parallel
     - docker
   rules:
     - if: $CI_COMMIT_TAG
@@ -236,8 +249,8 @@ container release:
 pages:
   stage: documentation
   tags:
+    - sequential
     - docker
-    - build
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   before_script:
