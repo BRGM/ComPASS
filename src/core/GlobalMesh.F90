@@ -350,7 +350,7 @@ contains
       DOUBLE PRECISION, INTENT(IN) :: ElemPermeability(NbElem)
       TYPE(CSR), INTENT(IN) :: ElembyNode
 
-      INTEGER, INTENT(OUT) :: Rocktype(NbNode)
+      INTEGER, INTENT(INOUT) :: Rocktype(NbNode)
 
       INTEGER :: i
       INTEGER :: kpt, k
