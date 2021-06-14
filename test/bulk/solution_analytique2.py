@@ -31,7 +31,7 @@ def exact_sol(x, t):
 
 
 def test():
-    nx = Lx / dx
+    nx = int(Lx / dx)
     x = np.linspace(0, Lx, nx)
     # xx = np.meshgrid(x)
     for k in range(nt):
