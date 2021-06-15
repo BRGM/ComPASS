@@ -3,6 +3,9 @@ variables:
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+  # specify to Docker where to create the certificates
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
 
 image:
   name: "registry.gitlab.inria.fr/charms/compass-images/sdk:${COMPASS_SDK}"
@@ -227,24 +230,29 @@ various parallel test:
 container release:
   stage: release
   tags:
-    - parallel
     - docker
+  image: docker:20.10.7
+  services:
+    - docker:20.10.7-dind
   rules:
     - if: $CI_COMMIT_TAG
-  variables:
-    TARGET_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}:${CI_COMMIT_TAG}
   before_script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
+    - TARGET_PROJECT_PATH=$(echo "$CI_PROJECT_PATH" | tr '[:upper:]' '[:lower:]')
+    - TARGET_IMAGE="${CI_REGISTRY}/${TARGET_PROJECT_PATH}:${CI_COMMIT_TAG}"
     - cp -rv dist docker/
     - docker build --force-rm -t $TARGET_IMAGE --build-arg SDK_TAG="${COMPASS_SDK}" docker
     - docker push $TARGET_IMAGE
     - docker tag $TARGET_IMAGE ${TARGET_IMAGE%\:*}:latest
     - docker push ${TARGET_IMAGE%\:*}:latest
-  after_script:
-    - docker logout $CI_REGISTRY
+    # after_script is executed in a separated shell context
+    # i.e. does not have access to the TARGET_IMAGE variable
+    # so we proceed to cleaning here
     - docker rm -f $TARGET_IMAGE
     - docker rm -f ${TARGET_IMAGE%\:*}:latest
+  after_script:
+    - docker logout $CI_REGISTRY
 
 pages:
   stage: documentation
