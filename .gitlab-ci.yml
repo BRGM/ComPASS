@@ -3,9 +3,6 @@ variables:
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
-  # specify to Docker where to create the certificates
-  DOCKER_TLS_CERTDIR: "/certs"
-  DOCKER_DRIVER: overlay2
 
 image:
   name: "registry.gitlab.inria.fr/charms/compass-images/sdk:${COMPASS_SDK}"
@@ -230,10 +227,7 @@ various parallel test:
 container release:
   stage: release
   tags:
-    - docker
-  image: docker:20.10.7
-  services:
-    - docker:20.10.7-dind
+    - shell
   rules:
     - if: $CI_COMMIT_TAG
   before_script:
