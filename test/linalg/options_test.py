@@ -1,40 +1,76 @@
 import subprocess as sp
+import itertools as it
 
-executable = "python3"
-script = "solving_from_options.py"
-opt_dict = {
-    "--dump_ls": ("0.0",),
-    "--dump_ls_binary": ("0.0",),
-    "--linear_solver_view": ("",),
-    "--cpr_amg_type": ("gamg",),
-    "--disable_cpramg": ("",),
-    "--direct_linear_solver": ("",),
-    "--newton_log": ("newton_log.txt",),
-}
-n = 0
-for version in ("legacy", "new"):
-    base_args = [executable, script, "--linear_solver_version", version]
-    for opt in opt_dict:
-        args = [opt] + list(opt_dict[opt])
+
+def test_combinations(script, options, repeat=2):
+    for comb in it.combinations(options, repeat):
+        args = ["python3", script]
+        for opt in comb:
+            args += [opt, options[opt]]
         print("\n")
         print("#" * 70)
-        print(f"Running ComPASS with command : \n{base_args + args}")
+        print(f"Running ComPASS with command : \n{args}")
         print("#" * 70)
-        call = sp.run(base_args + args, check=True)
+        call = sp.run(args, check=True)
         print(call)
 
-script = "ksp_failure_vertical_fracture.py"
-failure_opts = [
-    "--abort_on_linear_failure",
-    "--abort_on_newton_failure",
-    "--dump_system_on_linear_failure",
-]
-base_args = [executable, script]
-for opt in failure_opts:
-    args = base_args + [opt]
-    print("\n")
-    print("#" * 70)
-    print(f"Running ComPASS with command : \n{base_args + args}")
-    print("#" * 70)
-    call = sp.run(base_args + args, check=True)
-    print(call)
+
+def test_product(script, options1, options2):
+    for comb in it.product(options1, options2, repeat=1):
+        args = ["python3", script]
+        args += [comb[0], options1[comb[0]]]
+        args += [comb[1], options2[comb[1]]]
+        print("\n")
+        print("#" * 70)
+        print(f"Running ComPASS with command : \n{args}")
+        print("#" * 70)
+        call = sp.run(args, check=True)
+        print(call)
+
+
+if __name__ == "__main__":
+    test_product(
+        "vertical_fracture_from_options.py",
+        {
+            "--lsolver.new.iterative.pc.bjacobi": "True",
+            "--lsolver.legacy.iterative.activate_cpramg": "False",
+        },
+        {
+            "--callbacks.dump_system_on_linear_failure": "True",
+            "--callbacks.abort_on_linear_failure": "True",
+            "--callbacks.abort_on_newton_failure": "True",
+            "--callbacks.abort_on_newton_failure": "True",
+            "--lsolver.view": "True",
+        },
+    )
+    test_product(
+        "doublet_from_options.py",
+        {"--lsolver.new": "True", "--lsolver.legacy": "True"},
+        {
+            "--callbacks.linear_system_dump": "0.0",
+            "--callbacks.linear_system_binary_dump": "0.0",
+            "--callbacks.abort": "0.0",
+            "--callbacks.newton_log": "newton_log.txt",
+        },
+    )
+    test_combinations(
+        "doublet_from_options.py",
+        {
+            "--lsolver.new.iterative.pc.bjacobi": "True",
+            "--lsolver.new.iterative.bcgs": "True",
+            "--lsolver.new.iterative.tolerance": "1.e-8",
+            "--lsolver.new.iterative.gmres.restart": "50",
+            "--lsolver.new.iterative.maxit": "200",
+        },
+        repeat=4,
+    )
+    test_combinations(
+        "doublet_from_options.py",
+        {
+            "--lsolver.legacy.iterative.activate_cpramg": "False",
+            "--lsolver.legacy.iterative.tolerance": "1.e-8",
+            "--lsolver.legacy.iterative.gmres.restart": "50",
+            "--lsolver.legacy.iterative.maxit": "200",
+        },
+        repeat=3,
+    )

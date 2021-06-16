@@ -12,9 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.newton import Newton
-from ComPASS.linalg.petsc_linear_solver import *
-from ComPASS.linalg.legacy_linear_solver import *
-from ComPASS.linalg.preconditioners import BlockJacobi
+from ComPASS.linalg.factory import linear_solver
 from ComPASS import options
 
 """
@@ -105,14 +103,14 @@ def set_boundary_fluxes():
 
 set_boundary_fluxes()
 
-# Setting the preconditioner to a basic block Jacobi - ILU(1) PC,
-# which isn't robust enough for this test case
-linear_system = PetscLinearSystem(simulation)
-lsolver = PetscIterativeSolver(
-    linear_system,
-    IterativeSolverSettings("gmres", 1.0e-6, 150, 30),
-    pc=BlockJacobi(linear_system),
-)
+# Setting the preconditioner to a basic block Jacobi - ILU(1) PC
+# will result on a linear failure
+# This can be done by running :
+# python3 vertical_fracture_from_options.py --lsolver.new.iterative.pc.bjacobi True --callbacks.abort_on_linear_failure True
+# or
+# python3 vertical_fracture_from_options.py --lsolver.legacy.iterative.activate_cpramg False --callbacks.abort_on_linear_failure True
+
+lsolver = linear_solver(simulation, from_options=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 
@@ -124,5 +122,5 @@ standard_loop(
     initial_timestep=1 * hour,
     final_time=final_time,
     output_period=output_period,
-    nitermax=200,
+    nitermax=100,
 )
