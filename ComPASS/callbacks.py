@@ -1,7 +1,10 @@
 from .options import compass_config
 from .runtime import to_output_directory
+from .linalg.exceptions import explain_reason
 import os
 from . import mpi
+import time
+import yaml
 
 
 class Flag:
@@ -92,26 +95,64 @@ class TimestepInterruptTrigger(InterruptTrigger):
             super().__call__()
 
 
-class NewtonLogCallback:
+class SimulationLogCallback:
     def __init__(self, filename, newton):
-        self.filename = to_output_directory(filename)
+        self.dict = {}
+        self.last_point_in_time = time.time()
+        self.attempts = [{}]
+        self.filename = filename
         self.newton = newton
-        with open(self.filename, "w+") as f:
-            f.write(
-                "Iteration number, Time, Successful timestep, Newton iterations, Linear iterations\n\n"
-            )
+        with open(to_output_directory("simulation_log.yaml"), "w") as f:
+            pass  # Clearing the file if it already exists
 
-    def __call__(self, tick):
-        def writer(tick):
-            with open(self.filename, "a") as f:
-                f.write(
-                    f"{tick.iteration},   {tick.time:.13e}, {tick.latest_timestep:.13e}, {len(self.newton.lsolver_iterations)}, {self.newton.lsolver_iterations}\n"
+    def timeloop_callback(self, tick):
+        self.attempts[-1]["status"] = "success"
+        timestep_dict = {"time": tick.time - tick.latest_timestep}
+        for i, attempt_dict in enumerate(self.attempts):
+            timestep_dict.update({f"attempt {i+1}": attempt_dict})
+        timestep_dict.update({"success_dt": tick.latest_timestep})
+        self.dict.update({f"time_step {tick.iteration}": timestep_dict})
+        if mpi.is_on_master_proc:
+            with open(to_output_directory("simulation_log.yaml"), "a") as f:
+                yaml.safe_dump(
+                    {f"time_step {tick.iteration}": timestep_dict},
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
                 )
+        self.attempts = [{}]
 
-        mpi.on_master_proc(writer)(tick)
+    def newton_iteration_callback(self, newton_tick):
+        self.attempts[-1]["dt"] = newton_tick.current_dt
+        self.attempts[-1][f"newton {newton_tick.iteration}"] = {
+            "linear_iterations": self.newton.lsolver.nit,
+            "linear_solver_status": explain_reason(self.newton.lsolver.ksp_reason),
+            "cpu_time": time.time() - self.last_point_in_time,
+            "residuals": f"{self.newton.convergence_scheme.pv_norms()[:]} {self.newton.relative_residuals[-1]}",
+        }
+        self.last_point_in_time = time.time()
+
+    def linear_failure_callback(self, newton_tick):
+        self.attempts[-1]["dt"] = newton_tick.current_dt
+        self.attempts[-1][f"newton {newton_tick.iteration}"] = {
+            "linear_iterations": self.newton.lsolver.nit,
+            "linear_solver_status": explain_reason(self.newton.lsolver.ksp_reason),
+            "cpu_time": time.time() - self.last_point_in_time,
+        }
+        self.attempts[-1]["status"] = "linear_failure"
+        self.last_point_in_time = time.time()
+        self.attempts.append({})
+
+    def newton_failure_callback(self, newton_tick):
+        self.newton_iteration_callback(newton_tick)
+        self.attempts[-1]["status"] = "newton_failure"
+        self.attempts[-1]["dt"] = newton_tick.current_dt
+        self.attempts.append({})
 
 
-def get_callbacks_from_options(newton, tick0):
+def get_callbacks_from_options(
+    newton, tick0,
+):
 
     timestep_callbacks = []
     newton_iteration_callbacks = []
@@ -152,10 +193,17 @@ def get_callbacks_from_options(newton, tick0):
             )
             newton_iteration_callbacks.extend([dump_trigger])
 
-    if compass_config.get("callbacks.newton_log"):
-        newton_log_filename = compass_config["callbacks.newton_log"]
-        newton_log_callback = NewtonLogCallback(newton_log_filename, newton)
-        timestep_callbacks.append(newton_log_callback)
+    if compass_config.get("callbacks.simulation_log"):
+        simulation_log_filename = compass_config["callbacks.simulation_log"]
+        simulation_log_callback = SimulationLogCallback(simulation_log_filename, newton)
+        timestep_callbacks.append(simulation_log_callback.timeloop_callback)
+        newton.iteration_callbacks += (
+            simulation_log_callback.newton_iteration_callback,
+        )
+        newton.lsolver.failure_callbacks += (
+            simulation_log_callback.linear_failure_callback,
+        )
+        newton.failure_callbacks += (simulation_log_callback.newton_failure_callback,)
 
     if compass_config.get("callbacks.abort") is not None:
         t_kill = compass_config["callbacks.abort"]
@@ -167,4 +215,5 @@ def get_callbacks_from_options(newton, tick0):
     newton.iteration_callbacks += tuple(newton_iteration_callbacks)
     newton.failure_callbacks += tuple(newton_failure_callbacks)
     newton.lsolver.failure_callbacks += tuple(linear_failure_callbacks)
+
     return tuple(timestep_callbacks)

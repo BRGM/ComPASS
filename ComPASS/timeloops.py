@@ -319,6 +319,7 @@ def standard_loop(
             dt_to_next_event is None or dt_to_next_event > 0
         ), f"dt to next event: {dt_to_next_event}"
         n += 1
+        newton.iterations = n
         print_iteration_info(t, n)
         # --
         mpi.synchronize()

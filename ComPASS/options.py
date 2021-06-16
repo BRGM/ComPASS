@@ -45,10 +45,10 @@ class CallbackConfig(Config):
         abort_on_linear_failure: bool
         abort_on_newton_failure: bool
         dump_system_on_linear_failure: bool
-        abort: float  # Format : --abort <time>
-        newton_log: str  # Format --newton_log <filename>
-        linear_system_dump: str  # Format : --linear_system_dump t1,t2,t3
-        linear_system_binary_dump: str  # Format : --linear_system_binary_dump t1,t2,t3
+        abort: float  # Format : --callbacks.abort <time>
+        simulation_log: bool  # Format --callbacks.simulation_log True
+        linear_system_dump: str  # Format : --callbacks.linear_system_dump t1,t2,t3
+        linear_system_binary_dump: str  # Format : --callbacks.linear_system_binary_dump t1,t2,t3
 
 
 class ComPASSConfig(Config):

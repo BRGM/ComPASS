@@ -97,6 +97,8 @@ class Newton:
         self.iteration_callbacks = iteration_callbacks or ()
         self.failure_callbacks = failure_callbacks or ()
 
+        self.iterations = 0
+
     def reset_loop(self):
         kernel = get_kernel()
         kernel.IncCV_LoadIncPreviousTimeStep()
@@ -154,7 +156,7 @@ class Newton:
         self.relative_residuals = relative_residuals
         lsolver = self.lsolver
         self.lsolver_iterations = []
-        self.status = NewtonStatus(0, self.lsolver_iterations)
+        self.status = NewtonStatus(1, self.lsolver_iterations)
         self.init_iteration()
         # CHECKME: does this need to be done after newton_init_iteration?
         kernel.Residu_reset_history()
