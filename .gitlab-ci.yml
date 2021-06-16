@@ -54,9 +54,9 @@ baseline tests:
     - cd test/baseline
     - >
       for f in \
-        MO2/MO2-1d-casea.py \
-        MO2/MO2-1d-caseb.py \
-        MO2/MO2-1d-casec.py \
+        MO2/MO2-casea.py \
+        MO2/MO2-caseb.py \
+        MO2/MO2-casec.py \
         MO3/MO3-casea.py \
         MO3/MO3-caseb.py \
         MO4/MO4.py \
@@ -80,9 +80,9 @@ baseline parallel tests:
     - cd test/baseline
     - >
       for f in \
-        MO2/MO2-1d-casea.py \
-        MO2/MO2-1d-caseb.py \
-        MO2/MO2-1d-casec.py \
+        MO2/MO2-casea.py \
+        MO2/MO2-caseb.py \
+        MO2/MO2-casec.py \
         MO3/MO3-casea.py \
         MO3/MO3-caseb.py \
         MO4/MO4.py \
