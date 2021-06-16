@@ -26,17 +26,17 @@ rw = 0.1  # well radius
 ds = 1, 100  # target edge size around the origin and at the boundary
 H = 100  # reservoir thickness
 nb_layers = 1  # number of horizontal layers
-omega = 0.2  # reservoir porosity
-k = 1e-14  # reservoir permeability in m^2
+omega = 0.15  # reservoir porosity
+k = 24e-14  # reservoir permeability in m^2
 K = 0  # bulk thermal conductivity in W/m/K
-qw = 14.0  # total production flow rate (for the whole reservoir i.e. theta = 2pi)
+qw = 16.7  # total production flow rate (for the whole reservoir i.e. theta = 2pi)
 pres = 30 * bar  # reservoir pressure
 Sgres = 1.0 - 0.65  # reservoir saturation
 
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
-simulation.set_rock_volumetric_heat_capacity(2.65e6)  # SI units J/m^3/°C
+simulation.set_rock_volumetric_heat_capacity(2.0e6)  # SI units J/m^3/°C
 
 mesh = extruded_sector(R, theta, ds, np.tile(H / nb_layers, nb_layers))
 # mesh_data = np.load("angular_mesh.npz")
