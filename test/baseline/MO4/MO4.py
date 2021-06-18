@@ -1,12 +1,7 @@
-import sys
-import pickle
-import yaml
-
 import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-import MeshTools as MT
 
 from my_kr import kr_functions
 
@@ -26,9 +21,9 @@ k_top = 5e-15  # overburden permeability
 omega_bottom = 0.25  # overburden porosity
 k_bottom = 1e-10  # reservoir permeability in m^2
 K = 1  # bulk thermal conductivity in W/m/K
-rock_heat_capacity = 1e3  # kJ/kg/K
+rock_heat_capacity = 1e3  # J/kg/K
 rock_density = 2500  # kg/m3
-mass_flux = 100.0e-6  # 100 kg/s/km^2
+mass_flux = 100.0e-6  # kg/s - here 100 kg/s/km^2
 Ttop = degC2K(10)
 Tinterface = degC2K(290)
 Tbottom = degC2K(310)

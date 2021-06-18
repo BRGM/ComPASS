@@ -1,35 +1,21 @@
-import sys
-import pickle
-import yaml
-
 import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-
-# from ComPASS.newton import Newton
-# from ComPASS.linalg.factory import linear_solver
-from ComPASS.timeloops import TimeStepManager
-import MeshTools as MT
-
-# import ComPASS.mpi as mpi
-# from ComPASS.mpi import MPI # underlying mpi4py.MPI
-
 from ComPASS.utils.angular_sector import extruded_sector
-from my_kr import kr_functions
 
-# from generate_mesh import R, theta, ds, H, nb_layers
+from my_kr import kr_functions
 
 R = 1000  # radius of the angular sector
 theta = np.pi / 3  # angle of the angular sector (in radians)
 rw = 0.1  # well radius
 ds = 1, 100  # target edge size around the origin and at the boundary
-H = 1  # reservoir thickness
+H = 100  # reservoir thickness
 nb_layers = 1  # number of horizontal layers
 omega = 0.2  # reservoir porosity
 k = 1e-14  # reservoir permeability in m^2
 K = 0  # bulk thermal conductivity in W/m/K
-qw = 14.0 / 100  # total production flow rate (for the whole reservoir i.e. theta = 2pi)
+qw = 14.0  # total production flow rate (for the whole reservoir i.e. theta = 2pi)
 pres = 90 * bar  # reservoir pressure
 Tres = degC2K(300)
 gravity = 0

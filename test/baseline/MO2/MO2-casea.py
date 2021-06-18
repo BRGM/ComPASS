@@ -1,21 +1,12 @@
-import sys
-import pickle
-import yaml
-
 import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.newton import Newton
-from ComPASS.linalg.factory import linear_solver
-
-# import ComPASS.mpi as mpi
-# from ComPASS.mpi import MPI # underlying mpi4py.MPI
 
 from ComPASS.utils.angular_sector import extruded_sector
 
 R = 1000  # radius of the angular sector
-theta = np.pi / 12  # angle of the angular sector (in radians)
+theta = np.pi / 3  # angle of the angular sector (in radians)
 rw = 0.1  # well radius
 ds = 10, 100  # target edge size around the origin and at the boundary
 H = 100  # reservoir thickness
