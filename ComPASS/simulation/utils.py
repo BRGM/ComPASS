@@ -84,17 +84,10 @@ def facenodes(simulation, fis):
     return np.unique(nodes) - 1  # Fortran -> C indexing
 
 
-def postprocess(
-    simulation, convert_temperature=True, collect_wells=True, collect_states=True
-):
+def postprocess(simulation, **kwargs):
     mpi.synchronize()
     if mpi.is_on_master_proc:
-        postprocess_command(
-            simulation.runtime.output_directory,
-            convert_temperature=convert_temperature,
-            collect_wells=collect_wells,
-            collect_states=collect_states,
-        )
+        postprocess_command(simulation.runtime.output_directory, **kwargs)
 
 
 def eos_name(simulation):
