@@ -54,6 +54,7 @@ baseline tests:
     - cd test/baseline
     - >
       for f in \
+        MO1/MO1.py \
         MO2/MO2-casea.py \
         MO2/MO2-caseb.py \
         MO2/MO2-casec.py \
