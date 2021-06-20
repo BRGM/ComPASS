@@ -235,6 +235,7 @@ simulation_wrapper = Wrapper(
         "get_fluid_properties",
         "molar_density",
         "molar_enthalpy",
+        "total_specific_enthalpy",
         "dynamic_viscosity",
         "is_context_locked",
         "lock_context",

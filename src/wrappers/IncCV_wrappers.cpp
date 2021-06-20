@@ -39,6 +39,7 @@ void set_fracture_edges_with_neumann_contribution(int, const int*,
                                                   const NeumannBC&);
 void set_fracture_edge_neumann_contributions(int, int*, NeumannBC*);
 void clear_all_neumann_contributions();
+void LoisThermoHydro_total_specific_enthalpy(const X&, double& h);
 #ifndef NDEBUG
 void dump_incv_info();
 #endif
@@ -248,4 +249,18 @@ void add_IncCV_wrappers(py::module& module) {
 #ifndef NDEBUG
    module.def("dump_incv_info", &dump_incv_info);
 #endif
+
+   module.def(
+       "total_specific_enthalpy",
+       [](const StateArray& states) {
+          auto res = py::array_t<double, py::array::c_style>{
+              static_cast<py::ssize_t>(states.length)};
+          auto* p = res.mutable_data();
+          for (auto&& X : states) {
+             LoisThermoHydro_total_specific_enthalpy(X, *p);
+             ++p;
+          }
+          return res;
+       },
+       py::return_value_policy::take_ownership);
 }

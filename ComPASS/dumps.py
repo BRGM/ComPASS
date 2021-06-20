@@ -131,6 +131,9 @@ class Dumper:
             result[f"{location} context"] = states.context
             result[f"{location} pressure"] = states.p
             result[f"{location} temperature"] = states.T
+            result[
+                f"{location} total specific enthalpy"
+            ] = simulation.total_specific_enthalpy(states)
             if len(phases) > 1:
                 for phk, phase in enumerate(phases):
                     result[f"{location} {phase} saturation"] = states.S[:, phk]

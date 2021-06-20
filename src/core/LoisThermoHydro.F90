@@ -2748,4 +2748,30 @@ contains
 
    end subroutine LoisThermoHydro_free
 
+   subroutine LoisThermoHydro_total_specific_enthalpy(X, result) &
+      bind(C, name="LoisThermoHydro_total_specific_enthalpy")
+      type(TYPE_IncCVReservoir), intent(in) :: X
+      real(c_double), intent(out) :: result
+
+      integer :: context, nb_phases, i, iph
+      real(c_double) :: rho_iph, h_iph, H, M
+      real(c_double) :: dPf, dTf, dCf(NbComp) ! not used
+
+      context = X%ic
+      nb_phases = NbPhasePresente_ctx(context)
+      H = 0.d0
+      M = 0.d0
+      do i = 1, nb_phases
+         iph = NumPhasePresente_ctx(i, context)
+         call f_DensiteMassique( &
+            iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph), rho_iph, dPf, dTf, dCf)
+         call f_Enthalpie( &
+            iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph), h_iph, dPf, dTf, dCf)
+         M = M + X%Saturation(iph)*rho_iph
+         H = H + X%Saturation(iph)*rho_iph*h_iph
+      end do
+      result = H/M
+
+   end subroutine LoisThermoHydro_total_specific_enthalpy
+
 end module LoisThermoHydro
