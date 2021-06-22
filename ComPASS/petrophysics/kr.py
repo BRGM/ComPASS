@@ -28,7 +28,17 @@ def no_interactions(states, rocktypes, kr, dkrdS):
         dkrdS[:, k, k].fill(1)
 
 
+def S2(states, rocktypes, kr, dkrdS):
+    nb_phases = kr.shape[1]
+    S = states.S
+    assert nb_phases == 2, "Should not be called if np==1"
+    kr[...] = S ** 2
+    dkrdS.fill(0)
+    for k in range(nb_phases):
+        dkrdS[:, k, k] = 2 * S[:, k]
+
+
 def set_kr_functions(simulation, f=None):
     if f is None:
-        f = no_interactions
+        f = S2
     simulation.set_fill_kr_arrays(f)
