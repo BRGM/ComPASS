@@ -119,7 +119,7 @@ simulation_wrapper = Wrapper(
         "global_mesh_make_post_read_fracture_and_dirBC",
         "global_mesh_allocate_petrophysics",
         "global_mesh_set_all_rocktypes",
-        "global_mesh_make_post_read_well_connectivity_and_ip",
+        "build_well_connectivity",
         "global_mesh_mesh_bounding_box",
         "global_mesh_compute_all_connectivies",
         "global_mesh_set_frac",

@@ -182,7 +182,7 @@ def init(
         if "cell_heat_source" in kwargs:
             value = call_if_callable(kwargs["cell_heat_source"])
             _set_property_on_global_mesh("heat_source", "cell", value)
-        kernel.global_mesh_make_post_read_well_connectivity_and_ip()
+        kernel.build_well_connectivity()
         # FIXME: we should distinguish well nature and well status
         for well in well_list:
             if well.closed:

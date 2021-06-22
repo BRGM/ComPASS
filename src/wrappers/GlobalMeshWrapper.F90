@@ -35,7 +35,6 @@
 
        use GlobalMesh, only: &
           GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype, &
-          GlobalMesh_Make_post_read_well_connectivity_and_ip, &
           GlobalMesh_Build_cartesian_grid
 
        use DefWell, only: DefWell_Make_ComputeWellIndex
@@ -83,7 +82,6 @@
 #endif
           retrieve_global_id_node, &
           GlobalMesh_build_cartesian_grid_from_C, &
-          GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C, &
           DefWell_make_compute_well_index_from_C, &
           GlobalMesh_create_mesh_from_C
 
@@ -614,13 +612,6 @@
           call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
 
        end subroutine GlobalMesh_build_cartesian_grid_from_C
-
-       subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C() &
-          bind(C, name="GlobalMesh_make_post_read_well_connectivity_and_ip")
-
-          call GlobalMesh_Make_post_read_well_connectivity_and_ip
-
-       end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip_from_C
 
        function check_mesh_allocation() result(status)
 

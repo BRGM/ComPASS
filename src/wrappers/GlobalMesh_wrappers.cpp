@@ -18,7 +18,7 @@ void GlobalMesh_create_mesh(int, int, int, const double[], const int[],
                             const int[], const int[], const int[]);
 void GlobalMesh_allocate_petrophysics();
 void GlobalMesh_set_all_rocktypes();
-void GlobalMesh_make_post_read_well_connectivity_and_ip();
+void build_well_connectivity();
 void GlobalMesh_mesh_bounding_box();
 void GlobalMesh_compute_all_connectivies();
 void GlobalMesh_set_frac();
@@ -123,9 +123,8 @@ void add_GlobalMesh_wrappers(py::module& module) {
    module.def("global_mesh_set_all_rocktypes", &GlobalMesh_set_all_rocktypes,
               "Set node rocktypes taking into account neighboring "
               "permeabilities/conductivities.");
-   module.def("global_mesh_make_post_read_well_connectivity_and_ip",
-              &GlobalMesh_make_post_read_well_connectivity_and_ip,
-              "Compute well connectivity and PI.");
+   module.def("build_well_connectivity", &build_well_connectivity,
+              "Compute well connectivity.");
    module.def("global_mesh_mesh_bounding_box", &GlobalMesh_mesh_bounding_box);
    module.def("global_mesh_compute_all_connectivies",
               &GlobalMesh_compute_all_connectivies);

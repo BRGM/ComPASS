@@ -142,11 +142,6 @@ module GlobalMesh
    type(Type_IdNode), allocatable, dimension(:), target :: &
       IdNode !< Characters Identifiers of each node (related to node own or ghost; boundaries and fractures)
 
-   ! IdNode read from mesh file
-   ! IdNodeFromfile -> IdNode
-   integer, allocatable, dimension(:), private :: &
-      IdNodeFromFile  !< Temporary vector to read identifier from meshfile
-
    ! Porosite
    ! FIXME: protected has been removed to access arrays from C
    real(c_double), allocatable, dimension(:), target :: &
@@ -425,16 +420,6 @@ contains
 #endif
 
    end subroutine GlobalMesh_set_all_rocktypes
-
-   subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip()
-
-      call GlobalMesh_WellConnectivity
-
-      if (allocated(IdNodeFromFile)) then
-         deallocate (IdNodeFromFile)
-      end if
-
-   end subroutine GlobalMesh_Make_post_read_well_connectivity_and_ip
 
    subroutine GlobalMesh_allocate_flags()
 
@@ -1341,26 +1326,14 @@ contains
    end subroutine SortWellNodes
 
    !> \brief Build global connectivity of injection and production wells.
-   subroutine GlobalMesh_WellConnectivity
+   subroutine GlobalMesh_WellConnectivity() &
+      bind(C, name="build_well_connectivity")
 
-      ! write(fdGm,*) 'building injectors connectivity ...'
       call BuildWellConnectivity(NbWellInj, NbEdgebyWellInj, NumNodebyEdgebyWellInj, &
                                  NodebyWellInj, NodeDatabyWellInj)
 
-      ! write(fdGm,*) 'building producers connectivity ...'
       call BuildWellConnectivity(NbWellProd, NbEdgebyWellProd, NumNodebyEdgebyWellProd, &
                                  NodebyWellProd, NodeDatabyWellProd)
-
-      ! write(fdGm,*) 'NodebyWellInj%Nb              ', NodebyWellInj%Nb
-      ! write(fdGm,*) 'NodebyWellInj%Pt              ', NodebyWellInj%Pt
-      ! write(fdGm,*) 'NodebyWellInj%Num             ', NodebyWellInj%Num
-      ! write(fdGm,*) 'NodeDatabyWellInj%Val%Parent', NodeDatabyWellInj%Val%Parent
-
-      ! write(fdGm,*) '------------------------------------'
-      ! write(fdGm,*) 'NodebyWellProd%Nb              ', NodebyWellProd%Nb
-      ! write(fdGm,*) 'NodebyWellProd%Pt              ', NodebyWellProd%Pt
-      ! write(fdGm,*) 'NodebyWellProd%Num             ', NodebyWellProd%Num
-      ! write(fdGm,*) 'NodeDatabyWellProd%Val%Parent', NodeDatabyWellProd%Val%Parent
 
    end subroutine GlobalMesh_WellConnectivity
 
