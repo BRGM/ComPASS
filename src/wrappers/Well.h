@@ -90,6 +90,7 @@ struct Well_control {
 
 struct Well {
    std::size_t id;
+   bool is_multi_segmented = false;
    Well_geometry geometry;
    Well_control control;
    bool is_closed() const { return control.is_closed(); }

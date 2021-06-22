@@ -407,6 +407,7 @@ void add_well_wrappers(py::module& module) {
    py::class_<Well>(module, "Well")
        .def(py::init<>())
        .def_readwrite("id", &Well::id)
+       .def_readwrite("is_multi_segmented", &Well::is_multi_segmented)
        .def_readwrite("geometry", &Well::geometry)
        .def_property_readonly("closed", &Well::is_closed)
        .def_property_readonly("injecting", &Well::is_injecting)

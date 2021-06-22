@@ -15,14 +15,18 @@ from ..dump_wells import _wells_info
 from ..exceptions import CompassException
 
 
-def create_well_from_segments(simulation, segments, well_radius=None):
+def create_well_from_segments(
+    simulation, segments, well_radius=None, multi_segmented=False
+):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_well_from_segments`
     :param segments: a sequence of pair vertices id oritented from wellhead downwards
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
+    :param multi_segmented: create a multi-segemented well (default is False)
     """
     well = common_wrapper.Well()
+    well.is_multi_segmented = multi_segmented
     well.geometry.radius = well_radius or 0.1
     segments = np.ascontiguousarray(segments)
     segments.shape = -1, 2
@@ -30,20 +34,25 @@ def create_well_from_segments(simulation, segments, well_radius=None):
     return well
 
 
-def create_single_branch_well(simulation, nodes, well_radius=None):
+def create_single_branch_well(
+    simulation, nodes, well_radius=None, multi_segmented=False
+):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_single_branch_well`
     :param segments: a sequence of vertices id describing the well from top to bottom
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
+    :param multi_segmented: create a multi-segemented well (default is False)
     """
     nodes = np.asarray(nodes)
     assert nodes.ndim == 1
     segments = np.transpose(np.vstack([nodes[:-1], nodes[1:]]))
-    return create_well_from_segments(simulation, segments, well_radius)
+    return create_well_from_segments(simulation, segments, well_radius, multi_segmented)
 
 
-def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None):
+def create_vertical_well(
+    simulation, xy, well_radius=None, zmin=None, zmax=None, multi_segmented=False
+):
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_vertical_well`
@@ -52,6 +61,7 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     :param zmin: only vertices above zmin will be considered (ignored if None, which is the default)
     :param zmax: only vertices above zmin will be considered (ignored if None, which is the default)
+    :param multi_segmented: create a multi-segemented well (default is False)
 
     :return: the created well
     """
@@ -66,7 +76,9 @@ def create_vertical_well(simulation, xy, well_radius=None, zmin=None, zmax=None)
     well_nodes = np.nonzero(selection)[0]
     well_nodes = well_nodes[np.argsort(z[well_nodes])]
     # reorder nodes from top to bottom
-    return create_single_branch_well(simulation, well_nodes[::-1], well_radius)
+    return create_single_branch_well(
+        simulation, well_nodes[::-1], well_radius, multi_segmented
+    )
 
 
 def _get_well_data(simulation, wells_data, wid):
