@@ -13,7 +13,7 @@ A well object is defined in two steps:
 
 
 The well geometry is defined providing a list of mesh edges in random order.
-Edges will be automtically sorted. The only condition is that all edges can be
+Edges will be automatically sorted. The only condition is that all edges can be
 chained up to the well head that must be unique.
 Well edges are defined as a pair of mesh vertices.
 
