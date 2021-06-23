@@ -312,8 +312,8 @@ contains
 
       integer, dimension(:), intent(in) :: ProcbyCell
 
-      ! tmp value
       integer :: i
+      integer, allocatable, dimension(:) :: proc_color, node_color, well_color
 
       !> Allocate LocalMesh entities
       ! local mesh info res(own+ghost)
@@ -423,6 +423,11 @@ contains
       allocate (localbyGlobalFace(NbFace))
       allocate (localbyGlobalNode(NbNode))
 
+      ! work arrays
+      allocate (node_color(NbNode))
+      allocate (proc_color(Ncpus))
+      allocate (well_color(max(NbWellInj, NbWellProd)))
+
       do i = 0, Ncpus - 1
 
          !> Set Mesh and connectivities in num (global)
@@ -437,7 +442,7 @@ contains
          !> Set Mesh and connectivites in num (local)
 
          ! Wells
-         call LocalMesh_WellbyProc(i)     ! WellInjbyProc(ip1)   (and WellProd)
+         call LocalMesh_WellbyProc(i, node_color, proc_color, well_color)  ! WellInjbyProc(ip1)   (and WellProd)
          call LocalMesh_NodebyWellRes(i)  ! NodebyWellInjRes_Ncpus(ip1)   (and WellProd)
 
          ! vectors used to transform num (global) to num (local)
@@ -521,6 +526,9 @@ contains
       deallocate (localbyGlobalCell)
       deallocate (localbyGlobalFace)
       deallocate (localbyGlobalNode)
+      deallocate (well_color)
+      deallocate (proc_color)
+      deallocate (node_color)
 
       call LocalMesh_compute_local_info(NodebyProc, NbNode, NbNodeOwnS_Ncpus, NumNodebyProc_Ncpus)
       call LocalMesh_compute_local_info(FracbyProc, NbFace, NbFracOwnS_Ncpus, NumFracbyProc_Ncpus)
@@ -1212,6 +1220,151 @@ contains
 
    end subroutine LocalMesh_NodebyProc
 
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_count_wells_in_part(well_nodes, node_proc, well_proc, proc_nb_wells)
+      type(CSR), intent(in) :: well_nodes
+      integer, dimension(:), intent(in) :: node_proc
+      integer, dimension(:), intent(out) :: well_proc
+      integer, dimension(:), intent(out) :: proc_nb_wells
+
+      integer :: i, wk, pid, nb_wells, head_node
+
+      nb_wells = well_nodes%Nb
+
+#ifndef NDEBUG
+      if (size(well_proc) < nb_wells) &
+         call CommonMPI_abort("Inconsistent is_well_seen work array.")
+      if (size(proc_nb_wells) /= Ncpus) &
+         call CommonMPI_abort("Inconsistent proc_nb_wells work array.")
+#endif
+
+      well_proc = -1
+      proc_nb_wells = 0
+      do wk = 1, nb_wells
+         head_node = well_nodes%Num(well_nodes%Pt(wk + 1))
+         pid = node_proc(head_node)
+         if (pid >= 0) then ! proc sees the well
+#ifndef NDEBUG
+            ! Check that all well nodes are in part
+            do i = well_nodes%Pt(wk) + 1, well_nodes%Pt(wk + 1)
+               if (node_proc(well_nodes%Num(i)) < 0) &
+                  call CommonMPI_abort("All well nodes should be in part!")
+            end do
+#endif
+            well_proc(wk) = pid
+            proc_nb_wells(pid + 1) = proc_nb_wells(pid + 1) + 1
+#ifndef NDEBUG
+         else ! Check that all well nodes are out of part
+            do i = well_nodes%Pt(wk) + 1, well_nodes%Pt(wk + 1)
+               if (node_proc(well_nodes%Num(i)) >= 0) &
+                  call CommonMPI_abort("All well nodes should be out of part!")
+            end do
+#endif
+         end if
+      end do
+
+   end subroutine LocalMesh_count_wells_in_part
+
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_WellbyProc_part(well_nodes, procs_in_part, node_proc, well_proc, proc_nb_wells, WellbyProc)
+      type(CSR), intent(in) :: well_nodes ! all wells
+      integer, dimension(:), intent(in) :: procs_in_part
+      integer, dimension(:), intent(in) :: node_proc ! -1 if node is not in part, else id of proc that owns the node
+      integer, dimension(:), intent(out) :: well_proc
+      integer, dimension(:), intent(out) :: proc_nb_wells ! work array
+      type(CSR), intent(out) :: WellbyProc
+
+      integer :: i, wk, pid, nb_wells, nb_procs_in_part
+
+      nb_procs_in_part = size(procs_in_part)
+
+      call LocalMesh_count_wells_in_part(well_nodes, node_proc, well_proc, proc_nb_wells)
+
+#ifndef NDEBUG
+      if (nb_procs_in_part < count(proc_nb_wells > 0)) &
+         call CommonMPI_abort("Not enough proc!")
+      if (sum(proc_nb_wells) /= count(well_proc >= 0)) &
+         call CommonMPI_abort("LocalMesh_count_wells_in_part returned inconsistent result.")
+#endif
+
+      WellbyProc%Nb = nb_procs_in_part
+
+      ! copy the pid of part procs
+      ! FIXME: this data should be shared and NOT copied
+      allocate (WellbyProc%Val(nb_procs_in_part))
+      WellbyProc%Val = procs_in_part
+
+      allocate (WellbyProc%Pt(nb_procs_in_part + 1))
+      WellbyProc%Pt(:) = 0
+      do i = 1, nb_procs_in_part
+         pid = procs_in_part(i)
+         WellbyProc%Pt(i + 1) = WellbyProc%Pt(i) + proc_nb_wells(pid + 1)
+      enddo
+
+      allocate (WellbyProc%Num(sum(proc_nb_wells)))
+      proc_nb_wells = 0
+      nb_wells = well_nodes%Nb
+      do wk = 1, nb_wells
+         pid = well_proc(wk)
+         if (pid < 0) cycle
+         ! find local id of proc
+         do i = 1, nb_procs_in_part
+            if (procs_in_part(i) == pid) then
+               proc_nb_wells(pid + 1) = proc_nb_wells(pid + 1) + 1
+#ifndef NDEBUG
+               if (WellbyProc%Pt(i) + proc_nb_wells(pid + 1) > WellbyProc%Pt(i + 1)) &
+                  call CommonMPI_abort("Well proc inconsistency.")
+#endif
+               ! FIXME: we could use the well id here
+               !        which could be a way to have all wells stored in the same structure
+               WellbyProc%Num(WellbyProc%Pt(i) + proc_nb_wells(pid + 1)) = wk
+               exit
+            end if
+         end do
+      end do
+
+   end subroutine LocalMesh_WellbyProc_part
+
+   pure subroutine LocalMesh_WellbyProc_copy_welldata(part_wells, all_data, part_data)
+      integer, dimension(:), intent(in) :: part_wells
+      type(WellData_type), dimension(:), intent(in) :: all_data
+      type(WellData_type), dimension(:), intent(out) :: part_data
+
+      integer :: i
+
+      do i = 1, size(part_wells)
+         part_data(i) = all_data(part_wells(i))
+      enddo
+
+   end subroutine LocalMesh_WellbyProc_copy_welldata
+
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_color_global_nodes(selection, color)
+      type(CSR), intent(in) :: selection
+      integer, dimension(:), intent(out) :: color
+
+      integer :: i, j
+
+#ifndef NDEBUG
+      if (size(color) /= NbNode) &
+         call CommonMPI_abort("Inconsistent color work array.")
+#endif
+
+      color(:) = -1
+      do i = 1, selection%Nb
+         do j = selection%Pt(i) + 1, selection%Pt(i + 1)
+            color(selection%Num(j)) = selection%Val(i)
+         enddo
+      enddo
+
+   end subroutine LocalMesh_color_global_nodes
+
    ! Output:
    !  NbWellOwnS_Ncpus
    !  WellbyProc
@@ -1224,186 +1377,22 @@ contains
    !!  | wells own | wells ghost (which are own for proc i) | wells ghost (which are own for proc j>i) | ...                  <br>
    !! A well is own if the head Node of the well is own                  <br>
    !! Carreful if (at least) two wells share a node
-   subroutine LocalMesh_WellbyProc(ip)
-
+   subroutine LocalMesh_WellbyProc(ip, node_proc, proc_nb_wells, well_proc)
       integer, intent(in) :: ip
+      integer, dimension(:), intent(out) :: node_proc, proc_nb_wells, well_proc ! work arrays
+
       integer :: ip1
-
-      ! tmp
-      integer :: head_node, &
-                 i, ipf, ind, iv, j, k, wpt, wpti, numproc, numwell
-      integer, allocatable, dimension(:) :: &
-         colorProc, cptWellInjProcVois, cptWellProdProcVois, ProcbyNode
-      logical :: wellinproc
-
-      allocate (colorProc(Ncpus))
-      allocate (ProcbyNode(NbNode))
 
       ip1 = ip + 1
 
-      ! Fill ProcbyNode with the numero of proc that node (own or ghost) is own
-      ! if node i is not in proc (nor own nor ghost), ProcbyNode(i)=-1
-      ProcbyNode(:) = -1
-      do i = 1, NodebyProc(ip1)%Nb
-         do j = NodebyProc(ip1)%Pt(i) + 1, NodebyProc(ip1)%Pt(i + 1)
-            ProcbyNode(NodebyProc(ip1)%Num(j)) = NodebyProc(ip1)%Val(i)
-         enddo
-      enddo
+      call LocalMesh_color_global_nodes(NodebyProc(ip1), node_proc)
 
-      !! INJECTOR WELLS
-      WellInjbyProc(ip1)%Nb = NodebyProc(ip1)%Nb
-      allocate (WellInjbyProc(ip1)%Pt(WellInjbyProc(ip1)%Nb + 1))
-      allocate (WellInjbyProc(ip1)%Num(NbWellInjResS_Ncpus(ip1)))
-      allocate (WellInjbyProc(ip1)%Val(WellInjbyProc(ip1)%Nb))
-
-      ! Calcul of number of wells own for each neighbour proc AMOUNG wells (own or ghost) of proc ip
-      ! if EVERY nodes of well k are in NodebyProc, well k is concerned
-      colorProc(:) = 0
-      do i = 1, NbWellInj
-         wellinproc = .true.
-         do wpti = NodebyWellInj%Pt(i) + 1, NodebyWellInj%Pt(i + 1)
-            ! global num of nodes of the well i
-            k = NodebyWellInj%Num(wpti)
-            if (ProcbyNode(k) < 0) wellinproc = .false. ! this proc is NOT concerned by the well
-         enddo  ! nodes
-         if (wellinproc) then ! this proc is concerned by the well
-            ! head node of the well i which is stored at the last position of NodebyWell
-            wpt = NodebyWellInj%Pt(i + 1)
-            head_node = NodebyWellInj%Num(wpt)
-            numproc = ProcbyNode(head_node)   ! head_node is own for proc numproc
-            colorProc(numproc + 1) = colorProc(numproc + 1) + 1  ! number of wells which are own for numproc
-         endif
-      enddo  ! wellinj
-
-      ! filling of Pt and Val
-      WellInjbyProc(ip1)%Pt(:) = 0
-      do i = 1, WellInjbyProc(ip1)%Nb
-         numproc = NodebyProc(ip1)%Val(i)   ! neighbour proc of proc ip1
-         WellInjbyProc(ip1)%Val(i) = numproc  ! numero of proc that is well is own
-         WellInjbyProc(ip1)%Pt(i + 1) = WellInjbyProc(ip1)%Pt(i) + colorProc(numproc + 1)  ! colorProc can be 0
-      enddo
-
-      ! filling of Num
-      allocate (cptWellInjProcVois(WellInjbyProc(ip1)%Nb))
-      cptWellInjProcVois(:) = 0
-      do i = 1, NbWellInj
-         wellinproc = .true.
-         do wpti = NodebyWellInj%Pt(i) + 1, NodebyWellInj%Pt(i + 1)
-            ! global num of nodes of the well i
-            k = NodebyWellInj%Num(wpti)
-            if (ProcbyNode(k) < 0) wellinproc = .false. ! this proc is NOT concerned by the well
-         enddo  ! nodes
-         if (wellinproc) then ! this proc is concerned by the well
-            ! head node of the well i which is stored at the last position of NodebyWell
-            wpt = NodebyWellInj%Pt(i + 1)
-            head_node = NodebyWellInj%Num(wpt)
-            numproc = ProcbyNode(head_node)   ! head_node is own for proc numproc
-
-            ! looking for the proc among the neighbour procs of ip
-            ind = -1
-            do iv = 1, WellInjbyProc(ip1)%Nb
-               if (WellInjbyProc(ip1)%Val(iv) == numproc) then
-                  ind = 1
-                  ipf = iv
-                  exit
-               endif
-            enddo
-            if (ind == -1) then
-               print *, ' the well has not been found among the neighbour procs of ip ', i, iv, ip
-            endif
-            cptWellInjProcVois(ipf) = cptWellInjProcVois(ipf) + 1
-            WellInjbyProc(ip1)%Num(WellInjbyProc(ip1)%Pt(ipf) + cptWellInjProcVois(ipf)) = i
-
-         endif
-      enddo  ! wellinj
-
-      ! DataWellInjRes_Ncpus
-      ! loop over all well (own or ghost) of proc ip1 IN ORDER
-      do k = 1, WellInjbyProc(ip1)%Pt(WellInjbyProc(ip1)%Nb + 1)
-         numwell = WellInjbyProc(ip1)%Num(k)
-         DataWellInjRes_Ncpus(k, ip1) = DataWellInj(numwell)
-      enddo
-
-      !! PRODUCTOR WELLS
-      WellProdbyProc(ip1)%Nb = NodebyProc(ip1)%Nb
-      allocate (WellProdbyProc(ip1)%Pt(WellProdbyProc(ip1)%Nb + 1))
-      allocate (WellProdbyProc(ip1)%Num(NbWellProdResS_Ncpus(ip1)))
-      allocate (WellProdbyProc(ip1)%Val(WellProdbyProc(ip1)%Nb))
-
-      ! Calcul of number of wells own for each neighbour proc AMOUNG wells (own or ghost) of proc ip
-      ! if EVERY nodes of well k are in NodebyProc, well k is concerned
-      colorProc(:) = 0
-      do i = 1, NbWellProd
-         wellinproc = .true.
-         do wpti = NodebyWellProd%Pt(i) + 1, NodebyWellProd%Pt(i + 1)
-            ! global num of nodes of the well i
-            k = NodebyWellProd%Num(wpti)
-            if (ProcbyNode(k) < 0) wellinproc = .false. ! this proc is NOT concerned by the well
-         enddo  ! nodes
-         if (wellinproc) then ! this proc is concerned by the well
-            ! head node of the well i which is stored at the last position of NodebyWell
-            wpt = NodebyWellProd%Pt(i + 1)
-            head_node = NodebyWellProd%Num(wpt)
-            numproc = ProcbyNode(head_node)   ! head_node is own for proc numproc
-            colorProc(numproc + 1) = colorProc(numproc + 1) + 1  ! number of wells which are own for numproc
-         endif
-      enddo  ! wellProd
-
-      ! filling of Pt and Val
-      WellProdbyProc(ip1)%Pt(:) = 0
-      do i = 1, WellProdbyProc(ip1)%Nb
-         numproc = NodebyProc(ip1)%Val(i)   ! neighbour proc of proc ip1
-         WellProdbyProc(ip1)%Val(i) = numproc  ! numero of proc that is well is own
-         WellProdbyProc(ip1)%Pt(i + 1) = WellProdbyProc(ip1)%Pt(i) + colorProc(numproc + 1)  ! colorProc can be 0
-      enddo
-
-      ! filling of Num
-      allocate (cptWellProdProcVois(WellProdbyProc(ip1)%Nb))
-      cptWellProdProcVois(:) = 0
-      do i = 1, NbWellProd
-         wellinproc = .true.
-         do wpti = NodebyWellProd%Pt(i) + 1, NodebyWellProd%Pt(i + 1)
-            ! global num of nodes of the well i
-            k = NodebyWellProd%Num(wpti)
-            if (ProcbyNode(k) < 0) wellinproc = .false. ! this proc is NOT concerned by the well
-         enddo  ! nodes
-         if (wellinproc) then ! this proc is concerned by the well
-            ! head node of the well i which is stored at the last position of NodebyWell
-            wpt = NodebyWellProd%Pt(i + 1)
-            head_node = NodebyWellProd%Num(wpt)
-            numproc = ProcbyNode(head_node)   ! head_node is own for proc numproc
-
-            ! looking for the proc among the neighbour procs of ip
-            ind = -1
-            do iv = 1, WellProdbyProc(ip1)%Nb
-               if (WellProdbyProc(ip1)%Val(iv) == numproc) then
-                  ind = 1
-                  ipf = iv
-                  exit
-               endif
-            enddo
-            if (ind == -1) then
-               print *, ' the well has not been found among the neighbour procs of ip ', i, iv, ip
-            endif
-            cptWellProdProcVois(ipf) = cptWellProdProcVois(ipf) + 1
-            WellProdbyProc(ip1)%Num(WellProdbyProc(ip1)%Pt(ipf) + cptWellProdProcVois(ipf)) = i
-
-         endif
-      enddo  ! wellProd
-
-      ! DataWellProdRes_Ncpus
-      ! loop over all well (own or ghost) of proc ip1 IN ORDER
-      do k = 1, WellProdbyProc(ip1)%Pt(WellProdbyProc(ip1)%Nb + 1)
-         numwell = WellProdbyProc(ip1)%Num(k)
-         DataWellProdRes_Ncpus(k, ip1) = DataWellProd(numwell)
-      enddo
-
-      deallocate (cptWellInjProcVois)
-      deallocate (cptWellProdProcVois)
-      deallocate (colorProc)
-      deallocate (ProcbyNode)
-
+      call LocalMesh_WellbyProc_part(NodebyWellInj, NodebyProc(ip1)%Val, node_proc, well_proc, proc_nb_wells, WellInjbyProc(ip1))
+      call LocalMesh_WellbyProc_copy_welldata(WellInjbyProc(ip1)%Num, DataWellInj, DataWellInjRes_Ncpus(:, ip1))
       NbWellInjOwnS_Ncpus(ip1) = WellInjbyProc(ip1)%Pt(2)
+
+      call LocalMesh_WellbyProc_part(NodebyWellProd, NodebyProc(ip1)%Val, node_proc, well_proc, proc_nb_wells, WellProdbyProc(ip1))
+      call LocalMesh_WellbyProc_copy_welldata(WellProdbyProc(ip1)%Num, DataWellProd, DataWellProdRes_Ncpus(:, ip1))
       NbWellProdOwnS_Ncpus(ip1) = WellProdbyProc(ip1)%Pt(2)
 
    end subroutine LocalMesh_WellbyProc
