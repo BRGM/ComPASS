@@ -18,7 +18,7 @@ module NN
 
    use GlobalMesh, only: &
       GlobalMesh_free, CellbyCell, &
-      NbDirNodeP, NbDirNodeT, NbNode, NbCell, NbFace, NbFrac, NbWellInj, NbWellProd
+      NbDirNodeP, NbDirNodeT, NbNode, NbCell, NbFace, NbFrac
 
    use CommonType, only: ModelConfiguration
    use DefModel, only: &
