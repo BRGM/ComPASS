@@ -20,7 +20,7 @@ simulation.standard_loop(
     initial_timestep=30 * day,
     final_time=100 * day,
     output_period=year,
-    context=context,
+    nitermax=3,
 )
 
 print(lsolver)

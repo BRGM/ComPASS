@@ -13,7 +13,7 @@ newton = Newton(simulation, 1e-5, 8, lsolver)
 simulation.standard_loop(
     newton=newton,
     initial_timestep=30 * day,
-    final_time=30 * day,
+    final_time=300 * day,
     output_period=year,
-    context=context,
+    nitermax=3,
 )
