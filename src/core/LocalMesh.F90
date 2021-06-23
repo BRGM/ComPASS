@@ -1013,6 +1013,31 @@ contains
 
    end subroutine LocalMesh_CellbyFaceRes
 
+   pure subroutine LocalMesh_NodebyProc_add_wells(well_nodes, color, node_color, nb_wells, new_color)
+      type(CSR), intent(in) :: well_nodes
+      integer, intent(in) :: color
+      integer, dimension(:), intent(in) :: node_color
+      integer, intent(out) :: nb_wells
+      integer, dimension(:), intent(inout) :: new_color
+
+      integer :: wk, i, j
+
+      nb_wells = 0
+      do wk = 1, well_nodes%Nb
+         ! if color is found on one node apply it to every node of the well
+         do i = well_nodes%Pt(wk) + 1, well_nodes%Pt(wk + 1)
+            if (node_color(well_nodes%Num(i)) == color) then
+               nb_wells = nb_wells + 1
+               do j = well_nodes%Pt(wk) + 1, well_nodes%Pt(wk + 1)
+                  new_color(well_nodes%Num(j)) = color
+               end do
+               exit
+            end if
+         end do
+      end do
+
+   end subroutine LocalMesh_NodebyProc_add_wells
+
    ! Output:
    !   NodebyProc
    !   CSR with  | .... own .... | ghost from proc i | ghost from proc j (i<j) |  ... |
@@ -1031,7 +1056,7 @@ contains
 
       ! tmp
       integer :: nbProcVoisinNode, &
-                 i, ipf, kipf, ind, iv, j, kf, procCV, procf, k, wpt, wpti
+                 i, ipf, kipf, ind, iv, j, kf, procCV, procf, k
       integer, allocatable, dimension(:) :: &
          colorProc, colorNode, colorNodeTmp, cptNodeProcVois
 
@@ -1056,41 +1081,8 @@ contains
       ! Wells
       ! if one node of the well is contained by the proc (node own or ghost) then
       ! every nodes of the well must be own or ghost for this proc
-      NbWellInjResS_Ncpus(ip1) = 0 ! Total number of local inj wells (well own + well ghost)
-      do k = 1, NbWellInj
-         do wpt = NodebyWellInj%Pt(k) + 1, NodebyWellInj%Pt(k + 1)
-            ! nodes of the well k
-            i = NodebyWellInj%Num(wpt)
-            if (colorNodeTmp(i) == ip) then ! this proc is concerned by the well
-               NbWellInjResS_Ncpus(ip1) = NbWellInjResS_Ncpus(ip1) + 1
-               ! every nodes of the well must be own or ghost for this proc
-               do wpti = NodebyWellInj%Pt(k) + 1, NodebyWellInj%Pt(k + 1)
-                  ! nodes of the well k
-                  j = NodebyWellInj%Num(wpti)
-                  colorNode(j) = ip
-               enddo
-               exit
-            endif
-         enddo
-      enddo
-
-      NbWellProdResS_Ncpus(ip1) = 0 ! Total number of local Prod wells (well own + well ghost)
-      do k = 1, NbWellProd
-         do wpt = NodebyWellProd%Pt(k) + 1, NodebyWellProd%Pt(k + 1)
-            ! nodes of the well k
-            i = NodebyWellProd%Num(wpt)
-            if (colorNodeTmp(i) == ip) then ! this proc is concerned by the well
-               NbWellProdResS_Ncpus(ip1) = NbWellProdResS_Ncpus(ip1) + 1
-               ! every nodes of the well must be own or ghost for this proc
-               do wpti = NodebyWellProd%Pt(k) + 1, NodebyWellProd%Pt(k + 1)
-                  ! nodes of the well k
-                  j = NodebyWellProd%Num(wpti)
-                  colorNode(j) = ip
-               enddo
-               exit
-            endif
-         enddo
-      enddo
+      call LocalMesh_NodebyProc_add_wells(NodebyWellInj, ip, colorNodeTmp, NbWellInjResS_Ncpus(ip1), colorNode)
+      call LocalMesh_NodebyProc_add_wells(NodebyWellProd, ip, colorNodeTmp, NbWellProdResS_Ncpus(ip1), colorNode)
 
       ! Counting nbProcVoisinNode (nbr of proc from which ghost are synchronised)
       nbProcVoisinNode = 0
