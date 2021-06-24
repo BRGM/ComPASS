@@ -41,12 +41,12 @@ class CallbackConfig(Config):
     Options for triggering callbacks
     """
 
-    with _.options:
+    with _.options.on:
         abort_on_linear_failure: bool
         abort_on_newton_failure: bool
         dump_system_on_linear_failure: bool
         abort: float  # Format : --callbacks.abort <time>
-        simulation_log: bool  # Format --callbacks.simulation_log True
+        timeloop_log: bool = True  # Format --callbacks.timeloop_log True
         linear_system_dump: str  # Format : --callbacks.linear_system_dump t1,t2,t3
         linear_system_binary_dump: str  # Format : --callbacks.linear_system_binary_dump t1,t2,t3
 
@@ -59,7 +59,7 @@ class ComPASSConfig(Config):
 
 
 compass_config = ComPASSConfig()
-compass_config.load_cli()
+compass_config.load_cli(allow_extra_args=True)
 
 
 def get(name, default=None):

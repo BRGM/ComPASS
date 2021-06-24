@@ -76,7 +76,6 @@ run_loop = lambda final_time, no_output=True: simulation.standard_loop(
     reset_iteration_counter=True,
     initial_time=0,
     final_time=final_time,
-    timeloop_statistics=True,
     newton=newton,
     time_step_manager=TimeStepManager(
         1 * day, increase_factor=2.0, decrease_factor=0.1

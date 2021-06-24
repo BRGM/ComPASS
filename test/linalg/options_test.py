@@ -50,7 +50,7 @@ if __name__ == "__main__":
             "--callbacks.linear_system_dump": "0.0",
             "--callbacks.linear_system_binary_dump": "0.0",
             "--callbacks.abort": "0.0",
-            "--callbacks.simulation_log": "True",
+            "--callbacks.timeloop_log": "True",
         },
     )
     test_combinations(

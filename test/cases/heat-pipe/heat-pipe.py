@@ -69,10 +69,7 @@ newton = Newton(simulation, 1e-5, 8, lsolver)
 tsmger = TimeStepManager(1 * day)
 
 simulation.standard_loop(
-    final_time=final_time,
-    newton=newton,
-    time_step_manager=tsmger,
-    timeloop_statistics=True,
+    final_time=final_time, newton=newton, time_step_manager=tsmger,
 )
 
 simulation.postprocess(convert_temperature=True)

@@ -134,7 +134,6 @@ def standard_loop(
     output_after_loop=True,
     well_connections=None,
     no_output=False,
-    timeloop_statistics=True,
     respect_final_time=True,
     display_residual_contributions=False,
 ):
@@ -296,16 +295,11 @@ def standard_loop(
         output_actions(tick0)
     process_events(tick0)
 
-    if mpi.is_on_master_proc and timeloop_statistics:
-        with open(f"{simulation.runtime.output_directory}/timeloop", "w") as f:
-            pass
-
     if well_pressure_offset is not None:
         check_well_pressure(simulation, well_pressure_offset)
     t = t0
     tick = tick0
     cpu_start_time = process_time()
-    elapsed_computing_cpu_time = 0
     while (final_time is None or t < final_time) and (nitermax is None or n < nitermax):
         dt_to_next_event = None
         if len(events) > 0:
@@ -323,7 +317,6 @@ def standard_loop(
         print_iteration_info(t, n)
         # --
         mpi.synchronize()
-        newton_cpu_start_time = process_time()
         dt = timestep.make_one_timestep(
             simulation,
             newton,
@@ -333,22 +326,13 @@ def standard_loop(
         )
         well_connections.synchronize()
         mpi.synchronize()
-        elapsed_computing_cpu_time = process_time() - newton_cpu_start_time
+
         assert (
             dt == ts_manager.current_step
         ), f"Timesteps differ: {dt} vs {ts_manager.current_step}"
         t += dt
         tick = TimeloopTick(time=t, iteration=n, latest_timestep=dt)
-        if mpi.is_on_master_proc and timeloop_statistics:
-            with open(f"{simulation.runtime.output_directory}/timeloop", "a") as f:
-                print(
-                    f"{n} {t} {dt}",
-                    f"{newton.number_of_succesful_iterations}",
-                    f"{newton.number_of_useless_iterations}",
-                    f"{process_time() - cpu_start_time}",
-                    f"{elapsed_computing_cpu_time}",
-                    file=f,
-                )
+
         allreduce = mpi.communicator().allreduce
         mpi.master_print(
             "max p variation",
