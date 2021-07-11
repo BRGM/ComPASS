@@ -41,7 +41,7 @@ module Residu
       DensitemolaireSatComp, &
       DensitemolaireEnergieInterneSat
 
-   use Physics, only: CpRoche, atm_comp, rain_flux
+   use Physics, only: CpRoche, atm_comp, rain_flux, gravity
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
    use Flux, only: FluxDarcyKI, FluxFourierKI, FluxDarcyFI, FluxFourierFI
 
@@ -68,12 +68,15 @@ module Residu
    use MeshSchema, only: &
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
+      XNodeLocal, &
 #ifdef _WIP_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
       NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
       SurfFreeFlowLocal
+
+   use Thermodynamics, only: f_DensiteMassique
 
    implicit none
 
@@ -263,14 +266,73 @@ contains
 
    end subroutine Residu_reset_Dirichlet_nodes
 
+   ! FIXME: this condition should be integrated in the Jacobian
+   subroutine Residu_compute_Neumann_heatflux(X, qm, Mm, Mh, nz, qh)
+      type(TYPE_IncCVReservoir), intent(in) :: X
+      double precision, intent(in) :: qm
+      double precision, dimension(NbComp, NbPhase), intent(in) :: Mm
+      double precision, dimension(NbPhase), intent(in) :: Mh
+      double precision :: nz
+      double precision, intent(out) :: qh
+
+      integer :: iph, icp, alpha
+      double precision :: sum_Mm, nablapn, rho(NbPhase)
+      real(c_double) :: dP, dT, dC(NbComp) ! dummy values
+
+      ! FIXME: there should be no capillary pressure
+#ifndef NDEBUG
+      do iph = 1, NbPhasePresente_ctx(X%ic)
+         alpha = NumPhasePresente_ctx(iph, X%ic)
+         if (X%Pression < X%phase_pressure(alpha) .or. X%Pression > X%phase_pressure(alpha)) &
+            call CommonMPI_abort("capillary pressure is supposed to be null to compute Neumann heatflux")
+      end do
+#endif
+
+      ! \mathbf{q}^{M}=\sum_{\alpha}M_{\alpha}^{M}\left(\nabla p-\rho_{\alpha}\mathbf{g}\right)\mathbf{q}^{M}\cdot\mathbf{n}=\sum_{\alpha}M_{\alpha}^{M}\left(\nabla p\cdot\mathbf{n}-\rho_{\alpha}\mathbf{g}\cdot\mathbf{n}\right)
+      ! \nabla p\cdot\mathbf{n}=\frac{\mathbf{q}^{M}\cdot\mathbf{n}+\sum_{\alpha}M_{\alpha}^{M}\rho_{\alpha}\mathbf{g}\cdot\mathbf{n}}{\sum_{\alpha}M_{\alpha}}
+      ! \mathbf{q}^{E}\cdot\mathbf{n}=\sum_{\alpha}M_{\alpha}^{E}\left(\nabla p\cdot\mathbf{n}-\rho_{\alpha}\mathbf{g}\cdot\mathbf{n}\right)
+      nablapn = qm
+      sum_Mm = 0.d0
+      do iph = 1, NbPhasePresente_ctx(X%ic)
+         alpha = NumPhasePresente_ctx(iph, X%ic)
+         call f_DensiteMassique(alpha, X%Pression, X%Temperature, X%Comp, rho(iph), dP, dT, dC)
+         do icp = 1, NbComp
+            if (MCP(icp, alpha) == 1) then
+               nablapn = nablapn - nz*Mm(icp, iph)*gravity
+               sum_Mm = sum_Mm + Mm(icp, iph)
+            end if
+         end do
+      end do
+#ifndef NDEBUG
+      if (sum_Mm <= 0.d0) &
+         call CommonMPI_abort("inconsistent mobilities")
+#endif
+      nablapn = nablapn/sum_Mm
+      qh = 0.d0
+      do iph = 1, NbPhasePresente_ctx(X%ic)
+         qh = qh + Mh(iph)*(nablapn + rho(iph)*gravity*nz)
+      end do
+
+   end subroutine Residu_compute_Neumann_heatflux
+
    subroutine Residu_add_Neumann_contributions
 
       integer :: k
+      double precision :: qh
 
       do k = 1, NbNodeLocal_Ncpus(commRank + 1) ! node
          ResiduNode(1:NbComp, k) = ResiduNode(1:NbComp, k) - NodeNeumannBC(k)%molar_flux
 #ifdef _THERMIQUE_
-         ResiduNode(NbCompThermique, k) = ResiduNode(NbCompThermique, k) - NodeNeumannBC(k)%heat_flux
+         if (NodeNeumannBC(k)%compute_heat_flux) then
+            call Residu_compute_Neumann_heatflux( &
+               IncNode(k), sum(NodeNeumannBC(k)%molar_flux), &
+               DensiteMolaireKrViscoCompNode(:, :, k), &
+               DensiteMolaireKrViscoEnthalpieNode(:, k), &
+               NodeNeumannBC(k)%nz, qh)
+            ResiduNode(NbCompThermique, k) = ResiduNode(NbCompThermique, k) - qh
+         else
+            ResiduNode(NbCompThermique, k) = ResiduNode(NbCompThermique, k) - NodeNeumannBC(k)%heat_flux
+         end if
 #endif
       end do
 

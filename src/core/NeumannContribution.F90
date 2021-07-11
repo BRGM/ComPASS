@@ -8,7 +8,7 @@
 
 module NeumannContribution
 
-   use iso_c_binding, only: c_int, c_double
+   use iso_c_binding, only: c_int, c_double, c_bool
    use mpi, only: MPI_Abort
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD
 
@@ -23,13 +23,14 @@ module NeumannContribution
    implicit none
 
    !> Unknown for Degree Of Freedom (including thermal). DOF can be Cell, Fracture Face or Node.
-   TYPE, bind(C) :: TYPE_NeumannBC
-
+   type, bind(C) :: TYPE_NeumannBC
       real(c_double) :: molar_flux(NbComp) !< component molar flux
 #ifdef _THERMIQUE_
       real(c_double) :: heat_flux !< heat flux
+      logical(c_bool) :: compute_heat_flux
+      real(c_double) :: nz
 #endif
-   end TYPE TYPE_NeumannBC
+   end type TYPE_NeumannBC
 
    TYPE(TYPE_NeumannBC), allocatable, dimension(:), target, public :: &
       NodeNeumannBC !< Neumann contributions (size NbNodeLocal)
@@ -56,6 +57,8 @@ contains
          NodeNeumannBC(k)%molar_flux(:) = 0.d0
 #ifdef _THERMIQUE_
          NodeNeumannBC(k)%heat_flux = 0.d0
+         NodeNeumannBC(k)%compute_heat_flux = .false.
+         NodeNeumannBC(k)%nz = 0.d0
 #endif
       end do
 
@@ -85,6 +88,11 @@ contains
 #ifdef _THERMIQUE_
          NodeNeumannBC(s)%heat_flux = NodeNeumannBC(s)%heat_flux &
                                       + half_length*Thickness*fluxes%heat_flux
+         if (NodeNeumannBC(s)%compute_heat_flux .and. .not. fluxes%compute_heat_flux) &
+            write (*, *) "WARNING Unsetting heat flux computation"
+         NodeNeumannBC(s)%compute_heat_flux = fluxes%compute_heat_flux
+         ! FIXME: only valid for planar faces
+         NodeNeumannBC(s)%nz = fluxes%nz
 #endif
       end do
 
@@ -144,6 +152,11 @@ contains
          NodeNeumannBC(nodes(k))%molar_flux = NodeNeumannBC(nodes(k))%molar_flux + alpha*fluxes%molar_flux
 #ifdef _THERMIQUE_
          NodeNeumannBC(nodes(k))%heat_flux = NodeNeumannBC(nodes(k))%heat_flux + alpha*fluxes%heat_flux
+         if (NodeNeumannBC(nodes(k))%compute_heat_flux .and. .not. fluxes%compute_heat_flux) &
+            write (*, *) "WARNING Unsetting heat flux computation"
+         NodeNeumannBC(nodes(k))%compute_heat_flux = fluxes%compute_heat_flux
+         ! FIXME: only valid for planar faces
+         NodeNeumannBC(nodes(k))%nz = fluxes%nz
 #endif
       end do
       deallocate (nodes)

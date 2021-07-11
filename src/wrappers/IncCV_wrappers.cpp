@@ -193,8 +193,62 @@ void add_IncCV_wrappers(py::module& module) {
        "Model inconsistency");
 
    py::class_<NeumannBC>(module, "NeumannBC")
-       .def(py::init<>())
+       .def(
+           py::init([](py::object qm, py::object qh,
+                       const bool compute_heat_flux, py::object nz) {
+              using Real = typename X::Model::Real;
+              auto bc = std::make_unique<NeumannBC>();
+              bc->compute_heat_flux = compute_heat_flux;
+              if (!qh.is_none()) {
+                 try {
+                    bc->heat_flux = qh.cast<Real>();
+                 } catch (py::cast_error&) {
+                    assert(bc->heat_flux == 0);
+                 }
+
+              }
+#ifndef NDEBUG
+              else {
+                 assert(bc->heat_flux == 0);
+              }
+#endif
+              if (qm.is_none()) return bc;
+              try {
+                 const Real q = qm.cast<Real>();
+                 if (nc != 1)
+                    throw std::runtime_error("Wrong number of components.");
+                 bc->molar_flux[0] = q;
+                 return bc;
+              } catch (py::cast_error) {
+              }
+              bool is_tuple = false;
+              try {
+                 py::tuple t = qm.cast<py::tuple>();
+                 is_tuple = true;
+                 if (py::len(t) != nc)
+                    throw std::runtime_error("Wrong number of components.");
+                 for (std::size_t i = 0; i < nc; ++i)
+                    bc->molar_flux[i] = t[i].cast<Real>();
+                 return bc;
+              } catch (py::cast_error) {
+                 if (is_tuple)
+                    throw std::runtime_error(
+                        "Could not convert tuple components.");
+              }
+              if (!nz.is_none()) {
+                 try {
+                    bc->nz = nz.cast<double>();
+                 } catch (py::cast_error) {
+                    throw std::runtime_error("Could not convert nz to double.");
+                 }
+              }
+              return bc;
+           }),
+           py::arg("qm") = py::none{}, py::arg("qh") = py::none{},
+           py::arg("compute_heat_flux") = false, py::arg("nz") = py::none{})
        .def_readwrite("heat_flux", &NeumannBC::heat_flux)
+       .def_readwrite("compute_heat_flux", &NeumannBC::compute_heat_flux)
+       .def_readwrite("nz", &NeumannBC::nz)
        .def_property_readonly(
            "molar_flux",
            [](py::object& self) {
