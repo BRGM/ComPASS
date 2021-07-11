@@ -396,7 +396,7 @@ contains
       rho = 0.d0
       do m = 1, NbPhasePresente_ctx(inc%ic)
          mph = NumPhasePresente_ctx(m, inc%ic)
-         call f_DensiteMassique(mph, inc%Pression, inc%Temperature, &
+         call f_DensiteMassique(mph, inc%phase_pressure(mph), inc%Temperature, &
                                 inc%Comp(:, mph), rhoph, drhodp, drhodT, drhodC)
          rho = rho + rhoph*inc%Saturation(mph)
       end do
