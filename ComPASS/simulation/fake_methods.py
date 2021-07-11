@@ -35,6 +35,7 @@ from ..utils.various import (
     enthalpy_fluxes_locations,
     reload_snapshot,
 )
+from ..utils.initialization import hydrostatic_pressure_profile
 
 from .bc import (
     set_global_dirichlet_nodes,
