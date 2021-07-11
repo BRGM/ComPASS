@@ -32,6 +32,7 @@ from ..utils.various import (
     contexts,
     states_locations,
     mass_fluxes_locations,
+    enthalpy_fluxes_locations,
     reload_snapshot,
 )
 

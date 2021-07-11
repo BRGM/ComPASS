@@ -33,12 +33,20 @@ def states_locations(simulation):
     ]
 
 
-def mass_fluxes_locations(simulation):
-    cell_fluxes, fracture_fluxes = simulation.mass_fluxes()
+def _fluxes_locations(retrieve):
+    cell_fluxes, fracture_fluxes = retrieve()
     return [
         ("cell", cell_fluxes),
         ("fracture", fracture_fluxes),
     ]
+
+
+def mass_fluxes_locations(simulation):
+    return _fluxes_locations(simulation.mass_fluxes)
+
+
+def enthalpy_fluxes_locations(simulation):
+    return _fluxes_locations(simulation.enthalpy_fluxes)
 
 
 def tensor_coordinates(tensor, name, diagonal_only=False):

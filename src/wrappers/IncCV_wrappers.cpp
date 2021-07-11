@@ -250,6 +250,11 @@ void add_IncCV_wrappers(py::module& module) {
    module.def("dump_incv_info", &dump_incv_info);
 #endif
 
+   module.def("total_specific_enthalpy", [](const X& x) {
+      double h = 0;
+      LoisThermoHydro_total_specific_enthalpy(x, h);
+      return h;
+   });
    module.def(
        "total_specific_enthalpy",
        [](const StateArray& states) {

@@ -113,6 +113,7 @@ simulation_wrapper = Wrapper(
         "Context",
         "number_of_components",
         "mass_fluxes",
+        "enthalpy_fluxes",
         "create_mesh",
         "debug_utils_dump_mesh_info",
         "global_mesh_make_post_read",

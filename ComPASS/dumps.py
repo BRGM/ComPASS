@@ -143,12 +143,23 @@ class Dumper:
                         name = f"{location} {comp} fraction in {phase}"
                         result[name] = states.C[:, phk, ci]
         if dump_fluxes:
-            fluxes_locations = simulation.mass_fluxes_locations()
-            for location, fluxes in fluxes_locations:
+            mass_fluxes_locations = simulation.mass_fluxes_locations()
+            for location, fluxes in mass_fluxes_locations:
                 result[f"{location} total mass flux"] = fluxes.sum(axis=1)
                 if len(components) > 1:
                     for ci, comp in enumerate(components):
                         result[f"{location} {comp} mass flux"] = fluxes[:, ci, :]
+            enthalpy_fluxes_locations = simulation.enthalpy_fluxes_locations()
+            for location, fluxes in enthalpy_fluxes_locations:
+                result[f"{location} enthalpy flux"] = fluxes
+            for mf, hf in zip(mass_fluxes_locations, enthalpy_fluxes_locations):
+                location, mfluxes = mf
+                _, hfluxes = hf
+                assert location == _
+                h = np.linalg.norm(hfluxes, axis=1) / np.linalg.norm(
+                    mfluxes.sum(axis=1), axis=1
+                )
+                result[f"{location} flowing enthalpy"] = h
         np.savez(self.states_filename(mpi.proc_rank, tag), **result)
         dw.dump_all_wells(simulation, self.to_wells_directory(), tag)
 

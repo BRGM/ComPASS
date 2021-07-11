@@ -19,6 +19,8 @@ struct cpp_narray_wrapper {
 extern "C" {
 void retrieve_mass_fluxes(const cpp_narray_wrapper &,
                           const cpp_narray_wrapper &);
+void retrieve_enthalpy_fluxes(const cpp_narray_wrapper &,
+                              const cpp_narray_wrapper &);
 std::size_t number_of_nodes();
 std::size_t number_of_cells();
 std::size_t number_of_fractures();
@@ -36,6 +38,16 @@ void add_flux_wrappers(py::module &module) {
       const auto Ffs = std::vector<std::size_t>{number_of_fractures(), NC, 3};
       auto Ff = py::array_t<double, py::array::c_style>{Ffs};
       retrieve_mass_fluxes(
+          {Fcs.data(), reinterpret_cast<const double *>(Fc.request().ptr)},
+          {Ffs.data(), reinterpret_cast<const double *>(Ff.request().ptr)});
+      return py::make_tuple(Fc, Ff);
+   });
+   module.def("enthalpy_fluxes", [] {
+      const auto Fcs = std::vector<std::size_t>{number_of_cells(), 3};
+      auto Fc = py::array_t<double, py::array::c_style>{Fcs};
+      const auto Ffs = std::vector<std::size_t>{number_of_fractures(), 3};
+      auto Ff = py::array_t<double, py::array::c_style>{Ffs};
+      retrieve_enthalpy_fluxes(
           {Fcs.data(), reinterpret_cast<const double *>(Fc.request().ptr)},
           {Ffs.data(), reinterpret_cast<const double *>(Ff.request().ptr)});
       return py::make_tuple(Fc, Ff);
