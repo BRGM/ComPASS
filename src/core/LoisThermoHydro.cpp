@@ -21,6 +21,11 @@ namespace py = pybind11;
 py::object py_fill_kr_arrays = py::none{};
 py::object py_fill_phase_pressure_arrays = py::none{};
 
+void release_physics() {
+   py_fill_kr_arrays = py::none{};
+   py_fill_phase_pressure_arrays = py::none{};
+}
+
 void fill_kr_arrays(const std::size_t n, const int np, X* p_states,
                     int* p_rocktypes, double* p_kr, double* p_dkrdS) {
    assert(n < std::numeric_limits<py::ssize_t>::max());
@@ -71,4 +76,5 @@ void add_petrophysics_pyinternals(py::module& module) {
               [](py::function f) { py_fill_phase_pressure_arrays = f; });
    module.def("get_fill_phase_pressure_arrays",
               []() { return py_fill_phase_pressure_arrays; });
+   module.def("release_physics", &release_physics);
 }
