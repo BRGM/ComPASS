@@ -2,17 +2,17 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.linalg.factory import linear_solver
+from ComPASS.newton import Newton
+from ComPASS.utils.grid import on_zmax
 
 from my_kr import kr_functions
-
-ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("water2ph")
 
 ztop = 2000
 zinterface = 1000
 zbottom = 0
 # FIXME: for a weird reason timestep collapses around 37.428y with nb_layers=20
-nb_layers = 40  # number of horizontal layers
+nb_layers = 20  # number of horizontal layers
 H = ztop - zbottom
 dz = H / nb_layers
 dx = dy = dz
@@ -29,37 +29,15 @@ Tinterface = degC2K(290)
 Tbottom = degC2K(310)
 ptop = 1.013e5  # Pa
 gravity = 9.81
-simulation.set_gravity(gravity)
+final_time = 70 * year
+output_period = year
 
+# -----------------------------------------------------------------------------
 
-@np.vectorize
-def geotherm(z):
-    if z > zinterface:
-        return (Ttop - Tinterface) * (z - zinterface) / (ztop - zinterface) + Tinterface
-    else:
-        return (Tinterface - Tbottom) * (z - zbottom) / (zinterface - zbottom) + Tbottom
-
-
-def make_hydrostatic_pressure(zbottom, ztop, nz, nbsteps=100):
-    assert zbottom < ztop
-    z = np.linspace(zbottom, ztop, nz)[::-1]  # from top to bottom
-    rho = simulation.liquid_molar_density
-    p = 0
-    pressures = [p]
-    for zbot, ztop in zip(z[1:], z[:-1]):
-        zeta = ztop
-        dz = (ztop - zbot) / nbsteps
-        for _ in range(nbsteps):
-            p += gravity * rho(p, geotherm(zeta)) * dz
-            zeta -= dz
-        pressures.append(p)
-    pressures = np.asarray(pressures)
-    return lambda zeta: np.interp(zeta, z[::-1], pressures[::-1])
-
-
-hydrostatic_pressure = make_hydrostatic_pressure(zbottom, ztop, 3 * nb_layers)
-
+ComPASS.set_output_directory_and_logfile(__file__)
+simulation = ComPASS.load_eos("water2ph")
 simulation.set_rock_volumetric_heat_capacity(rock_heat_capacity * rock_density)
+simulation.set_gravity(gravity)
 
 grid = ComPASS.Grid(
     shape=(1, 1, nb_layers), extent=(dx, dy, H), origin=(-0.5 * dx, -0.5 * dy, zbottom)
@@ -93,62 +71,43 @@ simulation.init(
     cell_thermal_conductivity=K,
 )
 
-# Set the kr functions after initialization
 simulation.set_kr_functions(kr_functions)
 
-vertices = simulation.vertices()
-
-# Set initial values
+# initial values
 Xliq = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
 simulation.all_states().set(Xliq)
 
 
-def set_states(states, z):
-    states.p[:] = hydrostatic_pressure(z)
-    states.T[:] = geotherm(z)
+@np.vectorize
+def geotherm(z):
+    if z > zinterface:
+        return (Ttop - Tinterface) * (z - zinterface) / (ztop - zinterface) + Tinterface
+    else:
+        return (Tinterface - Tbottom) * (z - zbottom) / (zinterface - zbottom) + Tbottom
 
 
-set_states(simulation.node_states(), vertices[:, 2])
-set_states(simulation.cell_states(), simulation.compute_cell_centers()[:, 2])
+hydrostatic_profile = simulation.hydrostatic_pressure_profile(
+    zbottom, ztop, 3 * nb_layers, ptop, geotherm
+)
+states = simulation.all_states()
+z = simulation.all_positions()[:, 2]
+states.p[:] = hydrostatic_profile(z)
+states.T[:] = geotherm(z)
 
-# Set boundary conditions
-# dirichlet at the top
-simulation.reset_dirichlet_nodes(vertices[:, 2] >= ztop)
+# boundary conditions
+simulation.reset_dirichlet_nodes(on_zmax(grid))
+Neumann = ComPASS.NeumannBC(-mass_flux, compute_heat_flux=True, nz=-1)
+bottom_face = simulation.face_centers()[:, 2] <= 0
+simulation.set_Neumann_faces(bottom_face, Neumann)
 
-# Neumann at the bottom
-Neumann = ComPASS.NeumannBC()
-Neumann.molar_flux[:] = -mass_flux
-
-face_centers = simulation.face_centers()
-bottom_face = face_centers[:, 2] <= 0
-bottom_nodes = simulation.facenodes(face_centers[:, 2] <= 0)
-node_states = simulation.node_states()
-hg = simulation.gas_molar_enthalpy
-hl = simulation.liquid_molar_enthalpy
-rhog = simulation.gas_molar_density
-rhol = simulation.liquid_molar_density
-
-
-def update_flux(*args):
-    if len(bottom_nodes) == 0:
-        return  # Nothing to do, may happen in parallel
-    p = node_states.p[bottom_nodes]
-    T = node_states.T[bottom_nodes]
-    Sg = node_states.S[bottom_nodes, 0]
-    rhogSg = rhog(p, T) * Sg
-    gmf = rhogSg / (rhogSg + rhol(p, T) * (1 - Sg))  # gmf = gas mass fraction
-    Neumann.heat_flux = -mass_flux * np.mean(gmf * hg(p, T) + (1 - gmf) * hl(p, T))
-    simulation.clear_all_neumann_contributions()
-    simulation.set_Neumann_faces(bottom_face, Neumann)
-
-
-update_flux()
+lsolver = linear_solver(simulation, direct=True)
+newton = Newton(simulation, 1e-5, 20, lsolver)
 
 simulation.standard_loop(
     initial_timestep=day,
-    output_period=30 * day,
-    final_time=40 * year,
-    iteration_callbacks=[update_flux,],
+    output_period=output_period,
+    final_time=final_time,
+    newton=newton,
 )
 
 simulation.postprocess()
