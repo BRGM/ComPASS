@@ -83,7 +83,7 @@ module DefFlashWells
    implicit none
 
    !integer, parameter, private:: WellsNslice = 100 !< Number of discretization for the approximation of the integral
-   integer, private :: fdFl !< debug output
+   ! integer, private :: fdFl !< debug output
 
    type(CSRdble) :: ZSortedInj !< CSR vector storing the nodes of each injection well in Z coordinate order
    type(CSRdble) :: RSortedInj !< CSR vector storing the R of each node of injection well in R order (R_s = P_s - PressureDrop)
@@ -144,24 +144,25 @@ contains
 
    !> Allocate global vectors used only in this file
    subroutine DefFlashWells_allocate
-      character(len=300) :: fn, pid
 
-      ! put debugging magic here, open a file descriptor per processor
-      ! for more readability
-#define _DEBUG_LVL1_
-#if defined _DEBUG_ && defined _DEBUG_LVL1_
-      if (.false.) then
-         fdFl = 6 ! stdout: 6, scratch (temprary discarded file): 12
-      else
-         fdFl = 12
-         write (pid, *) getpid()
-         write (fn, '(a,a,a)') 'proc.', trim(adjustl(pid)), '.log'
-         open (unit=fdFl, file=trim(fn), action='WRITE')
-      end if
-#else
-      fdFl = 12
-      open (unit=fdFl, status='SCRATCH')
-#endif
+      ! character(len=300) :: fn, pid
+
+!       ! put debugging magic here, open a file descriptor per processor
+!       ! for more readability
+! #define _DEBUG_LVL1_
+! #if defined _DEBUG_ && defined _DEBUG_LVL1_
+!       if (.false.) then
+!          fdFl = 6 ! stdout: 6, scratch (temprary discarded file): 12
+!       else
+!          fdFl = 12
+!          write (pid, *) getpid()
+!          write (fn, '(a,a,a)') 'proc.', trim(adjustl(pid)), '.log'
+!          open (unit=fdFl, file=trim(fn), action='WRITE')
+!       end if
+! #else
+!       fdFl = 12
+!       open (unit=fdFl, status='SCRATCH')
+! #endif
 
       ! allocate flowrate
       allocate (headmolarFluxInj(NbWellInjLocal_Ncpus(commRank + 1)))
@@ -232,15 +233,15 @@ contains
          call QuickSortCSR(ZSortedInj, ZSortedInj%Pt(k) + 1, ZSortedInj%Pt(k + 1), 'd')
       end do
 
-      write (fdFl, *) '{'
-      write (fdFl, *) ZSortedInj%Num
-      write (fdFl, *) ZSortedInj%Val
-      write (fdFl, *) '}{'
-      do s = 1, ZSortedInj%Pt(ZSortedInj%Nb + 1)
-         write (fdFl, *) 'ptL', ZSortedInj%Num(s), 'numL', NodebyWellInjLocal%Num(ZSortedInj%Num(s)), &
-            ZSortedInj%Val(s)
-      end do
-      write (fdFl, *) '}'
+      ! write (fdFl, *) '{'
+      ! write (fdFl, *) ZSortedInj%Num
+      ! write (fdFl, *) ZSortedInj%Val
+      ! write (fdFl, *) '}{'
+      ! do s = 1, ZSortedInj%Pt(ZSortedInj%Nb + 1)
+      !    write (fdFl, *) 'ptL', ZSortedInj%Num(s), 'numL', NodebyWellInjLocal%Num(ZSortedInj%Num(s)), &
+      !       ZSortedInj%Val(s)
+      ! end do
+      ! write (fdFl, *) '}'
 
    end subroutine DefFlashWells_SortHeights_and_Init
 
