@@ -132,12 +132,21 @@ contains
    subroutine DefFlashWells_TimeFlash_injectors() &
       bind(C, name="DefFlashWells_TimeFlash_injectors")
 
-      integer :: num_Well
+      integer :: num_Well, s
+      double precision :: Tw
 
       ! compute
       do num_Well = 1, NbWellInjLocal_Ncpus(commRank + 1)
          call DefFlashWells_PressureToFlowrateWellInj(num_Well, headmolarFluxInj(num_Well))
          ! print*, "head ", headmolarFluxInj(num_Well)
+         ! update injection temperature
+         ! taken to be the same as well head temperature for the whole well
+         ! in the absence of thermal diffusion
+         ! FIXME: the effect of pressure is not taken into account
+         Tw = DataWellInjLocal(num_Well)%InjectionTemperature
+         do s = NodebyWellInjLocal%Pt(num_Well) + 1, NodebyWellInjLocal%Pt(num_Well + 1)
+            PerfoWellInj(s)%Temperature = Tw
+         end do
       end do
 
    end subroutine DefFlashWells_TimeFlash_injectors
