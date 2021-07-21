@@ -8,14 +8,14 @@ import numpy as np
 
 def Sstar(Sl):
     result = np.zeros_like(Sl)
-    mask = Sl > 0.3
-    result[mask] = (Sl[mask] - 0.3) / 0.65
+    mask = Sl > 0.35
+    result[mask] = (Sl[mask] - 0.35) / 0.65
     return result
 
 
 def dSstardSl(Sl):
     result = np.zeros_like(Sl)
-    mask = Sl > 0.3
+    mask = Sl > 0.35
     result[mask] = 1 / 0.65
     return result
 

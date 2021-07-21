@@ -14,8 +14,8 @@ from my_kr import kr_functions
 R = 1000  # radius of the angular sector
 theta = np.pi / 180  # angle of the angular sector (in radians) must be small
 rw = 0.1  # well radius
-r0 = 2 * rw
-nr = 10  # number of radius discretization points
+r0 = 0.5 * rw
+nr = 200  # number of radius discretization points
 H = 100  # reservoir thickness
 omega = 0.2  # reservoir porosity
 k = 1e-14  # reservoir permeability in m^2
@@ -24,8 +24,9 @@ qw = 14  # total production flow rate (for the whole reservoir i.e. theta = 2pi)
 pres = 90 * bar  # reservoir pressure
 Tres = degC2K(300)
 gravity = 0
-output_period = 10 * minute
-final_time = 1 * day
+output_period = 30 * minute
+specific_outputs = [1, 2, 5, 10, 30, 60, 120, 180, 240, 300, 600, 900, 1200, 1500]
+final_time = 10 * day
 maximum_timestep = 30  # s
 
 # -----------------------------------------------------------------------------
@@ -81,6 +82,16 @@ simulation.set_Neumann_faces(well_face, Neumann)
 lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 20, lsolver)
 
+all_states = simulation.all_states()
+
+
+def check_physics(tick):
+    print(all_states.p.min(), all_states.T.min())
+    assert np.all(all_states.p > 1e5)
+    assert np.all(all_states.T > 280)
+    pass
+
+
 tsmger = TimeStepManager(
     initial_timestep=1,
     increase_factor=1.2,
@@ -91,8 +102,10 @@ tsmger = TimeStepManager(
 simulation.standard_loop(
     final_time=final_time,
     output_period=output_period,
+    specific_outputs=specific_outputs,
     time_step_manager=tsmger,
     newton=newton,
+    iteration_callbacks=[check_physics],
 )
 
 simulation.postprocess(time_unit="day")
