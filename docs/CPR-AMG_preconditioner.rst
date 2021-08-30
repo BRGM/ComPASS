@@ -1,118 +1,141 @@
-The CPR-AMG preconditioner in ComPASS
+.. _cpramg:
+
+The CPR-AMG preconditioner
 =======================================
 
 Introduction
 -----------------
 
 Linear systems in ComPASS describe complex physics on mesh degrees of
-freedom of different natures (pressure, temperature and wells), governed
+freedom of different natures (reservoir pressure or temperature,
+wells head pressure etc..), governed
 by partial differential equations with distinct analytical properties.
 Usual preconditioning methods like ILU, Schwarz methods and multigrid
-algorithms prove to be unsufficient on large systems because they treat
-all unknowns the same way, thus losing knowledge of their physical and
+algorithms prove to be unsufficient on large systems because they
+make no distinction between the unknowns,
+thus losing knowledge of their physical and
 numerical properties. The default preconditioner in ComPASS is CPR-AMG,
 a method which uses the splitting of the blocks of unknowns in the linear
 operator to improve the convergence of Krylov methods. This document
 describes the CPR-AMG preconditioning procedure and its Python
-implementation in the framework of the linear algebra package for
+implementation in the linear algebra package for
 ComPASS.
 
 The CPR-AMG preconditioning method
 ----------------------------------
 
-Let :math:`A` be a linear operator describing the behaviour of type of
-unknowns : pressure and temperature.
+Let :math:`A` be a linear operator of size :math:`n \times n` describing
+the behaviour of two physical quantities, the pressure :math:`p`
+and temperature :math:`T` (the matter here is to split the unknowns into a pressure block and
+the rest of the unknowns, :math:`T` being a representant of the possible variables),
+such that :math:`A` writes :
 
 .. math::
 
    A=\left(\begin{array}{ll}
    A_{p p} & A_{pT} \\
    A_{T p} & A_{T T}
-   \end{array}\right)
+   \end{array}\right).
 
-We are looking to solve the following linear system : :math:`A x=b`, with
-:math:`x=\left(\begin{array}{l} x_{p} \\ x_{T} \end{array}\right) \quad
-\text{and } b=\left(\begin{array}{l} b_{p} \\ b_{T} \end{array}\right)`,
+The aim is to solve the linear system :math:`A x=b`
 using the CPR (Constrained Pressure Residual) preconditioner
-([Roy_2019]_). Application of this preconditioner to a
-vector :math:`b` is performed like so :
+([Roy_2019]_).
+This is a left preconditioner, thus the preconditioned system
+writes :math:`P^{-1} A x = P^{-1} b`. Matrix :math:`P^{-1}` aims at being an approximation
+of :math:`A^{-1}` to reduce the system's condition number which
+improves the convergence of Krylov methods. In practice a preconditioner can be entirely
+defined by its application to a vector `r`, e.g. the value of :math:`u = P^{-1} r`.
+
+CPR application is performed using two intermediate vectors :math:`v` and
+:math:`w` of size :math:`n` as follows:
 
 .. math::
 
-      \left\{\begin{array}{l}
-      y=\left(\begin{array}{l}
-      y_{p} \\
-      y_{T}
-      \end{array}\right)=\left(\begin{array}{l}
-      0 \\
-      0
-      \end{array}\right) \\
-      \tilde{A}_{p p} y_{p}=b_{p} \\
-      r=b-A y \\
-      \tilde{L} \tilde{U} x=r \\
-      x=x+y
-      \end{array}\right.
+      \begin{array}{l}
+      v = 0, \\
+      v_{|p} = \tilde{A}_{p p}^{-1} r_{|p}, \\
+      w = r - A v, \\
+      u = v + \tilde{A}^{-1} w,
+      \end{array}
 
-First a partial resolution is performed on the pressure block, then a
-correction is made to the original vector :math:`b`. Finally a
-pseudo-solve is applied to the full set of unknowns. In the CPR-AMG
-method, :math:`A_{p p}^{-1}` is approximated by an algebraic multigrid
-v-cycle, and :math:`A^{-1}` by an incomplete LU solve, denoted by the
-:math:`\sim` markers. This procedure corresponds to the multiplication
-by this matrix :
+where :math:`v_{|p}` (respectively :math:`r_{|p}`) is the restriction vector
+to the pressure unknowns of :math:`v` (resp. :math:`r`) ie
+:math:`v_{|p} = R_p v` (resp. :math:`r_{|p} = R_p r`), with :math:`R_p`
+the restriction matrix to the pressure unknowns.
+(such that :math:`R_p A R_p^T = A_{p p}`). The approximation of :math:`A_{p p}^{-1}`,
+denoted :math:`\tilde{A}_{p p}^{-1}`, is obtained by an algebraic multigrid
+procedure and :math:`\tilde{A}^{-1}` approaches :math:`A^{-1}` using an ILU
+pseudo-solve. This algorithm corresponds to multiplying :math:`r`
+by the following matrix
 
 .. math::
 
-   \text{CPR}(A) = (\tilde{L}\tilde{U})^{-1}\left(I-A M\right)+M
+   \text{CPR-AMG}(A) = P^{-1} = M_2^{-1}\left(I-A M_1^{-1}\right) + M_1^{-1}
 
-with
-:math:`M=\left(\begin{array}{cc} \tilde{A}_{p p}^{-1} & 0 \\ 0 & 0 \end{array}\right)`.
+with the two sub-preconditioners
+:math:`M_1^{-1}=\left(\begin{array}{cc} \tilde{A}_{p p}^{-1} & 0 \\ 0 & 0 \end{array}\right)` and
+:math:`M_2^{-1} = \tilde{A}^{-1}`.
 
 Implementation with petsc4py
 ----------------------------
 
-Preconditioners of the form
-:math:`M^{-1} = M_2^{-1}\left(I-A M_1^{-1}\right)  + M_1^{-1}` like CPR
-are implemented under the type ``COMPOSITE``
-in multiplicative mode (additive application corresponds to the matrix
-:math:`M^{-1} = M_2^{-1} + M_1^{-1}`). Documentation can be found at
-page 90 in [PETSc_manual]_.
+Preconditioners of the form :math:`P^{-1} = M_2^{-1}\left(I-A M_1^{-1}\right)  + M_1^{-1}`
+like CPR-AMG are an extension of the
+Gauss-Seidel preconditioners where :math:`M_1^{-1}` and :math:`M_2^{-1}` can be any type of
+preconditioning matrices. In PETSc they are implemented under the type ``COMPOSITE``
+in ``MULTIPLICATIVE`` mode (additive application corresponds to the matrix
+:math:`P^{-1} = M_2^{-1} + M_1^{-1}`).
+The corresponding documentation can be found `in the PETSc manual <https://petsc.org/release/docs/manual/ksp/?highlight=preconditioner#combining-preconditioners>`_.
+The PETSc implementation of the CPR-AMG preconditioning procedure
+is done in file :download:`preconditioners.py <../ComPASS/linalg/preconditioners.py>`, follows
+the corresponding extract.
 
-.. literalinclude:: ../ComPASS/linalg/petsc_linear_solver.py
-   :language: python
-   :pyobject: PetscIterativeSolver.set_cpramg_pc
-   :start-at: cpramg_pc = self.pc
-   :end-before: setUp
+.. literalinclude:: ../ComPASS/linalg/preconditioners.py
+  :language: python
+  :pyobject: CPRAMG
+  :start-at: class CPRAMG(PETSc.PC):
+  :end-at: self.setUp()
+  :caption: Composite structure of CPR-AMG and its inner preconditioners type set with the Python interface to PETSc
 
-| The ``PC`` objects must be instanciated in the required order. In the
-  case of CPR-AMG, the ``PC`` :math:`M_2` is an ILU resolution (default
-  in PETSc), defined by diagonal blocks with the ``BJACOBI`` option for
-  parallel compatibility. The ``PC`` :math:`M_1` is set as a
-  ``FIELDSPLIT`` type preconditioner ([PETSc_manual]_
-  page 93). This type is a special case of ``COMPOSITE`` where sub-PCs
-  are restricted to selected sets of unknowns called "fields". Here the
-  fields are set using the IS (Index Sets) objects in PETSc. These
-  consist in integer arrays which map the indices of the local
-  pressure submatrix with the corresponding global indices of the
-  pressure unknowns in the global matrix. (e.g. Let :math:`N_p` be the number
-  of pressure unknowns on current processor :math:`p`. Then for :math:`i \in
-  [0, Np-1]`, :math:`\text{p_IS}[i]` is the global index of the
-  local :math:`i`-th pressure unknown in matrix :math:`A`). Note that the
-  well unknowns are included in the pressure field, because we want them
-  to be affected by the AMG procedure together with the pressure unknowns.
-  Then the IndexSet for the remaining unknowns is built using the PETSc
-  function ``complement``, (e.g. every index which is not in the pressure
-  IS).
-| The type of the fieldsplit ``PC`` is set on ``ADDITIVE``, e.g.
-  :math:`M_{FS} = M_{FSp} + M_{FST}` with :math:`M_{FST} = 0`. This type
-  of preconditioner is not defined in PETSc, meaning we have to set it
-  ourselves with a custom PC class which returns zero.
+One then has to set the internal sub-preconditioners
+:math:`M_1^{-1}` and :math:`M_2^{-1}` types. Computing :math:`M_2^{-1}` is very straight forward because it is
+a PETSc built-in block Jacobi algorithm which consists in applying
+an incomplete LU solve on the local diagonal matrix block of each process. It is highly
+scalable since entirely local, but the quality of the preconditioner deteriorates when the
+number of processors increases.
+The AMG procedure :math:`M_1^{-1}` aims at counteracting this effect by using knowledge
+of the pressure equation system on the whole domain. Pseudo code for applying :math:`M_1^{-1}`
+to a vector :math:`r` can be found below.
 
-.. literalinclude:: ../ComPASS/linalg/petsc_linear_solver.py
-   :language: python
-   :pyobject: PetscIterativeSolver.set_cpramg_pc
-   :start-at: # The Index Set for the pressure field
-   :end-at: null_pc.setPythonContext(NullPC())
+.. code::
+  :caption: Application of the multigrid preconditioner on the pressure unknowns
+
+  function apply_M1(A, r):
+    set vector u to zero
+    rp = Rp*r
+    Ap <= Rp*A*RpT
+    Mp <= amg_procedure(Ap)
+    pressure restriction of u <= Mp*rp
+    return u
+
+The petsc4py API allows the user to set its own preconditioner using a Python class
+defining the way the preconditioner must be set up and applied to a vector.
+In this case the preconditioner must use the restriction of operator A to the
+pressure equations. It is then necessary to identify a set of indexes,
+it is done at ``setUp`` stage using a PETSc IndexSet object
+(see `PETSc user's guide <https://petsc.org/release/docs/manual/vec/#index-sets>`_) for further details).
+
+The ``apply`` method then retrieves the restriction of the pressure unknowns of the input
+vector and copies it in the pressure part of the output vector.
+Other indices of the output vector are null.
+
+.. literalinclude:: ../ComPASS/linalg/preconditioners.py
+  :language: python
+  :pyobject: PressureAMG
+  :start-at: def setUp(self, pc):
+  :end-at: y.restoreSubVector(self.pressure_IS, return_subvec)
+
+
 
 References
 -----------------

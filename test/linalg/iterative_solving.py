@@ -4,7 +4,7 @@ from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
 
 """
-This script runs the default time loop with with a Petsc iterative solver
+This script runs the default time loop with a Petsc iterative solver
 """
 
 lsolver = linear_solver(simulation, legacy=False, direct=False)

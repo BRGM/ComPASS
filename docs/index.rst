@@ -10,11 +10,12 @@ ComPASS
    wiki/using_docker
    setting_simulation
    examples
+   linear_solver_guide
+   CPR-AMG_preconditioner
    developer_corner
    python_reference/ComPASS
    python_reference/modules
-   CPR-AMG_preconditioner
-   linear_solver_guide
+   command_line_options
 
 `ComPASS core reference <core_reference/index.html>`_
 
