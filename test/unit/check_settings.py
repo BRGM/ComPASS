@@ -62,7 +62,7 @@ y = simulation.vertices()[:, 1]
 dirichlet.p[:] = ((pres + 1e5) * (x - Ox) + pres * (Ox + Lx - x)) / Lx
 dirichlet.T[:] = ((Tres + 100) * (y - Oy) + Tres * (Oy + Ly - y)) / Ly
 
-# The following wil export all meshes:
+# The following will export all meshes:
 # - as a vtu file if the simulation is sequential (a single mesh)
 # - as a pvtu file and a set of vtu files (in the vtu folder) otherwise
 io.write_mesh(simulation, "mesh_alone")
@@ -88,4 +88,6 @@ celldata.update(
 celldata.update(
     tensor_coordinates(petrophysics.cell_thermal_conductivity, "K", diagonal_only=True)
 )
+# Creates the file simulation_mesh(.vtu if the simulation is sequential,
+# .pvtu otherwise) in the execution directory
 io.write_mesh(simulation, "simulation_mesh", pointdata=pointdata, celldata=celldata)

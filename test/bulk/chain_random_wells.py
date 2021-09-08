@@ -105,6 +105,9 @@ def network_deltaT(t):
     return 20 * (1 + np.sin(t * (2 * np.pi) / year))
 
 
+# Update imposed_flowrate and injection_temperature
+# of the target well (injector one) knowing the information
+# of the connected source well (producer one).
 def chain_wells(tick):
     for source, target in doublets:
         data = simulation.get_well_data(target)
@@ -141,7 +144,7 @@ simulation.standard_loop(
     initial_timestep=day,
     output_period=10 * day,
     final_time=year,
-    iteration_callbacks=iteration_callbacks,
+    iteration_callbacks=iteration_callbacks,  # call chain_wells after each time step
 )
 
 for wk in range(2 * nb_random_wells):

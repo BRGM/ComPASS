@@ -1,3 +1,5 @@
+.. _classical_doublet:
+
 Classical geothermal doublet
 ============================
 

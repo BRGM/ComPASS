@@ -4,8 +4,8 @@ Using wells
 Defining wells
 --------------
 
-The :func:`simulation.init <ComPASS.simulation.base.init>` has a keyword parameter
-that can be used to pass a list of well objects.
+The :func:`simulation.init <ComPASS.simulation.base.init>` function has a keyword parameter
+(*wells*) that can be used to pass a list of well objects.
 
 A well object is defined in two steps:
     1. its geometry
@@ -17,8 +17,9 @@ Edges will be automatically sorted. The only condition is that all edges can be
 chained up to the well head that must be unique.
 Well edges are defined as a pair of mesh vertices.
 
-Convenience functions are availabe for simple situations:
-  - for vertical wells use the :func:`simulation.create_vertical_well <ComPASS.wells.wells.create_vertical_well>`
+Convenience functions are availabe for simple geometries:
+  - for vertical wells, init the geometry using the
+    :func:`simulation.create_vertical_well <ComPASS.wells.wells.create_vertical_well>` function
 
 Once the `well` object is created :
   1. It's a good practice to define a well id which must be a unique integer.
@@ -28,7 +29,7 @@ Once the `well` object is created :
      .. code-block:: python
 
         my_well_name = 12345 # <- you choose
-        well = simulation.create_vertical_well((0,0))
+        well = simulation.create_vertical_well((0,0)) # define the geometry
         well.id = my_well_name
 
   2. You set the operating conditions (either pressure or flowrate) with :
@@ -59,7 +60,7 @@ Once the `well` object is created :
         well.inject(injection_temperature)
 
 
-You will find two example in the :ref:`example scripts section<setting_well_transients>`.
+You will find two examples in the :ref:`example scripts section<classical_doublet>`.
 
 
 Setting well history
@@ -67,12 +68,13 @@ Setting well history
 
 You can set well transients using the
 `simulation.well_production_history` and `simulation.well_injection_history`
-functions. You will find two example in the :ref:`example scripts section<setting_well_transients>`.
+functions. You will find two examples in the :ref:`example scripts section<setting_well_transients>`.
 
 .. warning::
     For the time being, closed wells are discard during simulation setup.
     `simulation.init` will issue a warning not to distribute closed wells,
-    but it's ok to close wells afterwards.
+    but it's possible to close a well after `simulation.init` to start the simulation
+    with a closed well.
 
 
 Monitoring well state
@@ -85,7 +87,7 @@ All well nodes (called perforations) can be acessed and hold the following physi
   - saturations at the well node (an array with number of phases values)
   - pressure drop at the well node
   - molar flowrates at the well node (an array with number of components values)
-  - flowing energy at the well nodes
+  - flowing energy at the well node
 
 One specific perforation is the well head that can be accessed with
 the `simulation.get_wellhead` function, for example:
@@ -114,10 +116,12 @@ Connections between wells
 -------------------------
 
 Connections can be defined between wells so that the well head information
-from a given well is made available to another one (whatever the procs that manage the wells).
+from a given well is made available to another one (whatever the procs that manage the wells
+when running in parallel).
 
 To connect two wells you give a sequence (list, array...) of pairs `(source, target)`
-using the `simulation.add_well_connections` function.
+using the
+:func:`simulation.add_well_connections <ComPASS.wells.connections.add_well_connections>` function.
 
 Then the well head information (`molar_flowrate`, `energy_flowrate`, `pressure`, `temperature`)
 is made available using the source well id with `simulation.well_connections[source_well_id]`.
@@ -128,9 +132,11 @@ For example:
     wellhead = simulation.well_connections[wid]
     print(f"Well {wid} wellhead pressure is: {wellhead.pressure}")
 
-This can be used to chain well productions using `simulation.standard_loop` iteration callbacks.
+This can be used to chain well productions using *iteration_callbacks*
+in the :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>` function.
 The example :download:`chain_random_wells.py <../test/bulk/chain_random_wells.py>` demonstrates
-such a use case.
+such a use case, where the flowrate and the temperature in each injector well depend on the
+connected productor well.
 
 .. warning::
     Doing so wells are chained but not coupled. So the simulation result will strongly depend
@@ -147,20 +153,20 @@ keyword of the `simulation.add_well_connections` function. For example:
     ])
 
 The example :download:`chain_random_wells.py <../test/bulk/chain_random_wells.py>` also demonstrates
-how well information can be collected on the master proc and dump at the end of the simulation.
+how well information can be collected on the master proc and dumped at the end of the simulation.
 
 .. note::
     Most of the time you will want to collect well information on the master proc so that
     the simulation script can run both in sequential and parallel.
 
 
-Error on well settings at convergence
--------------------------------------
+Error at Newton convergence on well
+-----------------------------------
 
 The maximum error on well at Newton convergence can be displayed setting:
 ::
 
     simulation.newton.check_well_errors_at_convergence = True
 
-Then at the end of each successful Newton loop it will display the maximul on
+Then at the end of each successful Newton loop it will display the maximum error on
 imposed flowrate and pressure.

@@ -1,8 +1,8 @@
 Setting up physical properties
 ==============================
 
-As of now some properties can be define on a mesh element or control volume basis
-other physical properties are defined globally for the whole mesh.
+As of now some properties can be define on a mesh element or control volume basis,
+whereas other physical properties are defined globally for the whole mesh.
 
 Regionalized properties
 -----------------------
@@ -11,6 +11,18 @@ Properties such as permeability, porosity, thermal conductivity are defined
 through the
 :func:`simulation.init <ComPASS.simulation.base.init>` function and the corresponding keywords for
 cell or fracture elements.
+
+
+For example setting up the reservoir thermal conductivity can be done as follows:
+
+.. code-block:: python
+
+    K_reservoir = 2 # bulk thermal conductivity in W/m/K
+    simulation.init(
+        ...,
+        cell_thermal_conductivity=K_reservoir,
+    )
+
 
 Global properties
 -----------------

@@ -1,5 +1,5 @@
-The simulation object
-=====================
+The python "simulation" object
+==============================
 
 Most of the parameters used to run a simulation are accessible through
 a simulation object. The simulation object is created at the beginning

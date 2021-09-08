@@ -42,6 +42,7 @@ initial_state = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres
 simulation.all_states().set(initial_state)
 
 # You can iterate over states and print them
+print(f"Follows all states after initialization:")
 for state in simulation.cell_states():
     print(state)
 
@@ -55,10 +56,12 @@ for state, position in zip(simulation.all_states(), simulation.all_positions()):
 # Or rather use the direct accesor over the whole array
 simulation.all_states().p[:] = rho * g * simulation.all_positions()[:, 2]
 
+print(f"Follows all the pressure states after modifications:")
 print(simulation.node_states().p)
 
 # You can acces a specific state and change its values
 S = simulation.all_states()[2]
 S.p = 3
 S.S[:] = 0.5
+print(f"Follows the specific state which has been modified:")
 print(simulation.all_states()[2])

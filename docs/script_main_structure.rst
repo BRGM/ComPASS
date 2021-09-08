@@ -6,7 +6,7 @@ A simulation script is composed of 4 main parts:
 1. Defining a simulation from one of the available physics, e.g.:
 :code:`simulation=ComPASS.load_eos("water2ph")`
 
-and initializaing variables, including creating and loading a global mesh.
+and initializing variables, including creating and loading a global mesh.
 A mesh can be created explicitely or loaded from a file.
 Several io functions are available from the MeshTools package and a MeshTools object can be
 passed to the :code:`simulation.init` method (cf. phase 2).

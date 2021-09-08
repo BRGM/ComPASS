@@ -100,7 +100,7 @@ def get_well_data(simulation, wid, own_only=False):
     :param own_only: will look amongst own wells only
                      (well whose unknowns are managed by this proc)
 
-    :return: The data of the well which as `wid` id.
+    :return: The data of the well which has `wid` id.
     """
     for wells_data in _all_wells_data(simulation, own_only):
         data = _get_well_data(simulation, wells_data, wid)
@@ -117,7 +117,7 @@ def get_well_perforations_state(simulation, wid, own_only=False):
     :param own_only: will look amongst own wells only
                      (well whose unknowns are managed by this proc)
 
-    :return: The perforations of the well which as `wid` id.
+    :return: The perforations of the well which has `wid` id.
     """
     for getdata, getperf in [
         (simulation.injectors_data, simulation.injector_perforations),
@@ -138,7 +138,7 @@ def get_wellhead(simulation, wid, own_only=False):
     :param own_only: will look amongst own wells only
                      (well whose unknowns are managed by this proc)
 
-    :return: The wellhead of the well which as `wid` id.
+    :return: The wellhead of the well which has `wid` id.
     """
     perfs = get_well_perforations_state(simulation, wid, own_only)
     if perfs is not None:
@@ -148,7 +148,7 @@ def get_wellhead(simulation, wid, own_only=False):
 # WARNING: in parallel we must modify both own and ghost wells
 def set_well_property(simulation, wid, verbose=False, **kwargs):
     """
-    Select data of the well which as `wid` id and set every property
+    Select data of the well which has `wid` id and set every property
     according to the `kwargs` dictionnary items
 
     :param simulation: simulation object, the method can also be accessed
@@ -176,7 +176,7 @@ def set_well_property(simulation, wid, verbose=False, **kwargs):
 # WARNING: in parallel we must modify both own and ghost wells
 def close_well(simulation, wid):
     """
-    Close the well which as `wid` id.
+    Close the well which has `wid` id.
 
     :param simulation: simulation object, the method can also be accessed
                        through a fake method (cf. example below)
@@ -198,7 +198,7 @@ def close_well(simulation, wid):
 # WARNING: in parallel we must modify both own and ghost wells
 def open_well(simulation, wid):
     """
-    Open the well which as `wid` id and set its operating mode to *flowrate*.
+    Open the well which has `wid` id and set its operating mode to *flowrate*.
 
     :param simulation: simulation object, the method can also be accessed
                        through a fake method (cf. example below)
