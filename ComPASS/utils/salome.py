@@ -294,6 +294,9 @@ class SalomeMeshInfo:
     def groups(self):
         return self._dict.keys()
 
+    def get(self, key):
+        return self._dict.get(key)
+
     def items(self):
         return self._dict.items()
 
@@ -378,6 +381,52 @@ class SalomeMeshInfo:
         self._compute_face_masks()
         self._compute_cell_masks()
 
+    def _add_node_mask(self, masks, new_name, new_group):
+        # find highest mask in nodes group
+        mask = 1
+        for name, group in masks.items():
+            if group.nodes is not None:
+                mask = max(mask, 2 * group.nodes)
+        masks[new_name] = ElementValues(mask, None, None)
+
+    def _add_face_mask(self, masks, new_name, new_group):
+        # find highest mask in faces group
+        mask = 1
+        for name, group in masks.items():
+            if group.faces is not None:
+                mask = max(mask, 2 * group.faces)
+        masks[new_name] = ElementValues(None, mask, None)
+
+    def _add_cell_mask(self, masks, new_name, new_group):
+        # find highest mask in cells group
+        mask = 1
+        for name, group in masks.items():
+            if group.cells is not None:
+                mask = max(mask, 2 * group.cells)
+        masks[new_name] = ElementValues(None, None, mask)
+
+    def add_mask(self, masks, new_name, new_group):
+        # check if new_name does not already exist
+        assert (
+            masks.get(new_name) is None
+        ), "Cannot give twice the same name in groups: {new_name}"
+        # creates a SalomeGroup from new_group
+        mesh = self._mesh
+        if new_group.ndim == 1:  # nodes
+            sgroup = SalomeGroup(mesh, nodes=new_group)
+            self._dict[new_name] = sgroup
+            self._add_node_mask(masks, new_name, sgroup)
+        elif new_group.ndim == 2 and new_group.shape[1] == 3:  # triangles
+            sgroup = SalomeGroup(mesh, facenodes=new_group)
+            self._dict[new_name] = sgroup
+            self._add_face_mask(masks, new_name, sgroup)
+        elif new_group.ndim == 2 and new_group.shape[1] == 4:  # tets
+            sgroup = SalomeGroup(mesh, cellnodes=new_group)
+            self._dict[new_name] = sgroup
+            self._add_cell_mask(masks, new_name, sgroup)
+        else:
+            assert False, f"Could not handle group: {new_name}"
+
     def collect_masks(self):
         return OrderedDict(
             [
@@ -394,6 +443,10 @@ class SalomeMeshInfo:
     def compute_and_collect_masks(self):
         self.compute_masks()
         return self.collect_masks()
+
+    def add_and_collect_masks(self, masks, name, group):
+        self.add_mask(masks, name, group)
+        return masks
 
     def set_flags(self, flags, recompute_masks=True):
         if recompute_masks:
@@ -527,3 +580,12 @@ class SalomeWrapper:
             simulation.nodeflags(), simulation.faceflags(), simulation.cellflags(),
         )
         self.info.rebuild_from_flags(flags, self.masks, self.mesh)
+
+    def add_group(self, name, group, verbose=True):
+        if mpi.is_on_master_proc:
+            masks = self.info.add_and_collect_masks(self.masks, name, group)
+            if verbose:
+                print("Available Salome groups:", ", ".join(self.info.groups()))
+        else:
+            masks = None
+        self.masks = mpi.communicator().bcast(masks, root=mpi.master_proc_rank)
