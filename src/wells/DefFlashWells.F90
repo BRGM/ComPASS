@@ -750,7 +750,7 @@ contains
                      print *, "Residue is", abs(ResT), "Well_idx= ", wk, "node_idx= ", s
                   end if
                   PerfoWellProd(s)%Temperature = Tws
-                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, Cw, PerfoWellProd(s)%Density, dPf, dTf, dCf)
+                  call f_DensiteMassique(ID_PHASE, Pws, Tws, Cw, PerfoWellProd(s)%Density, dPf, dTf, dCf)
                else ! perforation is diphasic
                   PerfoWellProd(s)%Temperature = Tws
                   ! molarFrac is not used in the computation of the massique densities
