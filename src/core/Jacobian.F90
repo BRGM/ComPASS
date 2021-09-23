@@ -797,7 +797,7 @@ contains
          call Jacobian_RowCol_KSR(k, nbNodeCell, nbFracCell, &
                                   rowk, colk, rowSR, colSR)
 
-         csrK(:) = 0
+         ! csrK(:) = 0
          do m = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
             csrK(JacBigA%Num(m)) = m - JacBigA%Pt(rowk)
          end do
@@ -927,7 +927,7 @@ contains
             ! we consider the jacobian rows corresponding to node s when node s is own
             if (IdNodeLocal(nums)%Proc == "o") then
 
-               csrSR(:) = 0
+               ! csrSR(:) = 0
                rows = rowSR(s)
                do m = JacBigA%Pt(rows) + 1, JacBigA%Pt(rows + 1)
                   csrSR(JacBigA%Num(m)) = m - JacBigA%Pt(rows)
@@ -1187,7 +1187,7 @@ contains
             ! its corresponding face num <= NbFaceOwn
             if (FracToFaceLocal(nums) <= NbFaceOwn_Ncpus(commRank + 1)) then
 
-               csrSR(:) = 0
+               ! csrSR(:) = 0
                rows = rowSR(sf)
 
                do m = JacBigA%Pt(rows) + 1, JacBigA%Pt(rows + 1)
@@ -1397,7 +1397,7 @@ contains
          call Jacobian_RowCol_FR(k, nbNodeFrac, &
                                  rowk, colk, rowSR, colSR)
 
-         csrK(:) = 0
+         ! csrK(:) = 0
          do m = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
             csrK(JacBigA%Num(m)) = m - JacBigA%Pt(rowk) ! CHECKME: m: 1 -> NbCompThermique ?
          end do
@@ -1503,7 +1503,7 @@ contains
             ! node s is own
             if (IdNodeLocal(nums)%Proc == "o") then
 
-               csrSR(:) = 0
+               ! csrSR(:) = 0
                rows = rowSR(s)
                do m = JacBigA%Pt(rows) + 1, JacBigA%Pt(rows + 1)
                   csrSR(JacBigA%Num(m)) = m - JacBigA%Pt(rows)
