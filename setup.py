@@ -162,4 +162,14 @@ setup(
     package_data={package_name: [version_file],},
     zip_safe=False,
     setup_requires=["setuptools-git-versioning"],
+    install_requires=[
+        "click",
+        "inept",
+        "PyYAML",
+        "numpy",
+        "mpi4py",
+        "petsc4py",
+        "sortedcontainers",
+        "MeshTools",
+    ],
 )
