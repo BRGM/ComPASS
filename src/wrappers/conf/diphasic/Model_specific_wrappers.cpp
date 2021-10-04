@@ -16,10 +16,10 @@
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
-static_assert(NP == X::Model::np, "Wrong numpber of phases.");
-static_assert(NC == X::Model::nc, "Wrong numpber of components.");
-static_assert(NP == 2, "Wrong numpber of phases.");
-static_assert(NC == 2, "Wrong numpber of components.");
+static_assert(NP == X::Model::np, "Wrong number of phases.");
+static_assert(NC == X::Model::nc, "Wrong number of components.");
+static_assert(NP == 2, "Wrong number of phases.");
+static_assert(NC == 2, "Wrong number of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
 
 using Phase_vector = X::Model::Phase_vector;

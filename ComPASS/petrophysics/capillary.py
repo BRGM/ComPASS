@@ -47,14 +47,14 @@ def set_liquid_capillary_pressure(simulation, model):
             f, df = module.Pc, module.dPcdS
         except:
             raise RuntimeError(
-                f"Could not extact cappillary pressure functions from model {model} located at: {model.__file__}."
+                f"Could not extact capillary pressure functions from model {model} located at: {model.__file__}."
             )
     else:
         try:
             f, df = model
         except:
             raise RuntimeError(
-                "Could not extact cappillary pressure functions from model."
+                "Could not extact capillary pressure functions from model."
             )
     holder = _convert_pc_to_phase_pressure_function(f, df)
     simulation.set_phase_pressure_functions(holder)

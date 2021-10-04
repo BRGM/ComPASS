@@ -56,7 +56,8 @@ module DefFlashWells
       DensitemolaireKrViscoCompWellInj, &
       LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
    use Thermodynamics, only: &
-      f_DensiteMolaire, f_DensiteMassique, f_Enthalpie
+      ! f_DensiteMolaire,
+      f_DensiteMassique, f_Enthalpie
    use MeshSchema, only: &
       DataWellInjLocal, &
       NodeDatabyWellInjLocal, &

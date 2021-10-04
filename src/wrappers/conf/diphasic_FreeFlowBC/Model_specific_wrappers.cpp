@@ -5,8 +5,8 @@
 #include "StateObjects.h"
 #include "Thermodynamics.h"
 
-static_assert(X::Model::np == 2, "Wrong numpber of phases.");
-static_assert(X::Model::nc == 2, "Wrong numpber of components.");
+static_assert(X::Model::np == 2, "Wrong number of phases.");
+static_assert(X::Model::nc == 2, "Wrong number of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 6, "Wrong number of contexts.");
 
 // FIXME: assuming liquid phase is the latest phase

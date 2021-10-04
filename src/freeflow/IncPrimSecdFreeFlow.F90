@@ -47,9 +47,9 @@ module IncPrimSecdFreeFlow
    !   IncPrimSecdFreeFlow_compPrim_nodes
 
    private :: &
-      IncPrimSecdFreeFlow_compute_cv, & ! all operations for one cv
-      IncPrimSecdFreeFlow_dFsurdX_cv, & ! compute dF/dX for each cv
-      IncPrimSecdFreeFlow_dXssurdXp_cv  ! compute dFs/dXp
+      IncPrimSecdFreeFlow_compute_cv, & ! all operations for one cv (called with nodes only)
+      IncPrimSecdFreeFlow_dFsurdX_cv, & ! compute dF/dX for each cv (called with nodes only)
+      IncPrimSecdFreeFlow_dXssurdXp_cv  ! compute dFs/dXp (called with nodes only)
 
 contains
 

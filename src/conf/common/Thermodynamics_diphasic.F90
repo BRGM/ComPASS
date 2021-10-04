@@ -117,7 +117,7 @@ contains
 
       real(c_double), parameter :: Rgp = 8.314d0
 
-      f = p/(Rgp*T)
+      f = p/(Rgp*T) ! careful: assume that Pref = Pg
       dPf = 1/(Rgp*T)
       dTf = -p/Rgp/T**2
       dCf = 0.d0
@@ -138,7 +138,7 @@ contains
 
    ! Molar density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is Reference Pressure
+   !< P is Reference Pressure (careful: assume that Pref = Pg)
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
@@ -168,7 +168,7 @@ contains
 
    ! Massic density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the Reference Pressure (careful: assume that Pref = Pg)
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
@@ -224,7 +224,7 @@ contains
 
    ! Internal energy = enthalpie - Pressure (here everything is volumic)
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the Reference Pressure (careful: assume that Pref = Pg)
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
