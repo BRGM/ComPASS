@@ -21,6 +21,8 @@ def message_with_banner(banner, message, abort, explanation=None):
         mpi.abort()
 
 
+# careful : error or warning messages can be raised from master proc only
+# cf issue #408
 @mpi.on_master_proc
 def error(message, abort=True, explanation=None):
     message_with_banner("ERROR", message, abort, explanation)
