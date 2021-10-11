@@ -172,7 +172,7 @@ void add_Residu_wrappers(py::module& module) {
            "nodes",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.nodes_size(), Residuals::npv()),
+                  cast_to_pyarray_shape(number_of_nodes(), Residuals::npv()),
                   self.nodes_begin()};
            },
            py::keep_alive<0, 1>())
@@ -180,7 +180,7 @@ void add_Residu_wrappers(py::module& module) {
            "own_nodes",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.own_nodes_size(),
+                  cast_to_pyarray_shape(number_of_own_nodes(),
                                         Residuals::npv()),
                   self.nodes_begin()};
            },
@@ -189,7 +189,7 @@ void add_Residu_wrappers(py::module& module) {
            "fractures",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.fractures_size(),
+                  cast_to_pyarray_shape(number_of_fractures(),
                                         Residuals::npv()),
                   self.fractures_begin()};
            },
@@ -198,7 +198,7 @@ void add_Residu_wrappers(py::module& module) {
            "own_fractures",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.own_fractures_size(),
+                  cast_to_pyarray_shape(number_of_own_fractures(),
                                         Residuals::npv()),
                   self.fractures_begin()};
            },
@@ -207,7 +207,7 @@ void add_Residu_wrappers(py::module& module) {
            "cells",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.cells_size(), Residuals::npv()),
+                  cast_to_pyarray_shape(number_of_cells(), Residuals::npv()),
                   self.cells_begin()};
            },
            py::keep_alive<0, 1>())
@@ -215,7 +215,7 @@ void add_Residu_wrappers(py::module& module) {
            "own_cells",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.own_cells_size(),
+                  cast_to_pyarray_shape(number_of_own_cells(),
                                         Residuals::npv()),
                   self.cells_begin()};
            },
@@ -224,7 +224,7 @@ void add_Residu_wrappers(py::module& module) {
            "nodes_accumulation",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.nodes_size(), Residuals::npv()),
+                  cast_to_pyarray_shape(number_of_nodes(), Residuals::npv()),
                   self.nodes_accumulation_begin()};
            },
            py::keep_alive<0, 1>())
@@ -232,7 +232,7 @@ void add_Residu_wrappers(py::module& module) {
            "fractures_accumulation",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.fractures_size(),
+                  cast_to_pyarray_shape(number_of_fractures(),
                                         Residuals::npv()),
                   self.fractures_accumulation_begin()};
            },
@@ -241,7 +241,7 @@ void add_Residu_wrappers(py::module& module) {
            "cells_accumulation",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.cells_size(), Residuals::npv()),
+                  cast_to_pyarray_shape(number_of_cells(), Residuals::npv()),
                   self.cells_accumulation_begin()};
            },
            py::keep_alive<0, 1>())
@@ -249,7 +249,7 @@ void add_Residu_wrappers(py::module& module) {
            "own_injectors",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.own_injectors_size()),
+                  cast_to_pyarray_shape(number_of_own_injectors()),
                   self.injectors_begin()};
            },
            py::keep_alive<0, 1>())
@@ -257,7 +257,7 @@ void add_Residu_wrappers(py::module& module) {
            "own_producers",
            [](Residuals& self) {
               return py::array_t<double>{
-                  cast_to_pyarray_shape(self.own_producers_size()),
+                  cast_to_pyarray_shape(number_of_own_producers()),
                   self.producers_begin()};
            },
            py::keep_alive<0, 1>());
