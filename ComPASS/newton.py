@@ -19,7 +19,7 @@ from .callbacks import InterruptTrigger
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 NewtonLoopTick = namedtuple(
-    "NewtonLoopTick", ["timeloop_tick", "current_dt", "iteration"]
+    "NewtonLoopTick", ["timeloop_tick", "current_dt", "newton", "iteration"]
 )
 
 
@@ -170,7 +170,7 @@ class Newton:
 
         for iteration in range(self.maximum_number_of_iterations):
 
-            newton_tick = NewtonLoopTick(timeloop_tick, dt, iteration + 1)
+            newton_tick = NewtonLoopTick(timeloop_tick, dt, self, iteration + 1)
             kernel.Jacobian_ComputeJacSm(dt)
             lsolver.linear_system.set_from_jacobian()
 

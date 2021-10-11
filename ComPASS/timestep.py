@@ -40,13 +40,15 @@ def try_timestep(tick, deltat, newton, display_residual_contributions=False):
         mpi.master_print(f"Linear failure with timestep: {time_string(deltat)}")
         mpi.master_print(e)
         for callback in newton.lsolver.failure_callbacks:
-            callback(NewtonLoopTick(tick, deltat, newton.status.newton_iterations))
+            callback(
+                NewtonLoopTick(tick, deltat, newton, newton.status.newton_iterations)
+            )
         return False
     except IterationExhaustion as e:
         mpi.master_print(e.status)
         mpi.master_print(f"Newton failure with timestep: {time_string(deltat)}\n")
         for callback in newton.failure_callbacks:
-            callback(NewtonLoopTick(tick, deltat, e.status.newton_iterations))
+            callback(NewtonLoopTick(tick, deltat, newton, e.status.newton_iterations))
         return False
 
     mpi.master_print("Success with timestep: ", time_string(deltat))
