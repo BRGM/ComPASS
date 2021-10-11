@@ -1,6 +1,6 @@
 Main Page    {#mainpage}
 =========
-
+<!--
 The objectives are to develop efficient parallel numerical methods
 to simulate gas liquid compositional thermal flow in high energy
 geothermal reservoirs. The spatial discretization is adapted to
@@ -19,14 +19,14 @@ This project is a collaboration started in 2014 between:  <br>
 Konstantin Brenner and Roland Masson   <br>
 An ANR project ?????????? has been submitted to strenghen the project
 and enlarge it to other partners like Storengy, La Maison de la Simulation et
-le Laboratoire Jacques Louis Lions.
+le Laboratoire Jacques Louis Lions. -->
 
 
 
 <!--- One sentence on what is the PROJECT. -->
 <!--- One sentence on who is the targeted audience. -->
 
-
+<!--
 ## Documentation and Information
 
 <a target="_blank" href="http://compass.gforge.inria.fr/">A website</a> is dedicated to
@@ -87,4 +87,4 @@ example of mesh file ????
 
 
 
-# Current limitations
+# Current limitations -->

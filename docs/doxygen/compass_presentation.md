@@ -1,7 +1,7 @@
 ComPASS brief history {#compass_doc}
 ======================
 
-#  Brief history of the code ComPASS
+<!-- #  Brief history of the code ComPASS
 
 
 The objectives of ComPASS are to develop efficient parallel numerical methods
@@ -27,4 +27,4 @@ ANR ???????
 
 \example hexa6_wellprod.msh
 This is an example of a cartesian mesh with 6 cells and 3 wells (2 injectors and 1 productor).
-The fractures are defined in File DefGeometry.f90
+The fractures are defined in File DefGeometry.f90 -->
