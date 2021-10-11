@@ -125,6 +125,7 @@ def standard_loop(
     dumper=None,
     iteration_callbacks=None,
     output_callbacks=None,
+    newton_iteration_callbacks=None,
     specific_outputs=None,
     newton=None,
     time_step_manager=None,
@@ -162,6 +163,8 @@ def standard_loop(
     :param output_callbacks: A sequence that holds callbacks that will be called before each simulation ouput
         (cf. ``ouput_period`` and ``output_every``).
         The callback signature must be `f(tick)` where `tick` is compliant with the :py:class:`TimeloopTick`.
+    :param newton_iteration_callbacks: A sequence that holds callbacks that will be called after each newton iteration.
+        The callback must have an argument which is supposed to be a NewtonLoopTick.
     :param specific_outputs: A sequence of additional output times.
     :param newton: A :class:`ComPASS.newton.Newton` object. If not provided a default one will be created
         by the :func:`~ComPASS.simulation.base.default_Newton` function.
@@ -225,6 +228,14 @@ def standard_loop(
         output_callbacks = tuple()
     if specific_outputs is None:
         specific_outputs = []
+    # FIXME: cf. #411 we should use list
+    if newton_iteration_callbacks is not None:
+        if newton.iteration_callbacks is None:
+            newton.iteration_callbacks = tuple(newton_iteration_callbacks)
+        else:
+            newton.iteration_callbacks = newton.iteration_callbacks + tuple(
+                newton_iteration_callbacks
+            )
     events = _make_event_list(events)
     total_time = None if final_time is None else (final_time - t0)
     while len(events) > 0 and events[0].time < t0:
