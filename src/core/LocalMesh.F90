@@ -1109,7 +1109,7 @@ contains
 
                ! proc containing this cell
                procCV = ProcbyCell(kf)
-               if ((ipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
+               if ((kipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
             enddo
 
             colorProc(procf + 1) = 1
@@ -1146,7 +1146,7 @@ contains
                kf = CellbyNode%Num(j)
                ! proc that cell is own
                procCV = ProcbyCell(kf)
-               if ((ipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
+               if ((kipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
             enddo
             ! looking for the proc among the neighbour proc of ip
             ind = -1
@@ -1178,7 +1178,7 @@ contains
                kf = CellbyNode%Num(j)
                ! proc that cell is own
                procCV = ProcbyCell(kf)
-               if ((ipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
+               if ((kipf == -1) .or. (kf < kipf)) procf = procCV; kipf = kf
             enddo
 
             ! looking for the proc among the neighbour proc of ip
