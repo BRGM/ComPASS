@@ -335,7 +335,6 @@ contains
                   numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
 
                   dpkj = IncCell(k)%phase_pressure(numph_k) - IncNode(numj)%phase_pressure(numph_k)
-! cela doit etre un bug car il faut calculer les Pcs de ttes les phases, pas slt les phases presentes
                   FluxDarcyKI(numph_k, i, k) = FluxDarcyKI(numph_k, i, k) &
                                                + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
                end do
@@ -346,7 +345,6 @@ contains
 
                   if (.not. phase_can_be_present(numph_i, IncCell(k)%ic)) then ! this phase is not in Q_k
                      dpkj = IncCell(k)%phase_pressure(numph_i) - IncNode(numj)%phase_pressure(numph_i)
-! cela doit etre un bug car il faut calculer les Pcs de ttes les phases, pas slt les phases presentes
                      FluxDarcyKI(numph_i, i, k) = FluxDarcyKI(numph_i, i, k) &
                                                   + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
                   end if
