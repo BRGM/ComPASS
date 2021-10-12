@@ -8,7 +8,6 @@
 
 from collections import namedtuple
 import numpy as np
-import cProfile
 from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
