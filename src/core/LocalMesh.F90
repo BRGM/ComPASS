@@ -1088,6 +1088,8 @@ contains
       nbProcVoisinNode = 0
       ! colorProc(IdProc+1) = 1 if IdProc is neighbour of the concerned proc
       colorProc(:) = -1
+      ! we include current proc because in very rare configuration it may have no own nodes
+      colorProc(ip1) = 1
 
       do i = 1, NbNode
          if (colorNode(i) == ip) then
