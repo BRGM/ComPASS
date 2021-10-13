@@ -21,7 +21,7 @@ def create_well_from_segments(
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_well_from_segments`
-    :param segments: a sequence of pair vertices id oritented from wellhead downwards
+    :param segments: a sequence of pair vertices id oriented from wellhead downwards
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     :param multi_segmented: create a multi-segemented well (default is False)
     """
