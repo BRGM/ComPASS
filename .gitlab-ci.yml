@@ -165,7 +165,8 @@ more sanity tests:
         unit/phase_pressure_absent_phase.py \
         unit/two_cells_fracture_zero.py \
         unit/salome/test_standalone.py \
-        unit/salome/test_with_compass.py
+        unit/salome/test_with_compass.py \
+        unit/chair_well.py
       do
         echo "------------------------------------------------------------"
         echo "Running: $f"
