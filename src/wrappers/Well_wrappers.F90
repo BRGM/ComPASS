@@ -7,19 +7,30 @@
 !
 
     module WellWrapper
-
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+       use, intrinsic :: iso_c_binding
+       use mpi, only: MPI_Abort
+       use CommonMPI, only: ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
+       use CommonTypesWrapper, only: cpp_COC
+       use InteroperabilityStructures, only: cpp_array_wrapper
+       use DefModel
+       use DefWell
+       use DefMSWell
+       use GlobalMesh
+#else
        use, intrinsic :: iso_c_binding
        use mpi, only: MPI_Abort
        use CommonMPI, only: ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
        use CommonTypesWrapper, only: cpp_COC
        use InteroperabilityStructures, only: cpp_array_wrapper
        use DefModel, only: NbComp
-       use DefWell, only: DataWellProd, DataWellInj
+       use DefWell, only: DataWellProd, DataWellInj, &
+                          GlobalWellGeometries, DefWell_clear_global_well_geometries
+       use DefMSWell, only: DataMSWell
        use GlobalMesh, only: &
-          NbEdgebyWellInj, NbEdgebyWellProd, &
-          NbWellInj, NbWellProd, &
-          NumNodebyEdgebyWellInj, NumNodebyEdgebyWellProd
+          GeomInj, GeomProd, GeomMSWell
 
+#endif
        implicit none
 
        type, bind(C) :: Producer_data
@@ -40,36 +51,52 @@
           character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode ; 'c' for closed
        end type Injector_data
 
+       type, bind(C) :: MSWell_data
+          integer(c_int) :: id
+          real(c_double) :: radius
+          character(c_char) :: operating_code  ! 'p' for pressure mode ; 'f' for flowrate mode ; 'c' for closed
+          real(c_double) :: imposed_flowrate
+          ! For ms-wells producers
+          real(c_double) :: minimum_pressure
+          ! For ms-wells injectors
+          ! FIXME: introduce composition (CompTotal(NbComp))
+          real(c_double) :: injection_temperature
+          real(c_double) :: maximum_pressure
+          !Flag to distinguish producers from injectors
+          character(c_char) :: well_type
+       end type MSWell_data
+
        public :: &
           Well_allocate_specific_well_geometries, &
           Well_set_producers_data, &
           Well_set_injectors_data, &
+          Well_set_mswells_data, &
           Well_allocate_well_geometries_from_C, &
           Well_set_wells_data_from_C
 
     contains
 
-       subroutine Well_allocate_specific_well_geometries(geometries, NbEdgebyWell, NumNodebyEdgebyWell)
+       subroutine Well_allocate_specific_well_geometries(cpp_geometries, geometries)
 
-          type(cpp_COC), intent(in) :: geometries
-          integer, allocatable, dimension(:), intent(inout) :: NbEdgebyWell
-          integer, allocatable, dimension(:, :, :), intent(inout) :: NumNodebyEdgebyWell
+          type(cpp_COC), intent(in) :: cpp_geometries
+          type(GlobalWellGeometries), target, intent(inout) :: geometries
+
+          integer :: i, j, k, nb_wells, nb_nodes, nb_edges
           integer(c_int), pointer :: offsets(:), edges(:)
-          integer :: j, k, nb_nodes, nb_edges
-          integer(c_size_t) :: i, nb_wells
+          integer(c_int), dimension(:), pointer :: NbEdgebyWell
+          integer(c_int), dimension(:, :, :), pointer :: NumNodebyEdgebyWell
 
-          ! FIXME: Memory management should not be here
-          if (allocated(NbEdgebyWell)) then
-             deallocate (NbEdgebyWell)
-          end if
-          ! FIXME: Memory management should not be here
-          if (allocated(NumNodebyEdgebyWell)) then
-             deallocate (NumNodebyEdgebyWell)
-          end if
+          call DefWell_clear_global_well_geometries(geometries)
 
-          nb_wells = geometries%nb_containers
-          allocate (NbEdgebyWell(nb_wells))
-          call c_f_pointer(geometries%container_offset, offsets, shape=[nb_wells + 1])
+          nb_wells = int(cpp_geometries%nb_containers)
+#ifndef NDEBUG
+          if (nb_wells < 0) call CommonMPI_abort("Cast error!")
+#endif
+          geometries%Nb = nb_wells
+
+          allocate (geometries%NbEdgebyWell(nb_wells))
+          NbEdgebyWell => geometries%NbEdgebyWell
+          call c_f_pointer(cpp_geometries%container_offset, offsets, shape=[nb_wells + 1])
           do i = 1, nb_wells
              nb_nodes = offsets(i + 1) - offsets(i)
              if (mod(nb_nodes, 2) /= 0) &
@@ -77,8 +104,10 @@
              nb_edges = nb_nodes/2
              NbEdgebyWell(i) = nb_edges
           end do
-          allocate (NumNodebyEdgebyWell(2, maxval(NbEdgebyWell), nb_wells))
-          call c_f_pointer(geometries%container_content, edges, shape=[offsets(nb_wells + 1)])
+
+          allocate (geometries%NumNodebyEdgebyWell(2, maxval(NbEdgebyWell), nb_wells))
+          NumNodebyEdgebyWell => geometries%NumNodebyEdgebyWell
+          call c_f_pointer(cpp_geometries%container_content, edges, shape=[offsets(nb_wells + 1)])
           k = 1
           do i = 1, nb_wells
              do j = 1, NbEdgebyWell(i)
@@ -91,25 +120,17 @@
 
        end subroutine Well_allocate_specific_well_geometries
 
-       subroutine Well_allocate_well_geometries_from_C(producers_geometries, injectors_geometries) &
+       subroutine Well_allocate_well_geometries_from_C(producers_geometries, injectors_geometries, mswells_geometries) &
           bind(C, name="Well_allocate_well_geometries")
 
           type(cpp_COC), intent(in) :: producers_geometries
           type(cpp_COC), intent(in) :: injectors_geometries
+          type(cpp_COC), intent(in) :: mswells_geometries
 
-          !write(*,*) "FORTRAN - Producers"
-          call Well_allocate_specific_well_geometries(producers_geometries, NbEdgebyWellProd, NumNodebyEdgebyWellProd)
-          ! FIXME: Setting here a global variable
-          NbWellProd = size(NbEdgebyWellProd)
-          !write(*,*) "NbEdgebyWellProd:", NbEdgebyWellProd
-          !write(*,*) "NumNodebyEdgebyWellProd:", NumNodebyEdgebyWellProd
-
-          !write(*,*) "FORTRAN - Injectors"
-          call Well_allocate_specific_well_geometries(injectors_geometries, NbEdgebyWellInj, NumNodebyEdgebyWellInj)
-          ! FIXME: Setting here a global variable
-          NbWellInj = size(NbEdgebyWellInj)
-          !write(*,*) "NbEdgebyWellInj:", NbEdgebyWellInj
-          !write(*,*) "NumNodebyEdgebyWellInj:", NumNodebyEdgebyWellInj
+          ! FIXME: Setting global variables
+          call Well_allocate_specific_well_geometries(producers_geometries, GeomProd)
+          call Well_allocate_specific_well_geometries(injectors_geometries, GeomInj)
+          call Well_allocate_specific_well_geometries(mswells_geometries, GeomMSWell)
 
        end subroutine Well_allocate_well_geometries_from_C
 
@@ -163,13 +184,42 @@
 
        end subroutine Well_set_injectors_data
 
-       subroutine Well_set_wells_data_from_C(c_producers_data, c_injectors_data) &
+       subroutine Well_set_mswells_data(c_mswells_data)
+
+          type(cpp_array_wrapper), intent(in) :: c_mswells_data
+          integer(c_size_t) :: k, nb_mswells
+          type(MSWell_data), dimension(:), pointer :: mswells_data_proxy
+
+          nb_mswells = c_mswells_data%n
+          allocate (DataMSWell(nb_mswells))
+          call c_f_pointer(c_mswells_data%p, mswells_data_proxy, shape=[nb_mswells])
+          !write(*,*) "decode", nb_injectors, "injectors"
+          do k = 1, nb_mswells
+             DataMSWell(k)%Id = mswells_data_proxy(k)%id
+             DataMSWell(k)%Radius = mswells_data_proxy(k)%radius
+             DataMSWell(k)%Well_type = mswells_data_proxy(k)%well_type
+             DataMSWell(k)%IndWell = mswells_data_proxy(k)%operating_code
+             !Producers data
+             DataMSWell(k)%PressionMin = mswells_data_proxy(k)%minimum_pressure
+             !Injectors data
+             if (DataMSWell(k)%Well_type == 'i') then
+                DataMSWell(k)%CompTotal(:) = 1.d0 ! FIXME... for multi component injection
+             end if
+             DataMSWell(k)%InjectionTemperature = mswells_data_proxy(k)%injection_temperature
+             DataMSWell(k)%PressionMax = mswells_data_proxy(k)%maximum_pressure
+             DataMSWell(k)%ImposedFlowrate = mswells_data_proxy(k)%imposed_flowrate
+          end do
+
+       end subroutine Well_set_mswells_data
+
+       subroutine Well_set_wells_data_from_C(c_producers_data, c_injectors_data, c_mswells_data) &
           bind(C, name="Well_set_wells_data")
 
-          type(cpp_array_wrapper), intent(in) :: c_producers_data, c_injectors_data
+          type(cpp_array_wrapper), intent(in) :: c_producers_data, c_injectors_data, c_mswells_data
 
           call Well_set_producers_data(c_producers_data)
           call Well_set_injectors_data(c_injectors_data)
+          call Well_set_mswells_data(c_mswells_data)
 
        end subroutine Well_set_wells_data_from_C
 

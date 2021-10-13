@@ -16,11 +16,20 @@
 module LocalMesh
 
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
-   use CommonType
-   use CommonMPI
+   use iso_c_binding, only: c_int
+   use CommonType, only: &
+      CSR, FamilyDOFId, FamilyDOFIdCOC, Array1IdNode, &
+      ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
+      CommonType_deallocCSR, copy_sparsity_pattern
+   use CommonMPI, only: Ncpus, CommonMPI_abort
+
    use GlobalMesh
+   ! use PartitionMesh, only: &
+   ! ProcbyCell
+
    use DefModel
    use DefWell
+   use DefMSWell
 #else
    use iso_c_binding, only: c_int
    use CommonType, only: &
@@ -37,7 +46,9 @@ module LocalMesh
       CellbyNode, &
       IdNode, IdFace, IdCell, &
       NodebyWellInj, NodebyWellProd, &
-      NbWellInj, NbFace, NbCell, NbNode, NbWellProd, &
+      NodebyMSWell, NodebyMSWell, &
+      GeomInj, GeomProd, GeomMSWell, &
+      NbFace, NbCell, NbNode, &
       CellThermalSource, FracThermalSource, CondThermalFrac, &
       PermFrac, PorositeCell, PorositeFrac, NodeFlags, &
       CellTypes, FaceTypes, &
@@ -53,6 +64,8 @@ module LocalMesh
    use DefWell, only: &
       TYPE_CSRDataNodeWell, WellData_type, &
       DataWellInj, DataWellProd, NodeDatabyWellProd, NodeDatabyWellInj
+   use DefMSWell, only: &
+      DataMSWell, NodeDatabyMSWell, MSWellData_type
 #endif
 
    ! 1. FacebyCellRes_Ncpus, NodebyFaceRes_Ncpus,
@@ -89,17 +102,24 @@ module LocalMesh
       NbWellInjResS_Ncpus, & !< Number of Injection Wells res=own+ghost for all CPUs
       NbWellInjOwnS_Ncpus, & !< Number of Injection Wells own for all CPUs
       NbWellProdResS_Ncpus, & !< Number of Production Wells res=own+ghost for all CPUs
-      NbWellProdOwnS_Ncpus    !< Number of Production Wells own for all CPUs
+      NbWellProdOwnS_Ncpus     !< Number of Production Wells own for all CPUs
+
+   ! MSWell
+   integer, dimension(:), allocatable, public :: &
+      NbMSWellResS_Ncpus, & !< Number of MSWells res=own+ghost for all CPUs
+      NbMSWellOwnS_Ncpus  !< Number of MSWells own for all CPUs
 
    ! Well connectivities in global number
    type(CSR), dimension(:), allocatable, public :: &
       NodebyWellInjRes_Ncpus, & !< Node (global number) of injection well res=own+ghost for all CPUs
-      NodebyWellProdRes_Ncpus   !< Node (global number) of production well res=own+ghost for all CPUs
+      NodebyWellProdRes_Ncpus, &   !< Node (global number) of production well res=own+ghost for all CPUs
+      NodebyMSWellRes_Ncpus   !< Node (global number) of production well res=own+ghost for all CPUs
 
    ! Well connectivites in index (local)
    type(CSR), dimension(:), allocatable, public :: &
       NodebyWellInjLocal_Ncpus, & !< Node (local number) of injection well res=own+ghost for all CPUs
-      NodebyWellProdLocal_Ncpus   !< Node (local number) of production well res=own+ghost for all CPUs
+      NodebyWellProdLocal_Ncpus, & !< Node (local number) of production well res=own+ghost for all CPUs
+      NodebyMSWellLocal_Ncpus     !< Node (local number) of  multi-segmented wells res=own+ghost for all CPUs
 
    Double precision, protected :: &
       meshSizeS_xmax, & !< Temporary vector to send global size of mesh xmax
@@ -135,11 +155,13 @@ module LocalMesh
    !!  | wells own | wells ghost (which are own for proc i) | wells ghost (which are own for proc j>i) | ...
    type(CSR), dimension(:), allocatable, public :: &
       WellInjbyProc, & !< Local injection Wells by proc in num global (CSR)
-      WellProdbyProc   !< Local production Wells by proc in num global (CSR)
+      WellProdbyProc, &   !< Local production Wells by proc in num global (CSR)
+      MSWellbyProc     !< Local MSWells by proc in num global (CSR)
 
    !! DataWellRes_Ncpus(num_welllocal,num_proc)
    type(WellData_type), allocatable, dimension(:, :), public :: DataWellInjRes_Ncpus !< Data of injection well (Radius,...) for local well
    type(WellData_type), allocatable, dimension(:, :), public :: DataWellProdRes_Ncpus !< Data of production well (Radius,...) for local well
+   type(MSWellData_type), allocatable, dimension(:, :), public :: DataMSWellRes_Ncpus !< Data of production well (Radius,...) for local mswell
 
    !! NumNode/Frac/WellbyProc_Ncpus(ip): node/frac/well num in the proc that this object is own
    type(FamilyDOFIdCOC), dimension(:), allocatable, public :: &
@@ -181,7 +203,8 @@ module LocalMesh
    !! The following vectors are used to the strucutre of Jacobian
    type(CSR), dimension(:), allocatable, public :: &
       WellInjbyNodeOwn_Ncpus, &  ! numero (local) of well inj connected to this node own
-      WellProdbyNodeOwn_Ncpus    ! numero (local) of well prod connected to this node own
+      WellProdbyNodeOwn_Ncpus, &    ! numero (local) of well prod connected to this node own
+      MSWellbyNodeOwn_Ncpus    ! numero (local) of mswell  connected to this node own
 
    type(CSR), dimension(:), allocatable, public :: &
       FacebyNodeOwn_Ncpus ! only used to make FracbyNodeOwn_Ncpus
@@ -237,7 +260,8 @@ module LocalMesh
    ! Data of Node by Well (Parent, PtParent, WID, WIF)
    type(TYPE_CSRDataNodeWell), dimension(:), allocatable, public :: &
       NodeDatabyWellInjLocal_Ncpus, &
-      NodeDatabyWellProdLocal_Ncpus
+      NodeDatabyWellProdLocal_Ncpus, &
+      NodeDatabyMSWellLocal_Ncpus
 
    ! tmp vectors used to transform from num (global) to num (local)
    integer, dimension(:), allocatable, private :: &
@@ -334,16 +358,22 @@ contains
       allocate (NbWellProdResS_Ncpus(Ncpus))
       allocate (NbWellProdOwnS_Ncpus(Ncpus))
 
+      ! local info mswell res and own
+      allocate (NbMSWellResS_Ncpus(Ncpus))
+      allocate (NbMSWellOwnS_Ncpus(Ncpus))
+
       ! local mesh and connectivities in num (global)
       allocate (FacebyCellRes_Ncpus(Ncpus))
       allocate (NodebyCellRes_Ncpus(Ncpus))
       allocate (CellbyFaceRes_Ncpus(Ncpus))
       allocate (NodebyFaceRes_Ncpus(Ncpus))
       ! local well connectivity in num (global)
-      allocate (DataWellInjRes_Ncpus(NbWellInj, Ncpus))
-      allocate (DataWellProdRes_Ncpus(NbWellProd, Ncpus))
+      allocate (DataWellInjRes_Ncpus(GeomInj%Nb, Ncpus))
+      allocate (DataWellProdRes_Ncpus(GeomProd%Nb, Ncpus))
+      allocate (DataMSWellRes_Ncpus(GeomMSWell%Nb, Ncpus))
       allocate (NodebyWellInjRes_Ncpus(Ncpus))
       allocate (NodebyWellProdRes_Ncpus(Ncpus))
+      allocate (NodebyMSWellRes_Ncpus(Ncpus))
 
       ! local mesh and connectivities in num (local) own+ghost
       allocate (FacebyCellLocal_Ncpus(Ncpus))
@@ -354,6 +384,7 @@ contains
       ! local well connectivity in num (local)
       allocate (NodebyWellInjLocal_Ncpus(Ncpus))
       allocate (NodebyWellProdLocal_Ncpus(Ncpus))
+      allocate (NodebyMSWellLocal_Ncpus(Ncpus))
 
       ! local mesh and connectivities in num (local) own
       allocate (CellbyNodeOwn_Ncpus(Ncpus))
@@ -367,6 +398,7 @@ contains
 
       allocate (WellInjbyNodeOwn_Ncpus(Ncpus))
       allocate (WellProdbyNodeOwn_Ncpus(Ncpus))
+      allocate (MSWellbyNodeOwn_Ncpus(Ncpus))
 
       allocate (XNodeRes_Ncpus(Ncpus))
       allocate (NodeFlags_Ncpus(Ncpus))
@@ -386,6 +418,7 @@ contains
       allocate (FracbyProc(Ncpus))
       allocate (WellInjbyProc(Ncpus))
       allocate (WellProdbyProc(Ncpus))
+      allocate (MSWellbyProc(Ncpus))
 
       ! IdFace/Node
       allocate (IdFaceRes_Ncpus(Ncpus))
@@ -417,6 +450,7 @@ contains
       ! Data of Node by Well
       allocate (NodeDatabyWellInjLocal_Ncpus(Ncpus))
       allocate (NodeDatabyWellProdLocal_Ncpus(Ncpus))
+      allocate (NodeDatabyMSWellLocal_Ncpus(Ncpus))
 
       ! tmp vectors used to transform from num (global) to num (local)
       allocate (localbyGlobalCell(NbCell))
@@ -426,7 +460,7 @@ contains
       ! work arrays
       allocate (node_color(NbNode))
       allocate (proc_color(Ncpus))
-      allocate (well_color(max(NbWellInj, NbWellProd)))
+      allocate (well_color(max(GeomInj%Nb, GeomProd%Nb, GeomMSWell%Nb)))
 
       do i = 0, Ncpus - 1
 
@@ -441,9 +475,16 @@ contains
 
          !> Set Mesh and connectivites in num (local)
 
-         ! Wells
+         ! Wells and MSWells
          call LocalMesh_WellbyProc(i, node_color, proc_color, well_color)  ! WellInjbyProc(ip1)   (and WellProd)
-         call LocalMesh_NodebyWellRes(i)  ! NodebyWellInjRes_Ncpus(ip1)   (and WellProd)
+
+         call LocalMesh_NodebyWellRes(i, NbWellInjResS_Ncpus, WellInjbyProc, &
+                                      NodebyWellInj, NodebyWellInjRes_Ncpus)
+         call LocalMesh_NodebyWellRes(i, NbWellProdResS_Ncpus, WellProdbyProc, &
+                                      NodebyWellProd, NodebyWellProdRes_Ncpus)
+
+         call LocalMesh_NodebyWellRes(i, NbMSWellResS_Ncpus, MSWellbyProc, &
+                                      NodebyMSWell, NodebyMSWellRes_Ncpus)
 
          ! vectors used to transform num (global) to num (local)
          call LocalMesh_GlobalToLocal(i)    ! localbyGlobalNode
@@ -453,8 +494,10 @@ contains
          call LocalMesh_NodebyFaceLocal(i)  ! NodebyFaceLocal_Ncpus(ip1)
          call LocalMesh_CellbyFaceLocal(i)  ! CellbyNodeLocal_Ncpus(ip1)
 
-         ! Wells
-         call LocalMesh_NodebyWellLocal(i)  ! NodebyWellInjLocal_Ncpus(ip1)   (and WellProd)
+         ! Wells (WellInj and WellProd) and MSWells
+         call LocalMesh_NodebyWellLocal(i, NodebyWellInjRes_Ncpus, localbyGlobalNode, NodebyWellInjLocal_Ncpus)
+         call LocalMesh_NodebyWellLocal(i, NodebyWellProdRes_Ncpus, localbyGlobalNode, NodebyWellProdLocal_Ncpus)
+         call LocalMesh_NodebyWellLocal(i, NodebyMSWellRes_Ncpus, localbyGlobalNode, NodebyMSWellLocal_Ncpus)
 
          call LocalMesh_IdFaceRes(i)        ! IdFaceRes_Ncpus(ip1)
          call LocalMesh_IdNodeRes(i)        ! IdNodeRes_Ncpus(ip1)
@@ -468,8 +511,19 @@ contains
          call LocalMesh_FacebyNodeOwn(i)    ! FacebyNodeOwn_Ncpus(ip1), only used to make FracbyNodeOwn_Ncpus(ip1)
          call LocalMesh_FracbyNodeOwn(i)    ! FracbyNodeOwn_Ncpus(ip1)
 
-         ! Wells
-         call LocalMesh_WellbyNodeOwn(i)    ! WellInjbyNodeOwn_Ncpus(ip1)     (and WellProd)
+         ! Wells,  WellInjbyNodeOwn_Ncpus(ip1)
+         call LocalMesh_WellbyNodeOwn(i, &
+                                      NbNodeOwnS_Ncpus, NbWellInjResS_Ncpus, &
+                                      NodebyWellInjLocal_Ncpus, WellInjbyNodeOwn_Ncpus)
+
+         ! Wells,  WellProdbyNodeOwn_Ncpus(ip1)
+         call LocalMesh_WellbyNodeOwn(i, &
+                                      NbNodeOwnS_Ncpus, NbWellProdResS_Ncpus, &
+                                      NodebyWellProdLocal_Ncpus, WellProdbyNodeOwn_Ncpus)
+         ! MSWells
+         call LocalMesh_WellbyNodeOwn(i, &
+                                      NbNodeOwnS_Ncpus, NbMSWellResS_Ncpus, &
+                                      NodebyMSWellLocal_Ncpus, MSWellbyNodeOwn_Ncpus)
 
          call LocalMesh_CellbyFracOwn(i)    ! CellbyFracOwn_Ncpus(ip1)
          call LocalMesh_NodebyFracOwn(i)    ! NodebyFracOwn_Ncpus(ip1)
@@ -497,8 +551,18 @@ contains
          CALL LocalMesh_ThermalSource(i)
 #endif
 
-         ! Data Node of well
-         call LocalMesh_NodeDatabyWellLocal(i)  ! NodeDatabyWellLocal_Ncpus(ip1)
+         ! Data Node of well, Injectors
+         call LocalMesh_NodeDatabyWellLocal(i, localbyGlobalNode, WellInjbyProc, &
+                                            NodebyWellInj, NodeDatabyWellInj, NodebyWellInjLocal_Ncpus, &
+                                            NodeDatabyWellInjLocal_Ncpus)  ! NodeDatabyWellLocal_Ncpus(ip1)
+         ! Data Node of well, Producers
+         call LocalMesh_NodeDatabyWellLocal(i, localbyGlobalNode, WellProdbyProc, &
+                                            NodebyWellProd, NodeDatabyWellProd, NodebyWellProdLocal_Ncpus, &
+                                            NodeDatabyWellProdLocal_Ncpus)  ! NodeDatabyWellLocal_Ncpus(ip1)
+         ! Data Node of mswell
+         call LocalMesh_NodeDatabyWellLocal(i, localbyGlobalNode, MSWellbyProc, &
+                                            NodebyMSWell, NodeDatabyMSWell, NodebyMSWellLocal_Ncpus, &
+                                            NodeDatabyMSWellLocal_Ncpus)  ! NodeDatabyMSWellLocal_Ncpus(ip1)
 
          ! Face to/from Frac
          call LocalMesh_FaceToFrac(i)       ! FaceToFracLocal_Ncpus(ip1)
@@ -511,6 +575,7 @@ contains
          call CommonType_deallocCSR(NodebyFaceRes_Ncpus(i + 1))
          call CommonType_deallocCSR(NodebyWellInjRes_Ncpus(i + 1))
          call CommonType_deallocCSR(NodebyWellProdRes_Ncpus(i + 1))
+         call CommonType_deallocCSR(NodebyMSWellRes_Ncpus(i + 1))
 
       end do
 
@@ -521,6 +586,7 @@ contains
       deallocate (NodebyFaceRes_Ncpus)
       deallocate (NodebyWellInjRes_Ncpus)
       deallocate (NodebyWellProdRes_Ncpus)
+      deallocate (NodebyMSWellRes_Ncpus)
 
       ! Free tmp vectors
       deallocate (localbyGlobalCell)
@@ -532,8 +598,8 @@ contains
 
       call LocalMesh_compute_local_info(NodebyProc, NbNode, NbNodeOwnS_Ncpus, NumNodebyProc_Ncpus)
       call LocalMesh_compute_local_info(FracbyProc, NbFace, NbFracOwnS_Ncpus, NumFracbyProc_Ncpus)
-      call LocalMesh_compute_local_info(WellInjbyProc, NbWellInj, NbWellInjOwnS_Ncpus, NumWellInjbyProc_Ncpus)
-      call LocalMesh_compute_local_info(WellProdbyProc, NbWellProd, NbWellProdOwnS_Ncpus, NumWellProdbyProc_Ncpus)
+      call LocalMesh_compute_local_info(WellInjbyProc, GeomInj%Nb, NbWellInjOwnS_Ncpus, NumWellInjbyProc_Ncpus)
+      call LocalMesh_compute_local_info(WellProdbyProc, GeomProd%Nb, NbWellProdOwnS_Ncpus, NumWellProdbyProc_Ncpus)
 
       ! Mesh Size
       meshSizeS_xmax = Mesh_xmax
@@ -557,6 +623,7 @@ contains
          call CommonType_deallocCSR(FracbyProc(i))
          call CommonType_deallocCSR(WellInjbyProc(i))
          call CommonType_deallocCSR(WellProdbyProc(i))
+         call CommonType_deallocCSR(MSWellbyProc(i))
       end do
 
       deallocate (CellbyProc)
@@ -565,8 +632,10 @@ contains
       deallocate (FracbyProc)
       deallocate (WellInjbyProc)
       deallocate (WellProdbyProc)
+      deallocate (MSWellbyProc)
       deallocate (DataWellInjRes_Ncpus)
       deallocate (DataWellProdRes_Ncpus)
+      deallocate (DataMSWellRes_Ncpus)
 
    end subroutine LocalMesh_Free
 
@@ -1013,7 +1082,10 @@ contains
 
    end subroutine LocalMesh_CellbyFaceRes
 
-   pure subroutine LocalMesh_NodebyProc_add_wells(well_nodes, color, node_color, nb_wells, new_color)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_NodebyProc_add_wells(well_nodes, color, node_color, nb_wells, new_color)
       type(CSR), intent(in) :: well_nodes
       integer, intent(in) :: color
       integer, dimension(:), intent(in) :: node_color
@@ -1078,11 +1150,12 @@ contains
       ! colorNode, node own+ghost of this proc (INCLUDING node ghost due to the wells)
       colorNode(:) = colorNodeTmp(:)
 
-      ! Wells
+      ! Wells and MSWells
       ! if one node of the well is contained by the proc (node own or ghost) then
       ! every nodes of the well must be own or ghost for this proc
       call LocalMesh_NodebyProc_add_wells(NodebyWellInj, ip, colorNodeTmp, NbWellInjResS_Ncpus(ip1), colorNode)
       call LocalMesh_NodebyProc_add_wells(NodebyWellProd, ip, colorNodeTmp, NbWellProdResS_Ncpus(ip1), colorNode)
+      call LocalMesh_NodebyProc_add_wells(NodebyMSWell, ip, colorNodeTmp, NbMSWellResS_Ncpus(ip1), colorNode)
 
       ! Counting nbProcVoisinNode (nbr of proc from which ghost are synchronised)
       nbProcVoisinNode = 0
@@ -1323,7 +1396,26 @@ contains
 
    end subroutine LocalMesh_WellbyProc_part
 
-   pure subroutine LocalMesh_WellbyProc_copy_welldata(part_wells, all_data, part_data)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_MSWellbyProc_copy_mswelldata(part_wells, all_data, part_data)
+      integer, dimension(:), intent(in) :: part_wells
+      type(MSWellData_type), dimension(:), intent(in) :: all_data
+      type(MSWellData_type), dimension(:), intent(out) :: part_data
+
+      integer :: i
+
+      do i = 1, size(part_wells)
+         part_data(i) = all_data(part_wells(i))
+      enddo
+
+   end subroutine LocalMesh_MSWellbyProc_copy_mswelldata
+
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_WellbyProc_copy_welldata(part_wells, all_data, part_data)
       integer, dimension(:), intent(in) :: part_wells
       type(WellData_type), dimension(:), intent(in) :: all_data
       type(WellData_type), dimension(:), intent(out) :: part_data
@@ -1381,6 +1473,7 @@ contains
 
       call LocalMesh_color_global_nodes(NodebyProc(ip1), node_proc)
 
+      !Wells
       call LocalMesh_WellbyProc_part(NodebyWellInj, NodebyProc(ip1)%Val, node_proc, well_proc, proc_nb_wells, WellInjbyProc(ip1))
       call LocalMesh_WellbyProc_copy_welldata(WellInjbyProc(ip1)%Num, DataWellInj, DataWellInjRes_Ncpus(:, ip1))
       NbWellInjOwnS_Ncpus(ip1) = WellInjbyProc(ip1)%Pt(2)
@@ -1389,6 +1482,10 @@ contains
       call LocalMesh_WellbyProc_copy_welldata(WellProdbyProc(ip1)%Num, DataWellProd, DataWellProdRes_Ncpus(:, ip1))
       NbWellProdOwnS_Ncpus(ip1) = WellProdbyProc(ip1)%Pt(2)
 
+      !MSWells
+      call LocalMesh_WellbyProc_part(NodebyMSWell, NodebyProc(ip1)%Val, node_proc, well_proc, proc_nb_wells, MSWellbyProc(ip1))
+      call LocalMesh_MSWellbyProc_copy_mswelldata(MSWellbyProc(ip1)%Num, DataMSWell, DataMSWellRes_Ncpus(:, ip1))
+      NbMSWellOwnS_Ncpus(ip1) = MSWellbyProc(ip1)%Pt(2)
    end subroutine LocalMesh_WellbyProc
 
    subroutine LocalMesh_Flags(ip)
@@ -1493,65 +1590,44 @@ contains
    !> \brief Nodes of local wells (global number)                  <br>
    !! 1 local well = 1 line in NodebyWellRes_Ncpus (CSR) in order:                  <br>
    !!   | nodes of well own 1 | nodes of well own 2 | ... | nodes of well ghost 1 | nodes of well ghost 2 | ...
-   subroutine LocalMesh_NodebyWellRes(ip)
-
+!
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_NodebyWellRes(ip, NbWellResS_Ncpus, WellbyProc, NodebyWell, NodebyWellRes_Ncpus)
       integer, intent(in) :: ip
+      integer, dimension(:), intent(in) ::NbWellResS_Ncpus
+      type(CSR), dimension(:), intent(in) :: WellbyProc
+      type(CSR), intent(in) :: NodebyWell
+      type(CSR), dimension(:), intent(inout) :: NodebyWellRes_Ncpus
+
       integer :: ip1, k, numWellRes, Vsize, cpt
 
       ip1 = ip + 1
 
-      !! INJ WELL
-      NodebyWellInjRes_Ncpus(ip1)%Nb = NbWellInjResS_Ncpus(ip1)
-      allocate (NodebyWellInjRes_Ncpus(ip1)%Pt(NodebyWellInjRes_Ncpus(ip1)%Nb + 1))
+      NodebyWellRes_Ncpus(ip1)%Nb = NbWellResS_Ncpus(ip1)
+      allocate (NodebyWellRes_Ncpus(ip1)%Pt(NodebyWellRes_Ncpus(ip1)%Nb + 1))
 
-      NodebyWellInjRes_Ncpus(ip1)%Pt(:) = 0
-
-      ! filling of Pt
-      do k = 1, WellInjbyProc(ip1)%Pt(WellInjbyProc(ip1)%Nb + 1)
-         numWellRes = WellInjbyProc(ip1)%Num(k)
-         ! number of nodes in well numWellRes
-         NodebyWellInjRes_Ncpus(ip1)%Pt(k + 1) = NodebyWellInjRes_Ncpus(ip1)%Pt(k) &
-                                                 + NodebyWellInj%Pt(numWellRes + 1) - NodebyWellInj%Pt(numWellRes)
-      enddo
-
-      Vsize = NodebyWellInjRes_Ncpus(ip1)%Pt(NodebyWellInjRes_Ncpus(ip1)%Nb + 1)
-      allocate (NodebyWellInjRes_Ncpus(ip1)%Num(Vsize))
-
-      ! filling of Num
-      do k = 1, WellInjbyProc(ip1)%Pt(WellInjbyProc(ip1)%Nb + 1)
-
-         numWellRes = WellInjbyProc(ip1)%Num(k)
-         do cpt = 1, NodebyWellInj%Pt(numWellRes + 1) - NodebyWellInj%Pt(numWellRes)
-            NodebyWellInjRes_Ncpus(ip1)%Num(NodebyWellInjRes_Ncpus(ip1)%Pt(k) + cpt) = &
-               NodebyWellInj%Num(NodebyWellInj%Pt(numWellRes) + cpt)
-         enddo
-      enddo
-
-      !! PROD WELL
-      NodebyWellProdRes_Ncpus(ip1)%Nb = NbWellProdResS_Ncpus(ip1)
-      allocate (NodebyWellProdRes_Ncpus(ip1)%Pt(NodebyWellProdRes_Ncpus(ip1)%Nb + 1))
-
-      NodebyWellProdRes_Ncpus(ip1)%Pt(:) = 0
+      NodebyWellRes_Ncpus(ip1)%Pt(:) = 0
 
       ! filling of Pt
-      do k = 1, WellProdbyProc(ip1)%Pt(WellProdbyProc(ip1)%Nb + 1)
-
-         numWellRes = WellProdbyProc(ip1)%Num(k)
+      do k = 1, WellbyProc(ip1)%Pt(WellbyProc(ip1)%Nb + 1)
+         numWellRes = WellbyProc(ip1)%Num(k)
          ! number of nodes in well numWellRes
-         NodebyWellProdRes_Ncpus(ip1)%Pt(k + 1) = NodebyWellProdRes_Ncpus(ip1)%Pt(k) &
-                                                  + NodebyWellProd%Pt(numWellRes + 1) - NodebyWellProd%Pt(numWellRes)
+         NodebyWellRes_Ncpus(ip1)%Pt(k + 1) = NodebyWellRes_Ncpus(ip1)%Pt(k) &
+                                              + NodebyWell%Pt(numWellRes + 1) - NodebyWell%Pt(numWellRes)
       enddo
 
-      Vsize = NodebyWellProdRes_Ncpus(ip1)%Pt(NodebyWellProdRes_Ncpus(ip1)%Nb + 1)
-      allocate (NodebyWellProdRes_Ncpus(ip1)%Num(Vsize))
+      Vsize = NodebyWellRes_Ncpus(ip1)%Pt(NodebyWellRes_Ncpus(ip1)%Nb + 1)
+      allocate (NodebyWellRes_Ncpus(ip1)%Num(Vsize))
 
       ! filling of Num
-      do k = 1, WellProdbyProc(ip1)%Pt(WellProdbyProc(ip1)%Nb + 1)
+      do k = 1, WellbyProc(ip1)%Pt(WellbyProc(ip1)%Nb + 1)
 
-         numWellRes = WellProdbyProc(ip1)%Num(k)
-         do cpt = 1, NodebyWellProd%Pt(numWellRes + 1) - NodebyWellProd%Pt(numWellRes)
-            NodebyWellProdRes_Ncpus(ip1)%Num(NodebyWellProdRes_Ncpus(ip1)%Pt(k) + cpt) = &
-               NodebyWellProd%Num(NodebyWellProd%Pt(numWellRes) + cpt)
+         numWellRes = WellbyProc(ip1)%Num(k)
+         do cpt = 1, NodebyWell%Pt(numWellRes + 1) - NodebyWell%Pt(numWellRes)
+            NodebyWellRes_Ncpus(ip1)%Num(NodebyWellRes_Ncpus(ip1)%Pt(k) + cpt) = &
+               NodebyWell%Num(NodebyWell%Pt(numWellRes) + cpt)
          enddo
       enddo
 
@@ -1601,39 +1677,32 @@ contains
    ! Use:
    !  NodebyWellRes_Ncpus(ip), localbyGlobalNode
    !> \brief Nodes (local number) of wells (own+ghost) of proc ip
-   subroutine LocalMesh_NodebyWellLocal(ip)
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_NodebyWellLocal(ip, nodebyWellRes_Ncpus, &
+                                           locbyGlobalNode, nodebyWellLocal_Ncpus)
 
       integer, intent(in) :: ip
+      integer, dimension(:), intent(in) :: locbyGlobalNode
+      type(CSR), dimension(:), intent(in) ::nodebyWellRes_Ncpus
+      type(CSR), dimension(:), intent(inout) ::nodebyWellLocal_Ncpus
+
       integer :: ip1, Nb, Nnnz, i
 
       ip1 = ip + 1
 
-      ! INJ WELLS
-      Nb = NodebyWellInjRes_Ncpus(ip1)%Nb
-      NodebyWellInjLocal_Ncpus(ip1)%Nb = Nb
-      Nnnz = NodebyWellInjRes_Ncpus(ip1)%Pt(Nb + 1)
-      allocate (NodebyWellInjLocal_Ncpus(ip1)%Pt(Nb + 1))
-      allocate (NodebyWellInjLocal_Ncpus(ip1)%Num(Nnnz))
+      Nb = nodebyWellRes_Ncpus(ip1)%Nb
+      nodebyWellLocal_Ncpus(ip1)%Nb = Nb
+      Nnnz = nodebyWellRes_Ncpus(ip1)%Pt(Nb + 1)
+      allocate (nodebyWellLocal_Ncpus(ip1)%Pt(Nb + 1))
+      allocate (nodebyWellLocal_Ncpus(ip1)%Num(Nnnz))
 
       do i = 1, Nb + 1
-         NodebyWellInjLocal_Ncpus(ip1)%Pt(i) = NodebyWellInjRes_Ncpus(ip1)%Pt(i)
+         nodebyWellLocal_Ncpus(ip1)%Pt(i) = nodebyWellRes_Ncpus(ip1)%Pt(i)
       end do
       do i = 1, Nnnz
-         NodebyWellInjLocal_Ncpus(ip1)%Num(i) = localbyGlobalNode(NodebyWellInjRes_Ncpus(ip1)%Num(i))
-      enddo
-
-      ! PROD WELLS
-      Nb = NodebyWellProdRes_Ncpus(ip1)%Nb
-      NodebyWellProdLocal_Ncpus(ip1)%Nb = Nb
-      Nnnz = NodebyWellProdRes_Ncpus(ip1)%Pt(Nb + 1)
-      allocate (NodebyWellProdLocal_Ncpus(ip1)%Pt(Nb + 1))
-      allocate (NodebyWellProdLocal_Ncpus(ip1)%Num(Nnnz))
-
-      do i = 1, Nb + 1
-         NodebyWellProdLocal_Ncpus(ip1)%Pt(i) = NodebyWellProdRes_Ncpus(ip1)%Pt(i)
-      end do
-      do i = 1, Nnnz
-         NodebyWellProdLocal_Ncpus(ip1)%Num(i) = localbyGlobalNode(NodebyWellProdRes_Ncpus(ip1)%Num(i))
+         nodebyWellLocal_Ncpus(ip1)%Num(i) = locbyGlobalNode(NodebyWellRes_Ncpus(ip1)%Num(i))
       enddo
 
    end subroutine LocalMesh_NodebyWellLocal
@@ -1938,120 +2007,77 @@ contains
    !> \brief Contains the local data for the wells (own+ghost) of proc ip
    !! in particular %Parent contains the local number of the node Parent                   <br>
    !!               %Parent remains -1 if head node of the well
-! FIXME: Refactor with the same function to treat successively injectors and producers
-   subroutine LocalMesh_NodeDatabyWellLocal(ip)
+
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_NodeDatabyWellLocal(ip, &
+                                               locbyGlobNode, &
+                                               wellbyProc, &
+                                               nodebyWell, &
+                                               nodeDatabyWell, &
+                                               nodebyWellLocal_Ncpus, &
+                                               nodeDatabyWellLocal_Ncpus)
 
       integer, intent(in) :: ip
+      integer, dimension(:), intent(in) ::  locbyGlobNode
+      type(CSR), intent(in) ::   nodebyWell
+      TYPE(TYPE_CSRDataNodeWell), intent(in) :: nodeDatabyWell
+      type(CSR), dimension(:), intent(in)::  wellbyProc, nodebyWellLocal_Ncpus
+      type(TYPE_CSRDataNodeWell), dimension(:), intent(inout)::  nodeDatabyWellLocal_Ncpus
+
       integer :: ip1, Nb, nnz, k, cpt, Data_cpt, numWellRes, num_parent
 
       ip1 = ip + 1
 
-      !! INJ WELL
-      Nb = NodebyWellInjLocal_Ncpus(ip1)%Nb
-      NodeDatabyWellInjLocal_Ncpus(ip1)%Nb = Nb
-      nnz = NodebyWellInjLocal_Ncpus(ip1)%Pt(Nb + 1)
+      Nb = nodebyWellLocal_Ncpus(ip1)%Nb
+      nodeDatabyWellLocal_Ncpus(ip1)%Nb = Nb
+      nnz = nodebyWellLocal_Ncpus(ip1)%Pt(Nb + 1)
 
-      allocate (NodeDatabyWellInjLocal_Ncpus(ip1)%Pt(Nb + 1))
-      allocate (NodeDatabyWellInjLocal_Ncpus(ip1)%Num(nnz))
-      allocate (NodeDatabyWellInjLocal_Ncpus(ip1)%Val(nnz))
+      allocate (nodeDatabyWellLocal_Ncpus(ip1)%Pt(Nb + 1))
+      allocate (nodeDatabyWellLocal_Ncpus(ip1)%Num(nnz))
+      allocate (nodeDatabyWellLocal_Ncpus(ip1)%Val(nnz))
 
       ! copy CSR offsets
       ! FIXME: would be shared using (shared... ?) pointers...
-      NodeDatabyWellInjLocal_Ncpus(ip1)%Pt(:) = NodebyWellInjLocal_Ncpus(ip1)%Pt(:)
-      NodeDatabyWellInjLocal_Ncpus(ip1)%Num(:) = NodebyWellInjLocal_Ncpus(ip1)%Num(:)
+      nodeDatabyWellLocal_Ncpus(ip1)%Pt(:) = nodebyWellLocal_Ncpus(ip1)%Pt(:)
+      nodeDatabyWellLocal_Ncpus(ip1)%Num(:) = nodebyWellLocal_Ncpus(ip1)%Num(:)
 
       ! NodeDatabyWell contains the data for every wells, whereas
       ! NodeDatabyWellLocal_Ncpus contains the data for the wells (own+ghost) of proc ip
-      do k = 1, WellInjbyProc(ip1)%Pt(WellInjbyProc(ip1)%Nb + 1)
-         numWellRes = WellInjbyProc(ip1)%Num(k)
+      do k = 1, wellbyProc(ip1)%Pt(wellbyProc(ip1)%Nb + 1)
+         numWellRes = WellbyProc(ip1)%Num(k)
 
-         do cpt = 1, NodebyWellInj%Pt(numWellRes + 1) - NodebyWellInj%Pt(numWellRes)
-            Data_cpt = NodeDatabyWellInjLocal_Ncpus(ip1)%Pt(k) + cpt
-            NodeDatabyWellInjLocal_Ncpus(ip1)%Val(Data_cpt) = &
-               NodeDatabyWellInj%Val(NodebyWellInj%Pt(numWellRes) + cpt)
+         do cpt = 1, nodebyWell%Pt(numWellRes + 1) - nodebyWell%Pt(numWellRes)
+            Data_cpt = nodeDatabyWellLocal_Ncpus(ip1)%Pt(k) + cpt
+            nodeDatabyWellLocal_Ncpus(ip1)%Val(Data_cpt) = &
+               nodeDatabyWell%Val(NodebyWell%Pt(numWellRes) + cpt)
             ! Change %Parent to have the local number of the node
             ! if Parent = -1 (head of the well), does not change it
-            if (NodeDatabyWellInjLocal_Ncpus(ip1)%Val(Data_cpt)%Parent > -1) then
-               NodeDatabyWellInjLocal_Ncpus(ip1)%Val(Data_cpt)%Parent = &
-                  localbyGlobalNode(NodeDatabyWellInjLocal_Ncpus(ip1)%Val(Data_cpt)%Parent)
+            if (nodeDatabyWellLocal_Ncpus(ip1)%Val(Data_cpt)%Parent > -1) then
+               nodeDatabyWellLocal_Ncpus(ip1)%Val(Data_cpt)%Parent = &
+                  locbyGlobNode(NodeDatabyWellLocal_Ncpus(ip1)%Val(Data_cpt)%Parent)
             endif
          enddo
 
 #ifndef NDEBUG
-         if (NodeDatabyWellInjLocal_Ncpus(ip1)%Val(NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1))%Parent /= -1) &
-            call CommonMPI_abort("Inconsistent injector head")
+         if (nodeDatabyWellLocal_Ncpus(ip1)%Val(nodebyWellLocal_Ncpus(ip1)%Pt(k + 1))%Parent /= -1) &
+            call CommonMPI_abort("Inconsistent head")
 #endif
          ! Find pointer of parent and fill ...%Val%PtParent (except for head node)
-         do cpt = NodebyWellInjLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1) - 1
+         do cpt = nodebyWellLocal_Ncpus(ip1)%Pt(k) + 1, nodebyWellLocal_Ncpus(ip1)%Pt(k + 1) - 1
             ! reservoir node index
-            num_parent = NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%Parent
+            num_parent = nodeDatabyWellLocal_Ncpus(ip1)%Val(cpt)%Parent
 #ifndef NDEBUG
             if (num_parent == -1) &
-               call CommonMPI_abort("Inconsistent parent vertex in injector")
+               call CommonMPI_abort("Inconsistent parent vertex")
 #endif
             ! look for parent (stored after son)
-            do Data_cpt = cpt + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1)
-               if (NodeDatabyWellInjLocal_Ncpus(ip1)%Num(Data_cpt) == num_parent) then
-                  NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%PtParent = Data_cpt
-                  NodeDatabyWellInjLocal_Ncpus(ip1)%Val(cpt)%RelParent = &
-                     Data_cpt - NodebyWellInjLocal_Ncpus(ip1)%Pt(k)
-                  exit
-               endif
-            enddo
-         enddo
-
-      enddo
-
-      !! PROD WELL
-      Nb = NodebyWellProdLocal_Ncpus(ip1)%Nb
-      NodeDatabyWellProdLocal_Ncpus(ip1)%Nb = Nb
-      nnz = NodebyWellProdLocal_Ncpus(ip1)%Pt(Nb + 1)
-
-      allocate (NodeDatabyWellProdLocal_Ncpus(ip1)%Pt(Nb + 1))
-      allocate (NodeDatabyWellProdLocal_Ncpus(ip1)%Num(nnz))
-      allocate (NodeDatabyWellProdLocal_Ncpus(ip1)%Val(nnz))
-
-      ! copy CSR offsets
-      ! FIXME: would be shared using (shared... ?) pointers...
-      NodeDatabyWellProdLocal_Ncpus(ip1)%Pt(:) = NodebyWellProdLocal_Ncpus(ip1)%Pt(:)
-      NodeDatabyWellProdLocal_Ncpus(ip1)%Num(:) = NodebyWellProdLocal_Ncpus(ip1)%Num(:)
-
-      ! NodeDatabyWell contains the data for every wells, whereas
-      ! NodeDatabyWellLocal_Ncpus contains the data for the wells (own+ghost) of proc ip
-      do k = 1, WellProdbyProc(ip1)%Pt(WellProdbyProc(ip1)%Nb + 1)
-         numWellRes = WellProdbyProc(ip1)%Num(k)
-
-         do cpt = 1, NodebyWellProd%Pt(numWellRes + 1) - NodebyWellProd%Pt(numWellRes)
-            Data_cpt = NodeDatabyWellProdLocal_Ncpus(ip1)%Pt(k) + cpt
-            NodeDatabyWellProdLocal_Ncpus(ip1)%Val(Data_cpt) = &
-               NodeDatabyWellProd%Val(NodebyWellProd%Pt(numWellRes) + cpt)
-            ! Change %Parent to have the local number of the node
-            ! if Parent = -1 (head of the well), does not change it
-            if (NodeDatabyWellProdLocal_Ncpus(ip1)%Val(Data_cpt)%Parent > -1) then
-               NodeDatabyWellProdLocal_Ncpus(ip1)%Val(Data_cpt)%Parent = &
-                  localbyGlobalNode(NodeDatabyWellProdLocal_Ncpus(ip1)%Val(Data_cpt)%Parent)
-            endif
-         enddo
-
-#ifndef NDEBUG
-         if (NodeDatabyWellProdLocal_Ncpus(ip1)%Val(NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1))%Parent /= -1) &
-            call CommonMPI_abort("Inconsistent producer head")
-#endif
-
-         ! Find pointer of parent and fill ...%Val%PtParent (except for head node)
-         do cpt = NodebyWellProdLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1) - 1
-            ! reservoir node index
-            num_parent = NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%Parent
-#ifndef NDEBUG
-            if (num_parent == -1) &
-               call CommonMPI_abort("Inconsistent parent vertex in producer")
-#endif
-            ! look for parent (stored after son)
-            do Data_cpt = cpt + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1)
-               if (NodeDatabyWellProdLocal_Ncpus(ip1)%Num(Data_cpt) == num_parent) then
-                  NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%PtParent = Data_cpt
-                  NodeDatabyWellProdLocal_Ncpus(ip1)%Val(cpt)%RelParent = &
-                     Data_cpt - NodebyWellProdLocal_Ncpus(ip1)%Pt(k)
+            do Data_cpt = cpt + 1, nodebyWellLocal_Ncpus(ip1)%Pt(k + 1)
+               if (nodeDatabyWellLocal_Ncpus(ip1)%Num(Data_cpt) == num_parent) then
+                  nodeDatabyWellLocal_Ncpus(ip1)%Val(cpt)%PtParent = Data_cpt
+                  nodeDatabyWellLocal_Ncpus(ip1)%Val(cpt)%RelParent = &
+                     Data_cpt - nodebyWellLocal_Ncpus(ip1)%Pt(k)
                   exit
                endif
             enddo
@@ -2062,97 +2088,69 @@ contains
    end subroutine LocalMesh_NodeDatabyWellLocal
 
    ! Output:
-   !   WellbyNodeOwn_Ncpus(ip)
+   !   wellbyNodeOwn_Ncpus(ip)
    ! Use:
-   !   NodebyWellLocal_Ncpus(ip),
-   !   NbNodeOwnS_Ncpus(ip), NbWellLocal_Ncpus(ip)
-   !> \brief Fill WellbyNodeOwn_Ncpus(ip)
-   !!     with the local number of well for each own node (local number) of proc ip.
-   !!     The number of rows is the number own node of proc i.
-   !!     If there is no well in own node i, juste take %Pt(i+1)=%Pt(i).
-   subroutine LocalMesh_WellbyNodeOwn(ip)
+   !   nodebyWellLocal_Ncpus(ip),
+   !   nbNodeOwn_Ncpus(ip), NbWellLocal_Ncpus(ip)
+   !> \brief Fill wellbyNodeOwn_Ncpus(ip)
+   !     with the local number of well for each own node (local number) of proc ip.
+   !     The number of rows is the number own node of proc i.
+   !     If there is no well in own node i, juste take %Pt(i+1)=%Pt(i).
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine LocalMesh_WellbyNodeOwn(ip, &
+                                         nbNodeOwn_Ncpus, &
+                                         nbWellRes_Ncpus, &
+                                         nodebyWellLocal_Ncpus, &
+                                         wellbyNodeOwn_Ncpus)
 
       integer, intent(in) :: ip
+      integer, dimension(:), intent(in) ::nbNodeOwn_Ncpus
+      integer, dimension(:), intent(in) ::nbWellRes_Ncpus
+      type(CSR), dimension(:), intent(in)::nodebyWellLocal_Ncpus
+      type(CSR), dimension(:), intent(inout):: wellbyNodeOwn_Ncpus
+
       integer :: ip1, k, n, npt
       integer, dimension(:), allocatable :: tabNbWellbyNode
 
       ip1 = ip + 1
 
-      ! INJ WELL
-
       ! %Nb
-      WellInjbyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1)
-      allocate (WellInjbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1) + 1))
-      WellInjbyNodeOwn_Ncpus(ip1)%Pt(:) = 0
+      wellbyNodeOwn_Ncpus(ip1)%Nb = nbNodeOwn_Ncpus(ip1)
+      allocate (wellbyNodeOwn_Ncpus(ip1)%Pt(nbNodeOwn_Ncpus(ip1) + 1))
+      wellbyNodeOwn_Ncpus(ip1)%Pt(:) = 0
 
-      allocate (tabNbWellbyNode(NbNodeOwnS_Ncpus(ip1)))
+      allocate (tabNbWellbyNode(nbNodeOwn_Ncpus(ip1)))
 
       ! Counting
       tabNbWellbyNode(:) = 0
-      do k = 1, NbWellInjResS_Ncpus(ip1)
-         do npt = NodebyWellInjLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1)
-            n = NodebyWellInjLocal_Ncpus(ip1)%Num(npt)   ! local num of node
-            if (n <= NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
+      do k = 1, nbWellRes_Ncpus(ip1)
+         do npt = nodebyWellLocal_Ncpus(ip1)%Pt(k) + 1, nodebyWellLocal_Ncpus(ip1)%Pt(k + 1)
+            n = nodebyWellLocal_Ncpus(ip1)%Num(npt)   ! local num of node
+            if (n <= nbNodeOwn_Ncpus(ip1)) then ! node = (node own, node ghost)
                tabNbWellbyNode(n) = tabNbWellbyNode(n) + 1
             endif
          enddo
       enddo
 
       ! Filling of %Pt
-      do n = 1, NbNodeOwnS_Ncpus(ip1)
-         WellInjbyNodeOwn_Ncpus(ip1)%Pt(n + 1) = WellInjbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)
+      do n = 1, nbNodeOwn_Ncpus(ip1)
+         wellbyNodeOwn_Ncpus(ip1)%Pt(n + 1) = wellbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)
       enddo
 
       ! Filling of %Num
-      allocate (WellInjbyNodeOwn_Ncpus(ip1)%Num(WellInjbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1) + 1)))
+      allocate (wellbyNodeOwn_Ncpus(ip1)%Num(wellbyNodeOwn_Ncpus(ip1)%Pt(nbNodeOwn_Ncpus(ip1) + 1)))
       tabNbWellbyNode(:) = 0
-      do k = 1, NbWellInjResS_Ncpus(ip1)
-         do npt = NodebyWellInjLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellInjLocal_Ncpus(ip1)%Pt(k + 1)
-            n = NodebyWellInjLocal_Ncpus(ip1)%Num(npt)   ! local num of node
-            if (n <= NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
+      do k = 1, nbWellRes_Ncpus(ip1)
+         do npt = nodebyWellLocal_Ncpus(ip1)%Pt(k) + 1, nodebyWellLocal_Ncpus(ip1)%Pt(k + 1)
+            n = nodebyWellLocal_Ncpus(ip1)%Num(npt)   ! local num of node
+            if (n <= nbNodeOwn_Ncpus(ip1)) then ! node = (node own, node ghost)
                tabNbWellbyNode(n) = tabNbWellbyNode(n) + 1
-               WellInjbyNodeOwn_Ncpus(ip1)%Num(WellInjbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)) = k
+               wellbyNodeOwn_Ncpus(ip1)%Num(wellbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)) = k
             endif
          enddo
       enddo
-
-      ! PROD WELL
-
-      ! %Nb
-      WellProdbyNodeOwn_Ncpus(ip1)%Nb = NbNodeOwnS_Ncpus(ip1)
-      allocate (WellProdbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1) + 1))
-      WellProdbyNodeOwn_Ncpus(ip1)%Pt(:) = 0
-
-      ! Counting
-      tabNbWellbyNode(:) = 0
-      do k = 1, NbWellProdResS_Ncpus(ip1)
-         do npt = NodebyWellProdLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1)
-            n = NodebyWellProdLocal_Ncpus(ip1)%Num(npt)   ! local num of node
-            if (n <= NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
-               tabNbWellbyNode(n) = tabNbWellbyNode(n) + 1
-            endif
-         enddo
-      enddo
-
-      ! Filling of %Pt
-      do n = 1, NbNodeOwnS_Ncpus(ip1)
-         WellProdbyNodeOwn_Ncpus(ip1)%Pt(n + 1) = WellProdbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)
-      enddo
-
-      ! Filling of %Num
-      allocate (WellProdbyNodeOwn_Ncpus(ip1)%Num(WellProdbyNodeOwn_Ncpus(ip1)%Pt(NbNodeOwnS_Ncpus(ip1) + 1)))
-      tabNbWellbyNode(:) = 0
-      do k = 1, NbWellProdResS_Ncpus(ip1)
-         do npt = NodebyWellProdLocal_Ncpus(ip1)%Pt(k) + 1, NodebyWellProdLocal_Ncpus(ip1)%Pt(k + 1)
-            n = NodebyWellProdLocal_Ncpus(ip1)%Num(npt)   ! local num of node
-            if (n <= NbNodeOwnS_Ncpus(ip1)) then ! node = (node own, node ghost)
-               tabNbWellbyNode(n) = tabNbWellbyNode(n) + 1
-               WellProdbyNodeOwn_Ncpus(ip1)%Num(WellProdbyNodeOwn_Ncpus(ip1)%Pt(n) + tabNbWellbyNode(n)) = k
-            endif
-         enddo
-      enddo
-
-      deallocate (tabNbWellbyNode)
 
    end subroutine LocalMesh_WellbyNodeOwn
 

@@ -88,8 +88,8 @@ struct Well_information {
 // Fortran functions
 #include "MeshSchema.fh"
 extern "C" {
-void Well_allocate_well_geometries(COC&, COC&);
-void Well_set_wells_data(ArrayWrapper&, ArrayWrapper&);
+void Well_allocate_well_geometries(COC&, COC&, COC&);
+void Well_set_wells_data(ArrayWrapper&, ArrayWrapper&, ArrayWrapper&);
 Fortran_well_data* get_injectors_data();
 std::size_t nb_injectors();
 Fortran_well_data* get_producers_data();
@@ -222,15 +222,23 @@ auto extract_geometry_info(py::list wells,
 }
 
 void set_well_geometries(py::list wells) {
-   auto producers_geometries = extract_geometry_info(
-       wells, [](const Well& well) { return well.is_producing(); });
-   auto injectors_geometries = extract_geometry_info(
-       wells, [](const Well& well) { return well.is_injecting(); });
+   auto producers_geometries =
+       extract_geometry_info(wells, [](const Well& well) {
+          return (!well.is_multi_segmented) && well.is_producing();
+       });
+   auto injectors_geometries =
+       extract_geometry_info(wells, [](const Well& well) {
+          return (!well.is_multi_segmented) && well.is_injecting();
+       });
+   auto mswells_geometries = extract_geometry_info(
+       wells, [](const Well& well) { return well.is_multi_segmented; });
    auto producers =
        COC::wrap(producers_geometries.offsets, producers_geometries.edges);
    auto injectors =
        COC::wrap(injectors_geometries.offsets, injectors_geometries.edges);
-   Well_allocate_well_geometries(producers, injectors);
+   auto mswells =
+       COC::wrap(mswells_geometries.offsets, mswells_geometries.edges);
+   Well_allocate_well_geometries(producers, injectors, mswells);
 }
 
 struct Producer_data_info {
@@ -327,6 +335,111 @@ struct Injector_data_info {
    }
 };
 
+struct MSWell_data_info {
+   int id;
+   double radius;
+   char operating_code;  // 'p' for pressure mode; 'f' for flowrate mode; 'c'
+                         // for closed
+   double imposed_flowrate;
+
+   // For mswells-producers
+   double minimum_pressure;
+   // For mswells-injectors
+   double temperature;
+   double maximum_pressure;
+   // Char to differiantate producers ('p') from injectors ('i') and other
+   // possible mswells
+   char well_type;
+
+   MSWell_data_info(const Well& well) {
+      id = well.id;
+      radius = well.geometry.radius;
+
+      if (well.is_producing()) {  // for mswells-producers
+
+         well_type = 'p';  // producer type
+         assert(well.control.status.is<Production_well_status>());
+         if (well.operates_on_pressure()) {
+            operating_code = 'p';
+            assert(well.control.operating_conditions
+                       .is<Pressure_operating_conditions>());
+            auto operating_conditions =
+                well.control.operating_conditions
+                    .get<Pressure_operating_conditions>();
+            minimum_pressure = operating_conditions.pressure;
+            imposed_flowrate = operating_conditions.flowrate_limit;
+         } else {
+            if (well.operates_on_flowrate()) {
+               operating_code = 'f';
+               assert(well.control.operating_conditions
+                          .is<Flowrate_operating_conditions>());
+               auto operating_conditions =
+                   well.control.operating_conditions
+                       .get<Flowrate_operating_conditions>();
+               minimum_pressure = operating_conditions.pressure_limit;
+               imposed_flowrate = operating_conditions.flowrate;
+            } else {
+               assert(well.is_closed());
+               operating_code = 'c';
+               minimum_pressure =
+                   std::numeric_limits<decltype(minimum_pressure)>::min();
+               imposed_flowrate = 0;
+            }
+         }
+         // std::cerr << "Create Producer_data_info: " << radius << " " <<
+         // minimum_pressure << " " << imposed_flowrate << std::endl;
+      }  // ms-wells-producers
+
+      else if (well.is_injecting()) {  // for mswells-injectors
+
+         well_type = 'i';  // injector type
+         assert(well.control.status.is<Injection_well_status>());
+         auto status = well.control.status.get<Injection_well_status>();
+         temperature = status.temperature;
+         if (well.operates_on_pressure()) {
+            operating_code = 'p';
+            assert(well.control.operating_conditions
+                       .is<Pressure_operating_conditions>());
+            auto operating_conditions =
+                well.control.operating_conditions
+                    .get<Pressure_operating_conditions>();
+            maximum_pressure = operating_conditions.pressure;
+            imposed_flowrate = operating_conditions.flowrate_limit;
+         } else {
+            if (well.operates_on_flowrate()) {
+               operating_code = 'f';
+               assert(well.control.operating_conditions
+                          .is<Flowrate_operating_conditions>());
+               auto operating_conditions =
+                   well.control.operating_conditions
+                       .get<Flowrate_operating_conditions>();
+               maximum_pressure = operating_conditions.pressure_limit;
+               imposed_flowrate = operating_conditions.flowrate;
+            } else {
+               assert(well.is_closed());
+               operating_code = 'c';
+               maximum_pressure =
+                   std::numeric_limits<decltype(maximum_pressure)>::max();
+               imposed_flowrate = 0;
+            }
+         }
+         if (imposed_flowrate > 0) {
+            imposed_flowrate = -imposed_flowrate;
+            std::cerr << "WARNING - setting negative injection flowrate"
+                      << std::endl;
+         }
+         // std::cerr << "Create Injector_data_info: " << radius << " " <<
+         // temperature << " " << maximum_pressure << " " << imposed_flowrate <<
+         // std::endl;
+      }  // ms-wells-injectors
+
+      else
+         std::cerr << "WARNING: Creating a MSWell which is not a producer or "
+                      "an injector\n ";
+
+   }  // MSWell_data_info constructor
+};
+
 /** Change well ids so that each each has a unique id. */
 void check_well_ids(py::list& wells) {
    std::set<std::size_t> ids;
@@ -366,16 +479,23 @@ void set_well_data(py::list& wells, const bool display_well_ids) {
    if (display_well_ids) output_well_ids(wells);
    std::vector<Producer_data_info> producers_info;
    std::vector<Injector_data_info> injectors_info;
+   std::vector<MSWell_data_info> mswells_info;
    for (auto& p : wells) {
       const Well& well = p.cast<const Well&>();
-      if (well.is_producing()) producers_info.emplace_back(well);
-      if (well.is_injecting()) injectors_info.emplace_back(well);
+      if ((!well.is_multi_segmented) && well.is_producing())
+         producers_info.emplace_back(well);
+      if ((!well.is_multi_segmented) && well.is_injecting())
+         injectors_info.emplace_back(well);
+      if (well.is_multi_segmented) mswells_info.emplace_back(well);
    }
    producers_info.shrink_to_fit();
    injectors_info.shrink_to_fit();
+   mswells_info.shrink_to_fit();
    auto wrapped_producers_info = ArrayWrapper::wrap(producers_info);
    auto wrapped_injectors_info = ArrayWrapper::wrap(injectors_info);
-   Well_set_wells_data(wrapped_producers_info, wrapped_injectors_info);
+   auto wrapped_mswells_info = ArrayWrapper::wrap(mswells_info);
+   Well_set_wells_data(wrapped_producers_info, wrapped_injectors_info,
+                       wrapped_mswells_info);
 }
 
 void add_well_wrappers(py::module& module) {

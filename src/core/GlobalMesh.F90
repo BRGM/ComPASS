@@ -19,7 +19,17 @@
 !! 3. IdFace, Mesh Part
 
 module GlobalMesh
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   ! This for array that are interfaced with python/C++
+   use iso_c_binding, only: c_int, c_double, c_int8_t
+   use mpi, only: MPI_Abort
+   use CommonMPI
+   use CommonType
+   use DefModel
+   use DefWell
+   use DefMSWell
 
+#else
    ! This for array that are interfaced with python/C++
    use iso_c_binding, only: c_int, c_double, c_int8_t
 
@@ -32,10 +42,14 @@ module GlobalMesh
 
    use DefWell, only: &
       TYPE_CSRDataNodeWell, NodeDatabyWellInj, NodeDatabyWellProd, &
-      DefWell_deallocCSRDataWell
+      DefWell_deallocCSRDataWell, &
+      GlobalWellGeometries, DefWell_clear_global_well_geometries
 
+   use DefMSWell, only: &
+      NodeDatabyMSWell
    ! use SchemeParameters ! FIXME: to be removed: for eps
 
+#endif
    implicit none
 
 #ifdef _DISPMODULE_
@@ -50,26 +64,7 @@ module GlobalMesh
       NbFrac, &  !< Total number of fracture faces
       NbDirNodeP !< Total number of Dirichlet nodes Darcy
 
-   ! Well
-   !> \todo FIXME: protected has been removed here to acces variable from C API
-   !!        bad practice : use getter/setter subroutines instead
-   integer :: &
-      NbWellInj, & !< Total number of injection wells
-      NbWellProd   !< Total number of production wells
-
-   ! Number of Edges by Well
-   ! FIXME: protected has been removed here to acces array from C
-   !        bad practice : use getter/setter subroutines instead
-   integer, allocatable, dimension(:) :: &
-      NbEdgebyWellInj, & !< Total number of edges for each injection well
-      NbEdgebyWellProd   !< Total number of edges for each production well
-
-   ! list of Edge by Well oriented (1:parent or 2:son,num_edge,num_well)
-   ! FIXME: protected has been removed here to acces array from C
-   !        bad practice : use getter/setter subroutines instead
-   integer, allocatable, dimension(:, :, :) :: &
-      NumNodebyEdgebyWellInj, & !< Oriented list of edge by injection well (Id_parent Id_son)
-      NumNodebyEdgebyWellProd   !< Oriented list of edge by production well (Id_parent Id_son)
+   type(GlobalWellGeometries) :: GeomInj, GeomProd, GeomMSWell
 
 #ifdef _THERMIQUE_
    integer :: &
@@ -117,7 +112,8 @@ module GlobalMesh
    ! Connectivities Well
    type(CSR), protected :: &
       NodebyWellInj, & !< CSR list of Nodes of each injection Well
-      NodebyWellProd   !< CSR list of Nodes of each production Well
+      NodebyWellProd, &  !< CSR list of Nodes of each production Well
+      NodebyMSWell      !< CSR list of Nodes of each MSWell
 
    !type(FractureInfoCOC), protected :: &
    !type(COC), protected :: &
@@ -943,16 +939,17 @@ contains
       call CommonType_deallocCSR(CellbyFace)
       call CommonType_deallocCSR(NodebyWellInj)
       call CommonType_deallocCSR(NodebyWellProd)
+      call CommonType_deallocCSR(NodebyMSWell)
       call DefWell_deallocCSRDataWell(NodeDatabyWellInj)
       call DefWell_deallocCSRDataWell(NodeDatabyWellProd)
+      call DefWell_deallocCSRDataWell(NodeDatabyMSWell)
 
       deallocate (IdCell)
       deallocate (IdFace)
       deallocate (IdNode)
-      deallocate (NbEdgebyWellInj)
-      deallocate (NbEdgebyWellProd)
-      deallocate (NumNodebyEdgebyWellInj)
-      deallocate (NumNodebyEdgebyWellProd)
+      call DefWell_clear_global_well_geometries(GeomInj)
+      call DefWell_clear_global_well_geometries(GeomProd)
+      call DefWell_clear_global_well_geometries(GeomMSWell)
       deallocate (PermCell)
       deallocate (PermFrac)
 
@@ -1112,50 +1109,52 @@ contains
    !!
    !! The order of the storage of the node of each well is important :               <br>
    !! the parent must be stored after the son(s).
-   subroutine BuildWellConnectivity(NbWell, NbEdgebyWell, NumNodebyEdgebyWell, &
-                                    NodebyWell, NodeDatabyWell)
+   subroutine BuildWellConnectivity(geometries, NodebyWell, NodeDatabyWell)
 
-      integer, intent(in) :: NbWell
-      integer, dimension(:), intent(in) :: NbEdgebyWell
-      integer, dimension(:, :, :), intent(in) :: NumNodebyEdgebyWell
+      type(GlobalWellGeometries), target, intent(in) :: geometries
 
       type(CSR), intent(out) :: NodebyWell
       type(TYPE_CSRDataNodeWell), intent(out) :: NodeDatabyWell
 
-      integer :: i, j, ival
+      integer :: i, j, ival, nb_wells, max_nb_edges_per_well, total_nb_edges
       integer, allocatable, dimension(:) :: OrderedNodes
       integer, allocatable, dimension(:) :: Parents
+      integer(c_int), dimension(:), pointer :: NbEdgebyWell
+      integer(c_int), dimension(:, :, :), pointer :: NumNodebyEdgebyWell
 
-      ! write(fdGm,*) 'Edges', NbWell, NbEdgebyWell
-      ! write(fdGm,*) NumNodebyEdgebyWell
-      ! ! The following output seems to fail
-      ! write(fdGm,'(a10,50i3)') 'parents', NumNodebyEdgebyWell(1,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
-      ! write(fdGm,'(a10,50i3)') 'sons   ', NumNodebyEdgebyWell(2,1:size(NumNodebyEdgebyWell,2),1:size(NumNodebyEdgebyWell,3))
+      NbEdgebyWell => geometries%NbEdgebyWell
+      NumNodebyEdgebyWell => geometries%NumNodebyEdgebyWell
 
-      ! allocation and initialization
-      allocate (OrderedNodes(size(NumNodebyEdgebyWell, 2) + 1))
-      allocate (Parents(size(NumNodebyEdgebyWell, 2) + 1))
-      allocate (NodebyWell%Pt(NbWell + 1))
-      allocate (NodebyWell%Num(sum(NbEdgebyWell) + NbWell))
-      allocate (NodeDatabyWell%Pt(NbWell + 1))
-      allocate (NodeDatabyWell%Num(sum(NbEdgebyWell) + NbWell)) ! <=> NbEdgebyWell + 1 for each Well
-      allocate (NodeDatabyWell%Val(sum(NbEdgebyWell) + NbWell))
+      nb_wells = geometries%Nb
+      total_nb_edges = sum(NbEdgebyWell)
 
-      NodebyWell%Nb = NbWell
-      NodeDatabyWell%Nb = NbWell
+      allocate (NodebyWell%Pt(nb_wells + 1))
+      allocate (NodebyWell%Num(total_nb_edges + nb_wells))
+      allocate (NodeDatabyWell%Pt(nb_wells + 1))
+      allocate (NodeDatabyWell%Num(total_nb_edges + nb_wells))
+      allocate (NodeDatabyWell%Val(total_nb_edges + nb_wells))
+
+      NodebyWell%Nb = nb_wells
+      NodeDatabyWell%Nb = nb_wells
       NodebyWell%Num = -1
       NodeDatabyWell%Num = -1
       NodeDatabyWell%Val(:)%PtParent = -1
       NodeDatabyWell%Val(:)%RelParent = -1
 
+      ! FIXME: Use a CSR initialization routine
       NodebyWell%Pt(1) = 0
-      do i = 1, NbWell
+      do i = 1, nb_wells
          NodebyWell%Pt(i + 1) = NodebyWell%Pt(i) + NbEdgebyWell(i) + 1
       end do
       NodeDatabyWell%Pt(:) = NodebyWell%Pt(:)
 
+      ! temporary arrays
+      max_nb_edges_per_well = size(NumNodebyEdgebyWell, 2)
+      allocate (OrderedNodes(max_nb_edges_per_well + 1))
+      allocate (Parents(max_nb_edges_per_well + 1))
+
       ! sort the nodes, following the well path
-      do i = 1, NbWell
+      do i = 1, nb_wells
          call SortWellNodes(NumNodebyEdgebyWell(1:2, 1:NbEdgebyWell(i), i), OrderedNodes, Parents)
          do j = 1, NbEdgebyWell(i) + 1
             ival = NodebyWell%Pt(i) + j
@@ -1164,18 +1163,6 @@ contains
          end do
       end do
       NodeDatabyWell%Num(:) = NodebyWell%Num(:)
-
-      ! write(fdGm,*) '+ + + + + + + + + + + + + + + + + + + + +'
-      ! do i=1,NbWell
-      !    write(fdGm,*) 'Well #', i
-      !    do j=1,NbEdgebyWell(i)+1
-      !       ival = NodebyWell%Pt(i) + j
-      !       write(fdGm,*) NodebyWell%Num(ival)
-      !       write(fdGm,*) NodeDatabyWell%Val(ival)%Parent
-      !    end do
-      !    ! call disp('OrderedNodes ', NodebyWell%Num(ival), 'i3', unit=fdGm_unit)
-      !    ! call disp('Parents      ', NodeDatabyWell%Val(ival)%Parent, 'i3', unit=fdGm_unit)
-      ! end do
 
       deallocate (OrderedNodes)
       deallocate (Parents)
@@ -1329,11 +1316,9 @@ contains
    subroutine GlobalMesh_WellConnectivity() &
       bind(C, name="build_well_connectivity")
 
-      call BuildWellConnectivity(NbWellInj, NbEdgebyWellInj, NumNodebyEdgebyWellInj, &
-                                 NodebyWellInj, NodeDatabyWellInj)
-
-      call BuildWellConnectivity(NbWellProd, NbEdgebyWellProd, NumNodebyEdgebyWellProd, &
-                                 NodebyWellProd, NodeDatabyWellProd)
+      call BuildWellConnectivity(GeomInj, NodebyWellInj, NodeDatabyWellInj)
+      call BuildWellConnectivity(GeomProd, NodebyWellProd, NodeDatabyWellProd)
+      call BuildWellConnectivity(GeomMSWell, NodebyMSWell, NodeDatabyMSWell)
 
    end subroutine GlobalMesh_WellConnectivity
 
@@ -1417,65 +1402,9 @@ contains
       allocate (IdFace(NbFace))
       IdFace = face_id
 
-      !! Number of injection wells
-      !read (16, '(a1)') lignevide
-      !read (16, *) NbWellInj
-      NbWellInj = 0 ! FIXME !
-      if (allocated(NbEdgebyWellInj)) deallocate (NbEdgebyWellInj)
-      !allocate (NbEdgebyWellInj(NbWellInj))
-      !
-      !! Edges / Wells - counting, 1st step
-      !do i = 1, NbWellInj
-      !   read (16, '(a1)') lignevide
-      !   read (16, *) NbEdgebyWellInj(i)
-      !   do j = 1, NbEdgebyWellInj(i)
-      !      read (16, '(a1)') lignevide
-      !   end do
-      !end do
-      !NbEdgesMaxInj = maxval(NbEdgebyWellInj)
-      !
-      !! Number of production wells
-      !read (16, '(a1)') lignevide
-      !read (16, *) NbWellProd
-      NbWellProd = 0 ! FIXME !
-      if (allocated(NbEdgebyWellProd)) deallocate (NbEdgebyWellProd)
-      !allocate (NbEdgebyWellProd(NbWellProd))
-      !
-      !! Edges / Wells - counting, 1st step
-      !do i = 1, NbWellProd
-      !   read (16, '(a1)') lignevide
-      !   read (16, *) NbEdgebyWellProd(i)
-      !   do j = 1, NbEdgebyWellProd(i)
-      !      read (16, '(a1)') lignevide
-      !   end do
-      !end do
-      !NbEdgesMaxProd = maxval(NbEdgebyWellProd)
-      !
-      !allocate (NumNodebyEdgebyWellInj(2, NbEdgesMaxInj, NbWellInj))
-      !allocate (NumNodebyEdgebyWellProd(2, NbEdgesMaxProd, NbWellProd))
-      !NumNodebyEdgebyWellInj = -1
-      !NumNodebyEdgebyWellProd = -1
-
-      !! Edges / Wells - filling, step 2
-      !do i=1,NbWellInj
-      !   read(16,'(a1)') lignevide
-      !   read(16,'(a1)') lignevide
-      !   do j=1,NbEdgebyWellInj(i)
-      !      read(16,*) NumNodebyEdgebyWellInj(1,j,i), NumNodebyEdgebyWellInj(2,j,i)
-      !   enddo
-      !enddo
-      !
-      !read(16,'(a1)') lignevide
-      !read(16,'(a1)') lignevide
-      !
-      !! Edges / Wells - filling, step 2
-      !do i=1,NbWellProd
-      !   read(16,'(a1)') lignevide
-      !   read(16,'(a1)') lignevide
-      !   do j=1,NbEdgebyWellProd(i)
-      !      read(16,*) NumNodebyEdgebyWellProd(1,j,i), NumNodebyEdgebyWellProd(2,j,i)
-      !   enddo
-      !enddo
+      call DefWell_clear_global_well_geometries(GeomInj)
+      call DefWell_clear_global_well_geometries(GeomProd)
+      call DefWell_clear_global_well_geometries(GeomMSWell)
 
       call GlobalMesh_allocate_flags
 

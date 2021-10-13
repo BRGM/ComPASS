@@ -7,7 +7,20 @@
 !
 
 module MeshSchema
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
+   use InteroperabilityStructures, only: cpp_array_wrapper, retrieve_csr_matrix, csr_matrix_wrapper
+   use mpi
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
 
+   use CommonType
+   use DefModel
+   use DefWell
+   use DefMSWell
+   use MeshInfo
+   use LocalMesh
+
+#else
    use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
    use InteroperabilityStructures, only: cpp_array_wrapper, retrieve_csr_matrix, csr_matrix_wrapper
    use mpi
@@ -25,6 +38,8 @@ module MeshSchema
       DefWell_mpi_register_well_data_description, DefWell_csrdatawellcopy, &
       DefWell_deallocCSRDataWell
 
+   use DefMSWell, only: &
+      MSWellData_type, DefMSWell_mpi_register_mswell_data_description
    use MeshInfo, only: &
       PartInfo
 
@@ -38,7 +53,9 @@ module MeshSchema
       NbCellOwnS_Ncpus, NbFaceOwnS_Ncpus, NbNodeOwnS_Ncpus, NbFracOwnS_Ncpus, &
       NbWellInjResS_Ncpus, NbWellProdResS_Ncpus, &
       NbWellInjOwnS_Ncpus, NbWellProdOwnS_Ncpus, &
+      NbMSWellResS_Ncpus, NbMSWellOwnS_Ncpus, &
       DataWellInjRes_Ncpus, DataWellProdRes_Ncpus, &
+      DataMSWellRes_Ncpus, &
       IdCellRes_Ncpus, IdFaceRes_Ncpus, IdNodeRes_Ncpus, &
       FracToFaceLocal_Ncpus, FaceToFracLocal_Ncpus, &
       PorositeCell_Ncpus, PorositeFrac_Ncpus, &
@@ -48,12 +65,12 @@ module MeshSchema
       NodebyNodeOwn_Ncpus, FracbyNodeOwn_Ncpus, CellbyNodeOwn_Ncpus, &
       NodebyFracOwn_Ncpus, CellbyFracOwn_Ncpus, FracbyFracOwn_Ncpus, &
       FacebyCellLocal_Ncpus, FracbyCellLocal_Ncpus, NodebyCellLocal_Ncpus, NodebyFaceLocal_Ncpus, &
-      WellInjbyNodeOwn_Ncpus, WellProdbyNodeOwn_Ncpus, &
-      NodebyWellInjLocal_Ncpus, NodebyWellProdLocal_Ncpus, &
+      WellInjbyNodeOwn_Ncpus, WellProdbyNodeOwn_Ncpus, MSWellbyNodeOwn_Ncpus, &
+      NodebyWellInjLocal_Ncpus, NodebyWellProdLocal_Ncpus, NodebyMSWellLocal_Ncpus, &
       NumNodebyProc_Ncpus, NumFracbyProc_Ncpus, &
       NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
-      NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus
-
+      NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus, NodeDatabyMSWellLocal_Ncpus
+#endif
    implicit none
 
    ! 1. Mesh Info
@@ -95,12 +112,14 @@ module MeshSchema
    ! Number of Edges by Well
    integer, allocatable, dimension(:), protected :: &
       NbEdgebyWellInjLocal, &
-      NbEdgebyWellProdLocal
+      NbEdgebyWellProdLocal, &
+      NbEdgebyMSWellLocal
 
    ! Num (local) of Nodes by Edge by Well local (own+ghost)
    integer, allocatable, dimension(:, :, :), protected :: &
       NumNodebyEdgebyWellInjLocal, &
-      NumNodebyEdgebyWellProdLocal
+      NumNodebyEdgebyWellProdLocal, &
+      NumNodebyEdgebyMSWellLocal
 
    ! 3. X node
    double precision, allocatable, dimension(:, :), target :: &
@@ -144,29 +163,36 @@ module MeshSchema
       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
 #endif
 
-   ! Well
+   ! Well and MSWells
    integer, dimension(:), allocatable, target, protected :: &
       NbWellInjLocal_Ncpus, NbWellInjOwn_Ncpus, &
-      NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus
+      NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
+      NbMSWellLocal_Ncpus, NbMSWellOwn_Ncpus
 
    ! Well connectivity in local
    type(CSR), protected :: &
       NodebyWellInjLocal, &
-      NodebyWellProdLocal
+      NodebyWellProdLocal, &
+      NodebyMSWellLocal
 
    type(WellData_type), allocatable, dimension(:), target, public :: &
       DataWellInjLocal, & !< Data of injection well (Radius,...) for local well
       DataWellProdLocal !< Data of production well (Radius,...) for local well
 
-   ! Data in nodes of wells
+   type(MSWellData_type), allocatable, dimension(:), target, public :: &
+      DataMSWellLocal   !< Data of mswell (Radius,...) for local mswell
+
+   ! Data in nodes of wells and mswells
    type(TYPE_CSRDataNodeWell), protected :: &
       NodeDatabyWellInjLocal, &
-      NodeDatabyWellProdLocal
+      NodeDatabyWellProdLocal, &
+      NodeDatabyMSWellLocal
 
    !! The follwoing vectors are used for the strucutre of Jacobian
    type(CSR), protected :: &
-      WellInjbyNodeOwn, &  ! numero (local) of well inj connected to this node own
-      WellProdbyNodeOwn    ! numero (local) of well prod connected to this node own
+      WellInjbyNodeOwn, &     ! numero (local) of well inj connected to this node own
+      WellProdbyNodeOwn, &    ! numero (local) of well prod connected to this node own
+      MSWellbyNodeOwn         ! numero (local) of mswell  connected to this node own
 
    ! 5. Frac to Face, Face to Frac
    integer(c_int), allocatable, dimension(:), target :: &
@@ -728,7 +754,18 @@ contains
       call MeshSchema_collect_fracture_nodes
 
       ! List of Edge (local number of nodes) by local Well (own+ghost)
-      call MeshSchema_NumNodebyEdgebyWellLocal
+      call MeshSchema_NumNodebyEdgebyWellLocal(NodeDatabyWellInjLocal, &
+                                               NbEdgebyWellInjLocal, &
+                                               NumNodebyEdgebyWellInjLocal)
+
+      call MeshSchema_NumNodebyEdgebyWellLocal(NodeDatabyWellProdLocal, &
+                                               NbEdgebyWellProdLocal, &
+                                               NumNodebyEdgebyWellProdLocal)
+
+      ! List of Edge (local number of nodes) by local MSWell (own+ghost)
+      call MeshSchema_NumNodebyEdgebyWellLocal(NodeDatabyMSWellLocal, &
+                                               NbEdgebyMSWellLocal, &
+                                               NumNodebyEdgebyMSWellLocal)
 
       ! XCellLocal and XFaceLocal
       call MeshSchema_XCellLocal
@@ -755,7 +792,7 @@ contains
       integer :: blocklen(5), arraytype(5)
       integer(kind=MPI_ADDRESS_KIND) ::disp(5)
 
-      integer :: MPI_WELLDATA_ID, nb_nodes, nb_fracs, nb_cells
+      integer :: MPI_WELLDATA_ID, MPI_MSWELLDATA_ID, nb_nodes, nb_fracs, nb_cells
 
       ! ************************************* !
 
@@ -772,6 +809,7 @@ contains
             call MPI_Send(NbFracResS_Ncpus, Ncpus, MPI_INTEGER, dest, 14, ComPASS_COMM_WORLD, Ierr)
             call MPI_Send(NbWellInjResS_Ncpus, Ncpus, MPI_INTEGER, dest, 141, ComPASS_COMM_WORLD, Ierr)
             call MPI_Send(NbWellProdResS_Ncpus, Ncpus, MPI_INTEGER, dest, 142, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbMSWellResS_Ncpus, Ncpus, MPI_INTEGER, dest, 143, ComPASS_COMM_WORLD, Ierr)
 
             ! Nb*OwnS_Ncpus
             call MPI_Send(NbCellOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 15, ComPASS_COMM_WORLD, Ierr)
@@ -780,6 +818,7 @@ contains
             call MPI_Send(NbFracOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 18, ComPASS_COMM_WORLD, Ierr)
             call MPI_Send(NbWellInjOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 181, ComPASS_COMM_WORLD, Ierr)
             call MPI_Send(NbWellProdOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 182, ComPASS_COMM_WORLD, Ierr)
+            call MPI_Send(NbMSWellOwnS_Ncpus, Ncpus, MPI_INTEGER, dest, 183, ComPASS_COMM_WORLD, Ierr)
 
          end do
 
@@ -789,6 +828,7 @@ contains
          allocate (NbFracLocal_Ncpus(Ncpus))
          allocate (NbWellInjLocal_Ncpus(Ncpus))
          allocate (NbWellProdLocal_Ncpus(Ncpus))
+         allocate (NbMSWellLocal_Ncpus(Ncpus))
 
          allocate (NbCellOwn_Ncpus(Ncpus))
          allocate (NbFaceOwn_Ncpus(Ncpus))
@@ -796,6 +836,7 @@ contains
          allocate (NbFracOwn_Ncpus(Ncpus))
          allocate (NbWellInjOwn_Ncpus(Ncpus))
          allocate (NbWellProdOwn_Ncpus(Ncpus))
+         allocate (NbMSWellOwn_Ncpus(Ncpus))
 
          NbCellLocal_Ncpus(:) = NbCellResS_Ncpus(:)
          NbFaceLocal_Ncpus(:) = NbFaceResS_Ncpus(:)
@@ -803,6 +844,7 @@ contains
          NbFracLocal_Ncpus(:) = NbFracResS_Ncpus(:)
          NbWellInjLocal_Ncpus(:) = NbWellInjResS_Ncpus(:)
          NbWellProdLocal_Ncpus(:) = NbWellProdResS_Ncpus(:)
+         NbMSWellLocal_Ncpus(:) = NbMSWellResS_Ncpus(:)
 
          NbCellOwn_Ncpus(:) = NbCellOwnS_Ncpus(:)
          NbFaceOwn_Ncpus(:) = NbFaceOwnS_Ncpus(:)
@@ -810,6 +852,7 @@ contains
          NbFracOwn_Ncpus(:) = NbFracOwnS_Ncpus(:)
          NbWellInjOwn_Ncpus(:) = NbWellInjOwnS_Ncpus(:)
          NbWellProdOwn_Ncpus(:) = NbWellProdOwnS_Ncpus(:)
+         NbMSWellOwn_Ncpus(:) = NbMSWellOwnS_Ncpus(:)
 
       else
          allocate (NbCellLocal_Ncpus(Ncpus))
@@ -818,6 +861,7 @@ contains
          allocate (NbFracLocal_Ncpus(Ncpus))
          allocate (NbWellInjLocal_Ncpus(Ncpus))
          allocate (NbWellProdLocal_Ncpus(Ncpus))
+         allocate (NbMSWellLocal_Ncpus(Ncpus))
 
          allocate (NbCellOwn_Ncpus(Ncpus))
          allocate (NbFaceOwn_Ncpus(Ncpus))
@@ -825,6 +869,7 @@ contains
          allocate (NbFracOwn_Ncpus(Ncpus))
          allocate (NbWellInjOwn_Ncpus(Ncpus))
          allocate (NbWellProdOwn_Ncpus(Ncpus))
+         allocate (NbMSWellOwn_Ncpus(Ncpus))
 
          ! Nb*ResS_Ncpus
          call MPI_recv(NbCellLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 11, ComPASS_COMM_WORLD, stat, Ierr)
@@ -833,6 +878,7 @@ contains
          call MPI_Recv(NbFracLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 14, ComPASS_COMM_WORLD, stat, Ierr)
          call MPI_Recv(NbWellInjLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 141, ComPASS_COMM_WORLD, stat, Ierr)
          call MPI_Recv(NbWellProdLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 142, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbMSWellLocal_Ncpus, Ncpus, MPI_INTEGER, 0, 143, ComPASS_COMM_WORLD, stat, Ierr)
 
          ! Nb*OwnS_Ncpus
          call MPI_Recv(NbCellOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 15, ComPASS_COMM_WORLD, stat, Ierr)
@@ -841,6 +887,7 @@ contains
          call MPI_Recv(NbFracOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 18, ComPASS_COMM_WORLD, stat, Ierr)
          call MPI_Recv(NbWellInjOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 181, ComPASS_COMM_WORLD, stat, Ierr)
          call MPI_Recv(NbWellProdOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 182, ComPASS_COMM_WORLD, stat, Ierr)
+         call MPI_Recv(NbMSWellOwn_Ncpus, Ncpus, MPI_INTEGER, 0, 183, ComPASS_COMM_WORLD, stat, Ierr)
       end if
 
       !write(*,*) 'on proc', commRank, ':', NbWellInjOwn_Ncpus, 'injectors'
@@ -853,12 +900,14 @@ contains
          deallocate (NbFracResS_Ncpus)
          deallocate (NbWellInjResS_Ncpus)
          deallocate (NbWellProdResS_Ncpus)
+         deallocate (NbMSWellResS_Ncpus)
          deallocate (NbCellOwnS_Ncpus)
          deallocate (NbFaceOwnS_Ncpus)
          deallocate (NbNodeOwnS_Ncpus)
          deallocate (NbFracOwnS_Ncpus)
          deallocate (NbWellInjOwnS_Ncpus)
          deallocate (NbWellProdOwnS_Ncpus)
+         deallocate (NbMSWellOwnS_Ncpus)
       end if
 
       ! Send mesh size
@@ -1130,6 +1179,8 @@ contains
             call MeshSchema_csrsend(WellInjbyNodeOwn_Ncpus(i + 1), i, 610, VALSIZE_ZERO)
             ! WellProdbyNodeOwn
             call MeshSchema_csrsend(WellProdbyNodeOwn_Ncpus(i + 1), i, 620, VALSIZE_ZERO)
+            ! MSWells
+            call MeshSchema_csrsend(MSWellbyNodeOwn_Ncpus(i + 1), i, 630, VALSIZE_ZERO)
 
             ! FacebyCellLocal
             call MeshSchema_csrsend(FacebyCellLocal_Ncpus(i + 1), i, 700, VALSIZE_ZERO)
@@ -1145,6 +1196,8 @@ contains
             call MeshSchema_csrsend(NodebyWellInjLocal_Ncpus(i + 1), i, 1100, VALSIZE_ZERO)
             ! NodebyWellProdLocal
             call MeshSchema_csrsend(NodebyWellProdLocal_Ncpus(i + 1), i, 1200, VALSIZE_ZERO)
+            ! NodebyMSWellProdLocal
+            call MeshSchema_csrsend(NodebyMSWellLocal_Ncpus(i + 1), i, 1300, VALSIZE_ZERO)
 
          end do
 
@@ -1154,6 +1207,7 @@ contains
          call CommonType_csrcopy(CellbyNodeOwn_Ncpus(1), CellbyNodeOwn, VALSIZE_ZERO)
          call CommonType_csrcopy(WellInjbyNodeOwn_Ncpus(1), WellInjbyNodeOwn, VALSIZE_ZERO)
          call CommonType_csrcopy(WellProdbyNodeOwn_Ncpus(1), WellProdbyNodeOwn, VALSIZE_ZERO)
+         call CommonType_csrcopy(MSWellbyNodeOwn_Ncpus(1), MSWellbyNodeOwn, VALSIZE_ZERO)
 
          call CommonType_csrcopy(NodebyFracOwn_Ncpus(1), NodebyFracOwn, VALSIZE_ZERO)
          call CommonType_csrcopy(CellbyFracOwn_Ncpus(1), CellbyFracOwn, VALSIZE_ZERO)
@@ -1166,6 +1220,7 @@ contains
 
          call CommonType_csrcopy(NodebyWellInjLocal_Ncpus(1), NodebyWellInjLocal, VALSIZE_ZERO)
          call CommonType_csrcopy(NodebyWellProdLocal_Ncpus(1), NodebyWellProdLocal, VALSIZE_ZERO)
+         call CommonType_csrcopy(NodebyMSWellLocal_Ncpus(1), NodebyMSWellLocal, VALSIZE_ZERO)
 
       else
 
@@ -1187,6 +1242,8 @@ contains
          call MeshSchema_csrrecv(WellInjbyNodeOwn, 0, 610, VALSIZE_ZERO)
          ! WellProdbyNodeOwn
          call MeshSchema_csrrecv(WellProdbyNodeOwn, 0, 620, VALSIZE_ZERO)
+         ! MSWellbyNodeOwn
+         call MeshSchema_csrrecv(MSWellbyNodeOwn, 0, 630, VALSIZE_ZERO)
 
          ! FacebyCellLocal
          call MeshSchema_csrrecv(FacebyCellLocal, 0, 700, VALSIZE_ZERO)
@@ -1201,6 +1258,8 @@ contains
          call MeshSchema_csrrecv(NodebyWellInjLocal, 0, 1100, VALSIZE_ZERO)
          ! NodebyWellProdLocal
          call MeshSchema_csrrecv(NodebyWellProdLocal, 0, 1200, VALSIZE_ZERO)
+         ! NodebyMSWellLocal
+         call MeshSchema_csrrecv(NodebyMSWellLocal, 0, 1300, VALSIZE_ZERO)
       end if
 
       if (commRank == 0) then
@@ -1215,6 +1274,7 @@ contains
 
             call CommonType_deallocCSR(WellInjbyNodeOwn_Ncpus(i))
             call CommonType_deallocCSR(WellProdbyNodeOwn_Ncpus(i))
+            call CommonType_deallocCSR(MSWellbyNodeOwn_Ncpus(i))
 
             call CommonType_deallocCSR(FacebyCellLocal_Ncpus(i))
             call CommonType_deallocCSR(FracbyCellLocal_Ncpus(i))
@@ -1223,6 +1283,7 @@ contains
 
             call CommonType_deallocCSR(NodebyWellInjLocal_Ncpus(i))
             call CommonType_deallocCSR(NodebyWellProdLocal_Ncpus(i))
+            call CommonType_deallocCSR(NodebyMSWellLocal_Ncpus(i))
          end do
 
          deallocate (NodebyNodeOwn_Ncpus)
@@ -1235,6 +1296,7 @@ contains
 
          deallocate (WellInjbyNodeOwn_Ncpus)
          deallocate (WellProdbyNodeOwn_Ncpus)
+         deallocate (MSWellbyNodeOwn_Ncpus)
 
          deallocate (FacebyCellLocal_Ncpus)
          deallocate (FracbyCellLocal_Ncpus)
@@ -1243,6 +1305,7 @@ contains
 
          deallocate (NodebyWellInjLocal_Ncpus)
          deallocate (NodebyWellProdLocal_Ncpus)
+         deallocate (NodebyMSWellLocal_Ncpus)
       end if
 
       ! Well data type
@@ -1282,6 +1345,28 @@ contains
       end if
 
       call MPI_Type_free(MPI_WELLDATA_ID, Ierr)
+
+      ! MSWell data type
+
+      call DefMSWell_mpi_register_mswell_data_description(MPI_MSWELLDATA_ID)
+
+      ! MSWells
+      if (commRank == 0) then
+         ! proc >=1, send
+         do i = 1, Ncpus - 1
+            Nb = NbMSWellLocal_Ncpus(i + 1)
+            call MPI_Send(DataMSWellRes_Ncpus(1:Nb, i + 1), Nb, MPI_MSWELLDATA_ID, i, 212, ComPASS_COMM_WORLD, Ierr)
+         end do
+      end if
+      Nb = NbMSWellLocal_Ncpus(commRank + 1)
+      allocate (DataMSWellLocal(Nb))
+      if (commRank == 0) then
+         DataMSWellLocal(:) = DataMSWellRes_Ncpus(1:Nb, 1) ! proc 0, copy
+      else
+         call MPI_Recv(DataMSWellLocal, Nb, MPI_MSWELLDATA_ID, 0, 212, ComPASS_COMM_WORLD, stat, Ierr) ! proc >=1, receive
+      end if
+
+      call MPI_Type_free(MPI_MSWELLDATA_ID, Ierr)
 
       ! ************************************* !
 
@@ -1643,7 +1728,7 @@ contains
       end if
 #endif
 
-      ! MPI TYPE for DataNodewell: MPI_DATANODEWELL
+      ! MPI TYPE for DataNodewell: MPI_DATANODEWELL (also used for MSWELLS)
       blocklen = 1
       arraytype(1:3) = MPI_INTEGER
       arraytype(4:5) = MPI_DOUBLE
@@ -1663,23 +1748,28 @@ contains
          do i = 1, Ncpus - 1
             call MeshSchema_csrdatawellsend(NodeDatabyWellInjLocal_Ncpus(i + 1), i, 100)
             call MeshSchema_csrdatawellsend(NodeDatabyWellProdLocal_Ncpus(i + 1), i, 200)
+            call MeshSchema_csrdatawellsend(NodeDatabyMSWellLocal_Ncpus(i + 1), i, 300)
          end do
 
          call DefWell_csrdatawellcopy(NodeDatabyWellInjLocal_Ncpus(1), NodeDatabyWellInjLocal)
          call DefWell_csrdatawellcopy(NodeDatabyWellProdLocal_Ncpus(1), NodeDatabyWellProdLocal)
+         call DefWell_csrdatawellcopy(NodeDatabyMSWellLocal_Ncpus(1), NodeDatabyMSWellLocal)
       else
 
          call MeshSchema_csrdatawellrecv(NodeDatabyWellInjLocal, 0, 100)
          call MeshSchema_csrdatawellrecv(NodeDatabyWellProdLocal, 0, 200)
+         call MeshSchema_csrdatawellrecv(NodeDatabyMSWellLocal, 0, 300)
       end if
 
       if (commRank == 0) then
          do i = 1, Ncpus
             call DefWell_deallocCSRDataWell(NodeDatabyWellInjLocal_Ncpus(i))
             call DefWell_deallocCSRDataWell(NodeDatabyWellProdLocal_Ncpus(i))
+            call DefWell_deallocCSRDataWell(NodeDatabyMSWellLocal_Ncpus(i))
          end do
          deallocate (NodeDatabyWellInjLocal_Ncpus)
          deallocate (NodeDatabyWellProdLocal_Ncpus)
+         deallocate (NodeDatabyMSWellLocal_Ncpus)
       end if
 
       ! Free TYPE MPI_DATANODEWELL
@@ -1865,66 +1955,48 @@ contains
    !  NodeDatabyWellLocal
    ! Local list of Edge by Well (own+ghost)
    ! List is oriented (Id_parent, Id_son)
-   subroutine MeshSchema_NumNodebyEdgebyWellLocal
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine MeshSchema_NumNodebyEdgebyWellLocal(NodeDatabyWellLocal, NbEdgebyWellLocal, NumNodebyEdgebyWellLocal)
+
+      type(TYPE_CSRDataNodeWell), intent(in) :: NodeDatabyWellLocal
+      integer, allocatable, dimension(:), intent(inout)     :: NbEdgebyWellLocal
+      integer, allocatable, dimension(:, :, :), intent(inout) :: NumNodebyEdgebyWellLocal
 
       integer :: NbWellLocal, i, j, NbEdgemax, comptNode
 
-      !! INJ WELL
-      NbWellLocal = NodeDatabyWellInjLocal%Nb ! Number of well inj
-      allocate (NbEdgebyWellInjLocal(NbWellLocal))
+      NbWellLocal = NodeDatabyWellLocal%Nb ! Number of well inj
+      allocate (NbEdgebyWellLocal(NbWellLocal))
       NbEdgemax = 0
 
       do i = 1, NbWellLocal
          ! Number of edges = (Number of nodes in local well i) - 1
-         NbEdgebyWellInjLocal(i) = NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
-         NbEdgemax = max(NbEdgemax, NbEdgebyWellInjLocal(i))
+         NbEdgebyWellLocal(i) = NodeDatabyWellLocal%Pt(i + 1) - NodeDatabyWellLocal%Pt(i) - 1
+         NbEdgemax = max(NbEdgemax, NbEdgebyWellLocal(i))
       enddo
 
-      allocate (NumNodebyEdgebyWellInjLocal(2, NbEdgemax, NbWellLocal))
-      NumNodebyEdgebyWellInjLocal(:, :, :) = -1
+      allocate (NumNodebyEdgebyWellLocal(2, NbEdgemax, NbWellLocal))
+      NumNodebyEdgebyWellLocal(:, :, :) = -1
 
       do i = 1, NbWellLocal
 
          ! comptNode = 0
          ! ! loop over every nodes of local well, minus the head node of well
-         ! do j=NodeDatabyWellInjLocal%Pt(i)+1,NodeDatabyWellInjLocal%Pt(i+1)-1
+         ! do j=NodeDatabyWellLocal%Pt(i)+1,NodeDatabyWellLocal%Pt(i+1)-1
          !    comptNode = comptNode + 1
-         !    NumNodebyEdgebyWellInjLocal(1,comptNode,i) = NodeDatabyWellInjLocal%Val(j)%Parent
-         !    NumNodebyEdgebyWellInjLocal(2,comptNode,i) = NodeDatabyWellInjLocal%Num(j)
+         !    NumNodebyEdgebyWellLocal(1,comptNode,i) = NodeDatabyWellLocal%Val(j)%Parent
+         !    NumNodebyEdgebyWellLocal(2,comptNode,i) = NodeDatabyWellLocal%Num(j)
          ! enddo
 
          comptNode = 0
 
          ! loop over every nodes of local well, minus the head node of well
-         do j = 1, NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
-            NumNodebyEdgebyWellInjLocal(1, comptNode + j, i) = NodeDatabyWellInjLocal%Val(j + NodeDatabyWellInjLocal%Pt(i))%Parent
-            NumNodebyEdgebyWellInjLocal(2, comptNode + j, i) = NodeDatabyWellInjLocal%Num(j + NodeDatabyWellInjLocal%Pt(i))
+         do j = 1, NodeDatabyWellLocal%Pt(i + 1) - NodeDatabyWellLocal%Pt(i) - 1
+            NumNodebyEdgebyWellLocal(1, comptNode + j, i) = NodeDatabyWellLocal%Val(j + NodeDatabyWellLocal%Pt(i))%Parent
+            NumNodebyEdgebyWellLocal(2, comptNode + j, i) = NodeDatabyWellLocal%Num(j + NodeDatabyWellLocal%Pt(i))
          enddo
-         comptNode = comptNode + NodeDatabyWellInjLocal%Pt(i + 1) - NodeDatabyWellInjLocal%Pt(i) - 1
-      enddo
-
-      !! PROD WELL
-      NbWellLocal = NodeDatabyWellProdLocal%Nb ! Number of well Prod
-      allocate (NbEdgebyWellProdLocal(NbWellLocal))
-      NbEdgemax = 0
-
-      do i = 1, NbWellLocal
-         ! Number of edges = (Number of nodes in local well i) - 1
-         NbEdgebyWellProdLocal(i) = NodeDatabyWellProdLocal%Pt(i + 1) - NodeDatabyWellProdLocal%Pt(i) - 1
-         NbEdgemax = max(NbEdgemax, NbEdgebyWellProdLocal(i))
-      enddo
-
-      allocate (NumNodebyEdgebyWellProdLocal(2, NbEdgemax, NbWellLocal))
-      NumNodebyEdgebyWellProdLocal(:, :, :) = -1
-
-      do i = 1, NbWellLocal
-         comptNode = 0
-         ! loop over every nodes of local well, minus the head node of well
-         do j = NodeDatabyWellProdLocal%Pt(i) + 1, NodeDatabyWellProdLocal%Pt(i + 1) - 1
-            comptNode = comptNode + 1
-            NumNodebyEdgebyWellProdLocal(1, comptNode, i) = NodeDatabyWellProdLocal%Val(j)%Parent
-            NumNodebyEdgebyWellProdLocal(2, comptNode, i) = NodeDatabyWellProdLocal%Num(j)
-         enddo
+         comptNode = comptNode + NodeDatabyWellLocal%Pt(i + 1) - NodeDatabyWellLocal%Pt(i) - 1
       enddo
 
    end subroutine MeshSchema_NumNodebyEdgebyWellLocal

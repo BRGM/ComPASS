@@ -10,6 +10,7 @@ module IncCVWells
 
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
    use iso_c_binding
+   use ieee_arithmetic
    use mpi
    use CommonType
    use CommonMPI

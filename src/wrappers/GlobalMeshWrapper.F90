@@ -38,6 +38,7 @@
           GlobalMesh_Build_cartesian_grid
 
        use DefWell, only: DefWell_Make_ComputeWellIndex
+       use DefMSWell, only: DefMSWell_Make_ComputeWellIndex
 
        implicit none
 
@@ -647,6 +648,10 @@
           end if
 
           call DefWell_Make_ComputeWellIndex( &
+             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
+             PermCell, PermFrac)
+
+          call DefMSWell_Make_ComputeWellIndex( &
              NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
              PermCell, PermFrac)
 

@@ -29,6 +29,12 @@ module DefWell
 
    implicit none
 
+   type GlobalWellGeometries
+      integer(c_int) :: Nb
+      integer(c_int), allocatable, dimension(:) :: NbEdgebyWell
+      integer(c_int), allocatable, dimension(:, :, :) :: NumNodebyEdgebyWell
+   end type GlobalWellGeometries
+
    type, bind(c) :: WellData_type
       integer(c_int) :: Id
       real(c_double) :: &
@@ -99,9 +105,19 @@ module DefWell
       get_global_producers_data, nb_global_producers, &
       DefWell_mpi_register_well_data_description, &
       DefWell_set_WI_threshold, &
-      DefWell_unset_WI_threshold
+      DefWell_unset_WI_threshold, &
+      DefWell_clear_global_well_geometries
 
 contains
+
+   subroutine DefWell_clear_global_well_geometries(geometries)
+      type(GlobalWellGeometries), intent(inout) :: geometries
+
+      geometries%Nb = 0
+      if (allocated(geometries%NbEdgebyWell)) deallocate (geometries%NbEdgebyWell)
+      if (allocated(geometries%NumNodebyEdgebyWell)) deallocate (geometries%NumNodebyEdgebyWell)
+
+   end subroutine DefWell_clear_global_well_geometries
 
    subroutine DefWell_set_WI_threshold(threshold) &
       bind(C, name="set_Peaceman_WI_threshold")

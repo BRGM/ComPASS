@@ -102,6 +102,8 @@ set(ComPASSCore_SRCS
 
 set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90 WellState.F90)
 
+set(ComPASSMSWells_SRCS DefMSWell.F90)
+
 set(ComPASSFreeFlow_SRCS IncPrimSecdFreeFlow.F90 FreeFlow.F90)
 
 # FIXME: DISPMODULE from Thibault branch ?
@@ -125,6 +127,12 @@ foreach(_src ${ComPASSWells_SRCS})
   list(APPEND _tmp wells/${_src})
 endforeach()
 set(ComPASSWells_SRCS ${_tmp})
+
+unset(_tmp)
+foreach(_src ${ComPASSMSWells_SRCS})
+  list(APPEND _tmp mswells/${_src})
+endforeach()
+set(ComPASSMSWells_SRCS ${_tmp})
 
 unset(_tmp)
 foreach(_src ${ComPASSFreeFlow_SRCS})
@@ -192,7 +200,9 @@ foreach(_conf ${CONFIGURATIONS})
   set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
-  set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS})
+  set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
+                    ${ComPASSMSWells_SRCS}
+  )
   if(DEF_FREEFLOW_STRUCTURES)
     foreach(_src ${ComPASSFreeFlow_SRCS})
       list(APPEND CONF_ALL_SRCS ${_src})
