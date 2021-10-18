@@ -197,7 +197,7 @@ petrel:
     - cd test/cases/petrel
     - python3 doublet_on_cartesian_grid_petrel.py
 
-various parallel test:
+various parallel tests:
   stage: test
   tags:
     - parallel
