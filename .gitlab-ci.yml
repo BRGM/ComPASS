@@ -227,6 +227,17 @@ various parallel tests:
         mpirun -n `nproc` python3 $f
       done
 
+small parallel tests:
+  stage: test
+  tags:
+    - parallel
+    - docker
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
+  script:
+    - cd test
+    - mpirun -n 2 python3 unit/two_cells.py
+
 container release:
   stage: release
   tags:
