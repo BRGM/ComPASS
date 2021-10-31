@@ -41,7 +41,7 @@ contains
    !< icp component identifier
    !< P is the reference pressure
    !< T is the temperature
-   !< C is the phase molar frcations
+   !< C is the phase molar fractions
    !< S is all the saturations
 #ifdef NDEBUG
    pure &
