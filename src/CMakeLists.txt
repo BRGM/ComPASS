@@ -195,6 +195,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 foreach(_conf ${CONFIGURATIONS})
   if(NOT ${ComPASS_WITH_${_conf}_PHYSICS})
+    message(NOTICE ">> Skipping ${_conf} physics")
     continue()
   endif()
   set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
