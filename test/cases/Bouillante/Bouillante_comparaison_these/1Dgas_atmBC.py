@@ -37,6 +37,7 @@ gravity = 0.0
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_gravity(gravity)
+simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_atm_temperature(600.0)
 ptop = simulation.get_atm_pressure()
 simulation.set_atm_rain_flux(0.0)

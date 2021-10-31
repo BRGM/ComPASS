@@ -19,8 +19,6 @@ from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
 
-simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
-
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
@@ -33,6 +31,7 @@ phi_matrix = 0.15  # domain porosity
 k_fracture = 1e-12  # fracture permeability in m^2
 phi_fracture = 0.3  # fracture porosity
 thermal_cond = 2.0  # bulk thermal conductivity in W/m/K
+CpRoche = 2.0e6
 
 H = 1000.0  # domain height
 nH = 50  # discretization
@@ -40,6 +39,13 @@ nx, ny, nz = 2 * nH, 1, nH
 Lx, Ly, Lz = 2 * H, 0.1 * H, H
 Topz = -H + H - 0.5
 
+
+simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
+simulation.set_liquid_capillary_pressure("Beaude2018")
+simulation.set_atm_temperature(300.0)
+ptop = simulation.get_atm_pressure()
+simulation.set_atm_rain_flux(0.0)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded

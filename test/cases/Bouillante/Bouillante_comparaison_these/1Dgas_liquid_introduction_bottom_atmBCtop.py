@@ -37,15 +37,13 @@ Topz = Oz + Lz
 omega_reservoir = 0.35  # reservoir porosity
 k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
-Ptop = 1.0e5  # porous top Pressure
-# Pbot = 1.E7                       # porous bottom Pressure
-Patm = 1.0e5  # atm Pressure
 Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
 CpRoche = 2.0e6
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
+simulation.set_liquid_capillary_pressure("Beaude2018")
 gravity = simulation.get_gravity()
-simulation.set_atm_pressure(Patm)
+Patm = Ptop = simulation.get_atm_pressure()
 simulation.set_atm_temperature(330)
 simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
@@ -92,11 +90,11 @@ master_print("set initial and BC")
 # context.abort_on_newton_failure = False
 
 timestep = TimeStepManager(
-    initial_timestep=1.0e-5 * year,
-    minimum_timestep=1.0,
-    maximum_timestep=30.0 * year,
-    increase_factor=1.1,
-    decrease_factor=0.6,
+    initial_timestep=100,
+    minimum_timestep=10.0,
+    maximum_timestep=1.0 * year,
+    increase_factor=1.5,
+    decrease_factor=0.5,
 )
 
 final_time = 20.0 * year
@@ -105,7 +103,7 @@ output_period = 0.01 * final_time
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
 lsolver = linear_solver(simulation, direct=True)
-newton = Newton(simulation, 1e-6, 8, lsolver)
+newton = Newton(simulation, 1e-6, 14, lsolver)
 
 current_time = simulation.standard_loop(
     final_time=final_time,

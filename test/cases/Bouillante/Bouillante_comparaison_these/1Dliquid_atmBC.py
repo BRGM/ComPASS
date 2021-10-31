@@ -38,11 +38,9 @@ Tporous = 200.0  # porous Temperature (used also to init the freeflow nodes)
 CpRoche = 2.0e6
 gravity = 0.0
 
-bot_flag = 4
-freeflow_flag = 30  # do not modify this number
-
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_gravity(gravity)
+simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_atm_pressure(Pporous)
 simulation.set_atm_temperature(300.0)
 simulation.set_atm_rain_flux(0.0)
