@@ -197,6 +197,17 @@ petrel:
     - cd test/cases/petrel
     - python3 doublet_on_cartesian_grid_petrel.py
 
+diphasic freeflow:
+  stage: test
+  tags:
+    - sequential
+    - docker
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
+  script:
+    - cd test/cases/Bouillante/Bouillante_comparaison_these
+    - python3 1Dgas_atmBC.py
+
 various parallel tests:
   stage: test
   tags:
