@@ -78,7 +78,6 @@ contains
       NumIncTotalPrimCV, NumIncTotalSecondCV)
       integer, intent(in) :: NbIncLocal
       type(TYPE_IncCVReservoir), intent(in) :: inc(NbIncLocal)
-      real(c_double), intent(in) :: pa(NbPhase, NbIncLocal)
       real(c_double), intent(in) :: dpadS(NbPhase, NbIncLocal)
       integer, intent(out) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax, NbIncLocal), &
