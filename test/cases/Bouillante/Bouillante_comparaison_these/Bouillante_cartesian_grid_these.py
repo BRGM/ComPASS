@@ -15,7 +15,6 @@ import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.timestep_management import TimeStepManager
@@ -179,10 +178,10 @@ sys.stdout.write("set Neumann BC" + "\n")
 set_variable_boundary_heat_flux()
 sys.stdout.flush()
 
-context = SimulationContext()
-context.abort_on_ksp_failure = False
-context.dump_system_on_ksp_failure = False
-context.abort_on_newton_failure = False
+# context = SimulationContext()
+# context.abort_on_ksp_failure = False
+# context.dump_system_on_ksp_failure = False
+# context.abort_on_newton_failure = False
 
 timestep = TimeStepManager(
     initial_timestep=1000.0,

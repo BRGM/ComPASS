@@ -15,7 +15,6 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
@@ -35,9 +34,6 @@ cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
 Ttop = 700.0  # top Temperature
 CpRoche = 2.0e6
 gravity = 0.0
-
-bot_flag = 4
-freeflow_flag = 30  # do not modify this number
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_gravity(gravity)
@@ -72,20 +68,20 @@ simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
 simulation.dirichlet_node_states().set(X_bottom)
 
 tsmger = TimeStepManager(
-    initial_timestep=100.0,
-    minimum_timestep=1e-3,
-    maximum_timestep=10.0 * year,
-    increase_factor=1.2,
-    decrease_factor=0.2,
+    initial_timestep=0.3 * year,
+    minimum_timestep=1.0,
+    maximum_timestep=50.0 * year,
+    increase_factor=1.3,
+    decrease_factor=0.6,
 )
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
 lsolver = linear_solver(simulation, direct=True)
-newton = Newton(simulation, 1e-5, 8, lsolver)
+newton = Newton(simulation, 1e-6, 15, lsolver)
 
-final_time = 1000.0 * year
-output_period = 0.001 * final_time
+final_time = 300.0 * year
+output_period = 0.01 * final_time
 
 current_time = simulation.standard_loop(
     newton=newton,

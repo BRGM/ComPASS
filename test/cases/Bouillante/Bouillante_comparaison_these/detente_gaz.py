@@ -18,7 +18,6 @@ import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.mpi import master_print
 
@@ -110,10 +109,10 @@ def set_initial_bc_values():
 # master_print('set initial and BC')
 set_initial_bc_values()
 
-context = SimulationContext()
-context.abort_on_ksp_failure = False
-context.dump_system_on_ksp_failure = False
-context.abort_on_newton_failure = False
+# context = SimulationContext()
+# context.abort_on_ksp_failure = False
+# context.dump_system_on_ksp_failure = False
+# context.abort_on_newton_failure = False
 
 timestep = TimeStepManager(
     initial_timestep=100.0,

@@ -15,7 +15,6 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
@@ -75,11 +74,11 @@ simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
 simulation.dirichlet_node_states().set(X_bottom)
 
 tsmger = TimeStepManager(
-    initial_timestep=100.0,
-    minimum_timestep=1e-3,
+    initial_timestep=0.2 * year,
+    minimum_timestep=1,
     maximum_timestep=10.0 * year,
-    increase_factor=1.2,
-    decrease_factor=0.2,
+    increase_factor=1.3,
+    decrease_factor=0.6,
 )
 
 final_time = 40.0 * year
@@ -88,7 +87,7 @@ output_period = 0.1 * final_time
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
 lsolver = linear_solver(simulation, direct=True)
-newton = Newton(simulation, 1e-5, 8, lsolver)
+newton = Newton(simulation, 1e-6, 15, lsolver)
 
 current_time = simulation.standard_loop(
     newton=newton,

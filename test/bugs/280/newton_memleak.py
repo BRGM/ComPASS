@@ -11,7 +11,6 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
-from ComPASS.simulation_context import SimulationContext
 from ComPASS.newton import Newton, default_Newton
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.utils.memory import MemStatus
