@@ -14,12 +14,6 @@ static_assert(ComPASS_NUMBER_OF_CONTEXTS == 6, "Wrong number of contexts.");
 static_assert(static_cast<int>(Phase::gas) == 1, "Wrong gas phase id.");
 static_assert(static_cast<int>(Phase::liquid) == 2, "Wrong liquid phase id.");
 
-// Fortran functions
-extern "C" {
-void FluidThermodynamics_Psat(double, double &, double &);
-void FluidThermodynamics_Tsat(double, double &, double &);
-}
-
 void init_model() {}
 
 void finalize_model() {}

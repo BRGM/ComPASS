@@ -182,10 +182,10 @@ contains
          if (jph == jph_n) call CommonMPI_abort("IncPrimSecdFreeflow_dFsurdX_cv inconsistent phase indexing.")
 #endif
          if (GAS_PHASE == jph) dFsurdX(numj, mi) = dpadS(GAS_PHASE)
-         if (GAS_PHASE == jph_scd) dFsurdX(numj, mi) = -dpadS(GAS_PHASE)
+         if (GAS_PHASE == jph_n) dFsurdX(numj, mi) = -dpadS(GAS_PHASE)
       end do
 
-      SmF(mi) = pa(GAS_PHASE) - atm_pressure
+      SmF(mi) = inc%phase_pressure(GAS_PHASE) - atm_pressure
 
    end subroutine IncPrimSecdFreeFlow_dFsurdX_cv
 

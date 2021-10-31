@@ -73,11 +73,11 @@ module IncPrimSecd
       IncPrimSecd_free, &
       IncPrimSecd_compute, &
       IncPrimSecd_ps_cv, & ! choose first and second variables for each cv (called from IncPrimSecdFreeFlow)
+      IncPrimSecd_dFsurdX_cv, & ! compute dF/dX for each cv (called from IncPrimSecdFreeFlow)
       IncPrimSecd_compPrim_nodes
 
    private :: &
       IncPrimSecd_compute_cv, & ! all operations for one cv
-      IncPrimSecd_dFsurdX_cv, & ! compute dF/dX for each cv
       IncPrimSecd_dXssurdXp_cv              ! compute dFs/dXp
 
 contains

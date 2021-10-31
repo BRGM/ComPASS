@@ -141,11 +141,6 @@ if(DEF_DISPMODULE)
   add_definitions(-D_DISPMODULE_)
 endif(DEF_DISPMODULE)
 
-option(DEF_FREEFLOW_STRUCTURES "Use FreeFlow Structures" OFF)
-if(DEF_FREEFLOW_STRUCTURES)
-  add_definitions(-D_WIP_FREEFLOW_STRUCTURES_)
-endif(DEF_FREEFLOW_STRUCTURES)
-
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions(-D_DEBUG_)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)

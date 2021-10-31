@@ -1649,10 +1649,12 @@ contains
                enddo
             end do
 #ifndef NDEBUG
+#ifndef _WIP_FREEFLOW_STRUCTURES_
          else
             if (any(NumIncTotalPrim(:, k) == 1 + NbIncPTC_ctx(context))) then
                call CommonMPI_abort('Saturation cannot be primary in single phase contexts.')
             end if
+#endif
 #endif
          end if
       end do ! k

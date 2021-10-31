@@ -9,28 +9,17 @@
 
 # Configuration to be built FIXME: include file liquid_water,
 # linear_liquid_water, water_with_tracer have been moved to attic
-set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
+set(CONFIGURATIONS brine diphasic diphasic_FreeFlowBC immiscible2ph
+                   linear_water water2ph
+)
 
 foreach(_conf ${CONFIGURATIONS})
   option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
 endforeach()
 
-if(DEF_FREEFLOW_STRUCTURES)
-  list(APPEND CONFIGURATIONS diphasic_FreeFlowBC)
-endif(DEF_FREEFLOW_STRUCTURES)
-cmake_dependent_option(
-  ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS "Build diphasic_FreeFlowBC module"
-  ON "DEF_FREEFLOW_STRUCTURES" OFF
-)
-
 set(ComPASSCommonCore_SRCS
-    CommonMPI.F90
-    CommonType.F90
-    InteroperabilityStructures.F90
-    MeshInfo.F90
-    NumbyContext.F90
-    Physics.F90
-    SchemeParameters.F90
+    CommonMPI.F90 CommonType.F90 InteroperabilityStructures.F90 MeshInfo.F90
+    Physics.F90 SchemeParameters.F90
 )
 
 unset(_tmp)
@@ -91,6 +80,7 @@ set(ComPASSCore_SRCS
     LoisThermoHydro.F90
     MeshSchema.F90
     Newton.F90
+    NumbyContext.F90
     Residu.F90
     Simulation.cpp
     SolvePetsc.F90
@@ -204,11 +194,11 @@ foreach(_conf ${CONFIGURATIONS})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
                     ${ComPASSMSWells_SRCS}
   )
-  if(DEF_FREEFLOW_STRUCTURES)
+  if(${_conf} STREQUAL diphasic_FreeFlowBC)
     foreach(_src ${ComPASSFreeFlow_SRCS})
       list(APPEND CONF_ALL_SRCS ${_src})
     endforeach()
-  endif(DEF_FREEFLOW_STRUCTURES)
+  endif()
   foreach(_src ${CONF_SRCS})
     list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
   endforeach()
@@ -217,6 +207,11 @@ foreach(_conf ${CONFIGURATIONS})
     ${CONF_ALL_SRCS} ${WRAPPERS_SRCS}
     wrappers/conf/${_conf}/Model_specific_wrappers.cpp
   )
+  if(${_conf} STREQUAL diphasic_FreeFlowBC)
+    target_compile_definitions(
+      ${CONF_TARGETNAME} PUBLIC -D_WIP_FREEFLOW_STRUCTURES_
+    )
+  endif()
   set_target_properties(
     ${CONF_TARGETNAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                   "${CMAKE_BINARY_DIR}/bin"
