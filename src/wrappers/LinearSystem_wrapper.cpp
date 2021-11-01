@@ -260,7 +260,7 @@ void LinearSystemBuilder::compute_ltog() {
    DofFamilyCOC WPBP;
    retrieve_NumWellProdbyProc(WPBP);
 
-   int local_block_col_offset{0};
+   int local_block_col_offset = 0;
    coll_to_colg.resize(nb_node_local + nb_frac_local + nb_well_inj_local +
                        nb_well_prod_local);
 
