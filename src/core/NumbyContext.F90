@@ -196,7 +196,7 @@ contains
 
          NbIncPTC_ctx(ic) = n
          NbIncTotal_ctx(ic) = NbIncPTC_ctx(ic) + configuration%NbPhasePresente_ctx(ic) ! Warning: NbIncTotal_ctx=NbIncTotalPrim_ctx+NbEqFermeture + 1 because 1 saturation eliminated in hard
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS
          ! FIXME: Laurence triche pour avoir les molar flowrates comme inconnues supplémentaires
          if (ic > 3) then
             NbIncTotal_ctx(ic) = NbIncTotal_ctx(ic) + configuration%NbPhasePresente_ctx(ic)
@@ -296,15 +296,15 @@ contains
          end do ! end of loop icp
 
          NbEqEquilibre_ctx(ic) = n
-#ifndef _WIP_FREEFLOW_STRUCTURES_
-         NbEqFermeture_ctx(ic) = configuration%NbPhasePresente_ctx(ic) + n
-#else
+#ifdef ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS
          ! count the number of secd unknowns (=nb of closure laws), pssecd is filled in DefModel
          n = 0
          do i = 1, size(configuration%pssecd, 1)
             if (configuration%pssecd(i, ic) > 0) n = n + 1
          end do
          NbEqFermeture_ctx(ic) = n
+#else
+         NbEqFermeture_ctx(ic) = configuration%NbPhasePresente_ctx(ic) + n
 #endif
       end do
 

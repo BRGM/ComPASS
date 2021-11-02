@@ -207,6 +207,9 @@ foreach(_conf ${CONFIGURATIONS})
     ${CONF_ALL_SRCS} ${WRAPPERS_SRCS}
     wrappers/conf/${_conf}/Model_specific_wrappers.cpp
   )
+  target_compile_definitions(
+    ${CONF_TARGETNAME} PUBLIC -DComPASS_WITH_${_conf}_PHYSICS
+  )
   if(${_conf} STREQUAL diphasic_FreeFlowBC)
     target_compile_definitions(
       ${CONF_TARGETNAME} PUBLIC -D_WIP_FREEFLOW_STRUCTURES_
