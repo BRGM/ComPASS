@@ -79,6 +79,23 @@ endif()
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
+# The following variables customize behavior of FetchContent They are all
+# intended for the developer and are not set by the project Just uncomment one
+# of the following lines according to your need.
+# https://cmake.org/cmake/help/latest/module/FetchContent.html When this option
+# is enabled, no attempt is made to download or update any content. When no
+# changes have been made to any content details, turning this option ON can
+# significantly speed up the configure stage.
+
+# set(FETCHCONTENT_FULLY_DISCONNECTED ON CACHE BOOL "no attempt is made to
+# download or update any content" FORCE )
+
+# Alternative to the previous option: if content has not been downloaded
+# previously, it will still be downloaded when this option is enabled
+
+# set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "will download any content
+# only once" FORCE )
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 find_package(pybind11 2.6 QUIET) # try locally
 if(NOT pybind11_FOUND) # else fetch it from github
