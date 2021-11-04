@@ -14,7 +14,7 @@
 module DefModel
 
    use iso_c_binding, only: c_int, c_bool
-   use CommonType, only: CSR, type_IdNode, ModelConfiguration
+   use CommonType, only: ModelConfiguration
    use CommonMPI, only: CommonMPI_abort
 
    implicit none
