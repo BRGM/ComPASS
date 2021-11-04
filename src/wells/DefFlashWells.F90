@@ -87,19 +87,6 @@ module DefFlashWells
    ! integer, private :: fdFl !< debug output
 
    type(CSRdble) :: ZSortedInj !< CSR vector storing the nodes of each injection well in Z coordinate order
-   type(CSRdble) :: RSortedInj !< CSR vector storing the R of each node of injection well in R order (R_s = P_s - PressureDrop)
-
-   double precision, allocatable, dimension(:) :: &
-      MobSortedInj !< like CSR vector storing the Mob of each node of injection well in R order (R_s = P_s - PressureDrop)
-
-   type(CSRdble) :: RSortedProd !< CSR vector storing the R of each node of production well in R order (R_s^alpha = P_s^alpha - PressureDrop)
-
-   double precision, allocatable, dimension(:) :: &
-      MobSortedTempProd, & !< like CSR vector storing the Mob of each phase of each node
-      MobSortedProd !  of production well in R order (R_s^alpha = P_s^alpha - PressureDrop)
-
-   double precision, allocatable, dimension(:, :) :: R, Mob ! CSR vectors used to compute the non linear update of the pressure
-   double precision, allocatable, dimension(:) :: Flow ! CSR vectors used to compute the non linear update of the pressure
 
    ! molar fluxes for injection well(s), head node
    double precision, allocatable, dimension(:) :: headmolarFluxInj !< Molar flux for injection well: headmolarFluxProd(node_well)
@@ -183,29 +170,6 @@ contains
       allocate (ZSortedInj%Num(ZSortedInj%Pt(ZSortedInj%Nb + 1)))
       allocate (ZSortedInj%Val(ZSortedInj%Pt(ZSortedInj%Nb + 1)))
 
-      RSortedInj%Nb = NodebyWellInjLocal%Nb
-      allocate (RSortedInj%Pt(RSortedInj%Nb + 1))
-      RSortedInj%Pt = NodebyWellInjLocal%Pt
-      allocate (RSortedInj%Num(RSortedInj%Pt(RSortedInj%Nb + 1)))
-      allocate (RSortedInj%Val(RSortedInj%Pt(RSortedInj%Nb + 1)))
-
-      ! prod well : multi-phase
-      ! RSortedProd will contain the vector r_s^alpha sorted with respect to s AND alpha
-      ! then size max is NbPhase * NodebyWellProdLocal
-      RSortedProd%Nb = NodebyWellProdLocal%Nb
-      allocate (RSortedProd%Pt(RSortedProd%Nb + 1))
-      RSortedProd%Pt = NbPhase*NodebyWellProdLocal%Pt
-      allocate (RSortedProd%Num(RSortedProd%Pt(RSortedProd%Nb + 1)))
-      allocate (RSortedProd%Val(RSortedProd%Pt(RSortedProd%Nb + 1)))
-
-      allocate (MobSortedInj(RSortedInj%Pt(RSortedInj%Nb + 1)))
-      allocate (MobSortedTempProd(RSortedProd%Pt(RSortedProd%Nb + 1)))
-      allocate (MobSortedProd(RSortedProd%Pt(RSortedProd%Nb + 1)))
-
-      allocate (Mob(NbPhase, NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)))
-      allocate (R(NbPhase, NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)))
-      allocate (Flow(NbPhase*NodebyWellInjLocal%Pt(NodebyWellInjLocal%Nb + 1)))
-
       ! init sort height
       call DefFlashWells_SortHeights_and_Init
 
@@ -216,12 +180,6 @@ contains
       ! call CommonType_deallocCSRdble(ZSortedInj)
       ! close(unit=12)
       ! call CommonType_deallocCSRdble(ZSortedInj)
-      ! call CommonType_deallocCSRdble(RSortedInj)
-      ! call CommonType_deallocCSRdble(RSortedProd)
-      deallocate (MobSortedInj)
-      deallocate (MobSortedTempProd)
-      deallocate (MobSortedProd)
-      deallocate (Mob, R, Flow)
       deallocate (headmolarFluxInj)
 
    end subroutine DefFlashWells_free
