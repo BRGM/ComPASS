@@ -111,14 +111,14 @@ module LocalMesh
 
    ! Well connectivities in global number
    type(CSR), dimension(:), allocatable, public :: &
-      NodebyWellInjRes_Ncpus, & !< Node (global number) of injection well res=own+ghost for all CPUs
-      NodebyWellProdRes_Ncpus, &   !< Node (global number) of production well res=own+ghost for all CPUs
-      NodebyMSWellRes_Ncpus   !< Node (global number) of production well res=own+ghost for all CPUs
+      NodebyWellInjRes_Ncpus, & !< Node (global number) of injection wells res=own+ghost for all CPUs
+      NodebyWellProdRes_Ncpus, &   !< Node (global number) of production wells res=own+ghost for all CPUs
+      NodebyMSWellRes_Ncpus   !< Node (global number) of multi-segmented wells res=own+ghost for all CPUs
 
    ! Well connectivites in index (local)
    type(CSR), dimension(:), allocatable, public :: &
-      NodebyWellInjLocal_Ncpus, & !< Node (local number) of injection well res=own+ghost for all CPUs
-      NodebyWellProdLocal_Ncpus, & !< Node (local number) of production well res=own+ghost for all CPUs
+      NodebyWellInjLocal_Ncpus, & !< Node (local number) of injection wells res=own+ghost for all CPUs
+      NodebyWellProdLocal_Ncpus, & !< Node (local number) of production wells res=own+ghost for all CPUs
       NodebyMSWellLocal_Ncpus     !< Node (local number) of  multi-segmented wells res=own+ghost for all CPUs
 
    Double precision, protected :: &
@@ -187,18 +187,18 @@ module LocalMesh
 
    !! The following vectors are used to the strucutre of Jacobian
    type(CSR), dimension(:), allocatable, public :: &
-      CellbyNodeOwn_Ncpus, &  ! from NodebyCellLocal_Ncpus
-      NodebyNodeOwn_Ncpus, &  ! from NodebyCellLocal_Ncpus, CellbyNodeOwn_Ncpus
-      FracbyNodeOwn_Ncpus, &  ! from NodebyFaceLocal_Ncpus
+      CellbyNodeOwn_Ncpus, &  !< local index of cells surrounding own nodes of proc ip (constructed with NodebyCellLocal_Ncpus)
+      NodebyNodeOwn_Ncpus, &  !< local index of the neighbour nodes of own nodes of proc ip (constructed with NodebyCellLocal_Ncpus, CellbyNodeOwn_Ncpus)
+      FracbyNodeOwn_Ncpus, &  !< local index of frac for each own node of proc ip (constructed from NodebyFaceLocal_Ncpus)
       !
-      NodebyCellLocal_Ncpus, &  ! from NodebyCellRes_Ncpus
+      NodebyCellLocal_Ncpus, &  !< local index of Nodes for local Cells (own+ghost) of proc ip (constructed from NodebyCellRes_Ncpus)
       FracbyCellLocal_Ncpus, &  ! from FacebyCellLocal_Ncpus
       !
-      NodebyFracOwn_Ncpus, &  ! from NodebyFaceLocal_Ncpus
+      NodebyFracOwn_Ncpus, &  !< Local index of the Nodes of the neighbouring cells of own frac of proc ip (constructed from NodebyFaceLocal_Ncpus)
       ! WARNING these are not the fracture nodes but the set of nodes
       !         of the two cells on each side of the fracture
-      CellbyFracOwn_Ncpus, &  ! from CellbyFaceLocal_Ncpus
-      FracbyFracOwn_Ncpus     ! from FracbyCellLocal_Ncpus, CellbyFracOwn_Ncpus
+      CellbyFracOwn_Ncpus, &  !< Local index of the neighbour Cells of own fracture faces of proc ip (from CellbyFaceLocal_Ncpus)
+      FracbyFracOwn_Ncpus     !< Local index of the neighbour fracture faces of own fracture faces of proc ip (from FracbyCellLocal_Ncpus, CellbyFracOwn_Ncpus)
 
    !! The following vectors are used to the strucutre of Jacobian
    type(CSR), dimension(:), allocatable, public :: &
@@ -2376,7 +2376,7 @@ contains
    !  NodebyFracOwn_Npus(ip)
    ! Use:
    !  CellbyFracOwn_Ncpus(ip), NodebyCellLocal
-   !> \brief Store the neighbour cells (local) of own frac
+   !> \brief Local index of the neighbour Nodes of own frac of proc ip
    subroutine LocalMesh_NodebyFracOwn(ip)
 
       ! Calcule les noeuds voisin de chaque frac own (on sait qu'ils sont tous own ou ghost au proc)
@@ -2471,7 +2471,7 @@ contains
    end subroutine LocalMesh_NodebyFracOwn
 
    ! Output:
-   !   CellbyFracOwn_Npus(ip)
+   !   CellbyFracOwn_Ncpus(ip)
    ! Use:
    !   CellbyFaceLocal_Ncpus(ip), IdFaceRes_Ncpus(ip)
    subroutine LocalMesh_CellbyFracOwn(ip)
