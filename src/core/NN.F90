@@ -17,7 +17,7 @@ module NN
    use InteroperabilityStructures, only: cpp_array_wrapper
 
    use GlobalMesh, only: &
-      GlobalMesh_free, CellbyCell, &
+      GlobalMesh_free, &
       NbDirNodeP, NbDirNodeT, NbNode, NbCell, NbFace, NbFrac
 
    use CommonType, only: ModelConfiguration
