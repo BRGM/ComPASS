@@ -266,7 +266,7 @@ contains
 
    end subroutine Residu_reset_Dirichlet_nodes
 
-   ! FIXME: this condition should be integrated in the Jacobian
+   ! FIXME: this condition should be integrated in the Jacobian (if Pc != 0)
    subroutine Residu_compute_Neumann_heatflux(X, qm, Mm, Mh, nz, qh)
       type(TYPE_IncCVReservoir), intent(in) :: X
       double precision, intent(in) :: qm

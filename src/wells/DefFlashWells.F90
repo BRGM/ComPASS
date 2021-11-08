@@ -89,7 +89,7 @@ module DefFlashWells
    type(CSRdble) :: ZSortedInj !< CSR vector storing the nodes of each injection well in Z coordinate order
 
    ! molar fluxes for injection well(s), head node
-   double precision, allocatable, dimension(:) :: headmolarFluxInj !< Molar flux for injection well: headmolarFluxProd(node_well)
+   double precision, allocatable, dimension(:) :: headmolarFluxInj !< Molar flux for injection well: headmolarFluxProd(num_well)
 
    public :: &
       DefFlashWells_allocate, & ! Allocation, initialization and deallocation (in NN.F90)

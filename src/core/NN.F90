@@ -196,11 +196,11 @@ contains
       ! allocate flux
       call Flux_allocate
 
-      ! csr sturcture of Jacobian
+      ! csr structure of Jacobian
       ! allocate memory of Jacobian ans Sm
       call Jacobian_StrucJacBigA
 
-      ! csr sturcture of Jacobian after Schur
+      ! csr structure of Jacobian after Schur
       ! allocate memory of Jacobian and Sm after Schur
       call Jacobian_StrucJacA
 

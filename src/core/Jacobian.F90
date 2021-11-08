@@ -135,7 +135,7 @@ module Jacobian
    type(CSRArray2dble), public, target :: JacBigA
    type(CSRArray2dble), public, target :: JacA
 
-   ! right habd side before and after Schur complement
+   ! right hand side before and after Schur complement
    real(c_double), pointer, dimension(:, :), public :: &
       bigSm, Sm
 
