@@ -37,7 +37,11 @@ module Thermodynamics
 
 contains
 
-   pure subroutine f_Fugacity_air_liquid(p, T, C, f, dfdp, dfdT, dfdC)
+   ! Fugacity coefficient of the water in liquid phase
+   !< p is the phase pressure
+   !< T is the temperature
+   !< C is the phase molar fractions
+   pure subroutine f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
 
@@ -64,7 +68,7 @@ contains
          dfdC(i) = -deltap*dzetadC(i)/zeta/RTzeta*f
       enddo
 
-   end subroutine f_Fugacity_air_liquid
+   end subroutine f_Fugacity_water_liquid
 
    ! Fugacity coefficient
    !< icp component identifier
@@ -89,7 +93,7 @@ contains
          if (icp == AIR_COMP) then
             call air_Henry(T, f, dfdT)
          else if (icp == WATER_COMP) then
-            call f_Fugacity_air_liquid(p, T, C, f, dfdp, dfdT, dfdC)
+            call f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
          endif
       endif
 
