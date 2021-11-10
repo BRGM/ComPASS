@@ -276,12 +276,11 @@ contains
             call f_Fugacity(icp, iph2, inc%phase_pressure(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, dTf2, dCf2)
 
             ! derivative wrt reference pressure
-            ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
-            ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa
+            ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa because pa = P - Pc(S)
             dFsurdX(1, i + mi) = df1dpa*inc%Comp(icp, iph1) - df2dpa*inc%Comp(icp, iph2)
 
 #ifdef _THERMIQUE_
-            ! derivative temperature
+            ! derivative wrt temperature
             dFsurdX(2, i + mi) = dTf1*inc%Comp(icp, iph1) - dTf2*inc%Comp(icp, iph2)
 #endif
 
@@ -306,15 +305,18 @@ contains
                end if
             end do
 
-            ! derivative primary saturations
-            ! with contribution of secondary Saturation
-            ! because sum(saturations)=1 is eliminated
-            ! pa = Pref - Pc(S) -> dpa/dS = -dPc/dS
-            ! f(pa, ....) -> df/dS = -dPc/dS * df/dpa = dpa/dS * df/dpa
-            ! for last saturation S_n = 1 - \Sum_{1 \leq k \leq n-1} S_k
-            ! pa_n = Pref - Pc_n(1 - \Sum_{1 \leq k \leq n-1} S_k) -> dpa_n / dS_k = dPc_n/dS_n
+            ! derivative wrt the primary saturations S_j; 1 <= j <= n-1
+            ! Careful of the derivative of fn(pn, ....) wrt S_j due to
+            !   the elimination of S_n using S_n = 1 - \Sum_{1 \leq j \leq n-1} S_j
+            ! Remark: p_alpha depends only on S_alpha
+            !   and dpadS = d(p_alpha)/d(S_alpha) with 1 <= alpha <= n
+            !
+            ! for 1 <= a <= n-1:
+            !   fa(pa, ....) -> dfa/dS_j = dpa/dS_j * dfa/dpa != 0 only when j=a
+            !
+            ! fn(pn, ....) -> dfn/dS_j = - dfn/dS_n = -dpa_n/dS_n * dfn/dpa_n
             n = cv_info%NbPhasePresente
-            jph_n = cv_info%NumPhasePresente(n) ! secd saturation
+            jph_n = cv_info%NumPhasePresente(n) ! phase of the eliminated saturation
             do j = 1, n - 1
                numj = j + cv_info%NbIncPTC
                jph = cv_info%NumPhasePresente(j)

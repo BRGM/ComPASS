@@ -62,7 +62,7 @@ contains
       dbetadT = (-dPsatdT - deltap*(1./T + dzetadT/zeta))/RTzeta
       ebeta = exp(beta)
       f = Psat*ebeta
-      dfdp = dbetadp*f
+      dfdp = dbetadp*f ! with respect to the phase pressure
       dfdT = (dPsatdT + dbetadT*Psat)*ebeta
       do i = 1, NbComp
          dfdC(i) = -deltap*dzetadC(i)/zeta/RTzeta*f
