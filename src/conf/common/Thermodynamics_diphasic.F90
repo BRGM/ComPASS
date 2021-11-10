@@ -50,17 +50,18 @@ contains
 
       call FluidThermodynamics_Psat(T, Psat, dPsatdT)
       call f_DensiteMolaire_liquid(p, T, C, zeta, dzetadp, dzetadT, dzetadC)
-      deltap = Psat - p
+
+      deltap = p - Psat ! p is the phase pressure ie pl
       RTzeta = R*T*zeta
       beta = deltap/RTzeta
-      dbetadp = (-1.d0 - deltap*dzetadp/RTzeta)/RTzeta
-      dbetadT = (dPsatdT - deltap*dzetadT/RTzeta)/RTzeta
+      dbetadp = (1.d0 - deltap*dzetadp/zeta)/RTzeta
+      dbetadT = (-dPsatdT - deltap*(1./T + dzetadT/zeta))/RTzeta
       ebeta = exp(beta)
       f = Psat*ebeta
-      dfdp = dbetadp*Psat*ebeta
+      dfdp = dbetadp*f
       dfdT = (dPsatdT + dbetadT*Psat)*ebeta
       do i = 1, NbComp
-         dfdC(i) = (-deltap*dzetadC(i)/(RTzeta**2))*Psat*ebeta
+         dfdC(i) = -deltap*dzetadC(i)/zeta/RTzeta*f
       enddo
 
    end subroutine f_Fugacity_air_liquid
