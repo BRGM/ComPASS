@@ -295,7 +295,7 @@ contains
       sum_Mm = 0.d0
       do iph = 1, NbPhasePresente_ctx(X%ic)
          alpha = NumPhasePresente_ctx(iph, X%ic)
-         call f_DensiteMassique(alpha, X%Pression, X%Temperature, X%Comp, rho(iph), dP, dT, dC)
+         call f_DensiteMassique(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp, rho(iph), dP, dT, dC)
          do icp = 1, NbComp
             if (MCP(icp, alpha) == 1) then
                nablapn = nablapn - nz*Mm(icp, iph)*gravity
