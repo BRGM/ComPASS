@@ -20,10 +20,10 @@ module Thermodynamics
    implicit none
 
    public :: &
-      f_Fugacity, &  !< Fucacity
-      f_DensiteMolaire, &  !< \xi^alpha(P,T,C,S)
-      f_DensiteMassique, &  !< \rho^alpha(P,T,C,S)
-      f_Viscosite, &  !< \mu^alpha(P,T,C,S)
+      f_Fugacity, &  !< Fugacity
+      f_DensiteMolaire, &  !< \xi^alpha(P,T,C)
+      f_DensiteMassique, &  !< \rho^alpha(P,T,C)
+      f_Viscosite, &  !< \mu^alpha(P,T,C)
       air_Henry  !< Henry coef for air comp
 
 #ifdef _THERMIQUE_
@@ -115,7 +115,7 @@ contains
 
    end subroutine
 
-   !< P is Reference Pressure (careful: assumes that Pref = Pg)
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
    pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
@@ -125,14 +125,14 @@ contains
 
       real(c_double), parameter :: Rgp = 8.314d0
 
-      f = p/(Rgp*T) ! careful: assumes that Pref = Pg
+      f = p/(Rgp*T)
       dPf = 1/(Rgp*T)
       dTf = -p/Rgp/T**2
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_gas
 
-   !< P is Reference Pressure (careful: assumes that Pref = Pg)
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
    pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
@@ -149,10 +149,9 @@ contains
 
    ! Molar density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is Reference Pressure (careful: assumes that Pref = Pg)
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -179,7 +178,7 @@ contains
 
    ! Massic density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure (careful: assumes that Pref = Pg)
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
 #ifdef NDEBUG
@@ -207,10 +206,9 @@ contains
 
    ! Viscosities
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
    pure subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
       bind(C, name="FluidThermodynamics_dynamic_viscosity")
       integer(c_int), intent(in) :: iph
@@ -234,10 +232,9 @@ contains
 
    ! Internal energy = enthalpie - Pressure (here everything is volumic)
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure (careful: assumes that Pref = Pg)
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 
 #ifdef NDEBUG
    pure &
@@ -329,10 +326,9 @@ contains
 
    ! Enthalpie
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -357,10 +353,8 @@ contains
 
    ! Specific Enthalpy (used in FreeFlow)
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
-   !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -414,7 +408,7 @@ contains
    end subroutine FluidThermodynamics_Psat
 
    ! Compute Tsat(P)
-   !< P is the Reference Pressure
+   !< P is a pressure
 #ifdef NDEBUG
    pure &
 #endif

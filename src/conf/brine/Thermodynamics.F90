@@ -24,10 +24,10 @@ module Thermodynamics
    implicit none
 
    public :: &
-      f_Fugacity, & ! Fucacity
-      f_DensiteMolaire, & ! \xi^alpha(P,T,C,S)
-      f_DensiteMassique, & ! \rho^alpha(P,T,C,S)
-      f_Viscosite, & ! \mu^alpha(P,T,C,S)
+      f_Fugacity, & ! Fugacity
+      f_DensiteMolaire, & ! \xi^alpha(P,T,C)
+      f_DensiteMassique, & ! \rho^alpha(P,T,C)
+      f_Viscosite, & ! \mu^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie, &
       f_SpecificEnthalpy
@@ -35,13 +35,11 @@ module Thermodynamics
 contains
 
    ! Fugacity coefficients
-   !< rt is the rocktype identifier
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< icp component identifier
-   !< P is the reference pressure
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
+   !< P is the phase pressure
    !< T is the temperature
    !< C is the phase molar frcations
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -59,10 +57,9 @@ contains
 
    ! FIXME #51 densite massique
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is Reference Pressure
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -115,10 +112,9 @@ contains
 
    ! FIXME #51 densite massique
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is Reference Pressure
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -132,10 +128,9 @@ contains
    end subroutine f_DensiteMassique
 
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is Reference Pressure
+   !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -169,10 +164,9 @@ contains
 
    ! EnergieInterne
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif
@@ -208,10 +202,9 @@ contains
 
    ! Enthalpie
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   !< S is all the saturations
    ! If Enthalpide depends on the compositon C, change DefFlash.F90
 #ifdef NDEBUG
    pure &
@@ -235,10 +228,8 @@ contains
 
    ! Specific Enthalpy (used in FreeFlow)
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the Reference Pressure
+   !< P is the phase Pressure
    !< T is the Temperature
-   !< C is the phase molar fractions
-   !< S is all the saturations
 #ifdef NDEBUG
    pure &
 #endif

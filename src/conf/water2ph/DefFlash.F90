@@ -48,7 +48,7 @@ contains
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
-         if (inc%Pression > Psat) then
+         if (inc%Pression > Psat) then ! inc%Pression = Pref = Pg in this physic
             inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
@@ -60,7 +60,7 @@ contains
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 
-         if (inc%Pression < Psat) then
+         if (inc%Pression < Psat) then ! inc%Pression = Pref = Pg in this physic
             inc%ic = DIPHASIC_CONTEXT
             inc%Pression = Psat
             ! inc%Temperature is the saturation temperature (by construction)
@@ -75,6 +75,7 @@ contains
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
 #endif
 
+         ! inc%Pression = Pref = Pg in this physic
          call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
          call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
 

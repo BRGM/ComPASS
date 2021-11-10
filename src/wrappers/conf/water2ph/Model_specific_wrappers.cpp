@@ -146,6 +146,7 @@ void add_specific_model_wrappers(py::module &module) {
              double dummy;
              if (T.is_none()) {
                 state.p = p.cast<double>();
+                //  state.p = Pref = Pg in this physic
                 FluidThermodynamics_Tsat(state.p, state.T, dummy);
              } else {
                 state.T = T.cast<double>();
