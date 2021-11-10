@@ -115,6 +115,9 @@ contains
 
    end subroutine
 
+   !< P is Reference Pressure (careful: assumes that Pref = Pg)
+   !< T is the Temperature
+   !< C is the phase molar fractions
    pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
@@ -129,6 +132,9 @@ contains
 
    end subroutine f_DensiteMolaire_gas
 
+   !< P is Reference Pressure (careful: assumes that Pref = Pg)
+   !< T is the Temperature
+   !< C is the phase molar fractions
    pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
