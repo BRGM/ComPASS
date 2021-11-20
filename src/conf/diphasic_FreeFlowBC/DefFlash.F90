@@ -72,12 +72,12 @@ contains
          elseif (inc%ic == GAS_CONTEXT) then
             inc%ic = GAS_FF_NO_LIQ_OUTFLOW_CONTEXT
          endif
-         ! The following always holds even at liquid apparition
+         ! The following always holds even at liquid outflow apparition
          inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
 
       elseif (context == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
 
-         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then ! liquid vanishes
+         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then ! liquid outflow vanishes
             inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
             inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
          endif
