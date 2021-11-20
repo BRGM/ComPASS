@@ -68,7 +68,7 @@ contains
          ! CHECKME: we assume no entry pressure in the atmosphere
          call DiphasicFlash_diphasic_switches(inc)
          if (inc%ic == LIQUID_CONTEXT) then
-            inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
+            inc%ic = DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
          elseif (inc%ic == GAS_CONTEXT) then
             inc%ic = GAS_FF_NO_LIQ_OUTFLOW_CONTEXT
          endif
