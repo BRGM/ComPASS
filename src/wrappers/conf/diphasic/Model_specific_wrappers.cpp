@@ -12,7 +12,6 @@
 #include "Model_wrappers.h"
 #include "StateObjects.h"
 #include "Thermodynamics.h"
-#include "enum_to_rank.h"
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
@@ -193,7 +192,8 @@ void add_specific_model_wrappers(py::module &module) {
              state.S[gas] = S;
              state.S[liquid] = 1. - S;
              update_phase_pressures(state);
-             auto [Cga, Cla] = diphasic_equilibrium(state.pa, state.T);
+             auto [Cga, Cla] =
+                 diphasic_equilibrium<Component, Phase>(state.pa, state.T);
              state.C[gas][air] = Cga;
              state.C[gas][water] = 1 - Cga;
              state.C[liquid][air] = Cla;
@@ -243,8 +243,9 @@ Parameters
        "diphasic_equilibrium",
        [](py::tuple pa, const double T, const double atol,
           const std::size_t maxiter) {
-          return diphasic_equilibrium({pa[0].cast<Real>(), pa[1].cast<Real>()},
-                                      T, atol, maxiter);
+          return diphasic_equilibrium<Component, Phase>(
+              Phase_vector{pa[0].cast<Real>(), pa[1].cast<Real>()}, T, atol,
+              maxiter);
        },
        py::arg("pa"), py::arg("T"), py::arg("atol") = 1.e-8,
        py::arg("maxiter") = 1000);
