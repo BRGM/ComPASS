@@ -130,7 +130,7 @@ module LoisThermoHydro
       SmDensiteMolaireKrViscoCompFrac, &
       SmDensiteMolaireKrViscoCompNode
 
-   ! DensiteMolaire*Kr/Viscosite*Comp for wells (injection and production)
+   ! DensiteMolaire*Kr/Viscosite*Comp for injection wells
    double precision, allocatable, dimension(:, :), protected :: &
       DensiteMolaireKrViscoCompWellInj
    double precision, allocatable, dimension(:, :), protected :: &
@@ -268,7 +268,7 @@ module LoisThermoHydro
       LoisThermoHydro_dfdX_ps, & ! fill dfdX_prim/dfdX_secd with the derivatives w.r.t. the primary/secondary unknowns
       LoisThermoHydro_DensiteMolaire_cv, & ! prim divs: densitemolaire
       LoisThermoHydro_Viscosite_cv, & !            1/viscosite
-      LoisThermoHydro_Inc_cv, & !            called with Pression and Temperature
+      LoisThermoHydro_Inc_cv, & !            called with Pression, Temperature, phase molar fractions and FF unknowns
       LoisThermoHydro_Saturation_cv, & !            Saturation
       !
       LoisThermoHydro_DensiteMassique_cv, & !          densitemassique
@@ -581,7 +581,7 @@ contains
             divPression(:, k), SmPression(k))
       end do
 
-      ! Other equilibriums
+      ! Other equilibriums (phase molar fractions)
       do k = 1, NbIncLocal
          context = inc(k)%ic
          do i = 2 + IndThermique, NbIncPTC_ctx(context) ! loop over index of Components
@@ -1215,7 +1215,7 @@ contains
       ctxinfo%NbIncPTC = NbIncPTC_ctx(inc%ic)
       ctxinfo%NbIncPTCPrim = ctxinfo%NbIncPTC - ctxinfo%NbEqFermeture
 
-      ! ps. if there is only one phase, phase is secd
+      ! ps. if there is only one phase, the saturation phase is eliminated
       ctxinfo%NbIncTotalPrim = NbIncTotalPrim_ctx(inc%ic)
 
       ctxinfo%NumPhasePresente(:) = NumPhasePresente_ctx(:, inc%ic)

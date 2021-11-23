@@ -6,6 +6,7 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 # Cartesian grid, box of 4000m in depth
+# Gas only
 # Imposed Dirichlet BC at the bottom
 # Homogeneous Neumann BC at both sides
 # atm BC at the top

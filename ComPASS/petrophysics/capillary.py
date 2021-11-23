@@ -18,11 +18,13 @@ def _convert_pc_to_phase_pressure_function(pc, dpcdS):
         pa = states.pa
         nb_phases = pa.shape[1]
         assert nb_phases == 2
-        p = states.p  # reference pressure
+        p = states.p  # reference pressure ie pg
         pa[:, 0] = p
         Sg = states.S[:, 0]
         pa[:, 1] = p - pc(Sg)
-        dpadS[:, 1] = dpcdS(Sg)  # pc(Sl) with Sg = 1 - Sl
+        # derivative of p_alpha wrt S_alpha, only non zero when alpha = liquid
+        # d(pl)/d(Sl) = - d(pc)/d(Sl) = d(pc)/d(Sg)  because Sg = 1 - Sl
+        dpadS[:, 1] = dpcdS(Sg)
 
     return phase_pressure_function
 

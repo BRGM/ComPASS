@@ -25,7 +25,7 @@ phi_matrix = 0.15  # porosity - not really relevant either as long as
 # fluid and rock volumetric heat capacities are the same
 K_matrix = 2.0  # bulk thermal conductivity in W/m/K
 rhor = 2200.0  # rock density kg/m^3
-cpr = 800.0  # rock pecific heat capacity J/K/kg
+cpr = 800.0  # rock specific heat capacity J/K/kg
 
 H = 100.0  # column height
 nx, ny, nz = 1, 1, 200  # discretization

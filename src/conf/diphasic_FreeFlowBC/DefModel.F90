@@ -147,7 +147,7 @@ module DefModel
                        P, T, 7, & ! DIPHASIC_CONTEXT=3  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
                        ! FF dof : NO_LIQUID_OUTFLOW
                        T, 3, 5, & ! GAS_FF_NO_LIQ_OUTFLOW_CONTEXT=4       P=1, T=2, Cga=3, Cgw=4, freeflow_gas_flowrate=5
-                       3, 7, 8, & ! DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT=5  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
+                       3, 7, 8, & ! DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT=5  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9 (=0.0 so eliminated)
                        ! FF dof : LIQUID_OUTFLOW_CONTEXT
                        T, 8, 9 & ! DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT=6  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
 #else
@@ -167,7 +167,7 @@ module DefModel
                        3, 4, 5, 6, 0, & ! DIPHASIC_CONTEXT=3  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
                        ! FF dof : NO_LIQUID_OUTFLOW
                        P, 4, 0, 0, 0, & ! GAS_FF_NO_LIQ_OUTFLOW_CONTEXT=4       P=1, T=2, Cga=3, Cgw=4, freeflow_gas_flowrate=5
-                       P, T, 4, 5, 6, & ! DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT=5  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
+                       P, T, 4, 5, 6, & ! DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT=5  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9 (=0.0 so eliminated)
                        ! FF dof : LIQUID_OUTFLOW_CONTEXT
                        P, 3, 4, 5, 6 & ! DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT=6    P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, freeflow_gas_flowrate=8, freeflow_liquid_flowrate=9
 #else
