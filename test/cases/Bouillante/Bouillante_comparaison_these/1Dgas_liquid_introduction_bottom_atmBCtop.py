@@ -5,12 +5,12 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# Cartesian grid, box of 1000m in depth
+# Cartesian grid, box of 200m in depth
 # Initialized with gaz and
 # imposed liquid Dirichlet BC at the bottom
 # Homogeneous Neumann BC at both sides
 # atm BC at the top
-# gravity = 9.81
+# gravity = 0
 
 import ComPASS
 import numpy as np
@@ -21,40 +21,35 @@ import ComPASS.messages
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.timestep_management import TimeStepManager
-from ComPASS.mpi import master_print
 from ComPASS.utils.grid import on_zmax
 
-Lz = 1000.0
-nz = 200
+Lz = 200.0
+nz = 50
 dz = Lz / nz
 Lx = 4 * dz
 Ly = 4 * dz
-Ox, Oy, Oz = 0.0, 0.0, -1000.0
+Ox, Oy, Oz = 0.0, 0.0, -Lz
 nx = 3
 ny = 3
 Topz = Oz + Lz
 
 omega_reservoir = 0.35  # reservoir porosity
-k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
+k_reservoir = 1e-12  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
 Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
+Tatm = 330.0
 CpRoche = 2.0e6
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_liquid_capillary_pressure("Beaude2018")
 gravity = simulation.get_gravity()
 Patm = Ptop = simulation.get_atm_pressure()
-simulation.set_atm_temperature(330)
+simulation.set_atm_temperature(Tatm)
 simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-if ComPASS.mpi.is_on_master_proc:
-
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
-
-if not ComPASS.mpi.is_on_master_proc:
-    grid = omega_reservoir = k_reservoir = cell_thermal_cond = None
+grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
 simulation.init(
     mesh=grid,
@@ -68,21 +63,19 @@ fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
 
 # init gas
-g_state = dict(p=Ptop, T=Tporous, S=[1, 0], C=[[1.0, 0.0], [0.0, 1.0]])
-X0 = simulation.build_state(simulation.Context.gas, **g_state)
+X0 = simulation.build_state(simulation.Context.gas, p=Ptop, T=Tporous,)
 # top (freeflow) values
-X_top = simulation.build_state(simulation.Context.gas_FF_no_liq_outflow, **g_state)
+Xtop = simulation.build_state(
+    simulation.Context.gas_FF_no_liq_outflow, p=Ptop, T=Tporous,
+)
 # bottom values (liquid)
-Pbot = 5.0e5 + gravity * 1000 * Lz
-l_state = dict(p=Pbot, T=Tporous, S=[0, 1], C=[[1.0, 0.0], [0.0, 1.0]])
-X_bottom = simulation.build_state(simulation.Context.liquid, **l_state)
+Pbot = Patm + gravity * 1000 * Lz
+Xbot = simulation.build_state(simulation.Context.liquid, p=Pbot, T=Tporous,)
 
 simulation.all_states().set(X0)
-simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
-simulation.dirichlet_node_states().set(X_bottom)
+simulation.node_states().set(on_zmax(grid)(simulation.vertices()), Xtop)
+simulation.dirichlet_node_states().set(Xbot)
 
-
-master_print("set initial and BC")
 
 # context = SimulationContext()
 # context.abort_on_ksp_failure = False
@@ -93,8 +86,8 @@ timestep = TimeStepManager(
     initial_timestep=100,
     minimum_timestep=10.0,
     maximum_timestep=1.0 * year,
-    increase_factor=1.5,
-    decrease_factor=0.5,
+    increase_factor=1.1,
+    decrease_factor=0.2,
 )
 
 final_time = 20.0 * year
@@ -112,5 +105,3 @@ current_time = simulation.standard_loop(
     output_period=output_period,
     # nitermax=1,
 )
-
-print("time after the time loop", current_time / year, "years")

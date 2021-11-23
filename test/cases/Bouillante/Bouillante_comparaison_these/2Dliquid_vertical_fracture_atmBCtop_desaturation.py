@@ -18,6 +18,8 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
+import ComPASS.io.mesh as io
+from ComPASS.utils.grid import on_zmax
 
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 p0 = 1.0 * bar  # initial reservoir pressure
@@ -26,6 +28,7 @@ T0 = degC2K(
 )  # initial reservoir temperature - convert Celsius degrees to Kelvin degrees
 qmass = 1e-1  #
 Tbottom = degC2K(350.0)  # temperature influx
+Tatm = 300.0
 k_matrix = 1e-15  # domain permeability in m^2
 phi_matrix = 0.15  # domain porosity
 k_fracture = 1e-12  # fracture permeability in m^2
@@ -37,12 +40,11 @@ H = 1000.0  # domain height
 nH = 50  # discretization
 nx, ny, nz = 2 * nH, 1, nH
 Lx, Ly, Lz = 2 * H, 0.1 * H, H
-Topz = -H + H - 0.5
 
 
 simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
 simulation.set_liquid_capillary_pressure("Beaude2018")
-simulation.set_atm_temperature(300.0)
+simulation.set_atm_temperature(Tatm)
 ptop = simulation.get_atm_pressure()
 simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
@@ -52,26 +54,11 @@ ComPASS.set_output_directory_and_logfile(__file__)
 pbottom = simulation.get_gravity() * H * 1000.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom, pure_phase_molar_fraction)
 
-freeflow_flag = 30  # do not modify this number
-
-liquid_context = simulation.Context.liquid
-diphasic_with_liq_outflow = simulation.Context.diphasic_FF_liq_outflow
-
 if ComPASS.mpi.is_on_master_proc:
 
     grid = ComPASS.Grid(
         shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(-0.5 * Lx, -0.5 * Ly, -H)
     )
-
-    def set_global_flags():
-        # nodes
-        vertices = np.rec.array(simulation.global_vertices())
-        nodeflags = simulation.global_nodeflags()
-        nodeflags[vertices[:, -1] >= Topz] = freeflow_flag
-        # freeflow faces, necessary to flag them
-        facecenters = simulation.compute_global_face_centers()
-        faceflags = simulation.global_faceflags()
-        faceflags[facecenters[:, -1] >= Topz] = freeflow_flag
 
     def select_fractures():
         centers = simulation.compute_global_face_centers()
@@ -92,25 +79,11 @@ simulation.init(
     fracture_permeability=k_fracture,
     fracture_porosity=phi_fracture,
     fracture_thermal_conductivity=thermal_cond,
-    set_global_flags=set_global_flags,
 )
 
 
-def set_initial_states(states):
-    states.context[:] = liquid_context
-    states.p[:] = p0
-    states.T[:] = T0
-    states.S[:] = [0, 1]
-    states.C[:] = [[1.0, 0.0], [0.0, 1.0]]
-    states.FreeFlow_phase_flowrate[:] = 0.0
-
-
-for states in [
-    simulation.node_states(),
-    simulation.cell_states(),
-    simulation.fracture_states(),
-]:
-    set_initial_states(states)
+X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
+simulation.all_states().set(X0)
 
 
 def set_boundary_fluxes():
@@ -124,35 +97,53 @@ def set_boundary_fluxes():
 
 set_boundary_fluxes()
 
+# select freeflow faces
+fc = simulation.compute_face_centers()
+simulation.set_freeflow_faces(on_zmax(grid)(fc))
 
-def set_FreeFlow_state(state):
-    node_flags = simulation.nodeflags()
-    # top
-    state.context[node_flags == freeflow_flag] = diphasic_with_liq_outflow
-    state.p[node_flags == freeflow_flag] = p0
-    state.T[node_flags == freeflow_flag] = T0
-    state.S[node_flags == freeflow_flag] = [0.0, 1.0]
-    state.C[node_flags == freeflow_flag] = [[1.0, 0.0], [0.0, 1.0]]
-    state.FreeFlow_phase_flowrate[node_flags == freeflow_flag] = 0.0
+X_top = simulation.build_state(simulation.Context.diphasic_FF_liq_outflow, p=p0, T=T0,)
+simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
 
 
-set_FreeFlow_state(simulation.node_states())
+def export_initial_states():
+    node_states = simulation.node_states()
+    cell_states = simulation.cell_states()
+    petrophysics = simulation.petrophysics()
+
+    pointdata = {
+        "dirichlet pressure": simulation.pressure_dirichlet_values(),
+        "dirichlet temperature": K2degC(simulation.temperature_dirichlet_values()),
+        "initial pressure": node_states.p,
+        "initial temperature": K2degC(node_states.T),
+        "initial gas saturation": node_states.S[:, 0],
+    }
+    celldata = {
+        "initial pressure": cell_states.p,
+        "initial gas saturation": cell_states.S[:, 0],
+        "initial temperature": K2degC(cell_states.T),
+        "phi": petrophysics.cell_porosity,
+    }
+    io.write_mesh(
+        simulation, "initial_states_andra", pointdata=pointdata, celldata=celldata
+    )
 
 
-final_time = 300 * year
+# export_initial_states()
+
+final_time = 500 * year
 output_period = 0.05 * final_time
 timestep = TimeStepManager(
     initial_timestep=1.0 * day,
     minimum_timestep=1e-3,
-    maximum_timestep=output_period,
-    increase_factor=1.3,
+    maximum_timestep=50 * year,
+    increase_factor=1.9,
     decrease_factor=0.2,
 )
 
 # Construct the linear solver and newton objects outside the time loop
 # to set their parameters. Here direct solving is activated
-lsolver = linear_solver(simulation, legacy=False, direct=True)
-newton = Newton(simulation, 1e-6, 15, lsolver)
+lsolver = linear_solver(simulation, legacy=False, direct=False)
+newton = Newton(simulation, 1e-8, 15, lsolver)
 
 standard_loop(
     simulation,
