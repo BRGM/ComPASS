@@ -36,8 +36,6 @@ contains
    !! which are actualy present.
    !!
    !! Applied to IncNode, IncFrac and IncCell.
-   !! \param[in]      porovol   porous Volume
-   !! \param[in]      rt        rocktype
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
    subroutine DefFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
