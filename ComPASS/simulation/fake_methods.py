@@ -54,6 +54,7 @@ from .utils import facenodes, postprocess, eos_name
 from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions
 from ..petrophysics.capillary import set_liquid_capillary_pressure
+from ..petrophysics.models.vanGenuchten import set_vanGenuchten_capillary_pressure
 
 from ..linalg.factory import linear_solver
 from ..newton import default_Newton
