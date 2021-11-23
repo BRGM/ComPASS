@@ -21,7 +21,7 @@ module IncPrimSecdFreeFlow
       NbEqFermeture_ctx, NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, &
       NumIncComp2NumIncPTC_ctx, NbIncTotalPrim_ctx, NumCompCtilde_ctx, &
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-      NbEqEquilibre_ctx, NbIncPTC_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
+      NbEqEquilibre_ctx, NbIncTotal_ctx, NbCompCtilde_ctx
    use IncCVReservoir, only: &
       TYPE_IncCVReservoir, &
       IncNode, dPhasePressuredSNode

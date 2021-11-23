@@ -42,7 +42,7 @@ contains
 
       integer :: iph, context, i
       double precision :: T, f(NbPhase)
-      double precision :: S(NbPhase), Pc, DSPc(NbPhase)
+      double precision :: S(NbPhase)
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: Cal, Cwl
       double precision :: PgCag, PgCwg
