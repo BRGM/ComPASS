@@ -1543,10 +1543,16 @@ contains
             return
          endif
       enddo
-      ! Variable not found...
-      write (*, *) "Looking for unknown ", index_inc, &
+#ifndef NDEBUG
+#ifndef ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS
+      ! Variable not found... Is normal in DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
+      ! when index_inc=9 (freeflow_liquid_flowrate), which is known
+      ! freeflow_liquid_flowrate=0 and is eliminated in this context
+      write (*, *) "WARNING: Looking for unknown ", index_inc, &
          "(NumIncTotalPrimCV=", NumIncTotalPrimCV, &
          " NumIncTotalSecondCV=", NumIncTotalSecondCV, ")"
+#endif
+#endif
       if (index_inc == 1) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, P not found ')
 #ifdef _THERMIQUE_
       if (index_inc == 1 + IndThermique) call CommonMPI_abort(' pb in NumIncTotal in LoisThermoHydro, T not found ')
