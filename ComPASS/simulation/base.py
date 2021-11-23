@@ -86,7 +86,7 @@ def init(
     Petrophysical parameters are mandatory depending on the elements that are present (if there are no fractures,
     fracture properties are not mandatory).
 
-    :param cell_permeability: can be a scalar, the diagonal part or the full permeanility tensor, or an array
+    :param cell_permeability: can be a scalar, the diagonal part or the full permeability tensor, or an array
         of any of these three types  with as many elements as mesh cells
     :param cell_porosity: can be a scalar or an array with as many elements as mesh cells
     :param cell_thermal_conductivity: can be a scalar, the diagonal part or the full permeanility tensor, or an array
