@@ -142,7 +142,7 @@ void add_specific_model_wrappers(py::module &module) {
    module.def(
        "build_state",
        [](py::object context, py::object p, py::object T, py::object Sg,
-          py::object Cag, py::object Cal) {
+          py::object Cag, py::object Cal, py::object rocktype) {
           constexpr auto gas = enum_to_rank(Phase::gas);
           constexpr auto liquid = enum_to_rank(Phase::liquid);
           constexpr auto air = enum_to_rank(Component::air);
@@ -191,7 +191,11 @@ void add_specific_model_wrappers(py::module &module) {
              const double S = Sg.cast<double>();
              state.S[gas] = S;
              state.S[liquid] = 1. - S;
-             update_phase_pressures(state);
+             if (rocktype.is_none()) {
+                update_phase_pressures(state);
+             } else {
+                update_phase_pressures(state, rocktype.cast<int>());
+             }
              auto [Cga, Cla] =
                  diphasic_equilibrium<Component, Phase>(state.pa, state.T);
              state.C[gas][air] = Cga;
@@ -222,6 +226,7 @@ void add_specific_model_wrappers(py::module &module) {
        py::arg("context").none(false), py::arg("p") = py::none{},
        py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
        py::arg("Cag") = py::none{}, py::arg("Cal") = py::none{},
+       py::arg("rocktype") = py::none{},
        R"doc(
 Construct a state given a specific context and physical parameters.
 
@@ -229,11 +234,12 @@ Parameters
 ----------
 
 :param context: context (i.e. liquid, gas or diphasic)
-:param p: pressure
+:param p: reference pressure
 :param T: temperature
 :param Sg: gaz phase saturation
 :param Cag: gaz phase air molar fraction
 :param Cal: liquid phase air molar fraction
+:param rocktype: rocktype index
 
 )doc");
 

@@ -8,4 +8,4 @@ void fill_phase_pressure_arrays(const std::size_t, const int, X*, int*,
                                 double*);
 }
 
-void update_phase_pressures(X&);
+void update_phase_pressures(X&, int = 1);
