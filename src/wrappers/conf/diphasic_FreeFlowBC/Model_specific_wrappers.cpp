@@ -1,6 +1,8 @@
 #include <pybind11/numpy.h>
 
 #include "DefModel.h"
+#include "Equilibriums.h"
+#include "LoisThermoHydro.h"
 #include "Model_wrappers.h"
 #include "StateObjects.h"
 #include "Thermodynamics.h"
@@ -121,31 +123,74 @@ void add_specific_model_wrappers(py::module &module) {
 
    module.def(
        "build_state",
-       [](Context context, double p, double T,
-          py::array_t<double, py::array::c_style | py::array::forcecast> S,
-          py::array_t<double, py::array::c_style | py::array::forcecast> C,
-          py::object outflow_mass_flowrates) {
-          if (!(S.ndim() == 1 && S.size() == X::Model::np))
-             throw std::runtime_error(
-                 "Saturations vector has wrong dimensions.");
-          if (!(C.ndim() == 2 && C.shape(0) == X::Model::np &&
-                C.shape(1) == X::Model::nc))
-             throw std::runtime_error(
-                 "Molar fraction matrix has wrong dimensions.");
-          X result;
-          result.context = static_cast<int>(context);
-          result.p = p;
-          result.T = T;
-          auto Sin = S.unchecked<1>();
-          auto Cin = C.unchecked<2>();
-          for (int iph = 0; iph < X::Model::np; ++iph) {
-             result.S[iph] = Sin(iph);
-             for (int ic = 0; ic < X::Model::nc; ++ic) {
-                result.C[iph][ic] = Cin(iph, ic);
+       [](py::object context, py::object p, py::object T, py::object Sg,
+          py::object Cag, py::object Cal, py::object outflow_mass_flowrates) {
+          constexpr auto gas = enum_to_rank(Phase::gas);
+          constexpr auto liquid = enum_to_rank(Phase::liquid);
+          constexpr auto air = enum_to_rank(Component::air);
+          constexpr auto water = enum_to_rank(Component::water);
+
+          // FIXME: same function in diphasic EOS
+          auto set_gas_state = [&](X &state) {
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for gas state.");
+             if (!Cal.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide liquid molar fractions for gas "
+                    "state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[gas] = 1;
+             state.C[gas][air] = Cag.is_none() ? 1. : Cag.cast<double>();
+             state.C[liquid][air] = 0;
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          // FIXME: same function in diphasic EOS
+          auto set_liquid_state = [&](X &state) {
+             if (!Sg.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide saturation for liquid state.");
+             if (!Cag.is_none())
+                throw std::runtime_error(
+                    "You dont need to provide gas molar fractions for liquid "
+                    "state.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             state.S.fill(0);
+             state.S[liquid] = 1;
+             state.C[gas][air] = 1;
+             state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          // FIXME: same function in diphasic EOS
+          auto set_diphasic_state = [&](X &state) {
+             if (!(Cag.is_none() && Cal.is_none()))
+                throw std::runtime_error(
+                    "Don't prescribe molar fractions for diphasic contexts.");
+             state.p = p.cast<double>();
+             state.T = T.cast<double>();
+             const double S = Sg.cast<double>();
+             state.S[gas] = S;
+             state.S[liquid] = 1. - S;
+             update_phase_pressures(state);
+             auto [Cga, Cla] =
+                 diphasic_equilibrium<Component, Phase>(state.pa, state.T);
+             state.C[gas][air] = Cga;
+             state.C[gas][water] = 1. - Cga;
+             state.C[liquid][air] = Cla;
+             state.C[liquid][water] = 1. - Cla;
+             DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          auto set_outflow = [&](X &state) {
+             if (outflow_mass_flowrates.is_none()) {
+                state.FreeFlow_phase_flowrate.fill(0.);
+                return;
              }
-          }
-          result.FreeFlow_phase_flowrate.fill(0);
-          auto set_outflow = [&]() {
              auto q = py::cast<py::array_t<double, py::array::c_style |
                                                        py::array::forcecast> >(
                  outflow_mass_flowrates);
@@ -154,38 +199,59 @@ void add_specific_model_wrappers(py::module &module) {
                     "Mass flowrates vector has wrong dimensions.");
              auto qin = q.unchecked<1>();
              for (int ic = 0; ic < X::Model::nc; ++ic)
-                result.FreeFlow_phase_flowrate[ic] = qin(ic);
+                state.FreeFlow_phase_flowrate[ic] = qin(ic);
           };
-          switch (context) {
+
+          Context context_value = context.cast<Context>();
+          X result;
+          result.context = static_cast<int>(context_value);
+          switch (context_value) {
              case Context::gas:
+                set_gas_state(result);
+                result.FreeFlow_phase_flowrate.fill(0.);
+                break;
              case Context::liquid:
+                set_liquid_state(result);
+                result.FreeFlow_phase_flowrate.fill(0.);
+                break;
              case Context::diphasic:
-                assert(outflow_mass_flowrates.is_none());
+                set_diphasic_state(result);
+                result.FreeFlow_phase_flowrate.fill(0.);
                 break;
              case Context::gas_FF_no_liq_outflow:
-             case Context::diphasic_FF_no_liq_outflow:
+                set_gas_state(result);
+                set_outflow(result);
+                break;
              case Context::diphasic_FF_liq_outflow:
-                if (!outflow_mass_flowrates.is_none()) set_outflow();
+                set_liquid_state(result);
+                set_outflow(result);
+                break;
+             case Context::diphasic_FF_no_liq_outflow:
+                set_diphasic_state(result);
+                set_outflow(result);
                 break;
              default:
-                throw std::runtime_error(
-                    "Requested context is not implemented!");
+                throw std::runtime_error("Requested context does not exist!");
           }
           return result;
        },
-       py::arg("context"), py::arg("p"), py::arg("T"), py::arg("S"),
-       py::arg("C"), py::arg("outflow_mass_flowrates") = py::none{},
+       py::arg("context").none(false), py::arg("p") = py::none{},
+       py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
+       py::arg("Cag") = py::none{}, py::arg("Cal") = py::none{},
+       py::arg("outflow_mass_flowrates") = py::none{},
        R"doc(
 Construct a state given a specific context and physical parameters.
 
 Parameters
 ----------
 
-:param context: context (i.e. liquid, gas or diphasic)
-:param p: pressure
+:param context: context (i.e. liquid, gas, diphasic, or specific outflow BC context)
+:param p: reference pressure
 :param T: temperature
-:param S: gaz phase saturations ([Sg, Sl])
-:param C: component molar fraction matrix ([[Cga, Cgw], [Cla, Clw]])
+:param Sg: gaz phase saturation
+:param Cag: gaz phase air molar fraction
+:param Cal: liquid phase air molar fraction
+:param outflow_mass_flowrates: mass flowrates of the outflow
 
 )doc");
 }
