@@ -70,8 +70,8 @@ SUBROUTINE GlobalMesh_SetCellFlags
    DOUBLE PRECISION :: ThermalSourceOffset0(3)
    DOUBLE PRECISION, ALLOCATABLE, DIMENSION(:, :) :: ThermalSource
 
-   NbThermalSource = 10
-   ThermalSourceRadius = (/.5d0, 1.d0, 10.d0/)
+   NbThermalSource = 10 ! nb of points
+   ThermalSourceRadius = (/.5d0, 1.d0, 10.d0/) ! delta_x, delta_y, delta_z
    ThermalSourceOffset = (/40.d0, 0.d0, 0.d0/)
    ThermalSourceOffset0 = (/20.5d0, 0.5d0, 15.d0/)
 
@@ -146,11 +146,11 @@ SUBROUTINE GlobalMesh_SetNodeFlags
    ENDDO
 END SUBROUTINE GlobalMesh_SetNodeFlags
 
-Set dirichlet boundary
-cartesian mesh:manually
-other mesh:manually or
-according to IdNodeFromfile could be served
-The node index read from mesh file is:IdNodeFromfile(integer)
+! Set dirichlet boundary
+! cartesian mesh:manually
+! other mesh:manually or
+! according to IdNodeFromfile could be served
+! The node index read from mesh file is:IdNodeFromfile(integer)
 subroutine GlobalMesh_SetDirBC
 
    integer :: i, j
