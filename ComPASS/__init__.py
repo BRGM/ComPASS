@@ -13,6 +13,10 @@ from MeshTools.GridTools import GridInfo as Grid
 from .RawMesh import RawMesh
 from .runtime import to_output_directory, set_output_directory_and_logfile
 from ._kernel import get_kernel, load_eos, common_wrapper
+from ._version_interface import VersionInterface
+from . import _version
+
+version = VersionInterface(_version.version)
 
 
 def __getattr__(name):
