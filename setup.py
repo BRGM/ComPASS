@@ -11,7 +11,7 @@ from datetime import datetime
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-import setuptools_git_versioning as sgv
+import setuptools_scm as scm
 from distutils.version import LooseVersion
 from multiprocessing import cpu_count
 
@@ -21,7 +21,7 @@ version_file = "version_info"
 
 with Path(f"./{package_name}/{version_file}").open("w") as f:
     print(
-        f"{package_name} {sgv.version_from_git()} (branch: {sgv.get_branch()})", file=f,
+        f"{package_name} {scm.get_version()}", file=f,
     )
     print(f"built {datetime.now().isoformat()}", file=f)
     print(f"with python {platform.python_version()} on {platform.node()}", file=f)
@@ -132,7 +132,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name=package_name,
-    version_config=True,
+    use_scm_version={"write_to": f"{package_name}/_version.py"},
     author="various contributors",
     author_email="anr-charms@brgm.fr",
     description="A parallel multiphase multicomponents simulator.",
@@ -161,7 +161,7 @@ setup(
     cmdclass=dict(build_ext=CMakeBuild),
     package_data={package_name: [version_file],},
     zip_safe=False,
-    setup_requires=["setuptools-git-versioning"],
+    setup_requires=["setuptools_scm"],
     install_requires=[
         "click",
         "inept",

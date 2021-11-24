@@ -1,4 +1,6 @@
 cmake/config.cmake
+ComPASS/_version.py
+ComPASS/version_info
 
 *.so
 *.pyc
