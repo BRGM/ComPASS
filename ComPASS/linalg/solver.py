@@ -44,6 +44,11 @@ class DirectSolver(LinearSolver):
     def __init__(self, linear_system):
         super().__init__(linear_system)
 
+    # Just to have common treatments with IterativeSolver
+    @property
+    def residual_history(self):
+        return tuple()
+
     def __str__(self):
         return f"{super().__str__()}\n   Direct"
 
