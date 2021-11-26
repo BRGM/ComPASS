@@ -10,7 +10,7 @@ inline auto fugacity(const Components cp, const Phases ph, const double &p,
    static_assert(std::is_enum_v<Components>);
    static_assert(std::is_enum_v<Phases>);
    assert(cp == Components::air || cp == Components::water);
-   assert(ph == Phases::gas || ph == Phases::gas);
+   assert(ph == Phases::gas || ph == Phases::liquid);
    double f, _, Cph[2], dfdC[2];
    Cph[enum_to_rank(Components::air)] = Cpha;
    Cph[enum_to_rank(Components::water)] = 1 - Cpha;
