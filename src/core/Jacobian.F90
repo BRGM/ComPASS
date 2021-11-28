@@ -244,6 +244,14 @@ contains
 
    end subroutine retrieve_big_jacobian
 
+   subroutine retrieve_big_right_hand_side(a) &
+      bind(C, name="retrieve_big_right_hand_side")
+      type(cpp_array_wrapper_dim2), intent(inout) :: a
+
+      call retrieve_double_array_dim2(bigSm, a)
+
+   end subroutine retrieve_big_right_hand_side
+
    subroutine dump_jacobian(specific_row, specific_col)
 
       integer, optional, intent(in) :: specific_row, specific_col

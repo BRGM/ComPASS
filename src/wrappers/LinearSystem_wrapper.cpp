@@ -38,7 +38,9 @@ void retrieve_NumFracbyProc(DofFamilyCOC&);
 void retrieve_NumWellProdbyProc(DofFamilyCOC&);
 void retrieve_NumWellInjbyProc(DofFamilyCOC&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
+void retrieve_big_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
+void retrieve_big_right_hand_side(DoubleArray2&);
 void MeshSchema_part_info_by_rank(PartInfo&, size_t&);
 void MeshSchema_part_info(PartInfo&);
 }
@@ -447,4 +449,75 @@ void add_LinearSystem_wrapper(py::module& module) {
        .def("get_rowstart", &LinearSystemBuilder::get_rowstart)
        .def("set_AMPI", &LinearSystemBuilder::set_AMPI)
        .def("set_RHS", &LinearSystemBuilder::set_RHS);
+
+   py::class_<CsrBlockMatrixWrapper>(module, "CsrBlockMatrixWrapper")
+       .def(
+           "offsets",
+           [](CsrBlockMatrixWrapper& self) {
+              using integral_type = CsrBlockMatrixWrapper::integral_type;
+              return py::array_t<integral_type, py::array::c_style>{
+                  static_cast<py::ssize_t>(self.nb_rows + 1), self.row_offset};
+           },
+           py::keep_alive<0, 1>())
+       .def(
+           "column",
+           [](CsrBlockMatrixWrapper& self) {
+              using integral_type = CsrBlockMatrixWrapper::integral_type;
+              return py::array_t<integral_type, py::array::c_style>{
+                  static_cast<py::ssize_t>(self.nb_blocks()), self.column};
+           },
+           py::keep_alive<0, 1>())
+       .def(
+           "blocks",
+           [](CsrBlockMatrixWrapper& self) {
+              using value_type = CsrBlockMatrixWrapper::value_type;
+              const auto n = static_cast<py::ssize_t>(self.nb_blocks());
+              const auto bs = static_cast<py::ssize_t>(self.block_size);
+              constexpr auto u = static_cast<py::ssize_t>(sizeof(value_type));
+              return py::array_t<value_type, py::array::c_style>{
+                  std::array<py::ssize_t, 3>{n, bs, bs},
+                  std::array<py::ssize_t, 3>{bs * bs * u, bs * u, u},
+                  self.block_data};
+           },
+           py::keep_alive<0, 1>())
+       .def_readonly("nb_rows", &CsrBlockMatrixWrapper::nb_rows)
+       .def_readonly("block_size", &CsrBlockMatrixWrapper::block_size)
+       .def("nb_blocks", &CsrBlockMatrixWrapper::nb_blocks);
+
+   module.def("jacobian", []() {
+      auto p = std::make_unique<CsrBlockMatrixWrapper>();
+      retrieve_jacobian(*p);
+      return p;
+   });
+
+   module.def("big_jacobian", []() {
+      auto p = std::make_unique<CsrBlockMatrixWrapper>();
+      retrieve_big_jacobian(*p);
+      return p;
+   });
+
+   py::class_<DoubleArray2>(module, "DoubleArray2")
+       .def(
+           "data",  // FIXME: implement buffer interface cf. COC_wrappers.cpp
+           [](DoubleArray2& self) {
+              const auto n = static_cast<py::ssize_t>(self.shape[0]);
+              const auto bs = static_cast<py::ssize_t>(self.shape[1]);
+              constexpr auto u = static_cast<py::ssize_t>(sizeof(double));
+              return py::array_t<double, py::array::c_style>{
+                  std::array<py::ssize_t, 2>{n, bs},
+                  std::array<py::ssize_t, 2>{bs * u, u}, self.p};
+           },
+           py::keep_alive<0, 1>());
+
+   module.def("right_hand_side", []() {
+      auto p = std::make_unique<DoubleArray2>();
+      retrieve_right_hand_side(*p);
+      return p;
+   });
+
+   module.def("big_right_hand_side", []() {
+      auto p = std::make_unique<DoubleArray2>();
+      retrieve_big_right_hand_side(*p);
+      return p;
+   });
 }
