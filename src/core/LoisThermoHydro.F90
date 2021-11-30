@@ -1487,7 +1487,7 @@ contains
          ! FIXME: why not calling on RHS?
          !        because we don't use directly kr variations in Jacobian but divKrVisco...
          call LoisThermoHydro_local_Schur( &
-            NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, dXssurdXp, dfdX_secd, dkr(:, :, k))
+            NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, dXssurdXp(:, :, k), dfdX_secd, dkr(:, :, k))
       end do
 
    end subroutine LoisThermoHydro_all_dkrdX
