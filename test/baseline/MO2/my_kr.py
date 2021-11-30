@@ -41,6 +41,7 @@ def dfkrgdS(Sl):
 
 def kr_functions(states, rocktypes, kr, dkrdS):
     assert kr.shape[1] == 2, "Should not be called if np!=2"
+    dkrdS[...] = 0
     Sl = states.S[:, 1]
     kr[:, 0] = fkrg(Sl)
     dkrdS[:, 0, 0] = -dfkrgdS(Sl)  # derivative is w.r.t. Sg
