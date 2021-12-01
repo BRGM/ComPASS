@@ -60,7 +60,6 @@ setup(
         "PyYAML",
         "numpy",
         "mpi4py",
-        "petsc4py",
         "sortedcontainers",
         "MeshTools",
     ],
