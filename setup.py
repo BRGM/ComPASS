@@ -24,6 +24,9 @@ with Path(f"./{package_name}/{build_info_file}").open("w") as f:
     print(f"with python {platform.python_version()} on {platform.node()}", file=f)
     print(f"build system info: {platform.platform()}", file=f)
 
+# Clean local eos directory (!_ is to keep __init__.py)
+for f in Path(f"{package_name}/eos").glob("[!_]*"):
+    f.unlink()
 
 setup(
     name=package_name,
