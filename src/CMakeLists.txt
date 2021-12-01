@@ -13,8 +13,12 @@ set(CONFIGURATIONS brine diphasic diphasic_FreeFlowBC immiscible2ph
                    linear_water water2ph
 )
 
+option(ComPASS_WITH_ALL_PHYSICS
+       "Build all physics modules - this will overide other physics options"
+       OFF
+)
 foreach(_conf ${CONFIGURATIONS})
-  option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" ON)
+  option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" OFF)
 endforeach()
 
 set(ComPASSCommonCore_SRCS
@@ -35,6 +39,9 @@ foreach(_conf ${CONFIGURATIONS})
     break()
   endif()
 endforeach()
+if(ComPASS_WITH_ALL_PHYSICS)
+  set(ComPASS_NEEDS_CORE_COMPILATION ON)
+endif()
 
 if(${ComPASS_NEEDS_CORE_COMPILATION})
   add_library(ComPASSCommonCore STATIC ${ComPASSCommonCore_SRCS})
@@ -183,11 +190,14 @@ set(WRAPPERS_SRCS ${_tmp})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(ComPASS_AT_LEAST_ONE_PHYSIC FALSE)
+
 foreach(_conf ${CONFIGURATIONS})
-  if(NOT ${ComPASS_WITH_${_conf}_PHYSICS})
+  if(NOT ComPASS_WITH_ALL_PHYSICS AND NOT ${ComPASS_WITH_${_conf}_PHYSICS})
     message(NOTICE ">> Skipping ${_conf} physics")
     continue()
   endif()
+  set(ComPASS_AT_LEAST_ONE_PHYSIC TRUE)
   set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
@@ -260,6 +270,19 @@ foreach(_conf ${CONFIGURATIONS})
   )
 
 endforeach()
+
+if(NOT ComPASS_AT_LEAST_ONE_PHYSIC)
+  message(NOTICE "")
+  message(NOTICE "You must compile at least one physics among:")
+  foreach(_conf ${CONFIGURATIONS})
+    message(NOTICE "  - " ${_conf})
+  endforeach()
+  message(NOTICE "")
+  message(
+    FATAL_ERROR
+      "Activate at least one physics with -DComPASS_WITH_name_PHYSICS=ON"
+  )
+endif()
 
 # add experimental tests to compilation
 if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)

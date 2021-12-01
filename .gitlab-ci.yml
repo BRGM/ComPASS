@@ -36,7 +36,7 @@ build:
     - build
     - docker
   script:
-    - python3 setup.py bdist_wheel -j `nproc`
+    - python3 setup.py bdist_wheel -j `nproc` -DComPASS_WITH_ALL_PHYSICS=ON
   artifacts:
     paths:
     - dist/
