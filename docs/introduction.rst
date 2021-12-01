@@ -46,7 +46,12 @@ Manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 2
   tar xf petsc4py-3.12.0.tar.gz
   cd petsc4py-3.12.0
   sudo python3 setup.py install
-  python3 -m pip install sortedcontainers
+
+You will also need a few additional modules:
+
+.. code-block:: shell
+
+  python3 -m pip install scikit-build sortedcontainers
 
 .. note::
    The installation of PETSc is undoubtedly one of the trickiest part.
@@ -80,17 +85,31 @@ Clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
   .. note::
     You may also replace `gitlab.inria.fr/charms` with `github.com/BRGM` in the previous URL.
 
-Then cd to the root directory and run the installation:
+The installation relies on `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+to run `CMake <https://cmake.org/>`_ through `setup.py`.
+
+cd to the root directory and run the installation:
 
   .. code-block:: shell
 
-    pip3 install .
+    python3 setup.py install
 
 or alternatively in develop mode with verbose output:
 
   .. code-block:: shell
 
-    pip3 -vvv install -e .
+    python3 setup.py develop
+
+and you may also use all `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+options to control the behavior of `CMake <https://cmake.org/>`_
+
+For example:
+
+  .. code-block:: shell
+
+    python3 setup.py develop --build-type Debug -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
+
+will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics.
 
 Other systems
 -------------
