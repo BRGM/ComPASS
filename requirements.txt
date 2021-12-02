@@ -1,0 +1,13 @@
+click
+inept
+PyYAML
+numpy
+sortedcontainers
+
+# Beware of the possible confusion with meshtools package by Szabolcs Dombi
+# MeshTools
+
+mpi4py
+# Beware that your installation of petsc4py is in line with the
+# PETSc library that you will use with ComPASS
+# petsc4py

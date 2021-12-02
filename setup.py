@@ -54,13 +54,4 @@ setup(
     ],
     package_data={package_name: [build_info_file],},
     setup_requires=["setuptools_scm"],
-    install_requires=[
-        "click",
-        "inept",
-        "PyYAML",
-        "numpy",
-        "mpi4py",
-        "sortedcontainers",
-        "MeshTools",
-    ],
 )
