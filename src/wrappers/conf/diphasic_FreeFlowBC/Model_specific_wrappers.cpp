@@ -9,87 +9,97 @@
 
 static_assert(X::Model::np == 2, "Wrong number of phases.");
 static_assert(X::Model::nc == 2, "Wrong number of components.");
-static_assert(ComPASS_NUMBER_OF_CONTEXTS == 6, "Wrong number of contexts.");
 
 // FIXME: assuming liquid phase is the latest phase
 // FIXME: cpp starts at 0 where fortran at 1
-static_assert(static_cast<int>(Phase::gas) == 1, "Wrong gas phase id.");
-static_assert(static_cast<int>(Phase::liquid) == 2, "Wrong liquid phase id.");
+static_assert(enum_to_rank(Phase::gas) == 0, "Wrong gas phase rank.");
+static_assert(to_underlying(Phase::gas) == 1, "Wrong gas phase id.");
+static_assert(enum_to_rank(Phase::liquid) == 1, "Wrong liquid phase rank.");
+static_assert(to_underlying(Phase::liquid) == 2, "Wrong liquid phase id.");
+
+static_assert(std::is_same_v<X::Model::Real, double>, "Wrong real type");
+using Component_vector = X::Model::Component_vector;
+using Phase_vector = X::Model::Phase_vector;
 
 void init_model() {}
 
 void finalize_model() {}
 
-template <int PHASE>
-inline double phase_molar_density(double p, double T,
+inline double phase_molar_density(const Phase &phase, double p, double T,
                                   py::array_t<double, py::array::c_style> &C) {
    double xsi, dxsidp, dxsidT;
-   double dxsidC[X::Model::nc] = {0};
-   FluidThermodynamics_molar_density(PHASE, p, T, C.data(), xsi, dxsidp, dxsidT,
-                                     dxsidC);
+   Component_vector dxsidC;
+   FluidThermodynamics_molar_density(to_underlying(phase), p, T, C.data(), xsi,
+                                     dxsidp, dxsidT, dxsidC.data());
    return xsi;
 }
 
 inline double liquid_molar_density(double p, double T,
                                    py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_density<static_cast<int>(Phase::liquid)>(p, T, C);
+   return phase_molar_density(Phase::liquid, p, T, C);
 }
 
 inline double gas_molar_density(double p, double T,
                                 py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_density<static_cast<int>(Phase::gas)>(p, T, C);
+   return phase_molar_density(Phase::gas, p, T, C);
 }
 
-template <int PHASE>
-inline double phase_molar_enthalpy(double p, double T,
+inline double phase_molar_enthalpy(const Phase &phase, double p, double T,
                                    py::array_t<double, py::array::c_style> &C) {
    double h, dhdp, dhdT;
-   double dhdC[X::Model::nc] = {0};
-   FluidThermodynamics_molar_enthalpy(PHASE, p, T, C.data(), h, dhdp, dhdT,
-                                      dhdC);
+   Component_vector dhdC;
+   FluidThermodynamics_molar_enthalpy(to_underlying(phase), p, T, C.data(), h,
+                                      dhdp, dhdT, dhdC.data());
    return h;
 }
 
 inline double liquid_molar_enthalpy(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_enthalpy<static_cast<int>(Phase::liquid)>(p, T, C);
+   return phase_molar_enthalpy(Phase::liquid, p, T, C);
 }
 
 inline double gas_molar_enthalpy(double p, double T,
                                  py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_enthalpy<static_cast<int>(Phase::gas)>(p, T, C);
+   return phase_molar_enthalpy(Phase::gas, p, T, C);
 }
 
-template <int PHASE>
 inline double phase_dynamic_viscosity(
-    double p, double T, py::array_t<double, py::array::c_style> &C) {
+    const Phase &phase, double p, double T,
+    py::array_t<double, py::array::c_style> &C) {
    double mu, dmudp, dmudT;
-   double dmudC[X::Model::nc] = {0};
-   FluidThermodynamics_dynamic_viscosity(PHASE, p, T, C.data(), mu, dmudp,
-                                         dmudT, dmudC);
+   Component_vector dmudC;
+   FluidThermodynamics_dynamic_viscosity(to_underlying(phase), p, T, C.data(),
+                                         mu, dmudp, dmudT, dmudC.data());
    return mu;
 }
 
 inline double gas_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_dynamic_viscosity<static_cast<int>(Phase::gas)>(p, T, C);
+   return phase_dynamic_viscosity(Phase::gas, p, T, C);
 }
 
 inline double liquid_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_dynamic_viscosity<static_cast<int>(Phase::liquid)>(p, T, C);
+   return phase_dynamic_viscosity(Phase::liquid, p, T, C);
+}
+
+inline double specific_mass(const Phase &phase, const X &x) {
+   double rho, drhodp, drhodT;
+   Component_vector drhodC;
+   FluidThermodynamics_specific_mass(to_underlying(phase), x.p, x.T,
+                                     x.C[enum_to_rank(phase)].data(), rho,
+                                     drhodp, drhodT, drhodC.data());
+   return rho;
 }
 
 inline double Psat(double T) {
-   double result;
-   double dPsatdT;
+   double result, dPsatdT;
    FluidThermodynamics_Psat(T, result, dPsatdT);
    return result;
 }
 
 inline double Tsat(double p) {
-   double result;
-   double dTsatdp;
+   double result, dTsatdp;
    FluidThermodynamics_Tsat(p, result, dTsatdp);
    return result;
 }
@@ -131,7 +141,6 @@ void add_specific_model_wrappers(py::module &module) {
           constexpr auto air = enum_to_rank(Component::air);
           constexpr auto water = enum_to_rank(Component::water);
 
-          // FIXME: same function in diphasic EOS
           auto set_gas_state = [&](X &state) {
              if (!Sg.is_none())
                 throw std::runtime_error(
@@ -149,7 +158,6 @@ void add_specific_model_wrappers(py::module &module) {
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
-          // FIXME: same function in diphasic EOS
           auto set_liquid_state = [&](X &state) {
              if (!Sg.is_none())
                 throw std::runtime_error(
@@ -167,7 +175,6 @@ void add_specific_model_wrappers(py::module &module) {
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
-          // FIXME: same function in diphasic EOS
           auto set_diphasic_state = [&](X &state) {
              if (!(Cag.is_none() && Cal.is_none()))
                 throw std::runtime_error(
@@ -213,15 +220,15 @@ void add_specific_model_wrappers(py::module &module) {
           switch (context_value) {
              case Context::gas:
                 set_gas_state(result);
-                result.FreeFlow_phase_flowrate.fill(0.);
+                result.FreeFlow_phase_flowrate.fill(0);
                 break;
              case Context::liquid:
                 set_liquid_state(result);
-                result.FreeFlow_phase_flowrate.fill(0.);
+                result.FreeFlow_phase_flowrate.fill(0);
                 break;
              case Context::diphasic:
                 set_diphasic_state(result);
-                result.FreeFlow_phase_flowrate.fill(0.);
+                result.FreeFlow_phase_flowrate.fill(0);
                 break;
              case Context::gas_FF_no_liq_outflow:
                 set_gas_state(result);
@@ -261,4 +268,17 @@ Parameters
 :param rocktype: rocktype index
 
 )doc");
+
+   module.def("specific_mass", &specific_mass);
+
+   module.def(
+       "diphasic_equilibrium",
+       [](py::tuple pa, const double T, const double atol,
+          const std::size_t maxiter) {
+          return diphasic_equilibrium<Component, Phase>(
+              Phase_vector{pa[0].cast<double>(), pa[1].cast<double>()}, T, atol,
+              maxiter);
+       },
+       py::arg("pa"), py::arg("T"), py::arg("atol") = 1.e-8,
+       py::arg("maxiter") = 1000);
 }
