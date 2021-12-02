@@ -209,6 +209,11 @@ foreach(_conf ${CONFIGURATIONS})
       list(APPEND CONF_ALL_SRCS ${_src})
     endforeach()
   endif()
+  if(${_conf} STREQUAL diphasic)
+    foreach(_src ${ComPASSFreeFlow_SRCS})
+      list(APPEND CONF_ALL_SRCS ${_src})
+    endforeach()
+  endif()
   foreach(_src ${CONF_SRCS})
     list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})
   endforeach()
@@ -221,6 +226,11 @@ foreach(_conf ${CONFIGURATIONS})
     ${CONF_TARGETNAME} PUBLIC -DComPASS_WITH_${_conf}_PHYSICS
   )
   if(${_conf} STREQUAL diphasic_FreeFlowBC)
+    target_compile_definitions(
+      ${CONF_TARGETNAME} PUBLIC -D_WITH_FREEFLOW_STRUCTURES_
+    )
+  endif()
+  if(${_conf} STREQUAL diphasic)
     target_compile_definitions(
       ${CONF_TARGETNAME} PUBLIC -D_WITH_FREEFLOW_STRUCTURES_
     )
