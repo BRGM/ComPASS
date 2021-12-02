@@ -40,7 +40,7 @@ Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
 Tatm = 330.0
 CpRoche = 2.0e6
 
-simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
+simulation = ComPASS.load_eos("diphasic")
 simulation.set_liquid_capillary_pressure("Beaude2018")
 gravity = simulation.get_gravity()
 Patm = Ptop = simulation.get_atm_pressure()

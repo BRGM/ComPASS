@@ -42,7 +42,7 @@ nx, ny, nz = 2 * nH, 1, nH
 Lx, Ly, Lz = 2 * H, 0.1 * H, H
 
 
-simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
+simulation = ComPASS.load_eos("diphasic")
 simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_atm_temperature(Tatm)
 ptop = simulation.get_atm_pressure()

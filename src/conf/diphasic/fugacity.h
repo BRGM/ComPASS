@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Thermodynamics.h"
 #include "enum_to_rank.h"
-#include "fortran_thermodynamics.h"
 
 // Fugacity function of Cpha = air fraction in phase ph
 template <typename Components, typename Phases>

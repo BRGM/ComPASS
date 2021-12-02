@@ -35,7 +35,6 @@ gravity = 0.0
 
 bot_flag = 4
 
-# simulation = ComPASS.load_eos('diphasic_FreeFlowBC')
 simulation = ComPASS.load_eos("diphasic")
 simulation.set_gravity(gravity)
 ComPASS.set_output_directory_and_logfile(__file__)

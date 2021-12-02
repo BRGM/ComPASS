@@ -38,7 +38,7 @@ pbot = 1.0e5 + 1.0e6
 CpRoche = 2.0e6
 gravity = 0.0
 
-simulation = ComPASS.load_eos("diphasic_FreeFlowBC")
+simulation = ComPASS.load_eos("diphasic")
 simulation.set_gravity(gravity)
 simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_atm_temperature(Tatm)

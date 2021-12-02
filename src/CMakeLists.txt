@@ -9,9 +9,7 @@
 
 # Configuration to be built FIXME: include file liquid_water,
 # linear_liquid_water, water_with_tracer have been moved to attic
-set(CONFIGURATIONS brine diphasic diphasic_FreeFlowBC immiscible2ph
-                   linear_water water2ph
-)
+set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
 
 option(ComPASS_WITH_ALL_PHYSICS
        "Build all physics modules - this will overide other physics options"
@@ -204,11 +202,6 @@ foreach(_conf ${CONFIGURATIONS})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
                     ${ComPASSMSWells_SRCS}
   )
-  if(${_conf} STREQUAL diphasic_FreeFlowBC)
-    foreach(_src ${ComPASSFreeFlow_SRCS})
-      list(APPEND CONF_ALL_SRCS ${_src})
-    endforeach()
-  endif()
   if(${_conf} STREQUAL diphasic)
     foreach(_src ${ComPASSFreeFlow_SRCS})
       list(APPEND CONF_ALL_SRCS ${_src})
@@ -225,11 +218,6 @@ foreach(_conf ${CONFIGURATIONS})
   target_compile_definitions(
     ${CONF_TARGETNAME} PUBLIC -DComPASS_WITH_${_conf}_PHYSICS
   )
-  if(${_conf} STREQUAL diphasic_FreeFlowBC)
-    target_compile_definitions(
-      ${CONF_TARGETNAME} PUBLIC -D_WITH_FREEFLOW_STRUCTURES_
-    )
-  endif()
   if(${_conf} STREQUAL diphasic)
     target_compile_definitions(
       ${CONF_TARGETNAME} PUBLIC -D_WITH_FREEFLOW_STRUCTURES_

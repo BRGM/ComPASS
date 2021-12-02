@@ -36,7 +36,11 @@ build:
     - build
     - docker
   script:
-    - python3 setup.py bdist_wheel -j `nproc` -DComPASS_WITH_water2ph_PHYSICS=ON -DComPASS_WITH_linear_water_PHYSICS=ON -DComPASS_WITH_diphasic_PHYSICS=ON -DComPASS_WITH_diphasic_FreeFlowBC_PHYSICS=ON
+    - >
+      python3 setup.py bdist_wheel -j `nproc` \
+        -DComPASS_WITH_water2ph_PHYSICS=ON \
+        -DComPASS_WITH_linear_water_PHYSICS=ON \
+        -DComPASS_WITH_diphasic_PHYSICS=ON
   artifacts:
     paths:
     - dist/

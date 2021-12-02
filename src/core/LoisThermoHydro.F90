@@ -1544,7 +1544,7 @@ contains
          endif
       enddo
 #ifndef NDEBUG
-#ifndef ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS
+#ifndef ComPASS_WITH_diphasic_PHYSICS
       ! Variable not found... Is normal in DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
       ! when index_inc=9 (freeflow_liquid_flowrate), which is known
       ! freeflow_liquid_flowrate=0 and is eliminated in this context
@@ -1655,7 +1655,7 @@ contains
                enddo
             end do
 #ifndef NDEBUG
-#ifndef ComPASS_WITH_diphasic_FreeFlowBC_PHYSICS
+#ifndef ComPASS_WITH_diphasic_PHYSICS
          else
             if (any(NumIncTotalPrim(:, k) == 1 + NbIncPTC_ctx(context))) then
                call CommonMPI_abort('Saturation cannot be primary in single phase contexts.')

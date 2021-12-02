@@ -1,7 +1,7 @@
 #include <pybind11/numpy.h>
 // Used to expose Phase_vector
-// FIXME: Use a specific binding fro Phase_vector (which are just contiguous
-// buffers)
+// FIXME: Use a specific binding fro Phase_vector
+// (which are just contiguous buffers)
 #include <pybind11/stl.h>
 
 #include <array>
@@ -13,106 +13,101 @@
 #include "StateObjects.h"
 #include "Thermodynamics.h"
 
-constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
-constexpr int NP = ComPASS_NUMBER_OF_PHASES;
-static_assert(NP == X::Model::np, "Wrong number of phases.");
-static_assert(NC == X::Model::nc, "Wrong number of components.");
-static_assert(NP == 2, "Wrong number of phases.");
-static_assert(NC == 2, "Wrong number of components.");
-static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
-
-using Phase_vector = X::Model::Phase_vector;
-using Real = X::Model::Real;
+static_assert(X::Model::np == 2, "Wrong number of phases.");
+static_assert(X::Model::nc == 2, "Wrong number of components.");
 
 // FIXME: assuming liquid phase is the latest phase
-constexpr int GAS_PHASE = 0;
-constexpr int LIQUID_PHASE = 1;
+// FIXME: cpp starts at 0 where fortran at 1
+static_assert(enum_to_rank(Phase::gas) == 0, "Wrong gas phase rank.");
+static_assert(to_underlying(Phase::gas) == 1, "Wrong gas phase id.");
+static_assert(enum_to_rank(Phase::liquid) == 1, "Wrong liquid phase rank.");
+static_assert(to_underlying(Phase::liquid) == 2, "Wrong liquid phase id.");
+
+static_assert(std::is_same_v<X::Model::Real, double>, "Wrong real type");
+using Component_vector = X::Model::Component_vector;
+using Phase_vector = X::Model::Phase_vector;
 
 void init_model() {}
 
 void finalize_model() {}
 
-template <int PHASE>
-inline double phase_molar_density(double p, double T,
+inline double phase_molar_density(const Phase &phase, double p, double T,
                                   py::array_t<double, py::array::c_style> &C) {
    double xsi, dxsidp, dxsidT;
-   double dxsidC[NC] = {0};
-   FluidThermodynamics_molar_density(PHASE + 1, p, T, C.data(), xsi, dxsidp,
-                                     dxsidT, dxsidC);
+   Component_vector dxsidC;
+   FluidThermodynamics_molar_density(to_underlying(phase), p, T, C.data(), xsi,
+                                     dxsidp, dxsidT, dxsidC.data());
    return xsi;
 }
 
 inline double liquid_molar_density(double p, double T,
                                    py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_density<LIQUID_PHASE>(p, T, C);
+   return phase_molar_density(Phase::liquid, p, T, C);
 }
 
 inline double gas_molar_density(double p, double T,
                                 py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_density<GAS_PHASE>(p, T, C);
+   return phase_molar_density(Phase::gas, p, T, C);
 }
 
-template <int PHASE>
-inline double phase_molar_enthalpy(double p, double T,
+inline double phase_molar_enthalpy(const Phase &phase, double p, double T,
                                    py::array_t<double, py::array::c_style> &C) {
    double h, dhdp, dhdT;
-   double dhdC[NC] = {0};
-   FluidThermodynamics_molar_enthalpy(PHASE + 1, p, T, C.data(), h, dhdp, dhdT,
-                                      dhdC);
+   Component_vector dhdC;
+   FluidThermodynamics_molar_enthalpy(to_underlying(phase), p, T, C.data(), h,
+                                      dhdp, dhdT, dhdC.data());
    return h;
 }
 
 inline double liquid_molar_enthalpy(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_enthalpy<LIQUID_PHASE>(p, T, C);
+   return phase_molar_enthalpy(Phase::liquid, p, T, C);
 }
 
 inline double gas_molar_enthalpy(double p, double T,
                                  py::array_t<double, py::array::c_style> &C) {
-   return phase_molar_enthalpy<GAS_PHASE>(p, T, C);
+   return phase_molar_enthalpy(Phase::gas, p, T, C);
 }
 
-template <int PHASE>
 inline double phase_dynamic_viscosity(
-    double p, double T, py::array_t<double, py::array::c_style> &C) {
+    const Phase &phase, double p, double T,
+    py::array_t<double, py::array::c_style> &C) {
    double mu, dmudp, dmudT;
-   double dmudC[NC] = {0};
-   FluidThermodynamics_dynamic_viscosity(PHASE + 1, p, T, C.data(), mu, dmudp,
-                                         dmudT, dmudC);
+   Component_vector dmudC;
+   FluidThermodynamics_dynamic_viscosity(to_underlying(phase), p, T, C.data(),
+                                         mu, dmudp, dmudT, dmudC.data());
    return mu;
 }
 
 inline double gas_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_dynamic_viscosity<GAS_PHASE>(p, T, C);
+   return phase_dynamic_viscosity(Phase::gas, p, T, C);
 }
 
 inline double liquid_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
-   return phase_dynamic_viscosity<LIQUID_PHASE>(p, T, C);
+   return phase_dynamic_viscosity(Phase::liquid, p, T, C);
+}
+
+inline double specific_mass(const Phase &phase, const X &x) {
+   double rho, drhodp, drhodT;
+   Component_vector drhodC;
+   FluidThermodynamics_specific_mass(to_underlying(phase), x.p, x.T,
+                                     x.C[enum_to_rank(phase)].data(), rho,
+                                     drhodp, drhodT, drhodC.data());
+   return rho;
 }
 
 inline double Psat(double T) {
-   double result;
-   double dPsatdT;
+   double result, dPsatdT;
    FluidThermodynamics_Psat(T, result, dPsatdT);
    return result;
 }
 
 inline double Tsat(double p) {
-   double result;
-   double dTsatdp;
+   double result, dTsatdp;
    FluidThermodynamics_Tsat(p, result, dTsatdp);
    return result;
-}
-
-inline double specific_mass(const Phase &phase, const X &x) {
-   double rho, drhodp, drhodT;
-   double drhodC[NC];
-   FluidThermodynamics_specific_mass(enum_to_rank(phase) + 1, x.p, x.T,
-                                     x.C[enum_to_rank(phase)].data(), rho,
-                                     drhodp, drhodT, drhodC);
-   return rho;
 }
 
 void add_specific_model_wrappers(py::module &module) {
@@ -133,7 +128,10 @@ void add_specific_model_wrappers(py::module &module) {
    py::enum_<Context>(module, "Context")
        .value("gas", Context::gas)
        .value("liquid", Context::liquid)
-       .value("diphasic", Context::diphasic);
+       .value("diphasic", Context::diphasic)
+       .value("gas_FF_no_liq_outflow", Context::gas_FF_no_liq_outflow)
+       .value("diphasic_FF_no_liq_outflow", Context::diphasic_FF_no_liq_outflow)
+       .value("diphasic_FF_liq_outflow", Context::diphasic_FF_liq_outflow);
 
    py::enum_<Phase>(module, "Phase")
        .value("gas", Phase::gas)
@@ -142,7 +140,8 @@ void add_specific_model_wrappers(py::module &module) {
    module.def(
        "build_state",
        [](py::object context, py::object p, py::object T, py::object Sg,
-          py::object Cag, py::object Cal, py::object rocktype) {
+          py::object Cag, py::object Cal, py::object outflow_mass_flowrates,
+          py::object rocktype) {
           constexpr auto gas = enum_to_rank(Phase::gas);
           constexpr auto liquid = enum_to_rank(Phase::liquid);
           constexpr auto air = enum_to_rank(Component::air);
@@ -199,10 +198,26 @@ void add_specific_model_wrappers(py::module &module) {
              auto [Cga, Cla] =
                  diphasic_equilibrium<Component, Phase>(state.pa, state.T);
              state.C[gas][air] = Cga;
-             state.C[gas][water] = 1 - Cga;
+             state.C[gas][water] = 1. - Cga;
              state.C[liquid][air] = Cla;
-             state.C[liquid][water] = 1 - Cla;
+             state.C[liquid][water] = 1. - Cla;
              DiphasicFlash_enforce_consistent_molar_fractions(state);
+          };
+
+          auto set_outflow = [&](X &state) {
+             if (outflow_mass_flowrates.is_none()) {
+                state.FreeFlow_phase_flowrate.fill(0.);
+                return;
+             }
+             auto q = py::cast<py::array_t<double, py::array::c_style |
+                                                       py::array::forcecast> >(
+                 outflow_mass_flowrates);
+             if (!(q.ndim() == 1 && q.size() == X::Model::nc))
+                throw std::runtime_error(
+                    "Mass flowrates vector has wrong dimensions.");
+             auto qin = q.unchecked<1>();
+             for (int ic = 0; ic < X::Model::nc; ++ic)
+                state.FreeFlow_phase_flowrate[ic] = qin(ic);
           };
 
           Context context_value = context.cast<Context>();
@@ -211,12 +226,27 @@ void add_specific_model_wrappers(py::module &module) {
           switch (context_value) {
              case Context::gas:
                 set_gas_state(result);
+                result.FreeFlow_phase_flowrate.fill(0);
                 break;
              case Context::liquid:
                 set_liquid_state(result);
+                result.FreeFlow_phase_flowrate.fill(0);
                 break;
              case Context::diphasic:
                 set_diphasic_state(result);
+                result.FreeFlow_phase_flowrate.fill(0);
+                break;
+             case Context::gas_FF_no_liq_outflow:
+                set_gas_state(result);
+                set_outflow(result);
+                break;
+             case Context::diphasic_FF_liq_outflow:
+                set_liquid_state(result);
+                set_outflow(result);
+                break;
+             case Context::diphasic_FF_no_liq_outflow:
+                set_diphasic_state(result);
+                set_outflow(result);
                 break;
              default:
                 throw std::runtime_error("Requested context does not exist!");
@@ -226,6 +256,7 @@ void add_specific_model_wrappers(py::module &module) {
        py::arg("context").none(false), py::arg("p") = py::none{},
        py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
        py::arg("Cag") = py::none{}, py::arg("Cal") = py::none{},
+       py::arg("outflow_mass_flowrates") = py::none{},
        py::arg("rocktype") = py::none{},
        R"doc(
 Construct a state given a specific context and physical parameters.
@@ -233,12 +264,13 @@ Construct a state given a specific context and physical parameters.
 Parameters
 ----------
 
-:param context: context (i.e. liquid, gas or diphasic)
+:param context: context (i.e. liquid, gas, diphasic, or specific outflow BC context)
 :param p: reference pressure
 :param T: temperature
 :param Sg: gaz phase saturation
 :param Cag: gaz phase air molar fraction
 :param Cal: liquid phase air molar fraction
+:param outflow_mass_flowrates: mass flowrates of the outflow
 :param rocktype: rocktype index
 
 )doc");
@@ -250,7 +282,7 @@ Parameters
        [](py::tuple pa, const double T, const double atol,
           const std::size_t maxiter) {
           return diphasic_equilibrium<Component, Phase>(
-              Phase_vector{pa[0].cast<Real>(), pa[1].cast<Real>()}, T, atol,
+              Phase_vector{pa[0].cast<double>(), pa[1].cast<double>()}, T, atol,
               maxiter);
        },
        py::arg("pa"), py::arg("T"), py::arg("atol") = 1.e-8,
