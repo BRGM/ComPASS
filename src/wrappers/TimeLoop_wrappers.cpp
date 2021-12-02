@@ -65,9 +65,9 @@ void add_time_loop_wrappers(py::module& module) {
    module.def("DirichletContribution_update", &DirichletContribution_update);
    module.def("IncPrimSecd_update_secondary_dependencies", []() {
       IncPrimSecd_compute();
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IncPrimSecdFreeFlow_compute();
-#endif  // _WIP_FREEFLOW_STRUCTURES_
+#endif  // _WITH_FREEFLOW_STRUCTURES_
    });
    module.def("LoisThermoHydro_compute_phase_pressures",
               &LoisThermoHydro_compute_phase_pressures);

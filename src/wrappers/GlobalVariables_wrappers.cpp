@@ -17,7 +17,7 @@ typedef int ComPASS_Fortran_size_type;
 extern "C" {
 double get_gravity();
 void set_gravity(double);
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
 double get_atm_pressure();
 void set_atm_pressure(double);
 double get_atm_temperature();
@@ -40,7 +40,7 @@ namespace py = pybind11;
 void add_global_variables_wrappers(py::module& module) {
    module.def("get_gravity", &get_gravity);
    module.def("set_gravity", &set_gravity);
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    module.def("get_atm_pressure", &get_atm_pressure);
    module.def("set_atm_pressure", &set_atm_pressure);
    module.def("get_atm_temperature", &get_atm_temperature);

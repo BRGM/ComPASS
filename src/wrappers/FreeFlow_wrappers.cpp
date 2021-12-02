@@ -12,7 +12,7 @@
 
 #include "ArrayWrapper.h"
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
 // Fortran functions
 extern "C" {
 void clear_freeflow_faces();
@@ -22,13 +22,13 @@ void set_freeflow_faces(const ArrayWrapper &);
 namespace py = pybind11;
 
 void add_freeflow_wrappers(py::module &module) {
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    module.attr("has_freeflow_structures") = true;
 #else
    module.attr("has_freeflow_structures") = false;
 #endif
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    module.def("clear_freeflow_faces", &clear_freeflow_faces);
    module.def(
        "set_freeflow_faces",

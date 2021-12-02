@@ -20,7 +20,7 @@
           nb_primary_variables, &
           get_gravity, &
           set_gravity, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
           get_atm_pressure, &
           set_atm_pressure, &
           get_atm_temperature, &
@@ -57,7 +57,7 @@
           gravity = g
        end subroutine set_gravity
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
        function get_atm_pressure() result(p) &
           bind(C, name="get_atm_pressure")
           real(c_double) :: p

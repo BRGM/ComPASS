@@ -222,7 +222,7 @@ foreach(_conf ${CONFIGURATIONS})
   )
   if(${_conf} STREQUAL diphasic_FreeFlowBC)
     target_compile_definitions(
-      ${CONF_TARGETNAME} PUBLIC -D_WIP_FREEFLOW_STRUCTURES_
+      ${CONF_TARGETNAME} PUBLIC -D_WITH_FREEFLOW_STRUCTURES_
     )
   endif()
   set_target_properties(

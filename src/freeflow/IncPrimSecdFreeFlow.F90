@@ -33,7 +33,7 @@ module IncPrimSecdFreeFlow
                           NumIncTotalSecondCell, NumIncTotalSecondFrac, NumIncTotalSecondNode
    use Physics, only: atm_pressure
    use MeshSchema, only: &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &

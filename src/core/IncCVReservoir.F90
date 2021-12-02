@@ -252,7 +252,7 @@ contains
          inc%Saturation(iph) = inc%Saturation(iph) + relax*incre(iph + NbIncPTC)
       end do
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! increment freeflow molar flowrate
       if (ic >= 2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
          do i = 1, NbPhasePresente

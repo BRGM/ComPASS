@@ -23,7 +23,7 @@ module SolvePetsc
       NbWellInjOwn_Ncpus, NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, &
       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
       NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       NbFracLocal_Ncpus, NbCellLocal_Ncpus
@@ -779,11 +779,11 @@ contains
                col = ColLToColGBlock(JacA%Num(j)) - 1 ! 0-based in petsc
 
                if (IsTprimNodeFracLocal(JacA%Num(j)) .eqv. .true.) then ! for j, T is prim
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
                   if (JacA%Num(j) <= NbNodeLocal .and. IdFFNodeLocal(JacA%Num(j))) then  ! FIXME: FreeFlow node, T is first inc (not always)
                      call MatSetValue(At, row, col, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
                      CHKERRQ(Ierr)
-                     call CommonMPI_abort('in solvePetsc entered in new loop (_WIP_FREEFLOW_STRUCTURES_)')
+                     call CommonMPI_abort('in solvePetsc entered in new loop (_WITH_FREEFLOW_STRUCTURES_)')
                   else ! reservoir node, T is second inc
                      call MatSetValue(At, row, col, JacA%Val(2, 2, j), INSERT_VALUES, Ierr)
                      CHKERRQ(Ierr)

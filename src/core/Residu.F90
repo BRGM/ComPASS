@@ -23,7 +23,7 @@ module Residu
       NbPhasePresente_ctx, NumPhasePresente_ctx
 
    use LoisThermoHydro, only: &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       FreeFlowMolarFlowrateCompNode, &
       FreeFlowHmCompNode, &
       FreeFlowHTTemperatureNetRadiationNode, &
@@ -69,7 +69,7 @@ module Residu
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
       XNodeLocal, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
@@ -653,7 +653,7 @@ contains
 
       call Residu_add_flux_contributions_wells
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       call Residu_add_flux_contributions_FF_node
 #endif
 
@@ -842,7 +842,7 @@ contains
 
    end subroutine Residu_add_flux_contributions_wells
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    subroutine Residu_add_flux_contributions_FF_node
 
       integer :: nums, m, mph, icp

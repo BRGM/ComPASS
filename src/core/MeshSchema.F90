@@ -158,7 +158,7 @@ module MeshSchema
    type(Type_IdNode), allocatable, dimension(:), target :: &
       IdNodeLocal
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    logical, allocatable, dimension(:), target :: &
       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
 #endif
@@ -2345,7 +2345,7 @@ contains
       deallocate (IdCellLocal)
       deallocate (IdFaceLocal)
       deallocate (IdNodeLocal)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       deallocate (IdFFNodeLocal)
 #endif
 
@@ -2366,7 +2366,7 @@ contains
       deallocate (XFaceLocal)
 
       deallocate (VolCellLocal)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       deallocate (SurfFreeFlowLocal)
 #endif
       deallocate (SurfFracLocal)

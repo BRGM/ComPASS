@@ -43,7 +43,7 @@ struct NewtonIncrements {
 // table)
 // FIXME: should coincide with DefModel
 #ifdef _THERMIQUE_
-#ifndef _WIP_FREEFLOW_STRUCTURES_
+#ifndef _WITH_FREEFLOW_STRUCTURES_
       constexpr std::size_t n =
           2 + (1 + ComPASS_NUMBER_OF_COMPONENTS) * ComPASS_NUMBER_OF_PHASES;
 #else

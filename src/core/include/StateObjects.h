@@ -10,11 +10,11 @@ struct IncCV {
    typename Model::Phase_component_matrix C;
    typename Model::Phase_vector S;
    typename Model::Accumulation_vector accumulation;
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    typename Model::Phase_vector
        FreeFlow_phase_flowrate;  // molar flowrate in the freeflow
                                  // (atmosphere) at the interface
-#endif                           // _WIP_FREEFLOW_STRUCTURES_
+#endif                           // _WITH_FREEFLOW_STRUCTURES_
 };
 
 // FIXME: This is to be removed later

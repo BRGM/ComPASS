@@ -30,7 +30,7 @@ module IncPrimSecd
       IncCell, IncFrac, IncNode, &
       dPhasePressuredSNode, dPhasePressuredSFrac, dPhasePressuredSCell
    use MeshSchema, only: &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
@@ -113,7 +113,7 @@ contains
          SmFNode, &
          !
          NumIncTotalPrimNode, NumIncTotalSecondNode &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
          , IdFFNodeLocal &
 #endif
          )
@@ -152,7 +152,7 @@ contains
 #endif
       do k = 1, NbIncLocal
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
 #ifndef NDEBUG
          if (inc(k)%ic <= 0) &
             call CommonMPI_abort("Inconsistent negative context.")
@@ -978,7 +978,7 @@ contains
             var_inc(iph, k) = var_inc(iph, k) - xp(NbIncPTCPrim + i)
          end do
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
          ! FIXME: CRITICAL: we should check against a freeflow tag
          if (ic > 2**NbPhase - 1 .and. NbPhasePresente > 1) then ! FIXME: loop over freeflow dof only, avoid reservoir node
             ! Correct the value for the last saturation

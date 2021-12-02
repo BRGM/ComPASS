@@ -16,7 +16,7 @@ module LoisThermoHydro
 #endif
       f_Viscosite, f_DensiteMolaire, f_DensiteMassique
    use DefModel, only: &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       WATER_COMP, &
 #endif
       NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
@@ -45,14 +45,14 @@ module LoisThermoHydro
       NumIncTotalSecondCell, NumIncTotalSecondNode, NumIncTotalSecondFrac, &
       dXssurdXpAll, NumIncTotalPrimAll, NumIncTotalSecondAll
    use MeshSchema, only: &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
       AllDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, NodeDarcyRocktypesLocal, &
       PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    use Physics, only: atm_comp, Hm, HT, atm_temperature, atm_flux_radiation, &
                       soil_emissivity, Stephan_Boltzmann_cst, atm_pressure
 #endif
@@ -90,7 +90,7 @@ module LoisThermoHydro
       divSaturationFrac, &
       divSaturationNode
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    ! Freeflow phase molar flowrates
    double precision, allocatable, dimension(:, :, :), protected :: &
       divFreeFlowMolarFlowrateNode, &
@@ -252,7 +252,7 @@ module LoisThermoHydro
 
    private :: &
       LoisThermoHydro_divPrim_cv, & ! main function for prim divs for each control volume (cv)
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       LoisThermoHydro_divPrim_FreeFlow_cv, & ! prim divs for Molar flowrates in Freeflow dof
       LoisThermoHydro_FreeFlowMolarFlowrateComp_cv, & ! FreeFlowMolarFlowrate * Comp
       LoisThermoHydro_FreeFlowHmComp_cv, & ! Hm * (Ci - Ci_atm)
@@ -414,7 +414,7 @@ contains
                                       divDensiteMolaireKrViscoEnthalpieNode, &
                                       SmDensiteMolaireKrViscoEnthalpieNode)
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! FreeFlow nodes
       call LoisThermoHydro_divPrim_FreeFlow_cv(NbNodeLocal_Ncpus(commRank + 1), IncNode, &
                                                dPhasePressuredSNode, &
@@ -695,7 +695,7 @@ contains
 
    end subroutine LoisThermoHydro_divPrim_cv
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    ! Compute derivative of phase molar flowrates in the Freeflow dof
    subroutine LoisThermoHydro_divPrim_FreeFlow_cv( &
       NbIncLocal, inc, dpadS, &
@@ -1122,7 +1122,7 @@ contains
 
 ! _THERMIQUE_
 #endif
-! _WIP_FREEFLOW_STRUCTURES_
+! _WITH_FREEFLOW_STRUCTURES_
 #endif
 
    subroutine LoisThermoHydro_local_Schur(nb_unknows, nb_closures, nb_phases, dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
@@ -2504,7 +2504,7 @@ contains
       allocate (divSaturationCell(NbIncTotalPrimMax, NbPhase, nbCell))
       allocate (divSaturationFrac(NbIncTotalPrimMax, NbPhase, nbFrac))
       allocate (divSaturationNode(NbIncTotalPrimMax, NbPhase, nbNode))
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! Freeflow phase molar flowrates
       allocate (divFreeFlowMolarFlowrateNode(NbIncTotalPrimMax, NbPhase, nbNode))
       allocate (SmFreeFlowMolarFlowrateNode(NbPhase, nbNode))
@@ -2662,7 +2662,7 @@ contains
       deallocate (divSaturationFrac)
       deallocate (divSaturationNode)
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! Freeflow phase molar flowrates
       deallocate (divFreeFlowMolarFlowrateNode)
       deallocate (SmFreeFlowMolarFlowrateNode)

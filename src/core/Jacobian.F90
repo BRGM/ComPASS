@@ -42,7 +42,7 @@ module Jacobian
       DensiteMassiqueNode, DensiteMassiqueCell, DensiteMassiqueFrac, &
       SmDensiteMassiqueNode, SmDensiteMassiqueCell, SmDensiteMassiqueFrac, &
       SmPressionNode, SmPressionCell, SmPressionFrac, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       divFreeFlowMolarFlowrateNode, SmFreeFlowMolarFlowrateNode, &
       FreeFlowMolarFlowrateCompNode, divFreeFlowMolarFlowrateCompNode, SmFreeFlowMolarFlowrateCompNode, &
       FreeFlowHmCompNode, divFreeFlowHmCompNode, SmFreeFlowHmCompNode, &
@@ -93,7 +93,7 @@ module Jacobian
 
    use MeshSchema, only: &
       IdNodeLocal, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       IdFFNodeLocal, &
 #endif
       NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, FaceToFracLocal, &
@@ -201,7 +201,7 @@ module Jacobian
       Jacobian_divFourierFlux_cellnode, &
       Jacobian_divFourierFlux_cellfrac, &
       Jacobian_divFourierFlux_fracnode, &
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! div(FreeFlow)
       Jacobian_JacBigA_BigSm_FF_node, &
       Jacobian_divMolarFreeFlow_node, &  ! k is cell, s is node
@@ -388,7 +388,7 @@ contains
       !> 3.4 loop of well prod
       call Jacobian_JacBigA_BigSm_wellprod
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       !> 3.5 loop of FreeFlow Nodes
       call Jacobian_JacBigA_BigSm_FF_node
 #endif
@@ -1946,7 +1946,7 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm_wellprod
 
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    ! loop of node, index is nums
    ! 1.1 div
    subroutine Jacobian_JacBigA_BigSm_FF_node

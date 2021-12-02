@@ -24,7 +24,7 @@ module IncCVReservoirTypes
          Comp(NbComp, NbPhase), & !< Molar composition of the element
          Saturation(NbPhase), & !< Saturation of the element
          AccVol(NbCompThermique) !< Accumulation term integrated over volume
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       ! values of Inc for the soil-atmosphere boundary coundition
       real(c_double) :: FreeFlow_flowrate(NbPhase) !< molar flowrate in the freeflow (atmosphere) at the interface
 #endif
@@ -53,7 +53,7 @@ contains
       inc2%Comp = inc1%Comp
       inc2%Saturation = inc1%Saturation
       inc2%AccVol = inc1%AccVol
-#ifdef _WIP_FREEFLOW_STRUCTURES_
+#ifdef _WITH_FREEFLOW_STRUCTURES_
       inc2%FreeFlow_flowrate = inc1%FreeFlow_flowrate
 #endif
    end subroutine assign_type_inccv
