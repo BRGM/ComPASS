@@ -213,6 +213,7 @@ diphasic freeflow:
     - cd test/cases/Bouillante/Bouillante_comparaison_these
     - python3 1Dgas_atmBC.py
     - python3 1Dliquid_outflow_atmBC.py
+    - python3 1Drain_recharge.py
 
 various parallel tests:
   stage: test
