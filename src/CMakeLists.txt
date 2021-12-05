@@ -196,7 +196,6 @@ foreach(_conf ${CONFIGURATIONS})
     continue()
   endif()
   set(ComPASS_AT_LEAST_ONE_PHYSIC TRUE)
-  set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/fortran/${_conf})
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
@@ -224,30 +223,27 @@ foreach(_conf ${CONFIGURATIONS})
     )
   endif()
   set_target_properties(
-    ${CONF_TARGETNAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                  "${CMAKE_BINARY_DIR}/bin"
-  )
-  target_include_directories(${CONF_TARGETNAME} PUBLIC ${CONF_DIR})
-  target_include_directories(${CONF_TARGETNAME} PUBLIC core/include)
-  target_include_directories(${CONF_TARGETNAME} PUBLIC wrappers)
-  target_include_directories(
-    ${CONF_TARGETNAME} PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/common
+    ${CONF_TARGETNAME}
+    PROPERTIES Fortran_MODULE_DIRECTORY
+               ${PROJECT_BINARY_DIR}/bin/fortran/${_conf}
+               RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+               COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
   )
   target_include_directories(
-    ${CONF_TARGETNAME} PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY}
-  )
-  target_include_directories(
-    ${CONF_TARGETNAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH}
-  )
-  set_target_properties(
-    ${CONF_TARGETNAME} PROPERTIES COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
+    ${CONF_TARGETNAME}
+    PUBLIC ${CONF_DIR}
+    PUBLIC core/include
+    PUBLIC wrappers
+    PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/common
+    PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/${_conf}
+    PUBLIC ${MPI_Fortran_INCLUDE_PATH}
+    PUBLIC ${METIS_INCLUDE_DIR}
+    PUBLIC ${PETSc_INCLUDE_DIRS}
   )
   target_link_libraries(${CONF_TARGETNAME} pybind11::pybind11)
   target_link_libraries(${CONF_TARGETNAME} ComPASSCommonCore)
   target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
-  target_include_directories(${CONF_TARGETNAME} PUBLIC ${METIS_INCLUDE_DIR})
   target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
-  target_include_directories(${CONF_TARGETNAME} PUBLIC ${PETSc_INCLUDE_DIRS})
   # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
   target_link_libraries(
     ${CONF_TARGETNAME} ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES}
