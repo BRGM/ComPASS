@@ -1,14 +1,4 @@
-# FIXME: Horrible! This following are case dependant configuration files which
-# are included in other modules with hard coded include directives
-# conf/DefGeometry.F90 -> src/GlobalMesh.F90 conf/DefInitBCvalues.F90 ->
-# src/IncCV.F90 Following files are also configuration files but they must be
-# compiled ! conf/DefFlash.F90 conf/DefModel.F90 conf/DefWell.F90
-
-# When there is no longer hard-coded include directives this should be enough
-# add_subdirectory(core)
-
-# Configuration to be built FIXME: include file liquid_water,
-# linear_liquid_water, water_with_tracer have been moved to attic
+# Configuration to be built
 set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
 
 option(ComPASS_WITH_ALL_PHYSICS
@@ -41,34 +31,14 @@ if(${ComPASS_NEEDS_CORE_COMPILATION})
                Fortran_MODULE_DIRECTORY
                ${PROJECT_BINARY_DIR}/bin/fortran/common
   )
-  # target_include_directories(ComPASSCommonCore PUBLIC ${CONF_DIR})
-  target_include_directories(ComPASSCommonCore PUBLIC wrappers)
-  # target_include_directories(ComPASSCommonCore PUBLIC
-  # ${CMAKE_Fortran_MODULE_DIRECTORY})
-  # target_include_directories(ComPASSCommonCore PUBLIC ${PYTHON_INCLUDE_DIRS})
   target_include_directories(
-    ComPASSCommonCore PUBLIC ${MPI_Fortran_INCLUDE_PATH}
+    ComPASSCommonCore
+    PUBLIC wrappers
+    PUBLIC ${MPI_Fortran_INCLUDE_PATH}
+    PUBLIC ${METIS_INCLUDE_DIR}
+    PUBLIC ${PETSc_INCLUDE_DIRS}
   )
-  # target_link_libraries(ComPASSCommonCore ${MPI_Fortran_LIBRARIES})
-  target_include_directories(ComPASSCommonCore PUBLIC ${METIS_INCLUDE_DIR})
-  # target_link_libraries(ComPASSCommonCore ${METIS_LIBRARY})
-  target_include_directories(ComPASSCommonCore PUBLIC ${PETSc_INCLUDE_DIRS})
-  # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
-  # target_link_libraries(ComPASSCommonCore ${PETSc_LIBRARIES}
-  # ${LAPACK_LIBRARIES})
 endif(${ComPASS_NEEDS_CORE_COMPILATION})
-
-# FIXME: DISPMODULE from Thibault branch ?
-if(NOT MPI_Fortran_FOUND)
-  message(FATAL_ERROR "MPI is required.")
-endif(NOT MPI_Fortran_FOUND)
-
-# FIXME: DISPMODULE from Thibault branch ?
-if(DEF_DISPMODULE)
-  list(APPEND ComPASSCore_SRCS dispmodule.f90)
-endif(DEF_DISPMODULE)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(ComPASS_AT_LEAST_ONE_PHYSIC FALSE)
 
@@ -106,7 +76,8 @@ foreach(_conf ${CONFIGURATIONS})
   endif()
   set_target_properties(
     ${CONF_TARGETNAME}
-    PROPERTIES Fortran_MODULE_DIRECTORY
+    PROPERTIES POSITION_INDEPENDENT_CODE ON
+               Fortran_MODULE_DIRECTORY
                ${PROJECT_BINARY_DIR}/bin/fortran/${_conf}
                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
                COMPILE_FLAGS "${MPI_Fortran_COMPILE_FLAGS}"
