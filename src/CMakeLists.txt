@@ -11,18 +11,31 @@ endforeach()
 
 include(all_sources.cmake)
 
-set(ComPASS_NEEDS_CORE_COMPILATION OFF)
+set(ComPASS_AT_LEAST_ONE_PHYSIC FALSE)
 foreach(_conf ${CONFIGURATIONS})
   if(${ComPASS_WITH_${_conf}_PHYSICS})
-    set(ComPASS_NEEDS_CORE_COMPILATION ON)
+    set(ComPASS_AT_LEAST_ONE_PHYSIC TRUE)
     break()
   endif()
 endforeach()
 if(ComPASS_WITH_ALL_PHYSICS)
-  set(ComPASS_NEEDS_CORE_COMPILATION ON)
+  set(ComPASS_AT_LEAST_ONE_PHYSIC ON)
 endif()
 
-if(${ComPASS_NEEDS_CORE_COMPILATION})
+if(NOT ComPASS_AT_LEAST_ONE_PHYSIC)
+  message(NOTICE "")
+  message(NOTICE "You must compile at least one physics among:")
+  foreach(_conf ${CONFIGURATIONS})
+    message(NOTICE "  - " ${_conf})
+  endforeach()
+  message(NOTICE "")
+  message(
+    FATAL_ERROR
+      "Activate at least one physics with -DComPASS_WITH_name_PHYSICS=ON"
+  )
+endif()
+
+if(${ComPASS_AT_LEAST_ONE_PHYSIC})
   add_library(ComPASSCommonCore STATIC ${ComPASSCommonCore_SRCS})
   set_target_properties(
     ComPASSCommonCore
@@ -38,16 +51,13 @@ if(${ComPASS_NEEDS_CORE_COMPILATION})
     PUBLIC ${METIS_INCLUDE_DIR}
     PUBLIC ${PETSc_INCLUDE_DIRS}
   )
-endif(${ComPASS_NEEDS_CORE_COMPILATION})
-
-set(ComPASS_AT_LEAST_ONE_PHYSIC FALSE)
+endif(${ComPASS_AT_LEAST_ONE_PHYSIC})
 
 foreach(_conf ${CONFIGURATIONS})
   if(NOT ComPASS_WITH_ALL_PHYSICS AND NOT ${ComPASS_WITH_${_conf}_PHYSICS})
     message(NOTICE ">> Skipping ${_conf} physics")
     continue()
   endif()
-  set(ComPASS_AT_LEAST_ONE_PHYSIC TRUE)
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
@@ -117,19 +127,6 @@ foreach(_conf ${CONFIGURATIONS})
   )
 
 endforeach()
-
-if(NOT ComPASS_AT_LEAST_ONE_PHYSIC)
-  message(NOTICE "")
-  message(NOTICE "You must compile at least one physics among:")
-  foreach(_conf ${CONFIGURATIONS})
-    message(NOTICE "  - " ${_conf})
-  endforeach()
-  message(NOTICE "")
-  message(
-    FATAL_ERROR
-      "Activate at least one physics with -DComPASS_WITH_name_PHYSICS=ON"
-  )
-endif()
 
 # add experimental tests to compilation
 if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
