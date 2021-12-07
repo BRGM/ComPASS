@@ -7,15 +7,17 @@
 #
 from .__init__ import PETSc
 
+_petsc_possible_failure_reasons = [
+    name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
+]
+
 
 def explain_reason(reason):
 
-    possible_reasons = [
-        name for name in dir(PETSc.KSP.ConvergedReason) if not name.startswith("__")
-    ]
-    for name in possible_reasons:
+    for name in _petsc_possible_failure_reasons:
         if getattr(PETSc.KSP.ConvergedReason, name) == reason:
             return name
+    return f"Unknown solver failure reason: {reason}"
 
 
 class InvalidConfigError(Exception):
