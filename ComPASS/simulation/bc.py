@@ -148,5 +148,6 @@ def reset_freeflow_faces(simulation, faces):
     :param simulation: the simulation object
     :param faces: a sequence with boolean values or faces id
     """
+    kernel = get_kernel()
     kernel.clear_freeflow_faces()
     set_freeflow_faces(simulation, faces)
