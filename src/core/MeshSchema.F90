@@ -1434,7 +1434,7 @@ contains
       call MPI_Type_struct(1, blen, offsets, oldtypes, MPI_IDNODE, Ierr)
       call MPI_Type_commit(MPI_IDNODE, Ierr)
 
-      ! Send IdNodeLocal and IdFFNodeLocal
+      ! Send IdNodeLocal
       if (commRank == 0) then
 
          ! send to proc >=1
