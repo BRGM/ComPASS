@@ -3,6 +3,7 @@ inept
 PyYAML
 numpy
 sortedcontainers
+verstr
 
 # Beware of the possible confusion with meshtools package by Szabolcs Dombi
 # MeshTools
