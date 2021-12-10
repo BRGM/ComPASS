@@ -38,7 +38,7 @@ contains
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       integer :: context
-      double precision :: Tsat, dTsatdP, Psat, dPsatdT
+      double precision :: Tsat, Psat, unused
 
       context = inc%ic
 
@@ -46,7 +46,7 @@ contains
 
       if (context == GAS_CONTEXT) then
 
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
+         call FluidThermodynamics_Psat(inc%Temperature, Psat, unused)
 
          if (inc%Pression > Psat) then ! inc%Pression = Pref = Pg in this physic
             inc%ic = DIPHASIC_CONTEXT
@@ -58,7 +58,7 @@ contains
 
       else if (context == LIQUID_CONTEXT) then
 
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
+         call FluidThermodynamics_Psat(inc%Temperature, Psat, unused)
 
          if (inc%Pression < Psat) then ! inc%Pression = Pref = Pg in this physic
             inc%ic = DIPHASIC_CONTEXT
@@ -76,7 +76,7 @@ contains
 #endif
 
          ! inc%Pression = Pref = Pg in this physic
-         call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
+         call FluidThermodynamics_Tsat(inc%Pression, Tsat, unused)
          inc%Temperature = Tsat
 
          if (inc%Saturation(GAS_PHASE) < 0.d0) then
