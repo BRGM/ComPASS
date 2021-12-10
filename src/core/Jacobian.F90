@@ -2104,10 +2104,10 @@ contains
             ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
             do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                divS(j) = divS(j) + SurfFreeFlowLocal(nums)* &
-                         divFreeFlowMolarFlowrateNode(j, m, nums)*AtmEnthalpieNode(m, nums) ! AtmEnthalpieNode is a constant, no derivative
+                         divFreeFlowMolarFlowrateNode(j, m, nums)*AtmEnthalpieNode(mph, nums) ! AtmEnthalpieNode is a constant, no derivative
             enddo
             Sm0 = Sm0 + SurfFreeFlowLocal(nums)* &
-                  SmFreeFlowMolarFlowrateNode(m, nums)*AtmEnthalpieNode(m, nums)
+                  SmFreeFlowMolarFlowrateNode(m, nums)*AtmEnthalpieNode(mph, nums)
 
          endif ! sign of flux
       enddo

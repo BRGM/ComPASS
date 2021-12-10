@@ -846,14 +846,31 @@ contains
    subroutine Residu_add_flux_contributions_FF_node
 
       integer :: nums, m, mph, icp
-      double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate
+      double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate, surface_area
 
       do nums = 1, NbNodeOwn_Ncpus(commRank + 1)
 
          if (IdFFNodeLocal(nums)) then ! loop over freeflow dof only, avoid reservoir node
 
-            Flux_FreeFlow(:) = 0.d0
+            Flux_FreeFlow = 0.d0
             FluxT_FreeFlow = 0.d0
+            surface_area = SurfFreeFlowLocal(nums)
+
+            ! The rain source term does not depend on the present phases
+            do mph = 1, NbPhase
+               do icp = 1, NbComp
+                  if (MCP(icp, mph) == 1) then ! \cap P_i
+                     ! Everything is constant in time (if no freeflow constant is modify)
+                     ! CHECKME: we could use NodeNeumannBC(nums)%molar_flux and NodeNeumannBC(nums)%heat_flux
+                     ! rain source term (by default rain_flux(gas)=0)
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + surface_area*(atm_comp(icp, mph)*rain_flux(mph))
+                  endif
+               enddo
+
+#ifdef _THERMIQUE_
+               FluxT_FreeFlow = FluxT_FreeFlow + surface_area*(AtmEnthalpieNode(mph, nums)*rain_flux(mph))
+#endif
+            enddo ! mph
 
             do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic)
                mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
@@ -865,41 +882,37 @@ contains
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
-                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums)*( &
+                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + surface_area*( &
                                              FreeFlowMolarFlowrateCompNode(icp, m, nums) &
-                                             + FreeFlowHmCompNode(icp, m, nums) &
-                                             + atm_comp(icp, mph)*rain_flux(mph))! rain source term (rain_flux(gas)=0)
+                                             + FreeFlowHmCompNode(icp, m, nums))
                      end if
                   end do ! end of icp
 #ifdef _THERMIQUE_
-                  FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums)*( &
-                                   FreeFlowMolarFlowrateEnthalpieNode(m, nums) &
-                                   + AtmEnthalpieNode(m, nums)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
+                  FluxT_FreeFlow = FluxT_FreeFlow + surface_area*( &
+                                   FreeFlowMolarFlowrateEnthalpieNode(m, nums))
 #endif
 
                else ! FreeFlowMolarFlowrate<0.d0
-                  ! liq phase never enters in this loop because always FreeFlow_flowrate(liq)>=0.d0
+                  ! liq phase never enters in this loop because FreeFlow_flowrate(liq)>=0.d0 (the rain is not in FreeFlow_flowrate)
 
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
-                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + SurfFreeFlowLocal(nums)*( &
+                        Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + surface_area*( &
                                              FreeFlowMolarFlowrate*atm_comp(icp, mph) &
-                                             + FreeFlowHmCompNode(icp, m, nums) &
-                                             + atm_comp(icp, mph)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
+                                             + FreeFlowHmCompNode(icp, m, nums))
                      end if
                   end do ! end of icp
 #ifdef _THERMIQUE_
-                  FluxT_FreeFlow = FluxT_FreeFlow + SurfFreeFlowLocal(nums)*( &
-                                   FreeFlowMolarFlowrate*AtmEnthalpieNode(m, nums) &
-                                   + AtmEnthalpieNode(m, nums)*rain_flux(mph)) ! rain source term (rain_flux(gas)=0)
+                  FluxT_FreeFlow = FluxT_FreeFlow + surface_area*( &
+                                   FreeFlowMolarFlowrate*AtmEnthalpieNode(mph, nums))
 #endif
                endif ! sign of FreeFlowMolarFlowrate
             enddo ! m
 
 #ifdef _THERMIQUE_
             FluxT_FreeFlow = FluxT_FreeFlow &
-                             + SurfFreeFlowLocal(nums)*FreeFlowHTTemperatureNetRadiationNode(nums)
+                             + surface_area*FreeFlowHTTemperatureNetRadiationNode(nums)
             ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_FreeFlow
 #endif
 

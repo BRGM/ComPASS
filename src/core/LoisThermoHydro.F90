@@ -15,10 +15,10 @@ module LoisThermoHydro
       f_EnergieInterne, f_Enthalpie, f_SpecificEnthalpy, &
 #endif
       f_Viscosite, f_DensiteMolaire, f_DensiteMassique
-   use DefModel, only: &
-#ifdef _WITH_FREEFLOW_STRUCTURES_
-      WATER_COMP, &
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+   use DefModel, only: WATER_COMP, GAS_PHASE
 #endif
+   use DefModel, only: &
       NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
       NbEqEquilibreMax, NbIncPTCMax, NbIncTotalPrimMax, &
       NbIncTotalMax, NbEqFermetureMax, &
@@ -822,7 +822,7 @@ contains
 
          ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
          !       liquid-> Enthalpie(liquid) of the far field atmosphere
-         call LoisThermoHydro_AtmEnthalpie_cv(ctxinfo, AtmEnthalpie(:, k))
+         call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie(:, k))
 #endif
       end do ! k
 
@@ -1094,29 +1094,24 @@ contains
 
    ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
    !       liquid-> Enthalpie(liquid) of the far field atmosphere
-   subroutine LoisThermoHydro_AtmEnthalpie_cv(ctxinfo, val)
-      type(ContextInfo), intent(in) :: ctxinfo
+   subroutine LoisThermoHydro_AtmEnthalpie_cv(val)
       double precision, intent(out) :: val(NbPhase)
 
-      double precision :: f(NbComp), dPf(NbComp), dTf(NbComp)
-      integer :: i, iph, icp
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+      double precision :: h(NbComp), unused1(NbComp), unused2(NbComp)
+      integer :: icp
 
       val = 0.d0
 
-      do i = 1, ctxinfo%NbPhasePresente
-         iph = ctxinfo%NumPhasePresente(i)
+      call f_SpecificEnthalpy(GAS_PHASE, atm_pressure, atm_temperature, h, unused1, unused2)
+      val(GAS_PHASE) = h(WATER_COMP) ! CHECKME: we discard air fraction and we do not consider water fraction
 
-         call f_SpecificEnthalpy(iph, atm_pressure, atm_temperature, f, dPf, dTf)
+      call f_SpecificEnthalpy(LIQUID_PHASE, atm_pressure, atm_temperature, h, unused1, unused2)
+      val(LIQUID_PHASE) = val(LIQUID_PHASE) + dot_product(h(1:NbComp), atm_comp(1:NbComp, LIQUID_PHASE))
 
-         if (iph == LIQUID_PHASE) then ! sum_icp( specific_enthalpie(icp)*atm_comp(icp,iph) )
-            do icp = 1, NbComp
-               val(i) = val(i) + f(icp)*atm_comp(icp, iph)
-            enddo
-         else  ! gaz phase : specific_enthalpie(water component)
-            val(i) = f(WATER_COMP)
-         endif
-
-      enddo ! NbPhasePresente
+#else
+      call CommonMPI_abort("LoisThermoHydro_AtmEnthalpie_cv is designed to be used with diphasic physics only.")
+#endif
 
    end subroutine LoisThermoHydro_AtmEnthalpie_cv
 
