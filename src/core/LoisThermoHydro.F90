@@ -53,7 +53,7 @@ module LoisThermoHydro
       PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-   use Physics, only: atm_comp, Hm, HT, atm_temperature, atm_flux_radiation, &
+   use Physics, only: atm_comp, Hm, HT, atm_temperature, rain_temperature, atm_flux_radiation, &
                       soil_emissivity, Stephan_Boltzmann_cst, atm_pressure
 #endif
 
@@ -820,8 +820,8 @@ contains
                                                                    divFreeFlowHTTemperatureNetRadiation(:, k), &
                                                                    SmFreeFlowHTTemperatureNetRadiation(k))
 
-         ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
-         !       liquid-> Enthalpie(liquid) of the far field atmosphere
+         ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with atm_temperature
+         !       liquid-> Enthalpie(liquid) of the far field atmosphere with rain_temperature
          call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie(:, k))
 #endif
       end do ! k
@@ -1092,8 +1092,8 @@ contains
 
    end subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv
 
-   ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere
-   !       liquid-> Enthalpie(liquid) of the far field atmosphere
+   ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with atm_temperature
+   !       liquid-> Enthalpie(liquid) of the far field atmosphere with rain_temperature
    subroutine LoisThermoHydro_AtmEnthalpie_cv(val)
       double precision, intent(out) :: val(NbPhase)
 
@@ -1106,7 +1106,7 @@ contains
       call f_SpecificEnthalpy(GAS_PHASE, atm_pressure, atm_temperature, h, unused1, unused2)
       val(GAS_PHASE) = h(WATER_COMP) ! CHECKME: we discard air fraction and we do not consider water fraction
 
-      call f_SpecificEnthalpy(LIQUID_PHASE, atm_pressure, atm_temperature, h, unused1, unused2)
+      call f_SpecificEnthalpy(LIQUID_PHASE, atm_pressure, rain_temperature, h, unused1, unused2)
       val(LIQUID_PHASE) = val(LIQUID_PHASE) + dot_product(h(1:NbComp), atm_comp(1:NbComp, LIQUID_PHASE))
 
 #else

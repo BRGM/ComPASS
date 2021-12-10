@@ -12,7 +12,7 @@
 
        use DefModel, only: NbIncTotalMax, NbIncTotalPrimMax, LIQUID_PHASE
        use Physics, only: Thickness, gravity, CpRoche, atm_pressure, atm_temperature, &
-                          atm_flux_radiation, soil_emissivity, rain_flux
+                          rain_temperature, atm_flux_radiation, soil_emissivity, rain_flux
 
        implicit none
 
@@ -25,6 +25,8 @@
           set_atm_pressure, &
           get_atm_temperature, &
           set_atm_temperature, &
+          get_rain_temperature, &
+          set_rain_temperature, &
           get_atm_flux_radiation, &
           set_atm_flux_radiation, &
           get_soil_emissivity, &
@@ -80,7 +82,25 @@
           bind(C, name="set_atm_temperature")
           real(c_double), value, intent(in) :: T
           atm_temperature = T
+#ifndef NDEBUG
+          write (*, *) " ****************** "
+          write (*, *) &
+             "WARNING: rain_temperature is not modified, rain_temperature = ", rain_temperature
+          write (*, *) " ****************** "
+#endif
        end subroutine set_atm_temperature
+
+       function get_rain_temperature() result(T) &
+          bind(C, name="get_rain_temperature")
+          real(c_double) :: T
+          T = rain_temperature
+       end function get_rain_temperature
+
+       subroutine set_rain_temperature(T) &
+          bind(C, name="set_rain_temperature")
+          real(c_double), value, intent(in) :: T
+          rain_temperature = T
+       end subroutine set_rain_temperature
 
        function get_atm_flux_radiation() result(q) &
           bind(C, name="get_atm_flux_radiation")

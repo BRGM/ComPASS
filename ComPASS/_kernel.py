@@ -136,6 +136,8 @@ simulation_wrapper = Wrapper(
         "set_atm_pressure",
         "get_atm_temperature",
         "set_atm_temperature",
+        "get_rain_temperature",
+        "set_rain_temperature",
         "get_atm_flux_radiation",
         "set_atm_flux_radiation",
         "get_soil_emissivity",

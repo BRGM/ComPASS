@@ -22,6 +22,8 @@ double get_atm_pressure();
 void set_atm_pressure(double);
 double get_atm_temperature();
 void set_atm_temperature(double);
+double get_rain_temperature();
+void set_rain_temperature(double);
 double get_atm_flux_radiation();
 void set_atm_flux_radiation(double);
 double get_soil_emissivity();
@@ -45,6 +47,8 @@ void add_global_variables_wrappers(py::module& module) {
    module.def("set_atm_pressure", &set_atm_pressure);
    module.def("get_atm_temperature", &get_atm_temperature);
    module.def("set_atm_temperature", &set_atm_temperature);
+   module.def("get_rain_temperature", &get_rain_temperature);
+   module.def("set_rain_temperature", &set_rain_temperature);
    module.def("get_atm_flux_radiation", &get_atm_flux_radiation);
    module.def("set_atm_flux_radiation", &set_atm_flux_radiation);
    module.def("get_soil_emissivity", &get_soil_emissivity);

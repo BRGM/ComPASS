@@ -16,6 +16,7 @@ module Physics
    ! must be compatible with reference pressure !!! (called in f_SpecificEnthalpy which does not depend on P)
    real(c_double) :: atm_pressure = 1.d5
    real(c_double) :: atm_temperature = 300.d0
+   real(c_double) :: rain_temperature = 300.d0
    real(c_double) :: atm_comp(2, 2) = &
                      RESHAPE((/ &
                              0.999d0, 1.d-3, & ! gas
