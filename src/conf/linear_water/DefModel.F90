@@ -32,7 +32,6 @@ module DefModel
 
    !FIXME: Asssume that the latest phase is the liquid phase
    integer, parameter :: LIQUID_PHASE = NbPhase
-   integer, parameter :: GAS_PHASE = -1 ! FIXME: dummy value for IncPrimSecdFreeFlow
 
    ! MCP
    integer, parameter, dimension(NbComp, NbPhase) :: &
