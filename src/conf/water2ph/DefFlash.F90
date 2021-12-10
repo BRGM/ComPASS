@@ -77,10 +77,7 @@ contains
 
          ! inc%Pression = Pref = Pg in this physic
          call FluidThermodynamics_Tsat(inc%Pression, Tsat, dTsatdP)
-         call FluidThermodynamics_Psat(inc%Temperature, Psat, dPsatdT)
-
          inc%Temperature = Tsat
-         inc%Pression = Psat
 
          if (inc%Saturation(GAS_PHASE) < 0.d0) then
             inc%ic = LIQUID_CONTEXT
