@@ -26,7 +26,7 @@ module Jacobian
 
    use DefModel, only: &
       NumPhasePresente_ctx, NbPhasePresente_ctx, LIQUID_PHASE, &
-      NbComp, NbPhase, NbCompThermique, MCP, aligmat, aligmethod, NbIncTotalPrimMax, &
+      NbComp, NbPhase, NbCompThermique, MCP, aligmat, NbIncTotalPrimMax, &
       phase_can_be_present
 
    use LoisThermoHydro, only: &
@@ -283,38 +283,6 @@ contains
 
    end subroutine dump_jacobian
 
-   !> \brief Compute Jacobian and rhs
-   subroutine Jacobian_ComputeJacSm(Delta_t) &
-      bind(C, name="Jacobian_ComputeJacSm")
-
-      real(c_double), intent(in), value :: Delta_t
-      integer :: errcode, Ierr
-
-      ! Jacobian and right hand side
-      call Jacobian_JacBigA_BigSm(Delta_t)
-
-      ! Regularization of Jacobian
-      call Jacobian_Regularization
-
-      ! Schur complement of Jacobian and right hand side
-      call Jacobian_Schur
-
-      ! Alignment of Jacobian after Schur
-      if (aligmethod == 1) then ! manually
-
-         call Jacobian_Alignment_man
-
-      else if (aligmethod == 2) then ! diag inverse
-
-         call Jacobian_Alignment_diag
-
-      else
-         write (0, '(A)') "Error: Alignment method is not defined"
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-      end if
-
-   end subroutine Jacobian_ComputeJacSm
-
    !> \brief Fill BigSm with the residual values
    !!
    !!   If the node is dir, we suppose that the residu is 0,
@@ -364,9 +332,10 @@ contains
    end subroutine Jacobian_JacBigA_BigSm_init_from_residual
 
    !> \brief fill Jacobian and right hand side before Schur: main subroutine
-   subroutine Jacobian_JacBigA_BigSm(Delta_t)
+   subroutine Jacobian_JacBigA_BigSm(Delta_t) &
+      bind(C, name="Jacobian_JacBigA_BigSm")
 
-      double precision, intent(in) :: Delta_t
+      real(c_double), intent(in) :: Delta_t
 
       !> 1. init right hand side
       call Jacobian_JacBigA_BigSm_init_from_residual
@@ -4181,7 +4150,8 @@ contains
 
    ! Regularization of Jacobian
    ! operation on JacBigA, bigSm
-   subroutine Jacobian_Regularization
+   subroutine Jacobian_Regularization() &
+      bind(C, name="Jacobian_Regularization")
 
       integer :: k, rowk, colk
 
@@ -4325,7 +4295,8 @@ contains
 
    ! Alignment of Jacobian: diag method
    ! operation on JacA, Sm
-   subroutine Jacobian_Alignment_diag
+   subroutine Jacobian_Alignment_diag() &
+      bind(C, name="Jacobian_Alignment_diag")
 
       integer :: k, rowk, colk
 
@@ -4404,7 +4375,8 @@ contains
 
    ! Alignment of Jacobian: manually method
    ! operation on JacA, Sm
-   subroutine Jacobian_Alignment_man
+   subroutine Jacobian_Alignment_man() &
+      bind(C, name="Jacobian_Alignment_man")
 
       integer :: k, rowk
 
@@ -4734,7 +4706,8 @@ contains
 
    ! Schur complement
    ! documented in docs/tech/schur.tex
-   subroutine Jacobian_Schur
+   subroutine Jacobian_Schur() &
+      bind(C, name="Jacobian_Schur")
 
       ! in place LU factorization of JKK diagonal blocks
       call Jacobian_Schur_Jkk_LU_factorization(JacBigA)

@@ -1,4 +1,5 @@
 from functools import partial
+from . import AlignmentMethod
 from . import fake_methods
 from . import base
 from . import data
@@ -25,6 +26,8 @@ class SimmulationBase:
 
     def __init__(self, well_data_provider):
         self.info = SimulationInfo()
+        # FIXME: should be encapsulated elsewhere
+        self.alignment = AlignmentMethod.inverse_diagonal
         self.initialized = False
         self.mesh_is_local = False
         self.well_data_provider = well_data_provider

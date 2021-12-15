@@ -83,6 +83,7 @@ set(WRAPPERS_SRCS
     IncCV_wrappers.cpp
     FreeFlow_wrappers.cpp
     IncCV_wrappers.F90
+    Jacobian_wrappers.cpp
     LinearSystem_wrapper.cpp
     LinearSystemBuilder.h
     LocalMeshWrapper.F90

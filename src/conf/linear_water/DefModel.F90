@@ -85,25 +85,8 @@ module DefModel
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = reshape((/C/), (/NbEqFermetureMax, NbContexte/))
 
-   ! ! ****** Alignment method ****** ! !
-   ! Used in module Jacobian.F90
-   !
-   ! aligmethod=1, manually using aligmat
-   ! The idea is to have postive diagonal using linear combinations
-   ! (alternative is to used inverse of block = LC of)
-   ! good for LU O (not good for amg)
-   ! not used if not preconditionner (but avoid pivoting)
-   !     it is necessary to give a three-dimension matrix: aligmat
-   !     aligmat(:,:,ic) is the alignment matrix for context ic
-   !     the index order of aligmat(:,:,ic) is (col,row), it allows us
-   !     to define aligmat(:,:,ic) without considering that the matrix
-   !     in Fortran is column-major
-   !
-   ! aligmethod=2, inverse diagonal
-   !     it is necessary to define aligmat formally for compile
-
-   integer, parameter :: aligmethod = 2
-
+   ! cf. ComPASS.simmulation.AlignmentMethod (in ComPASS.simmulation.__init__.py)
+   ! Whatever the alignment method, it is necessary to define aligmat formally to compile
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = reshape((/ & ! NOT USED because aligmethod = 2

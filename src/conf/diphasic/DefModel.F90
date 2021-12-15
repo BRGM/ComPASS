@@ -178,25 +178,8 @@ module DefModel
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
-   ! ! ****** Alignment method ****** ! !
-
-   ! Used in module Jacobian.F90
-   ! The idea is to have postive diagonal using linear combinations
-   ! (alternative is to used inverse of block = LC of)
-   ! good for LU O (pas bonne pour amg)
-   ! not used if not preconditionner (but avoid pivoting)
-   ! aligmethod=1, manually
-   !     it is necessary to give a three-dimension matrix: aligmat
-   !     aligmat(:,:,ic) is the alignment matrix for context ic
-   !     the index order of aligmat(:,:,ic) is (col,row), it allows us
-   !     to define aligmat(:,:,ic) without considering that the matrix
-   !     in Fortran is column-major
-   !
-   ! aligmethod=2, inverse diagnal
-   !     it is necessary to define aligmat formally for compile
-
-   integer, parameter :: aligmethod = 1
-
+   ! cf. ComPASS.simmulation.AlignmentMethod (in ComPASS.simmulation.__init__.py)
+   ! Whatever the alignment method, it is necessary to define aligmat formally to compile
    ! ic=1 ! we sum conservation equations to have non degenerate conservation equation -> pressure block in CPR-AMG
    ! combine row corresponding to equations (must be invertible)
    ! diagonal element of the Jacobian must be non null

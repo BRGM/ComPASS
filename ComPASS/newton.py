@@ -12,9 +12,11 @@ from . import mpi
 from .mpi import MPI as MPI
 from .newton_convergence import Legacy as LegacyConvergence
 from ._kernel import get_kernel
+from .simulation import AlignmentMethod
 from .linalg.factory import linear_solver
 from .linalg.exceptions import LinearSolverFailure
 from .callbacks import InterruptTrigger
+from .messages import error
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 NewtonLoopTick = namedtuple(
@@ -122,6 +124,23 @@ class Newton:
             kernel.Flux_FourierFlux_Cell()
             kernel.Flux_FourierFlux_Frac()
 
+    def Jacobian_ComputeJacSm_alignment(self):
+        kernel = get_kernel()
+        alignment_method = self.simulation.alignment
+        if alignment_method == AlignmentMethod.inverse_diagonal:
+            kernel.Jacobian_Alignment_diag()
+        elif alignment_method == AlignmentMethod.manual:
+            kernel.Jacobian_Alignment_man()
+        else:
+            error("Unknown alignment method.")
+
+    def Jacobian_ComputeJacSm(self, dt):
+        kernel = get_kernel()
+        kernel.Jacobian_JacBigA_BigSm(dt)
+        kernel.Jacobian_Regularization()
+        kernel.Jacobian_Schur()
+        self.Jacobian_ComputeJacSm_alignment()
+
     def increment(self, x):
         kernel = get_kernel()
         #        mpi.master_print('increment variables')
@@ -170,7 +189,7 @@ class Newton:
         for iteration in range(self.maximum_number_of_iterations):
 
             newton_tick = NewtonLoopTick(timeloop_tick, dt, self, iteration + 1)
-            kernel.Jacobian_ComputeJacSm(dt)
+            self.Jacobian_ComputeJacSm(dt)
             lsolver.linear_system.set_from_jacobian()
 
             try:
