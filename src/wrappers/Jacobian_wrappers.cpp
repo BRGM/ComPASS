@@ -11,6 +11,8 @@
 
 #include <cassert>
 
+#include "NewtonIncrements.h"
+
 // Fortran functions
 extern "C" {
 void Jacobian_JacBigA_BigSm(const double&);
@@ -18,6 +20,7 @@ void Jacobian_Regularization();
 void Jacobian_Schur();
 void Jacobian_Alignment_man();
 void Jacobian_Alignment_diag();
+void Jacobian_GetSolCell(NewtonIncrements::Pointers<double>);
 }
 
 namespace py = pybind11;
@@ -28,4 +31,10 @@ void add_Jacobian_wrappers(py::module& module) {
    module.def("Jacobian_Schur", &Jacobian_Schur);
    module.def("Jacobian_Alignment_man", &Jacobian_Alignment_man);
    module.def("Jacobian_Alignment_diag", &Jacobian_Alignment_diag);
+   module.def("Jacobian_GetSolCell", [](NewtonIncrements& increments) {
+      //   py::print("sizes:", nb_primary_variables(), nb_nodes(),
+      //       		    nb_fractures(), nb_cells(), nb_injectors(),
+      //       nb_producers());
+      Jacobian_GetSolCell(increments.pointers());
+   });
 }

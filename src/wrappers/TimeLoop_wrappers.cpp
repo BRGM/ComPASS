@@ -42,7 +42,6 @@ void Flux_FourierFlux_Frac();
 void Residu_reset_history();
 void Residu_compute(double);
 double Residu_RelativeNorm_local_closure();
-void Jacobian_GetSolCell(NewtonIncrements::Pointers<double>);
 void IncPrimSecd_PrimToSecd(NewtonIncrements::Pointers<double>);
 void NN_flash_all_control_volumes();
 void DefFlashWells_TimeFlash_producers_single_phase();
@@ -144,12 +143,5 @@ void add_time_loop_wrappers(py::module& module) {
       //			    nb_fractures(), nb_cells(), nb_injectors(),
       // nb_producers());
       IncPrimSecd_PrimToSecd(increments.pointers());
-   });
-
-   module.def("Jacobian_GetSolCell", [](NewtonIncrements& increments) {
-      //   py::print("sizes:", nb_primary_variables(), nb_nodes(),
-      //       		    nb_fractures(), nb_cells(), nb_injectors(),
-      //       nb_producers());
-      Jacobian_GetSolCell(increments.pointers());
    });
 }
