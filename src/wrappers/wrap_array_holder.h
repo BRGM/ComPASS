@@ -8,7 +8,7 @@ namespace py = pybind11;
 template <typename Array_type>
 auto wrap_array_holder(py::module& module, const char* name)
     -> py::class_<Array_type> {
-   auto pyclass = py::class_<Array_type>(module, "States");
+   auto pyclass = py::class_<Array_type>(module, name);
    pyclass.def("size", [](const Array_type& self) { return self.length; });
    pyclass.def_property_readonly("shape", [](const Array_type& self) {
       return py::make_tuple(self.length);
