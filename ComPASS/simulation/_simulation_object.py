@@ -4,6 +4,7 @@ from . import fake_methods
 from . import base
 from . import data
 from . import utils
+from .. import mpi
 
 from .._kernel import simulation_wrapper
 from ..wells.wells import get_wellhead
@@ -58,6 +59,10 @@ class SimmulationBase:
             well_pairs=well_pairs,
             proc_requests=proc_requests,
         )
+
+    @property
+    def is_sequential(self):
+        return mpi.communicator().size == 1
 
 
 class Simulation:
