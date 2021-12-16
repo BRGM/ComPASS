@@ -290,15 +290,7 @@ pages:
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - rootdir=$(pwd)
-    - cd ${rootdir}/docs/doxygen
-    - doxygen Doxyfile
-    - cd ${rootdir}/docs
-    - cp -vf ../README.rst ../INSTALL.rst ../LICENSE.rst .
-    - cp -vf ../CodingConventions.rst ./developers_corner/
-    - sphinx-apidoc ../ComPASS -o python_reference
-    - sphinx-build . html
-    - cd ${rootdir}
+    - (cd docs; /bin/bash make_the_doc)
     - mkdir -p public/core_reference
     - cp -rf docs/html/* public
     - cp -rf docs/doxygen/html/* public/core_reference

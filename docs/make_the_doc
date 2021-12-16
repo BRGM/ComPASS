@@ -1,0 +1,12 @@
+#!/bin/bash
+
+rootdir=$(pwd)
+
+cd ./doxygen
+doxygen Doxyfile
+
+cd ${rootdir}
+cp -vf ../README.rst ../INSTALL.rst ../LICENSE.rst .
+cp -vf ../CodingConventions.rst ./developers_corner/
+sphinx-apidoc ../ComPASS -o python_reference
+sphinx-build . html
