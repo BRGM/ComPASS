@@ -15,7 +15,7 @@ module SchemeParameters
    ! ! ****** Obj values used to compute Newton increment ****** ! !
 
    real(c_double), parameter :: &
-      NewtonIncreObj_P = 5.d5, &
+      NewtonIncreObj_P = 5.001d6, &
       NewtonIncreObj_T = 20.d0, &
       NewtonIncreObj_C = 1.d0, &
       NewtonIncreObj_S = 0.2d0
