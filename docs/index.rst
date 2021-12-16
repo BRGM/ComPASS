@@ -1,6 +1,6 @@
-=======
-ComPASS
-=======
+=================
+ComPASS |version|
+=================
 
 .. toctree::
    :maxdepth: 1
@@ -20,6 +20,9 @@ ComPASS
 `ComPASS core reference <core_reference/index.html>`_
 
 .. include:: LICENSE.rst
+
+This documentation was built against ComPASS version |release|.
+
 
 Indices and tables
 ==================

@@ -14,8 +14,23 @@ project = "ComPASS"
 copyright = "2013-2019, various contributors"
 author = "various contributors"
 
-# The full version, including alpha/beta/rc tags
-release = "4.2.0"
+
+def get_version_info():
+    import re
+    from setuptools_scm import get_version
+
+    scm_version = get_version(root="..", relative_to=__file__)
+    matches = re.match("(\d+\.\d+.\d+)(.*)", scm_version)
+    version, tag = matches.groups()
+    if len(tag) > 0:
+        assert tag.startswith(".dev")
+        matches = re.match("(\d+\.\d+)(.*)", version)
+        major = matches.group(1)
+        version = f"{major}.x"
+    return version, scm_version
+
+
+version, release = get_version_info()
 
 master_doc = "index"
 
