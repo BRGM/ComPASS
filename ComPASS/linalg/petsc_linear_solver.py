@@ -266,9 +266,7 @@ class PetscDirectSolver(DirectSolver):
         self.nit = 1
 
         if self.ksp_reason < 0:
-            raise DirectSolverFailure(
-                f"Petsc KSP object returned error code: {self.ksp_reason}"
-            )
+            raise DirectSolverFailure(self.ksp_reason)
 
         return self.linear_system.x, self.nit
 
