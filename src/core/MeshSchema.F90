@@ -8,7 +8,7 @@
 
 module MeshSchema
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
-   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t, c_bool
    use InteroperabilityStructures, only: cpp_array_wrapper, retrieve_csr_matrix, csr_matrix_wrapper
    use mpi
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
@@ -21,7 +21,7 @@ module MeshSchema
    use LocalMesh
 
 #else
-   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t, c_bool
    use InteroperabilityStructures, only: cpp_array_wrapper, retrieve_csr_matrix, csr_matrix_wrapper
    use mpi
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, Ncpus, CommonMPI_abort
@@ -159,7 +159,7 @@ module MeshSchema
       IdNodeLocal
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-   logical, allocatable, dimension(:), target :: &
+   logical(c_bool), allocatable, dimension(:), target :: &
       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
 #endif
 

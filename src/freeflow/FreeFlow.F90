@@ -8,7 +8,7 @@
 
 module FreeFlow
 
-   use iso_c_binding, only: c_int, c_double, c_size_t, c_f_pointer
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_f_pointer, c_loc
    use CommonMPI, only: CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
@@ -71,5 +71,15 @@ contains
       call FreeFlow_set_faces(faces)
 
    end subroutine FreeFlow_set_faces_C
+
+   subroutine retrieve_freeflow_nodes_mask(cpp_array) &
+      bind(C, name="retrieve_freeflow_nodes_mask")
+
+      type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+      cpp_array%p = c_loc(IdFFNodeLocal(1))
+      cpp_array%n = size(IdFFNodeLocal)
+
+   end subroutine retrieve_freeflow_nodes_mask
 
 end module FreeFlow

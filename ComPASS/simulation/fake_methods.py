@@ -45,6 +45,7 @@ from .bc import (
     reset_dirichlet_nodes,
     set_freeflow_faces,
     reset_freeflow_faces,
+    get_freeflow_nodes,
 )
 
 from ..io.mesh import write_mesh

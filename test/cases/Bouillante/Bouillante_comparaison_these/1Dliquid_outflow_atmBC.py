@@ -100,7 +100,7 @@ def set_variable_initial_bc_values():
     Xtop = simulation.build_state(
         simulation.Context.gas_FF_no_liq_outflow, p=ptop, T=Ttop
     )
-    simulation.node_states().set(on_zmax(grid)(simulation.vertices()), Xtop)
+    simulation.node_states().set(is_ff, Xtop)
 
 
 # at the bottom, molar and heat flux.
@@ -121,6 +121,7 @@ def set_variable_boundary_heat_flux():
 
 fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
+is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 set_variable_initial_bc_values()
 set_variable_boundary_heat_flux()
 

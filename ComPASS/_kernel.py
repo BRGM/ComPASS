@@ -144,6 +144,7 @@ simulation_wrapper = Wrapper(
         "set_soil_emissivity",
         "get_atm_rain_flux",
         "set_atm_rain_flux",
+        "get_freeflow_nodes",
         "get_rock_volumetric_heat_capacity",
         "set_rock_volumetric_heat_capacity",
         "get_fracture_thickness",

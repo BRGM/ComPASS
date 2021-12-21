@@ -60,6 +60,7 @@ simulation.init(
 
 fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
+is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 
 X0 = simulation.build_state(simulation.Context.gas, p=patm, T=Tinit, Cag=0.8)
 X_bottom = simulation.build_state(simulation.Context.gas, p=pbot, T=Tinit, Cag=0.8)
@@ -68,7 +69,7 @@ X_top = simulation.build_state(
 )
 
 simulation.all_states().set(X0)
-simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
+simulation.node_states().set(is_ff, X_top)
 simulation.dirichlet_node_states().set(X_bottom)
 
 tsmger = TimeStepManager(

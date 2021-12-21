@@ -62,6 +62,7 @@ simulation.init(
 
 fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
+is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 
 
 def lininterp(z, top, gradient):
@@ -92,7 +93,7 @@ set_iso_states()
 X_top = simulation.build_state(
     simulation.Context.diphasic_FF_liq_outflow, p=Pporous, T=Ttop, Cal=0.01,
 )
-simulation.node_states().set(on_zmax(grid)(simulation.vertices()), X_top)
+simulation.node_states().set(is_ff, X_top)
 
 tsmger = TimeStepManager(
     initial_timestep=10 * day,

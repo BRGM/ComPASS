@@ -8,7 +8,7 @@
 
 module IncPrimSecd
 
-   use iso_c_binding, only: c_int, c_double
+   use iso_c_binding, only: c_int, c_double, c_bool
    use mpi, only: MPI_Abort
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
@@ -137,7 +137,7 @@ contains
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax, NbIncLocal), & ! (col,row) index order
          SmdXs(NbEqFermetureMax, NbIncLocal), &
          SmF(NbEqFermetureMax, NbIncLocal)
-      logical, optional, intent(in) :: skip_cv(:)
+      logical(c_bool), optional, intent(in) :: skip_cv(:)
 
       integer :: k
       double precision :: &

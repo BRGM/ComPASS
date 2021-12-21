@@ -11,12 +11,15 @@
 #include <pybind11/pybind11.h>
 
 #include "ArrayWrapper.h"
+#include "PyXArrayWrapper.h"
+#include "XArrayWrapper.h"
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
 // Fortran functions
 extern "C" {
 void clear_freeflow_faces();
 void set_freeflow_faces(const ArrayWrapper &);
+void retrieve_freeflow_nodes_mask(XArrayWrapper<bool> &);
 }
 #endif
 namespace py = pybind11;
@@ -41,5 +44,7 @@ void add_freeflow_wrappers(py::module &module) {
               ArrayWrapper::wrap(faces.mutable_data(0), faces.size());
           set_freeflow_faces(wrapper);
        });
+   module.def("retrieve_freeflow_nodes_mask",
+              []() { return retrieve_ndarray(retrieve_freeflow_nodes_mask); });
 #endif
 }

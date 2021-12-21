@@ -61,6 +61,7 @@ simulation.init(
 
 fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
+is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 
 # init gas
 X0 = simulation.build_state(simulation.Context.gas, p=Ptop, T=Tporous,)
@@ -73,7 +74,7 @@ Pbot = Patm + gravity * 1000 * Lz
 Xbot = simulation.build_state(simulation.Context.liquid, p=Pbot, T=Tporous,)
 
 simulation.all_states().set(X0)
-simulation.node_states().set(on_zmax(grid)(simulation.vertices()), Xtop)
+simulation.node_states().set(is_ff, Xtop)
 simulation.dirichlet_node_states().set(Xbot)
 
 
