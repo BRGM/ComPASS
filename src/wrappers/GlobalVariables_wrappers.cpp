@@ -29,7 +29,6 @@ void set_atm_flux_radiation(double);
 double get_soil_emissivity();
 void set_soil_emissivity(double);
 double get_atm_rain_flux();
-void set_atm_rain_flux(double);
 #endif
 double get_rock_volumetric_heat_capacity();
 void set_rock_volumetric_heat_capacity(double);
@@ -54,7 +53,6 @@ void add_global_variables_wrappers(py::module& module) {
    module.def("get_soil_emissivity", &get_soil_emissivity);
    module.def("set_soil_emissivity", &set_soil_emissivity);
    module.def("get_atm_rain_flux", &get_atm_rain_flux);
-   module.def("set_atm_rain_flux", &set_atm_rain_flux);
 #endif
    module.def("get_rock_volumetric_heat_capacity",
               &get_rock_volumetric_heat_capacity);

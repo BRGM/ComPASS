@@ -32,7 +32,6 @@
           get_soil_emissivity, &
           set_soil_emissivity, &
           get_atm_rain_flux, &
-          set_atm_rain_flux, &
 #endif
           get_volumetric_heat_capacity, &
           set_volumetric_heat_capacity, &
@@ -129,14 +128,16 @@
        function get_atm_rain_flux() result(q_rain) &
           bind(C, name="get_atm_rain_flux")
           real(c_double) :: q_rain
+#ifndef NDEBUG
+          write (*, *) " ****************** "
+          write (*, *) &
+             "WARNING: rain_flux is no more constant in space, can be different than expected"
+          write (*, *) &
+             "WARNING: use freeflow_node_states "
+          write (*, *) " ****************** "
+#endif
           q_rain = rain_flux(LIQUID_PHASE)
        end function get_atm_rain_flux
-
-       subroutine set_atm_rain_flux(q_rain) &
-          bind(C, name="set_atm_rain_flux")
-          real(c_double), value, intent(in) :: q_rain
-          rain_flux(LIQUID_PHASE) = q_rain
-       end subroutine set_atm_rain_flux
 #endif
 
        function get_volumetric_heat_capacity() result(cp) &

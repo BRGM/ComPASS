@@ -88,6 +88,23 @@ contains
 
    end subroutine FreeFlow_set_faces_C
 
+   subroutine set_atm_rain_flux(q_rain) &
+      bind(C, name="set_atm_rain_flux")
+      real(c_double), value, intent(in) :: q_rain
+
+      ! if not allocated, AtmState will later be initialized with rain_flux
+      rain_flux(LIQUID_PHASE) = q_rain
+      if (allocated(AtmState)) then
+         nn = number_of_nodes()
+         do s = 1, nn
+            if (IdFFNodeLocal(s)) then
+               AtmState(s)%Imposed_flux(LIQUID_PHASE) = q_rain
+            endif
+         enddo
+      endif
+
+   end subroutine set_atm_rain_flux
+
    subroutine retrieve_freeflow_nodes_mask(cpp_array) &
       bind(C, name="retrieve_freeflow_nodes_mask")
 

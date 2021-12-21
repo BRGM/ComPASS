@@ -25,6 +25,7 @@
 // Fortran functions
 extern "C" {
 void clear_freeflow_faces();
+void set_atm_rain_flux(double);
 void set_freeflow_faces(const ArrayWrapper&);
 void retrieve_freeflow_nodes_mask(XArrayWrapper<bool>&);
 void retrieve_freeflow_nodes_area(XArrayWrapper<double>&);
@@ -100,6 +101,7 @@ void add_freeflow_wrappers(py::module& module) {
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    module.def("clear_freeflow_faces", &clear_freeflow_faces);
+   module.def("set_atm_rain_flux", &set_atm_rain_flux);
    module.def(
        "set_freeflow_faces",
        [](py::array_t<int, py::array::c_style | py::array::forcecast> faces) {
