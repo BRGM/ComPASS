@@ -4,7 +4,8 @@
 
 namespace py = pybind11;
 
-template <typename ArrayType, typename AttributeType, typename PyClass>
+template <typename X, typename ArrayType, typename AttributeType,
+          typename PyClass>
 auto add_attribute_array(
     PyClass& states, const char* name, std::size_t offset,
     std::vector<std::size_t> shape = std::vector<std::size_t>{},

@@ -118,22 +118,22 @@ void add_IncCV_wrappers(py::module& module) {
    // FUTURE: all the following until next FUTURE tag shall be useless soon (cf
    // infra)
    auto pyStateArray = wrap_array_holder<StateArray>(module, "States");
-   add_attribute_array<StateArray, Context>(pyStateArray, "context",
-                                            offsetof(X, context));
-   add_attribute_array<StateArray, Real>(pyStateArray, "p", offsetof(X, p));
-   add_attribute_array<StateArray, Real>(pyStateArray, "pa", offsetof(X, pa),
-                                         {np}, {sizeof(Real)});
-   add_attribute_array<StateArray, Real>(pyStateArray, "T", offsetof(X, T));
-   add_attribute_array<StateArray, Real>(pyStateArray, "C", offsetof(X, C),
-                                         {np, nc},
-                                         {nc * sizeof(Real), sizeof(Real)});
-   add_attribute_array<StateArray, Real>(pyStateArray, "S", offsetof(X, S),
-                                         {np}, {sizeof(Real)});
-   add_attribute_array<StateArray, Real>(pyStateArray, "accumulation",
-                                         offsetof(X, accumulation), {nbdof},
-                                         {sizeof(Real)});
+   add_attribute_array<X, StateArray, Context>(pyStateArray, "context",
+                                               offsetof(X, context));
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "p", offsetof(X, p));
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "pa", offsetof(X, pa),
+                                            {np}, {sizeof(Real)});
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "T", offsetof(X, T));
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "C", offsetof(X, C),
+                                            {np, nc},
+                                            {nc * sizeof(Real), sizeof(Real)});
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "S", offsetof(X, S),
+                                            {np}, {sizeof(Real)});
+   add_attribute_array<X, StateArray, Real>(pyStateArray, "accumulation",
+                                            offsetof(X, accumulation), {nbdof},
+                                            {sizeof(Real)});
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-   add_attribute_array<StateArray, Real>(
+   add_attribute_array<X, StateArray, Real>(
        pyStateArray, "FreeFlow_phase_flowrate",
        offsetof(X, FreeFlow_phase_flowrate), {np}, {sizeof(Real)});
 #endif  // _WITH_FREEFLOW_STRUCTURES_

@@ -146,6 +146,7 @@ simulation_wrapper = Wrapper(
         "set_atm_rain_flux",
         "get_freeflow_nodes",
         "get_freeflow_nodes_area",
+        "freeflow_node_states",
         "get_rock_volumetric_heat_capacity",
         "set_rock_volumetric_heat_capacity",
         "get_fracture_thickness",

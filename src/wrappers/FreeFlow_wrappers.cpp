@@ -10,22 +10,88 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <array>
+#include <cstddef>
+#include <sstream>
+
 #include "ArrayWrapper.h"
 #include "PyXArrayWrapper.h"
+#include "StateObjects.h"
 #include "XArrayWrapper.h"
+#include "attribute_array.h"
+#include "wrap_array_holder.h"
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
 // Fortran functions
 extern "C" {
 void clear_freeflow_faces();
-void set_freeflow_faces(const ArrayWrapper &);
-void retrieve_freeflow_nodes_mask(XArrayWrapper<bool> &);
-void retrieve_freeflow_nodes_area(XArrayWrapper<double> &);
+void set_freeflow_faces(const ArrayWrapper&);
+void retrieve_freeflow_nodes_mask(XArrayWrapper<bool>&);
+void retrieve_freeflow_nodes_area(XArrayWrapper<double>&);
+void retrieve_freeflow_node_states(StateFFArray&);
 }
 #endif
 namespace py = pybind11;
 
-void add_freeflow_wrappers(py::module &module) {
+void add_freeflow_wrappers(py::module& module) {
+   using Real = typename XFF::Model::Real;
+   constexpr auto np = XFF::Model::np;  // number of phases // FIXME to be
+                                        // passed dynamically as argument
+   constexpr auto nc = XFF::Model::nc;  // number of components // FIXME to be
+                                        // passed dynamically as argument
+
+   py::class_<XFF>(module, "FarFieldState")
+       .def(py::init<const XFF&>())
+       .def_readwrite("p", &XFF::p)
+       .def_property_readonly("T",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     np, self.cast<XFF&>().T.data(), self};
+                              })
+       .def_property_readonly(
+           "C",
+           [](py::object& self) {
+              return py::array_t<Real, py::array::c_style>{
+                  {np, nc}, self.cast<XFF&>().C.data()->data(), self};
+           })
+       .def_property_readonly("imposed_flux",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     np, self.cast<XFF&>().imposed_flux.data(),
+                                     self};
+                              })
+       .def("__str__", [](const XFF& self) {
+          std::basic_stringstream<char> s;
+          s << " p=" << self.p;
+          s << " T=(";
+          for (auto&& Tk : self.T) s << Tk << ", ";
+          s << ") C=(";
+          for (auto&& Ck : self.C) {
+             s << "(";
+             for (auto&& Cki : Ck) s << Cki << ", ";
+             s << "), ";
+          }
+          s << ") imposed_flux=(";
+          for (auto&& Fk : self.imposed_flux) s << Fk << ", ";
+          s << ")";
+          return py::str{s.str()};
+       });
+
+   // FUTURE: all the following until next FUTURE tag shall be useless soon (cf
+   // infra)
+   auto pyStateFFArray =
+       wrap_array_holder<StateFFArray>(module, "FarFieldStates");
+   add_attribute_array<XFF, StateFFArray, Real>(pyStateFFArray, "p",
+                                                offsetof(XFF, p));
+   add_attribute_array<XFF, StateFFArray, Real>(
+       pyStateFFArray, "T", offsetof(XFF, T), {np}, {sizeof(Real)});
+   add_attribute_array<XFF, StateFFArray, Real>(
+       pyStateFFArray, "C", offsetof(XFF, C), {np, nc},
+       {nc * sizeof(Real), sizeof(Real)});
+   add_attribute_array<XFF, StateFFArray, Real>(pyStateFFArray, "imposed_flux",
+                                                offsetof(XFF, imposed_flux),
+                                                {np}, {sizeof(Real)});
+
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    module.attr("has_freeflow_structures") = true;
 #else
@@ -49,5 +115,8 @@ void add_freeflow_wrappers(py::module &module) {
               []() { return retrieve_ndarray(retrieve_freeflow_nodes_mask); });
    module.def("retrieve_freeflow_nodes_area",
               []() { return retrieve_ndarray(retrieve_freeflow_nodes_area); });
+   module.def("freeflow_node_states", []() {
+      return StateFFArray::retrieve(retrieve_freeflow_node_states);
+   });
 #endif
 }

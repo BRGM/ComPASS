@@ -8,7 +8,7 @@
 
 module FreeFlow
 
-   use iso_c_binding, only: c_int, c_double, c_size_t, c_f_pointer, c_loc
+   use iso_c_binding, only: c_int, c_double, c_size_t, c_f_pointer, c_loc, c_null_ptr
    use CommonMPI, only: CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
@@ -107,5 +107,30 @@ contains
       cpp_array%n = size(SurfFreeFlowLocal)
 
    end subroutine retrieve_freeflow_nodes_area
+
+   subroutine retrieve_freeflow_node_states(cpp_array) &
+      bind(C, name="retrieve_freeflow_node_states")
+
+      type(cpp_array_wrapper), intent(out) :: cpp_array
+      integer(c_size_t) :: n
+
+      if (.not. allocated(AtmState)) then
+         cpp_array%p = c_null_ptr
+         cpp_array%n = 0
+      else
+         n = size(AtmState)
+         cpp_array%n = n
+         if (n == 0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+            ! FIXME: Remove comment
+            write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+            cpp_array%p = c_null_ptr
+         else
+            cpp_array%p = c_loc(AtmState(1))
+         end if
+      end if
+
+   end subroutine retrieve_freeflow_node_states
 
 end module FreeFlow

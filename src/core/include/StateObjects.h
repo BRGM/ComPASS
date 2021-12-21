@@ -17,6 +17,15 @@ struct IncCV {
 #endif                           // _WITH_FREEFLOW_STRUCTURES_
 };
 
+template <typename Model_type>
+struct FFfarfield {
+   using Model = Model_type;
+   typename Model::Real p;
+   typename Model::Phase_vector T;
+   typename Model::Phase_component_matrix C;
+   typename Model::Phase_vector imposed_flux;
+};
+
 // FIXME: This is to be removed later
 
 #include "Model.h"
@@ -24,3 +33,6 @@ struct IncCV {
 
 using X = IncCV<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;
 using StateArray = XArrayWrapper<X>;
+using XFF =
+    FFfarfield<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;
+using StateFFArray = XArrayWrapper<XFF>;
