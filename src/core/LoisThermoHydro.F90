@@ -46,15 +46,17 @@ module LoisThermoHydro
       dXssurdXpAll, NumIncTotalPrimAll, NumIncTotalSecondAll
    use MeshSchema, only: &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IdFFNodeLocal, AtmState, &
 #endif
       NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
       AllDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, NodeDarcyRocktypesLocal, &
       PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-   use Physics, only: atm_comp, Hm, HT, atm_temperature, rain_temperature, atm_flux_radiation, &
-                      soil_emissivity, Stephan_Boltzmann_cst, atm_pressure
+   use Physics, only: Hm, HT, atm_flux_radiation, soil_emissivity, Stephan_Boltzmann_cst
+#endif
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+   use FreeFlowTypes, only: TYPE_FFfarfield
 #endif
 
    implicit none
@@ -791,7 +793,7 @@ contains
                                                            SmFreeFlowMolarFlowrateComp(:, :, k))
 
          ! term: Hm * (Comp - atm_comp)
-         call LoisThermoHydro_FreeFlowHmComp_cv(inc(k), ctxinfo, &
+         call LoisThermoHydro_FreeFlowHmComp_cv(inc(k), AtmState(k), ctxinfo, & ! called only with nodes
                                                 divComp, SmComp, &
                                                 FreeFlowHmComp(:, :, k), &
                                                 divFreeFlowHmComp(:, :, :, k), &
@@ -814,15 +816,15 @@ contains
                                                                 SmFreeFlowMolarFlowrateEnthalpie(:, k))
 
          ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
-         call LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv(inc(k), ctxinfo, &
+         call LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv(inc(k), AtmState(k), ctxinfo, &
                                                                    divTemperature(:, k), SmTemperature(k), &
                                                                    FreeFlowHTTemperatureNetRadiation(k), &
                                                                    divFreeFlowHTTemperatureNetRadiation(:, k), &
                                                                    SmFreeFlowHTTemperatureNetRadiation(k))
 
-         ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with atm_temperature
-         !       liquid-> Enthalpie(liquid) of the far field atmosphere with rain_temperature
-         call LoisThermoHydro_AtmEnthalpie_cv(AtmEnthalpie(:, k))
+         ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with gas temperature
+         !       liquid-> Enthalpie(liquid) of the far field atmosphere with liquid temperature (rain)
+         call LoisThermoHydro_AtmEnthalpie_cv(AtmState(k), AtmEnthalpie(:, k))
 #endif
       end do ! k
 
@@ -904,12 +906,13 @@ contains
 
    ! term: Hm * (Comp - atm_comp)
    subroutine LoisThermoHydro_FreeFlowHmComp_cv( &
-      inc, ctxinfo, &
+      inc, atm, ctxinfo, &
       divComp, SmComp, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Comp
+      type(TYPE_FFfarfield), intent(in) :: atm ! contains Comp
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
@@ -936,7 +939,7 @@ contains
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
-               val(icp, i) = Hm(iph)*(inc%Comp(icp, iph) - atm_comp(icp, iph))
+               val(icp, i) = Hm(iph)*(inc%Comp(icp, iph) - atm%Comp(icp, iph))
             end if
          end do
       end do
@@ -1052,12 +1055,13 @@ contains
 
    ! term: HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
    subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv( &
-      inc, ctxinfo, &
+      inc, atm, ctxinfo, &
       divTemperature, SmTemperature, &
       val, dval, Smval)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in) :: inc ! contains Temperature
+      type(TYPE_FFfarfield), intent(in) :: atm
       type(ContextInfo), intent(in) :: ctxinfo
       double precision, intent(in) :: &
          divTemperature(NbIncTotalPrimMax), &
@@ -1075,11 +1079,12 @@ contains
       dval(:) = 0.d0
       Smval = 0.d0
 
+#ifdef ComPASS_WITH_diphasic_PHYSICS
       ! 1. val: HT * (T - atm_temperature)
       !         - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*T**4
-      val = HT*(inc%Temperature - atm_temperature) &
+      val = HT*(inc%Temperature - atm%Temperature(GAS_PHASE)) &
             - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*inc%Temperature**4.d0
-
+#endif
       ! 2. dval
       do k = 1, ctxinfo%NbIncTotalPrim
          dval(k) = HT*divTemperature(k) &
@@ -1094,7 +1099,8 @@ contains
 
    ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with atm_temperature
    !       liquid-> Enthalpie(liquid) of the far field atmosphere with rain_temperature
-   subroutine LoisThermoHydro_AtmEnthalpie_cv(val)
+   subroutine LoisThermoHydro_AtmEnthalpie_cv(atm, val)
+      type(TYPE_FFfarfield), intent(in) :: atm
       double precision, intent(out) :: val(NbPhase)
 
 #ifdef ComPASS_WITH_diphasic_PHYSICS
@@ -1103,11 +1109,11 @@ contains
 
       val = 0.d0
 
-      call f_SpecificEnthalpy(GAS_PHASE, atm_pressure, atm_temperature, h, unused1, unused2)
+      call f_SpecificEnthalpy(GAS_PHASE, atm%Pressure, atm%Temperature(GAS_PHASE), h, unused1, unused2)
       val(GAS_PHASE) = h(WATER_COMP) ! CHECKME: we discard air fraction and we do not consider water fraction
 
-      call f_SpecificEnthalpy(LIQUID_PHASE, atm_pressure, rain_temperature, h, unused1, unused2)
-      val(LIQUID_PHASE) = val(LIQUID_PHASE) + dot_product(h(1:NbComp), atm_comp(1:NbComp, LIQUID_PHASE))
+      call f_SpecificEnthalpy(LIQUID_PHASE, atm%Pressure, atm%Temperature(LIQUID_PHASE), h, unused1, unused2)
+      val(LIQUID_PHASE) = val(LIQUID_PHASE) + dot_product(h(1:NbComp), atm%Comp(1:NbComp, LIQUID_PHASE))
 
 #else
       call CommonMPI_abort("LoisThermoHydro_AtmEnthalpie_cv is designed to be used with diphasic physics only.")

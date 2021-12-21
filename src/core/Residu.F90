@@ -41,7 +41,7 @@ module Residu
       DensitemolaireSatComp, &
       DensitemolaireEnergieInterneSat
 
-   use Physics, only: CpRoche, atm_comp, rain_flux, gravity
+   use Physics, only: CpRoche, gravity
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
    use Flux, only: FluxDarcyKI, FluxFourierKI, FluxDarcyFI, FluxFourierFI
 
@@ -70,7 +70,7 @@ module Residu
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
       XNodeLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IdFFNodeLocal, AtmState, &
 #endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
       NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
@@ -846,7 +846,8 @@ contains
    subroutine Residu_add_flux_contributions_FF_node
 
       integer :: nums, m, mph, icp
-      double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate, surface_area
+      double precision :: Flux_FreeFlow(NbComp), FluxT_FreeFlow, FreeFlowMolarFlowrate, surface_area, &
+         atm_comp(NbComp, NbPhase), atm_flux(NbPhase)
 
       do nums = 1, NbNodeOwn_Ncpus(commRank + 1)
 
@@ -855,6 +856,8 @@ contains
             Flux_FreeFlow = 0.d0
             FluxT_FreeFlow = 0.d0
             surface_area = SurfFreeFlowLocal(nums)
+            atm_comp = AtmState(nums)%Comp
+            atm_flux = AtmState(nums)%Imposed_flux
 
             ! The rain source term does not depend on the present phases
             do mph = 1, NbPhase
@@ -862,13 +865,13 @@ contains
                   if (MCP(icp, mph) == 1) then ! \cap P_i
                      ! Everything is constant in time (if no freeflow constant is modify)
                      ! CHECKME: we could use NodeNeumannBC(nums)%molar_flux and NodeNeumannBC(nums)%heat_flux
-                     ! rain source term (by default rain_flux(gas)=0)
-                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + surface_area*(atm_comp(icp, mph)*rain_flux(mph))
+                     ! rain source term (by default atm_flux(gas)=0)
+                     Flux_FreeFlow(icp) = Flux_FreeFlow(icp) + surface_area*(atm_comp(icp, mph)*atm_flux(mph))
                   endif
                enddo
 
 #ifdef _THERMIQUE_
-               FluxT_FreeFlow = FluxT_FreeFlow + surface_area*(AtmEnthalpieNode(mph, nums)*rain_flux(mph))
+               FluxT_FreeFlow = FluxT_FreeFlow + surface_area*(AtmEnthalpieNode(mph, nums)*atm_flux(mph))
 #endif
             enddo ! mph
 

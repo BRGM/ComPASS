@@ -59,7 +59,7 @@ module Jacobian
    use NumbyContext, only: &
       NbCompCtilde_ctx, NumCompCtilde_ctx, NbIncPTC_ctx
 
-   use Physics, only: gravity, CpRoche, atm_comp
+   use Physics, only: gravity, CpRoche
 
    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
    use SchemeParameters, only: eps
@@ -89,7 +89,7 @@ module Jacobian
    use MeshSchema, only: &
       IdNodeLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IdFFNodeLocal, AtmState, &
 #endif
       NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, FaceToFracLocal, &
       NodebyWellProdLocal, NodeDatabyWellProdLocal, &
@@ -1912,9 +1912,13 @@ contains
          Sm0(NbComp)
 
       integer :: m, mph, icp, j
+      double precision :: surface_area, atm_comp(NbComp, NbPhase)
 
       divS(:, :) = 0.d0
       Sm0(:) = 0.d0
+
+      surface_area = SurfFreeFlowLocal(nums)
+      atm_comp = AtmState(nums)%Comp
 
       ! -> divS, node
       do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
@@ -1927,14 +1931,14 @@ contains
                if (MCP(icp, mph) == 1) then ! \cap P_i
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                     divS(j, icp) = divS(j, icp) + SurfFreeFlowLocal(nums)*( &
+                     divS(j, icp) = divS(j, icp) + surface_area*( &
                                     divFreeFlowMolarFlowrateCompNode(j, icp, m, nums) + &
                                     divFreeFlowHmCompNode(j, icp, m, nums) &
                                     )
                   end do
 
                   ! Sm0
-                  Sm0(icp) = Sm0(icp) + SurfFreeFlowLocal(nums)*( &
+                  Sm0(icp) = Sm0(icp) + surface_area*( &
                              SmFreeFlowMolarFlowrateCompNode(icp, m, nums) + &
                              SmFreeFlowHmCompNode(icp, m, nums) &
                              )
@@ -1949,13 +1953,13 @@ contains
                if (MCP(icp, mph) == 1) then ! \cap P_i
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                     divS(j, icp) = divS(j, icp) + SurfFreeFlowLocal(nums)*( & ! only gas phase because FreeFlow_flowrate(liq)>=0.d0
-                                    divFreeFlowMolarFlowrateNode(j, m, nums)*atm_comp(icp, mph) + & ! atm_comp is a constant, no derivative wrt atm_comp
+                     divS(j, icp) = divS(j, icp) + surface_area*( & ! only gas phase because FreeFlow_flowrate(liq)>=0.d0
+                                    divFreeFlowMolarFlowrateNode(j, m, nums)*atm_comp(icp, mph) + & ! AtmState is a constant, no derivative wrt AtmState
                                     divFreeFlowHmCompNode(j, icp, m, nums) &
                                     )
                   end do
 
-                  Sm0(icp) = Sm0(icp) + SurfFreeFlowLocal(nums)*( &
+                  Sm0(icp) = Sm0(icp) + surface_area*( &
                              SmFreeFlowMolarFlowrateNode(m, nums)*atm_comp(icp, mph) + &
                              SmFreeFlowHmCompNode(icp, m, nums) &
                              )

@@ -19,6 +19,9 @@ module MeshSchema
    use DefMSWell
    use MeshInfo
    use LocalMesh
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+   use FreeFlowTypes
+#endif
 
 #else
    use iso_c_binding, only: c_int, c_double, c_size_t, c_null_ptr, c_loc, c_ptr, c_int8_t, c_bool
@@ -70,6 +73,11 @@ module MeshSchema
       NumNodebyProc_Ncpus, NumFracbyProc_Ncpus, &
       NumWellInjbyProc_Ncpus, NumWellProdbyProc_Ncpus, &
       NodeDatabyWellInjLocal_Ncpus, NodeDatabyWellProdLocal_Ncpus, NodeDatabyMSWellLocal_Ncpus
+
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+   use FreeFlowTypes, only: TYPE_FFfarfield
+#endif
+
 #endif
    implicit none
 
@@ -161,6 +169,8 @@ module MeshSchema
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    logical(c_bool), allocatable, dimension(:), target :: &
       IdFFNodeLocal    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
+   type(TYPE_FFfarfield), allocatable, dimension(:), target :: &
+      AtmState    !< contains the atm values at each FF node
 #endif
 
    ! Well and MSWells
@@ -2347,6 +2357,7 @@ contains
       deallocate (IdNodeLocal)
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       deallocate (IdFFNodeLocal)
+      deallocate (AtmState)
 #endif
 
       deallocate (FracToFaceLocal)

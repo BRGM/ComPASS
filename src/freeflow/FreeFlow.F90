@@ -12,11 +12,17 @@ module FreeFlow
    use CommonMPI, only: CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
+      AtmState, &
       IdFFNodeLocal, &
       MeshSchema_local_face_surface, &
       SurfFreeFlowLocal, &
       number_of_nodes, &
       NodebyFaceLocal
+   use DefModel, only: LIQUID_PHASE
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+   use DefModel, only: GAS_PHASE
+#endif
+   use Physics, only: atm_pressure, atm_comp, atm_temperature, rain_temperature, rain_flux
 
 contains
 
@@ -31,6 +37,9 @@ contains
          if (allocated(SurfFreeFlowLocal)) &
             call CommonMPI_abort("FreeFlow_set_freeflow_faces: SurfFreeFlowLocal should not be already allocated.")
          allocate (SurfFreeFlowLocal(nn))
+         if (allocated(AtmState)) &
+            call CommonMPI_abort("FreeFlow_set_freeflow_faces: AtmState should not be already allocated.")
+         allocate (AtmState(nn))
       endif
 
       if (size(IdFFNodeLocal) /= nn) &
@@ -56,6 +65,13 @@ contains
          do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
             s = NodebyFaceLocal%Num(p)
             IdFFNodeLocal(s) = .true.
+            AtmState(s)%Pressure = atm_pressure
+            AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+            AtmState(s)%Temperature(GAS_PHASE) = atm_temperature
+#endif
+            AtmState(s)%Comp = atm_comp
+            AtmState(s)%Imposed_flux = rain_flux
             SurfFreeFlowLocal(s) = SurfFreeFlowLocal(s) + surface_fraction
          enddo
       enddo
