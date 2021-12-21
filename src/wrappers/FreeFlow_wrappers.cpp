@@ -20,6 +20,7 @@ extern "C" {
 void clear_freeflow_faces();
 void set_freeflow_faces(const ArrayWrapper &);
 void retrieve_freeflow_nodes_mask(XArrayWrapper<bool> &);
+void retrieve_freeflow_nodes_area(XArrayWrapper<double> &);
 }
 #endif
 namespace py = pybind11;
@@ -46,5 +47,7 @@ void add_freeflow_wrappers(py::module &module) {
        });
    module.def("retrieve_freeflow_nodes_mask",
               []() { return retrieve_ndarray(retrieve_freeflow_nodes_mask); });
+   module.def("retrieve_freeflow_nodes_area",
+              []() { return retrieve_ndarray(retrieve_freeflow_nodes_area); });
 #endif
 }

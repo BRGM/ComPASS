@@ -215,8 +215,8 @@ module MeshSchema
    double precision, dimension(:), allocatable, protected :: &
       VolCellLocal, &      ! vol of cell
       SurfFracLocal        ! surf of frac face
-   double precision, dimension(:), allocatable :: &
-      SurfFreeFlowLocal ! surf of faces allocated to each freeflow node
+   real(c_double), dimension(:), allocatable, target :: &
+      SurfFreeFlowLocal ! area of faces allocated to each freeflow node (size is nb_nodes)
 
    ! 9. max number of nodes/frac in a cell
    integer, protected :: &

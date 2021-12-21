@@ -46,6 +46,7 @@ from .bc import (
     set_freeflow_faces,
     reset_freeflow_faces,
     get_freeflow_nodes,
+    get_freeflow_nodes_area,
 )
 
 from ..io.mesh import write_mesh

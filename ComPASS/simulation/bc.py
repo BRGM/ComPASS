@@ -156,3 +156,8 @@ def reset_freeflow_faces(simulation, faces):
 def get_freeflow_nodes(simulation):
     kernel = get_kernel()
     return kernel.retrieve_freeflow_nodes_mask()
+
+
+def get_freeflow_nodes_area(simulation):
+    kernel = get_kernel()
+    return kernel.retrieve_freeflow_nodes_area()

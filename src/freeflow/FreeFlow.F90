@@ -82,4 +82,14 @@ contains
 
    end subroutine retrieve_freeflow_nodes_mask
 
+   subroutine retrieve_freeflow_nodes_area(cpp_array) &
+      bind(C, name="retrieve_freeflow_nodes_area")
+
+      type(cpp_array_wrapper), intent(inout) :: cpp_array
+
+      cpp_array%p = c_loc(SurfFreeFlowLocal(1))
+      cpp_array%n = size(SurfFreeFlowLocal)
+
+   end subroutine retrieve_freeflow_nodes_area
+
 end module FreeFlow
