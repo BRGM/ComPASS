@@ -35,7 +35,8 @@ void add_freeflow_wrappers(py::module &module) {
        [](py::array_t<int, py::array::c_style | py::array::forcecast> faces) {
           if (faces.ndim() != 1)
              throw std::runtime_error(
-                 "Faces array shoud be a single dimension array.");
+                 "Freeflow faces array shoud be a single dimension array.");
+          if (faces.size() == 0) return;  // empty list, does nothing
           auto wrapper =
               ArrayWrapper::wrap(faces.mutable_data(0), faces.size());
           set_freeflow_faces(wrapper);
