@@ -20,6 +20,18 @@ check format:
     - sequential
     - docker
   script:
+    - |
+      if [[ ${CI_COMMIT_BRANCH:0:4} == "NOCI" ]]
+      then
+        echo "****************************************************************"
+        echo "*                                                              *"
+        echo "*  Pipelines with name starting with NOCI automatically fail!  *"
+        echo "*                                                              *"
+        echo "****************************************************************"
+        # if the project was public we could cancel the pipeline using GitLab API
+        # curl --request POST --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/${CI_JOB_ID}/cancel"
+        exit -1
+      fi
     # We could check format only for merge requests
     # using only merge_requests
     # and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA and CI_MERGE_REQUEST_SOURCE_BRANCH_SHA
