@@ -289,7 +289,7 @@ contains
    !!     however, it could have influence for linear solver
    !!     since the values could be very large 10**7.
    !!     It is observed when debugging!!!
-   subroutine Jacobian_JacBigA_BigSm_init_from_residual()
+   subroutine Jacobian_init_RHS_from_residual()
 
       integer :: j, start
 
@@ -325,7 +325,7 @@ contains
          bigSm(2:NbCompThermique, j + start) = 0.d0 ! not used
       end do
 
-   end subroutine Jacobian_JacBigA_BigSm_init_from_residual
+   end subroutine Jacobian_init_RHS_from_residual
 
    !> \brief fill Jacobian and right hand side before Schur: main subroutine
    !> 1. init right hand side
@@ -340,10 +340,9 @@ contains
 
       real(c_double), intent(in) :: Delta_t
 
-      !> 1. init right hand side
-      call Jacobian_JacBigA_BigSm_init_from_residual
+      JacBigA%Val = 0.d0
 
-      JacBigA%Val(:, :, :) = 0.d0
+      call Jacobian_init_RHS_from_residual
 
       call Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
 
