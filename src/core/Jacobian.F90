@@ -10,11 +10,6 @@
 
 module Jacobian
 
-   ! workflow:
-   !   1. sturctures of Jacobian before and after Schur
-   !   2. Jacobian -> Regularization
-   !      -> Alignment -> Schur
-
    use iso_c_binding, only: c_double
    use InteroperabilityStructures, only: &
       csr_block_matrix_wrapper, retrieve_csr_block_matrix, &
@@ -132,6 +127,7 @@ module Jacobian
    !           | A21, A22, 0,   0   | frac own
    !           | A31, 0,   A33, 0   | wellinj own,
    !           | A41, 0,   0,   A44 | wellprod own
+
    type(CSRArray2dble), public, target :: JacBigA
    type(CSRArray2dble), public, target :: JacA
 
@@ -332,6 +328,13 @@ contains
    end subroutine Jacobian_JacBigA_BigSm_init_from_residual
 
    !> \brief fill Jacobian and right hand side before Schur: main subroutine
+   !> 1. init right hand side
+   !> 2. div prim and Sm for term \f$n_k(X_j^n)\f$
+   !> 3.1 loop of cell
+   !> 3.2 loop of frac
+   !> 3.3 loop of well inj
+   !> 3.4 loop of well prod
+   !> 3.5 loop of FreeFlow Nodes
    subroutine Jacobian_JacBigA_BigSm(Delta_t) &
       bind(C, name="Jacobian_JacBigA_BigSm")
 
@@ -342,23 +345,17 @@ contains
 
       JacBigA%Val(:, :, :) = 0.d0
 
-      !> 2. div prim and Sm for term n_k(X_j^n)
       call Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
 
-      !> 3.1 loop of cell
       call Jacobian_JacBigA_BigSm_cell
 
-      !> 3.2 loop of frac
       call Jacobian_JacBigA_BigSm_frac
 
-      !> 3.3 loop of well inj
       call Jacobian_JacBigA_BigSm_wellinj
 
-      !> 3.4 loop of well prod
       call Jacobian_JacBigA_BigSm_wellprod
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      !> 3.5 loop of FreeFlow Nodes
       call Jacobian_JacBigA_BigSm_FF_node
 #endif
 
@@ -434,7 +431,7 @@ contains
          end if
 
          if (IdNodeLocal(s)%P == "d") then
-            ! Identity matrix for Darcy
+            ! set identity matrix for Darcy (mass conservation)
 #ifndef NDEBUG
             if (.not. all(JacBigA%Val(:, 1:NbComp, nz) == 0.d0)) then
                call CommonMPI_abort( &
@@ -449,7 +446,7 @@ contains
 
 #ifdef _THERMIQUE_
          if (IdNodeLocal(s)%T == "d") then
-            ! Identity for Fourier
+            ! set identity matrix for Fourier (energy conservation)
 #ifndef NDEBUG
             if (.not. all(JacBigA%Val(:, NbComp + 1, nz) == 0.d0)) then
                call CommonMPI_abort( &
@@ -694,25 +691,27 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm_accmolaire
 
-   !> \brief Loop over the cells and node by cell to compute the Jacobian                         <br>
-   !! loop of cell, index is k                                                                    <br>
-   !! {                                                                                           <br>
-   !!   1. loop of nodes s in cell k                                                             <br>
-   !!      {                                                                                         <br>
-   !!        1.1 div( B * DarcyFlux_{k,s}), k is cell, s is node;                                  <br>
-   !!               where B is DensiteMolaire*Kr/Viso or DensiteMolaire/Viso*Enthalpie             <br>
-   !!            this term has three contributions to Jacobian:                                      <br>
-   !!               A_kr (k is row cell, r is col cell k)                                              <br>
-   !!               A_kr (k is row cell, r is col node s)                                              <br>
-   !!               A_kr (k is row cell, r is col nodes/fracs in cell k)                                <br>
-   !!        1.2 A_sk, k is cell, s is node own;                                                            <br>
-   !!      }                                                                                            <br>
+   !> \brief Loop over the cells and node by cell to compute the Jacobian
+   !! loop of cell, index is k
+   !! {
+   !!   1. loop of nodes s in cell k
+   !!      {
+   !!        1.1 conservation equations for cell control volumes
+   !!            div( B * DarcyFlux_{k,s}), k is cell, s is node;
+   !!               where B is DensiteMolaire*Kr/Visco or DensiteMolaire/Visco*Enthalpie
+   !!            this term has three contributions to Jacobian:
+   !!               A_kr (k is row cell, r is col cell k)
+   !!               A_kr (k is row cell, r is col node s)
+   !!               A_kr (k is row cell, r is col nodes/fracs in cell k)
+   !!        1.2 conservation equations for (own) cells control volumes
+   !!            A_sk, k is cell, s is node own;
+   !!      }
    !!
-   !!   2. loop of fracs in cell k                                                                        <br>
-   !!      {                                                                                               <br>
-   !!        A_ks, k is cell, s is frac;                                                                  <br>
-   !!        A_sk, k is cell, s is frac own;                                                                  <br>
-   !!      }                                                                                                  <br>
+   !!   2. loop of fracs in cell k
+   !!      {
+   !!        A_ks, k is cell, s is frac;
+   !!        A_sk, k is cell, s is frac own;
+   !!      }
    !! }
    subroutine Jacobian_JacBigA_BigSm_cell
 
@@ -770,7 +769,7 @@ contains
 
          ! (rowk, colk) is row/col of cell k in JacBigA
          ! (rowSR, colSR) are rows/cols (in JacBigA) of nodes/frac connected to cell k
-
+         ! computes mapping between local connectivity and the position of connected dofs in the Jacobian matrix
          call Jacobian_RowCol_KSR(k, nbNodeCell, nbFracCell, &
                                   rowk, colk, rowSR, colSR)
 
@@ -785,7 +784,7 @@ contains
          do s = 1, NbNodeCell
             nums = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + s) ! num node of s
 
-            ! compute \sum{P_i \cap Q_{k/s} } div(DensiteMolaire*Kr/Viso) * DarcyFlux
+            ! compute \sum{P_i \cap Q_{k/s} } div(DensiteMolaire*Kr/Visco) * DarcyFlux
             ! this term has two contributions: A_kr, r is k -> divK1
             !                                  A_kr, r is s -> divS1
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_cellnode(k, s, nums, &
@@ -795,14 +794,14 @@ contains
             call Jacobian_divDarcyFlux_cellnode(k, s, nums, &
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
-            ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
+            ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
-            ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
+            ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellnode( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
@@ -1047,7 +1046,7 @@ contains
 
             sf = s + NbNodeCell
 
-            ! compute div(DensiteMolaire*Kr/Viso) * DarcyFlux
+            ! compute div(DensiteMolaire*Kr/Visco) * DarcyFlux
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_cellfrac(k, s, nums, &
                                                                           divK1, divS1, Sm1)
 
@@ -1055,14 +1054,14 @@ contains
             call Jacobian_divDarcyFlux_cellfrac(k, s, nums, &
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
-            ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
+            ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
-            ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
+            ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_cellfrac( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
@@ -1390,14 +1389,15 @@ contains
             call Jacobian_divDarcyFlux_fracnode(k, s, nums, &
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
-            ! compute DensiteMolaire*Kr/Viso * div(Flux) using div(DarcyFlux)
+            ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
 
-            ! compute div (DensiteMolaire*Enthalpie/Viso * DarcyFlux) using div(DarcyFlux)
+            ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
+            ! reuse what's been computed by Jacobian_divDarcyFlux_fracnode
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_fracnode( &
                k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divEgK, divEgS, divEgR, SmEg)
@@ -1407,7 +1407,7 @@ contains
                k, s, nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
-            ! line with frac own
+            ! row with frac own
             if (k <= NbFracOwn_Ncpus(commRank + 1)) then
 
                ! A_kk
@@ -2090,21 +2090,23 @@ contains
    end subroutine Jacobian_divThermalFreeFlow_node
 #endif
 
-   ! term: \sum{P_i \cap Q_{k or s} } &
-   !          (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI)
-   !       = divK * div(X_k) + divS * div(X_s) + Sm
-   !       where k is cell, s is node
-   ! compute:
-   !       divK, divS, Sm
-   !
-   ! if FluxDarcyKI>=0 then
-   !    \sum{P_i \cap Q_{k} } (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divK
-   ! else
-   !    \sum{P_i \cap Q_{s} } (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divS
-   !
-   ! it is equivalent to:
-   !    \sum{P_i \cap Q_{k} \cap FluxDarcyKI>=0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divK
-   !    \sum{P_i \cap Q_{s} \cap FluxDarcyKI<0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divS
+   !> term: \sum{P_i \cap Q_{k or s} } &
+   !!          F_i = Comp * DensiteMolaire * PermRel / Viscosite ) * FluxDarcyKI
+   !!          (div (Comp * DensiteMolaire * PermRel / Viscosite ) * FluxDarcyKI)
+   !!       = divK * div(X_k) + divS * div(X_s) + Sm
+   !!
+   !!       where k is cell, s is node
+   !! compute:
+   !!       divK, divS, Sm
+   !!
+   !! if FluxDarcyKI>=0 then
+   !!    \sum{P_i \cap Q_{k} } (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divK
+   !! else
+   !!    \sum{P_i \cap Q_{s} } (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divS
+   !!
+   !! it is equivalent to:
+   !!    \sum{P_i \cap Q_{k} \cap FluxDarcyKI>=0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divK
+   !!    \sum{P_i \cap Q_{s} \cap FluxDarcyKI<0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divS
    subroutine Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_cellnode(k, s, nums, &
                                                                        divK, divS, Sm0)
 
@@ -2752,7 +2754,7 @@ contains
       double precision, intent(in) :: &
          divDarcyFlux_k(NbIncTotalPrimMax, NbPhase), &
          divDarcyFlux_s(NbIncTotalPrimMax, NbPhase), &
-         divDarcyFlux_r(NbIncTotalPrimMax, NbPhase, NbNodeCellMax + NbFracCellMax), & ! r represen
+         divDarcyFlux_r(NbIncTotalPrimMax, NbPhase, NbNodeCellMax + NbFracCellMax), &
          SmDarcyFlux(NbPhase)
 
       double precision, intent(out) :: &
@@ -4413,7 +4415,6 @@ contains
 
       integer, intent(in) :: k, rowk, ic
       integer :: i
-!!$    integer :: j, nz
 
       double precision, dimension(NbCompThermique, NbCompThermique) :: &
          AA, BB
