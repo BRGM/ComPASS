@@ -73,7 +73,7 @@ contains
          if (DarcyFlux >= 0.d0) then ! K_{k,s}^{alpha}=k
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
-                  flux_ks(icp) = flux_ks(icp) + Mk(icp, m)*DarcyFlux
+                  flux_ks(icp) = flux_ks(icp) + Mk(icp, mph)*DarcyFlux
                end if
             end do
          end if
@@ -84,7 +84,7 @@ contains
          if (DarcyFlux < 0.d0) then ! K_{k,s}^{alpha}=s
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
-                  flux_ks(icp) = flux_ks(icp) + Ms(icp, m)*DarcyFlux
+                  flux_ks(icp) = flux_ks(icp) + Ms(icp, mph)*DarcyFlux
                end if
             end do
          end if

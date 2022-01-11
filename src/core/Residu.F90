@@ -298,8 +298,8 @@ contains
          call f_DensiteMassique(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp, rho(iph), dP, dT, dC)
          do icp = 1, NbComp
             if (MCP(icp, alpha) == 1) then
-               nablapn = nablapn - nz*Mm(icp, iph)*gravity
-               sum_Mm = sum_Mm + Mm(icp, iph)
+               nablapn = nablapn - nz*Mm(icp, alpha)*gravity
+               sum_Mm = sum_Mm + Mm(icp, alpha)
             end if
          end do
       end do
@@ -430,7 +430,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompCell(icp, m, k)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompCell(icp, mph, k)*DarcyFlux
 
                      end if
                   end do
@@ -456,7 +456,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompNode(icp, m, nums)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompNode(icp, mph, nums)*DarcyFlux
 
                      end if
                   end do
@@ -510,7 +510,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompCell(icp, m, k)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompCell(icp, mph, k)*DarcyFlux
 
                      end if
                   end do
@@ -535,7 +535,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompFrac(icp, m, nums)*DarcyFlux
+                                       + DensiteMolaireKrViscoCompFrac(icp, mph, nums)*DarcyFlux
 
                      end if
                   end do
@@ -592,7 +592,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompFrac(icp, m, k)*FluxDarcyFI(mph, s, k)
+                                       + DensiteMolaireKrViscoCompFrac(icp, mph, k)*FluxDarcyFI(mph, s, k)
 
                      end if
                   end do
@@ -614,7 +614,7 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
 
                         Flux_ks(icp) = Flux_ks(icp) &
-                                       + DensiteMolaireKrViscoCompNode(icp, m, nums)*FluxDarcyFI(mph, s, k)
+                                       + DensiteMolaireKrViscoCompNode(icp, mph, nums)*FluxDarcyFI(mph, s, k)
 
                      end if
                   end do
@@ -799,7 +799,7 @@ contains
                   something_is_produced = .true.
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
-                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*Ps_Pws
+                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws*Ps_Pws
                      end if
                   end do
 #ifdef _THERMIQUE_

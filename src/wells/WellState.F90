@@ -103,7 +103,7 @@ contains
                   mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
                   do icp = 1, NbComp
                      if (MCP(icp, mph) == 1) then ! \cap P_i
-                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*perf_inflow
+                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*perf_inflow
                      end if
                   end do
 #ifdef _THERMIQUE_

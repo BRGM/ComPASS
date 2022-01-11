@@ -2102,8 +2102,8 @@ contains
 ! only {alpha | alpha \in Q_k \cap P_i} is useful
 ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
-               val(icp, i) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
-                             *inc%Comp(icp, iph)
+               val(icp, iph) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i) &
+                               *inc%Comp(icp, iph)
             end if
          end do
 ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
@@ -2121,8 +2121,8 @@ contains
          do icp = 1, NbComp ! P_i
          if (MCP(icp, iph) == 1) then
          do k = 1, ctxinfo%NbIncTotalPrim
-            dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
-                              + tmp_val*divComp(k, icp, iph)
+            dval(k, icp, iph) = dvi(k)*inc%Comp(icp, iph) &
+                                + tmp_val*divComp(k, icp, iph)
          end do
          end if
          end do ! end of P_i
@@ -2135,8 +2135,8 @@ contains
 ! 2.2.2
          do icp = 1, NbComp ! P_i
          if (MCP(icp, iph) == 1) then
-            Smval(icp, i) = dv*inc%Comp(icp, iph) &
-                            + tmp_val*SmComp(icp, iph)
+            Smval(icp, iph) = dv*inc%Comp(icp, iph) &
+                              + tmp_val*SmComp(icp, iph)
          end if
          end do
       end do ! end of 2.2
@@ -2194,8 +2194,8 @@ contains
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
-               val(icp, i) = DensiteMolaire(i)*UnsurViscosite(i) &
-                             *inc%Comp(icp, iph)
+               val(icp, iph) = DensiteMolaire(i)*UnsurViscosite(i) &
+                               *inc%Comp(icp, iph)
             end if
          end do
          ! 2.1 div(DensiteMolaire*Kr/Viscosite*C_i^alpha)
@@ -2212,8 +2212,8 @@ contains
          do icp = 1, NbComp ! P_i
          if (MCP(icp, iph) == 1) then
          do k = 1, ctxinfo%NbIncTotalPrim
-            dval(k, icp, i) = dvi(k)*inc%Comp(icp, iph) &
-                              + tmp_val*divComp(k, icp, iph)
+            dval(k, icp, iph) = dvi(k)*inc%Comp(icp, iph) &
+                                + tmp_val*divComp(k, icp, iph)
          end do
          end if
          end do ! end of P_i
@@ -2226,8 +2226,8 @@ contains
          ! 2.2.2
          do icp = 1, NbComp ! P_i
          if (MCP(icp, iph) == 1) then
-            Smval(icp, i) = dv*inc%Comp(icp, iph) &
-                            + tmp_val*SmComp(icp, iph)
+            Smval(icp, iph) = dv*inc%Comp(icp, iph) &
+                              + tmp_val*SmComp(icp, iph)
          end if
          end do
       end do

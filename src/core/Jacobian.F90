@@ -1760,10 +1760,10 @@ contains
                      if (MCP(icp, mph) == 1) then ! \cap P_i
                         ! p^w_s = p^w + {\Delta p}^(n-1)_s
                         ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s)
-                        dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws
+                        dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws
                         ! No capillary pressure in the well
-                        dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, m, nums)*WIDws*Ps_Pws
-                        dP_s(:, icp) = dP_s(:, icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws &
+                        dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, mph, nums)*WIDws*Ps_Pws
+                        dP_s(:, icp) = dP_s(:, icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws &
                                        *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
                      end if
                   end do
@@ -2062,12 +2062,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                      divK(j, icp) = divK(j, icp) + &
-                                    divDensiteMolaireKrViscoCompCell(j, icp, m, k)*FluxDarcyKI(mph, s, k)
+                                    divDensiteMolaireKrViscoCompCell(j, icp, mph, k)*FluxDarcyKI(mph, s, k)
 
                   end do
 
                   Sm0(icp) = Sm0(icp) + &
-                             SmDensiteMolaireKrViscoCompCell(icp, m, k)*FluxDarcyKI(mph, s, k)
+                             SmDensiteMolaireKrViscoCompCell(icp, mph, k)*FluxDarcyKI(mph, s, k)
                end if
             end do ! end of icp
 
@@ -2086,14 +2086,14 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                      divS(j, icp) = divS(j, icp) + &
-                                    divDensiteMolaireKrViscoCompNode(j, icp, m, nums)*FluxDarcyKI(mph, s, k)
+                                    divDensiteMolaireKrViscoCompNode(j, icp, mph, nums)*FluxDarcyKI(mph, s, k)
                   end do
 
                   ! Sm0
                   ! if nums is dirichlet, sm is supposed to be null
                   if (IdNodeLocal(nums)%P /= "d") then
                      Sm0(icp) = Sm0(icp) + &
-                                SmDensiteMolaireKrViscoCompNode(icp, m, nums)*FluxDarcyKI(mph, s, k)
+                                SmDensiteMolaireKrViscoCompNode(icp, mph, nums)*FluxDarcyKI(mph, s, k)
                   end if
 
                end if
@@ -2150,12 +2150,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                      divK(j, icp) = divK(j, icp) + &
-                                    divDensiteMolaireKrViscoCompCell(j, icp, m, k)*FluxDarcyKI(mph, sf, k)
+                                    divDensiteMolaireKrViscoCompCell(j, icp, mph, k)*FluxDarcyKI(mph, sf, k)
 
                   end do
 
                   Sm0(icp) = Sm0(icp) + &
-                             SmDensiteMolaireKrViscoCompCell(icp, m, k)*FluxDarcyKI(mph, sf, k)
+                             SmDensiteMolaireKrViscoCompCell(icp, mph, k)*FluxDarcyKI(mph, sf, k)
                end if
             end do ! end of icp
 
@@ -2174,11 +2174,11 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                      divS(j, icp) = divS(j, icp) + &
-                                    divDensiteMolaireKrViscoCompFrac(j, icp, m, nums)*FluxDarcyKI(mph, sf, k)
+                                    divDensiteMolaireKrViscoCompFrac(j, icp, mph, nums)*FluxDarcyKI(mph, sf, k)
                   end do
 
                   Sm0(icp) = Sm0(icp) + &
-                             SmDensiteMolaireKrViscoCompFrac(icp, m, nums)*FluxDarcyKI(mph, sf, k)
+                             SmDensiteMolaireKrViscoCompFrac(icp, mph, nums)*FluxDarcyKI(mph, sf, k)
 
                end if
             end do ! end of icp
@@ -2232,12 +2232,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                      divK(j, icp) = divK(j, icp) + &
-                                    divDensiteMolaireKrViscoCompFrac(j, icp, m, k)*FluxDarcyFI(mph, s, k)
+                                    divDensiteMolaireKrViscoCompFrac(j, icp, mph, k)*FluxDarcyFI(mph, s, k)
 
                   end do
 
                   Sm0(icp) = Sm0(icp) + &
-                             SmDensiteMolaireKrViscoCompFrac(icp, m, k)*FluxDarcyFI(mph, s, k)
+                             SmDensiteMolaireKrViscoCompFrac(icp, mph, k)*FluxDarcyFI(mph, s, k)
                end if
             end do ! end of icp
 
@@ -2256,12 +2256,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                      divS(j, icp) = divS(j, icp) + &
-                                    divDensiteMolaireKrViscoCompNode(j, icp, m, nums)*FluxDarcyFI(mph, s, k)
+                                    divDensiteMolaireKrViscoCompNode(j, icp, mph, nums)*FluxDarcyFI(mph, s, k)
                   end do
 
                   if (IdNodeLocal(nums)%P /= "d") then
                      Sm0(icp) = Sm0(icp) + &
-                                SmDensiteMolaireKrViscoCompNode(icp, m, nums)*FluxDarcyFI(mph, s, k)
+                                SmDensiteMolaireKrViscoCompNode(icp, mph, nums)*FluxDarcyFI(mph, s, k)
                   end if
 
                end if
@@ -2321,12 +2321,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                   end do
 
                   do r = 1, NbNodeCell ! divR for r is node in dof(k)
@@ -2334,7 +2334,7 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                      end do
                   end do
 
@@ -2344,12 +2344,12 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                         divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                      end do
                   end do
 
                   ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
 
                end if
             end do ! end of icp
@@ -2368,12 +2368,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end do
 
                   ! divR for r is node in dof(K)
@@ -2382,7 +2382,7 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                      end do
                   end do
 
@@ -2393,14 +2393,14 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                         divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                      end do
                   end do
 
                   ! Sm
                   ! if nums is dirichlet, sm is supposed to be null
                   if (IdNodeLocal(nums)%P /= "d") then
-                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end if
                end if
             end do ! end of icp
@@ -2461,12 +2461,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                   end do
 
                   do r = 1, NbNodeCell ! divR for r is node in dof(k)
@@ -2474,7 +2474,7 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                      end do
                   end do
 
@@ -2485,12 +2485,12 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                         divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, mph, k)
                      end do
                   end do
 
                   ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, m, k)
+                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
 
                end if
             end do ! end of icp
@@ -2509,12 +2509,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
                   end do
 
                   ! divR for r is node in dof(K)
@@ -2523,7 +2523,7 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
                      end do
                   end do
 
@@ -2535,11 +2535,11 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                         divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
+                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
                      end do
                   end do
 
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
+                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
 
                end if
             end do ! end of icp
@@ -2590,12 +2590,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, m, k)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, m, k)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
                   end do
 
                   do r = 1, NbNodeFrac ! divR for r is node in dof(k)
@@ -2603,12 +2603,12 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, m, k)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
                      end do
                   end do
 
                   ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, m, k)
+                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
 
                end if
             end do ! end of icp
@@ -2627,12 +2627,12 @@ contains
 
                   do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
                      divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end do
 
                   do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                      divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end do
 
                   ! divR for r is node in dof(K)
@@ -2641,13 +2641,13 @@ contains
 
                      do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                         divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                      end do
                   end do
 
                   ! Sm
                   if (IdNodeLocal(nums)%P /= "d") then
-                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, m, nums)
+                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
                   end if
 
                end if

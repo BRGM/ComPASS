@@ -369,7 +369,7 @@ contains
             if ((Ps - Pws) > 0.d0) then
                do icp = 1, NbComp
                   if (MCP(icp, mph) == 1) then ! \cap P_i
-                     Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, m, nums)*WIDws*(Ps - Pws)
+                     Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws*(Ps - Pws)
                   end if
                end do
             end if
