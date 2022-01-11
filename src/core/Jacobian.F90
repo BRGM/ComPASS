@@ -361,51 +361,6 @@ contains
 
       call Jacobian_JacBigA_BigSm_dirichlet_nodes
 
-      ! if(commRank==1) then
-
-      !    print*, ""
-      !    open(unit=11, file='res.txt', status='unknown')
-
-      !    print*, 5888.75d0-XCellLocal(1,15813), &
-      !         XCellLocal(2,15813), XCellLocal(3,15813)
-
-      !    do i=15813+NbNodeOwn_Ncpus(commRank+1), &
-      !         15813+NbNodeOwn_Ncpus(commRank+1)
-
-      !       write(*,'(ES22.13)') bigSm(:,i)
-      !       write(11,'(ES22.13)') bigSm(:,i)
-      !       print*, ""
-      !    end do
-
-      !    close(11)
-      ! end if
-
-      ! if(commRank==0) then
-
-      !    print*, ""
-
-      !    open(unit=11, file='res.txt', status='unknown')
-
-      !    do s=1, JacBigA%Nb
-      !       do nz=JacBigA%Pt(s)+1, JacBigA%Pt(s+1)
-
-      !          if(s==8 .and. JacBigA%Num(nz)==19) then
-      !             do i=1, NbCompThermique
-      !                do j=1, NbIncTotalPrim_ctx(1)
-      !                   write(*,'(ES22.13)') JacBigA%Val(j,i,nz)
-      !                   write(11,'(ES22.13)') JacBigA%Val(j,i,nz)
-      !                end do
-      !                print*, ""
-      !                write(11,*) ""
-      !             end do
-      !          end if
-
-      !       end do
-      !    end do
-
-      !    close(11)
-      ! end if
-
    end subroutine Jacobian_JacBigA_BigSm
 
    subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
@@ -651,10 +606,6 @@ contains
                   bigSm(icp, rowk) = bigSm(icp, rowk) &
                                      - SmDensiteMolaireSatComp%cells(icp, m, k)*PoroVolDarcy%cells(k)/Delta_t
 
-                  ! if(commRank==0 .and. k==1 .and. s==1 .and. m==1) then
-                  !    print*, SmDensiteMolaireSatComp%cells(icp,m,k) * PoroVolDarcy%cells(k) / Delta_t
-                  ! end if
-
                end if
             end do
 
@@ -673,9 +624,6 @@ contains
             bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
                                       - PoroVolFourier%cells(k)*SmDensiteMolaireEnergieInterneSatCell(m, k)/Delta_t
 
-            ! if(commRank==0 .and. k==1 .and. s==1) then
-            !    print*, PoroVolFourier%cells(k) * SmDensiteMolaireEnergieInterneSatCell(m,k) / Delta_t
-            ! end if
          end do
 
          do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
@@ -1031,15 +979,6 @@ contains
 
          end do ! end of row s
 
-         ! if(k==1 .and. commRank==0) then
-         !    do icp=1, NbComp
-         !       do j=1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         !          write(*,'(ES22.14)') JacBigA%Val(j,icp,nz)
-         !       end do
-         !       print*, ""
-         !    end do
-         ! end if
-
          ! 2. s is frac
          do s = 1, NbFracCell
             nums = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s)) ! nums is frac num
@@ -1278,20 +1217,10 @@ contains
       integer :: k, fk, i
       integer :: nbNodeFrac
 
-      !open(UNIT=17,FILE='fractures.dat',status='old')
-      !do k=1, NbFracLocal_Ncpus(commRank+1)
-      !    fk = FracToFaceLocal(k) ! fk is face num
-      !    nbNodeFrac = NodebyFaceLocal%Pt(fk+1) - NodebyFaceLocal%Pt(fk)
-      !    write (17,*) "face", k, fk, NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1))
-      !end do
-      !close(unit=17)
-
       do k = 1, NbFracLocal_Ncpus(commRank + 1)
 
          fk = FracToFaceLocal(k) ! fk is face num
          nbNodeFrac = NodebyFaceLocal%Pt(fk + 1) - NodebyFaceLocal%Pt(fk)
-
-         !print *, "face", k, fk, NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk)+1:NodebyFaceLocal%Pt(fk+1))
 
          call Jacobian_RowCol_FR(k, nbNodeFrac, &
                                  rowk, colk, rowSR, colSR)
@@ -2128,11 +2057,6 @@ contains
       do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
 
-         ! if(commRank==0 .and. k==1 .and. s==1) then
-         !    ! print*, divDensiteMolaireKrViscoCompCell(:,:,2,1)
-         !    ! print*, FluxDarcyKI(mph,s,k)
-         ! end  if
-
          if (FluxDarcyKI(mph, s, k) >= 0.d0) then
 
             ! To understand better, change the order of the loop do m=.. and the loop do icp=...
@@ -2924,11 +2848,6 @@ contains
                            + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
             end do
 
-            ! if(commRank==1) then
-            !    print*, k, s, nums, m, j, &
-            !         divDarcyFlux_k(j,mph)*DensiteMolaireKrViscoEnthalpieCell(m,k)
-            ! end if
-
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                divEgS(j) = divEgS(j) &
@@ -3320,12 +3239,6 @@ contains
          end if ! end of Id_Qki(mph)
       end do ! end of Q_s
 
-      ! if( k==1 .and. s==1 .and. commRank==1) then
-      !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-      !       print*, sum_aksgz, divDarcyFlux_k(j,1), divDarcyFlux_k(j,2)
-      !    end do
-      ! end if
-
    end subroutine Jacobian_divDarcyFlux_cellnode
 
    ! div: div prim
@@ -3528,12 +3441,6 @@ contains
 
          end if ! end of Id_Qki(mph)
       end do ! end of Q_s
-
-      ! if( k==1 .and. s==1 .and. commRank==1) then
-      !    do j=1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-      !       print*, sum_aks, divDarcyFlux_k(j,1), divDarcyFlux_k(j,2)
-      !    end do
-      ! end if
 
    end subroutine Jacobian_divDarcyFlux_cellfrac
 
@@ -4356,7 +4263,6 @@ contains
       end if
 
       call dgetri(n, BB, n, ipival, work, lwork, info)
-      ! print*, lwork(1)
       if (info /= 0) then
          print *, "dgetri error", info, "in Alignment, rowk/colk = ", rowk, colk
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
@@ -4424,28 +4330,6 @@ contains
       ! the index order of JacA%Val(:,:,nz) is (col, row)
       ! the index order of aligmethod(:,:,ic) is also (col, row)
 
-!!$    do i=JacA%Pt(rowk)+1, JacA%Pt(rowk+1)
-!!$       if (JacA%Num(i)==rowk) then
-!!$          nz = i
-!!$       endif
-!!$    enddo
-!!$
-!!$    write(*,*)
-!!$    BB(:,:) = aligmat(:,:,ic)
-!!$    write(*,*)
-!!$    write(*,*)' ic',ic
-!!$    do i=1,NbCompThermique
-!!$    write(*,*)' ligne i ',i
-!!$       write(*,*)' Aligne ',(BB(i,j),j=1,NbCompThermique)
-!!$    enddo
-!!$
-!!$    AA(:,:) = JacA%Val(:,:,nz)
-!!$    write(*,*)
-!!$    do i=1,NbCompThermique
-!!$    write(*,*)' ligne i ',i
-!!$       write(*,*)' AA avant ',(AA(i,j),j=1,NbCompThermique)
-!!$    enddo
-
       BB(:, :) = aligmat(:, :, ic)
 
       ! JacA%Val(:,:,i) = JacA%Val(:,:,i) * aligmethod(:,:,ic)
@@ -4465,13 +4349,6 @@ contains
       call dgemv('T', NbCompThermique, NbCompThermique, 1.d0, &
                  BB, NbCompThermique, Smk, 1, &
                  0.d0, Sm(:, rowk), 1)
-
-!!$    AA(:,:) = JacA%Val(:,:,nz)
-!!$    write(*,*)
-!!$    do i=1,NbCompThermique
-!!$    write(*,*)' ligne i ',i
-!!$       write(*,*)' AA apres ',(AA(i,j),j=1,NbCompThermique)
-!!$    enddo
 
    end subroutine Jacobian_Alignment_man_row
 
@@ -4810,10 +4687,6 @@ contains
                              + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
          end if
       end do
-
-      ! if(commRank==1) then
-      !    print*, nbNnzbyLine(1:NbNodeOwn_Ncpus(commRank+1))
-      ! end if
 
       ! a2* in JacbigA, rq: frac is not dir face
       start = nbNodeOwn
