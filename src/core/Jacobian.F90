@@ -688,7 +688,6 @@ contains
       ! div prim of Fourier flux
       double precision :: &
          divFourierFlux_k(NbIncTotalPrimMax), &
-         !  divFourierFlux_s(NbIncTotalPrimMax), &
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
 
@@ -1310,7 +1309,7 @@ contains
          do s = 1, nbNodeFrac
             nums = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + s)
 
-            ! compute div(DensiteMolaire*Kr/Viso) * DarcyFlux
+            ! compute div(DensiteMolaire*Kr/Visco) * DarcyFlux
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux_fracnode( &
                k, s, nums, divK1, divS1, Sm1)
 
@@ -1913,7 +1912,6 @@ contains
          divS(NbIncTotalPrimMax, NbComp), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, icp, j
 
       divS(:, :) = 0.d0
@@ -1958,7 +1956,6 @@ contains
                                     )
                   end do
 
-                  ! Sm0
                   Sm0(icp) = Sm0(icp) + SurfFreeFlowLocal(nums)*( &
                              SmFreeFlowMolarFlowrateNode(m, nums)*atm_comp(icp, mph) + &
                              SmFreeFlowHmCompNode(icp, m, nums) &
@@ -1980,7 +1977,6 @@ contains
          divS(NbIncTotalPrimMax), &
          Sm0
 
-      !  tmp
       integer :: m, mph, j
 
       divS = 0.d0
@@ -2046,7 +2042,6 @@ contains
          divS(NbIncTotalPrimMax, NbComp), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, icp, j
 
       divK(:, :) = 0.d0
@@ -2133,10 +2128,8 @@ contains
          divS(NbIncTotalPrimMax, NbComp), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, icp, j, sf
 
-      ! sf = s + NbNodeCell
       sf = s + NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
 
       divK(:, :) = 0.d0
@@ -2219,7 +2212,6 @@ contains
          divS(NbIncTotalPrimMax, NbComp), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, icp, j
 
       divK(:, :) = 0.d0
@@ -2305,7 +2297,6 @@ contains
          divR(NbIncTotalPrimMax, NbComp, NbNodeCellMax + NbFracCellMax), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, j, icp, r, numr, rf
       integer :: NbNodeCell, NbFracCell
 
@@ -2444,7 +2435,6 @@ contains
          divR(NbIncTotalPrimMax, NbComp, NbNodeCellMax + NbFracCellMax), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, j, icp, r, numr, rf, sf
       integer :: NbNodeCell, NbFracCell
 
@@ -2547,7 +2537,6 @@ contains
                      end do
                   end do
 
-                  ! Sm
                   Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, m, nums)
 
                end if
@@ -2577,7 +2566,6 @@ contains
          divR(NbIncTotalPrimMax, NbComp, NbNodeFaceMax), &
          Sm0(NbComp)
 
-      ! tmp
       integer :: m, mph, j, icp, r, numr, fk
       integer :: NbNodeFrac
 
@@ -2687,7 +2675,6 @@ contains
          divEgR(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), &
          SmEg
 
-      ! tmp
       integer :: m, mph, j, r, numr, rf
       integer :: NbNodeCell, NbFracCell
 
@@ -2820,7 +2807,6 @@ contains
          divEgR(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), &
          SmEg
 
-      ! tmp
       integer :: m, mph, j, r, numr, rf, sf
       integer :: NbNodeCell, NbFracCell
 
@@ -2949,7 +2935,6 @@ contains
          divEgR(NbIncTotalPrimMax, NbNodeFaceMax), &
          SmEg
 
-      ! tmp
       integer :: m, mph, j, r, numr, fk
       integer :: NbNodeFrac
 
@@ -3879,7 +3864,6 @@ contains
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
 
-      ! tmp
       integer :: j, r, numr, rf
       integer :: NbNodeCell, NbFracCell
 
@@ -3946,7 +3930,6 @@ contains
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper, dof(k)
          SmFourierFlux
 
-      ! tmp
       integer :: j, r, numr, sf, rf
       integer :: NbNodeCell, NbFracCell
 
@@ -4015,7 +3998,6 @@ contains
          divFourierFlux_r(NbIncTotalPrimMax, NbNodeFaceMax), & ! r represent s' in paper
          SmFourierFlux
 
-      ! tmp
       integer :: j, r, numr, fk
       integer :: NbNodeFrac
 
@@ -5100,13 +5082,10 @@ contains
 
       end do
 
-      ! allocate JacA%Val
       allocate (JacA%Val(NbCompThermique, NbCompThermique, Nz)) ! number of non zero
-!    JacA%Val(:,:,:) = 0.d0
 
    end subroutine Jacobian_StrucJacA
 
-   ! free
    subroutine Jacobian_free
 
       deallocate (JacBigA%Pt)
@@ -5224,10 +5203,6 @@ contains
 
       ! colSR = rowR
       colSR(:) = rowSR(:)
-      ! colSR(:)  = 0
-      ! do i=1, nbNodeFrac
-      !    colSR(i) = NodebyFaceLocal%Num(i + NodebyFaceLocal%Pt(fk))
-      ! end do
 
    end subroutine Jacobian_RowCol_FR
 
@@ -5316,49 +5291,8 @@ contains
             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
          end if
 
-         ! if(commRank==1 .and. k==1) then
-         !    print*, ""
-         !    write(*,'(ES22.13)') NewtonIncreCell(1:NbCompThermique,k)
-         ! end if
-
       end do
 
    end subroutine Jacobian_GetSolCell
 
 end module Jacobian
-
-! nz = JacBigA%Pt(rowk) + csrK(colk)
-! cols = colSR(s)
-! nz = JacBigA%Pt(rowk) + csrK(cols)
-! if(k==1 .and. s==1 .and. commRank==0) then
-
-!    ! print*, NumIncTotalPrimCell(:,1)
-!    ! print*, NumIncTotalPrimNode(:,1)
-
-!    ! do i=1, NbComp
-!    !    do j=1, NbIncTotalPrim_ctx(3)
-!    !       print*, JacBigA%Val(j,i,nz)+divS1(j,i) + divS2(j,i) + divR2(j,i,s)
-!    !    end do
-!    !    print*, ""
-!    ! end do
-
-!    do j=1, NbIncTotalPrim_ctx(3)
-!       ! print*, JacBigA%Val(j,NbComp+1,nz) + divFourierFlux_k(j)+ divEgK(j)
-!       print*, JacBigA%Val(j,NbComp+1,nz) + divEgR(j,s) + divFourierFlux_r(j,s) + divEgS(j)
-!    end do
-
-! end if
-
-! do i=JacA%Pt(rowk)+1, JacA%Pt(rowk+1)
-!    if( JacA%Num(i)==colk) then
-!       JacA%Val(:,:,i) = 0.d0
-!       do j=1, 5
-!          JacA%Val(j,j,i) = 2.d0
-!       end do
-!    else
-!       JacA%Val(:,:,i) = 0.d0
-!       do j=1, 5
-!          JacA%Val(j,j,i) = 6.d0
-!       end do
-!    end if
-! end do
