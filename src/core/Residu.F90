@@ -385,7 +385,7 @@ contains
             end do
 #ifdef _THERMIQUE_
             IncAll(k)%AccVol(NbComp + 1) = IncAll(k)%AccVol(NbComp + 1) &
-                                           + PoroVolFourier%values(k)*DensiteMolaireEnergieInterneSat%values(m, k)
+                                           + PoroVolFourier%values(k)*DensiteMolaireEnergieInterneSat%values(mph, k)
 #endif
          end do ! end of phase m
 #ifdef _THERMIQUE_

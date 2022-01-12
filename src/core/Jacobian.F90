@@ -28,7 +28,6 @@ module Jacobian
       DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
       DensiteMolaireKrViscoCompNode, DensiteMolaireKrViscoCompCell, DensiteMolaireKrViscoCompFrac, &
       DensiteMolaireKrViscoEnthalpieNode, DensiteMolaireKrViscoEnthalpieCell, DensiteMolaireKrViscoEnthalpieFrac, &
-      DensiteMolaireEnergieInterneSat, &
       divDensiteMolaireKrViscoCompNode, divDensiteMolaireKrViscoCompCell, divDensiteMolaireKrViscoCompFrac, &
       divDensiteMolaireKrViscoEnthalpieNode, divDensiteMolaireKrViscoEnthalpieCell, divDensiteMolaireKrViscoEnthalpieFrac, &
       divTemperatureNode, divTemperatureCell, divTemperatureFrac, &
@@ -482,11 +481,11 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
                   JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                   + PoroVolFourier%nodes(k)*divDensiteMolaireEnergieInterneSatNode(j, m, k)/Delta_t
+                                                 + PoroVolFourier%nodes(k)*divDensiteMolaireEnergieInterneSatNode(j, mph, k)/Delta_t
                end do
 
                bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
-                                         - PoroVolFourier%nodes(k)*SmDensiteMolaireEnergieInterneSatNode(m, k)/Delta_t
+                                         - PoroVolFourier%nodes(k)*SmDensiteMolaireEnergieInterneSatNode(mph, k)/Delta_t
             end do
 
             do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
@@ -549,11 +548,11 @@ contains
             do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                JacBigA%Val(j, NbComp + 1, nz) = &
                   JacBigA%Val(j, NbComp + 1, nz) &
-                  + PoroVolFourier%fractures(k)*divDensiteMolaireEnergieInterneSatFrac(j, m, k)/Delta_t
+                  + PoroVolFourier%fractures(k)*divDensiteMolaireEnergieInterneSatFrac(j, mph, k)/Delta_t
             end do
 
             bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
-                                      - PoroVolFourier%fractures(k)*SmDensiteMolaireEnergieInterneSatFrac(m, k)/Delta_t
+                                      - PoroVolFourier%fractures(k)*SmDensiteMolaireEnergieInterneSatFrac(mph, k)/Delta_t
          end do
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
@@ -615,11 +614,11 @@ contains
 
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                + PoroVolFourier%cells(k)*divDensiteMolaireEnergieInterneSatCell(j, m, k)/Delta_t
+                                                + PoroVolFourier%cells(k)*divDensiteMolaireEnergieInterneSatCell(j, mph, k)/Delta_t
             end do
 
             bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
-                                      - PoroVolFourier%cells(k)*SmDensiteMolaireEnergieInterneSatCell(m, k)/Delta_t
+                                      - PoroVolFourier%cells(k)*SmDensiteMolaireEnergieInterneSatCell(mph, k)/Delta_t
 
          end do
 

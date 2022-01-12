@@ -2268,7 +2268,7 @@ contains
       ! 1. val
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         val(i) = DensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph)
+         val(iph) = DensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph)
       end do
 
       ! 2. dval
@@ -2277,7 +2277,7 @@ contains
 
          do k = 1, ctxinfo%NbIncTotalPrim
 
-            dval(k, i) = &
+            dval(k, iph) = &
                divDensiteMolaire(k, i)*EnergieInterne(i)*inc%Saturation(iph) &
                + divEnergieInterne(k, i)*DensiteMolaire(i)*inc%Saturation(iph) &
                + divSaturation(k, i)*DensiteMolaire(i)*EnergieInterne(i)
@@ -2287,7 +2287,7 @@ contains
       ! 3. Smval
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         Smval(i) = &
+         Smval(iph) = &
             SmDensiteMolaire(i)*EnergieInterne(i)*inc%Saturation(iph) &
             + SmEnergieInterne(i)*DensiteMolaire(i)*inc%Saturation(iph)
       end do
