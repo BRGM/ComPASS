@@ -379,7 +379,7 @@ contains
                ! FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1 (MCP...)
                if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
                   IncAll(k)%AccVol(icp) = IncAll(k)%AccVol(icp) &
-                                          + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, m, k)
+                                          + PoroVolDarcy%values(k)*DensiteMolaireSatComp%values(icp, mph, k)
                end if
             end do
 #ifdef _THERMIQUE_
