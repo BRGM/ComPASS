@@ -1767,9 +1767,9 @@ contains
                      end if
                   end do
 #ifdef _THERMIQUE_
-                  dP_ER_w = dP_ER_w - DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws
-                  der_ER_s = der_ER_s + divDensiteMolaireKrViscoEnthalpieNode(:, m, nums)*WIDws*Ps_Pws
-                  der_ER_s = der_ER_s + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws &
+                  dP_ER_w = dP_ER_w - DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws
+                  der_ER_s = der_ER_s + divDensiteMolaireKrViscoEnthalpieNode(:, mph, nums)*WIDws*Ps_Pws
+                  der_ER_s = der_ER_s + DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws &
                              *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
 #endif
                end if
@@ -2697,14 +2697,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                divEgK(j) = divEgK(j) &
-                           + divDensiteMolaireKrViscoEnthalpieCell(j, m, k)*FluxDarcyKI(mph, s, k) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                           + divDensiteMolaireKrViscoEnthalpieCell(j, mph, k)*FluxDarcyKI(mph, s, k) &
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                divEgS(j) = divEgS(j) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
             end do
 
             ! divEgR
@@ -2713,7 +2713,7 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
                end do
             end do
 
@@ -2724,14 +2724,14 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divEgR(j, rf) = divEgR(j, rf) &
-                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
                end do
             end do
 
             ! Sm
             SmEg = SmEg &
-                   + SmDensiteMolaireKrViscoEnthalpieCell(m, k)*FluxDarcyKI(mph, s, k) &
-                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                   + SmDensiteMolaireKrViscoEnthalpieCell(mph, k)*FluxDarcyKI(mph, s, k) &
+                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
          end if
       end do
 
@@ -2744,14 +2744,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                divEgK(j) = divEgK(j) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                divEgS(j) = divEgS(j) &
-                           + divDensiteMolaireKrViscoEnthalpieNode(j, m, nums)*FluxDarcyKI(mph, s, k) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                           + divDensiteMolaireKrViscoEnthalpieNode(j, mph, nums)*FluxDarcyKI(mph, s, k) &
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end do
 
             ! divEgR, r is node in dof(k)
@@ -2760,7 +2760,7 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
                end do
             end do
 
@@ -2771,7 +2771,7 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divEgR(j, rf) = divEgR(j, rf) &
-                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
                end do
             end do
 
@@ -2779,8 +2779,8 @@ contains
             ! if nums is Dirichlet, Sm is supposed to be null
             if (IdNodeLocal(nums)%T /= "d") then
                SmEg = SmEg &
-                      + SmDensiteMolaireKrViscoEnthalpieNode(m, nums)*FluxDarcyKI(mph, s, k) &
-                      + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                      + SmDensiteMolaireKrViscoEnthalpieNode(mph, nums)*FluxDarcyKI(mph, s, k) &
+                      + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end if
 
          end if
@@ -2831,14 +2831,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
                divEgK(j) = divEgK(j) &
-                           + divDensiteMolaireKrViscoEnthalpieCell(j, m, k)*FluxDarcyKI(mph, sf, k) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                           + divDensiteMolaireKrViscoEnthalpieCell(j, mph, k)*FluxDarcyKI(mph, sf, k) &
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
                divEgS(j) = divEgS(j) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
             end do
 
             ! divEgR
@@ -2847,7 +2847,7 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
                end do
             end do
 
@@ -2858,14 +2858,14 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divEgR(j, rf) = divEgR(j, rf) &
-                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
                end do
             end do
 
             ! Sm
             SmEg = SmEg &
-                   + SmDensiteMolaireKrViscoEnthalpieCell(m, k)*FluxDarcyKI(mph, sf, k) &
-                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieCell(m, k)
+                   + SmDensiteMolaireKrViscoEnthalpieCell(mph, k)*FluxDarcyKI(mph, sf, k) &
+                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieCell(mph, k)
          end if
       end do
 
@@ -2878,14 +2878,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
                divEgK(j) = divEgK(j) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(m, nums)
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, nums)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic)
                divEgS(j) = divEgS(j) &
-                           + divDensiteMolaireKrViscoEnthalpieFrac(j, m, nums)*FluxDarcyKI(mph, sf, k) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(m, nums)
+                           + divDensiteMolaireKrViscoEnthalpieFrac(j, mph, nums)*FluxDarcyKI(mph, sf, k) &
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, nums)
             end do
 
             ! divEgR, r is node in dof(k)
@@ -2894,7 +2894,7 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieFrac(m, nums)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieFrac(mph, nums)
                end do
             end do
 
@@ -2905,14 +2905,14 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
                   divEgR(j, rf) = divEgR(j, rf) &
-                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieFrac(m, nums)
+                                  + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpieFrac(mph, nums)
                end do
             end do
 
             ! Sm
             SmEg = SmEg &
-                   + SmDensiteMolaireKrViscoEnthalpieFrac(m, nums)*FluxDarcyKI(mph, sf, k) &
-                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieFrac(m, nums)
+                   + SmDensiteMolaireKrViscoEnthalpieFrac(mph, nums)*FluxDarcyKI(mph, sf, k) &
+                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, nums)
          end if
       end do
 
@@ -2959,14 +2959,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
                divEgK(j) = divEgK(j) &
-                           + divDensiteMolaireKrViscoEnthalpieFrac(j, m, k)*FluxDarcyFI(mph, s, k) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(m, k)
+                           + divDensiteMolaireKrViscoEnthalpieFrac(j, mph, k)*FluxDarcyFI(mph, s, k) &
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, k)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
                divEgS(j) = divEgS(j) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(m, k)
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, k)
             end do
 
             ! divEgR
@@ -2975,14 +2975,14 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieFrac(m, k)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieFrac(mph, k)
                end do
             end do
 
             ! Sm
             SmEg = SmEg &
-                   + SmDensiteMolaireKrViscoEnthalpieFrac(m, k)*FluxDarcyFI(mph, s, k) &
-                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieFrac(m, k)
+                   + SmDensiteMolaireKrViscoEnthalpieFrac(mph, k)*FluxDarcyFI(mph, s, k) &
+                   + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieFrac(mph, k)
          end if
       end do
 
@@ -2995,14 +2995,14 @@ contains
             ! divEgK
             do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
                divEgK(j) = divEgK(j) &
-                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                           + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end do
 
             ! divEgS
             do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
                divEgS(j) = divEgS(j) &
-                           + divDensiteMolaireKrViscoEnthalpieNode(j, m, nums)*FluxDarcyFI(mph, s, k) &
-                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                           + divDensiteMolaireKrViscoEnthalpieNode(j, mph, nums)*FluxDarcyFI(mph, s, k) &
+                           + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end do
 
             ! divEgR, r is node in dof(k)
@@ -3011,15 +3011,15 @@ contains
 
                do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
                   divEgR(j, r) = divEgR(j, r) &
-                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                                 + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
                end do
             end do
 
             ! Sm
             if (IdNodeLocal(nums)%T /= "d") then
                SmEg = SmEg &
-                      + SmDensiteMolaireKrViscoEnthalpieNode(m, nums)*FluxDarcyFI(mph, s, k) &
-                      + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieNode(m, nums)
+                      + SmDensiteMolaireKrViscoEnthalpieNode(mph, nums)*FluxDarcyFI(mph, s, k) &
+                      + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpieNode(mph, nums)
             end if
 
          end if

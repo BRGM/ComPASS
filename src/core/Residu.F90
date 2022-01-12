@@ -310,7 +310,8 @@ contains
       nablapn = nablapn/sum_Mm
       qh = 0.d0
       do iph = 1, NbPhasePresente_ctx(X%ic)
-         qh = qh + Mh(iph)*(nablapn + rho(iph)*gravity*nz)
+         alpha = NumPhasePresente_ctx(iph, X%ic)
+         qh = qh + Mh(alpha)*(nablapn + rho(iph)*gravity*nz)
       end do
 
    end subroutine Residu_compute_Neumann_heatflux
@@ -437,7 +438,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(mph, k) &
                              *DarcyFlux
 
 #endif
@@ -463,7 +464,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(mph, nums) &
                              *DarcyFlux
 
 #endif
@@ -517,7 +518,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieCell(mph, k) &
                              *DarcyFlux
 #endif
 
@@ -542,7 +543,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(mph, nums) &
                              *DarcyFlux
 #endif
 
@@ -599,7 +600,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(m, k) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieFrac(mph, k) &
                              *FluxDarcyFI(mph, s, k)
 #endif
                end if
@@ -621,7 +622,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums) &
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(mph, nums) &
                              *FluxDarcyFI(mph, s, k)
 #endif
                end if
@@ -803,7 +804,7 @@ contains
                      end if
                   end do
 #ifdef _THERMIQUE_
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*WIDws*Ps_Pws
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws*Ps_Pws
 #endif
                end if
             end do

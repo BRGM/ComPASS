@@ -107,7 +107,7 @@ contains
                      end if
                   end do
 #ifdef _THERMIQUE_
-                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(m, nums)*perf_inflow
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(mph, nums)*perf_inflow
 #endif
                end do
                summolarFluxProd(:, s) = summolarFluxProd(:, s) + Flux_ks(:)

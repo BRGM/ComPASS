@@ -202,14 +202,14 @@ contains
          mph = NumPhasePresente_ctx(m, Inck%ic)
          DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux >= 0.d0) then ! K_{k,s}^{alpha}=k
-            flux_ks = flux_ks + Mk(m)*DarcyFlux
+            flux_ks = flux_ks + Mk(mph)*DarcyFlux
          end if
       end do
       do m = 1, NbPhasePresente_ctx(Incs%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, Incs%ic)
          DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux < 0.d0) then ! K_{k,s}^{alpha}=s
-            flux_ks = flux_ks + Ms(m)*DarcyFlux
+            flux_ks = flux_ks + Ms(mph)*DarcyFlux
          end if
       end do
       XkXs = Xs - Xk

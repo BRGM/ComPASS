@@ -2333,18 +2333,18 @@ contains
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
          ! 1. val
-         val(i) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i)
+         val(iph) = DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i)
          ! 2. dval
          do k = 1, ctxinfo%NbIncTotalPrim
 
-            dval(k, i) = &
+            dval(k, iph) = &
                divDensiteMolaire(k, i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i) &
                + divPermRel(k, iph)*DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i) &
                + divUnsurViscosite(k, i)*DensiteMolaire(i)*PermRel(iph)*Enthalpie(i) &
                + divEnthalpie(k, i)*DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
          end do
          ! 3. Smval
-         Smval(i) = &
+         Smval(iph) = &
             SmDensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)*Enthalpie(i) &
             + SmUnSurViscosite(i)*DensiteMolaire(i)*PermRel(iph)*Enthalpie(i) &
             + SmEnthalpie(i)*DensiteMolaire(i)*PermRel(iph)*UnsurViscosite(i)
@@ -2388,17 +2388,17 @@ contains
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
          ! 1. val
-         val(i) = DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i)
+         val(iph) = DensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i)
          ! 2. dval
          do k = 1, ctxinfo%NbIncTotalPrim
 
-            dval(k, i) = &
+            dval(k, iph) = &
                divDensiteMolaire(k, i)*UnsurViscosite(i)*Enthalpie(i) &
                + divUnsurViscosite(k, i)*DensiteMolaire(i)*Enthalpie(i) &
                + divEnthalpie(k, i)*DensiteMolaire(i)*UnsurViscosite(i)
          end do
          ! 3. Smval
-         Smval(i) = &
+         Smval(iph) = &
             SmDensiteMolaire(i)*UnsurViscosite(i)*Enthalpie(i) &
             + SmUnSurViscosite(i)*DensiteMolaire(i)*Enthalpie(i) &
             + SmEnthalpie(i)*DensiteMolaire(i)*UnsurViscosite(i)
