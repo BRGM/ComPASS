@@ -192,9 +192,7 @@ module Jacobian
       Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux, &
       Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph, &
       ! div(FourierFlux)
-      Jacobian_divFourierFlux_cellnode, &
-      Jacobian_divFourierFlux_cellfrac, &
-      Jacobian_divFourierFlux_fracnode, &
+      Jacobian_divFourierFlux, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       ! div(FreeFlow)
       Jacobian_JacBigA_BigSm_FF_node, &
@@ -763,8 +761,13 @@ contains
                divEgK, divEgS, divEgR, SmEg)
 
             ! compute div FluxFourier
-            call Jacobian_divFourierFlux_cellnode( &
-               k, s, nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+            call Jacobian_divFourierFlux( &
+               IncCell(k)%ic, &
+               NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
+               FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
+               TkLocal_Fourier(k)%pt(s, :), &
+               divTemperatureCell(:, k), SmTemperatureCell(k), &
+               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
             ! divK, divS, divR to JacBigA
@@ -1030,8 +1033,13 @@ contains
                divEgK, divEgS, divEgR, SmEg)
 
             ! compute div FluxFourier
-            call Jacobian_divFourierFlux_cellfrac( &
-               k, s, nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+            call Jacobian_divFourierFlux( &
+               IncCell(k)%ic, &
+               NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
+               FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
+               TkLocal_Fourier(k)%pt(sf, :), &
+               divTemperatureCell(:, k), SmTemperatureCell(k), &
+               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
             ! divK, divS, divR to JacBigA
@@ -1371,8 +1379,13 @@ contains
                divEgK, divEgS, divEgR, SmEg)
 
             ! compute div FluxFourier
-            call Jacobian_divFourierFlux_fracnode( &
-               k, s, nums, divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
+            call Jacobian_divFourierFlux( &
+               IncFrac(k)%ic, &
+               NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
+               empty_array, &
+               TkFracLocal_Fourier(k)%pt(s, :), &
+               divTemperatureFrac(:, k), SmTemperatureFrac(k), &
+               divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
             ! row with frac own
@@ -3533,20 +3546,29 @@ contains
 ! ComPASS_GRAVITY_AVERAGE_RHO_PRESENT_PHASES_CONTINUOUS
 #endif
 
-   subroutine Jacobian_divFourierFlux_cellnode(k, s, nums, &
-                                               divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
-                                               divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
-                                               SmFourierFlux)
+   subroutine Jacobian_divFourierFlux( &
+      ic_k, Nodebyk, Fracbyk, &
+      TkLocal_Fourier_ks, &
+      divTemperature_k, SmTemperature_k, &
+      divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
+      divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
+      SmFourierFlux)
 
-      integer, intent(in) :: k, s, nums
+      integer(c_int), intent(in) :: ic_k
+      integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
+
+      double precision, dimension(:), intent(in) :: TkLocal_Fourier_ks
+      double precision, intent(in) :: &
+         divTemperature_k(NbIncTotalPrimMax), &
+         SmTemperature_k
 
       double precision, intent(out) :: &
          divFourierFlux_k(NbIncTotalPrimMax), &
-         divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper
          SmFourierFlux
+      double precision, dimension(:, :), intent(out) :: divFourierFlux_r ! r represent s' in paper
 
       integer :: j, r, numr, rf
-      integer :: NbNodeCell, NbFracCell
+      integer :: NbNode_in_k, NbFrac_in_k
 
       double precision :: sum_aks
 
@@ -3554,171 +3576,49 @@ contains
       divFourierFlux_r(:, :) = 0.d0
       SmFourierFlux = 0.d0
 
-      ! number of nodes/fracs in cell k
-      NbNodeCell = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
-      NbFracCell = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
+      ! number of nodes/fracs in k
+      NbNode_in_k = size(Nodebyk)
+      NbFrac_in_k = size(Fracbyk)
 
       ! sum_aks = \sum_{r \in dof(k)} a_{k,s}^r
       sum_aks = 0.d0
-      do r = 1, NbNodeCell + NbFracCell
-         sum_aks = sum_aks + TkLocal_Fourier(k)%pt(s, r)
+      do r = 1, NbNode_in_k + NbFrac_in_k
+         sum_aks = sum_aks + TkLocal_Fourier_ks(r)
       end do
 
       ! divFourierfFlux_k
-      do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         divFourierFlux_k(j) = sum_aks*divTemperatureCell(j, k)
+      do j = 1, NbIncTotalPrim_ctx(ic_k)
+         divFourierFlux_k(j) = sum_aks*divTemperature_k(j)
       end do
 
-      SmFourierFlux = sum_aks*SmTemperatureCell(k)
+      SmFourierFlux = sum_aks*SmTemperature_k
 
       ! divFourierFlux_r, r represent s' in paper, r is node
-      do r = 1, NbNodeCell
-         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
+      do r = 1, NbNode_in_k
+         numr = Nodebyk(r)
 
          do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-            divFourierFlux_r(j, r) = -TkLocal_Fourier(k)%pt(s, r)*divTemperatureNode(j, numr)
+            divFourierFlux_r(j, r) = -TkLocal_Fourier_ks(r)*divTemperatureNode(j, numr)
          end do
 
          SmFourierFlux = SmFourierFlux &
-                         - TkLocal_Fourier(k)%pt(s, r)*SmTemperatureNode(numr)
+                         - TkLocal_Fourier_ks(r)*SmTemperatureNode(numr)
       end do
 
       ! divFourierFlux_r, r represent s' in paper, r is frac
-      do r = 1, NbFracCell
-         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
-         rf = r + NbNodeCell
+      do r = 1, NbFrac_in_k
+         numr = Fracbyk(r) ! numr is frac num here
+         rf = r + NbNode_in_k
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-            divFourierFlux_r(j, rf) = -TkLocal_Fourier(k)%pt(s, rf)*divTemperatureFrac(j, numr)
+            divFourierFlux_r(j, rf) = -TkLocal_Fourier_ks(rf)*divTemperatureFrac(j, numr)
          end do
 
          SmFourierFlux = SmFourierFlux &
-                         - TkLocal_Fourier(k)%pt(s, rf)*SmTemperatureFrac(numr)
+                         - TkLocal_Fourier_ks(rf)*SmTemperatureFrac(numr)
       end do
 
-   end subroutine Jacobian_divFourierFlux_cellnode
-
-   ! div Flux Fourier
-   subroutine Jacobian_divFourierFlux_cellfrac(k, s, nums, &
-                                               divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
-                                               divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
-                                               SmFourierFlux)
-
-      integer, intent(in) :: k, s, nums
-
-      double precision, intent(out) :: &
-         divFourierFlux_k(NbIncTotalPrimMax), &
-         divFourierFlux_r(NbIncTotalPrimMax, NbNodeCellMax + NbFracCellMax), & ! r represent s' in paper, dof(k)
-         SmFourierFlux
-
-      integer :: j, r, numr, sf, rf
-      integer :: NbNodeCell, NbFracCell
-
-      double precision :: sum_aks
-
-      divFourierFlux_k(:) = 0.d0
-      divFourierFlux_r(:, :) = 0.d0
-      SmFourierFlux = 0.d0
-
-      ! number of nodes/fracs in cell k
-      NbNodeCell = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
-      NbFracCell = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
-
-      sf = s + NbNodeCell
-
-      ! sum_aks = \sum_{r \in dof(k)} a_{k,s}^r
-      sum_aks = 0.d0
-      do r = 1, NbNodeCell + NbFracCell
-         sum_aks = sum_aks + TkLocal_Fourier(k)%pt(sf, r)
-      end do
-
-      ! divFourierfFlux_k
-      do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-         divFourierFlux_k(j) = sum_aks*divTemperatureCell(j, k)
-      end do
-
-      SmFourierFlux = sum_aks*SmTemperatureCell(k)
-
-      ! divFourierFlux_r, r is node
-      do r = 1, NbNodeCell
-         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
-
-         do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-            divFourierFlux_r(j, r) = -TkLocal_Fourier(k)%pt(sf, r)*divTemperatureNode(j, numr)
-         end do
-
-         SmFourierFlux = SmFourierFlux &
-                         - TkLocal_Fourier(k)%pt(sf, r)*SmTemperatureNode(numr)
-      end do
-
-      ! divFourierFlux_r, r is frac
-      do r = 1, NbFracCell
-         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
-         rf = r + NbNodeCell
-
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-            divFourierFlux_r(j, rf) = -TkLocal_Fourier(k)%pt(sf, rf)*divTemperatureFrac(j, numr)
-         end do
-
-         SmFourierFlux = SmFourierFlux &
-                         - TkLocal_Fourier(k)%pt(sf, rf)*SmTemperatureFrac(numr)
-      end do
-
-   end subroutine Jacobian_divFourierFlux_cellfrac
-
-   ! div Flux Fourier
-   subroutine Jacobian_divFourierFlux_fracnode(k, s, nums, &
-                                               divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
-                                               divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
-                                               SmFourierFlux)
-
-      integer, intent(in) :: k, s, nums
-
-      double precision, intent(out) :: &
-         divFourierFlux_k(NbIncTotalPrimMax), &
-         divFourierFlux_r(NbIncTotalPrimMax, NbNodeFaceMax), & ! r represent s' in paper
-         SmFourierFlux
-
-      integer :: j, r, numr, fk
-      integer :: NbNodeFrac
-
-      double precision :: sum_aks
-
-      divFourierFlux_k(:) = 0.d0
-      divFourierFlux_r(:, :) = 0.d0
-      SmFourierFlux = 0.d0
-
-      fk = FracToFaceLocal(k) ! fk is num face
-
-      ! number of nodes in frac k
-      NbNodeFrac = NodebyFaceLocal%Pt(fk + 1) - NodebyFaceLocal%Pt(fk)
-
-      ! sum_aks = \sum_r a_{k,s}^r
-      sum_aks = 0.d0
-      do r = 1, NbNodeFrac ! r is node
-         sum_aks = sum_aks + TkFracLocal_Fourier(k)%pt(s, r)
-      end do
-
-      ! divFourierfFlux_k
-      do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic)
-         divFourierFlux_k(j) = sum_aks*divTemperatureFrac(j, k)
-      end do
-
-      SmFourierFlux = sum_aks*SmTemperatureFrac(k)
-
-      ! divFourierFlux_r, r represent s' in paper, r is node
-      do r = 1, NbNodeFrac
-         numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + r)
-
-         do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-            divFourierFlux_r(j, r) = -TkFracLocal_Fourier(k)%pt(s, r)*divTemperatureNode(j, numr)
-         end do
-
-         SmFourierFlux = SmFourierFlux &
-                         - TkFracLocal_Fourier(k)%pt(s, r)*SmTemperatureNode(numr)
-      end do
-
-   end subroutine Jacobian_divFourierFlux_fracnode
+   end subroutine Jacobian_divFourierFlux
 
    ! Regularization of Jacobian
    ! operation on JacBigA, bigSm
