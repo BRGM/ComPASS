@@ -178,9 +178,8 @@ module Jacobian
       ! div(DensiteMolaire*Kr*Visco*Comp)*V_{k,s}
       Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux, &  ! (k is cell, s is node) or (k is cell, s is frac) or (k is frac, s is node)
       ! DensiteMolaire*Kr*Visco*Comp*div(V_{k,s})
-      Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode, &  ! k is cell, s is node
-      Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac, &  ! k is cell, s is frac
-      Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode, &  ! k is frac, s is node
+      Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux, &
+      Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph, &
       ! div(V_{k,s})
       Jacobian_divDarcyFlux_cellnode, & ! k is cell, s is node
       Jacobian_divDarcyFlux_cellfrac, & ! k is cell, s is frac
@@ -738,8 +737,14 @@ contains
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
-            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode( &
-               k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
+               IdNodeLocal(nums)%P /= "d", &
+               IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
+               NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
+               FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
+               DensiteMolaireKrViscoCompCell(:, :, k), &
+               DensiteMolaireKrViscoCompNode(:, :, nums), &
+               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
@@ -1011,8 +1016,14 @@ contains
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
-            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac( &
-               k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
+               .true., &
+               IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
+               NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
+               FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
+               DensiteMolaireKrViscoCompCell(:, :, k), &
+               DensiteMolaireKrViscoCompFrac(:, :, nums), &
+               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
@@ -1356,8 +1367,14 @@ contains
                                                 divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
-            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode( &
-               k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
+               IdNodeLocal(nums)%P /= "d", &
+               IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
+               NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
+               empty_array, &
+               DensiteMolaireKrViscoCompFrac(:, :, k), &
+               DensiteMolaireKrViscoCompNode(:, :, nums), &
+               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
                divK2, divS2, divR2, Sm2)
 
 #ifdef _THERMIQUE_
@@ -2178,383 +2195,149 @@ contains
    !         + Sm
    ! compute
    !        divK, divS, divR, Sm
-   subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode( &
-      k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+   subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
+      is_not_Dirichlet, & ! remove it
+      ic_k, ic_s, DarcyFlux, Nodebyk, Fracbyk, &
+      DensiteMolaireKrViscoComp_k, &
+      DensiteMolaireKrViscoComp_s, &
+      divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
       divK, divS, divR, Sm0)
 
-      integer, intent(in) :: k, s, nums
+      logical, intent(in) :: is_not_Dirichlet ! remove it
+      integer(c_int), intent(in) :: ic_k, ic_s
+      integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
       double precision, intent(in) :: &
+         DarcyFlux(NbPhase), &
+         DensiteMolaireKrViscoComp_k(NbComp, NbPhase), &
+         DensiteMolaireKrViscoComp_s(NbComp, NbPhase), &
          divDarcyFlux_k(NbIncTotalPrimMax, NbPhase), &
          divDarcyFlux_s(NbIncTotalPrimMax, NbPhase), &
-         divDarcyFlux_r(NbIncTotalPrimMax, NbPhase, NbNodeCellMax + NbFracCellMax), & ! r represen
          SmDarcyFlux(NbPhase)
+      double precision, dimension(:, :, :), intent(in) :: divDarcyFlux_r ! r represen
 
       double precision, intent(out) :: &
          divK(NbIncTotalPrimMax, NbComp), &
          divS(NbIncTotalPrimMax, NbComp), &
-         divR(NbIncTotalPrimMax, NbComp, NbNodeCellMax + NbFracCellMax), &
          Sm0(NbComp)
+      double precision, dimension(:, :, :), intent(out) :: divR
 
-      integer :: m, mph, j, icp, r, numr, rf
-      integer :: NbNodeCell, NbFracCell
+      integer :: m, mph
+      integer :: NbNode_in_k, NbFrac_in_k
 
       divK(:, :) = 0.d0
       divS(:, :) = 0.d0
       divR(:, :, :) = 0.d0
       Sm0(:) = 0.d0
 
-      NbNodeCell = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
-      NbFracCell = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
+      ! number of nodes/fracs in k
+      NbNode_in_k = size(Nodebyk)
+      NbFrac_in_k = size(Fracbyk)
 
       ! sum_{P_i \cap Q_{k} \cap FluxDarcyKI>=0}
-      do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
+      do m = 1, NbPhasePresente_ctx(ic_k) ! Q_k
+         mph = NumPhasePresente_ctx(m, ic_k)
 
-         if (FluxDarcyKI(mph, s, k) >= 0.d0) then
-
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                  end do
-
-                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                  end do
-
-                  do r = 1, NbNodeCell ! divR for r is node in dof(k)
-                     numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                     end do
-                  end do
-
-                  do r = 1, NbFracCell ! divR for r is frac in dof(k)
-                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
-                     rf = r + NbNodeCell
-
-                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                        divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                     end do
-                  end do
-
-                  ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-
-               end if
-            end do ! end of icp
-
+         if (DarcyFlux(mph) >= 0.d0) then
+            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
+               .true., & ! remove it
+               mph, ic_k, ic_s, &
+               NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
+               DensiteMolaireKrViscoComp_k, &
+               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+               divK, divS, divR, Sm0)
          end if
       end do ! end of Q_k
 
-      ! sum_{P_i \cap Q_{s} \cap FluxDarcyKI<0}
-      do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+      ! sum_{P_i \cap Q_{s} \cap DarcyFlux<0}
+      do m = 1, NbPhasePresente_ctx(ic_s) ! Q_s
+         mph = NumPhasePresente_ctx(m, ic_s)
 
-         if (FluxDarcyKI(mph, s, k) < 0.d0) then
-
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end do
-
-                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end do
-
-                  ! divR for r is node in dof(K)
-                  do r = 1, NbNodeCell
-                     numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                     end do
-                  end do
-
-                  ! divR for r is frac in dof(K)
-                  do r = 1, NbFracCell
-                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
-                     rf = r + NbNodeCell
-
-                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                        divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                     end do
-                  end do
-
-                  ! Sm
-                  ! if nums is dirichlet, sm is supposed to be null
-                  if (IdNodeLocal(nums)%P /= "d") then
-                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end if
-               end if
-            end do ! end of icp
-
+         if (DarcyFlux(mph) < 0.d0) then
+            call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
+               is_not_Dirichlet, & ! remove it
+               mph, ic_k, ic_s, &
+               NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
+               DensiteMolaireKrViscoComp_s, &
+               divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+               divK, divS, divR, Sm0)
          end if
 
       end do ! end of Q_s
 
-   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellnode
+   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux
 
-   ! term: \sum{P_i \cap (Q_k \cap Q_s)} &
-   !           DensiteMolaire * PermRel / Viscosite * Comp * div(FluxDarcyKI)
-   !       = ( divK * div(X_k)
-   !         + divS * div(X_s)
-   !         + \sum_r div(X_r) * div(X_r)
-   !         + Sm )
-   ! compute:
-   !        divK, divS, divR, Sm
-   subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac( &
-      k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
+   subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
+      is_not_Dirichlet, & ! remove it
+      mph, &
+      ic_k, ic_s, NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
+      DensiteMolaireKrViscoComp_up, &
+      divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
       divK, divS, divR, Sm0)
 
-      integer, intent(in) :: k, s, nums
+      logical, intent(in) :: is_not_Dirichlet ! remove it
+      integer(c_int), intent(in) :: ic_k, ic_s
+      integer, intent(in) :: mph, NbNode_in_k, NbFrac_in_k
+      integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
       double precision, intent(in) :: &
+         DensiteMolaireKrViscoComp_up(NbComp, NbPhase), &
          divDarcyFlux_k(NbIncTotalPrimMax, NbPhase), &
          divDarcyFlux_s(NbIncTotalPrimMax, NbPhase), &
-         divDarcyFlux_r(NbIncTotalPrimMax, NbPhase, NbNodeCellMax + NbFracCellMax), & ! r represen
          SmDarcyFlux(NbPhase)
+      double precision, dimension(:, :, :), intent(in) :: divDarcyFlux_r ! r represen
 
-      double precision, intent(out) :: &
+      double precision, intent(inout) :: &
          divK(NbIncTotalPrimMax, NbComp), &
          divS(NbIncTotalPrimMax, NbComp), &
-         divR(NbIncTotalPrimMax, NbComp, NbNodeCellMax + NbFracCellMax), &
          Sm0(NbComp)
+      double precision, dimension(:, :, :), intent(inout) :: divR
 
-      integer :: m, mph, j, icp, r, numr, rf, sf
-      integer :: NbNodeCell, NbFracCell
+      integer :: j, icp, r, numr, rf
 
-      divK(:, :) = 0.d0
-      divS(:, :) = 0.d0
-      divR(:, :, :) = 0.d0
-      Sm0(:) = 0.d0
+      do icp = 1, NbComp ! P_i
+         if (MCP(icp, mph) == 1) then
 
-      NbNodeCell = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
-      NbFracCell = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
+            do j = 1, NbIncTotalPrim_ctx(ic_k) ! divK
+               divK(j, icp) = divK(j, icp) &
+                              + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoComp_up(icp, mph)
+            end do
 
-      sf = s + NbNodeCell
+            do j = 1, NbIncTotalPrim_ctx(ic_s) ! divS
+               divS(j, icp) = divS(j, icp) &
+                              + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoComp_up(icp, mph)
+            end do
 
-      ! sum_{P_i \cap Q_{k} \cap FluxDarcyKI>=0}
-      do m = 1, NbPhasePresente_ctx(IncCell(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncCell(k)%ic)
+            ! divR for r is node in dof(k)
+            do r = 1, NbNode_in_k
+               numr = Nodebyk(r)
 
-         if (FluxDarcyKI(mph, sf, k) >= 0.d0) then
+               do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+                  divR(j, icp, r) = divR(j, icp, r) &
+                                    + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoComp_up(icp, mph)
+               end do
+            end do
 
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
+            ! divR for r is frac in dof(k)
+            do r = 1, NbFrac_in_k
+               numr = Fracbyk(r)
+               rf = r + NbNode_in_k
 
-                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                  end do
+               do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+                  divR(j, icp, rf) = divR(j, icp, rf) &
+                                     + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoComp_up(icp, mph)
+               end do
+            end do
 
-                  do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                  end do
-
-                  do r = 1, NbNodeCell ! divR for r is node in dof(k)
-                     numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                     end do
-                  end do
-
-                  do r = 1, NbFracCell ! divR for r is frac in dof(k)
-                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
-
-                     rf = r + NbNodeCell
-
-                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                        divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-                     end do
-                  end do
-
-                  ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompCell(icp, mph, k)
-
-               end if
-            end do ! end of icp
-
+            ! Sm
+            ! if nums is dirichlet, sm is supposed to be null
+            if (is_not_Dirichlet) then
+               Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoComp_up(icp, mph)
+            end if
          end if
-      end do ! end of Q_k
+      end do ! end of icp
 
-      ! sum_{P_i \cap Q_{s} \cap FluxDarcyKI<0}
-      do m = 1, NbPhasePresente_ctx(IncFrac(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncFrac(nums)%ic)
-
-         if (FluxDarcyKI(mph, sf, k) < 0.d0) then
-
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
-                  end do
-
-                  do j = 1, NbIncTotalPrim_ctx(IncFrac(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
-                  end do
-
-                  ! divR for r is node in dof(K)
-                  do r = 1, NbNodeCell
-                     numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
-                     end do
-                  end do
-
-                  ! divR for r is frac in dof(K)
-                  do r = 1, NbFracCell
-                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
-
-                     rf = r + NbNodeCell
-
-                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                        divR(j, icp, rf) = divR(j, icp, rf) &
-                                           + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
-                     end do
-                  end do
-
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, mph, nums)
-
-               end if
-            end do ! end of icp
-
-         end if
-
-      end do ! end of Q_s
-
-   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_cellfrac
-
-   subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode( &
-      k, s, nums, divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
-      divK, divS, divR, Sm0)
-
-      integer, intent(in) :: k, s, nums
-
-      double precision, intent(in) :: &
-         divDarcyFlux_k(NbIncTotalPrimMax, NbPhase), &
-         divDarcyFlux_s(NbIncTotalPrimMax, NbPhase), &
-         divDarcyFlux_r(NbIncTotalPrimMax, NbPhase, NbNodeFaceMax), & ! r represen
-         SmDarcyFlux(NbPhase)
-
-      double precision, intent(out) :: &
-         divK(NbIncTotalPrimMax, NbComp), &
-         divS(NbIncTotalPrimMax, NbComp), &
-         divR(NbIncTotalPrimMax, NbComp, NbNodeFaceMax), &
-         Sm0(NbComp)
-
-      integer :: m, mph, j, icp, r, numr, fk
-      integer :: NbNodeFrac
-
-      divK(:, :) = 0.d0
-      divS(:, :) = 0.d0
-      divR(:, :, :) = 0.d0
-      Sm0(:) = 0.d0
-
-      fk = FracToFaceLocal(k) ! face num
-      NbNodeFrac = NodebyFaceLocal%Pt(fk + 1) - NodebyFaceLocal%Pt(fk)
-
-      ! sum_{P_i \cap Q_{k} \cap FluxDarcyKI>=0}
-      do m = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! Q_k
-         mph = NumPhasePresente_ctx(m, IncFrac(k)%ic)
-
-         if (FluxDarcyFI(mph, s, k) >= 0.d0) then
-
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
-                  end do
-
-                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
-                  end do
-
-                  do r = 1, NbNodeFrac ! divR for r is node in dof(k)
-                     numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
-                     end do
-                  end do
-
-                  ! Sm
-                  Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompFrac(icp, mph, k)
-
-               end if
-            end do ! end of icp
-
-         end if
-      end do ! end of Q_k
-
-      ! sum_{P_i \cap Q_{s} \cap FluxDarcyKI<0}
-      do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
-         mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
-
-         if (FluxDarcyFI(mph, s, k) < 0.d0) then
-
-            do icp = 1, NbComp ! P_i
-               if (MCP(icp, mph) == 1) then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncFrac(k)%ic) ! divK
-                     divK(j, icp) = divK(j, icp) &
-                                    + divDarcyFlux_k(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end do
-
-                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic) ! divS
-                     divS(j, icp) = divS(j, icp) &
-                                    + divDarcyFlux_s(j, mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end do
-
-                  ! divR for r is node in dof(K)
-                  do r = 1, NbNodeFrac
-                     numr = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + r)
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        divR(j, icp, r) = divR(j, icp, r) &
-                                          + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                     end do
-                  end do
-
-                  ! Sm
-                  if (IdNodeLocal(nums)%P /= "d") then
-                     Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoCompNode(icp, mph, nums)
-                  end if
-
-               end if
-            end do ! end of icp
-
-         end if
-
-      end do ! end of Q_s
-
-   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_fracnode
+   end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph
 
    subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
       is_not_Dirichlet, & ! to remove
