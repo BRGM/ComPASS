@@ -4907,7 +4907,7 @@ contains
       allocate (nbNnzbyLine(nb_rows))
 
 #ifndef NDEBUG
-      if (size(Pt) /= nb_rows) &
+      if (size(Pt) /= nb_rows + 1) &
          call CommonMPI_abort("Inconsitent Pt size in Jacobian_StrucJacA_fill_Pt")
 #endif
 
