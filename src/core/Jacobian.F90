@@ -4861,67 +4861,55 @@ contains
 
    end subroutine Jacobian_StrucJacBigA
 
-   ! Non zero sturcture of JacA: JacBigA after Schur
-   subroutine Jacobian_StrucJacA
+   ! We speak in terms in blocks - that means one non-zero means one block that is non zero
+   !         node, frac, wellinj, wellprod
+   ! JacA = | A11, A12, A13, A14 | node own
+   !        | A21, A22, 0,   0   | frac own
+   !        | A31, 0,   A33, 0   | wellinj own
+   !        | A41, 0,   0,   A44 | wellprod own
+   ! the nonzero structure of Aij is same as aij in JacBigA, i,j=1,2
 
-      !         node, frac, wellinj, wellprod
-      ! JacA = | A11, A12, A13, A14 | node own
-      !        | A21, A22, 0,   0   | frac own
-      !        | A31, 0,   A33, 0   | wellinj own
-      !        | A41, 0,   0,   A44 | wellprod own
-      ! the nonzero structure of Aij is same as aij in JacBigA, i,j=1,2
+   ! The non zero structure of aij is based on the connectivities
+   ! A11: NodebyNodeOwn if not dir
+   ! A12: FracbyNodeOwn if not dir
+   ! Rq: if node own is Dir then only one non zero per row for A1*
 
-      ! The non zero structure of aij is based on the connectivities
-      ! A11: NodebyNodeOwn if not dir
-      ! A12: FracbyNodeOwn if not dir
-      ! Rq: if node own is Dir then only one non zero per row for A1*
+   ! A21: NodebyFracOwn
+   ! A22: FracbyFracOwn
+   ! A13: WellInjbyNodeOwn
+   ! A14: WellProdbyNodeOwn
 
-      ! A21: NodebyFracOwn
-      ! A22: FracbyFracOwn
-      ! A13: WellInjbyNodeOwn
-      ! A14: WellProdbyNodeOwn
+   ! A31: NodebyWellInjLocal
+   ! A41: NodebyWellProdLocal
+   ! A33, A44: diag
 
-      ! A31: NodebyWellInjLocal
-      ! A41: NodebyWellProdLocal
-      ! A33, A44: diag
-
-      ! Four steps in this subroutine
-      !   Number of non zeros each line: NbNnzbyline
-      !   bigA%Nb, bigA%Pt using NbNnzbyline
-      !   bigA%Num, non zero structure of bigA
-      !   arrange bigA%Num such that in each row, the cols is in inscreasing order
+   ! Four steps in this subroutine
+   !   Number of non zeros each line: NbNnzbyline
+   !   bigA%Nb, bigA%Pt using NbNnzbyline
+   !   bigA%Num, non zero structure of bigA
+   !   arrange bigA%Num such that in each row, the cols is in inscreasing order
+   subroutine Jacobian_StrucJacA_fill_Pt(Pt)
+      integer, dimension(:), intent(out) :: Pt
 
       integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
-
-      integer :: i, j, k, jf, Nz, start
-      integer :: tmp
+      integer :: i, nb_rows, nnz, start
       logical :: is_diagonal = .false.
       integer :: &
-         nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
-         nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
+         nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
 
       nbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
       nbFracOwn = NbFracOwn_Ncpus(commRank + 1)
       nbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
       nbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
 
-      nbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
-      nbFracLocal = NbFracLocal_Ncpus(commRank + 1)
-      nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
-      nbWellInjLocal = NbWellInjLocal_Ncpus(commRank + 1)
-      nbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
+      nb_rows = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn
+      allocate (nbNnzbyLine(nb_rows))
 
-      ! JacA%Nb
-      JacA%Nb = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn
-
-      allocate (nbNnzbyLine(JacA%Nb))
-      allocate (JacA%Pt(JacA%Nb + 1))
-      allocate (Sm(NbCompThermique, JacA%Nb))
-      allocate (csrK(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
-      csrK(:) = 0
-      allocate (csrSR(nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal))
-      csrSR(:) = 0
+#ifndef NDEBUG
+      if (size(Pt) /= nb_rows) &
+         call CommonMPI_abort("Inconsitent Pt size in Jacobian_StrucJacA_fill_Pt")
+#endif
 
       ! A1* in JacA
       do i = 1, nbNodeOwn
@@ -4952,33 +4940,52 @@ contains
       start = start + nbFracOwn
       do i = 1, nbWellInjOwn
          nbNnzbyLine(start + i) = &
-            NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i) + 1 ! A44 is di
+            NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i) + 1 ! A44 is diagonal
       end do
 
       ! A4* in JacA
       start = start + nbWellInjOwn
       do i = 1, nbWellProdOwn
          nbNnzbyLine(start + i) = &
-            NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i) + 1 ! A55 is diag
+            NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i) + 1 ! A55 is diagonal
       end do
 
       ! JacA%Pt
-      Nz = 0
-      JacA%Pt(1) = 0
-      do i = 1, JacA%Nb
-         Nz = Nz + nbNnzbyLine(i)
-         JacA%Pt(i + 1) = Nz
+      nnz = 0
+      Pt(1) = 0
+      do i = 1, nb_rows
+         nnz = nnz + nbNnzbyLine(i)
+         Pt(i + 1) = nnz
       end do
 
       deallocate (nbNnzbyLine)
 
-      ! JacA%Num
-      ! Rq: for Fracby*, *=CellLocal/FracOwn/NodeOwn
-      !   jf=Fracby*(jf) is face number, not frac number,
-      !   FaceToFrac(jf) is frac number
+   end subroutine Jacobian_StrucJacA_fill_Pt
 
-      allocate (JacA%Num(Nz))
-      JacA%Num(:) = 0
+   ! Rq: for Fracby*, *=CellLocal/FracOwn/NodeOwn
+   !   jf=Fracby*(jf) is face number, not frac number,
+   !   FaceToFrac(jf) is frac number
+   subroutine Jacobian_StrucJacA_fill_Num(Num)
+      integer, dimension(:), intent(out) :: Num
+
+      integer :: i, j, jf, start
+      logical :: is_diagonal = .false.
+      integer :: &
+         nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
+         nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
+
+      nbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
+      nbFracOwn = NbFracOwn_Ncpus(commRank + 1)
+      nbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
+      nbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
+
+      nbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
+      nbFracLocal = NbFracLocal_Ncpus(commRank + 1)
+      nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
+      nbWellInjLocal = NbWellInjLocal_Ncpus(commRank + 1)
+      nbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
+
+      Num = 0
 
       start = 0
 
@@ -4991,35 +4998,35 @@ contains
 #endif
          if (is_diagonal) then
 
-            JacA%Num(start + 1) = i ! node=(node own, node ghost)
+            Num(start + 1) = i ! node=(node own, node ghost)
             start = start + 1
 
          else ! one of Darcy and T is not dir
 
             ! A11(i,:)
             do j = 1, NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
-               JacA%Num(start + j) = NodebyNodeOwn%Num(j + NodebyNodeOwn%Pt(i))
+               Num(start + j) = NodebyNodeOwn%Num(j + NodebyNodeOwn%Pt(i))
             end do
             start = start + NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
 
             ! A12(i,:)
             do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
                jf = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) ! jf is face num, need to transform to frac num
-               JacA%Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+               Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
             end do
             start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
 
             ! A13(i,:)
             do j = 1, WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
-               JacA%Num(start + j) = WellInjbyNodeOwn%Num(j + WellInjbyNodeOwn%Pt(i)) &
-                                     + nbNodeLocal + nbFracLocal
+               Num(start + j) = WellInjbyNodeOwn%Num(j + WellInjbyNodeOwn%Pt(i)) &
+                                + nbNodeLocal + nbFracLocal
             end do
             start = start + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
 
             ! A14(i,:)
             do j = 1, WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-               JacA%Num(start + j) = WellProdbyNodeOwn%Num(j + WellProdbyNodeOwn%Pt(i)) &
-                                     + nbNodeLocal + nbFracLocal + nbWellInjLocal
+               Num(start + j) = WellProdbyNodeOwn%Num(j + WellProdbyNodeOwn%Pt(i)) &
+                                + nbNodeLocal + nbFracLocal + nbWellInjLocal
             end do
             start = start + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
          end if
@@ -5029,14 +5036,14 @@ contains
 
          ! A21(i,:)
          do j = 1, NodebyFracOwn%Pt(i + 1) - NodebyFracOwn%Pt(i)
-            JacA%Num(start + j) = NodebyFracOwn%Num(j + NodebyFracOwn%Pt(i))
+            Num(start + j) = NodebyFracOwn%Num(j + NodebyFracOwn%Pt(i))
          end do
          start = start + NodebyFracOwn%Pt(i + 1) - NodebyFracOwn%Pt(i)
 
          ! A22(i,:)
          do j = 1, FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
             jf = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i))
-            JacA%Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+            Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
          end do
          start = start + FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
       end do
@@ -5045,12 +5052,12 @@ contains
 
          ! A31(i,:)
          do j = 1, NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i)
-            JacA%Num(start + j) = NodebyWellInjLocal%Num(j + NodebyWellInjLocal%Pt(i))
+            Num(start + j) = NodebyWellInjLocal%Num(j + NodebyWellInjLocal%Pt(i))
          end do
          start = start + NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i)
 
          ! A33(i,:)
-         JacA%Num(start + 1) = i + nbNodeLocal + nbFracLocal
+         Num(start + 1) = i + nbNodeLocal + nbFracLocal
          start = start + 1
       end do
 
@@ -5058,35 +5065,116 @@ contains
 
          ! A41(i,:)
          do j = 1, NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i)
-            JacA%Num(start + j) = NodebyWellProdLocal%Num(j + NodebyWellProdLocal%Pt(i))
+            Num(start + j) = NodebyWellProdLocal%Num(j + NodebyWellProdLocal%Pt(i))
          end do
          start = start + NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i)
 
          ! A44(i,:)
-         JacA%Num(start + 1) = i + nbNodeLocal + nbFracLocal + nbWellInjLocal
+         Num(start + 1) = i + nbNodeLocal + nbFracLocal + nbWellInjLocal
          start = start + 1
       end do
 
-      ! Sort JacA%Num
-      do i = 1, JacA%Nb
+   end subroutine Jacobian_StrucJacA_fill_Num
 
-         do k = 1, JacA%Pt(i + 1) - JacA%Pt(i)
-            do j = JacA%Pt(i) + 1, JacA%Pt(i + 1) - k
+   ! Non zero sturcture of JacA: JacBigA after Schur
+   subroutine Jacobian_StrucJacA
+      ! We speak in terms in blocks - that means one non-zero means one block that is non zero
+      !         node, frac, wellinj, wellprod
+      ! JacA = | A11, A12, A13, A14 | node own
+      !        | A21, A22, 0,   0   | frac own
+      !        | A31, 0,   A33, 0   | wellinj own
+      !        | A41, 0,   0,   A44 | wellprod own
+      ! the nonzero structure of Aij is same as aij in JacBigA, i,j=1,2
 
-               if (JacA%Num(j) > JacA%Num(j + 1)) then
-                  tmp = JacA%Num(j)
-                  JacA%Num(j) = JacA%Num(j + 1)
-                  JacA%Num(j + 1) = tmp
-               end if
+      ! The non zero structure of aij is based on the connectivities
+      ! A11: NodebyNodeOwn if not dir
+      ! A12: FracbyNodeOwn if not dir
+      ! Rq: if node own is Dir then only one non zero per row for A1*
 
-            end do
-         end do
+      ! A21: NodebyFracOwn
+      ! A22: FracbyFracOwn
+      ! A13: WellInjbyNodeOwn
+      ! A14: WellProdbyNodeOwn
 
+      ! A31: NodebyWellInjLocal
+      ! A41: NodebyWellProdLocal
+      ! A33, A44: diag
+
+      ! Four steps in this subroutine
+      !   Number of non zeros each line: NbNnzbyline
+      !   bigA%Nb, bigA%Pt using NbNnzbyline
+      !   bigA%Num, non zero structure of bigA
+      !   arrange bigA%Num such that in each row, the cols is in inscreasing order
+
+      integer, dimension(:), allocatable :: &
+         nbNnzbyline ! number of non zeros each line
+
+      integer :: i, nb_rows, nb_cols, nnz
+
+      nb_rows = NbNodeOwn_Ncpus(commRank + 1) &
+                + NbFracOwn_Ncpus(commRank + 1) &
+                + NbWellInjOwn_Ncpus(commRank + 1) &
+                + NbWellProdOwn_Ncpus(commRank + 1)
+
+      nb_cols = NbNodeLocal_Ncpus(commRank + 1) &
+                + NbFracLocal_Ncpus(commRank + 1) &
+                + NbCellLocal_Ncpus(commRank + 1) &
+                + NbWellInjLocal_Ncpus(commRank + 1) &
+                + NbWellProdLocal_Ncpus(commRank + 1)
+
+      JacA%Nb = nb_rows
+      allocate (JacA%Pt(nb_rows + 1))
+
+      call Jacobian_StrucJacA_fill_Pt(JacA%Pt)
+
+      nnz = JacA%Pt(nb_rows + 1)
+
+      allocate (JacA%Num(nnz))
+
+      call Jacobian_StrucJacA_fill_Num(JacA%Num)
+
+      ! Sort JacA%Num so that column indices are in ascending order
+      do i = 1, nb_rows
+         call quicksort(JacA%Num, JacA%Pt(i) + 1, JacA%Pt(i + 1))
       end do
 
-      allocate (JacA%Val(NbCompThermique, NbCompThermique, Nz)) ! number of non zero
+      allocate (JacA%Val(NbCompThermique, NbCompThermique, nnz)) ! number of non zero
+      allocate (Sm(NbCompThermique, nb_rows))
+      allocate (csrK(nb_cols))
+      csrK = 0
+      allocate (csrSR(nb_cols))
+      csrSR = 0
 
    end subroutine Jacobian_StrucJacA
+
+   ! TODO: to be moved elsewhere
+   ! Adapted from https://gist.github.com/t-nissie/479f0f16966925fa29ea
+   ! Author: t-nissie
+   ! License: GPLv3
+   pure recursive subroutine quicksort(a, first, last)
+      integer, dimension(:), intent(inout) ::  a
+      integer, intent(in) :: first, last
+
+      integer i, j, n, tmp
+
+      n = a((first + last)/2)
+      i = first
+      j = last
+      do
+         do while (a(i) < n)
+            i = i + 1
+         end do
+         do while (n < a(j))
+            j = j - 1
+         end do
+         if (i >= j) exit
+         tmp = a(i); a(i) = a(j); a(j) = tmp
+         i = i + 1
+         j = j - 1
+      end do
+      if (first < i - 1) call quicksort(a, first, i - 1)
+      if (j + 1 < last) call quicksort(a, j + 1, last)
+   end subroutine quicksort
 
    subroutine Jacobian_free
 
