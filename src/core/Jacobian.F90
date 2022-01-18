@@ -148,6 +148,9 @@ module Jacobian
       Jacobian_StrucJacA, & !< non-zero structure of Jacobian after Schur
       Jacobian_JacBigA_BigSm, & !< Jacobian and right hand side
       Jacobian_Schur, & !< Schur complement
+      Jacobian_Regularization, &
+      Jacobian_Alignment_diag, &
+      Jacobian_Alignment_man, &
       Jacobian_free
 
    private :: &
@@ -205,12 +208,8 @@ module Jacobian
 #endif
       Jacobian_RowCol_KSR, &
       Jacobian_RowCol_FR, &
-      ! regularization/alignment
-      Jacobian_Regularization, &
       Jacobian_Regularization_row, &
-      Jacobian_Alignment_diag, &
       Jacobian_Alignment_diag_row, &
-      Jacobian_Alignment_man, &
       Jacobian_Alignment_man_row, &
       Jacobian_JacBigA_locate_frac_row
 
