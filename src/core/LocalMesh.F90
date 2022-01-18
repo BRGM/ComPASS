@@ -210,7 +210,7 @@ module LocalMesh
       FacebyNodeOwn_Ncpus ! only used to make FracbyNodeOwn_Ncpus
 
    !! Local frac face to face
-   type(ARRAY1Int), dimension(:), allocatable, public :: &
+   type(ARRAY1Int), dimension(:), allocatable, target, public :: &
       FracToFaceLocal_Ncpus, &
       FaceToFracLocal_Ncpus
 
@@ -2751,8 +2751,11 @@ contains
 
       integer, intent(in) :: ip
       integer :: ip1, nf, j, i, Nb
+      integer, dimension(:), pointer :: face_to_frac
 
       ip1 = ip + 1
+
+      face_to_frac => FaceToFracLocal_Ncpus(ip1)%Val
 
       ! %Nb
       Nb = FacebyNodeOwn_Ncpus(ip1)%Nb
@@ -2788,7 +2791,7 @@ contains
             ! if frac
             if (IdFaceRes_Ncpus(ip1)%Val(FacebyNodeOwn_Ncpus(ip1)%Num(j)) == -2) then
                nf = nf + 1
-               FracbyNodeOwn_Ncpus(ip1)%Num(nf) = FaceToFracLocal_Ncpus(ip1)%Val(FacebyNodeOwn_Ncpus(ip1)%Num(j))
+               FracbyNodeOwn_Ncpus(ip1)%Num(nf) = face_to_frac(FacebyNodeOwn_Ncpus(ip1)%Num(j))
             end if
          end do
       end do
