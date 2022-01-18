@@ -113,8 +113,8 @@ contains
       WellRadius(:) = 0
       WellRadius(1:NbMSWell) = DataMSWell(:)%Radius
       call DefWell_WellIndex(NodeDatabyMSWell, NbMSWell, WellRadius, &
-                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-                             PermCell, PermFrac)
+                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, &
+                             NodebyFace, PermCell, PermFrac)
 
       deallocate (WellRadius)
    end subroutine DefMSWell_Make_ComputeWellIndex

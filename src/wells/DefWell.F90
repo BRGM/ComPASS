@@ -227,14 +227,14 @@ contains
       WellRadius(:) = 0
       WellRadius(1:NbWellInj) = DataWellInj(:)%Radius
       call DefWell_WellIndex(NodeDatabyWellInj, NbWellInj, WellRadius, &
-                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-                             PermCell, PermFrac)
+                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, &
+                             NodebyFace, PermCell, PermFrac)
 
       WellRadius(:) = 0
       WellRadius(1:NbWellProd) = DataWellProd(:)%Radius
       call DefWell_WellIndex(NodeDatabyWellProd, NbWellProd, WellRadius, &
-                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-                             PermCell, PermFrac)
+                             NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, &
+                             NodebyFace, PermCell, PermFrac)
 
       deallocate (WellRadius)
 
@@ -313,8 +313,8 @@ contains
    !! no interaction with boundaries or other wells.
    !! \WARNING This computation supposes that two wells cannot share a node.
    subroutine DefWell_WellIndex(NodeDatabyWell, NbWell, WellRadius, &
-                                NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, NodebyFace, &
-                                PermCell, PermFrac)
+                                NbNode, XNode, CellbyNode, NodebyCell, FracbyNode, &
+                                NodebyFace, PermCell, PermFrac)
 
       integer, intent(in) :: NbWell, NbNode
       double precision, dimension(:), intent(in) :: WellRadius
@@ -385,7 +385,7 @@ contains
             comptFrac = 0
             ! loop over frac of node
             do k = FracbyNode%Pt(num_node) + 1, FracbyNode%Pt(num_node + 1)
-               num_face = FracbyNode%Num(k)
+               num_face = FracbyNode%Num(k) ! FIXME: global array FracbyNode stores the face (not fracture) index
                call element_center(XNode, NodebyFace, num_face, xk)
                length = dsqrt(dot_product(xk - xn1, xk - xn1)) ! dist of cell frac to the node
                meanDist = meanDist + length

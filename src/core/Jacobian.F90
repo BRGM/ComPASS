@@ -4713,11 +4713,6 @@ contains
 
       deallocate (nbNnzbyLine)
 
-      ! JacBigA%Num
-      ! Rq: for Fracby*, *=CellLocal/FracOwn/NodeOwn
-      !   jf=Fracby*(jf) is face number, not frac number,
-      !   FaceToFrac(jf) is frac number
-
       allocate (JacBigA%Num(Nz))
       allocate (JacBigA%Val(NbCompThermique, NbCompThermique, Nz))
 
@@ -4744,8 +4739,7 @@ contains
 
             ! a12(i,:)
             do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-               jf = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) ! jf is face num, need to transform to frac num
-               JacBigA%Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+               JacBigA%Num(start + j) = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) + nbNodeLocal ! col
             end do
             start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
 
@@ -4962,9 +4956,6 @@ contains
 
    end subroutine Jacobian_StrucJacA_fill_Pt
 
-   ! Rq: for Fracby*, *=CellLocal/FracOwn/NodeOwn
-   !   jf=Fracby*(jf) is face number, not frac number,
-   !   FaceToFrac(jf) is frac number
    subroutine Jacobian_StrucJacA_fill_Num(Num)
       integer, dimension(:), intent(out) :: Num
 
@@ -5011,8 +5002,7 @@ contains
 
             ! A12(i,:)
             do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-               jf = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) ! jf is face num, need to transform to frac num
-               Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+               Num(start + j) = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) + nbNodeLocal ! col
             end do
             start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
 

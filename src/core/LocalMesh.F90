@@ -506,6 +506,11 @@ contains
          call LocalMesh_FracbyCellLocal(i)  ! FracbyCellLocal_Ncpus(ip1)
          call LocalMesh_FracbyProc(i)       ! FracbyProc(ip1)
 
+         ! Face to/from Frac
+         ! Needs NbFaceResS_Ncpus and IdFaceRes_Ncpus and quantities intialized in LocalMesh_FracbyProc
+         call LocalMesh_FaceToFrac(i)       ! FaceToFracLocal_Ncpus(ip1)
+         call LocalMesh_FracToFace(i)       ! FracToFaceLocal_Ncpus(ip1)
+
          call LocalMesh_CellbyNodeOwn(i)    ! NodebyCellOwn_Ncpus(ip1)
          call LocalMesh_NodebyNodeOwn(i)    ! NodebyNodeOwn_Ncpus(ip1)
          call LocalMesh_FacebyNodeOwn(i)    ! FacebyNodeOwn_Ncpus(ip1), only used to make FracbyNodeOwn_Ncpus(ip1)
@@ -563,10 +568,6 @@ contains
          call LocalMesh_NodeDatabyWellLocal(i, localbyGlobalNode, MSWellbyProc, &
                                             NodebyMSWell, NodeDatabyMSWell, NodebyMSWellLocal_Ncpus, &
                                             NodeDatabyMSWellLocal_Ncpus)  ! NodeDatabyMSWellLocal_Ncpus(ip1)
-
-         ! Face to/from Frac
-         call LocalMesh_FaceToFrac(i)       ! FaceToFracLocal_Ncpus(ip1)
-         call LocalMesh_FracToFace(i)       ! FracToFaceLocal_Ncpus(ip1)
 
          !> Free mesh and connectivities in num (global) of this proc
          call CommonType_deallocCSR(FacebyCellRes_Ncpus(i + 1))
@@ -2787,7 +2788,7 @@ contains
             ! if frac
             if (IdFaceRes_Ncpus(ip1)%Val(FacebyNodeOwn_Ncpus(ip1)%Num(j)) == -2) then
                nf = nf + 1
-               FracbyNodeOwn_Ncpus(ip1)%Num(nf) = FacebyNodeOwn_Ncpus(ip1)%Num(j)
+               FracbyNodeOwn_Ncpus(ip1)%Num(nf) = FaceToFracLocal_Ncpus(ip1)%Val(FacebyNodeOwn_Ncpus(ip1)%Num(j))
             end if
          end do
       end do
