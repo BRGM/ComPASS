@@ -21,7 +21,7 @@ module Jacobian
 
    use DefModel, only: &
       NumPhasePresente_ctx, NbPhasePresente_ctx, LIQUID_PHASE, &
-      NbComp, NbPhase, NbCompThermique, MCP, aligmat, NbIncTotalPrimMax, &
+      NbComp, NbPhase, NbCompThermique, NbContexte, MCP, aligmat, NbIncTotalPrimMax, &
       phase_can_be_present
 
    use LoisThermoHydro, only: &
@@ -82,7 +82,7 @@ module Jacobian
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
 
    use IncPrimSecd, only: &
-      NumIncTotalPrimNode, NumIncTotalPrimCell, NumIncTotalPrimFrac, NbIncTotalPrimMax
+      NumIncTotalPrimNode, NumIncTotalPrimCell, NumIncTotalPrimFrac
 
    use MeshSchema, only: &
       IdNodeLocal, &
@@ -729,6 +729,8 @@ contains
             ! this term has two contributions: A_kr, r is k -> divK1
             !                                  A_kr, r is s -> divS1
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux( &
+               NbIncTotalPrimMax, NbComp, NbPhase, NbContexte, &
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, MCP, &
                IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
                divDensiteMolaireKrViscoCompCell(:, :, :, k), SmDensiteMolaireKrViscoCompCell(:, :, k), &
                divDensiteMolaireKrViscoCompNode(:, :, :, nums), SmDensiteMolaireKrViscoCompNode(:, :, nums), &
@@ -1024,6 +1026,8 @@ contains
 
             ! compute div(DensiteMolaire*Kr/Visco) * DarcyFlux when k is cell, s is frac
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux( &
+               NbIncTotalPrimMax, NbComp, NbPhase, NbContexte, &
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, MCP, &
                IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
                divDensiteMolaireKrViscoCompCell(:, :, :, k), SmDensiteMolaireKrViscoCompCell(:, :, k), &
                divDensiteMolaireKrViscoCompFrac(:, :, :, nums), SmDensiteMolaireKrViscoCompFrac(:, :, nums), &
@@ -1395,6 +1399,8 @@ contains
 
             ! compute div(DensiteMolaire*Kr/Visco) * DarcyFlux : k is frac, s is node
             call Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux( &
+               NbIncTotalPrimMax, NbComp, NbPhase, NbContexte, &
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, MCP, &
                IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
                divDensiteMolaireKrViscoCompFrac(:, :, :, k), SmDensiteMolaireKrViscoCompFrac(:, :, k), &
                divDensiteMolaireKrViscoCompNode(:, :, :, nums), SmDensiteMolaireKrViscoCompNode(:, :, nums), &
@@ -2162,19 +2168,27 @@ contains
    !!    \sum{P_i \cap Q_{k} \cap FluxDarcyKI>=0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divK
    !!    \sum{P_i \cap Q_{s} \cap FluxDarcyKI<0} (div (DensiteMolaire * PermRel / Viscosite * Comp ) * FluxDarcyKI) -> divS
    subroutine Jacobian_divDensiteMolaireKrViscoComp_DarcyFlux( &
-      ic_k, ic_s, DarcyFlux, &
+      NbIncTotalPrimMax, NbComp, NbPhase, NbContexte, & ! does not depend on k or s
+      NbPhasePresente, NumPhasePresente, NbIncTotalPrim, MCP, & ! does not depend on k or s
+      ic_k, ic_s, &
+      DarcyFlux, &
       divDensiteMolaireKrViscoComp_k, SmDensiteMolaireKrViscoComp_k, &
       divDensiteMolaireKrViscoComp_s, SmDensiteMolaireKrViscoComp_s, &
       is_not_Dirichlet, & ! will be removed
       divK, divS, Sm0)
 
       logical, intent(in) :: is_not_Dirichlet ! remove it
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbComp, NbPhase, NbContexte, &
+         NbPhasePresente(NbContexte), NumPhasePresente(NbPhase, NbContexte), &
+         NbIncTotalPrim(NbContexte), MCP(NbComp, NbPhase)
       integer(c_int), intent(in) :: ic_k, ic_s
-      double precision, dimension(NbPhase), intent(in) :: DarcyFlux
-      double precision, dimension(NbIncTotalPrimMax, NbComp, NbPhase), intent(in) :: divDensiteMolaireKrViscoComp_k
-      double precision, dimension(NbIncTotalPrimMax, NbComp, NbPhase), intent(in) :: divDensiteMolaireKrViscoComp_s
-      double precision, dimension(NbComp, NbPhase), intent(in) :: SmDensiteMolaireKrViscoComp_k
-      double precision, dimension(NbComp, NbPhase), intent(in) :: SmDensiteMolaireKrViscoComp_s
+      double precision, intent(in) :: &
+         DarcyFlux(NbPhase), &
+         divDensiteMolaireKrViscoComp_k(NbIncTotalPrimMax, NbComp, NbPhase), &
+         divDensiteMolaireKrViscoComp_s(NbIncTotalPrimMax, NbComp, NbPhase), &
+         SmDensiteMolaireKrViscoComp_k(NbComp, NbPhase), &
+         SmDensiteMolaireKrViscoComp_s(NbComp, NbPhase)
 
       double precision, intent(out) :: &
          divK(NbIncTotalPrimMax, NbComp), &
@@ -2188,8 +2202,8 @@ contains
       Sm0(:) = 0.d0
 
       ! -> divK, upwind is k, divS=0
-      do m = 1, NbPhasePresente_ctx(ic_k) ! Q_k
-         mph = NumPhasePresente_ctx(m, ic_k)
+      do m = 1, NbPhasePresente(ic_k) ! Q_k
+         mph = NumPhasePresente(m, ic_k)
 
          if (DarcyFlux(mph) >= 0.d0) then
 
@@ -2197,7 +2211,7 @@ contains
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
 
-                  do j = 1, NbIncTotalPrim_ctx(ic_k)
+                  do j = 1, NbIncTotalPrim(ic_k)
                      divK(j, icp) = divK(j, icp) + &
                                     divDensiteMolaireKrViscoComp_k(j, icp, mph)*DarcyFlux(mph)
 
@@ -2212,8 +2226,8 @@ contains
       end do ! end of Q_k
 
       ! -> divS, upwind is s, divK=0
-      do m = 1, NbPhasePresente_ctx(ic_s) ! Q_s
-         mph = NumPhasePresente_ctx(m, ic_s)
+      do m = 1, NbPhasePresente(ic_s) ! Q_s
+         mph = NumPhasePresente(m, ic_s)
 
          if (DarcyFlux(mph) < 0.d0) then
 
@@ -2221,7 +2235,7 @@ contains
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
 
-                  do j = 1, NbIncTotalPrim_ctx(ic_s)
+                  do j = 1, NbIncTotalPrim(ic_s)
                      divS(j, icp) = divS(j, icp) + &
                                     divDensiteMolaireKrViscoComp_s(j, icp, mph)*DarcyFlux(mph)
                   end do
