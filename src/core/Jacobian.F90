@@ -10,7 +10,7 @@
 
 module Jacobian
 
-   use iso_c_binding, only: c_double, c_int
+   use iso_c_binding, only: c_double, c_int, c_bool
    use InteroperabilityStructures, only: &
       csr_block_matrix_wrapper, retrieve_csr_block_matrix, &
       cpp_array_wrapper_dim2, retrieve_double_array_dim2
@@ -748,13 +748,19 @@ contains
 
             ! compute div Darcy flux
             call Jacobian_divDarcyFlux( &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, phase_can_be_present, & ! does not depend on k or s
+               IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncNode(nums)%ic, XCellLocal(3, k), &
+               XNodeLocal(3, :), XFaceLocal(3, :), gravity, & ! does not depend on k or s
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                TkLocal_Darcy(k)%pt(s, :), &
                divPressionCell(:, k), divPhasePressureCell(:, :, k), divrho_k, &
                SmPressionCell(k), Smrho_k, &
                divrho_s, Smrho_s, &
+               divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+               divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
@@ -1053,13 +1059,19 @@ contains
 
             ! compute div Darcy flux
             call Jacobian_divDarcyFlux( &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, phase_can_be_present, & ! does not depend on k or s
+               IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncFrac(nums)%ic, XCellLocal(3, k), &
+               XNodeLocal(3, :), XFaceLocal(3, :), gravity, & ! does not depend on k or s
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                TkLocal_Darcy(k)%pt(sf, :), &
                divPressionCell(:, k), divPhasePressureCell(:, :, k), divrho_k, &
                SmPressionCell(k), Smrho_k, &
                divrho_s, Smrho_s, &
+               divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+               divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
@@ -1434,13 +1446,19 @@ contains
                divrho_s, Smrho_s)
 
             call Jacobian_divDarcyFlux( &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, phase_can_be_present, & ! does not depend on k or s
+               IncNode, IncFrac, & ! does not depend on k or s
                IncFrac(k)%ic, IncNode(nums)%ic, XFaceLocal(3, fk), &
+               XNodeLocal(3, :), XFaceLocal(3, :), gravity, & ! does not depend on k or s
                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
                empty_array, &
                TkFracLocal_Darcy(k)%pt(s, :), &
                divPressionFrac(:, k), divPhasePressureFrac(:, :, k), divrho_k, &
                SmPressionFrac(k), Smrho_k, &
                divrho_s, Smrho_s, &
+               divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+               divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux)
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
@@ -2636,21 +2654,38 @@ contains
    !                      + \sum_{r \in V_k} divDarcyFlux_r * div(X_r)
    !                      + SmDarcyFlux
    subroutine Jacobian_divDarcyFlux( &
-      ic_k, ic_s, zk, &
+      NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+      NbPhasePresente, NumPhasePresente, phase_can_be_present, & ! does not depend on k or s
+      IncNode, IncFrac, & ! does not depend on k or s
+      ic_k, ic_s, zk, zNode, zFrac, gravity, & ! XNodeLocal(3, numr)  XFaceLocal(3, numr)
       Nodebyk, Fracbyk, &
       TkLocal_Darcy_ks, &
       divPression_k, divPhasePressure_k, divrho_k, &
       SmPression_k, Smrho_k, &
       divrho_s, Smrho_s, &
+      divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+      divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, &
       SmDarcyFlux)
 
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim(NbContexte), &
+         NbPhasePresente(NbContexte), NumPhasePresente(NbPhase, NbContexte)
+      logical(c_bool), intent(in) :: phase_can_be_present(NbPhase, NbContexte)
+      type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: &
+         IncNode, IncFrac
       integer(c_int), intent(in) :: ic_k, ic_s
       integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
-      double precision, dimension(:), intent(in) :: TkLocal_Darcy_ks
+      double precision, dimension(:), intent(in) :: &
+         zNode, zFrac, TkLocal_Darcy_ks, &
+         SmPressionNode, SmPressionFrac
+      double precision, dimension(:, :), intent(in) :: &
+         divPressionNode, divPressionFrac
+      double precision, dimension(:, :, :), intent(in) :: &
+         divPhasePressureNode, divPhasePressureFrac
       double precision, intent(in) :: &
-         zk, &
+         zk, gravity, &
          divPression_k(NbIncTotalPrimMax), &
          divPhasePressure_k(NbIncTotalPrimMax, NbPhase), &
          divrho_k(NbIncTotalPrimMax, NbPhase), &
@@ -2688,7 +2723,7 @@ contains
          numr = Nodebyk(r) ! numr is node num here
 
          sum_aks = sum_aks + TkLocal_Darcy_ks(r)
-         sum_aksgz = sum_aksgz + TkLocal_Darcy_ks(r)*(zk - XNodeLocal(3, numr))
+         sum_aksgz = sum_aksgz + TkLocal_Darcy_ks(r)*(zk - zNode(numr))
       end do
 
       do r = 1, NbFrac_in_k ! r is frac
@@ -2696,38 +2731,46 @@ contains
          rf = r + NbNode_in_k
 
          sum_aks = sum_aks + TkLocal_Darcy_ks(rf)
-         sum_aksgz = sum_aksgz + TkLocal_Darcy_ks(rf)*(zk - XFaceLocal(3, numr))
+         sum_aksgz = sum_aksgz + TkLocal_Darcy_ks(rf)*(zk - zFrac(numr))
       end do
 
       sum_aksgz = sum_aksgz*gravity
 
-      do m = 1, NbPhasePresente_ctx(ic_k) ! Q_k
-         mph = NumPhasePresente_ctx(m, ic_k)
+      do m = 1, NbPhasePresente(ic_k) ! Q_k
+         mph = NumPhasePresente(m, ic_k)
 
          call Jacobian_divDarcyFlux_mph( &
+            NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+            IncNode, IncFrac, & ! does not depend on k or s
             mph, ic_k, ic_s, &
             NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
             TkLocal_Darcy_ks, &
             divPression_k, divPhasePressure_k, divrho_k, &
             SmPression_k, Smrho_k, &
             divrho_s, Smrho_s, &
+            divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+            divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
             sum_aks, sum_aksgz, &
             divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, &
             SmDarcyFlux)
       end do
 
-      do m = 1, NbPhasePresente_ctx(ic_s) ! Q_s
-         mph = NumPhasePresente_ctx(m, ic_s)
+      do m = 1, NbPhasePresente(ic_s) ! Q_s
+         mph = NumPhasePresente(m, ic_s)
 
          if (.not. phase_can_be_present(mph, ic_k)) then ! this phase is not in Q_k
 
             call Jacobian_divDarcyFlux_mph( &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+               IncNode, IncFrac, & ! does not depend on k or s
                mph, ic_k, ic_s, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
                TkLocal_Darcy_ks, &
                divPression_k, divPhasePressure_k, divrho_k, &
                SmPression_k, Smrho_k, &
                divrho_s, Smrho_s, &
+               divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+               divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
                sum_aks, sum_aksgz, &
                divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, &
                SmDarcyFlux)
@@ -2737,21 +2780,35 @@ contains
    end subroutine Jacobian_divDarcyFlux
 
    subroutine Jacobian_divDarcyFlux_mph( &
+      NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+      IncNode, IncFrac, & ! does not depend on k or s, FaceToFracLocal is missing
       mph, ic_k, ic_s, &
       NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
       TkLocal_Darcy_ks, &
       divPression_k, divPhasePressure_k, divrho_k, &
       SmPression_k, Smrho_k, &
       divrho_s, Smrho_s, &
+      divPressionNode, divPhasePressureNode, SmPressionNode, & ! does not depend on k or s
+      divPressionFrac, divPhasePressureFrac, SmPressionFrac, & ! does not depend on k or s
       sum_aks, sum_aksgz, &
       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, &
       SmDarcyFlux)
 
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim(NbContexte)
+      type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: &
+         IncNode, IncFrac
       integer, intent(in) :: mph, NbNode_in_k, NbFrac_in_k
       integer(c_int), intent(in) :: ic_k, ic_s
       integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
-      double precision, dimension(:), intent(in) :: TkLocal_Darcy_ks
+      double precision, dimension(:), intent(in) :: &
+         TkLocal_Darcy_ks, &
+         SmPressionNode, SmPressionFrac
+      double precision, dimension(:, :), intent(in) :: &
+         divPressionNode, divPressionFrac
+      double precision, dimension(:, :, :), intent(in) :: &
+         divPhasePressureNode, divPhasePressureFrac
       double precision, intent(in) :: &
          divPression_k(NbIncTotalPrimMax), &
          divPhasePressure_k(NbIncTotalPrimMax, NbPhase), &
@@ -2771,7 +2828,7 @@ contains
       integer :: r, numr, rf, j
 
       ! divDarcyFlux_k
-      do j = 1, NbIncTotalPrim_ctx(ic_k)
+      do j = 1, NbIncTotalPrim(ic_k)
          divDarcyFlux_k(j, mph) = &
             sum_aks*divPression_k(j) &        ! \sum a_{ks}^{s'} P_k
             + sum_aks*divPhasePressure_k(j, mph) & ! \sum a_{ks}^{s'} PressionCap_k
@@ -2784,7 +2841,7 @@ contains
                          + sum_aksgz*Smrho_k(mph)    ! SmPressionCap=0
 
       ! divDarcyFlux_s
-      do j = 1, NbIncTotalPrim_ctx(ic_s)
+      do j = 1, NbIncTotalPrim(ic_s)
          divDarcyFlux_s(j, mph) = &
             sum_aksgz*divrho_s(j, mph)             ! \sum a_{ks}^{s'} divrho_s * g * (z_k-z_s')
       end do
@@ -2798,7 +2855,7 @@ contains
          numr = Nodebyk(r)
 
          ! P(mph) = PressionNode + PressionCap(mph)
-         do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncNode(numr)%ic)
             divDarcyFlux_r(j, mph, r) = divDarcyFlux_r(j, mph, r) &
                                         - TkLocal_Darcy_ks(r)*divPressionNode(j, numr) &        ! a_{ks}^{s'} -P_s'
                                         - TkLocal_Darcy_ks(r)*divPhasePressureNode(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
@@ -2815,7 +2872,7 @@ contains
          numr = Fracbyk(r) ! numr is frac num here
          rf = r + NbNode_in_k
 
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncFrac(numr)%ic)
             divDarcyFlux_r(j, mph, rf) = divDarcyFlux_r(j, mph, rf) &
                                          - TkLocal_Darcy_ks(rf)*divPressionFrac(j, numr) &        ! a_{ks}^{s'} -P_s'
                                          - TkLocal_Darcy_ks(rf)*divPhasePressureFrac(j, mph, numr)     ! a_{ks}^{s'} -PressionCap_s'
