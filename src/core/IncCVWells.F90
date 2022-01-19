@@ -98,7 +98,7 @@ contains
       integer(c_size_t), intent(in), value :: well
       type(WellPerforations_type) :: perforations
 
-      integer :: w
+      integer(c_size_t) :: w
 
       w = well + 1 ! Fortran index starts at 1
       if (allocated(PerfoWellProd)) then
@@ -117,7 +117,7 @@ contains
       integer(c_size_t), intent(in), value :: well
       type(WellPerforations_type) :: perforations
 
-      integer :: w
+      integer(c_size_t) :: w
 
       w = well + 1 ! Fortran index starts at 1
       if (allocated(PerfoWellInj)) then
