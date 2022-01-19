@@ -774,7 +774,9 @@ contains
             ! k is cell, s is node
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
                IdNodeLocal(nums)%T /= "d", &
-               IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
+               NbIncTotalPrimMax, NbPhase, NbContexte, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               IncNode, IncFrac, IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                DensiteMolaireKrViscoEnthalpieCell(:, k), &
@@ -1070,7 +1072,9 @@ contains
             ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
                .true., &
-               IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
+               NbIncTotalPrimMax, NbPhase, NbContexte, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               IncNode, IncFrac, IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                DensiteMolaireKrViscoEnthalpieCell(:, k), &
@@ -1444,7 +1448,9 @@ contains
             ! reuse what's been computed by Jacobian_divDarcyFlux frac/node
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
                IdNodeLocal(nums)%T /= "d", &
-               IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
+               NbIncTotalPrimMax, NbPhase, NbContexte, & ! does not depend on k or s
+               NbPhasePresente_ctx, NumPhasePresente_ctx, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               IncNode, IncFrac, IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
                empty_array, &
                DensiteMolaireKrViscoEnthalpieFrac(:, k), &
@@ -2410,7 +2416,9 @@ contains
 
    subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
       is_not_Dirichlet, & ! to remove
-      ic_k, ic_s, DarcyFlux, &
+      NbIncTotalPrimMax, NbPhase, NbContexte, & ! does not depend on k or s
+      NbPhasePresente, NumPhasePresente, NbIncTotalPrim, & ! does not depend on k or s
+      IncNode, IncFrac, ic_k, ic_s, DarcyFlux, &
       Nodebyk, Fracbyk, &
       DensiteMolaireKrViscoEnthalpie_k, &
       divDensiteMolaireKrViscoEnthalpie_k, &
@@ -2422,7 +2430,12 @@ contains
       divEgK, divEgS, divEgR, SmEg)
 
       logical, intent(in) :: is_not_Dirichlet ! remove it
-
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbPhase, NbContexte, &
+         NbPhasePresente(NbContexte), NumPhasePresente(NbPhase, NbContexte), &
+         NbIncTotalPrim(NbContexte)
+      type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: &
+         IncNode, IncFrac
       integer(c_int), intent(in) :: ic_k, ic_s
       integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
@@ -2445,7 +2458,7 @@ contains
          SmEg
       double precision, dimension(:, :), intent(out) :: divEgR
 
-      integer :: m, mph, j, r, numr, rf
+      integer :: m, mph
       integer :: NbNode_in_k, NbFrac_in_k
 
       divEgK(:) = 0.d0
@@ -2458,13 +2471,14 @@ contains
       NbFrac_in_k = size(Fracbyk)
 
       ! upwind is k, DensiteMolaireKrViscoEnthalpie(k)*DarcyFlux
-      do m = 1, NbPhasePresente_ctx(ic_k) ! Q_k
-         mph = NumPhasePresente_ctx(m, ic_k)
+      do m = 1, NbPhasePresente(ic_k) ! Q_k
+         mph = NumPhasePresente(m, ic_k)
 
          if (DarcyFlux(mph) >= 0.d0) then
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
                .true., & ! to remove
-               mph, ic_k, ic_s, DarcyFlux, &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+               mph, IncNode, IncFrac, ic_k, ic_s, DarcyFlux, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
                DensiteMolaireKrViscoEnthalpie_k, &
                divDensiteMolaireKrViscoEnthalpie_k, &
@@ -2476,13 +2490,14 @@ contains
       end do
 
       ! upwind is s
-      do m = 1, NbPhasePresente_ctx(ic_s) ! Q_s
-         mph = NumPhasePresente_ctx(m, ic_s)
+      do m = 1, NbPhasePresente(ic_s) ! Q_s
+         mph = NumPhasePresente(m, ic_s)
 
          if (DarcyFlux(mph) < 0.d0) then
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
                is_not_Dirichlet, & ! to remove
-               mph, ic_s, ic_k, DarcyFlux, &
+               NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+               mph, IncNode, IncFrac, ic_s, ic_k, DarcyFlux, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
                DensiteMolaireKrViscoEnthalpie_s, &
                divDensiteMolaireKrViscoEnthalpie_s, &
@@ -2496,7 +2511,8 @@ contains
 
    subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
       is_not_Dirichlet, & ! to remove
-      mph, ic_up, ic_down, DarcyFlux, &
+      NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+      mph, IncNode, IncFrac, ic_up, ic_down, DarcyFlux, & ! miss FaceToFracLocal which will disapear
       NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
       DensiteMolaireKrViscoEnthalpie_up, &
       divDensiteMolaireKrViscoEnthalpie_up, &
@@ -2506,8 +2522,12 @@ contains
 
       logical, intent(in) :: is_not_Dirichlet ! remove it
 
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbPhase, NbContexte, NbIncTotalPrim(NbContexte), &
+         mph, NbNode_in_k, NbFrac_in_k
+      type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: &
+         IncNode, IncFrac
       integer(c_int), intent(in) :: ic_up, ic_down
-      integer, intent(in) :: mph, NbNode_in_k, NbFrac_in_k
       integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
       double precision, intent(in) :: &
@@ -2529,14 +2549,14 @@ contains
       integer :: m, j, r, numr, rf
 
       ! divEg_up
-      do j = 1, NbIncTotalPrim_ctx(ic_up)
+      do j = 1, NbIncTotalPrim(ic_up)
          divEg_up(j) = divEg_up(j) &
                        + divDensiteMolaireKrViscoEnthalpie_up(j, mph)*DarcyFlux(mph) &
                        + divDarcyFlux_up(j, mph)*DensiteMolaireKrViscoEnthalpie_up(mph)
       end do
 
       ! divEg_down
-      do j = 1, NbIncTotalPrim_ctx(ic_down) ! divS
+      do j = 1, NbIncTotalPrim(ic_down)
          divEg_down(j) = divEg_down(j) &
                          + divDarcyFlux_down(j, mph)*DensiteMolaireKrViscoEnthalpie_up(mph)
       end do
@@ -2545,7 +2565,7 @@ contains
       do r = 1, NbNode_in_k ! divR for r is node in dof(k)
          numr = Nodebyk(r)
 
-         do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncNode(numr)%ic)
             divEgR(j, r) = divEgR(j, r) &
                            + divDarcyFlux_r(j, mph, r)*DensiteMolaireKrViscoEnthalpie_up(mph)
          end do
@@ -2556,7 +2576,7 @@ contains
          numr = Fracbyk(r) ! numr is frac num
          rf = r + NbNode_in_k
 
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncFrac(numr)%ic)
             divEgR(j, rf) = divEgR(j, rf) &
                             + divDarcyFlux_r(j, mph, rf)*DensiteMolaireKrViscoEnthalpie_up(mph)
          end do
