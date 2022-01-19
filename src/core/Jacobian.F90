@@ -790,11 +790,14 @@ contains
 
             ! compute div FluxFourier
             call Jacobian_divFourierFlux( &
-               IncCell(k)%ic, &
+               NbIncTotalPrimMax, NbContexte, NbIncTotalPrim_ctx, &
+               IncNode, IncFrac, IncCell(k)%ic, &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                TkLocal_Fourier(k)%pt(s, :), &
                divTemperatureCell(:, k), SmTemperatureCell(k), &
+               divTemperatureNode, SmTemperatureNode, &
+               divTemperatureFrac, SmTemperatureFrac, &
                divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
@@ -1088,11 +1091,14 @@ contains
 
             ! compute div FluxFourier
             call Jacobian_divFourierFlux( &
-               IncCell(k)%ic, &
+               NbIncTotalPrimMax, NbContexte, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               IncNode, IncFrac, IncCell(k)%ic, &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
                FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + 1:FracbyCellLocal%Pt(k + 1)), &
                TkLocal_Fourier(k)%pt(sf, :), &
                divTemperatureCell(:, k), SmTemperatureCell(k), &
+               divTemperatureNode, SmTemperatureNode, & ! does not depend on k or s
+               divTemperatureFrac, SmTemperatureFrac, & ! does not depend on k or s
                divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
@@ -1464,11 +1470,14 @@ contains
 
             ! compute div FluxFourier
             call Jacobian_divFourierFlux( &
-               IncFrac(k)%ic, &
+               NbIncTotalPrimMax, NbContexte, NbIncTotalPrim_ctx, & ! does not depend on k or s
+               IncNode, IncFrac, IncFrac(k)%ic, &
                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
                empty_array, &
                TkFracLocal_Fourier(k)%pt(s, :), &
                divTemperatureFrac(:, k), SmTemperatureFrac(k), &
+               divTemperatureNode, SmTemperatureNode, & ! does not depend on k or s
+               divTemperatureFrac, SmTemperatureFrac, & ! does not depend on k or s
                divFourierFlux_k, divFourierFlux_r, SmFourierFlux)
 #endif
 
@@ -3058,17 +3067,29 @@ contains
 #endif
 
    subroutine Jacobian_divFourierFlux( &
+      NbIncTotalPrimMax, NbContexte, NbIncTotalPrim, & ! does not depend on k or s
+      IncNode, IncFrac, & ! does not depend on k or s, FaceToFracLocal is missing
       ic_k, Nodebyk, Fracbyk, &
       TkLocal_Fourier_ks, &
       divTemperature_k, SmTemperature_k, &
+      divTemperatureNode, SmTemperatureNode, & ! does not depend on k or s
+      divTemperatureFrac, SmTemperatureFrac, & ! does not depend on k or s
       divFourierFlux_k, & ! sum_{s'} a_{k,s}^s' T_k
       divFourierFlux_r, & ! sum_{s'} a_{k,s}^s' -T_s'
       SmFourierFlux)
 
+      integer, intent(in) :: &
+         NbIncTotalPrimMax, NbContexte, NbIncTotalPrim(NbContexte)
+      type(TYPE_IncCVReservoir), dimension(:), pointer, intent(in) :: &
+         IncNode, IncFrac
       integer(c_int), intent(in) :: ic_k
       integer(c_int), dimension(:), intent(in) :: Nodebyk, Fracbyk
 
-      double precision, dimension(:), intent(in) :: TkLocal_Fourier_ks
+      double precision, dimension(:, :), intent(in) :: &
+         divTemperatureNode, divTemperatureFrac
+      double precision, dimension(:), intent(in) :: &
+         SmTemperatureNode, SmTemperatureFrac, &
+         TkLocal_Fourier_ks
       double precision, intent(in) :: &
          divTemperature_k(NbIncTotalPrimMax), &
          SmTemperature_k
@@ -3098,7 +3119,7 @@ contains
       end do
 
       ! divFourierfFlux_k
-      do j = 1, NbIncTotalPrim_ctx(ic_k)
+      do j = 1, NbIncTotalPrim(ic_k)
          divFourierFlux_k(j) = sum_aks*divTemperature_k(j)
       end do
 
@@ -3108,7 +3129,7 @@ contains
       do r = 1, NbNode_in_k
          numr = Nodebyk(r)
 
-         do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncNode(numr)%ic)
             divFourierFlux_r(j, r) = -TkLocal_Fourier_ks(r)*divTemperatureNode(j, numr)
          end do
 
@@ -3121,7 +3142,7 @@ contains
          numr = Fracbyk(r) ! numr is frac num here
          rf = r + NbNode_in_k
 
-         do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+         do j = 1, NbIncTotalPrim(IncFrac(numr)%ic)
             divFourierFlux_r(j, rf) = -TkLocal_Fourier_ks(rf)*divTemperatureFrac(j, numr)
          end do
 
