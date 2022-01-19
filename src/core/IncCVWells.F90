@@ -47,13 +47,13 @@ module IncCVWells
    !> Type for the perforations, stores informations which are not constant in the well
    type, bind(C) :: WellPerforationState_type
       real(c_double) :: &
-         Pression, & !< Pressure at the perforation
-         Temperature, & !< Temperature at the perforation
-         Density, & !< Density at the perforation: constant per edge, stored at node parent
-         Saturation(NbPhase), & !< Phases saturation
-         PressureDrop, & !< Pressure drop at the perforation, used to construct Pressure from the head pressure
-         MolarFlowrate(NbComp), & !< Molar flux at the perforation, q_{w,s,i}
-         EnergyFlowrate !< Energy flux at the perforation, q_{w,s,e}
+         Pression = 0.d0, & !< Pressure at the perforation
+         Temperature = 0.d0, & !< Temperature at the perforation
+         Density = 0.d0, & !< Density at the perforation: constant per edge, stored at node parent
+         Saturation(NbPhase) = 0.d0, & !< Phases saturation
+         PressureDrop = 0.d0, & !< Pressure drop at the perforation, used to construct Pressure from the head pressure
+         MolarFlowrate(NbComp) = 0.d0, & !< Molar flux at the perforation, q_{w,s,i}
+         EnergyFlowrate = 0.d0 !< Energy flux at the perforation, q_{w,s,e}
    end type WellPerforationState_type
 
    type, bind(C) :: WellPerforations_type
