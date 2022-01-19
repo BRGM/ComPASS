@@ -98,4 +98,6 @@ X0 = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres)
 simulation.all_states().set(X0)
 simulation.dirichlet_node_states().set(X0)
 
-simulation.standard_loop(initial_timestep=day, final_time=10 * year, output_period=year)
+simulation.standard_loop(
+    initial_timestep=30 * day, final_time=10 * year, output_period=5 * year
+)
