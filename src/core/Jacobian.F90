@@ -3601,7 +3601,7 @@ contains
       double precision, dimension(NbIncTotalPrimMax, NbPhase), intent(out) :: davrhodXp1, davrhodXp2
       double precision, dimension(NbPhase), intent(out) :: rhsavrho1, rhsavrho2
 
-      integer :: j, m, mph, n(NbPhase), nmax
+      integer :: m, mph, n(NbPhase), nmax
 
       davrhodXp1 = 0.d0
       davrhodXp2 = 0.d0
@@ -4280,9 +4280,7 @@ contains
          ! TODO: le cas DIR Neu ou Neu Dir reste a faire
 
          if ((IdNodeLocal(k)%P .ne. "d") .and. (IdNodeLocal(k)%T .ne. "d")) then
-            rowk = k ! row of k
-            call Jacobian_Alignment_man_row(k, rowk, IncNode(k)%ic)
-
+            call Jacobian_Alignment_man_row(k, IncNode(k)%ic)
          else if ((IdNodeLocal(k)%P .eq. "d") .and. (IdNodeLocal(k)%T .ne. "d")) then
             call CommonMPI_abort('in manual alignment Jacobian mix Dir/Neu node are not implemented')
          else if ((IdNodeLocal(k)%T .eq. "d") .and. (IdNodeLocal(k)%P .ne. "d")) then
@@ -4294,16 +4292,16 @@ contains
       do k = 1, NbFracOwn_Ncpus(commRank + 1)
 
          rowk = k + NbNodeOwn_Ncpus(commRank + 1) ! row of k
-         call Jacobian_Alignment_man_row(k, rowk, IncFrac(k)%ic)
+         call Jacobian_Alignment_man_row(rowk, IncFrac(k)%ic)
       end do
 
    end subroutine Jacobian_Alignment_man
 
    ! sub subroutine of Jacobian_Alignment: manually method
    ! used for Alignment for node/frac
-   subroutine Jacobian_Alignment_man_row(k, rowk, ic)
+   subroutine Jacobian_Alignment_man_row(rowk, ic)
 
-      integer, intent(in) :: k, rowk, ic
+      integer, intent(in) :: rowk, ic
       integer :: i
 
       double precision, dimension(NbCompThermique, NbCompThermique) :: &
@@ -4983,7 +4981,7 @@ contains
    subroutine Jacobian_StrucJacA_fill_columns(M)
       type(CSRArray2dble), intent(inout) :: M
 
-      integer :: i, j, start
+      integer :: i, start
       logical :: is_diagonal = .false.
       integer :: nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
       integer :: column_offset(4)
@@ -5094,9 +5092,6 @@ contains
       !   bigA%Nb, bigA%Pt using NbNnzbyline
       !   bigA%Num, non zero structure of bigA
       !   arrange bigA%Num such that in each row, the cols is in inscreasing order
-
-      integer, dimension(:), allocatable :: &
-         nbNnzbyline ! number of non zeros each line
 
       integer :: i, nb_rows, nb_cols, nnz
 
