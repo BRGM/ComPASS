@@ -36,7 +36,7 @@ void add_NN_wrappers(py::module& module) {
 
    module.def(
        "init_phase2_partition",
-       [](py::array_t<int, py::array::c_style> colors) {
+       [](py::array_t<int, py::array::c_style | py::array::forcecast> colors) {
           assert(colors.ndim() == 1);
           auto wrapper =
               ArrayWrapper::wrap(colors.mutable_data(), colors.size());
