@@ -15,7 +15,7 @@ module Jacobian
       csr_block_matrix_wrapper, retrieve_csr_block_matrix, &
       cpp_array_wrapper_dim2, retrieve_double_array_dim2
    use mpi, only: MPI_Abort
-   use CommonType, only: CSRArray2dble
+   use CommonType, only: CSRArray2dble, CSR
    use CommonMPI, only: &
       commRank, ComPASS_COMM_WORLD, CommonMPI_abort
 
@@ -4955,114 +4955,113 @@ contains
 
    end subroutine Jacobian_StrucJacA_fill_Pt
 
-   subroutine Jacobian_StrucJacA_fill_Num(Num)
-      integer, dimension(:), intent(out) :: Num
+   ! FIXME: This a convenience temporary function that is to be removed later
+   !> Fills the column number of a sparse matrix (SM)
+   !> with dof stored in an adjacency CSRInt whose main attributes are Pt and Num (cf. type(CSR))
+   !> j is the rank to the node of the adjacency graph currently considered
+   !> coff is the column offset due to the face that there is several adjacency graph/tables to be considered
+   !> col is the array storing the columns number in a contiguous fashion
+   !> roff is the row offset in cols to find the first columns corresponding to the adjacency relations
+   !>    it is incremented so that ad the end of the subroutine it can be reused (the same way as an output iterator)
+   pure subroutine fill_SM_column_number(adj, j, coff, col, roff)
+      type(CSR), intent(in) :: adj
+      integer, intent(in) :: j
+      integer, intent(in) :: coff
+      integer, dimension(:), intent(inout) :: col
+      integer, intent(inout) :: roff
+
+      integer :: n
+
+      n = adj%Pt(j + 1) - adj%Pt(j)
+      col(roff + 1:roff + n) = adj%Num(adj%Pt(j) + 1:adj%Pt(j + 1)) + coff
+      roff = roff + n
+
+   end subroutine fill_SM_column_number
+
+   subroutine Jacobian_StrucJacA_fill_columns(M)
+      type(CSRArray2dble), intent(inout) :: M
 
       integer :: i, j, start
       logical :: is_diagonal = .false.
-      integer :: &
-         nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
-         nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
+      integer :: nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
+      integer :: column_offset(4)
 
       nbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
       nbFracOwn = NbFracOwn_Ncpus(commRank + 1)
       nbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
       nbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
 
-      nbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
-      nbFracLocal = NbFracLocal_Ncpus(commRank + 1)
-      nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
-      nbWellInjLocal = NbWellInjLocal_Ncpus(commRank + 1)
-      nbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
+      column_offset(1) = 0
+      column_offset(2) = column_offset(1) + NbNodeLocal_Ncpus(commRank + 1)
+      column_offset(3) = column_offset(2) + NbFracLocal_Ncpus(commRank + 1)
+      column_offset(4) = column_offset(3) + NbWellInjLocal_Ncpus(commRank + 1)
 
-      Num = 0
-
+      M%Num = 0
       start = 0
 
-      do i = 1, nbNodeOwn
+#ifndef NDEBUG
+      if (.not. associated(M%Pt)) &
+         call CommonMPI_abort("JacA%Pt should be a valid pointer.")
+      if (M%Pt(1) /= 0) &
+         call CommonMPI_abort("JacA%Pt(0) should be 0.")
+#endif
 
+      ! First set of (block) rows conservation law at reversoir nodes
+      do i = 1, nbNodeOwn
          ! Darcy and T are both dir
          is_diagonal = IdNodeLocal(i)%P == "d"
 #ifdef _THERMIQUE_
          is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
 #endif
          if (is_diagonal) then
-
-            Num(start + 1) = i ! node=(node own, node ghost)
+            M%Num(start + 1) = i ! node=(node own, node ghost)
             start = start + 1
-
          else ! one of Darcy and T is not dir
-
-            ! A11(i,:)
-            do j = 1, NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
-               Num(start + j) = NodebyNodeOwn%Num(j + NodebyNodeOwn%Pt(i))
-            end do
-            start = start + NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
-
-            ! A12(i,:)
-            do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-               Num(start + j) = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) + nbNodeLocal ! col
-            end do
-            start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-
-            ! A13(i,:)
-            do j = 1, WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
-               Num(start + j) = WellInjbyNodeOwn%Num(j + WellInjbyNodeOwn%Pt(i)) &
-                                + nbNodeLocal + nbFracLocal
-            end do
-            start = start + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
-
-            ! A14(i,:)
-            do j = 1, WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-               Num(start + j) = WellProdbyNodeOwn%Num(j + WellProdbyNodeOwn%Pt(i)) &
-                                + nbNodeLocal + nbFracLocal + nbWellInjLocal
-            end do
-            start = start + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
+            call fill_SM_column_number(NodebyNodeOwn, i, column_offset(1), M%Num, start)
+            call fill_SM_column_number(FracbyNodeOwn, i, column_offset(2), M%Num, start)
+            call fill_SM_column_number(WellInjbyNodeOwn, i, column_offset(3), M%Num, start)
+            call fill_SM_column_number(WellProdbyNodeOwn, i, column_offset(4), M%Num, start)
          end if
+#ifndef NDEBUG
+         if (M%Pt(i + 1) /= start) &
+            call CommonMPI_abort("Wrong offset in filling JacA node rows.")
+#endif
       end do
 
+      ! Second set of (block) rows conservation law at fracture faces
+      ! wells are not connected to fracture faces
       do i = 1, nbFracOwn
-
-         ! A21(i,:)
-         do j = 1, NodebyFracOwn%Pt(i + 1) - NodebyFracOwn%Pt(i)
-            Num(start + j) = NodebyFracOwn%Num(j + NodebyFracOwn%Pt(i))
-         end do
-         start = start + NodebyFracOwn%Pt(i + 1) - NodebyFracOwn%Pt(i)
-
-         ! A22(i,:)
-         do j = 1, FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
-            Num(start + j) = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i)) + nbNodeLocal ! col
-         end do
-         start = start + FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
+         call fill_SM_column_number(NodebyFracOwn, i, column_offset(1), M%Num, start)
+         call fill_SM_column_number(FracbyFracOwn, i, column_offset(2), M%Num, start)
+#ifndef NDEBUG
+         if (M%Pt(NbNodeOwn + i + 1) /= start) &
+            call CommonMPI_abort("Wrong offset in filling JacA fracture rows.")
+#endif
       end do
 
+      ! Third set of (block) rows conservation law at injection wells
       do i = 1, nbWellInjOwn
-
-         ! A31(i,:)
-         do j = 1, NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i)
-            Num(start + j) = NodebyWellInjLocal%Num(j + NodebyWellInjLocal%Pt(i))
-         end do
-         start = start + NodebyWellInjLocal%Pt(i + 1) - NodebyWellInjLocal%Pt(i)
-
-         ! A33(i,:)
-         Num(start + 1) = i + nbNodeLocal + nbFracLocal
+         call fill_SM_column_number(NodebyWellInjLocal, i, column_offset(1), M%Num, start)
+         M%Num(start + 1) = i + column_offset(3)
          start = start + 1
+#ifndef NDEBUG
+         if (M%Pt(nbNodeOwn + nbFracOwn + i + 1) /= start) &
+            call CommonMPI_abort("Wrong offset in filling JacA injection wells rows.")
+#endif
       end do
 
+      ! Fourth set of (block) rows conservation law at production wells
       do i = 1, nbWellProdOwn
-
-         ! A41(i,:)
-         do j = 1, NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i)
-            Num(start + j) = NodebyWellProdLocal%Num(j + NodebyWellProdLocal%Pt(i))
-         end do
-         start = start + NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i)
-
-         ! A44(i,:)
-         Num(start + 1) = i + nbNodeLocal + nbFracLocal + nbWellInjLocal
+         call fill_SM_column_number(NodebyWellProdLocal, i, column_offset(1), M%Num, start)
+         M%Num(start + 1) = i + column_offset(4)
          start = start + 1
+#ifndef NDEBUG
+         if (M%Pt(nbNodeOwn + nbFracOwn + nbWellInjOwn + i + 1) /= start) &
+            call CommonMPI_abort("Wrong offset in filling JacA production wells rows.")
+#endif
       end do
 
-   end subroutine Jacobian_StrucJacA_fill_Num
+   end subroutine Jacobian_StrucJacA_fill_columns
 
    ! Non zero sturcture of JacA: JacBigA after Schur
    subroutine Jacobian_StrucJacA
@@ -5119,7 +5118,7 @@ contains
 
       allocate (JacA%Num(nnz))
 
-      call Jacobian_StrucJacA_fill_Num(JacA%Num)
+      call Jacobian_StrucJacA_fill_columns(JacA)
 
       ! Sort JacA%Num so that column indices are in ascending order
       do i = 1, nb_rows
