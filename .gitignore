@@ -2,6 +2,12 @@ cmake/config.cmake
 ComPASS/_version.py
 ComPASS/version_info
 
+build/*
+_skbuild/*
+.vscode/*
+.adr-dir/*
+
+.eggs/*
 *.so
 *.pyc
 __pycache__
