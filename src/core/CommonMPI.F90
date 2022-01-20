@@ -8,6 +8,8 @@
 
 module CommonMPI
 
+   use iso_fortran_env, only: output_unit
+
    use mpi, only: &
       MPI_SUCCESS, &
       MPI_Abort, &
@@ -75,6 +77,8 @@ contains
       write (*, *)
       write (*, *) reason
       write (*, *)
+
+      flush (output_unit)
 
       !CHECKME: MPI_Abort is supposed to end all MPI processes
       call MPI_Abort(ComPASS_COMM_WORLD, error_code, abortion_result)
