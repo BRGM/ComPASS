@@ -197,14 +197,23 @@ def init(
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
-        if mesh_parts is None:
-            use_Kway = use_Kway_part_graph
-            mesh_parts = part_mesh(
-                use_Kway=use_Kway,
-                # connectivity_file=simulation.runtime.to_output_directory(
-                #     "mesh/connectivity"
-                # ),
-            )
+        if simulation.is_sequential or simulation.global_number_of_cells() == 1:
+            if mesh_parts is None:
+                mesh_parts = np.tile(
+                    mpi.master_proc_rank, simulation.global_number_of_cells()
+                )
+            else:
+                assert tuple(np.unique(mesh_parts)) == (mpi.master_proc_rank,)
+                pass
+        else:
+            if mesh_parts is None:
+                use_Kway = use_Kway_part_graph
+                mesh_parts = part_mesh(
+                    use_Kway=use_Kway,
+                    # connectivity_file=simulation.runtime.to_output_directory(
+                    #     "mesh/connectivity"
+                    # ),
+                )
         ucolors = np.unique(mesh_parts)
         assert ucolors.min() >= 0
         assert ucolors.max() < mpi.communicator().size
