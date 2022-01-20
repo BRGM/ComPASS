@@ -29,7 +29,7 @@ module FluxWrappers
       DensiteMolaireKrViscoEnthalpieCell, &
       DensiteMolaireKrViscoEnthalpieFrac
 
-   use Flux, only: FluxDarcyKI
+   use Flux, only: FluxDarcyKI, FluxDarcyFI
 
    use MeshSchema, only: &
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
@@ -53,12 +53,13 @@ module FluxWrappers
 
 contains
 
-   subroutine ks_mass_fluxes(k, Xk, Inck, Mk, sr, Xs, Incs, Ms, Fks)
+   subroutine ks_mass_fluxes(k, Xk, Inck, Mk, sr, Xs, Incs, Ms, FD, Fks)
 
       integer, intent(in) :: k, sr ! sr is s index relative to k
       real(c_double), intent(in) :: Xk(3), Xs(3)
       type(TYPE_IncCVReservoir), intent(in) :: Inck, Incs
       real(c_double), intent(in) :: Mk(:, :), Ms(:, :)
+      double precision, dimension(:, :, :), intent(in) :: FD ! FluxDarcyKI or FluxDarcyFI
       real(c_double), intent(inout) :: Fks(3, NbComp)
 
       integer :: m, mph, icp
@@ -68,7 +69,7 @@ contains
       flux_ks(:) = 0.d0
       do m = 1, NbPhasePresente_ctx(Inck%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, Inck%ic)
-         DarcyFlux = FluxDarcyKI(mph, sr, k)
+         DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux >= 0.d0) then ! K_{k,s}^{alpha}=k
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
@@ -79,7 +80,7 @@ contains
       end do
       do m = 1, NbPhasePresente_ctx(Incs%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, Incs%ic)
-         DarcyFlux = FluxDarcyKI(mph, sr, k)
+         DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux < 0.d0) then ! K_{k,s}^{alpha}=s
             do icp = 1, NbComp
                if (MCP(icp, mph) == 1) then ! \cap P_i
@@ -123,7 +124,7 @@ contains
             call ks_mass_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoCompCell(:, :, k), &
                s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoCompNode(:, :, nums), &
-               mass_fluxes(:, :, k))
+               FluxDarcyKI, mass_fluxes(:, :, k))
          end do
          do s = 1, NbFracCell
             fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! fs is face number
@@ -131,7 +132,7 @@ contains
             call ks_mass_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoCompCell(:, :, k), &
                s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensiteMolaireKrViscoCompFrac(:, :, nums), &
-               mass_fluxes(:, :, k))
+               FluxDarcyKI, mass_fluxes(:, :, k))
          end do
       end do
 
@@ -163,7 +164,7 @@ contains
             call ks_mass_fluxes( &
                k, XFaceLocal(:, fk), IncFrac(k), DensiteMolaireKrViscoCompFrac(:, :, k), &
                s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoCompNode(:, :, nums), &
-               mass_fluxes(:, :, k))
+               FluxDarcyFI, mass_fluxes(:, :, k))
          end do
       end do
 
@@ -183,12 +184,13 @@ contains
 
    end subroutine retrieve_mass_fluxes
 
-   subroutine ks_enthalpy_fluxes(k, Xk, Inck, Mk, sr, Xs, Incs, Ms, Fks)
+   subroutine ks_enthalpy_fluxes(k, Xk, Inck, Mk, sr, Xs, Incs, Ms, FD, Fks)
 
       integer, intent(in) :: k, sr ! sr is s index relative to k
       real(c_double), intent(in) :: Xk(3), Xs(3)
       type(TYPE_IncCVReservoir), intent(in) :: Inck, Incs
       real(c_double), intent(in) :: Mk(:), Ms(:)
+      double precision, dimension(:, :, :), intent(in) :: FD ! FluxDarcyKI or FluxDarcyFI
       real(c_double), intent(inout) :: Fks(3)
 
       integer :: m, mph
@@ -198,14 +200,14 @@ contains
       flux_ks = 0.d0
       do m = 1, NbPhasePresente_ctx(Inck%ic) ! Q_k
          mph = NumPhasePresente_ctx(m, Inck%ic)
-         DarcyFlux = FluxDarcyKI(mph, sr, k)
+         DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux >= 0.d0) then ! K_{k,s}^{alpha}=k
             flux_ks = flux_ks + Mk(m)*DarcyFlux
          end if
       end do
       do m = 1, NbPhasePresente_ctx(Incs%ic) ! Q_s
          mph = NumPhasePresente_ctx(m, Incs%ic)
-         DarcyFlux = FluxDarcyKI(mph, sr, k)
+         DarcyFlux = FD(mph, sr, k)
          if (DarcyFlux < 0.d0) then ! K_{k,s}^{alpha}=s
             flux_ks = flux_ks + Ms(m)*DarcyFlux
          end if
@@ -242,7 +244,7 @@ contains
             call ks_enthalpy_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoEnthalpieCell(:, k), &
                s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoEnthalpieNode(:, nums), &
-               enthalpy_fluxes(:, k))
+               FluxDarcyKI, enthalpy_fluxes(:, k))
          end do
          do s = 1, NbFracCell
             fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! fs is face number
@@ -250,7 +252,7 @@ contains
             call ks_enthalpy_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoEnthalpieCell(:, k), &
                s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensiteMolaireKrViscoEnthalpieFrac(:, nums), &
-               enthalpy_fluxes(:, k))
+               FluxDarcyKI, enthalpy_fluxes(:, k))
          end do
       end do
 
@@ -281,7 +283,7 @@ contains
             call ks_enthalpy_fluxes( &
                k, XFaceLocal(:, fk), IncFrac(k), DensiteMolaireKrViscoEnthalpieFrac(:, k), &
                s, XNodeLocal(:, nums), IncNode(nums), DensiteMolaireKrViscoEnthalpieNode(:, nums), &
-               enthalpy_fluxes(:, k))
+               FluxDarcyFI, enthalpy_fluxes(:, k))
          end do
       end do
 
