@@ -265,7 +265,7 @@ contains
             do j = 1, NbCompThermique
                do i = 1, NbCompThermique
                   a = JacBigA%Val(i, j, n)
-                  if (a == 0. .or. a == 1.) then
+                  if (abs(a) <= 0.d0 .or. abs(a - 1.d0) < 1e-20) then
                      write (*, "(I15)", advance="no") int(a)
                   else
                      write (*, "(E15.7)", advance="no") a
@@ -386,7 +386,7 @@ contains
          if (IdNodeLocal(s)%P == "d") then
             ! set identity matrix for Darcy (mass conservation)
 #ifndef NDEBUG
-            if (.not. all(JacBigA%Val(:, 1:NbComp, nz) == 0.d0)) then
+            if (.not. all(abs(JacBigA%Val(:, 1:NbComp, nz)) <= 0.d0)) then
                call CommonMPI_abort( &
                   "inconsitent initial value of jacobian diagonal block "// &
                   "for Darcy dirichlet conditions before filling")
@@ -401,7 +401,7 @@ contains
          if (IdNodeLocal(s)%T == "d") then
             ! set identity matrix for Fourier (energy conservation)
 #ifndef NDEBUG
-            if (.not. all(JacBigA%Val(:, NbComp + 1, nz) == 0.d0)) then
+            if (.not. all(abs(JacBigA%Val(:, NbComp + 1, nz)) <= 0.d0)) then
                call CommonMPI_abort( &
                   "inconsitent initial value of jacobian diagonal block "// &
                   "for Fourier dirichlet conditions before filling")
