@@ -2814,8 +2814,11 @@ contains
       integer, dimension(:), allocatable :: &
          colorFracLocal, & ! used to mark if the frac is considered or not
          tabNbFracbyFrac
+      integer, dimension(:), pointer :: face_to_frac
 
       ip1 = ip + 1
+
+      face_to_frac => FaceToFracLocal_Ncpus(ip1)%Val
 
       allocate (colorFracLocal(NbFaceResS_Ncpus(ip1)))
       allocate (tabNbFracbyFrac(NbFracOwnS_Ncpus(ip1)))
@@ -2881,7 +2884,7 @@ contains
                if (colorFracLocal(n) == m) then
                   tabNbFracbyFrac(m) = tabNbFracbyFrac(m) + 1
                   colorFracLocal(n) = 0
-                  FracbyFracOwn_Ncpus(ip1)%Num(FracbyFracOwn_Ncpus(ip1)%Pt(m) + tabNbFracbyFrac(m)) = n
+                  FracbyFracOwn_Ncpus(ip1)%Num(FracbyFracOwn_Ncpus(ip1)%Pt(m) + tabNbFracbyFrac(m)) = face_to_frac(n)
                endif
             enddo
          enddo

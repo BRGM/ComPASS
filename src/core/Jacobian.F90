@@ -4775,8 +4775,7 @@ contains
 
          ! a22(i,:)
          do j = 1, FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
-            jf = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i))
-            JacBigA%Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+            JacBigA%Num(start + j) = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i)) + nbNodeLocal ! col
          end do
          start = start + FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
 
@@ -4959,7 +4958,7 @@ contains
    subroutine Jacobian_StrucJacA_fill_Num(Num)
       integer, dimension(:), intent(out) :: Num
 
-      integer :: i, j, jf, start
+      integer :: i, j, start
       logical :: is_diagonal = .false.
       integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
@@ -5032,8 +5031,7 @@ contains
 
          ! A22(i,:)
          do j = 1, FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
-            jf = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i))
-            Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+            Num(start + j) = FracbyFracOwn%Num(j + FracbyFracOwn%Pt(i)) + nbNodeLocal ! col
          end do
          start = start + FracbyFracOwn%Pt(i + 1) - FracbyFracOwn%Pt(i)
       end do
