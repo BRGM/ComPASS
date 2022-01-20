@@ -4547,11 +4547,13 @@ contains
             colsJk => BigMat%Num(BigMat%Pt(row_k) + 1:BigMat%Pt(row_k + 1))
             do j = 1, size(colsJk)
                nup = colsJk(j)
+               ! passed the last fractures there is nothing left to do (wells do not interact with cells)
                if (nup > col_cells_offset) exit
+               ! VAG connects nodes and fractures to all cell nodes so that findloc will not fail
                l = findloc(colsJnu, nup, 1)
 #ifndef NDEBUG
                if (Mat%Num(Mat%Pt(nu) + l) /= nup) &
-                  call CommonMPI_abort("Unconsistencies between Mat and BigMat")
+                  call CommonMPI_abort("Jacobian_Schur_substitution: unconsistencies between Mat and BigMat")
 #endif
                ! because of C like storage of the blocks we compute the transpose of
                ! J_{\nu\nu'}-\sum_{k\in\K}B_{\nu k}^{T}J_{k\nu'}
@@ -5134,7 +5136,7 @@ contains
 
    end subroutine Jacobian_StrucJacA
 
-   ! TODO: to be moved elsewhere
+   ! TODO: to be moved elsewhere - is there already a quicksort routine for wells?
    ! Adapted from https://gist.github.com/t-nissie/479f0f16966925fa29ea
    ! Author: t-nissie
    ! License: GPLv3
