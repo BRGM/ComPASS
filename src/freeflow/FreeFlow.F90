@@ -88,6 +88,65 @@ contains
 
    end subroutine FreeFlow_set_faces_C
 
+   subroutine set_atm_temperature(T) &
+      bind(C, name="set_atm_temperature")
+      real(c_double), value, intent(in) :: T
+
+      ! if not allocated, AtmState will later be initialized with atm_temperature
+      atm_temperature = T
+      if (allocated(AtmState)) then
+         nn = number_of_nodes()
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+         do s = 1, nn
+            if (IdFFNodeLocal(s)) then
+               AtmState(s)%Temperature(GAS_PHASE) = atm_temperature
+            endif
+         enddo
+#endif
+      endif
+#ifndef NDEBUG
+      write (*, *) " ****************** "
+      write (*, *) &
+         "WARNING: rain_temperature is not modified, use set_rain_temperature"
+      write (*, *) " ****************** "
+#endif
+
+   end subroutine set_atm_temperature
+
+   subroutine set_rain_temperature(T) &
+      bind(C, name="set_rain_temperature")
+      real(c_double), value, intent(in) :: T
+
+      ! if not allocated, AtmState will later be initialized with rain_temperature
+      rain_temperature = T
+      if (allocated(AtmState)) then
+         nn = number_of_nodes()
+         do s = 1, nn
+            if (IdFFNodeLocal(s)) then
+               AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
+            endif
+         enddo
+      endif
+
+   end subroutine set_rain_temperature
+
+   subroutine set_atm_pressure(p) &
+      bind(C, name="set_atm_pressure")
+      real(c_double), value, intent(in) :: p
+
+      ! if not allocated, AtmState will later be initialized with atm_pressure
+      atm_pressure = p
+      if (allocated(AtmState)) then
+         nn = number_of_nodes()
+         do s = 1, nn
+            if (IdFFNodeLocal(s)) then
+               AtmState(s)%Pressure = atm_pressure
+            endif
+         enddo
+      endif
+
+   end subroutine set_atm_pressure
+
    subroutine set_atm_rain_flux(q_rain) &
       bind(C, name="set_atm_rain_flux")
       real(c_double), value, intent(in) :: q_rain

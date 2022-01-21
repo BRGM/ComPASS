@@ -22,11 +22,8 @@
           set_gravity, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
           get_atm_pressure, &
-          set_atm_pressure, &
           get_atm_temperature, &
-          set_atm_temperature, &
           get_rain_temperature, &
-          set_rain_temperature, &
           get_atm_flux_radiation, &
           set_atm_flux_radiation, &
           get_soil_emissivity, &
@@ -65,41 +62,33 @@
           p = atm_pressure
        end function get_atm_pressure
 
-       subroutine set_atm_pressure(p) &
-          bind(C, name="set_atm_pressure")
-          real(c_double), value, intent(in) :: p
-          atm_pressure = p
-       end subroutine set_atm_pressure
-
        function get_atm_temperature() result(T) &
           bind(C, name="get_atm_temperature")
           real(c_double) :: T
           T = atm_temperature
-       end function get_atm_temperature
-
-       subroutine set_atm_temperature(T) &
-          bind(C, name="set_atm_temperature")
-          real(c_double), value, intent(in) :: T
-          atm_temperature = T
 #ifndef NDEBUG
           write (*, *) " ****************** "
           write (*, *) &
-             "WARNING: rain_temperature is not modified, rain_temperature = ", rain_temperature
+             "WARNING: atm_temperature is no more constant in space, can be different than expected"
+          write (*, *) &
+             "WARNING: use freeflow_node_states "
           write (*, *) " ****************** "
 #endif
-       end subroutine set_atm_temperature
+       end function get_atm_temperature
 
        function get_rain_temperature() result(T) &
           bind(C, name="get_rain_temperature")
           real(c_double) :: T
           T = rain_temperature
+#ifndef NDEBUG
+          write (*, *) " ****************** "
+          write (*, *) &
+             "WARNING: rain_temperature is no more constant in space, can be different than expected"
+          write (*, *) &
+             "WARNING: use freeflow_node_states "
+          write (*, *) " ****************** "
+#endif
        end function get_rain_temperature
-
-       subroutine set_rain_temperature(T) &
-          bind(C, name="set_rain_temperature")
-          real(c_double), value, intent(in) :: T
-          rain_temperature = T
-       end subroutine set_rain_temperature
 
        function get_atm_flux_radiation() result(q) &
           bind(C, name="get_atm_flux_radiation")

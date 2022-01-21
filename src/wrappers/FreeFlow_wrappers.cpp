@@ -25,6 +25,9 @@
 // Fortran functions
 extern "C" {
 void clear_freeflow_faces();
+void set_atm_temperature(double);
+void set_rain_temperature(double);
+void set_atm_pressure(double);
 void set_atm_rain_flux(double);
 void set_freeflow_faces(const ArrayWrapper&);
 void retrieve_freeflow_nodes_mask(XArrayWrapper<bool>&);
@@ -101,6 +104,9 @@ void add_freeflow_wrappers(py::module& module) {
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    module.def("clear_freeflow_faces", &clear_freeflow_faces);
+   module.def("set_atm_temperature", &set_atm_temperature);
+   module.def("set_rain_temperature", &set_rain_temperature);
+   module.def("set_atm_pressure", &set_atm_pressure);
    module.def("set_atm_rain_flux", &set_atm_rain_flux);
    module.def(
        "set_freeflow_faces",
