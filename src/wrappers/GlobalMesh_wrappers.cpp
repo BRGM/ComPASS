@@ -60,41 +60,9 @@ void create_mesh(py::array_t<double, py::array::c_style> vertices,
        faceids.data());
 }
 
-// void create_mesh(
-//	py::array_t<double, py::array::c_style> vertices,
-//	py::tuple cells_nodes,
-//	py::tuple cells_faces,
-//	py::tuple faces_nodes
-//)
-//{
-//	auto cells_nodes_pointers = cells_nodes[0];
-//	auto cells_nodes_values = cells_nodes[1];
-//	auto cells_faces_pointers = cells_faces[0];
-//	auto cells_faces_values = cells_faces[1];
-//	auto faces_nodes_pointers = faces_nodes[0];
-//	auto faces_nodes_values = faces_nodes[1];
-//	create_mesh(vertices,
-//		cells_nodes_pointers, cells_nodes_values,
-//		cells_faces_pointers, cells_faces_values,
-//		faces_nodes_pointers, faces_nodes_values);
-//}
-
 void add_GlobalMesh_wrappers(py::module& module) {
-   // module.def("create_mesh", [](
-   //	py::array_t<double, py::array::c_style> vertices,
-   //	py::tuple connectivity
-   //	) {
-   //	create_mesh(vertices, connectivity[0], connectivity[1],
-   // connectivity[2]);
-   //});
    module.def("create_mesh", &create_mesh);
 
-   // This is only transitory
-   // module.def("global_mesh_make_post_read", &GlobalMesh_make_post_read,
-   // "Compute all well indices.");
-   // module.def("global_mesh_make_post_read_fracture_and_dirBC",
-   // &GlobalMesh_make_post_read_fracture_and_dirBC, "Set fractures and boudary
-   // conditions.");
    module.def("global_mesh_allocate_petrophysics",
               &GlobalMesh_allocate_petrophysics,
               "Allocate porosity and permeability.");
@@ -108,7 +76,6 @@ void add_GlobalMesh_wrappers(py::module& module) {
               &GlobalMesh_compute_all_connectivies);
    module.def("global_mesh_set_frac", &GlobalMesh_set_frac);
    module.def("global_mesh_node_of_frac", &GlobalMesh_node_of_frac);
-   // module.def("global_mesh_set_dir_BC", &GlobalMesh_set_dir_BC);
    module.def("global_mesh_frac_by_node", &GlobalMesh_frac_by_node);
    module.def("global_mesh_allocate_rocktype", &GlobalMesh_allocate_rocktype,
               "Allocate NodeRocktype, FracRocktype, CellRocktype");
