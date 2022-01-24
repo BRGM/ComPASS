@@ -4541,10 +4541,18 @@ contains
             if (RHS_only) cycle
 
             colsJk => BigMat%Num(BigMat%Pt(row_k) + 1:BigMat%Pt(row_k + 1))
-            do j = 1, size(colsJk)
+#ifndef NDEBUG
+            ! Given the present problem we know that cells are not connected to wells
+            ! and that cell block is (block-) diagonal
+            if (size(colsJk) < 2) &
+               call CommonMPI_abort("Jacobian_Schur_substitution: wrong connectivities!")
+            if (colsJk(size(colsJk) - 1) > col_cells_offset) &
+               call CommonMPI_abort("Jacobian_Schur_substitution: column should be node or fracture!")
+            if (colsJk(size(colsJk)) /= col_cells_offset + k) &
+               call CommonMPI_abort("Jacobian_Schur_substitution: column should be cell (on the diagonal)!")
+#endif
+            do j = 1, size(colsJk) - 1
                nup = colsJk(j)
-               ! passed the last fractures there is nothing left to do (wells do not interact with cells)
-               if (nup > col_cells_offset) exit
                ! VAG connects nodes and fractures to all cell nodes so that findloc will not fail
                l = findloc(colsJnu, nup, 1)
 #ifndef NDEBUG
