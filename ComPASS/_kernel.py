@@ -281,7 +281,6 @@ _a_verifier = [
     "dump_array_in_fortran",
     "increment_first_column_in_fortran",
     # à trier
-    "build_grid",
     "check_IncCV",
     "neumann_conditions",
     "dump_incv_info",

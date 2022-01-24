@@ -34,8 +34,7 @@
           NodebyFractureLocal, FacebyCellLocal, NodebyCellLocal, NodebyFaceLocal
 
        use GlobalMesh, only: &
-          GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype, &
-          GlobalMesh_Build_cartesian_grid
+          GlobalMesh_create_mesh, GlobalMesh_allocate_rocktype
 
        use DefWell, only: DefWell_Make_ComputeWellIndex
        use DefMSWell, only: DefMSWell_Make_ComputeWellIndex
@@ -82,7 +81,6 @@
           retrieve_global_fracture_thermal_conductivity, &
 #endif
           retrieve_global_id_node, &
-          GlobalMesh_build_cartesian_grid_from_C, &
           DefWell_make_compute_well_index_from_C, &
           GlobalMesh_create_mesh_from_C
 
@@ -594,25 +592,6 @@
           call retrieve_coc(NodebyFractureLocal, coc)
 
        end subroutine retrieve_nodes_by_fractures
-
-       subroutine GlobalMesh_build_cartesian_grid_from_C(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz) &
-          bind(C, name="GlobalMesh_build_cartesian_grid")
-
-          real(kind=c_double), value, intent(in)  :: Ox, Oy, Oz
-          real(kind=c_double), value, intent(in)  :: lx, ly, lz
-          integer(kind=c_int), value, intent(in)  :: nx, ny, nz
-          ! FIXME: set consistent values to error codes
-          integer :: errcode, Ierr
-
-          if (commRank /= 0) then
-             print *, "Mesh is supposed to be created by master process."
-             !CHECKME: MPI_Abort is supposed to end all MPI processes
-             call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
-          end if
-
-          call GlobalMesh_Build_cartesian_grid(Ox, Oy, Oz, lx, ly, lz, nx, ny, nz)
-
-       end subroutine GlobalMesh_build_cartesian_grid_from_C
 
        function check_mesh_allocation() result(status)
 
