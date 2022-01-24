@@ -4860,6 +4860,16 @@ contains
 
    end subroutine Jacobian_StrucJacBigA
 
+   !> TODO: this is a sparse matrix routine and should be elsewhere
+   !> This will set the whol line of blocks to 0.d0
+   subroutine Jacobian_SM_clear_row(M, row)
+      type(CSRArray2dble), intent(inout) :: M
+      integer, intent(in) :: row
+
+      M%Val(:, :, M%Pt(row) + 1:M%Pt(row + 1)) = 0.d0
+
+   end subroutine Jacobian_SM_clear_row
+
    !> Given a row finds the column that correspond to the
    !> diagonal element in the global jacobian matrix
    subroutine Jacobian_JacA_find_column(row, col)
