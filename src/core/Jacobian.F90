@@ -4860,6 +4860,40 @@ contains
 
    end subroutine Jacobian_StrucJacBigA
 
+   !> Given a row finds the column that correspond to the
+   !> diagonal element in the global jacobian matrix
+   subroutine Jacobian_JacA_find_column(row, col)
+      integer, intent(in) :: row
+      integer, intent(out) :: col
+
+      integer :: offset
+
+      if (row <= NbNodeOwn_Ncpus(commRank + 1)) then
+         col = row
+         return
+      endif
+      offset = row - NbNodeOwn_Ncpus(commRank + 1)
+      col = NbNodeLocal_Ncpus(commRank + 1)
+      if (offset <= NbFracOwn_Ncpus(commRank + 1)) then
+         col = col + offset
+         return
+      endif
+      offset = offset - NbFracOwn_Ncpus(commRank + 1)
+      col = col + NbFracLocal_Ncpus(commRank + 1)
+      if (offset <= NbWellInjOwn_Ncpus(commRank + 1)) then
+         col = col + offset
+         return
+      endif
+      offset = offset - NbWellInjOwn_Ncpus(commRank + 1)
+      col = col + NbWellInjLocal_Ncpus(commRank + 1)
+#ifndef NDEBUG
+      if (offset > NbWellProdOwn_Ncpus(commRank + 1)) &
+         call CommonMPI_abort("Jacobian_JacA_find_column: row is out of matrix")
+#endif
+      col = col + offset
+
+   end subroutine Jacobian_JacA_find_column
+
    ! We speak in terms in blocks - that means one non-zero means one block that is non zero
    !         node, frac, wellinj, wellprod
    ! JacA = | A11, A12, A13, A14 | node own
