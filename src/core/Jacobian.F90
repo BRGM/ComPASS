@@ -974,6 +974,8 @@ contains
 
          end do ! end of row s
 
+         ! r (s' in paper) will be taken care of "later" by the same loop when dealing with s
+
          ! 2. s is frac
          do s = 1, NbFracCell
             nums = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s)) ! nums is frac num
