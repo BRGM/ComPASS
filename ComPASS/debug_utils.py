@@ -60,7 +60,7 @@ def dump_mesh(basename, vertices, cells, pointdata, facedata, celldata, fracture
         assert all(
             np.asarray(a).shape == (face_centers.shape[0],)
             for key, a in facedata.items()
-            if key is not "facecenters"
+            if key != "facecenters"
         )
         vtkw.write_vtu(
             vtkw.points_as_vtu_doc(
