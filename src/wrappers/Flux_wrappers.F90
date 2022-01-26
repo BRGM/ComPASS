@@ -127,8 +127,8 @@ contains
                FluxDarcyKI, mass_fluxes(:, :, k))
          end do
          do s = 1, NbFracCell
-            fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! fs is face number
-            nums = FaceToFracLocal(fs) ! nums is frac number
+            nums = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! nums is frac number
+            fs = FracToFaceLocal(nums) ! fs is face number
             call ks_mass_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoCompCell(:, :, k), &
                s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensiteMolaireKrViscoCompFrac(:, :, nums), &
@@ -247,8 +247,8 @@ contains
                FluxDarcyKI, enthalpy_fluxes(:, k))
          end do
          do s = 1, NbFracCell
-            fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! fs is face number
-            nums = FaceToFracLocal(fs) ! nums is frac number
+            nums = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! nums is frac number
+            fs = FracToFaceLocal(nums) ! fs is face number
             call ks_enthalpy_fluxes( &
                k, Xk, IncCell(k), DensiteMolaireKrViscoEnthalpieCell(:, k), &
                s + NbNodeCell, XFaceLocal(:, fs), IncFrac(nums), DensiteMolaireKrViscoEnthalpieFrac(:, nums), &

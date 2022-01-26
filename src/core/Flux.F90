@@ -355,8 +355,8 @@ contains
             ! i is node, j is frac
             do j = 1, NbFracCell
 
-               fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
-               numj = FaceToFracLocal(fj) ! fj is face number, numj is frac number
+               numj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
+               fj = FracToFaceLocal(numj) ! fj is face number, numj is frac number
 
                Tkij = TkLocal_Darcy(k)%Pt(i, j + NbNodeCell) ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XFaceLocal(3, fj)) ! g*(z_k - z_s')
@@ -388,8 +388,8 @@ contains
          !   2. loop of j
          do i = 1, NbFracCell
 
-            fi = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + i) ! fi is face number
-            numi = FaceToFracLocal(fi) ! numi is frac number
+            numi = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + i) ! numi is frac number
+            fi = FracToFaceLocal(numi) ! fi is face number
 
             call Flux_compute_density_gravity_term( &
                IncCell(k), DensiteMassiqueCell(:, k), &
@@ -428,8 +428,8 @@ contains
             ! i is frac, j is frac
             do j = 1, NbFracCell
 
-               fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
-               numj = FaceToFracLocal(fj) ! fj is face number, numj is frac number
+               numj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
+               fj = FracToFaceLocal(numj) ! fj is face number, numj is frac number
 
                Tkij = TkLocal_Darcy(k)%Pt(i + NbNodeCell, j + NbNodeCell) ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XFaceLocal(3, fj))   ! g*(z_k - z_s')
@@ -549,7 +549,7 @@ contains
    subroutine Flux_FourierFlux_Cell() &
       bind(C, name="Flux_FourierFlux_Cell")
 
-      integer :: k, i, j, fj
+      integer :: k, i, j
       integer :: numj
       integer :: NbNodeCell, NbFracCell
 
@@ -578,8 +578,7 @@ contains
             ! i is node, j is frac
             do j = 1, NbFracCell
 
-               fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
-               numj = FaceToFracLocal(fj) ! fj is face number
+               numj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
 
                FluxFourierKI(i, k) = FluxFourierKI(i, k) &
                                      + TkLocal_Fourier(k)%Pt(i, j + NbNodeCell) &
@@ -603,8 +602,7 @@ contains
             ! i is frac, j is frac
             do j = 1, NbFracCell
 
-               fj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
-               numj = FaceToFracLocal(fj) ! fj is face number
+               numj = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j)
 
                FluxFourierKI(i + NbNodeCell, k) = FluxFourierKI(i + NbNodeCell, k) &
                                                   + TkLocal_Fourier(k)%Pt(i + NbNodeCell, j + NbNodeCell) &

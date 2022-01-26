@@ -813,7 +813,7 @@ contains
 
             ! A_kr, r is frac
             do r = 1, NbFracCell ! r represent s' in paper, r is frac
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                colr = colSR(rf)
@@ -929,7 +929,7 @@ contains
 
                ! A_sr, s is node, r is frac
                do r = 1, NbFracCell ! r represent s' in paper
-                  numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                  numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
                   rf = r + NbNodeCell
 
                   colr = colSR(rf)
@@ -978,7 +978,7 @@ contains
 
          ! 2. s is frac
          do s = 1, NbFracCell
-            nums = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s)) ! nums is frac num
+            nums = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! nums is frac num
 
             sf = s + NbNodeCell
 
@@ -1066,7 +1066,7 @@ contains
 
             ! A_kr, r is frac
             do r = 1, NbFracCell ! r represent s' in paper, r is frac
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                colr = colSR(rf)
@@ -1164,7 +1164,7 @@ contains
 
                ! A_sr, s is frac (own), r is frac
                do r = 1, NbFracCell ! r represent s' in paper
-                  numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                  numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
                   rf = r + NbNodeCell
 
                   colr = colSR(rf)
@@ -2339,7 +2339,7 @@ contains
                   end do
 
                   do r = 1, NbFracCell ! divR for r is frac in dof(k)
-                     numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
                      rf = r + NbNodeCell
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -2388,7 +2388,7 @@ contains
 
                   ! divR for r is frac in dof(K)
                   do r = 1, NbFracCell
-                     numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
                      rf = r + NbNodeCell
 
                      do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -2479,7 +2479,7 @@ contains
                   end do
 
                   do r = 1, NbFracCell ! divR for r is frac in dof(k)
-                     numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
 
                      rf = r + NbNodeCell
 
@@ -2529,7 +2529,7 @@ contains
 
                   ! divR for r is frac in dof(K)
                   do r = 1, NbFracCell
-                     numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r))
+                     numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)
 
                      rf = r + NbNodeCell
 
@@ -2720,7 +2720,7 @@ contains
 
             do r = 1, NbFracCell ! divR for r is frac in dof(k)
 
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -2767,7 +2767,7 @@ contains
 
             ! divEgR, r is frac in dof(k)
             do r = 1, NbFracCell
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -2854,7 +2854,7 @@ contains
 
             do r = 1, NbFracCell ! divR for r is frac in dof(k)
 
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -2901,7 +2901,7 @@ contains
 
             ! divEgR, r is frac in dof(k)
             do r = 1, NbFracCell
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num
                rf = r + NbNodeCell
 
                do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -3082,7 +3082,7 @@ contains
       end do
 
       do r = 1, NbFracCell ! r is frac
-         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is face num here
+         numr = FracToFaceLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is face num here
          rf = r + NbNodeCell
 
          sum_aks = sum_aks + TkLocal_Darcy(k)%pt(s, rf)
@@ -3144,7 +3144,7 @@ contains
 
          ! divDarcyFlux_r, r represent s' in paper, r is frac
          do r = 1, NbFracCell
-            numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+            numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
 
             rf = r + NbNodeCell
 
@@ -3207,7 +3207,7 @@ contains
 
             ! divDarcyFlux_r, r represent s' in paper, r is frac
             do r = 1, NbFracCell
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
 
                rf = r + NbNodeCell
 
@@ -3284,7 +3284,7 @@ contains
       end do
 
       do r = 1, NbFracCell ! r is frac
-         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is face num here
+         numr = FracToFaceLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is face num here
          rf = r + NbNodeCell
 
          sum_aks = sum_aks + TkLocal_Darcy(k)%pt(sf, rf)
@@ -3346,7 +3346,7 @@ contains
 
          ! divDarcyFlux_r, r represent s' in paper, r is frac
          do r = 1, NbFracCell
-            numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+            numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
 
             rf = r + NbNodeCell
 
@@ -3410,7 +3410,7 @@ contains
 
             ! divDarcyFlux_r, r represent s' in paper, r is frac
             do r = 1, NbFracCell
-               numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+               numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
 
                rf = r + NbNodeCell
 
@@ -3906,7 +3906,7 @@ contains
 
       ! divFourierFlux_r, r represent s' in paper, r is frac
       do r = 1, NbFracCell
-         numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
          rf = r + NbNodeCell
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -3974,7 +3974,7 @@ contains
 
       ! divFourierFlux_r, r is frac
       do r = 1, NbFracCell
-         numr = FaceToFracLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r)) ! numr is frac num here
+         numr = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + r) ! numr is frac num here
          rf = r + NbNodeCell
 
          do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
@@ -4809,8 +4809,7 @@ contains
 
          ! a32(i,:)
          do j = 1, FracbyCellLocal%Pt(i + 1) - FracbyCellLocal%Pt(i)
-            jf = FracbyCellLocal%Num(j + FracbyCellLocal%Pt(i))
-            JacBigA%Num(start + j) = FaceToFracLocal(jf) + nbNodeLocal ! col
+            JacBigA%Num(start + j) = FracbyCellLocal%Num(j + FracbyCellLocal%Pt(i)) + nbNodeLocal ! col
          end do
          start = start + FracbyCellLocal%Pt(i + 1) - FracbyCellLocal%Pt(i)
 
@@ -5268,11 +5267,7 @@ contains
 
       ! colSR, frac
       do i = 1, nbFracCell
-
-         ! in is face number, need to be transformed to number of frac using FaceToFracLocal
-         in = FracbyCellLocal%Num(i + FracbyCellLocal%Pt(k))
-
-         colSR(nbNodeCell + i) = FaceToFracLocal(in) &
+         colSR(nbNodeCell + i) = FracbyCellLocal%Num(i + FracbyCellLocal%Pt(k)) &
                                  + NbNodeLocal_Ncpus(commRank + 1)
       end do
 
@@ -5291,9 +5286,8 @@ contains
       do i = 1, nbFracCell
 
          in = FracbyCellLocal%Num(i + FracbyCellLocal%Pt(k))
-         if (in <= NbFaceOwn_Ncpus(commRank + 1)) then ! own, rq: in is face number, not frac number
-            rowSR(nbNodeCell + i) = FaceToFracLocal(in) &
-                                    + NbNodeOwn_Ncpus(commRank + 1)
+         if (FracToFaceLocal(in) <= NbFaceOwn_Ncpus(commRank + 1)) then ! own, rq: in is frac number
+            rowSR(nbNodeCell + i) = in + NbNodeOwn_Ncpus(commRank + 1)
          end if
       end do
 

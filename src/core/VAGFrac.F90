@@ -971,7 +971,7 @@ contains
          do j = 1, nbFracCell
 
             idj = FracbyCellLocal%Pt(k) + j
-            numj = FracbyCellLocal%Num(idj)
+            numj = FracToFaceLocal(FracbyCellLocal%Num(idj))
 
             if (numj == i) then
                UnkFaceToUnkCell(nbNodeFace + 1) = j + nbNodeCell

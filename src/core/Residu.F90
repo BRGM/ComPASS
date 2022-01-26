@@ -398,7 +398,7 @@ contains
 
    subroutine Residu_add_flux_contributions_reservoir
 
-      integer :: k, s, fs, fk, nums, m, mph, icp
+      integer :: k, s, fk, nums, m, mph, icp
       integer :: NbNodeCell, NbFracCell, NbNodeFrac
 
       double precision :: Flux_ks(NbComp), FluxT_ks, DarcyFlux
@@ -491,8 +491,7 @@ contains
          ! s is frac in cell k
          do s = 1, NbFracCell
 
-            fs = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s)
-            nums = FaceToFracLocal(fs) ! fs is face number, nums is frac number
+            nums = FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + s) ! nums is frac number
 
             Flux_ks(:) = 0.d0
             FluxT_ks = 0.d0

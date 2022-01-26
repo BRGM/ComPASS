@@ -503,13 +503,14 @@ contains
          call LocalMesh_IdNodeRes(i)        ! IdNodeRes_Ncpus(ip1)
          call LocalMesh_IdCellRes(i)        ! IdCellRes_Ncpus(ip1)
 
-         call LocalMesh_FracbyCellLocal(i)  ! FracbyCellLocal_Ncpus(ip1)
          call LocalMesh_FracbyProc(i)       ! FracbyProc(ip1)
 
          ! Face to/from Frac
          ! Needs NbFaceResS_Ncpus and IdFaceRes_Ncpus and quantities intialized in LocalMesh_FracbyProc
          call LocalMesh_FaceToFrac(i)       ! FaceToFracLocal_Ncpus(ip1)
          call LocalMesh_FracToFace(i)       ! FracToFaceLocal_Ncpus(ip1)
+
+         call LocalMesh_FracbyCellLocal(i)  ! FracbyCellLocal_Ncpus(ip1)
 
          call LocalMesh_CellbyNodeOwn(i)    ! NodebyCellOwn_Ncpus(ip1)
          call LocalMesh_NodebyNodeOwn(i)    ! NodebyNodeOwn_Ncpus(ip1)
@@ -2576,7 +2577,7 @@ contains
             ! if FacebyProc(ip1)%Num(j) is frac
             if (IdFaceRes_Ncpus(ip1)%Val(FacebyCellLocal_Ncpus(ip1)%Num(j)) == -2) then
                nf = nf + 1
-               FracbyCellLocal_Ncpus(ip1)%Num(nf) = FacebyCellLocal_Ncpus(ip1)%Num(j)
+               FracbyCellLocal_Ncpus(ip1)%Num(nf) = FaceToFracLocal_Ncpus(ip1)%Val(FacebyCellLocal_Ncpus(ip1)%Num(j))
             end if
          end do
       end do
@@ -2814,11 +2815,8 @@ contains
       integer, dimension(:), allocatable :: &
          colorFracLocal, & ! used to mark if the frac is considered or not
          tabNbFracbyFrac
-      integer, dimension(:), pointer :: face_to_frac
 
       ip1 = ip + 1
-
-      face_to_frac => FaceToFracLocal_Ncpus(ip1)%Val
 
       allocate (colorFracLocal(NbFaceResS_Ncpus(ip1)))
       allocate (tabNbFracbyFrac(NbFracOwnS_Ncpus(ip1)))
@@ -2884,7 +2882,7 @@ contains
                if (colorFracLocal(n) == m) then
                   tabNbFracbyFrac(m) = tabNbFracbyFrac(m) + 1
                   colorFracLocal(n) = 0
-                  FracbyFracOwn_Ncpus(ip1)%Num(FracbyFracOwn_Ncpus(ip1)%Pt(m) + tabNbFracbyFrac(m)) = face_to_frac(n)
+                  FracbyFracOwn_Ncpus(ip1)%Num(FracbyFracOwn_Ncpus(ip1)%Pt(m) + tabNbFracbyFrac(m)) = n
                endif
             enddo
          enddo
