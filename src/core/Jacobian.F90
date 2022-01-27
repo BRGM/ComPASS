@@ -4558,6 +4558,9 @@ contains
                ! VAG connects nodes and fractures to all cell nodes so that findloc will not fail
                l = findloc(colsJnu, nup, 1)
 #ifndef NDEBUG
+               if (l == 0) &
+                  call CommonMPI_abort( &
+                  "Jacobian_Schur_substitution: could not find a column of BigJacA in JacA: check connectivities")
                if (Mat%Num(Mat%Pt(nu) + l) /= nup) &
                   call CommonMPI_abort("Jacobian_Schur_substitution: unconsistencies between Mat and BigMat")
 #endif
