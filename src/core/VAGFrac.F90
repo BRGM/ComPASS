@@ -576,7 +576,7 @@ contains
 
       call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
       if (.not. everything_ok) then
-         call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
+         call CommonMPI_abort("VAG volume check failed!")
       end if
 
    end subroutine VAGFrac_check_volumes
