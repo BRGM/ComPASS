@@ -2313,8 +2313,8 @@ contains
    ! Output:
    !  FracbyProc_Ncpus(ip)
    ! Use:
-   !  FacebyProc_Ncpus(ip),IdFace
-   !> \brief Compress FacebyProc_Ncpus(ip) using IdFace
+   !  FacebyProc(ip),IdFace
+   !> \brief Compress FacebyProc(ip) using IdFace
    !! FracbyProc is considered as a subset of FacebyProc, csr.
    !!   The number of rows are same as that of FacebyProc.
    !!   If there is no frac in row i, juste take %Pt(i+1)=%Pt(i).

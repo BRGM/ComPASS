@@ -3075,7 +3075,7 @@ contains
       sum_aksgz = 0.d0
 
       do r = 1, NbNodeCell ! r is node
-         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r) ! numr is face num here
+         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r) ! numr is node num here
 
          sum_aks = sum_aks + TkLocal_Darcy(k)%pt(s, r)
          sum_aksgz = sum_aksgz + TkLocal_Darcy(k)%pt(s, r)*(XCellLocal(3, k) - XNodeLocal(3, numr))
@@ -3277,7 +3277,7 @@ contains
       sum_aksgz = 0.d0
 
       do r = 1, NbNodeCell ! r is node
-         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r) ! numr is face num here
+         numr = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + r) ! numr is node num here
 
          sum_aks = sum_aks + TkLocal_Darcy(k)%pt(sf, r)
          sum_aksgz = sum_aksgz + TkLocal_Darcy(k)%pt(sf, r)*(XCellLocal(3, k) - XNodeLocal(3, numr))
