@@ -51,7 +51,13 @@ def create_single_branch_well(
 
 
 def create_vertical_well(
-    simulation, xy, well_radius=None, zmin=None, zmax=None, multi_segmented=False
+    simulation,
+    xy,
+    well_radius=None,
+    zmin=None,
+    zmax=None,
+    multi_segmented=False,
+    tolerance=0,
 ):
     """
     :param simulation: simulation object, the method can also be accessed
@@ -68,7 +74,7 @@ def create_vertical_well(
     x, y, z = simulation.coordinates(simulation.global_vertices())
     x_well = x[np.argmin(np.abs(x - xy[0]))]
     y_well = y[np.argmin(np.abs(y - xy[1]))]
-    selection = (x == x_well) & (y == y_well)
+    selection = np.linalg.norm(np.vstack([x - x_well, y - y_well]), axis=0) <= tolerance
     if zmin is not None:
         selection &= z >= zmin
     if zmax is not None:
