@@ -73,9 +73,6 @@ module VAGFrac
    type(DOFFamilyArray), target, protected :: ThermalSourceVol
 #endif
 
-   integer, allocatable, dimension(:), private :: &
-      UnkFaceToUnkCell ! from node in num (face) to node in num (cell)
-
    public :: &
       VAGFrac_TransDarcy, &
       VAGFrac_VolsDarcy, &
@@ -175,6 +172,10 @@ contains
 
       ! tmp values to simply notations
       integer :: nbCellLocal, nbFaceLocal, nbNodeLocal, nbFracLocal
+      ! mapping from node rank in face to node rank in cell
+      ! the latest element is used only if the face is a fracture face
+      ! and will hold the fracture rank in cell fractures (offset by the number of face nodes)
+      integer, allocatable, dimension(:) :: UnkFaceToUnkCell
 
       nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
       nbFaceLocal = NbFaceLocal_Ncpus(commRank + 1)
@@ -235,7 +236,7 @@ contains
             ! output:
             !    UnkFaceToUnkCell: from Unk (num in face) to Unk (num in cell)
             ! Rq: = 0 if face i is not frac
-            call VAGFrac_UnkFaceToUnkCell(k, i)
+            call VAGFrac_UnkFaceToUnkCell(k, i, UnkFaceToUnkCell)
 
             inf = nbNodeFace + 1 ! num (face) of frac in a face, in Unk=(node, frac)
 
@@ -307,7 +308,7 @@ contains
                   GkT(:, in2) = GkT(:, in2) + v1fk(:)*ss
 
                   ! this face i (i is num (local) of face) is a frac
-               else if (IdFaceLocal(i) == -2) then
+               else
 
                   ss = 1.d0/(3.d0*volT)
 
@@ -925,56 +926,59 @@ contains
    end subroutine VAGFrac_VecNormalT
 
    ! Idea: via num (local) des nodes
-   subroutine VAGFrac_UnkFaceToUnkCell(k, i)
+   subroutine VAGFrac_UnkFaceToUnkCell(k, i, UnkFaceToUnkCell)
 
       ! k is cell
       ! i is num (local) of face
-      integer, intent(in) :: &
-         k, i
+      integer, intent(in) :: k, i
+      integer, dimension(:), intent(out) :: UnkFaceToUnkCell
 
       integer :: &
-         in, idin, numin, &  ! num (face)
-         idj, numj, &        ! num (local)
-         j                   ! num (cell)
+         in, numin, &  ! num (face)
+         numj, &       ! num (local)
+         j             ! num (cell)
 
       integer :: nbNodeCell, nbNodeFace, nbFracCell
+#ifndef NDEBUG
+      logical :: node_found
+#endif
 
       nbNodeCell = NodebyCellLocal%Pt(k + 1) - NodebyCellLocal%Pt(k)
       nbFracCell = FracbyCellLocal%Pt(k + 1) - FracbyCellLocal%Pt(k)
       nbNodeFace = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
 
-      UnkFaceToUnkCell(:) = 0  ! size is nbNodeFace+nbFracFace
+      UnkFaceToUnkCell = 0  ! size is nbNodeFace+nbFracFace
 
       ! Unk = (node,frac)
       ! one frac in a face frac
       do in = 1, nbNodeFace
-
-         idin = NodebyFaceLocal%Pt(i) + in ! id of in
-         numin = NodebyFaceLocal%Num(idin) ! num of in
-
+         numin = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(i) + in)
          ! look for numin in NodebyCellLocal
+#ifndef NDEBUG
+         node_found = .false.
+#endif
          do j = 1, nbNodeCell
-
-            idj = NodebyCellLocal%Pt(k) + j
-            numj = NodebyCellLocal%Num(idj)
-
+            numj = NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + j)
             if (numj == numin) then ! idea is here, nums (local) are same
-               UnkFaceToUnkCell(in) = j
+               UnkFaceToUnkCell(in) = j ! rank of the node in cell's nodes
+#ifndef NDEBUG
+               node_found = .true.
+#endif
                exit
             end if
-
          end do
+#ifndef NDEBUG
+         if (.not. node_found) &
+            call CommonMPI_abort("VAGFrac_UnkFaceToUnkCell: mesh inconsistency.")
+#endif
       end do
 
       ! frac in Unk, one frac or zero frac in a face
       if (IdFaceLocal(i) == -2) then ! if i is frac
          do j = 1, nbFracCell
-
-            idj = FracbyCellLocal%Pt(k) + j
-            numj = FracToFaceLocal(FracbyCellLocal%Num(idj))
-
+            numj = FracToFaceLocal(FracbyCellLocal%Num(FracbyCellLocal%Pt(k) + j))
             if (numj == i) then
-               UnkFaceToUnkCell(nbNodeFace + 1) = j + nbNodeCell
+               UnkFaceToUnkCell(nbNodeFace + 1) = j + nbNodeCell ! j = rank of the fracture in cell's fractures
                exit
             end if
          end do
