@@ -153,12 +153,12 @@ module Jacobian
 
    private :: &
       ! the fill of Jacobian/ right hand side is decomposed into three subroutines
-      !   (1) Jacobian_JacBigA_BigSm_accmolaire: term n_k(X_j^n)
+      !   (1) Jacobian_JacBigA_BigSm_accumulation: term n_k(X_j^n)
       !   (2) Jacobian_JacBigA_BigSm_cell: loop of cell
       !      (2.1) nodes in cell
       !      (2.2) fracs in cell
       !   (3) Jacobian_JacBigA_BigSm_frac: loop of frac
-      Jacobian_JacBigA_BigSm_accmolaire, &  ! (1)
+      Jacobian_JacBigA_BigSm_accumulation, &  ! (1)
       Jacobian_JacBigA_BigSm_cell, &  ! (2)
       Jacobian_JacBigA_BigSm_frac, &  ! (3)
       Jacobian_JacBigA_BigSm_wellinj, &  !
@@ -334,7 +334,7 @@ contains
 
       call Jacobian_init_RHS_from_residual
 
-      call Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
+      call Jacobian_JacBigA_BigSm_accumulation(Delta_t)
 
       call Jacobian_JacBigA_BigSm_cell
 
@@ -407,7 +407,7 @@ contains
    end subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
 
    !> \brief Sub-subroutine of Jacobian_JacBigA_BigSm for term n_k(X_j^n)
-   subroutine Jacobian_JacBigA_BigSm_accmolaire(Delta_t)
+   subroutine Jacobian_JacBigA_BigSm_accumulation(Delta_t)
 
       double precision, intent(in) :: Delta_t
 
@@ -627,7 +627,7 @@ contains
 
       end do ! end of div prim n_k, cell
 
-   end subroutine Jacobian_JacBigA_BigSm_accmolaire
+   end subroutine Jacobian_JacBigA_BigSm_accumulation
 
    !> \brief Loop over the cells and node by cell to compute the Jacobian
    !! loop of cell, index is k
