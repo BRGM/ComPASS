@@ -87,7 +87,7 @@ module Jacobian
    use MeshSchema, only: &
       IdNodeLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, AtmState, &
+      IsFreeflowNode, AtmState, &
 #endif
       NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, &
       NodebyWellProdLocal, NodeDatabyWellProdLocal, &
@@ -2015,7 +2015,7 @@ contains
 
       do nums = 1, NbNodeOwn_Ncpus(commRank + 1)
 
-         if (IdFFNodeLocal(nums)) then ! loop over freeflow dof only
+         if (IsFreeflowNode(nums)) then ! loop over freeflow dof only
 
             ! compute the contribution of the freeflow
             call Jacobian_divMolarFreeFlow_node( &

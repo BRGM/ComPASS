@@ -70,7 +70,7 @@ module Residu
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
       XNodeLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, AtmState, &
+      IsFreeflowNode, AtmState, &
 #endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
       NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
@@ -851,7 +851,7 @@ contains
 
       do nums = 1, NbNodeOwn_Ncpus(commRank + 1)
 
-         if (IdFFNodeLocal(nums)) then ! loop over freeflow dof only, avoid reservoir node
+         if (IsFreeflowNode(nums)) then ! loop over freeflow dof only, avoid reservoir node
 
             Flux_FreeFlow = 0.d0
             FluxT_FreeFlow = 0.d0

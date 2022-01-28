@@ -46,7 +46,7 @@ module LoisThermoHydro
       dXssurdXpAll, NumIncTotalPrimAll, NumIncTotalSecondAll
    use MeshSchema, only: &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, AtmState, &
+      IsFreeflowNode, AtmState, &
 #endif
       NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
       AllDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, NodeDarcyRocktypesLocal, &
@@ -761,7 +761,7 @@ contains
       ! loop over each local element, called only with nodes
       do k = 1, NbIncLocal
          ! subroutine only called with nodes
-         if (.not. IdFFNodeLocal(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
+         if (.not. IsFreeflowNode(k)) cycle ! loop over Freeflow dof only, avoid reservoir context
 
          ! init tmp values for each cv
          call LoisThermoHydro_init_cv(inc(k), ctxinfo)

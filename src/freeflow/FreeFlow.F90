@@ -13,7 +13,7 @@ module FreeFlow
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
       AtmState, &
-      IdFFNodeLocal, &
+      IsFreeflowNode, &
       MeshSchema_local_face_surface, &
       SurfFreeFlowLocal, &
       number_of_nodes, &
@@ -32,8 +32,8 @@ contains
 
       nn = number_of_nodes()
 
-      if (.not. allocated(IdFFNodeLocal)) then
-         allocate (IdFFNodeLocal(nn))
+      if (.not. allocated(IsFreeflowNode)) then
+         allocate (IsFreeflowNode(nn))
          if (allocated(SurfFreeFlowLocal)) &
             call CommonMPI_abort("FreeFlow_set_freeflow_faces: SurfFreeFlowLocal should not be already allocated.")
          allocate (SurfFreeFlowLocal(nn))
@@ -42,12 +42,12 @@ contains
          allocate (AtmState(nn))
       endif
 
-      if (size(IdFFNodeLocal) /= nn) &
+      if (size(IsFreeflowNode) /= nn) &
          call CommonMPI_abort("FreeFlow_set_freeflow_faces: inconsistent size for node flags.")
       if (size(SurfFreeFlowLocal) /= nn) &
          call CommonMPI_abort("FreeFlow_set_freeflow_faces: inconsistent size for freeflow surface array.")
 
-      IdFFNodeLocal = .false.
+      IsFreeflowNode = .false.
       SurfFreeFlowLocal = 0.d0
 
    end subroutine FreeFlow_reset_faces
@@ -64,7 +64,7 @@ contains
          surface_fraction = MeshSchema_local_face_surface(fk)/nb_facenodes
          do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
             s = NodebyFaceLocal%Num(p)
-            IdFFNodeLocal(s) = .true.
+            IsFreeflowNode(s) = .true.
             AtmState(s)%Pressure = atm_pressure
             AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
 #ifdef ComPASS_WITH_diphasic_PHYSICS
@@ -98,7 +98,7 @@ contains
          nn = number_of_nodes()
 #ifdef ComPASS_WITH_diphasic_PHYSICS
          do s = 1, nn
-            if (IdFFNodeLocal(s)) then
+            if (IsFreeflowNode(s)) then
                AtmState(s)%Temperature(GAS_PHASE) = atm_temperature
             endif
          enddo
@@ -122,7 +122,7 @@ contains
       if (allocated(AtmState)) then
          nn = number_of_nodes()
          do s = 1, nn
-            if (IdFFNodeLocal(s)) then
+            if (IsFreeflowNode(s)) then
                AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
             endif
          enddo
@@ -139,7 +139,7 @@ contains
       if (allocated(AtmState)) then
          nn = number_of_nodes()
          do s = 1, nn
-            if (IdFFNodeLocal(s)) then
+            if (IsFreeflowNode(s)) then
                AtmState(s)%Pressure = atm_pressure
             endif
          enddo
@@ -156,7 +156,7 @@ contains
       if (allocated(AtmState)) then
          nn = number_of_nodes()
          do s = 1, nn
-            if (IdFFNodeLocal(s)) then
+            if (IsFreeflowNode(s)) then
                AtmState(s)%Imposed_flux(LIQUID_PHASE) = q_rain
             endif
          enddo
@@ -169,8 +169,8 @@ contains
 
       type(cpp_array_wrapper), intent(inout) :: cpp_array
 
-      cpp_array%p = c_loc(IdFFNodeLocal(1))
-      cpp_array%n = size(IdFFNodeLocal)
+      cpp_array%p = c_loc(IsFreeflowNode(1))
+      cpp_array%n = size(IsFreeflowNode)
 
    end subroutine retrieve_freeflow_nodes_mask
 

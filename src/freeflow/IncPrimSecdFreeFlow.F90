@@ -34,7 +34,7 @@ module IncPrimSecdFreeFlow
    use Physics, only: atm_pressure
    use MeshSchema, only: &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IsFreeflowNode, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
       NodeByWellInjLocal
@@ -95,7 +95,7 @@ contains
       do k = 1, NbIncLocal
 
          ! done only for ff dof
-         if (.not. IdFFNodeLocal(k)) cycle ! loop over freeflow dof only, avoid reservoir node
+         if (.not. IsFreeflowNode(k)) cycle ! loop over freeflow dof only, avoid reservoir node
 
          ! init tmp values for each cv
          call IncPrimSecdTypes_collect_cv_info(inc(k)%ic, cv_info)

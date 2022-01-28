@@ -24,7 +24,7 @@ module SolvePetsc
       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
       NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IsFreeflowNode, &
 #endif
       NbFracLocal_Ncpus, NbCellLocal_Ncpus
    use Jacobian, only: JacA, Sm
@@ -780,7 +780,7 @@ contains
 
                if (IsTprimNodeFracLocal(JacA%Num(j)) .eqv. .true.) then ! for j, T is prim
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-                  if (JacA%Num(j) <= NbNodeLocal .and. IdFFNodeLocal(JacA%Num(j))) then  ! FIXME: FreeFlow node, T is first inc (not always)
+                  if (JacA%Num(j) <= NbNodeLocal .and. IsFreeflowNode(JacA%Num(j))) then  ! FIXME: FreeFlow node, T is first inc (not always)
                      call MatSetValue(At, row, col, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
                      CHKERRQ(Ierr)
                      call CommonMPI_abort('in solvePetsc entered in new loop (_WITH_FREEFLOW_STRUCTURES_)')

@@ -31,7 +31,7 @@ module IncPrimSecd
       dPhasePressuredSNode, dPhasePressuredSFrac, dPhasePressuredSCell
    use MeshSchema, only: &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      IdFFNodeLocal, &
+      IsFreeflowNode, &
 #endif
       NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
       NodeDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
@@ -114,7 +114,7 @@ contains
          !
          NumIncTotalPrimNode, NumIncTotalSecondNode &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-         , IdFFNodeLocal &
+         , IsFreeflowNode &
 #endif
          )
 
