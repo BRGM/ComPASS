@@ -547,7 +547,7 @@ contains
    subroutine VAGFrac_check_volumes()
 
       integer :: k
-      integer :: Ierr = -1, errcode = 666
+      integer :: Ierr = -1
       logical :: everything_ok = .true.
 
       do k = 1, NbCellLocal_Ncpus(commRank + 1)

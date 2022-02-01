@@ -1629,7 +1629,6 @@ contains
       ! it is necessary to compute phase pressure for all phases (even missing phases) to test for apparition/vanishing
 
       integer :: n, k, i, iph, iphl, context, nb_phases, pu, pui
-      real(c_double) :: dpdSl
 
       divp = 0.d0
 

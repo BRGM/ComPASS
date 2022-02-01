@@ -3739,7 +3739,7 @@ contains
       integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
 
-      integer :: i, j, k, jf, Nz, start
+      integer :: i, j, k, Nz, start
       integer :: tmp
       integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
