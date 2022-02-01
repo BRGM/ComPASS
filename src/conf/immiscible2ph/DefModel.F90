@@ -156,13 +156,13 @@ module DefModel
       aligmat = RESHAPE((/ &
                         1.d0, 1.d0, 0.d0, & ! GAS_CONTEXT=1
                         0.d0, 0.d0, 1.d0, &
-                        1.d0, 0.d0, 0.d0, &
+                        0.d0, 1.d0, 0.d0, &
                         1.d0, 1.d0, 0.d0, & ! LIQUID_CONTEXT=2
                         0.d0, 0.d0, 1.d0, &
-                        0.d0, 1.d0, 0.d0, &
+                        1.d0, 0.d0, 0.d0, &
                         1.d0, 1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3
                         0.d0, 0.d0, 1.d0, &
-                        0.d0, 1.d0, 0.d0 &
+                        1.d0, 0.d0, 0.d0 &
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 #include "../common/DefModel_common.F90"
