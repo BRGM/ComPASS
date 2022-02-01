@@ -352,56 +352,61 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm
 
+   ! FIXME: if we had the same number of dof in rows and cols we would not need col argument
+   subroutine Jacobian_JacBigA_BigSm_find_diagonal_nz(J, row, col, nz)
+      type(CSRArray2dble), intent(in) :: J
+      integer, intent(in) :: row
+      integer, intent(in) :: col
+      integer, intent(out) :: nz
+
+#ifndef NDEBUG
+      logical :: found_diagonal = .false.
+#endif
+
+      do nz = J%Pt(row) + 1, J%Pt(row + 1)
+         if (J%Num(nz) == col) then
+#ifndef NDEBUG
+            found_diagonal = .true.
+#endif
+            exit
+         endif
+      end do
+
+#ifndef NDEBUG
+      if (nz /= J%Pt(row) + findloc(J%Num((J%Pt(row) + 1):J%Pt(row + 1)), col, 1)) &
+         call CommonMPI_abort("Jacobian_JacBigA_BigSm_find_diagonal_nz something went wrong")
+      if (.not. found_diagonal) &
+         call CommonMPI_abort("Jacobian_JacBigA_BigSm_find_diagonal_nz failed")
+#endif
+
+   end subroutine Jacobian_JacBigA_BigSm_find_diagonal_nz
+
    subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
 
-      integer :: i, j, s, nz
-      logical :: is_diagonal = .false.
+      integer :: i, s, nz
+
+#ifndef _THERMIQUE_
+      call CommonMPI_abort("Jacobian_JacBigA_BigSm_dirichlet_nodes assumes thermal transfer is on.")
+#endif
 
       do s = 1, NbNodeOwn_Ncpus(commRank + 1)
-
-         ! CHECKME: why .or. and not .and. ?
-         ! Is the diagonal element (s,s) JacBigA(nz)
-         is_diagonal = IdNodeLocal(s)%P == "d"
-#ifdef _THERMIQUE_
-         is_diagonal = is_diagonal .or. IdNodeLocal(s)%T == "d"
-#endif
-         if (is_diagonal) then
-            do i = JacBigA%Pt(s) + 1, JacBigA%Pt(s + 1)
-               if (JacBigA%Num(i) == s) then
-                  nz = i
-                  exit
-               end if
-            end do
-         end if
-
-         if (IdNodeLocal(s)%P == "d") then
-            ! set identity matrix for Darcy (mass conservation)
-#ifndef NDEBUG
-            if (.not. all(abs(JacBigA%Val(:, 1:NbComp, nz)) <= 0.d0)) then
-               call CommonMPI_abort( &
-                  "inconsitent initial value of jacobian diagonal block "// &
-                  "for Darcy dirichlet conditions before filling")
-            end if
-#endif
-            do j = 1, NbComp
-               JacBigA%Val(j, j, nz) = 1.d0
-            end do
-         end if
-
-#ifdef _THERMIQUE_
          if (IdNodeLocal(s)%T == "d") then
-            ! set identity matrix for Fourier (energy conservation)
-#ifndef NDEBUG
-            if (.not. all(abs(JacBigA%Val(:, NbComp + 1, nz)) <= 0.d0)) then
-               call CommonMPI_abort( &
-                  "inconsitent initial value of jacobian diagonal block "// &
-                  "for Fourier dirichlet conditions before filling")
+            call Jacobian_JacBigA_BigSm_find_diagonal_nz(JacBigA, s, s, nz)
+            if (IdNodeLocal(s)%P == "d") then
+               JacBigA%Val(:, :, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
+               do i = 1, NbCompThermique
+                  JacBigA%Val(i, i, nz) = 1.d0
+               end do
+               BigSm(:, s) = 0.d0
+            else
+               JacBigA%Val(:, NbCompThermique, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
+               JacBigA%Val(NbCompThermique, NbCompThermique, nz) = 1.d0
+               BigSm(NbCompThermique, s) = 0.d0
             end if
-#endif
-            JacBigA%Val(NbComp + 1, NbComp + 1, nz) = 1.d0
-         end if
-#endif
-
+         else
+            if (IdNodeLocal(s)%P == "d") &
+               call CommonMPI_abort("Dirichlet condition on P only are not handled!")
+         endif
       end do
 
    end subroutine Jacobian_JacBigA_BigSm_dirichlet_nodes
@@ -411,101 +416,76 @@ contains
 
       double precision, intent(in) :: Delta_t
 
-      integer :: k, rowk, i, icp, nz, j, m, mph
-      logical :: outside_diagonal = .false.
+      integer :: k, rowk, colk, i, icp, nz, j, m, mph
 
       ! 2.1 div prim: n_k(X_j^n), k is node
       do k = 1, NbNodeOwn_Ncpus(commRank + 1) ! node
 
-         ! look for diagonal
-         outside_diagonal = IdNodeLocal(k)%P /= "d"
-#ifdef _THERMIQUE_
-         outside_diagonal = outside_diagonal .or. IdNodeLocal(k)%T /= "d"
-#endif
-         if (outside_diagonal) then
-            rowk = k ! row of node k in vector (node own, frac own, cell)
+         rowk = k
+         colk = k
+         call Jacobian_JacBigA_BigSm_find_diagonal_nz(JacBigA, rowk, colk, nz)
 
-            ! the diagonal element (k,k) is JacBigA(nz)
-            do i = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
-               if (JacBigA%Num(i) == k) then
-                  nz = i
-                  exit
+         ! loop of components in Ctilde, n_k is an unknown independent
+         do i = 1, NbCompCtilde_ctx(IncNode(k)%ic)
+            icp = NumCompCtilde_ctx(i, IncNode(k)%ic)
+
+            j = NbIncTotalPrim_ctx(IncNode(k)%ic) + i
+            JacBigA%val(j, icp, nz) = VolDarcy%nodes(k)/Delta_t
+         end do
+
+         ! loop of component, n_k is not an unknown independent
+         do m = 1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k, k is node
+            mph = NumPhasePresente_ctx(m, IncNode(k)%ic)
+
+            do icp = 1, NbComp
+               if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
+
+                  do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
+                     JacBigA%Val(j, icp, nz) = JacBigA%Val(j, icp, nz) &
+                                               + divDensiteMolaireSatCompNode(j, icp, mph, k)*PoroVolDarcy%nodes(k)/Delta_t
+                  end do
+
+                  bigSm(icp, rowk) = bigSm(icp, rowk) &
+                                     - SmDensiteMolaireSatComp%nodes(icp, mph, k)*PoroVolDarcy%nodes(k)/Delta_t
+
                end if
             end do
-         end if
 
-         if (IdNodeLocal(k)%P /= "d") then
-
-            ! loop of components in Ctilde, n_k is an unknown independent
-            do i = 1, NbCompCtilde_ctx(IncNode(k)%ic)
-               icp = NumCompCtilde_ctx(i, IncNode(k)%ic)
-
-               j = NbIncTotalPrim_ctx(IncNode(k)%ic) + i
-               JacBigA%val(j, icp, nz) = VolDarcy%nodes(k)/Delta_t
-            end do
-
-            ! loop of component, n_k is not an unknown independent
-            do m = 1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k, k is node
-               mph = NumPhasePresente_ctx(m, IncNode(k)%ic)
-
-               do icp = 1, NbComp
-                  if (MCP(icp, mph) == 1) then ! Q_k \cap P_i
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
-                        JacBigA%Val(j, icp, nz) = JacBigA%Val(j, icp, nz) &
-                                                  + divDensiteMolaireSatCompNode(j, icp, mph, k)*PoroVolDarcy%nodes(k)/Delta_t
-                     end do
-
-                     bigSm(icp, rowk) = bigSm(icp, rowk) &
-                                        - SmDensiteMolaireSatComp%nodes(icp, mph, k)*PoroVolDarcy%nodes(k)/Delta_t
-
-                  end if
-               end do
-
-            end do ! end of loop n_k
-         end if
+         end do ! end of loop n_k
 
 #ifdef _THERMIQUE_
 
-         if (IdNodeLocal(k)%T /= "d") then
-
-            do m = 1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k, k is node
-               mph = NumPhasePresente_ctx(m, IncNode(k)%ic)
-
-               do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
-                  JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                   + PoroVolFourier%nodes(k)/Delta_t &
-                                                   *divDensiteMolaireEnergieInterneSatNode(j, mph, k)
-               end do
-
-               bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
-                                         - PoroVolFourier%nodes(k)*SmDensiteMolaireEnergieInterneSatNode(mph, k)/Delta_t
-            end do
+         do m = 1, NbPhasePresente_ctx(IncNode(k)%ic) ! Q_k, k is node
+            mph = NumPhasePresente_ctx(m, IncNode(k)%ic)
 
             do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
                JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                + Poro_1VolFourier%nodes(k)*CpRoche*divTemperatureNode(j, k)/Delta_t
+                                                + PoroVolFourier%nodes(k)/Delta_t &
+                                                *divDensiteMolaireEnergieInterneSatNode(j, mph, k)
             end do
 
             bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
-                                      - Poro_1VolFourier%nodes(k)*CpRoche*SmTemperatureNode(k)/Delta_t
-         end if
+                                      - PoroVolFourier%nodes(k)*SmDensiteMolaireEnergieInterneSatNode(mph, k)/Delta_t
+         end do
+
+         do j = 1, NbIncTotalPrim_ctx(IncNode(k)%ic)
+            JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
+                                             + Poro_1VolFourier%nodes(k)*CpRoche*divTemperatureNode(j, k)/Delta_t
+         end do
+
+         bigSm(NbComp + 1, rowk) = bigSm(NbComp + 1, rowk) &
+                                   - Poro_1VolFourier%nodes(k)*CpRoche*SmTemperatureNode(k)/Delta_t
 
 #endif
+
       end do ! end of div prim n_k, node
 
       ! 2.2 div prim: n_k(X_j^n), k is frac
       do k = 1, NbFracOwn_Ncpus(commRank + 1) ! node
 
          rowk = k + NbNodeOwn_Ncpus(commRank + 1) ! row of frac k in vector (node own, frac own, cell)
-
-         ! the diagonal element (k,k) is KacBigA(nz)
-         do i = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
-            if ((JacBigA%Num(i) - NbNodeLocal_Ncpus(commRank + 1)) == k) then
-               nz = i
-               exit
-            end if
-         end do
+         colk = k + NbNodeLocal_Ncpus(commRank + 1)
+         call Jacobian_JacBigA_BigSm_find_diagonal_nz(JacBigA, rowk, colk, nz)
 
          ! loop of composants in Ctilde, n_k is an unknown independent
          do i = 1, NbCompCtilde_ctx(IncFrac(k)%ic)
@@ -564,14 +544,8 @@ contains
       do k = 1, NbCellLocal_Ncpus(commRank + 1) ! cell
 
          rowk = k + NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1) ! row of cell k in vector (node own, frac own, cell)
-
-         ! the diagonal element (k,k) is KacBigA(nz)
-         do i = JacBigA%Pt(rowk) + 1, JacBigA%Pt(rowk + 1)
-            if ((JacBigA%Num(i) - NbNodeLocal_Ncpus(commRank + 1) - NbFracLocal_Ncpus(commRank + 1)) == k) then
-               nz = i
-               exit
-            end if
-         end do
+         colk = k + NbNodeLocal_Ncpus(commRank + 1) + NbFracLocal_Ncpus(commRank + 1)
+         call Jacobian_JacBigA_BigSm_find_diagonal_nz(JacBigA, rowk, colk, nz)
 
          ! loop of composants in Ctilde, n_k is an unknown independent
          do i = 1, NbCompCtilde_ctx(IncCell(k)%ic)
@@ -733,7 +707,6 @@ contains
                IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
                divDensiteMolaireKrViscoCompCell(:, :, :, k), SmDensiteMolaireKrViscoCompCell(:, :, k), &
                divDensiteMolaireKrViscoCompNode(:, :, :, nums), SmDensiteMolaireKrViscoCompNode(:, :, nums), &
-               IdNodeLocal(nums)%P /= "d", &
                divK1, divS1, Sm1)
 
             ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
@@ -763,7 +736,6 @@ contains
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
-               IdNodeLocal(nums)%P /= "d", &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
@@ -778,7 +750,6 @@ contains
             ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux),
             ! k is cell, s is node
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
-               IdNodeLocal(nums)%T /= "d", &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncNode(nums)%ic, FluxDarcyKI(:, s, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
@@ -906,48 +877,36 @@ contains
                ! A_sk, s is node, k is cell
                nz = JacBigA%Pt(rows) + csrSR(colk)
 
-               if (IdNodeLocal(nums)%P /= "d") then
-                  do i = 1, NbComp
-                     do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-                        JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divK1(j, i) - divK2(j, i)
-                     end do
+               do i = 1, NbComp
+                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
+                     JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divK1(j, i) - divK2(j, i)
                   end do
-               end if
+               end do
 
 #ifdef _THERMIQUE_
-
-               if (IdNodeLocal(nums)%T /= "d") then
-
-                  do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
-                     JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                      - divEgK(j) - divFourierFlux_k(j)
-                  end do
-               end if
+               do j = 1, NbIncTotalPrim_ctx(IncCell(k)%ic)
+                  JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
+                                                   - divEgK(j) - divFourierFlux_k(j)
+               end do
 #endif
 
                ! A_ss, s is node
                cols = colSR(s)
                nz = JacBigA%Pt(rows) + csrSR(cols)
 
-               if (IdNodeLocal(nums)%P /= "d") then
-                  do i = 1, NbComp
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                        JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) &
-                                                - divS1(j, i) - divS2(j, i)
-                     end do
+               do i = 1, NbComp
+                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                     JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) &
+                                             - divS1(j, i) - divS2(j, i)
                   end do
-               end if
+               end do
 
 #ifdef _THERMIQUE_
-
-               if (IdNodeLocal(nums)%T /= "d") then
-
-                  ! ps. divFourierFlux_s=0
-                  do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
-                     JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                      - divEgS(j)
-                  end do
-               end if
+               ! ps. divFourierFlux_s=0
+               do j = 1, NbIncTotalPrim_ctx(IncNode(nums)%ic)
+                  JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
+                                                   - divEgS(j)
+               end do
 #endif
 
                ! A_sr, s is node, r is node
@@ -957,24 +916,17 @@ contains
                   colr = colSR(r)
                   nz = JacBigA%Pt(rows) + csrSR(colr)
 
-                  if (IdNodeLocal(nums)%P /= "d") then
-
-                     do i = 1, NbComp
-                        do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                           JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divR2(j, i, r)
-                        end do
+                  do i = 1, NbComp
+                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+                        JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divR2(j, i, r)
                      end do
-                  end if
+                  end do
 
 #ifdef _THERMIQUE_
-
-                  if (IdNodeLocal(nums)%T /= "d") then
-
-                     do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
-                        JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                         - divEgR(j, r) - divFourierFlux_r(j, r)
-                     end do
-                  end if
+                  do j = 1, NbIncTotalPrim_ctx(IncNode(numr)%ic)
+                     JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
+                                                      - divEgR(j, r) - divFourierFlux_r(j, r)
+                  end do
 #endif
                end do
 
@@ -986,39 +938,26 @@ contains
                   colr = colSR(rf)
                   nz = JacBigA%Pt(rows) + csrSR(colr)
 
-                  if (IdNodeLocal(nums)%P /= "d") then
-
-                     do i = 1, NbComp
-                        do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                           JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divR2(j, i, rf)
-                        end do
+                  do i = 1, NbComp
+                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+                        JacBigA%Val(j, i, nz) = JacBigA%Val(j, i, nz) - divR2(j, i, rf)
                      end do
-                  end if
+                  end do
 
 #ifdef _THERMIQUE_
-
-                  if (IdNodeLocal(nums)%T /= "d") then
-
-                     do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
-                        JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
-                                                         - divEgR(j, rf) - divFourierFlux_r(j, rf)
-                     end do
-                  end if
+                  do j = 1, NbIncTotalPrim_ctx(IncFrac(numr)%ic)
+                     JacBigA%Val(j, NbComp + 1, nz) = JacBigA%Val(j, NbComp + 1, nz) &
+                                                      - divEgR(j, rf) - divFourierFlux_r(j, rf)
+                  end do
 #endif
                end do
 
-               ! Sm
-               if (IdNodeLocal(nums)%P /= "d") then
-                  bigSm(1:NbComp, rows) = bigSm(1:NbComp, rows) &
-                                          + Sm1(1:NbComp) + Sm2(1:NbComp)
-               end if
+               bigSm(1:NbComp, rows) = bigSm(1:NbComp, rows) &
+                                       + Sm1(1:NbComp) + Sm2(1:NbComp)
 
 #ifdef _THERMIQUE_
-
-               if (IdNodeLocal(nums)%T /= "d") then
-                  bigSm(NbComp + 1, rows) = bigSm(NbComp + 1, rows) &
-                                            + SmEg + SmFourierFlux
-               end if
+               bigSm(NbComp + 1, rows) = bigSm(NbComp + 1, rows) &
+                                         + SmEg + SmFourierFlux
 #endif
 
             end if
@@ -1039,7 +978,6 @@ contains
                IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
                divDensiteMolaireKrViscoCompCell(:, :, :, k), SmDensiteMolaireKrViscoCompCell(:, :, k), &
                divDensiteMolaireKrViscoCompFrac(:, :, :, nums), SmDensiteMolaireKrViscoCompFrac(:, :, nums), &
-               .true., & ! will be removed
                divK1, divS1, Sm1)
 
             ! div ( rho_{k,s}^alpha ) for all phase Q_k \cup Q_s
@@ -1069,7 +1007,6 @@ contains
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
-               .true., &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
@@ -1083,7 +1020,6 @@ contains
 
             ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
-               .true., &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncCell(k)%ic, IncFrac(nums)%ic, FluxDarcyKI(:, sf, k), &
                NodebyCellLocal%Num(NodebyCellLocal%Pt(k) + 1:NodebyCellLocal%Pt(k + 1)), &
@@ -1421,7 +1357,6 @@ contains
                IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
                divDensiteMolaireKrViscoCompFrac(:, :, :, k), SmDensiteMolaireKrViscoCompFrac(:, :, k), &
                divDensiteMolaireKrViscoCompNode(:, :, :, nums), SmDensiteMolaireKrViscoCompNode(:, :, nums), &
-               IdNodeLocal(nums)%P /= "d", &
                divK1, divS1, Sm1)
 
             ! compute div Darcy flux
@@ -1451,7 +1386,6 @@ contains
 
             ! compute DensiteMolaire*Kr/Visco * div(Flux) using div(DarcyFlux)
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
-               IdNodeLocal(nums)%P /= "d", &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
@@ -1466,7 +1400,6 @@ contains
             ! compute div (DensiteMolaire*Enthalpie/Visco * DarcyFlux) using div(DarcyFlux)
             ! reuse what's been computed by Jacobian_divDarcyFlux frac/node
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
-               IdNodeLocal(nums)%T /= "d", &
                NbIncTotalPrim_ctx, IncNode, IncFrac, & ! does not depend on k or s
                IncFrac(k)%ic, IncNode(nums)%ic, FluxDarcyFI(:, s, k), &
                NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + 1:NodebyFaceLocal%Pt(fk + 1)), &
@@ -2238,10 +2171,8 @@ contains
       DarcyFlux, &
       divDensiteMolaireKrViscoComp_k, SmDensiteMolaireKrViscoComp_k, &
       divDensiteMolaireKrViscoComp_s, SmDensiteMolaireKrViscoComp_s, &
-      is_not_Dirichlet, & ! will be removed
       divK, divS, Sm0)
 
-      logical, intent(in) :: is_not_Dirichlet ! remove it
       integer, intent(in) :: NbIncTotalPrim(NbContexte)
       integer(c_int), intent(in) :: ic_k, ic_s
       double precision, intent(in) :: &
@@ -2301,12 +2232,7 @@ contains
                                     divDensiteMolaireKrViscoComp_s(j, icp, mph)*DarcyFlux(mph)
                   end do
 
-                  ! Sm0
-                  ! if s is dirichlet, sm is supposed to be null
-                  if (is_not_Dirichlet) then
-                     Sm0(icp) = Sm0(icp) + &
-                                SmDensiteMolaireKrViscoComp_s(icp, mph)*DarcyFlux(mph)
-                  end if
+                  Sm0(icp) = Sm0(icp) + SmDensiteMolaireKrViscoComp_s(icp, mph)*DarcyFlux(mph)
 
                end if
             end do ! end of icp
@@ -2326,7 +2252,6 @@ contains
    ! compute
    !        divK, divS, divR, Sm
    pure subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux( &
-      is_not_Dirichlet, & ! remove it
       NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
       ic_k, ic_s, DarcyFlux, Nodebyk, Fracbyk, &
       DensiteMolaireKrViscoComp_k, &
@@ -2334,7 +2259,6 @@ contains
       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
       divK, divS, divR, Sm0)
 
-      logical, intent(in) :: is_not_Dirichlet ! remove it
       integer, intent(in) :: NbIncTotalPrim(NbContexte)
       type(TYPE_IncCVReservoir), dimension(:), intent(in) :: &
          IncNode, IncFrac
@@ -2374,7 +2298,6 @@ contains
 
          if (DarcyFlux(mph) >= 0.d0) then
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
-               .true., & ! remove it
                NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
                mph, ic_k, ic_s, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2390,7 +2313,6 @@ contains
 
          if (DarcyFlux(mph) < 0.d0) then
             call Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
-               is_not_Dirichlet, & ! remove it
                NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
                mph, ic_k, ic_s, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2404,7 +2326,6 @@ contains
    end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux
 
    pure subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph( &
-      is_not_Dirichlet, & ! remove it
       NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s, FaceToFracLocal is missing
       mph, &
       ic_k, ic_s, NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2412,7 +2333,6 @@ contains
       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
       divK, divS, divR, Sm0)
 
-      logical, intent(in) :: is_not_Dirichlet ! remove it
       integer, intent(in) :: NbIncTotalPrim(NbContexte)
       type(TYPE_IncCVReservoir), dimension(:), intent(in) :: &
          IncNode, IncFrac
@@ -2469,18 +2389,13 @@ contains
                end do
             end do
 
-            ! Sm
-            ! if nums is dirichlet, sm is supposed to be null
-            if (is_not_Dirichlet) then
-               Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoComp_up(icp, mph)
-            end if
+            Sm0(icp) = Sm0(icp) + SmDarcyFlux(mph)*DensiteMolaireKrViscoComp_up(icp, mph)
          end if
       end do ! end of icp
 
    end subroutine Jacobian_DensiteMolaireKrViscoComp_divDarcyFlux_mph
 
    pure subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux( &
-      is_not_Dirichlet, & ! to remove
       NbIncTotalPrim, & ! does not depend on k or s
       IncNode, IncFrac, ic_k, ic_s, DarcyFlux, &
       Nodebyk, Fracbyk, &
@@ -2493,7 +2408,6 @@ contains
       divDarcyFlux_k, divDarcyFlux_s, divDarcyFlux_r, SmDarcyFlux, &
       divEgK, divEgS, divEgR, SmEg)
 
-      logical, intent(in) :: is_not_Dirichlet ! remove it
       integer, intent(in) :: NbIncTotalPrim(NbContexte)
       type(TYPE_IncCVReservoir), dimension(:), intent(in) :: &
          IncNode, IncFrac
@@ -2537,7 +2451,6 @@ contains
 
          if (DarcyFlux(mph) >= 0.d0) then
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
-               .true., & ! to remove
                NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
                mph, ic_k, ic_s, DarcyFlux, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2556,7 +2469,6 @@ contains
 
          if (DarcyFlux(mph) < 0.d0) then
             call Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
-               is_not_Dirichlet, & ! to remove
                NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
                mph, ic_s, ic_k, DarcyFlux, &
                NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2571,7 +2483,6 @@ contains
    end subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux
 
    pure subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph( &
-      is_not_Dirichlet, & ! to remove
       NbIncTotalPrim, IncNode, IncFrac, & ! does not depend on k or s
       mph, ic_up, ic_down, DarcyFlux, & ! miss FaceToFracLocal which will disapear
       NbNode_in_k, Nodebyk, NbFrac_in_k, Fracbyk, &
@@ -2580,8 +2491,6 @@ contains
       SmDensiteMolaireKrViscoEnthalpie_up, &
       divDarcyFlux_up, divDarcyFlux_down, divDarcyFlux_r, SmDarcyFlux, &
       divEg_up, divEg_down, divEgR, SmEg)
-
-      logical, intent(in) :: is_not_Dirichlet ! remove it
 
       integer, intent(in) :: &
          NbIncTotalPrim(NbContexte), &
@@ -2643,13 +2552,9 @@ contains
          end do
       end do
 
-      ! Sm
-      ! if s is Dirichlet, Sm is supposed to be null
-      if (is_not_Dirichlet) then
-         SmEg = SmEg &
-                + SmDensiteMolaireKrViscoEnthalpie_up(mph)*DarcyFlux(mph) &
-                + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpie_up(mph)
-      end if
+      SmEg = SmEg &
+             + SmDensiteMolaireKrViscoEnthalpie_up(mph)*DarcyFlux(mph) &
+             + SmDarcyFlux(mph)*DensiteMolaireKrViscoEnthalpie_up(mph)
 
    end subroutine Jacobian_divDensiteMolaireKrViscoEnthalpieDarcyFlux_mph
 
@@ -3836,7 +3741,6 @@ contains
 
       integer :: i, j, k, jf, Nz, start
       integer :: tmp
-      logical :: is_diagonal
       integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
          nbNodeLocal, nbFracLocal, nbCellLocal, nbWellInjLocal, nbWellProdLocal
@@ -3859,22 +3763,11 @@ contains
 
       ! a1* in JacbigA
       do i = 1, nbNodeOwn
-
-         ! Darcy dir and T dir
-         ! only in this case, one non-zero (block) this row, it is Id
-         is_diagonal = IdNodeLocal(i)%P == "d"
-#ifdef _THERMIQUE_
-         is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
-#endif
-         if (is_diagonal) then
-            nbNnzbyLine(i) = 1
-         else
-            nbNnzbyLine(i) = NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i) &
-                             + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i) &
-                             + CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i) &
-                             + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i) &
-                             + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-         end if
+         nbNnzbyLine(i) = NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i) &
+                          + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i) &
+                          + CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i) &
+                          + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i) &
+                          + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
       end do
 
       ! a2* in JacbigA, rq: frac is not dir face
@@ -3924,50 +3817,37 @@ contains
       start = 0
 
       do i = 1, nbNodeOwn
+         ! a11(i,:)
+         do j = 1, NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
+            JacBigA%Num(start + j) = NodebyNodeOwn%Num(j + NodebyNodeOwn%Pt(i))
+         end do
+         start = start + NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
 
-         ! dir Darcy and dir T
-         is_diagonal = IdNodeLocal(i)%P == "d"
-#ifdef _THERMIQUE_
-         is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
-#endif
-         if (is_diagonal) then
+         ! a12(i,:)
+         do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
+            JacBigA%Num(start + j) = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) + nbNodeLocal ! col
+         end do
+         start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
 
-            JacBigA%Num(start + 1) = i ! node=(node own, node ghost)
-            start = start + 1
+         ! a13(i,:)
+         do j = 1, CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i)
+            JacBigA%Num(start + j) = CellbyNodeOwn%Num(j + CellbyNodeOwn%Pt(i)) + nbNodeLocal + nbFracLocal ! col
+         end do
+         start = start + CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i)
 
-         else ! one of Darcy or T is not dir
-            ! a11(i,:)
-            do j = 1, NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
-               JacBigA%Num(start + j) = NodebyNodeOwn%Num(j + NodebyNodeOwn%Pt(i))
-            end do
-            start = start + NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i)
+         ! a14(i,:)
+         do j = 1, WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
+            JacBigA%Num(start + j) = WellInjbyNodeOwn%Num(j + WellInjbyNodeOwn%Pt(i)) &
+                                     + nbNodeLocal + nbFracLocal + nbCellLocal
+         end do
+         start = start + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
 
-            ! a12(i,:)
-            do j = 1, FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-               JacBigA%Num(start + j) = FracbyNodeOwn%Num(j + FracbyNodeOwn%Pt(i)) + nbNodeLocal ! col
-            end do
-            start = start + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i)
-
-            ! a13(i,:)
-            do j = 1, CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i)
-               JacBigA%Num(start + j) = CellbyNodeOwn%Num(j + CellbyNodeOwn%Pt(i)) + nbNodeLocal + nbFracLocal ! col
-            end do
-            start = start + CellbyNodeOwn%Pt(i + 1) - CellbyNodeOwn%Pt(i)
-
-            ! a14(i,:)
-            do j = 1, WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
-               JacBigA%Num(start + j) = WellInjbyNodeOwn%Num(j + WellInjbyNodeOwn%Pt(i)) &
-                                        + nbNodeLocal + nbFracLocal + nbCellLocal
-            end do
-            start = start + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i)
-
-            ! a15(i;:)
-            do j = 1, WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-               JacBigA%Num(start + j) = WellProdbyNodeOwn%Num(j + WellProdbyNodeOwn%Pt(i)) &
-                                        + nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal
-            end do
-            start = start + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-         end if
+         ! a15(i;:)
+         do j = 1, WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
+            JacBigA%Num(start + j) = WellProdbyNodeOwn%Num(j + WellProdbyNodeOwn%Pt(i)) &
+                                     + nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal
+         end do
+         start = start + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
       end do
 
       do i = 1, nbFracOwn
@@ -4135,7 +4015,6 @@ contains
       integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
       integer :: i, nb_rows, nnz, start
-      logical :: is_diagonal = .false.
       integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
 
@@ -4155,19 +4034,10 @@ contains
       ! A1* in JacA
       do i = 1, nbNodeOwn
 
-         ! Darcy dir and T dir
-         is_diagonal = IdNodeLocal(i)%P == "d"
-#ifdef _THERMIQUE_
-         is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
-#endif
-         if (is_diagonal) then
-            nbNnzbyLine(i) = 1 ! one non zero (block) this row
-         else
-            nbNnzbyLine(i) = NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i) &
-                             + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i) &
-                             + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i) &
-                             + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
-         end if
+         nbNnzbyLine(i) = NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i) &
+                          + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i) &
+                          + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i) &
+                          + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
       end do
 
       ! A2* in JacA, rq: frac is not dir face
@@ -4230,7 +4100,6 @@ contains
       type(CSRArray2dble), intent(inout) :: M
 
       integer :: i, start
-      logical :: is_diagonal = .false.
       integer :: nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
       integer :: column_offset(4)
 
@@ -4256,20 +4125,10 @@ contains
 
       ! First set of (block) rows conservation law at reversoir nodes
       do i = 1, nbNodeOwn
-         ! Darcy and T are both dir
-         is_diagonal = IdNodeLocal(i)%P == "d"
-#ifdef _THERMIQUE_
-         is_diagonal = is_diagonal .and. (IdNodeLocal(i)%T == "d")
-#endif
-         if (is_diagonal) then
-            M%Num(start + 1) = i ! node=(node own, node ghost)
-            start = start + 1
-         else ! one of Darcy and T is not dir
-            call fill_SM_column_number(NodebyNodeOwn, i, column_offset(1), M%Num, start)
-            call fill_SM_column_number(FracbyNodeOwn, i, column_offset(2), M%Num, start)
-            call fill_SM_column_number(WellInjbyNodeOwn, i, column_offset(3), M%Num, start)
-            call fill_SM_column_number(WellProdbyNodeOwn, i, column_offset(4), M%Num, start)
-         end if
+         call fill_SM_column_number(NodebyNodeOwn, i, column_offset(1), M%Num, start)
+         call fill_SM_column_number(FracbyNodeOwn, i, column_offset(2), M%Num, start)
+         call fill_SM_column_number(WellInjbyNodeOwn, i, column_offset(3), M%Num, start)
+         call fill_SM_column_number(WellProdbyNodeOwn, i, column_offset(4), M%Num, start)
 #ifndef NDEBUG
          if (M%Pt(i + 1) /= start) &
             call CommonMPI_abort("Wrong offset in filling JacA node rows.")
