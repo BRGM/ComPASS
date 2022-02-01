@@ -74,8 +74,6 @@ module DefModel
    ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
    ! P est forcement primaire et en numero 1
    ! Si T est primaire elle doit etre en numero 2
-   ! pschoice=2: Glouton method
-   !     the matrix psprim and pssecd are defined formally for compile
    ! pschoise=3: Gauss method
    !     the matrix psprim and pssecd are defined formally for compile
 

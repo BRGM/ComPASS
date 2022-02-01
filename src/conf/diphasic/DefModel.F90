@@ -104,10 +104,6 @@ module DefModel
    ! S principale
    ! freeflow flowrate of every phases
    ! Ctilde
-
-   ! pschoice=2: Glouton method
-   !     the matrix psprim and pssecd are defined formally for compile
-
    ! pschoise=3: Gauss method
    !     the matrix psprim and pssecd are defined formally for compile
 
