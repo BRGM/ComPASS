@@ -14,7 +14,10 @@ conda install -y -c conda-forge make cmake gcc=10.3 gxx=10.3 gfortran=10.3 numpy
 python -m pip install scikit-build click PyYAML inept sortedcontainers verstr setuptools_scm
 
 # this is used to find PETSc from mpicc links
+# sometimes CC is enough, sometimes not...
 export CC=mpicc
+export CXX=mpicxx
+export FC=mpifort
 
 # MeshTools
 # the following assumes correct credentials/ssh keys to connect to git@gitlab.inria.fr
