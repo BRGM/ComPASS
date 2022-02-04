@@ -1,0 +1,39 @@
+# this will create a new conda compass environment
+# to activate the environment: `conda activate compass`
+# to remove all that came with that environment: `conda env remove -n compass`
+conda create -y -n compass
+
+# us -n option is to tell cpnda to install in compass environment
+# the other option is to activate compass environment fist
+conda activate compass
+# as of 2/3/22 petsc is linked against gcc 10.3 and does not work with gcc 11.2
+# (check the latest build date of petsc on conda-forge)
+conda install -y -c conda-forge make cmake gcc=10.3 gxx=10.3 gfortran=10.3 numpy numba scipy mpi4py petsc4py
+
+# as conda environment is activated it it ok to call python -m pip
+python -m pip install scikit-build click PyYAML inept sortedcontainers verstr setuptools_scm
+
+# this is used to find PETSc from mpicc links
+export CC=mpicc
+
+# MeshTools
+# the following assumes correct credentials/ssh keys to connect to git@gitlab.inria.fr
+# and that you have define gitlab-inria in your .ssh/config
+# git clone gitlab-inria:charms/MeshTools.git
+# you can also use the public adress:
+git clone https://github.com/BRGM/MeshTools.git
+cd MeshTools
+# developper mode
+# python setup.py develop -G "Unix Makefiles" -j 4 -DMESHTOOLS_TRIES_TO_USE_CGAL=OFF
+python setup.py install -G "Unix Makefiles" -j 4 -DMESHTOOLS_TRIES_TO_USE_CGAL=OFF
+cd ..
+
+# git clone gitlab-inria:charms/ComPASS.git
+# you could also use the public adress:
+git clone https://github.com/BRGM/ComPASS.git
+cd ComPASS
+# check the physics you want to build, here only water2ph physics will be built
+# developper mode
+# python setup.py develop -G "Unix Makefiles" -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
+python setup.py install -G "Unix Makefiles" -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
+cd ..

@@ -111,6 +111,25 @@ For example:
 
 will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics.
 
+
+Install in a conda environment
+------------------------------
+
+This relies on the conda-forge channel and will create an isolated `compass` environment.
+
+Check the comment in the following bash script to adpat to your own needs.
+Packages in the conda-forge channel are sometimes a bit too new...
+You might get instabilities if you change version numbers.
+The script has been successfully tested at the beginning of February 2022.
+
+.. literalinclude:: ../miscellaneous/install-with-conda
+   :language: bash
+   :linenos:
+
+Download script:
+:download:`install-with-conda <../miscellaneous/install-with-conda>`
+
+
 Other systems
 -------------
 
