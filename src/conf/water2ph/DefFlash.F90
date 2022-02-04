@@ -48,9 +48,9 @@ contains
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, unused)
 
-         if (inc%Pression > Psat) then ! inc%Pression = Pref = Pg in this physic
+         if (inc%phase_pressure(GAS_PHASE) > Psat) then
             inc%ic = DIPHASIC_CONTEXT
-            inc%Pression = Psat
+            inc%Pression = Psat ! Pression = Pref is Pg in this physical model
             ! inc%Temperature is the saturation temperature (by construction)
             inc%Saturation(GAS_PHASE) = 1.d0
             inc%Saturation(LIQUID_PHASE) = 0.d0
@@ -60,9 +60,9 @@ contains
 
          call FluidThermodynamics_Psat(inc%Temperature, Psat, unused)
 
-         if (inc%Pression < Psat) then ! inc%Pression = Pref = Pg in this physic
+         if (inc%phase_pressure(GAS_PHASE) < Psat) then
             inc%ic = DIPHASIC_CONTEXT
-            inc%Pression = Psat
+            inc%Pression = Psat! Pression = Pref is Pg in this physical model
             ! inc%Temperature is the saturation temperature (by construction)
             inc%Saturation(GAS_PHASE) = 0.d0
             inc%Saturation(LIQUID_PHASE) = 1.d0
