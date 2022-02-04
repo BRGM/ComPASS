@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# Cartesian grid, box of 1000m in depth
+# Cartesian grid, box of 800m in depth
 # with 1 vertical fracture at Lx/2.
 # Homogeneous Neumann BC at both sides and at the bottom
 # atm BC at the top.
@@ -36,10 +36,11 @@ phi_fracture = 0.3  # fracture porosity
 thermal_cond = 2.0  # bulk thermal conductivity in W/m/K
 CpRoche = 2.0e6
 
-H = 1000.0  # domain height
-nH = 50  # discretization
-nx, ny, nz = 2 * nH, 1, nH
-Lx, Ly, Lz = 2 * H, 0.1 * H, H
+H = 800.0  # domain height
+ztop = 0.0
+nH = 40  # discretization
+nx, ny, nz = int(1.2 * nH), 1, nH
+Lx, Ly, Lz = 1.2 * H, 0.1 * H, H
 
 
 simulation = ComPASS.load_eos("diphasic")
@@ -54,21 +55,17 @@ ComPASS.set_output_directory_and_logfile(__file__)
 pbottom = simulation.get_gravity() * H * 1000.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom, pure_phase_molar_fraction)
 
-if ComPASS.mpi.is_on_master_proc:
-
-    grid = ComPASS.Grid(
-        shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(-0.5 * Lx, -0.5 * Ly, -H)
-    )
-
-    def select_fractures():
-        centers = simulation.compute_global_face_centers()
-        xc = centers[:, 0]
-        zc = centers[:, -1]
-        return xc == 0  # & (zc > -0.5 * H)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(-0.5 * Lx, -0.5 * Ly, ztop - Lz)
+)
 
 
-if not ComPASS.mpi.is_on_master_proc:
-    grid = set_global_flags = select_fractures = None
+def select_fractures():
+    centers = simulation.compute_global_face_centers()
+    xc = centers[:, 0]
+    # zc = centers[:, -1]
+    return xc == 0  # & (zc > -0.5 * H)
+
 
 simulation.init(
     mesh=grid,
@@ -82,13 +79,35 @@ simulation.init(
 )
 
 
+def set_iso_pressure():
+    gravity = simulation.get_gravity()
+
+    def lininterp(z, top, gradient):
+        return top + (gradient) * (z)
+
+    def set_states(states, z):
+        states.p[:] = lininterp(
+            ztop - z,
+            p0,
+            gravity * 1000.0,
+        )
+
+    z = simulation.vertices()[:, 2]
+    set_states(simulation.node_states(), z)
+    z = simulation.compute_cell_centers()[:, 2]
+    set_states(simulation.cell_states(), z)
+    z = simulation.compute_fracture_centers()[:, 2]
+    set_states(simulation.fracture_states(), z)
+
+
 X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
 simulation.all_states().set(X0)
+set_iso_pressure()  # correct the pressure to init with isostatic pressure
 
 
 def set_boundary_fluxes():
     Neumann = ComPASS.NeumannBC()
-    Neumann.molar_flux[:] = [0.0, qmass]
+    Neumann.molar_flux[:] = qmass
     Neumann.heat_flux = qmass * hbottom
     face_centers = simulation.face_centers()
     bottom_fracture_edges = simulation.find_fracture_edges(face_centers[:, -1] <= -H)
@@ -100,6 +119,7 @@ set_boundary_fluxes()
 # select freeflow faces
 fc = simulation.compute_face_centers()
 simulation.set_freeflow_faces(on_zmax(grid)(fc))
+# read freeflow nodes
 is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 
 X_top = simulation.build_state(
@@ -116,8 +136,8 @@ def export_initial_states():
     petrophysics = simulation.petrophysics()
 
     pointdata = {
-        "dirichlet pressure": simulation.pressure_dirichlet_values(),
-        "dirichlet temperature": K2degC(simulation.temperature_dirichlet_values()),
+        # "dirichlet pressure": simulation.pressure_dirichlet_values(),
+        # "dirichlet temperature": K2degC(simulation.temperature_dirichlet_values()),
         "initial pressure": node_states.p,
         "initial temperature": K2degC(node_states.T),
         "initial gas saturation": node_states.S[:, 0],
@@ -129,26 +149,30 @@ def export_initial_states():
         "phi": petrophysics.cell_porosity,
     }
     io.write_mesh(
-        simulation, "initial_states_andra", pointdata=pointdata, celldata=celldata
+        simulation,
+        f"{simulation.runtime.output_directory}/initial_states",
+        pointdata=pointdata,
+        celldata=celldata,
     )
 
 
 # export_initial_states()
 
-final_time = 500 * year
+final_time = 100 * year
 output_period = 0.05 * final_time
 timestep = TimeStepManager(
     initial_timestep=1.0 * day,
     minimum_timestep=1e-3,
     maximum_timestep=50 * year,
-    increase_factor=1.9,
+    increase_factor=1.4,
     decrease_factor=0.2,
 )
 
 # Construct the linear solver and newton objects outside the time loop
-# to set their parameters. Here direct solving is activated
-lsolver = linear_solver(simulation, legacy=False, direct=False)
-newton = Newton(simulation, 1e-8, 15, lsolver)
+# to set their parameters.
+lsolver = linear_solver(simulation, tolerance=1e-7, legacy=False, direct=False)
+# linear solver tolerance < newton tolerance
+newton = Newton(simulation, 1e-6, 13, lsolver)
 
 standard_loop(
     simulation,
