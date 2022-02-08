@@ -93,6 +93,7 @@ contains
    subroutine set_atm_temperature(T) &
       bind(C, name="set_atm_temperature")
       real(c_double), value, intent(in) :: T
+      integer(c_size_t) ::  nn, s
 
       ! if not allocated, AtmState will later be initialized with atm_temperature
       atm_temperature = T
@@ -118,6 +119,7 @@ contains
    subroutine set_rain_temperature(T) &
       bind(C, name="set_rain_temperature")
       real(c_double), value, intent(in) :: T
+      integer(c_size_t) ::  nn, s
 
       ! if not allocated, AtmState will later be initialized with rain_temperature
       rain_temperature = T
@@ -135,6 +137,7 @@ contains
    subroutine set_atm_pressure(p) &
       bind(C, name="set_atm_pressure")
       real(c_double), value, intent(in) :: p
+      integer(c_size_t) ::  nn, s
 
       ! if not allocated, AtmState will later be initialized with atm_pressure
       atm_pressure = p
@@ -152,6 +155,7 @@ contains
    subroutine set_atm_rain_flux(q_rain) &
       bind(C, name="set_atm_rain_flux")
       real(c_double), value, intent(in) :: q_rain
+      integer(c_size_t) ::  nn, s
 
       ! if not allocated, AtmState will later be initialized with rain_flux
       rain_flux(LIQUID_PHASE) = q_rain
