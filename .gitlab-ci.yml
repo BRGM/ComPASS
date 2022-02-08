@@ -237,6 +237,17 @@ diphasic freeflow:
     - python3 1Dliquid_outflow_atmBC.py
     - python3 1Drain_recharge.py
 
+diphasic andra:
+  stage: test
+  tags:
+    - sequential
+    - docker
+  before_script:
+    - python3 -m pip install --no-index -f dist ComPASS
+  script:
+    - cd test/cases/andra
+    - python3 1Ddiphasic_andra.py
+
 various parallel tests:
   stage: test
   tags:
