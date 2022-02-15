@@ -22,7 +22,7 @@ module FreeFlow
 #ifdef ComPASS_WITH_diphasic_PHYSICS
    use DefModel, only: GAS_PHASE
 #endif
-   use Physics, only: atm_pressure, atm_comp, atm_temperature, rain_temperature, rain_flux
+   use Physics, only: atm_pressure, atm_comp, atm_temperature, rain_temperature, rain_flux, Hm, HT
 
 contains
 
@@ -72,6 +72,8 @@ contains
 #endif
             AtmState(s)%Comp = atm_comp
             AtmState(s)%Imposed_flux = rain_flux
+            AtmState(s)%Hm = Hm
+            AtmState(s)%HT = HT
             SurfFreeFlowLocal(s) = SurfFreeFlowLocal(s) + surface_fraction
          enddo
       enddo

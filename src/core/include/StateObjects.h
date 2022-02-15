@@ -24,6 +24,8 @@ struct FFfarfield {
    typename Model::Phase_vector T;
    typename Model::Phase_component_matrix C;
    typename Model::Phase_vector imposed_flux;
+   typename Model::Phase_vector Hm;
+   typename Model::Real HT;
 };
 
 // FIXME: This is to be removed later

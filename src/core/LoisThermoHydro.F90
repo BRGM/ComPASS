@@ -53,7 +53,7 @@ module LoisThermoHydro
       PhaseDOFFamilyArray, MeshSchema_allocate_PhaseDOFFamilyArray, MeshSchema_free_PhaseDOFFamilyArray, &
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-   use Physics, only: Hm, HT, atm_flux_radiation, soil_emissivity, Stephan_Boltzmann_cst
+   use Physics, only: atm_flux_radiation, soil_emissivity, Stephan_Boltzmann_cst
 #endif
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    use FreeFlowTypes, only: TYPE_FFfarfield
@@ -939,7 +939,7 @@ contains
             ! only {alpha | alpha \in Q_k \cap P_i} is useful
             ! To understand better, change the order of the loop do i=.. and the loop do icp=..
             if (MCP(icp, iph) == 1) then ! P_i
-               val(icp, i) = Hm(iph)*(inc%Comp(icp, iph) - atm%Comp(icp, iph))
+               val(icp, i) = atm%Hm(iph)*(inc%Comp(icp, iph) - atm%Comp(icp, iph))
             end if
          end do
       end do
@@ -952,7 +952,7 @@ contains
             if (MCP(icp, iph) == 1) then
 
                do k = 1, ctxinfo%NbIncTotalPrim
-                  dval(k, icp, i) = Hm(iph)*divComp(k, icp, iph)
+                  dval(k, icp, i) = atm%Hm(iph)*divComp(k, icp, iph)
                end do
 
             end if
@@ -967,7 +967,7 @@ contains
          do icp = 1, NbComp ! P_i
             if (MCP(icp, iph) == 1) then
 
-               Smval(icp, i) = Hm(iph)*SmComp(icp, iph)
+               Smval(icp, i) = atm%Hm(iph)*SmComp(icp, iph)
             end if
          end do
       end do ! end of 3.
@@ -1082,17 +1082,17 @@ contains
 #ifdef ComPASS_WITH_diphasic_PHYSICS
       ! 1. val: HT * (T - atm_temperature)
       !         - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*T**4
-      val = HT*(inc%Temperature - atm%Temperature(GAS_PHASE)) &
+      val = atm%HT*(inc%Temperature - atm%Temperature(GAS_PHASE)) &
             - atm_flux_radiation + soil_emissivity*Stephan_Boltzmann_cst*inc%Temperature**4.d0
 #endif
       ! 2. dval
       do k = 1, ctxinfo%NbIncTotalPrim
-         dval(k) = HT*divTemperature(k) &
+         dval(k) = atm%HT*divTemperature(k) &
                    + soil_emissivity*Stephan_Boltzmann_cst*4.d0*divTemperature(k)*inc%Temperature**3.d0
       enddo
 
       ! 3. Smval
-      Smval = HT*SmTemperature &
+      Smval = atm%HT*SmTemperature &
               + soil_emissivity*Stephan_Boltzmann_cst*4.d0*SmTemperature*inc%Temperature**3.d0
 
    end subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv

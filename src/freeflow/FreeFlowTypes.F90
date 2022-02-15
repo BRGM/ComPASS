@@ -14,13 +14,16 @@ module FreeFlowTypes
    !> \brief Storage for Freeflow values
    !! DOF are Node.
    !! if this Type is modified, mandatory to modify file wrappers/FreeFlow_wrappers.cpp
+   !! and src/core/include/StateObjects.h
    !! to have the same structures in C++ and Python.
    type, bind(C) :: TYPE_FFfarfield
       real(c_double) :: & !< values of
          Pressure, & !< gas pressure
          Temperature(NbPhase), & !< gas far-field and liquid (rain) Temperature
          Comp(NbComp, NbPhase), & !< Molar composition of the element
-         Imposed_flux(NbPhase) !< imposed flux at the boundary (for the rain for example)
+         Imposed_flux(NbPhase), & !< imposed flux at the boundary (for the rain for example)
+         Hm(NbPhase), & !< gas (liquid = 0) Convective-diffusive const of the FreeFlow boundary layer
+         HT !< Thermal Convective const of the FreeFlow boundary layer
    end TYPE TYPE_FFfarfield
 
 !> \brief  to allow = between two TYPE_FFfarfield

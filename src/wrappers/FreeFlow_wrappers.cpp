@@ -64,6 +64,12 @@ void add_freeflow_wrappers(py::module& module) {
                                      np, self.cast<XFF&>().imposed_flux.data(),
                                      self};
                               })
+       .def_property_readonly("Hm",
+                              [](py::object& self) {
+                                 return py::array_t<Real, py::array::c_style>{
+                                     np, self.cast<XFF&>().Hm.data(), self};
+                              })
+       .def_readwrite("HT", &XFF::HT)
        .def("__str__", [](const XFF& self) {
           std::basic_stringstream<char> s;
           s << " p=" << self.p;
@@ -77,7 +83,9 @@ void add_freeflow_wrappers(py::module& module) {
           }
           s << ") imposed_flux=(";
           for (auto&& Fk : self.imposed_flux) s << Fk << ", ";
-          s << ")";
+          s << ") Hm (all phases)=(";
+          for (auto&& Hmk : self.Hm) s << Hmk << ", ";
+          s << ") HT=" << self.HT;
           return py::str{s.str()};
        });
 
@@ -95,6 +103,10 @@ void add_freeflow_wrappers(py::module& module) {
    add_attribute_array<XFF, StateFFArray, Real>(pyStateFFArray, "imposed_flux",
                                                 offsetof(XFF, imposed_flux),
                                                 {np}, {sizeof(Real)});
+   add_attribute_array<XFF, StateFFArray, Real>(
+       pyStateFFArray, "Hm", offsetof(XFF, Hm), {np}, {sizeof(Real)});
+   add_attribute_array<XFF, StateFFArray, Real>(pyStateFFArray, "HT",
+                                                offsetof(XFF, HT));
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    module.attr("has_freeflow_structures") = true;
