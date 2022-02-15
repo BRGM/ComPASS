@@ -34,6 +34,20 @@ Then: cd build; cmake ..
   )
 endif(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 
+# if the environment variable is defined we assume the build rely on it
+if(DEFINED ENV{CONDA_PREFIX})
+  message(STATUS "Building ComPASS with conda environment in: ${CONDA_PREFIX}")
+  # the following lines are from:
+  # https://conda.io/projects/conda-build/en/latest/resources/compiler-tools.html#an-aside-on-cmake-and-sysroots
+  # where is the target environment
+  set(CMAKE_FIND_ROOT_PATH "$ENV{CONDA_PREFIX}" "/")
+  # search for programs in the build host directories
+  set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+  # for libraries and headers in the target directories
+  set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+endif()
+
 # Cf. cmake documentation on RPATH and the related FAQ
 # https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling#common-questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
