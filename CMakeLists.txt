@@ -21,8 +21,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 include(ComPASSCMakeUtils)
 include(CMakeDependentOption)
 
-message(STATUS "%% PETSc:" ${PETSC_DIR})
-
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
   message(
     FATAL_ERROR
