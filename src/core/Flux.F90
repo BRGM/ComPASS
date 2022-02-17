@@ -440,7 +440,7 @@ contains
 
       double precision :: rho_ki(NbPhase)
 
-      FluxDarcyFI(:, :, :) = 0
+      FluxDarcyFI = 0.d0
 
       ! loop of frac
       do k = 1, NbFracLocal_Ncpus(commRank + 1)
@@ -455,8 +455,8 @@ contains
             numi = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + i) ! node number of i
 
             ! compute rho_ki^alpha: loop of Q_k and loop of Q_i
-            rho_ki_alpha(:) = 0.d0
-            tmp_compt(:) = 0
+            rho_ki = 0.d0
+            tmp_compt = 0
 
             do nph_k = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! phases present: Q_k
                numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
