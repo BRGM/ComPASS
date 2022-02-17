@@ -274,7 +274,7 @@ contains
    !> \brief Structure of this subroutine:                             <br>
    !! loop of cell k                             <br>
    !!   a. loop of node i of cell k                             <br>
-   !!       1. compute rho_ki_alpha                             <br>
+   !!       1. compute rho_ki                             <br>
    !!          loops of Q_k and Q_i                             <br>
    !!
    !!       2. loop of node j                             <br>
@@ -284,7 +284,7 @@ contains
    !!          loops of Q_k and Q_i                             <br>
    !!
    !!   b. loop of frac i of cell k                             <br>
-   !!       1. compute rho_ki_alpha                             <br>
+   !!       1. compute rho_ki                             <br>
    !!          loops of Q_k and Q_i                             <br>
    !!
    !!       2. loop of node j                             <br>
@@ -299,7 +299,7 @@ contains
       integer :: numi, numj, alpha
       integer :: NbNodeCell, NbFracCell
 
-      double precision :: rho_ki_alpha(NbPhase)
+      double precision :: rho_ki(NbPhase)
       double precision :: Tkij, dpkj, zkj
 
       FluxDarcyKI = 0.d0
@@ -321,7 +321,7 @@ contains
             call Flux_compute_density_gravity_term( &
                IncCell(k), DensiteMassiqueCell(:, k), &
                IncNode(numi), DensiteMassiqueNode(:, numi), &
-               rho_ki_alpha)
+               rho_ki)
 
             ! i is node, j is node
             do j = 1, NbNodeCell
@@ -336,7 +336,7 @@ contains
                       phase_can_be_present(alpha, IncNode(numi)%ic)) then
                      dpkj = IncCell(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
                      FluxDarcyKI(alpha, i, k) = FluxDarcyKI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
+                                                + Tkij*(dpkj + rho_ki(alpha)*zkj)
                   end if
                end do
 
@@ -356,7 +356,7 @@ contains
                       phase_can_be_present(alpha, IncNode(numi)%ic)) then
                      dpkj = IncCell(k)%phase_pressure(alpha) - IncFrac(numj)%phase_pressure(alpha)
                      FluxDarcyKI(alpha, i, k) = FluxDarcyKI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
+                                                + Tkij*(dpkj + rho_ki(alpha)*zkj)
                   end if
                end do
 
@@ -374,7 +374,7 @@ contains
             call Flux_compute_density_gravity_term( &
                IncCell(k), DensiteMassiqueCell(:, k), &
                IncFrac(numi), DensiteMassiqueFrac(:, numi), &
-               rho_ki_alpha)
+               rho_ki)
 
             ! i is frac, j is node
             do j = 1, NbNodeCell
@@ -389,7 +389,7 @@ contains
                       phase_can_be_present(alpha, IncFrac(numi)%ic)) then
                      dpkj = IncCell(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
                      FluxDarcyKI(alpha, i + NbNodeCell, k) = FluxDarcyKI(alpha, i + NbNodeCell, k) &
-                                                             + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
+                                                             + Tkij*(dpkj + rho_ki(alpha)*zkj)
                   end if
                end do
 
@@ -409,7 +409,7 @@ contains
                       phase_can_be_present(alpha, IncFrac(numi)%ic)) then
                      dpkj = IncCell(k)%phase_pressure(alpha) - IncFrac(numj)%phase_pressure(alpha)
                      FluxDarcyKI(alpha, i + NbNodeCell, k) = FluxDarcyKI(alpha, i + NbNodeCell, k) &
-                                                             + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
+                                                             + Tkij*(dpkj + rho_ki(alpha)*zkj)
                   end if
                end do
 
@@ -424,7 +424,7 @@ contains
    ! Structure of this subroutine:
    ! loop of frac k
    !   a. loop of node i of frac k
-   !       1. compute rho_ki_alpha
+   !       1. compute rho_ki
    !          loops of Q_k and Q_i
 
    !       2. loop of node j
@@ -438,7 +438,7 @@ contains
 
       double precision :: dpkj, Tkij, zkj
 
-      double precision :: rho_ki_alpha(NbPhase)
+      double precision :: rho_ki(NbPhase)
 
       FluxDarcyFI(:, :, :) = 0
 
@@ -460,17 +460,17 @@ contains
 
             do nph_k = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! phases present: Q_k
                numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
-               rho_ki_alpha(numph_k) = rho_ki_alpha(numph_k) + DensiteMassiqueFrac(numph_k, k)
+               rho_ki(numph_k) = rho_ki(numph_k) + DensiteMassiqueFrac(numph_k, k)
                tmp_compt(numph_k) = tmp_compt(numph_k) + 1
             end do
 
             do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic) ! phases present: Q_i
                numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-               rho_ki_alpha(numph_i) = rho_ki_alpha(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
+               rho_ki(numph_i) = rho_ki(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
                tmp_compt(numph_i) = tmp_compt(numph_i) + 1
             end do
 
-            rho_ki_alpha(:) = rho_ki_alpha(:)/max(tmp_compt(:), 1)
+            rho_ki(:) = rho_ki(:)/max(tmp_compt(:), 1)
 
             do j = 1, NbNodeFrac
                numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
@@ -483,7 +483,7 @@ contains
                       phase_can_be_present(alpha, IncNode(numi)%ic)) then
                      dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
                      FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
+                                                + Tkij*(dpkj + rho_ki(alpha)*zkj)
                   end if
                end do
 
