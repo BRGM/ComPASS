@@ -296,7 +296,7 @@ contains
       bind(C, name="Flux_DarcyFlux_Cell")
 
       integer :: k, i, j, fj, fi
-      integer :: numi, numj, nph_i, nph_k, numph_i, numph_k
+      integer :: numi, numj, alpha
       integer :: NbNodeCell, NbFracCell
 
       double precision :: rho_ki_alpha(NbPhase)
@@ -331,22 +331,12 @@ contains
                Tkij = TkLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
 
-               do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic)
-                  numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-                  dpkj = IncCell(k)%phase_pressure(numph_k) - IncNode(numj)%phase_pressure(numph_k)
-                  FluxDarcyKI(numph_k, i, k) = FluxDarcyKI(numph_k, i, k) &
-                                               + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
-               end do
-
-               ! loop of Q_i
-               do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic)
-                  numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-
-                  if (.not. phase_can_be_present(numph_i, IncCell(k)%ic)) then ! this phase is not in Q_k
-                     dpkj = IncCell(k)%phase_pressure(numph_i) - IncNode(numj)%phase_pressure(numph_i)
-                     FluxDarcyKI(numph_i, i, k) = FluxDarcyKI(numph_i, i, k) &
-                                                  + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
+               do alpha = 1, NbPhase
+                  if (phase_can_be_present(alpha, IncCell(k)%ic) .or. &
+                      phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                     dpkj = IncCell(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyKI(alpha, i, k) = FluxDarcyKI(alpha, i, k) &
+                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
                   end if
                end do
 
@@ -361,22 +351,12 @@ contains
                Tkij = TkLocal_Darcy(k)%Pt(i, j + NbNodeCell) ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XFaceLocal(3, fj)) ! g*(z_k - z_s')
 
-               do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic)
-                  numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-                  dpkj = IncCell(k)%phase_pressure(numph_k) - IncFrac(numj)%phase_pressure(numph_k)
-                  FluxDarcyKI(numph_k, i, k) = FluxDarcyKI(numph_k, i, k) &
-                                               + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
-               end do
-
-               ! loop of Q_i, ps. not Q_j !
-               do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic)
-                  numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-
-                  if (.not. phase_can_be_present(numph_i, IncCell(k)%ic)) then ! this phase is not in Q_k
-                     dpkj = IncCell(k)%phase_pressure(numph_i) - IncFrac(numj)%phase_pressure(numph_i)
-                     FluxDarcyKI(numph_i, i, k) = FluxDarcyKI(numph_i, i, k) &
-                                                  + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
+               do alpha = 1, NbPhase
+                  if (phase_can_be_present(alpha, IncCell(k)%ic) .or. &
+                      phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                     dpkj = IncCell(k)%phase_pressure(alpha) - IncFrac(numj)%phase_pressure(alpha)
+                     FluxDarcyKI(alpha, i, k) = FluxDarcyKI(alpha, i, k) &
+                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
                   end if
                end do
 
@@ -404,22 +384,12 @@ contains
                Tkij = TkLocal_Darcy(k)%Pt(i + NbNodeCell, j)            ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
 
-               do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic)
-                  numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-                  dpkj = IncCell(k)%phase_pressure(numph_k) - IncNode(numj)%phase_pressure(numph_k)
-                  FluxDarcyKI(numph_k, i + NbNodeCell, k) = FluxDarcyKI(numph_k, i + NbNodeCell, k) &
-                                                            + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
-               end do
-
-               ! loop of Q_i, Ps. not Q_j !
-               do nph_i = 1, NbPhasePresente_ctx(IncFrac(numi)%ic)
-                  numph_i = NumPhasePresente_ctx(nph_i, IncFrac(numi)%ic)
-
-                  if (.not. phase_can_be_present(numph_i, IncCell(k)%ic)) then ! this phase is not in Q_k
-                     dpkj = IncCell(k)%phase_pressure(numph_i) - IncNode(numj)%phase_pressure(numph_i)
-                     FluxDarcyKI(numph_i, i + NbNodeCell, k) = FluxDarcyKI(numph_i, i + NbNodeCell, k) &
-                                                               + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
+               do alpha = 1, NbPhase
+                  if (phase_can_be_present(alpha, IncCell(k)%ic) .or. &
+                      phase_can_be_present(alpha, IncFrac(numi)%ic)) then
+                     dpkj = IncCell(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyKI(alpha, i + NbNodeCell, k) = FluxDarcyKI(alpha, i + NbNodeCell, k) &
+                                                             + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
                   end if
                end do
 
@@ -434,22 +404,12 @@ contains
                Tkij = TkLocal_Darcy(k)%Pt(i + NbNodeCell, j + NbNodeCell) ! a_{k,s}^s'
                zkj = gravity*(XCellLocal(3, k) - XFaceLocal(3, fj))   ! g*(z_k - z_s')
 
-               do nph_k = 1, NbPhasePresente_ctx(IncCell(k)%ic)
-                  numph_k = NumPhasePresente_ctx(nph_k, IncCell(k)%ic)
-
-                  dpkj = IncCell(k)%phase_pressure(numph_k) - IncFrac(numj)%phase_pressure(numph_k)
-                  FluxDarcyKI(numph_k, i + NbNodeCell, k) = FluxDarcyKI(numph_k, i + NbNodeCell, k) &
-                                                            + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
-               end do
-
-               ! loop of Q_i, Ps. not Q_j !
-               do nph_i = 1, NbPhasePresente_ctx(IncFrac(numi)%ic)
-                  numph_i = NumPhasePresente_ctx(nph_i, IncFrac(numi)%ic)
-
-                  if (.not. phase_can_be_present(numph_i, IncCell(k)%ic)) then ! this phase is not in Q_k
-                     dpkj = IncCell(k)%phase_pressure(numph_i) - IncFrac(numj)%phase_pressure(numph_i)
-                     FluxDarcyKI(numph_i, i + NbNodeCell, k) = FluxDarcyKI(numph_i, i + NbNodeCell, k) &
-                                                               + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
+               do alpha = 1, NbPhase
+                  if (phase_can_be_present(alpha, IncCell(k)%ic) .or. &
+                      phase_can_be_present(alpha, IncFrac(numi)%ic)) then
+                     dpkj = IncCell(k)%phase_pressure(alpha) - IncFrac(numj)%phase_pressure(alpha)
+                     FluxDarcyKI(alpha, i + NbNodeCell, k) = FluxDarcyKI(alpha, i + NbNodeCell, k) &
+                                                             + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
                   end if
                end do
 
@@ -473,7 +433,7 @@ contains
       bind(C, name="Flux_DarcyFlux_Frac")
 
       integer :: k, fk, i, j, numi, numj, tmp_compt(NbPhase)
-      integer :: nph_i, numph_i, nph_k, numph_k
+      integer :: alpha, nph_i, numph_i, nph_k, numph_k
       integer :: NbNodeFrac
 
       double precision :: dpkj, Tkij, zkj
@@ -518,24 +478,12 @@ contains
                Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
                zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
 
-               do nph_k = 1, NbPhasePresente_ctx(IncFrac(k)%ic)
-                  numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
-
-                  dpkj = IncFrac(k)%phase_pressure(numph_k) - IncNode(numj)%phase_pressure(numph_k)
-                  FluxDarcyFI(numph_k, i, k) = FluxDarcyFI(numph_k, i, k) &
-                                               + Tkij*(dpkj + rho_ki_alpha(numph_k)*zkj)
-
-               end do
-
-               ! loop of Q_i
-               do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic)
-                  numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-
-                  if (.not. phase_can_be_present(numph_i, IncFrac(k)%ic)) then ! this phase is not in Q_k
-                     dpkj = IncFrac(k)%phase_pressure(numph_i) - IncNode(numj)%phase_pressure(numph_i)
-                     FluxDarcyFI(numph_i, i, k) = &
-                        FluxDarcyFI(numph_i, i, k) &
-                        + Tkij*(dpkj + rho_ki_alpha(numph_i)*zkj)
+               do alpha = 1, NbPhase
+                  if (phase_can_be_present(alpha, IncFrac(k)%ic) .or. &
+                      phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
+                                                + Tkij*(dpkj + rho_ki_alpha(alpha)*zkj)
                   end if
                end do
 
