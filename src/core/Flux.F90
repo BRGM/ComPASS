@@ -435,8 +435,8 @@ contains
       integer :: k, fk, i, j, numi, numj
       integer :: alpha
       integer :: NbNodeFrac
-      double precision :: dpkj, Tkij, zkj
-      double precision :: rho_ki
+      double precision :: dpkj, zkj, rho_ki
+      double precision, dimension(:, :), pointer, contiguous :: Tk
 
       FluxDarcyFI = 0.d0
 
@@ -444,6 +444,7 @@ contains
       do k = 1, NbFracLocal_Ncpus(commRank + 1)
 
          fk = FracToFaceLocal(k) ! fk is face number
+         Tk => TkFracLocal_Darcy(k)%Pt
 
          ! number of nodes in a frac
          NbNodeFrac = NodebyFaceLocal%Pt(fk + 1) - NodebyFaceLocal%Pt(fk)
@@ -464,10 +465,9 @@ contains
 
                   do j = 1, NbNodeFrac
                      numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
-                     Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
                      zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
                      dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
-                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tkij*(dpkj + rho_ki*zkj)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tk(i, j)*(dpkj + rho_ki*zkj)
                   end do
 
                else if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
@@ -476,10 +476,9 @@ contains
 
                   do j = 1, NbNodeFrac
                      numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
-                     Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
                      zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
                      dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
-                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tkij*(dpkj + rho_ki*zkj)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tk(i, j)*(dpkj + rho_ki*zkj)
                   end do
 
                end if
