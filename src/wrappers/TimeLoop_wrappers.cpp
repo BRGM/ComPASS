@@ -123,8 +123,8 @@ void add_time_loop_wrappers(py::module& module) {
        .def(
            "as_array",
            [](CTVector& self) {
-              return py::array_t<double, py::array::c_style>{self.npv,
-                                                             self.values};
+              return py::array_t<double, py::array::c_style>{
+                  static_cast<py::ssize_t>(self.npv), self.values};
            },
            py::keep_alive<0, 1>());
 
