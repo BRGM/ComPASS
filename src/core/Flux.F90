@@ -432,13 +432,11 @@ contains
    subroutine Flux_DarcyFlux_Frac() &
       bind(C, name="Flux_DarcyFlux_Frac")
 
-      integer :: k, fk, i, j, numi, numj, tmp_compt(NbPhase)
-      integer :: alpha, nph_i, numph_i, nph_k, numph_k
+      integer :: k, fk, i, j, numi, numj
+      integer :: alpha
       integer :: NbNodeFrac
-
       double precision :: dpkj, Tkij, zkj
-
-      double precision :: rho_ki(NbPhase)
+      double precision :: rho_ki
 
       FluxDarcyFI = 0.d0
 
@@ -454,24 +452,6 @@ contains
 
             numi = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + i) ! node number of i
 
-            ! compute rho_ki^alpha: loop of Q_k and loop of Q_i
-            rho_ki = 0.d0
-            tmp_compt = 0
-
-            do nph_k = 1, NbPhasePresente_ctx(IncFrac(k)%ic) ! phases present: Q_k
-               numph_k = NumPhasePresente_ctx(nph_k, IncFrac(k)%ic)
-               rho_ki(numph_k) = rho_ki(numph_k) + DensiteMassiqueFrac(numph_k, k)
-               tmp_compt(numph_k) = tmp_compt(numph_k) + 1
-            end do
-
-            do nph_i = 1, NbPhasePresente_ctx(IncNode(numi)%ic) ! phases present: Q_i
-               numph_i = NumPhasePresente_ctx(nph_i, IncNode(numi)%ic)
-               rho_ki(numph_i) = rho_ki(numph_i) + DensiteMassiqueNode(numph_i, numi) ! Attention: numph_k used for densitemassique
-               tmp_compt(numph_i) = tmp_compt(numph_i) + 1
-            end do
-
-            rho_ki(:) = rho_ki(:)/max(tmp_compt(:), 1)
-
             do j = 1, NbNodeFrac
                numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
 
@@ -479,11 +459,20 @@ contains
                zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
 
                do alpha = 1, NbPhase
-                  if (phase_can_be_present(alpha, IncFrac(k)%ic) .or. &
-                      phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                  if (phase_can_be_present(alpha, IncFrac(k)%ic)) then
+                     rho_ki = DensiteMassiqueFrac(alpha, k)
+                     if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                        rho_ki = rho_ki + DensiteMassiqueNode(alpha, numi)
+                        rho_ki = rho_ki*0.5d0
+                     end if
                      dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
                      FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki(alpha)*zkj)
+                                                + Tkij*(dpkj + rho_ki*zkj)
+                  else if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                     rho_ki = DensiteMassiqueNode(alpha, numi)
+                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
+                                                + Tkij*(dpkj + rho_ki*zkj)
                   end if
                end do
 
