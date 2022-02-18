@@ -30,7 +30,7 @@ void create_simulation_object(int proc) {
 Simulation* get_simulation_handle() { return simulation_handle.get(); }
 py::object& get_simulation_pyhandle() { return simulation_pyhandle; }
 
-/**/
+**/
 
 /** Alternative 2: Use the python simulation object */
 py::object simulation = py::none();
@@ -60,7 +60,7 @@ void add_simulation_pyinternals(py::module& module) {
    module.def("create_simulation_object", &ComPASS::create_simulation_object,
               py::arg("proc") = -1);
 
-   /**/
+   **/
 
    /** Alternative 2: Use the python simulation object */
    module.def("register_simulation", &ComPASS::register_simulation);

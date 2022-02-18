@@ -37,7 +37,8 @@ auto part_graph(
 #endif
    auto nb_constraints = static_cast<idx_t>(1);
    idx_t edge_cut;
-   assert(nb_vertices < std::numeric_limits<py::ssize_t>::max());
+   static_assert(std::numeric_limits<decltype(nb_vertices)>::max() <
+                 std::numeric_limits<py::ssize_t>::max());
    auto result = py::array_t<idx_t, py::array::c_style>{
        static_cast<py::ssize_t>(nb_vertices)};
 

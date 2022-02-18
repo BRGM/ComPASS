@@ -12,7 +12,7 @@ namespace py = pybind11;
 
 namespace ComPASS {
 
-/** Alternative 1: the simulation objecy on the C++ side
+/** Alternative 1: the simulation object on the C++ side *
 
 // A dummy object used as singleton (one per proc)
 struct Simulation {
@@ -24,7 +24,7 @@ void create_simulation_object(const int);
 Simulation* get_simulation_handle();
 py::object& get_simulation_pyhandle();
 
-/**/
+**/
 
 py::object& get_simulation();
 

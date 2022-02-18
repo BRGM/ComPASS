@@ -53,7 +53,8 @@ void add_SolvePetsc_wrappers(py::module& module) {
    module.def("SolvePetsc_Ksp_iterations", []() {
       const auto n = SolvePetsc_KspSolveIterationNumber();
       assert(n >= 0);
-      assert(n < std::numeric_limits<py::ssize_t>::max());
+      static_assert(std::numeric_limits<decltype(n)>::max() <=
+                    std::numeric_limits<py::ssize_t>::max());
       auto res =
           py::array_t<double, py::array::c_style>{static_cast<py::ssize_t>(n)};
       SolvePetsc_KspSolveIterations(res.mutable_data(), n);

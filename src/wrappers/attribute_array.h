@@ -21,7 +21,7 @@ auto add_attribute_array(
           auto final_shape = std::vector<std::size_t>{{wrapper->length}};
           std::copy(shape.begin(), shape.end(),
                     std::back_inserter(final_shape));
-          auto final_strides = std::vector<std::size_t>{{sizeof(X)}};
+          auto final_strides = std::vector<std::size_t>(1, sizeof(X));
           std::copy(strides.begin(), strides.end(),
                     std::back_inserter(final_strides));
           return py::array_t<AttributeType, py::array::c_style>{
