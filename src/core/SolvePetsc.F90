@@ -601,13 +601,14 @@ contains
    ! Set values A_mpi
    subroutine SolvePetsc_SetAmpi
 
-      integer :: i, j, s
+      integer :: i, j, k, s
       integer :: row, col
       PetscErrorCode :: Ierr
 
       integer :: &
          m, idxm(NbCompThermique), & ! number of rows and their global indices
          n, idxn(NbCompThermique)    ! number of cols and their global indices
+      double precision :: tmp(NbCompThermique) ! tmp buffer to avoir temporary array creation
 
       m = NbCompThermique
       n = NbCompThermique
@@ -644,7 +645,10 @@ contains
 
                ! index order of matrix JacBigA(:,:,j) is (col,row)
                !write(*,*) 'Setting values on', commRank
-               call MatSetValues(A_mpi, m, idxm, 1, idxn, JacA%Val(1, :, j), INSERT_VALUES, Ierr)
+               do k = 1, NbCompThermique
+                  tmp(k) = JacA%Val(1, k, j)
+               end do
+               call MatSetValues(A_mpi, m, idxm, 1, idxn, tmp, INSERT_VALUES, Ierr)
                !write(*,*) 'Setting values done on', commRank
                CHKERRQ(Ierr)
             end if
