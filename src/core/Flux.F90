@@ -452,29 +452,37 @@ contains
 
             numi = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + i) ! node number of i
 
-            do j = 1, NbNodeFrac
-               numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
+            do alpha = 1, NbPhase
 
-               Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
-               zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
+               if (phase_can_be_present(alpha, IncFrac(k)%ic)) then
 
-               do alpha = 1, NbPhase
-                  if (phase_can_be_present(alpha, IncFrac(k)%ic)) then
-                     rho_ki = DensiteMassiqueFrac(alpha, k)
-                     if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
-                        rho_ki = rho_ki + DensiteMassiqueNode(alpha, numi)
-                        rho_ki = rho_ki*0.5d0
-                     end if
-                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
-                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki*zkj)
-                  else if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
-                     rho_ki = DensiteMassiqueNode(alpha, numi)
-                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
-                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) &
-                                                + Tkij*(dpkj + rho_ki*zkj)
+                  rho_ki = DensiteMassiqueFrac(alpha, k)
+                  if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
+                     rho_ki = rho_ki + DensiteMassiqueNode(alpha, numi)
+                     rho_ki = rho_ki*0.5d0
                   end if
-               end do
+
+                  do j = 1, NbNodeFrac
+                     numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
+                     Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
+                     zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
+                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tkij*(dpkj + rho_ki*zkj)
+                  end do
+
+               else if (phase_can_be_present(alpha, IncNode(numi)%ic)) then
+
+                  rho_ki = DensiteMassiqueNode(alpha, numi)
+
+                  do j = 1, NbNodeFrac
+                     numj = NodebyFaceLocal%Num(NodebyFaceLocal%Pt(fk) + j)
+                     Tkij = TkFracLocal_Darcy(k)%Pt(i, j) ! a_{k,s}^s'
+                     zkj = gravity*(XFaceLocal(3, fk) - XNodeLocal(3, numj)) ! g*(z_k - z_s')
+                     dpkj = IncFrac(k)%phase_pressure(alpha) - IncNode(numj)%phase_pressure(alpha)
+                     FluxDarcyFI(alpha, i, k) = FluxDarcyFI(alpha, i, k) + Tkij*(dpkj + rho_ki*zkj)
+                  end do
+
+               end if
 
             end do
          end do
