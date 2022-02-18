@@ -45,7 +45,7 @@ module VAGFrac
    implicit none
 
    type Type_Trans
-      double precision, dimension(:, :), pointer :: pt
+      double precision, dimension(:, :), pointer, contiguous :: pt
    end type Type_Trans
 
    ! Outputs: Trans...
