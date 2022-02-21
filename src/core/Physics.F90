@@ -28,8 +28,8 @@ module Physics
                                        /), (/2/))
    real(c_double) :: HT = 20.d0   ! Thermal Convective const of the FreeFlow boundary layer
    ! Net radiation constants
-   real(c_double) :: atm_flux_radiation = 340.d0   ! W/m^2
-   real(c_double) :: soil_emissivity = 0.97d0
+   real(c_double) :: atm_flux_radiation = 0.d0   ! 340.d0 W/m^2
+   real(c_double) :: soil_emissivity = 0.d0   ! 0.97.d0
    real(c_double) :: Stephan_Boltzmann_cst = 5.67d-8  ! W/m^2/K^4
    ! Rain input flux
    real(c_double) :: rain_flux(2) = RESHAPE((/0.d0, &  ! gas rain = 0
