@@ -33,9 +33,7 @@ module IncPrimSecd
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       IsFreeflowNode, &
 #endif
-      NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
-      NodeDarcyRocktypesLocal, CellDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
-      NodeByWellInjLocal
+      NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus
 
    use Newton, only: Newton_increments_pointers, Newton_increments, Newton_pointers_to_values
    use Thermodynamics, only: f_Fugacity
