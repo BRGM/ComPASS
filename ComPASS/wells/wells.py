@@ -67,7 +67,7 @@ def create_vertical_well(
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     :param zmin: only vertices above zmin will be considered (ignored if None, which is the default)
     :param zmax: only vertices above zmin will be considered (ignored if None, which is the default)
-    :param multi_segmented: create a multi-segemented well (default is False)
+    :param multi_segmented: create a multi-segmented well (default is False)
 
     :return: the created well
     """

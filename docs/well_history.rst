@@ -10,7 +10,7 @@ The events are generated from a sequence (list, array...) of `(time, flowrate)` 
 and `(time, flowrate, injection temperature)` for injectors.
 Then these events are passed to the time loop.
 
-If you have several wells, just conacatenate the event lists into a single one.
+If you have several wells, just concatenate the event lists into a single one.
 Events will always be sorted before being processed.
 
 Producer example
