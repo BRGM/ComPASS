@@ -122,12 +122,28 @@ Packages in the conda-forge channel are sometimes a bit too new...
 You might get instabilities if you change version numbers.
 The script has been successfully tested at the beginning of February 2022.
 
-.. literalinclude:: ../miscellaneous/install-with-conda
+
+Linux script
+""""""""""""
+
+.. literalinclude:: ../miscellaneous/install-linux-with-conda
    :language: bash
    :linenos:
 
 Download script:
-:download:`install-with-conda <../miscellaneous/install-with-conda>`
+:download:`install-on-linux-with-conda <../miscellaneous/install-linux-with-conda>`
+
+MacOS script (with clang)
+"""""""""""""""""""""""""
+
+This script is not fully tested yet.
+
+.. literalinclude:: ../miscellaneous/install-mac-with-conda
+   :language: bash
+   :linenos:
+
+Download script:
+:download:`install-on-linux-with-conda <../miscellaneous/install-mac-with-conda>`
 
 
 Other systems
