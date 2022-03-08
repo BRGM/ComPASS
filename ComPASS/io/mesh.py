@@ -61,6 +61,29 @@ def write_vtu_mesh(simulation, filename, pointdata, celldata, ofmt):
     return vertices.dtype
 
 
+def write_polyhedra_vtu_mesh(
+    simulation, filename, pointdata=None, celldata=None, ofmt="binary"
+):
+    assert (
+        not simulation.mesh_is_local
+    ), "FacebyCell and NodebyFace connectivities are not available locally"
+    vertices = simulation.global_vertices()
+    connectivity = getattr(simulation, f"get_global_connectivity")()
+    cellfaces = [
+        np.asarray(a) - 1 for a in connectivity.FacebyCell
+    ]  # Fortran -> C indexing
+    facenodes = [
+        np.asarray(a) - 1 for a in connectivity.NodebyFace
+    ]  # Fortran -> C indexing
+    cells = [[facenodes[face] for face in faces] for faces in cellfaces]
+    vtkw.write_vtu(
+        vtkw.polyhedra_vtu_doc(
+            vertices, cells, pointdata=pointdata, celldata=celldata, ofmt=ofmt,
+        ),
+        filename,
+    )
+
+
 def proc_filename(basename, procid):
     if mpi.communicator().size == 1:
         return basename
