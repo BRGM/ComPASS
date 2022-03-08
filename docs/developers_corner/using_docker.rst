@@ -11,7 +11,7 @@ It is the value of the `COMPASS_SDK` variable.
 
 The docker images are generated via a
 `separate gitlab project <https://gitlab.inria.fr/charms/compass-images>`_
-and can be found under the `*Container Registry* header <https://gitlab.inria.fr/charms/compass-images/container_registry>`_
+and can be found under the `Container Registry header <https://gitlab.inria.fr/charms/compass-images/container_registry>`_.
 The value of the `COMPASS_SDK` variable can then be used
 to select the appropriate docker image.
 
@@ -26,7 +26,7 @@ with dependencies and a few goodies such as scipy or matplotlib modules.
 Consequently they are relatively big containers but
 you will only need to install (one of) them once!
 The idea is to work on your local/host file system through the ``/localfs``
-container volume (\ ``localfs``\ for *local file system*\ )
+container volume (\ ``localfs``\ for *local file system*\ ).
 
 Let suppose that you work in a local directory called ``/my/local/dir``.
 If not already done clone the ComPASS git repository:

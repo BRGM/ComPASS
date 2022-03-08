@@ -197,7 +197,7 @@ def init(
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
-        part_mesh(simulation, use_Kway=use_Kway_part_graph)
+        part_mesh(simulation, mesh_parts=mesh_parts, use_Kway=use_Kway_part_graph)
     simulation.mesh_is_local = True
     mpi.synchronize()
     kernel.init_phase2_build_local_mesh()
@@ -439,7 +439,7 @@ def _part_mesh(use_Kway, connectivity_file=None):
 
 
 # def part_mesh(simulation, use_Kway, connectivity_file=None):
-def part_mesh(simulation, use_Kway):
+def part_mesh(simulation, mesh_parts=None, use_Kway=False):
     assert mpi.is_on_master_proc, "Mesh partioning is assumed to run on master proc."
     if simulation.is_sequential or simulation.global_number_of_cells() == 1:
         if mesh_parts is None:
