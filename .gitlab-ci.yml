@@ -188,6 +188,7 @@ more sanity tests:
         unit/phase_pressure_absent_phase.py \
         unit/two_cells_time_step_manager.py \
         unit/two_cells_fracture_zero.py \
+        unit/two_cells_boundary_faces.py \
         unit/salome/test_standalone.py \
         unit/salome/test_with_compass.py \
         unit/chair_well.py \
@@ -275,6 +276,7 @@ small parallel tests:
   script:
     - cd test
     - mpirun -n 2 python3 unit/two_cells.py
+    - mpirun -n 2 python3 unit/two_cells_boundary_faces.py
 
 container release:
   stage: release
