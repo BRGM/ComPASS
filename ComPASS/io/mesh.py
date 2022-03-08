@@ -104,6 +104,8 @@ def create_vtu_directory(parent=Path(".")):
     if parallel:
         vtu_directory = parent / "vtu"
         vtu_directory.mkdir(parents=True, exist_ok=True)
+    else:
+        parent.mkdir(parents=True, exist_ok=True)
     mpi.synchronize()
     return vtu_directory if parallel else parent
 
