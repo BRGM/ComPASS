@@ -71,17 +71,28 @@ def coordinates(a):
     return (a[:, j] for j in range(a.shape[1]))
 
 
-def facenodes(simulation, fis):
-    face_nodes = simulation.get_connectivity().NodebyFace
-    nodes = []
-    fis = np.asarray(fis)
-    assert fis.ndim == 1
-    if fis.dtype == np.bool:
-        fis = np.nonzero(fis)[0]
-    for fk, face in enumerate(face_nodes):
-        if fk in fis:
-            nodes.append(np.array(face, copy=False))
-    return np.unique(nodes) - 1  # Fortran -> C indexing
+def get_faces_nodes(connectivity, faces_selection):
+    selection = np.asarray(faces_selection)
+    assert selection.ndim == 1
+    if selection.dtype == np.bool:
+        selection = np.nonzero(selection)[0]
+    NodebyFace = connectivity.NodebyFace
+    assert len(NodebyFace) > 0
+    # Fortran -> C indexing
+    faces = [np.array(NodebyFace[f], copy=False) - 1 for f in selection]
+    return faces
+
+
+def filter_adjacency_table(indices):
+    split_points = np.cumsum([len(a) for a in indices])[:-1]
+    used, inverse = np.unique(np.hstack(indices), return_inverse=True)
+    return used, np.split(inverse, split_points)
+
+
+def facenodes(simulation, faces_selection):
+    assert simulation.is_local
+    faces = get_faces_nodes(simulation.get_connectivity(), faces_selection)
+    return np.unique(faces)
 
 
 def postprocess(simulation, **kwargs):

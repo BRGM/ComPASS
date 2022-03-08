@@ -14,6 +14,7 @@ import numpy as np
 
 import MeshTools as MT
 import MeshTools.GridTools as GT
+import vtkwriters as vtkw
 
 from .. import mpi
 from .. import runtime
@@ -54,6 +55,7 @@ def init(
     mesh_parts=None,
     use_Kway_part_graph=False,
     well_model="single_phase",
+    dump_mesh_before_distribution=False,
     **kwargs,
 ):
     """
@@ -107,6 +109,12 @@ def init(
     :param fracture_omega_Fourier: the fracture volume proportion that is distributed
         to nodes for the discretisation of the temperature gradient (Fourier law)
     :param well_model: the well model to be used (can be "single_phase" (default) or "two_phases")
+
+    You can dump the global mesh before partitioning and properties distribution using
+    the `dump_mesh_before_distribution` option which defaults to `False`.
+
+    :param dump_mesh_before_distribution: boolean value that defaults to `False`
+
     """
     kernel = get_kernel()
     # FIXME: should be passed as argument
@@ -197,6 +205,8 @@ def init(
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
+        if dump_mesh_before_distribution:
+            dump_global_mesh(simulation)
         part_mesh(simulation, mesh_parts=mesh_parts, use_Kway=use_Kway_part_graph)
     simulation.mesh_is_local = True
     mpi.synchronize()
@@ -485,6 +495,22 @@ def summarize_simulation():
         print("Energy transfer enabled")
         # print('  NbDirNode T: ', NbDirNodeT)
     print("  Ncpus :     ", mpi.communicator().size)
+
+
+def dump_global_mesh(simulation):
+    assert mpi.is_on_master_proc
+    output_directory = Path(runtime.output_directory) / "before_distribution"
+    output_directory.mkdir(parents=True, exist_ok=True)
+    simulation.write_polyhedra_vtu_mesh(str(output_directory / "mesh"))
+    connectivity = simulation.get_global_connectivity()
+    boundaries = utils.get_boundary_faces(connectivity)
+    boundaries = utils.get_faces_nodes(connectivity, boundaries)
+    boundary_nodes, boundary_faces = utils.filter_adjacency_table(boundaries)
+    vertices = simulation.global_vertices()
+    vtkw.write_vtp(
+        vtkw.vtp_doc(vertices[boundary_nodes], boundary_faces,),
+        str(output_directory / "boundary_faces"),
+    )
 
 
 def output_visualization_files(iteration):

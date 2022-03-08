@@ -49,7 +49,7 @@ from .bc import (
     get_freeflow_nodes_area,
 )
 
-from ..io.mesh import write_mesh
+from ..io.mesh import write_mesh, write_polyhedra_vtu_mesh
 
 from .utils import facenodes, postprocess, eos_name
 
