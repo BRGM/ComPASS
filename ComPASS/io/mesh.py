@@ -20,7 +20,7 @@ def cell_description(cell_connectivity):
     return cellnodes, cellnodes_offsets
 
 
-def mesh_description(simulation, nb_own_cells=None):
+def mesh_description(simulation):
     mesh_type = ""  # local mesh
     if not simulation.mesh_is_local:
         mesh_type = "global_"
@@ -28,7 +28,8 @@ def mesh_description(simulation, nb_own_cells=None):
     connectivity = getattr(simulation, f"get_{mesh_type}connectivity")()
     cellnodes, offsets = cell_description(connectivity.NodebyCell)
     celltypes = getattr(simulation, f"{mesh_type}celltypes")()
-    if nb_own_cells is not None:
+    if simulation.mesh_is_local:
+        nb_own_cells = simulation.number_of_own_cells()
         offsets = offsets[: nb_own_cells + 1]
         cellnodes = cellnodes[: offsets[-1]]
         celltypes = celltypes[:nb_own_cells]
@@ -36,9 +37,13 @@ def mesh_description(simulation, nb_own_cells=None):
 
 
 def write_vtu_mesh(simulation, filename, pointdata, celldata, ofmt):
-    nb_own_cells = simulation.number_of_own_cells()
-    vertices, offsets, cellnodes, celltypes = mesh_description(simulation, nb_own_cells)
+    vertices, offsets, cellnodes, celltypes = mesh_description(simulation)
     assert all([a.shape[0] == vertices.shape[0] for a in pointdata.values()])
+    nb_own_cells = (
+        simulation.number_of_own_cells()
+        if simulation.mesh_is_local
+        else simulation.number_of_cells()
+    )
     assert all([a.shape[0] >= nb_own_cells for a in celldata.values()])
     celldata = {name: a[:nb_own_cells] for name, a in celldata.items()}
     vtkw.write_vtu(
