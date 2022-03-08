@@ -12,3 +12,7 @@ class CompassException(Exception):
 
 class SanityCheckFailure(Exception):
     pass
+
+
+class CompassUserInterrupt(CompassException):
+    pass
