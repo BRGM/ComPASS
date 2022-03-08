@@ -197,30 +197,7 @@ def init(
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()
         summarize_simulation()
-        if simulation.is_sequential or simulation.global_number_of_cells() == 1:
-            if mesh_parts is None:
-                mesh_parts = np.tile(
-                    mpi.master_proc_rank, simulation.global_number_of_cells()
-                )
-            else:
-                assert tuple(np.unique(mesh_parts)) == (mpi.master_proc_rank,)
-                pass
-        else:
-            if mesh_parts is None:
-                use_Kway = use_Kway_part_graph
-                mesh_parts = part_mesh(
-                    use_Kway=use_Kway,
-                    # connectivity_file=simulation.runtime.to_output_directory(
-                    #     "mesh/connectivity"
-                    # ),
-                )
-        ucolors = np.unique(mesh_parts)
-        assert ucolors.min() >= 0
-        assert ucolors.max() < mpi.communicator().size
-        parts_file = Path(simulation.runtime.to_output_directory("mesh/parts"))
-        parts_file.parent.mkdir(parents=True, exist_ok=True)
-        np.save(parts_file, mesh_parts)
-        kernel.init_phase2_partition(mesh_parts)
+        part_mesh(simulation, use_Kway=use_Kway_part_graph)
     simulation.mesh_is_local = True
     mpi.synchronize()
     kernel.init_phase2_build_local_mesh()
@@ -433,7 +410,7 @@ def cell_distribution(colors):
     return domains, ghost_layers
 
 
-def part_mesh(use_Kway, connectivity_file=None):
+def _part_mesh(use_Kway, connectivity_file=None):
     assert mpi.is_on_master_proc
     kernel = get_kernel()
     nparts = mpi.communicator().size
@@ -459,6 +436,34 @@ def part_mesh(use_Kway, connectivity_file=None):
     else:
         cell_colors = np.zeros(_sw.global_number_of_cells(), dtype=np.int32)
     return cell_colors
+
+
+# def part_mesh(simulation, use_Kway, connectivity_file=None):
+def part_mesh(simulation, use_Kway):
+    assert mpi.is_on_master_proc, "Mesh partioning is assumed to run on master proc."
+    if simulation.is_sequential or simulation.global_number_of_cells() == 1:
+        if mesh_parts is None:
+            mesh_parts = np.tile(
+                mpi.master_proc_rank, simulation.global_number_of_cells()
+            )
+        else:
+            assert tuple(np.unique(mesh_parts)) == (mpi.master_proc_rank,)
+            pass
+    else:
+        if mesh_parts is None:
+            mesh_parts = _part_mesh(
+                use_Kway=use_Kway,
+                # connectivity_file=simulation.runtime.to_output_directory(
+                #     "mesh/connectivity"
+                # ),
+            )
+    ucolors = np.unique(mesh_parts)
+    assert ucolors.min() >= 0
+    assert ucolors.max() < mpi.communicator().size
+    parts_file = Path(simulation.runtime.to_output_directory("mesh/parts"))
+    parts_file.parent.mkdir(parents=True, exist_ok=True)
+    np.save(parts_file, mesh_parts)
+    get_kernel().init_phase2_partition(mesh_parts)
 
 
 # ---------------------------------------------------------------------------#
