@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from MeshTools.vtkwriters import vtk_celltype
+from vtkwriters import vtk_celltype
 
 
 class CoC:

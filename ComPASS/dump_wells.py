@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from .utils.units import *
 from . import mpi
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 
 
 WellInfo = namedtuple("WellInfo", ["type", "nb_own", "nb", "information", "data"])

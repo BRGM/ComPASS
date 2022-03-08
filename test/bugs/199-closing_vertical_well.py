@@ -15,7 +15,7 @@ from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 from ComPASS.mpi import master_print
 
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
 

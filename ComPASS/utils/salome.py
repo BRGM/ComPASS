@@ -5,7 +5,7 @@ from collections import defaultdict, OrderedDict, namedtuple
 import importlib
 import numpy as np
 import MeshTools as MT
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 import ComPASS.mpi as mpi
 
 # TODO: dict of mask values could be broadcasted using mpi4py

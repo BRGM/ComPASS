@@ -36,7 +36,7 @@ from mpi4py import MPI
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 from ComPASS.utils.wells import create_vertical_well
 import GROUPS as groups
 import ComPASS.mpi as mpi

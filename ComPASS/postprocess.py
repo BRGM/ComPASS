@@ -17,7 +17,7 @@ from .dumps import Dumper
 from .dump_wells import _well_vtu_filename as well_vtu
 from .utils import create_directories
 from .utils import units
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 
 
 class MeshDistribution:

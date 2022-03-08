@@ -1,6 +1,6 @@
 import glob, re, os
 import numpy as np
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 from . import mpi
 
 

@@ -13,7 +13,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import MeshTools as MT
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 import gmsh_reader
 
 

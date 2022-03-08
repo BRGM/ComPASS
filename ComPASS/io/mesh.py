@@ -8,7 +8,7 @@
 
 from pathlib import Path
 import numpy as np
-from MeshTools import vtkwriters as vtkw
+import vtkwriters as vtkw
 from .. import mpi
 
 

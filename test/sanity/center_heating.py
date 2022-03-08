@@ -12,7 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import MeshTools as MT
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 
 L = 1  # 2*np.pi
 nx, ny, nz = (10,) * 3  # discretization

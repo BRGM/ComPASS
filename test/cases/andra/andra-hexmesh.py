@@ -11,7 +11,7 @@ import numpy as np
 # WARNING: Set your python path adequately
 # e.g.: export PYTHONPATH=/home/simon/ComPASS/python
 import MeshTools as MT
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 
 # radius
 inner_radius = 1.0

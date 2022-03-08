@@ -1,7 +1,7 @@
 from collections import namedtuple
 import numpy as np
 import MeshTools as MT
-import MeshTools.vtkwriters as vtkw
+import vtkwriters as vtkw
 import MeshTools.URG as urg
 
 Point = urg.Point
