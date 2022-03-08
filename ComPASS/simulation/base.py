@@ -27,7 +27,7 @@ from .._kernel import get_kernel
 from .._kernel import simulation_wrapper as _sw
 
 from ..schemes.VAG import VAGScheme
-from .utils import reshape_as_scalar_array, reshape_as_tensor_array
+from . import utils
 from .data import set_fractures, collect_all_edges
 from . import _simulation_object
 
@@ -549,9 +549,9 @@ def _set_property_on_global_mesh(property, location, value, fractures=None):
             n = fractures.shape[0]
         dim = 2
     if property in ["permeability", "thermal_conductivity"] and location == "cell":
-        value = reshape_as_tensor_array(value, n, dim)
+        value = utils.reshape_as_tensor_array(value, n, dim)
     else:
-        value = reshape_as_scalar_array(value, n)
+        value = utils.reshape_as_scalar_array(value, n)
     if location == "fracture":
         buffer[fractures] = value
     else:
