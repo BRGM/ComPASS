@@ -1,5 +1,5 @@
 variables:
-  COMPASS_SDK: 0.1.7
+  COMPASS_SDK: 0.1.8
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -222,6 +222,7 @@ petrel:
   script:
     - cd test/cases/petrel
     - python3 doublet_on_cartesian_grid_petrel.py
+    - python3 doublet_on_faulted_petrel_grid.py
 
 diphasic freeflow:
   stage: test

@@ -9,10 +9,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.RawMesh import RawMesh
-
-import MeshTools as MT
-from MeshTools.io import petrel
+from ComPASS.utils.petrel import PetrelGrid
 
 # fmt: off
 pres = 20. * MPa            # initial reservoir pressure
@@ -30,42 +27,7 @@ ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
 
 
-def load_eclipse_grid(filename):
-    import os
-
-    grdecl, kwargs = petrel.read_file_argument(filename)
-    name = os.path.basename(grdecl.split(".")[0])
-    pgrid = petrel.PetrelGrid.build_from_files(grdecl, **kwargs)
-    hexa, vertices, cell_faces, face_nodes = pgrid.process()
-    perm = pgrid.get_perm()
-    #    mesh = MT.HybridMesh.Mesh()
-    #    vertices = mesh.vertices
-    #    for P in vertices:
-    #        vertices.append(MT.Point(P))
-    #    cellnodes = mesh.connectivity.cells.nodes
-    #    for cell in hexa:
-    #        cellnodes.append(MT.Hexahedron(cell))
-    #    mesh.connectivity.update_from_cellnodes()
-    cell_nodes = [np.unique(np.hstack(face_nodes[faces])) for faces in cell_faces]
-    mesh = RawMesh(
-        vertices=vertices,
-        cell_faces=list(cell_faces),
-        face_nodes=list(face_nodes),
-        cell_nodes=cell_nodes,
-    )
-    return mesh, perm
-
-
-mesh, perm = load_eclipse_grid("sample.grdecl")
-
-
-def build_permeability_tensors():
-    nbcells = len(perm[0])
-    k = np.zeros((nbcells, 3, 3), dtype=np.double)
-    for i in range(3):  # kx, ky, kz
-        k[:, i, i] = np.asarray(perm[i], dtype=np.double)
-    k *= 1e-15  # to mdarcy
-    return k
+grid = PetrelGrid("sample.grdecl")
 
 
 def select_dirichlet():
@@ -90,11 +52,11 @@ def make_wells():
 
 
 simulation.init(
-    mesh=mesh,
+    mesh=grid.mesh,
     set_dirichlet_nodes=select_dirichlet,
     wells=make_wells,
     cell_porosity=omega_reservoir,
-    cell_permeability=build_permeability_tensors,
+    cell_permeability=grid.permeability,
     cell_thermal_conductivity=K_reservoir,
 )
 
