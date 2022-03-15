@@ -91,8 +91,9 @@ class Dumper:
                         print(i, file=f)
 
     def dump_mesh(self):
-        connectivity = self.simulation.get_connectivity()
-        fracture_nodes_coc = self.simulation.get_nodes_by_fractures()
+        simulation = self.simulation
+        connectivity = simulation.get_connectivity()
+        fracture_nodes_coc = simulation.get_nodes_by_fractures()
         fracture_nodes = [
             np.array(nodes) - 1 for nodes in fracture_nodes_coc
         ]  # switch first node indexing from 1 to 0
@@ -100,19 +101,20 @@ class Dumper:
         fracturenodes_values = (
             np.hstack(fracture_nodes) if len(fracture_nodes) > 0 else np.array([])
         )
-        fracture_faces = self.simulation.frac_face_id()
-        fracture_types = self.simulation.facetypes()[
+        fracture_faces = simulation.frac_face_id()
+        fracture_types = simulation.facetypes()[
             fracture_faces - 1
         ]  # switch first node indexing from 1 to 0
+        breakpoint()
         np.savez(
             self.mesh_filename(mpi.proc_rank),
-            vertices=self.simulation.vertices().view(dtype=np.double).reshape((-1, 3)),
+            vertices=simulation.vertices().view(dtype=np.double).reshape((-1, 3)),
             cellnodes_offsets=connectivity.NodebyCell.offsets()[
                 1:
             ],  # VTK does not use the first 0 offset
             cellnodes_values=connectivity.NodebyCell.contiguous_content()
             - 1,  # switch first node indexing from 1 to 0
-            celltypes=self.simulation.celltypes(),
+            celltypes=simulation.celltypes(),
             fracturenodes_offsets=fracturenodes_offsets,
             fracturenodes_values=fracturenodes_values,
             fracture_types=fracture_types,
