@@ -141,21 +141,15 @@ class PostProcessor:
         assert self.vertices_type == mesh["vertices"].dtype
         proc_label = self.dumper.proc_label(proc)
         piecefile = self.to_vtu_directory("%s_%s.vtu" % (basename, proc_label))
-        cell_nodes_offsets = mesh["cellnodes_offsets"]
-        cell_nodes = mesh["cellnodes_values"]
-        cell_types = mesh["celltypes"]
+        coc_to_list = lambda s: np.split(mesh[f"{s}_values"], mesh[f"{s}_offsets"][:-1])
+        cellfaces = coc_to_list("cellfaces")
+        facenodes = coc_to_list("facenodes")
+        cells = [[facenodes[face] for face in faces] for faces in cellfaces]
         if own_only:
-            cell_nodes_offsets = cell_nodes_offsets[:nb_own_cells]
-            cell_nodes = cell_nodes[: cell_nodes_offsets[-1]]
-            cell_types = cell_types[:nb_own_cells]
+            cells = cells[:nb_own_cells]
         vtkw.write_vtu(
-            vtkw.vtu_doc_from_COC(
-                mesh["vertices"],
-                cell_nodes_offsets,
-                cell_nodes,
-                cell_types,
-                pointdata=nodedata,
-                celldata=celldata,
+            vtkw.polyhedra_vtu_doc(
+                mesh["vertices"], cells, pointdata=nodedata, celldata=celldata,
             ),
             piecefile,
         )

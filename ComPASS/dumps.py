@@ -124,6 +124,8 @@ class Dumper:
             )
 
         add_coc("cellnodes", connectivity.NodebyCell)
+        add_coc("cellfaces", connectivity.FacebyCell)
+        add_coc("facenodes", connectivity.NodebyFace)
         np.savez(self.mesh_filename(mpi.proc_rank), **kwargs)
 
     def dump_states(self, tag="", dump_fluxes=True):
