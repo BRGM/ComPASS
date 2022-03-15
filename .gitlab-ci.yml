@@ -1,5 +1,5 @@
 variables:
-  COMPASS_SDK: 0.1.6
+  COMPASS_SDK: 0.1.7
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1

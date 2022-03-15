@@ -83,12 +83,6 @@ def get_faces_nodes(connectivity, faces_selection):
     return faces
 
 
-def filter_adjacency_table(indices):
-    split_points = np.cumsum([len(a) for a in indices])[:-1]
-    used, inverse = np.unique(np.hstack(indices), return_inverse=True)
-    return used, np.split(inverse, split_points)
-
-
 def facenodes(simulation, faces_selection):
     assert simulation.is_local
     faces = get_faces_nodes(simulation.get_connectivity(), faces_selection)

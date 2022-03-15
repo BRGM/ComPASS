@@ -18,6 +18,7 @@ from .dump_wells import _well_vtu_filename as well_vtu
 from .utils import create_directories
 from .utils import units
 import vtkwriters as vtkw
+from .utils.adjacencies import filter_adjacency_table
 
 
 class MeshDistribution:
@@ -165,7 +166,7 @@ class PostProcessor:
             )  # will triger a TypeError if array sizes are not the same
             if fracdata_size > 0:
                 fracpiecefile = self.to_vtu_directory(
-                    "fracture_%s_%s.vtu" % (basename, proc_label)
+                    "fracture_%s_%s.vtp" % (basename, proc_label)
                 )
                 cell_nodes_offsets = mesh["fracturenodes_offsets"]
                 cell_nodes = mesh["fracturenodes_values"]
@@ -175,14 +176,12 @@ class PostProcessor:
                         return piecefile, None
                     cell_nodes_offsets = cell_nodes_offsets[:nb_own_fractures]
                     cell_nodes = cell_nodes[: cell_nodes_offsets[-1]]
-                    cell_types = cell_types[:nb_own_fractures]
-                vtkw.write_vtu(
-                    vtkw.vtu_doc_from_COC(
-                        mesh["vertices"],
-                        cell_nodes_offsets,
-                        cell_nodes,
-                        cell_types,
-                        celldata=fracdata,
+                # FIXME: this is suboptimal because we should use the underlying structures
+                faces_nodes = np.split(cell_nodes, cell_nodes_offsets[:-1])
+                used, faces_nodes = filter_adjacency_table(faces_nodes)
+                vtkw.write_vtp(
+                    vtkw.vtp_doc(
+                        mesh["vertices"][used], faces_nodes, celldata=fracdata,
                     ),
                     fracpiecefile,
                 )
@@ -206,13 +205,13 @@ class PostProcessor:
             self.to_paraview_directory("mesh.pvtu"),
         )
         if len(fracpieces) > 0:
-            vtkw.write_pvtu(
-                vtkw.pvtu_doc(
+            vtkw.write_pvtp(
+                vtkw.pvtp_doc(
                     self.vertices_type,
                     fracpieces,
                     celldata_types={"proc": self.proc_id_type},
                 ),
-                self.to_paraview_directory("fractures_mesh.pvtu"),
+                self.to_paraview_directory("fractures_mesh"),
             )
 
     def collect_snapshots(self):
@@ -291,9 +290,9 @@ class PostProcessor:
             )
             pvtus = (pvtufile,)
             if any(pieces[1] is not None for pieces in all_pieces):
-                fracpvtufile = self.to_vtu_directory("fracture_state_" + tag + ".pvtu")
-                vtkw.write_pvtu(
-                    vtkw.pvtu_doc(
+                fracpvtpfile = self.to_vtu_directory("fracture_state_" + tag + ".pvtp")
+                vtkw.write_pvtp(
+                    vtkw.pvtp_doc(
                         self.vertices_type,
                         [
                             os.path.relpath(pieces[1], self.to_vtu_directory())
@@ -302,9 +301,9 @@ class PostProcessor:
                         ],
                         celldata_types=self.data_types["fracture"],
                     ),
-                    fracpvtufile,
+                    fracpvtpfile,
                 )
-                pvtus = (pvtufile, fracpvtufile)
+                pvtus = (pvtufile, fracpvtpfile)
             pvd[snapshots[tag] / self.time_unit] = pvtus
         vtkw.write_pvd(
             vtkw.pvd_doc(

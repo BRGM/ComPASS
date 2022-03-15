@@ -23,6 +23,7 @@ from ..RawMesh import RawMesh
 from ..distributed_system import DistributedSystem
 from ..ghosts.synchronizer import Synchronizer
 from .. import messages
+from ..utils.adjacencies import filter_adjacency_table
 
 from .._kernel import get_kernel
 from .._kernel import simulation_wrapper as _sw
@@ -505,7 +506,7 @@ def dump_global_mesh(simulation):
     connectivity = simulation.get_global_connectivity()
     boundaries = utils.get_boundary_faces(connectivity)
     boundaries = utils.get_faces_nodes(connectivity, boundaries)
-    boundary_nodes, boundary_faces = utils.filter_adjacency_table(boundaries)
+    boundary_nodes, boundary_faces = filter_adjacency_table(boundaries)
     vertices = simulation.global_vertices()
     vtkw.write_vtp(
         vtkw.vtp_doc(vertices[boundary_nodes], boundary_faces,),
