@@ -221,17 +221,12 @@ if(NOT PETSc_FOUND)
   )
 endif(NOT PETSc_FOUND)
 
-if(${PETSc_VERSION} VERSION_LESS 3.6)
-  add_definitions(-DCOMPASS_PETSC_VERSION_LESS_3_6)
-elseif(${PETSc_VERSION} VERSION_LESS 3.8)
+if(${PETSc_VERSION} VERSION_LESS 3.8)
   message(
-    FATAL_ERROR
-      "Your PETSc version is "
-      ${PETSc_VERSION}
-      ".
-    Please use a PETSc version lower or equal to 3.5.4 or greater or equal to 3.8.0."
+    FATAL_ERROR "Your PETSc version is ${PETSc_VERSION}."
+                "Please use a PETSc version lower greater or equal to 3.8.0."
   )
-endif(${PETSc_VERSION} VERSION_LESS 3.6)
+endif(${PETSc_VERSION} VERSION_LESS 3.8)
 
 find_package(LAPACK REQUIRED)
 

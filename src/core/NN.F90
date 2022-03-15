@@ -48,11 +48,7 @@ module NN
    use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells, DefFlashWells_free
    use WellState, only: WellState_allocate, WellState_free
 
-#ifdef COMPASS_PETSC_VERSION_LESS_3_6
-#include <finclude/petscdef.h>
-#else
 #include <petsc/finclude/petsc.h>
-#endif
 
    use petsc
 

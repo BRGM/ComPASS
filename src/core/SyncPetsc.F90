@@ -245,11 +245,7 @@ end module SyncPetsc
 
 subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
 
-#ifdef COMPASS_PETSC_VERSION_LESS_3_6
-#include <finclude/petscdef.h>
-#else
 #include <petsc/finclude/petsc.h>
-#endif
 
    use petsc
 

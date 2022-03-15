@@ -9,11 +9,7 @@
 ! WARNING: subroutine name must be lower case
 subroutine dump_from_fortran(mat)
 
-#ifdef COMPASS_PETSC_VERSION_LESS_3_6
-#include <finclude/petscdef.h>
-#else
 #include <petsc/finclude/petsc.h>
-#endif
 
    use petsc
 
