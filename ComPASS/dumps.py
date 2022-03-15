@@ -105,20 +105,26 @@ class Dumper:
         fracture_types = simulation.facetypes()[
             fracture_faces - 1
         ]  # switch first node indexing from 1 to 0
-        breakpoint()
-        np.savez(
-            self.mesh_filename(mpi.proc_rank),
-            vertices=simulation.vertices().view(dtype=np.double).reshape((-1, 3)),
-            cellnodes_offsets=connectivity.NodebyCell.offsets()[
-                1:
-            ],  # VTK does not use the first 0 offset
-            cellnodes_values=connectivity.NodebyCell.contiguous_content()
-            - 1,  # switch first node indexing from 1 to 0
-            celltypes=simulation.celltypes(),
-            fracturenodes_offsets=fracturenodes_offsets,
-            fracturenodes_values=fracturenodes_values,
-            fracture_types=fracture_types,
-        )
+        kwargs = {
+            "vertices": simulation.vertices().view(dtype=np.double).reshape((-1, 3)),
+            "celltypes": simulation.celltypes(),
+            "fracturenodes_offsets": fracturenodes_offsets,
+            "fracturenodes_values": fracturenodes_values,
+            "fracture_types": fracture_types,
+        }
+
+        def add_coc(name, info):
+            kwargs.update(
+                {
+                    # VTK does not use the first 0 offset
+                    f"{name}_offsets": info.offsets()[1:],
+                    # switch first node indexing from 1 to 0
+                    f"{name}_values": info.contiguous_content() - 1,
+                }
+            )
+
+        add_coc("cellnodes", connectivity.NodebyCell)
+        np.savez(self.mesh_filename(mpi.proc_rank), **kwargs)
 
     def dump_states(self, tag="", dump_fluxes=True):
         assert self.simulation_running
