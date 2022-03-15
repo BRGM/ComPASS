@@ -240,8 +240,6 @@ enable_testing()
 # CHECKME: Should languages be enabled here or at the beginning as project
 # properties enable_language(Fortran) enable_language(C) enable_language(CXX)
 
-include_directories(${THIRD_PARTY_DIR}/mapbox/include)
-
 add_subdirectory(src)
 
 # -- targets and installation

@@ -254,20 +254,17 @@ struct Producer_data_info {
       radius = well.geometry.radius;
       if (well.operates_on_pressure()) {
          operating_code = 'p';
-         assert(well.control.operating_conditions
-                    .is<Pressure_operating_conditions>());
-         auto operating_conditions = well.control.operating_conditions
-                                         .get<Pressure_operating_conditions>();
+         const auto& operating_conditions =
+             std::get<Pressure_operating_conditions>(
+                 well.control.operating_conditions);
          minimum_pressure = operating_conditions.pressure;
          imposed_flowrate = operating_conditions.flowrate_limit;
       } else {
          if (well.operates_on_flowrate()) {
             operating_code = 'f';
-            assert(well.control.operating_conditions
-                       .is<Flowrate_operating_conditions>());
-            auto operating_conditions =
-                well.control.operating_conditions
-                    .get<Flowrate_operating_conditions>();
+            const auto& operating_conditions =
+                std::get<Flowrate_operating_conditions>(
+                    well.control.operating_conditions);
             minimum_pressure = operating_conditions.pressure_limit;
             imposed_flowrate = operating_conditions.flowrate;
          } else {
@@ -295,25 +292,21 @@ struct Injector_data_info {
       assert(well.is_injecting());
       id = well.id;
       radius = well.geometry.radius;
-      assert(well.control.status.is<Injection_well_status>());
-      auto status = well.control.status.get<Injection_well_status>();
+      const auto& status = std::get<Injection_well_status>(well.control.status);
       temperature = status.temperature;
       if (well.operates_on_pressure()) {
          operating_code = 'p';
-         assert(well.control.operating_conditions
-                    .is<Pressure_operating_conditions>());
-         auto operating_conditions = well.control.operating_conditions
-                                         .get<Pressure_operating_conditions>();
+         const auto& operating_conditions =
+             std::get<Pressure_operating_conditions>(
+                 well.control.operating_conditions);
          maximum_pressure = operating_conditions.pressure;
          imposed_flowrate = operating_conditions.flowrate_limit;
       } else {
          if (well.operates_on_flowrate()) {
             operating_code = 'f';
-            assert(well.control.operating_conditions
-                       .is<Flowrate_operating_conditions>());
-            auto operating_conditions =
-                well.control.operating_conditions
-                    .get<Flowrate_operating_conditions>();
+            const auto& operating_conditions =
+                std::get<Flowrate_operating_conditions>(
+                    well.control.operating_conditions);
             maximum_pressure = operating_conditions.pressure_limit;
             imposed_flowrate = operating_conditions.flowrate;
          } else {
@@ -358,24 +351,21 @@ struct MSWell_data_info {
       if (well.is_producing()) {  // for mswells-producers
 
          well_type = 'p';  // producer type
-         assert(well.control.status.is<Production_well_status>());
+         assert(std::holds_alternative<Production_well_status>(
+             well.control.status));
          if (well.operates_on_pressure()) {
             operating_code = 'p';
-            assert(well.control.operating_conditions
-                       .is<Pressure_operating_conditions>());
-            auto operating_conditions =
-                well.control.operating_conditions
-                    .get<Pressure_operating_conditions>();
+            const auto& operating_conditions =
+                std::get<Pressure_operating_conditions>(
+                    well.control.operating_conditions);
             minimum_pressure = operating_conditions.pressure;
             imposed_flowrate = operating_conditions.flowrate_limit;
          } else {
             if (well.operates_on_flowrate()) {
                operating_code = 'f';
-               assert(well.control.operating_conditions
-                          .is<Flowrate_operating_conditions>());
-               auto operating_conditions =
-                   well.control.operating_conditions
-                       .get<Flowrate_operating_conditions>();
+               const auto& operating_conditions =
+                   std::get<Flowrate_operating_conditions>(
+                       well.control.operating_conditions);
                minimum_pressure = operating_conditions.pressure_limit;
                imposed_flowrate = operating_conditions.flowrate;
             } else {
@@ -393,26 +383,22 @@ struct MSWell_data_info {
       else if (well.is_injecting()) {  // for mswells-injectors
 
          well_type = 'i';  // injector type
-         assert(well.control.status.is<Injection_well_status>());
-         auto status = well.control.status.get<Injection_well_status>();
+         const auto& status =
+             std::get<Injection_well_status>(well.control.status);
          temperature = status.temperature;
          if (well.operates_on_pressure()) {
             operating_code = 'p';
-            assert(well.control.operating_conditions
-                       .is<Pressure_operating_conditions>());
-            auto operating_conditions =
-                well.control.operating_conditions
-                    .get<Pressure_operating_conditions>();
+            const auto& operating_conditions =
+                std::get<Pressure_operating_conditions>(
+                    well.control.operating_conditions);
             maximum_pressure = operating_conditions.pressure;
             imposed_flowrate = operating_conditions.flowrate_limit;
          } else {
             if (well.operates_on_flowrate()) {
                operating_code = 'f';
-               assert(well.control.operating_conditions
-                          .is<Flowrate_operating_conditions>());
-               auto operating_conditions =
-                   well.control.operating_conditions
-                       .get<Flowrate_operating_conditions>();
+               const auto& operating_conditions =
+                   std::get<Flowrate_operating_conditions>(
+                       well.control.operating_conditions);
                maximum_pressure = operating_conditions.pressure_limit;
                imposed_flowrate = operating_conditions.flowrate;
             } else {
@@ -549,11 +535,9 @@ void add_well_wrappers(py::module& module) {
            [](Well& instance) -> py::object {
               py::object result = py::none{};
               if (instance.operates_on_pressure()) {
-                 assert(instance.control.operating_conditions
-                            .is<Pressure_operating_conditions>());
-                 auto operating_conditions =
-                     instance.control.operating_conditions
-                         .get<Pressure_operating_conditions>();
+                 const auto& operating_conditions =
+                     std::get<Pressure_operating_conditions>(
+                         instance.control.operating_conditions);
                  return py::make_tuple(operating_conditions.pressure,
                                        operating_conditions.flowrate_limit);
               }
@@ -569,11 +553,9 @@ void add_well_wrappers(py::module& module) {
            [](Well& instance) -> py::object {
               py::object result = py::none{};
               if (instance.operates_on_flowrate()) {
-                 assert(instance.control.operating_conditions
-                            .is<Flowrate_operating_conditions>());
-                 auto operating_conditions =
-                     instance.control.operating_conditions
-                         .get<Flowrate_operating_conditions>();
+                 const auto& operating_conditions =
+                     std::get<Flowrate_operating_conditions>(
+                         instance.control.operating_conditions);
                  return py::make_tuple(operating_conditions.flowrate,
                                        operating_conditions.pressure_limit);
               }

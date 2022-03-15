@@ -12,11 +12,8 @@
 #include <array>
 #include <iterator>
 #include <list>
+#include <variant>
 #include <vector>
-
-// FIXME: use C++17 variant
-// #include <variant>
-#include <mapbox/variant.hpp>
 
 namespace ComPASS {
 
@@ -47,10 +44,9 @@ struct Pressure_operating_conditions {
        : pressure{P}, flowrate_limit{Qlim} {}
 };
 
-typedef mapbox::util::variant<Undefined_operating_conditions,
-                              Flowrate_operating_conditions,
-                              Pressure_operating_conditions>
-    Operating_conditions;
+using Operating_conditions =
+    std::variant<Undefined_operating_conditions, Flowrate_operating_conditions,
+                 Pressure_operating_conditions>;
 
 struct Closed_well_status {};
 
@@ -62,20 +58,20 @@ struct Injection_well_status {
    Injection_well_status(double T) : temperature{T} {}
 };
 
-typedef mapbox::util::variant<Closed_well_status, Injection_well_status,
-                              Production_well_status>
-    Well_status;
+using Well_status = std::variant<Closed_well_status, Injection_well_status,
+                                 Production_well_status>;
 
 struct Well_control {
    Operating_conditions operating_conditions;
    Well_status status;
    template <typename WellStatus>
-   bool check_status() const {
-      return status.is<WellStatus>();
+   constexpr bool check_status() const noexcept {
+      return std::holds_alternative<WellStatus>(status);
    }
    template <typename WellOperatingConditions>
-   bool check_operating_conditions() const {
-      return operating_conditions.is<WellOperatingConditions>();
+   constexpr bool check_operating_conditions() const noexcept {
+      return std::holds_alternative<WellOperatingConditions>(
+          operating_conditions);
    }
    bool is_closed() const { return check_status<Closed_well_status>(); }
    bool is_injecting() const { return check_status<Injection_well_status>(); }
