@@ -313,10 +313,10 @@ pages:
   before_script:
     - python3 -m pip install --no-index -f dist ComPASS
   script:
-    - source docs/make_the_doc --with-doxygen
+    - source doc/make_the_doc --with-doxygen
     - mkdir -p public/core_reference
-    - cp -rf docs/html/* public
-    - cp -rf docs/doxygen/html/* public/core_reference
+    - cp -rf doc/html/* public
+    - cp -rf doc/doxygen/html/* public/core_reference
   artifacts:
     paths:
     - public
