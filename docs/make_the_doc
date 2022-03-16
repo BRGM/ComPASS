@@ -1,12 +1,39 @@
 #!/bin/bash
 
-rootdir=$(pwd)
+# we keep the starting directory to source this script
+START_DIR=$(pwd)
 
-cd ./doxygen
-doxygen Doxyfile
+# from: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+POSITIONAL_ARGS=()
+USE_DOXYGEN=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --with-doxygen)
+      USE_DOXYGEN=true
+      shift # past argument
+      ;;
+  esac
+done
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
-cd ${rootdir}
-cp -vf ../README.rst ../INSTALL.rst ../LICENSE.rst .
+# from: https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
+SOURCE=${BASH_SOURCE[0]}
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+
+if [[ "${USE_DOXYGEN}" = true ]]; then
+    cd ${DIR}/doxygen
+    doxygen Doxyfile
+fi
+
+cd ${DIR}
+cp -vf ../README.rst ../LICENSE.rst .
 cp -vf ../CodingConventions.rst ./developers_corner/
-sphinx-apidoc ../ComPASS -o python_reference
-sphinx-build . html
+python3 -m sphinx.ext.apidoc ../ComPASS -o python_reference
+python3 -m sphinx.cmd.build . html
+
+cd ${START_DIR}
