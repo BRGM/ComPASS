@@ -13,6 +13,8 @@ Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
 Unfortunately subtle differences may exist from one system to another.
 Please do not hesitate to submit issues/comments to improve this section.
 
+.. _install with Ubuntu:
+
 Install on `Ubuntu 20.04 focal <https://releases.ubuntu.com/20.04/>`_
 ---------------------------------------------------------------------
 
@@ -124,7 +126,7 @@ The script has been successfully tested at the beginning of February 2022.
 
 
 Linux script
-""""""""""""
+^^^^^^^^^^^^
 
 .. literalinclude:: ../miscellaneous/install-linux-with-conda
    :language: bash
@@ -134,7 +136,7 @@ Download script:
 :download:`install-on-linux-with-conda <../miscellaneous/install-linux-with-conda>`
 
 MacOS script (with clang)
-"""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This script is not fully tested yet.
 
@@ -146,7 +148,7 @@ Download script:
 :download:`install-on-linux-with-conda <../miscellaneous/install-mac-with-conda>`
 
 
-Other systems
--------------
+Using docker environments
+-------------------------
 
-.. include:: INSTALL.rst
+.. include:: using_docker.rst

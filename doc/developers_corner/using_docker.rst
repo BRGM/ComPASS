@@ -1,3 +1,5 @@
+.. _using_compass_sdk_with_docker:
+
 Using *ComPASS SDK* via docker images
 =====================================
 

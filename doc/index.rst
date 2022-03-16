@@ -7,7 +7,6 @@ ComPASS |version|
    :caption: Contents:
 
    introduction
-   wiki/using_docker
    setting_simulation
    examples
    linear_solver_guide
