@@ -27,3 +27,21 @@ Cf. for example the :func:`ComPASS.timeloops.standard_loop` function.
 Simulation results can be prostprocess with ComPASS.prostprocess module
 and the underlying :func:`~ComPASS.postprocess.postprocess` function.
 If you use docker container you can also use the :code:`postprocess` subcommand.
+
+Physical units
+--------------
+
+The `International System of Units <https://en.wikipedia.org/wiki/International_System_of_Units>`_
+ is used throughout the code without specifying units.
+
+ For example:
+
+   - distances are expressed in meters
+   - permeabilities are expressed in :math:`m^2`
+   - porosity has no units
+   - times are expressed in seconds
+   - ...
+
+To help users some precomputed quantities are available in
+the `ComPASS.utils.units <https://github.com/BRGM/ComPASS/blob/v4.4.x/ComPASS/utils/units.py>`_ module.
+Check the following examples to see how these quantities can be used.
