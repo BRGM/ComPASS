@@ -52,7 +52,7 @@ def mesh_2(R=1000, theta=np.pi / 6, ds=None, clean_mesh=True):
 
     Mesh_2.lloyd_optimize_mesh_2(cdt)
 
-    vertices, triangles = Mesh_2.as_arrays(cdt)
+    vertices, triangles = cdt.as_arrays()
 
     if clean_mesh:  # FIXME: we should use CGAL Epeck kernel to generate the mesh
         threshold = (0.1 * ds_O) ** 2
