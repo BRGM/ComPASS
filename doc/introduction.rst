@@ -113,6 +113,12 @@ For example:
 
 will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics.
 
+**Permission related problems**
+
+When running in a docker environment or on a distant machine you may face
+permission related problems. Try to add the  setuptools :code:`--user` option at the
+end of the compilation directive to use your local python site.
+
 
 Install in a conda environment
 ------------------------------
