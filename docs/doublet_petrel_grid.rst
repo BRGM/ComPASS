@@ -4,7 +4,8 @@ Geothermal doublet on an Eclipse Grid
 Doublet on a simple cartesian grid
 ----------------------------------
 
-The permeability tensors are extracted from the Petrel file.
+The gris is extracted using the :code:`PetrelGrid` from the :code:`ComPASS.utils.petrel` module.
+The permeability tensors are extracted from the Petrel file using the :code:`PetrelGrid.permeability` property.
 
 .. literalinclude:: ../test/cases/petrel/doublet_on_cartesian_grid_petrel.py
    :language: python
@@ -17,9 +18,10 @@ Download files:
 Doublet on a faulted grid
 -------------------------
 
-Faulted surfaces are automatically identified as fracture surfaces.
-They are remeshed relying on CGAL under the hood
-(relying on petrelgridio and pycgal python modules)
+Where unconformities are present, they are automatically
+identified as fracture/faulted surfaces.
+Such faces are remeshed relying on CGAL under the hood
+(with petrelgridio and pycgal python modules)
 to produce conformal meshes.
 
 The number of cells is kept constant, only cell faces are split

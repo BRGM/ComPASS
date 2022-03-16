@@ -9,6 +9,8 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
 
+# sample example from: https://github.com/BinWang0213/PyGRDECL/tree/master/ExampleData
+# the gris is inside a unit box hence the scaling operation below
 filename = Path("Simple20x20x5_Fault.grdecl")
 
 # fmt: off
