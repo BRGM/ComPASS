@@ -9,7 +9,6 @@ from ComPASS.utils.units import *
 
 # from ComPASS.newton import Newton
 # from ComPASS.linalg.factory import linear_solver
-from ComPASS.timeloops import TimeStepManager
 import MeshTools as MT
 
 # import ComPASS.mpi as mpi
