@@ -40,7 +40,7 @@ def create_single_branch_well(
     """
     :param simulation: simulation object, the method can also be accessed
                        through a fake method as `simulation.create_single_branch_well`
-    :param segments: a sequence of vertices id describing the well from top to bottom
+    :param nodes: a sequence of vertices id describing the well from top to bottom
     :param well_radius: the well radius in meters (used to compute Peaceman well indices - defaults to 0.1 m)
     :param multi_segmented: create a multi-segemented well (default is False)
     """
