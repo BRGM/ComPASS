@@ -31,10 +31,11 @@ If you use docker container you can also use the :code:`postprocess` subcommand.
 Physical units
 --------------
 
-The `International System of Units <https://en.wikipedia.org/wiki/International_System_of_Units>`_
- is used throughout the code without specifying units.
+The
+`International System of Units <https://en.wikipedia.org/wiki/International_System_of_Units>`_
+is used throughout the code without specifying units.
 
- For example:
+For example:
 
    - distances are expressed in meters
    - permeabilities are expressed in :math:`m^2`
@@ -42,6 +43,16 @@ The `International System of Units <https://en.wikipedia.org/wiki/International_
    - times are expressed in seconds
    - ...
 
-To help users some precomputed quantities are available in
+To help users, some precomputed quantities are available in
 the `ComPASS.utils.units <https://github.com/BRGM/ComPASS/blob/v4.4.x/ComPASS/utils/units.py>`_ module.
-Check the following examples to see how these quantities can be used.
+
+For example, considering any function :code:`f(t)` that is expecting an argument in seconds,
+just import another duration from :code:`ComPASS.utils.units` to call :code:`f`:
+
+.. code-block :: python
+
+  from ComPASS.utils.units import year
+
+  f(10*year)
+
+The examples in this section demonstrate how these quantities can be used in simulation scripts.
