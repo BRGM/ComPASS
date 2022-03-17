@@ -1,7 +1,7 @@
 .. _setting_linear_solver:
 
-Setting linear solver options
-=============================
+Setting up linear solver options
+================================
 
 The way of solving the linear system :math:`Ax=b` is a crucial step of the ComPASS code.
 ComPASS can use two types of solvers,

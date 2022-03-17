@@ -1,7 +1,7 @@
 Setting up physical properties
 ==============================
 
-As of now some properties can be define on a mesh element or control volume basis,
+As of now some properties can be defined on a mesh element or control volume basis,
 whereas other physical properties are defined globally for the whole mesh.
 
 Regionalized properties

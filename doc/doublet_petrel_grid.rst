@@ -4,7 +4,7 @@ Geothermal doublet on an Eclipse Grid
 Doublet on a simple cartesian grid
 ----------------------------------
 
-The gris is extracted using the :code:`PetrelGrid` from the :code:`ComPASS.utils.petrel` module.
+The grid is extracted using the :code:`PetrelGrid` from the :code:`ComPASS.utils.petrel` module.
 The permeability tensors are extracted from the Petrel file using the :code:`PetrelGrid.permeability` property.
 
 .. literalinclude:: ../test/cases/petrel/doublet_on_cartesian_grid_petrel.py
