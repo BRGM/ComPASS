@@ -10,7 +10,6 @@
 
 import ComPASS
 import numpy as np
-import MeshTools as MT
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages

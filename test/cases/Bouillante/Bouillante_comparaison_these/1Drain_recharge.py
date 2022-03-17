@@ -126,7 +126,7 @@ simulation.set_atm_rain_flux(0.0)
 # output_period = 0.1 * final_time
 run_loop(initial_time, final_time, no_output=True)
 
-# simulation.reload_snapshot(simulation.runtime.output_directory + "_init" + "/")
+# simulation.reload_snapshot(simulation.runtime.output_directory + "_init/")
 
 simulation.set_atm_rain_flux(-3.2e-2)  # mol/m^2/s
 initial_time = final_time
@@ -135,4 +135,4 @@ tsmger.current_step = 10.0 * day
 # output_period = (final_time - initial_time) / 100.0
 run_loop(initial_time, final_time, no_output=True)
 
-# postprocess(simulation.runtime.output_directory)
+simulation.postprocess()

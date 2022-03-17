@@ -5,7 +5,7 @@ import MeshTools as MT
 import ComPASS
 from ComPASS.timeloops import standard_loop
 from ComPASS.utils.units import *
-from ComPASS.utils.wells import create_vertical_well
+from ComPASS.timestep_management import TimeStepManager
 
 #%% mesh
 
@@ -46,7 +46,7 @@ dx = xout[1] - xout[0]
 xbetween = np.linspace(
     -half_interwell_distance,
     half_interwell_distance,
-    np.ceil(interwell_distance / dx) + 1,
+    int(np.ceil(interwell_distance / dx) + 1),
 )
 x = np.hstack([(-xout[1:])[::-1], xbetween, xout[1:]])
 ypos = geometric(0, 0.5 * grid_depth, steps_y_ratio, nb_steps_y)
@@ -79,25 +79,25 @@ omega_matrix = 0.15  # matrix porosity
 K_matrix = 2  # bulk thermal conductivity in W/m/K
 fracture_thickness = 0.005
 
-ComPASS.load_eos("linear_water")
-fluid_properties = ComPASS.get_fluid_properties()
+simulation = ComPASS.load_eos("linear_water")
+fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.compressibility = 1e-10  # it helps...
 fluid_properties.volumetric_heat_capacity = rhofcpf
 fluid_properties.dynamic_viscosity = muf
 
-ComPASS.set_gravity(0)
-ComPASS.set_fracture_thickness(fracture_thickness)
+simulation.set_gravity(0)
+simulation.set_fracture_thickness(fracture_thickness)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 
 def build_wells():
-    producer = create_vertical_well(
+    producer = simulation.create_vertical_well(
         (half_interwell_distance, 0), well_radius=0.1, zmin=-1.5 * dz, zmax=1.5 * dz
     )
     producer.operate_on_flowrate = Qm, -1e99  # mass flow rate, pressure limit (minimum)
     producer.produce()
-    injector = create_vertical_well(
+    injector = simulation.create_vertical_well(
         (-half_interwell_distance, 0), well_radius=0.1, zmin=-1.5 * dz, zmax=1.5 * dz
     )
     injector.operate_on_flowrate = -Qm, 1e99  # mass flow rate, pressure limit (maximum)
@@ -106,16 +106,16 @@ def build_wells():
 
 
 def select_dirichlet_nodes():
-    vertices = ComPASS.global_vertices()
+    vertices = simulation.global_vertices()
     return (vertices[:, 2] == z.min()) | (vertices[:, 2] == z.max())
 
 
 def select_fractures():
-    face_centers = ComPASS.compute_global_face_centers()
+    face_centers = simulation.compute_global_face_centers()
     return face_centers[:, 2] == 0
 
 
-ComPASS.init(
+simulation.init(
     mesh=mesh,
     wells=build_wells,
     cell_porosity=omega_matrix,
@@ -138,17 +138,15 @@ def set_states(states):
 
 
 for states in [
-    ComPASS.dirichlet_node_states(),
-    ComPASS.node_states(),
-    ComPASS.fracture_states(),
-    ComPASS.cell_states(),
+    simulation.dirichlet_node_states(),
+    simulation.node_states(),
+    simulation.fracture_states(),
+    simulation.cell_states(),
 ]:
     set_states(states)
 
 final_time = 2e4
 output_period = 0.05 * final_time
-ComPASS.set_maximum_timestep(0.5 * output_period)
-ComPASS.set_maximum_timestep(250)
 
 communicator = ComPASS.mpi.communicator()
 master = ComPASS.mpi.master_proc_rank
@@ -160,14 +158,14 @@ if rank == master:
 else:
     production_temperatures = None
 
-has_producer = ComPASS.nb_producers() > 0
-assert ComPASS.nb_producers() <= 1
+has_producer = simulation.nb_producers() > 0
+assert simulation.nb_producers() <= 1
 
 
 def collect_production_temperatures(n, t):
     if has_producer:
-        assert ComPASS.nb_producers() == 1
-        producers_perforations = list(ComPASS.producers_perforations())
+        assert simulation.nb_producers() == 1
+        producers_perforations = list(simulation.producers_perforations())
         wellhead_state = producers_perforations[0][
             -1
         ]  # latest perforation corresponds to well head
@@ -184,16 +182,18 @@ def collect_production_temperatures(n, t):
 
 #%% First loop: injection of hot water
 injection_duration = 0.1 * final_time
-standard_loop(
-    initial_timestep=1e-5,
+current_time = simulation.standard_loop(
     final_time=injection_duration,
+    time_step_manager=TimeStepManager(
+        1e-5, maximum_timestep=0.5 * output_period,  # initial time steps
+    ),
     iteration_callbacks=[collect_production_temperatures,],
     output_period=output_period,
 )
 
 #%% Second loop: we reinject production water
 
-injectors_data = list(ComPASS.injectors_data())
+injectors_data = list(simulation.injectors_data())
 if injectors_data:
     assert len(injectors_data) == 1
     injector_data = injectors_data[0]
@@ -213,17 +213,19 @@ def reinject_production(n, t):
         injector_data.injection_temperature = Tprod
 
 
-standard_loop(
-    initial_timestep=1e-5,
+simulation.standard_loop(
+    initial_time=current_time,
     final_time=final_time,
+    time_step_manager=TimeStepManager(
+        1e-5, maximum_timestep=0.5 * output_period,  # initial time steps
+    ),
     iteration_callbacks=[collect_production_temperatures, reinject_production],
     output_period=output_period,
 )
 
 if rank == master:
     np.save(
-        ComPASS.to_output_directory(
-            "production_temperatures_%05d" % ComPASS.mpi.proc_rank
-        ),
-        production_temperatures,
+        ComPASS.to_output_directory("production_temperatures"), production_temperatures,
     )
+
+# simulation.postprocess()

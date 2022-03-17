@@ -10,12 +10,11 @@
 
 import ComPASS
 import numpy as np
-import MeshTools as MT
-import MeshTools.CGALWrappers as CGAL
 import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.mpi
+from ComPASS.timestep_management import TimeStepManager
 
 
 omega_reservoir = 0.35  # reservoir porosity  .1
@@ -43,26 +42,26 @@ diphasic_context = 3
 top_flag = 2
 bottom_flag = 3
 
-
-ComPASS.load_eos("diphasic")
-ComPASS.set_gravity(gravity)
-ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
+
+simulation = ComPASS.load_eos("diphasic")
+simulation.set_gravity(gravity)
+simulation.set_rock_volumetric_heat_capacity(CpRoche)
 
 if ComPASS.mpi.is_on_master_proc:
 
     grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
 
     def Dirichlet_node():
-        vertices = np.rec.array(ComPASS.global_vertices())
+        vertices = np.rec.array(simulation.global_vertices())
         result = np.zeros(len(vertices[:, 0]), dtype=bool)
         result[vertices[:, 2] >= Oz + Lz] = True
         result[vertices[:, 2] <= Oz] = True
         return result
 
     def set_global_flags():
-        vertices = np.rec.array(ComPASS.global_vertices())
-        nodeflags = ComPASS.global_nodeflags()
+        vertices = np.rec.array(simulation.global_vertices())
+        nodeflags = simulation.global_nodeflags()
         nodeflags[:] = 0
         nodeflags[(vertices[:, 2] >= Oz + Lz)] = top_flag
         nodeflags[(vertices[:, 2] <= Oz)] = bottom_flag
@@ -71,7 +70,7 @@ if ComPASS.mpi.is_on_master_proc:
 if not ComPASS.mpi.is_on_master_proc:
     grid = Dirichlet_node = set_global_flags = None
 
-ComPASS.init(
+simulation.init(
     mesh=grid,
     set_dirichlet_nodes=Dirichlet_node,
     cell_porosity=omega_reservoir,
@@ -97,7 +96,7 @@ def lininterp(depths, top, gradient):
 
 def molar_fraction_balance(Pg, T):
     Hur = 0.5
-    Cwg = Hur * ComPASS.Psat(T) / Pg
+    Cwg = Hur * simulation.Psat(T) / Pg
     Cag = 1.0 - Cwg
     Ha = 1.0e8
     Cal = Cag * Pg / Ha
@@ -107,7 +106,7 @@ def molar_fraction_balance(Pg, T):
 
 def set_Dirichlet_state(state):  # top nodes
     # context 1:Ig; 2:Il; 3:Ig+Il
-    node_flags = ComPASS.nodeflags()
+    node_flags = simulation.nodeflags()
     # top monophasic gas with water vapour (call fonction to have hur ?)
     state.context[node_flags == top_flag] = gas_context
     state.p[node_flags == top_flag] = p0
@@ -135,9 +134,11 @@ def set_states(state, depths):
 
 
 def set_variable_initial_bc_values():
-    set_states(ComPASS.node_states(), abs(ComPASS.vertices()[:, 2] - Topz))
-    set_states(ComPASS.cell_states(), abs(ComPASS.compute_cell_centers()[:, 2] - Topz))
-    set_Dirichlet_state(ComPASS.dirichlet_node_states())
+    set_states(simulation.node_states(), abs(simulation.vertices()[:, 2] - Topz))
+    set_states(
+        simulation.cell_states(), abs(simulation.compute_cell_centers()[:, 2] - Topz)
+    )
+    set_Dirichlet_state(simulation.dirichlet_node_states())
 
 
 sys.stdout.write("set initial and BC" + "\n")
@@ -145,21 +146,14 @@ set_variable_initial_bc_values()
 sys.stdout.flush()
 
 
-init_dt = 0.01 * hour
+init_dt = 1.0 * day
 final_time = 1000.0 * year
-output_period = 0.01 * final_time
-ComPASS.set_maximum_timestep(0.7 * year)
+output_period = 0.02 * final_time
+tsmger = TimeStepManager(initial_timestep=0.01 * hour, maximum_timestep=10.0 * year,)
 
-
-def ma_fonction(it_timestep, time):
-    if it_timestep > 300:
-        ComPASS.mpi.abort()
-
-
-standard_loop(
-    initial_timestep=init_dt,
+simulation.standard_loop(
+    time_step_manager=tsmger,
     final_time=final_time,
-    output_every=20,
-    iteration_callbacks=[ma_fonction],
-    # output_period = output_period, specific_outputs=[1. * day], output_every=20,
+    output_period=output_period,
+    specific_outputs=[1.0 * day],
 )
