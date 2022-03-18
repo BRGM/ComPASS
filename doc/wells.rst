@@ -1,3 +1,5 @@
+.. _wells_introduction:
+
 Using wells
 ===========
 

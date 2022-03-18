@@ -1,3 +1,5 @@
+.. _eclipse_grid:
+
 Geothermal doublet on an Eclipse Grid
 =====================================
 
