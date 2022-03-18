@@ -40,7 +40,7 @@ Fractures
 ---------
 The fractures are objects of codimension 1, they are defined as a set of faces.
 The geometry of the fractures is given with the keyword :code:`fracture_faces` in :func:`simulation.init <ComPASS.simulation.base.init>`.
-It can be a list of face indexes, or a function, or a boolean vector of size :code:`mesh.nb_faces`.
+It can be a list of face indexes, or a mask over the faces.
 
 Wells
 -----
