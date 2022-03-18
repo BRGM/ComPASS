@@ -1,3 +1,5 @@
+.. _setting_physical_properties:
+
 Setting up physical properties
 ==============================
 
@@ -21,6 +23,7 @@ For example setting up the reservoir thermal conductivity can be done as follows
     simulation.init(
         ...,
         cell_thermal_conductivity=K_reservoir,
+        ...,
     )
 
 

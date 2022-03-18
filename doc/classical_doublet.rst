@@ -13,6 +13,7 @@ Download file:
 
 Classical geothermal doublet with horizontal fracture
 =====================================================
+.. _classical_doublet_with_frac:
 
 .. literalinclude:: ../test/bulk/doublet_on_cartesian_grid_with_fractures.py
    :language: python
