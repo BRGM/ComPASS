@@ -7,4 +7,5 @@ Setting-up a simulation
 .. include:: fractures.rst
 .. include:: wells.rst
 .. include:: simulation_object.rst
+.. include:: time_step_setting.rst
 .. include:: linear_solver_setting.rst
