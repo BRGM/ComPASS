@@ -7,6 +7,7 @@ This section describes the main steps that are necessary to set-up a simulation
 are in the :ref:`example scripts<example_scripts>`.
 
 .. include:: read_create_mesh.rst
+.. include:: eos.rst
 .. include:: setting_physical_properties.rst
 .. include:: fractures.rst
 .. include:: wells.rst
