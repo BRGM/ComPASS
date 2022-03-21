@@ -186,6 +186,10 @@ def standard_loop(
     """
     # FIXME: horrible global variables... to be removed... using OOP?
     global n, shooter, default_newton_instance
+    t0 = initial_time or 0
+    total_time = final_time
+    if total_time:
+        total_time -= t0
     if reset_iteration_counter:
         n = 0
     assert not (final_time is None and nitermax is None)
@@ -201,8 +205,8 @@ def standard_loop(
     if output_period is None:
         if nb_output is not None:
             nb_output = max(2, nb_output)
-            if final_time:
-                output_period = (max(tstart, final_time) - tstart) / (nb_output - 1)
+            if total_time is not None:
+                output_period = total_time / (nb_output - 1)
     else:
         if nb_output is not None:
             print("WARNING: output_period is overriding nb_output in standard_loop.")
@@ -217,7 +221,6 @@ def standard_loop(
             ts_manager = FixedTimeStep(fixed_timestep)
         else:
             ts_manager = TimeStepManager(initial_timestep)
-    t0 = initial_time if initial_time is not None else 0
     tick0 = TimeloopTick(time=t0, iteration=n)
     if iteration_callbacks is not None:
         iteration_callbacks = tuple(cb for cb in iteration_callbacks)
@@ -237,7 +240,6 @@ def standard_loop(
                 newton_iteration_callbacks
             )
     events = _make_event_list(events)
-    total_time = None if final_time is None else (final_time - t0)
     while len(events) > 0 and events[0].time < t0:
         mpi.master_print(f"WARNING: Event at time {events[0].time} is forgotten.")
         events.pop(0)
