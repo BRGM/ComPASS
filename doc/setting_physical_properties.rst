@@ -104,9 +104,10 @@ And, for example, you can use the already implemented van Genuchten capillary
 function as follows:
 
 .. code-block:: python
+
     simulation.set_vanGenuchten_capillary_pressure()
 
-The capillary functions are in the ComPASS/petrophyscs/models directory and you can
+The capillary functions are in the ComPASS/petrophysics/models directory and you can
 define new ones in the python language.
 By default the capillary pressure is null.
 
