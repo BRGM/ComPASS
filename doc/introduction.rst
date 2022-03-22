@@ -15,13 +15,16 @@ Please do not hesitate to submit issues/comments to improve this section.
 
 .. _install with Ubuntu:
 
-Install on `Ubuntu 20.04 focal <https://releases.ubuntu.com/20.04/>`_
----------------------------------------------------------------------
+Native installation on Linux
+----------------------------
 
 Requirements
 ^^^^^^^^^^^^
 
 All python packages can obviously be installed using your favorite package manager.
+
+Example on `Ubuntu 20.04 focal <https://releases.ubuntu.com/20.04/>`_
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Packages used to build and run simulations:
 
@@ -30,7 +33,10 @@ Packages used to build and run simulations:
   sudo apt-get install --yes python3-dev python3-click python3-numpy python3-setuptools \
     python3-pytest-xdist python3-pip python3-wheel \
     wget build-essential gcc gfortran cmake libopenmpi-dev \
-    libmetis-dev libpetsc-real-dev python3-mpi4py cmake-curses-gui
+    libmetis-dev libpetsc-real-dev python3-mpi4py python3-petsc4py-real cmake-curses-gui
+
+You may want to install the `python-is-python3 <https://packages.ubuntu.com/focal/python-is-python3>`_
+package so that `python3` becomes the default python interpreter.
 
 Add the following definitions at the end your ``.bashrc`` file.
 ``mpicc`` is used to find PETSC through linker flags.
@@ -40,20 +46,11 @@ Add the following definitions at the end your ``.bashrc`` file.
   export CC=mpicc
   export PETSC_DIR=/usr/lib/petsc
 
-Manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 20.04)
+You will also need a few additional python modules:
 
 .. code-block:: shell
 
-  wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.12.0.tar.gz
-  tar xf petsc4py-3.12.0.tar.gz
-  cd petsc4py-3.12.0
-  sudo python3 setup.py install
-
-You will also need a few additional modules:
-
-.. code-block:: shell
-
-  python3 -m pip install scikit-build sortedcontainers
+  python3 -m pip install scikit-build sortedcontainers vtkwriters
 
 .. note::
    The installation of PETSc is undoubtedly one of the trickiest part.
@@ -67,8 +64,18 @@ You will also need a few additional modules:
 
    Try to follow carefully hints given at each stage of the compilation / installation steps of PETSc.
 
-ComPASS compilation and installation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   If you need/want to manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 20.04)
+
+   .. code-block:: shell
+
+     wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.12.0.tar.gz
+     tar xf petsc4py-3.12.0.tar.gz
+     cd petsc4py-3.12.0
+     sudo python3 setup.py install
+
+
+ComPASS installation
+^^^^^^^^^^^^^^^^^^^^
 
 Clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
 
@@ -87,7 +94,7 @@ Clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
   .. note::
     You may also replace `gitlab.inria.fr/charms` with `github.com/BRGM` in the previous URL.
 
-The installation relies on `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+Compilation relies on `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
 to run `CMake <https://cmake.org/>`_ through `setup.py`.
 
 cd to the root directory and run the installation:
@@ -112,6 +119,12 @@ For example:
     python3 setup.py develop --build-type Debug -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
 
 will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics.
+
+  .. code-block:: shell
+
+    python3 setup.py install -DComPASS_WITH_ALL_PHYSICS=ON
+
+will compile and install all available physics.
 
 **Permission related problems**
 
@@ -144,7 +157,7 @@ Download script:
 MacOS script (with clang)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This script is not fully tested yet.
+This script is not fully tested yet (feedback is wellcome).
 
 .. literalinclude:: ../miscellaneous/install-mac-with-conda
    :language: bash
