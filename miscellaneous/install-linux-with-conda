@@ -60,8 +60,12 @@ cd ..
 git clone https://github.com/BRGM/ComPASS.git
 
 cd ComPASS
-# check the physics you want to build, here only water2ph physics will be built
+# check the physics you want to build, by default build everything (might be long)
+# developper mode
+# python setup.py develop -G "Unix Makefiles" -j $(nproc) -DComPASS_WITH_ALL_PHYSICS=ON
+python setup.py install -G "Unix Makefiles" -j $(nproc) -DComPASS_WITH_ALL_PHYSICS=ON
+# follows example to build only water2ph physics
 # developper mode
 # python setup.py develop -G "Unix Makefiles" -j $(nproc) -DComPASS_WITH_water2ph_PHYSICS=ON
-python setup.py install -G "Unix Makefiles" -j $(nproc) -DComPASS_WITH_water2ph_PHYSICS=ON
+# python setup.py install -G "Unix Makefiles" -j $(nproc) -DComPASS_WITH_water2ph_PHYSICS=ON
 cd ..
