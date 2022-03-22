@@ -1,5 +1,5 @@
 variables:
-  COMPASS_SDK: 0.1.8
+  COMPASS_SDK: 0.1.9
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -50,12 +50,12 @@ build:
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
-        python3 setup.py bdist_wheel -j `nproc` \
+        python setup.py bdist_wheel -j `nproc` \
           -DComPASS_WITH_water2ph_PHYSICS=ON \
           -DComPASS_WITH_linear_water_PHYSICS=ON \
           -DComPASS_WITH_diphasic_PHYSICS=ON
       else
-        python3 setup.py bdist_wheel -j `nproc` --build-type Debug \
+        python setup.py bdist_wheel -j `nproc` --build-type Debug \
           -DComPASS_WITH_water2ph_PHYSICS=ON \
           -DComPASS_WITH_linear_water_PHYSICS=ON \
           -DComPASS_WITH_diphasic_PHYSICS=ON
@@ -72,7 +72,7 @@ baseline tests:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/baseline
     - >
@@ -90,7 +90,7 @@ baseline tests:
         echo "------------------------------------------------------------"
         echo "Running: $f"
         echo "------------------------------------------------------------"
-        python3 $f
+        python $f
       done
 
 baseline parallel tests:
@@ -99,7 +99,7 @@ baseline parallel tests:
     - parallel
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/baseline
     - >
@@ -116,7 +116,7 @@ baseline parallel tests:
         echo "------------------------------------------------------------"
         echo "Running: $f"
         echo "------------------------------------------------------------"
-        mpirun -n `nproc` python3 $f
+        mpirun -n `nproc` python $f
       done
 
 pytest:
@@ -125,10 +125,10 @@ pytest:
     - parallel
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/fast # change directory otherwise import ComPASS conflicts with source
-    - python3 -m pytest
+    - python -m pytest
 
 time bulk scripts:
   stage: test
@@ -136,10 +136,10 @@ time bulk scripts:
     - parallel
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test
-    - python3 utilities/pool.py bulk
+    - python utilities/pool.py bulk
 
 linalg:
   stage: test
@@ -147,10 +147,10 @@ linalg:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/linalg
-    - python3 options_test.py
+    - python options_test.py
 
 more sanity tests:
   stage: test
@@ -158,7 +158,7 @@ more sanity tests:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test
     - >
@@ -197,7 +197,7 @@ more sanity tests:
         echo "------------------------------------------------------------"
         echo "Running: $f"
         echo "------------------------------------------------------------"
-        ( cd ${f%/*}; python3 ${f##*/} )
+        ( cd ${f%/*}; python ${f##*/} )
       done
 
 postprocess:
@@ -206,11 +206,11 @@ postprocess:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/unit
-    - python3 two_cells.py
-    - python3 -m ComPASS.postprocess -s -C output-two_cells
+    - python two_cells.py
+    - python -m ComPASS.postprocess -s -C output-two_cells
 
 petrel:
   stage: test
@@ -218,11 +218,11 @@ petrel:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/cases/petrel
-    - python3 doublet_on_cartesian_grid_petrel.py
-    - python3 doublet_on_faulted_petrel_grid.py
+    - python doublet_on_cartesian_grid_petrel.py
+    - python doublet_on_faulted_petrel_grid.py
 
 diphasic freeflow:
   stage: test
@@ -230,12 +230,12 @@ diphasic freeflow:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/cases/Bouillante/Bouillante_comparaison_these
-    - python3 1Dgas_atmBC.py
-    - python3 1Dliquid_outflow_atmBC.py
-    - python3 1Drain_recharge.py
+    - python 1Dgas_atmBC.py
+    - python 1Dliquid_outflow_atmBC.py
+    - python 1Drain_recharge.py
 
 diphasic andra:
   stage: test
@@ -243,10 +243,10 @@ diphasic andra:
     - sequential
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test/cases/andra
-    - python3 1Ddiphasic_andra.py
+    - python 1Ddiphasic_andra.py
 
 various parallel tests:
   stage: test
@@ -254,7 +254,7 @@ various parallel tests:
     - parallel
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test
     - >
@@ -275,7 +275,7 @@ various parallel tests:
         echo "------------------------------------------------------------"
         echo "Running: $f"
         echo "------------------------------------------------------------"
-        mpirun -n `nproc` python3 $f
+        mpirun -n `nproc` python $f
       done
 
 small parallel tests:
@@ -284,11 +284,11 @@ small parallel tests:
     - parallel
     - docker
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - cd test
-    - mpirun -n 2 python3 unit/two_cells.py
-    - mpirun -n 2 python3 unit/two_cells_boundary_faces.py
+    - mpirun -n 2 python unit/two_cells.py
+    - mpirun -n 2 python unit/two_cells_boundary_faces.py
 
 container release:
   stage: release
@@ -322,7 +322,7 @@ pages:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   before_script:
-    - python3 -m pip install --no-index -f dist ComPASS
+    - python -m pip install --no-index -f dist ComPASS
   script:
     - source doc/make_the_doc --with-doxygen
     - mkdir -p public/core_reference
