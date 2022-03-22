@@ -8,5 +8,5 @@ simulation (to check boundary conditions, mesh partitionning...)
    :language: python
    :linenos:
 
-Download files:
+Download file:
 :download:`check_settings.py <../test/unit/check_settings.py>`

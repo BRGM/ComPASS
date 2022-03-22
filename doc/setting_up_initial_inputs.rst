@@ -20,5 +20,5 @@ using the `simulation.reload_snapshot` method.
     The default is that Dirichlet node states are updated according to the reloaded snapshot.
     You can set the `reset_dirichlet` argument to `False` if you do not want this behavior.
 
-Download files:
+Download file:
 :download:`init_states.py <../test/unit/init_states.py>`

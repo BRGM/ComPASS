@@ -20,7 +20,7 @@ Producer example
    :language: python
    :linenos:
 
-Download files:
+Download file:
 :download:`well_production_history.py <../test/bulk/well_production_history.py>`
 
 Injector example
@@ -30,5 +30,5 @@ Injector example
    :language: python
    :linenos:
 
-Download files:
+Download file:
 :download:`well_injection_history.py <../test/bulk/well_injection_history.py>`

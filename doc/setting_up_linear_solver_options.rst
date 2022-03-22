@@ -32,7 +32,7 @@ a Petsc direct solver and display a short view:
 
 More informations can be found :ref:`here <linear_solvers>`.
 
-Download files:
+Download file:
 :download:`doublet_from_options.py <../test/linalg/doublet_from_options.py>`
 
 Precise the linear solver options in your script
@@ -50,7 +50,7 @@ In this case you can execute the file as usual
 
 See the :ref:`linear solver section <linear_solvers>` for more details.
 
-Download files:
+Download file:
 :download:`direct_solving.py <../test/linalg/direct_solving.py>`
 
 Others examples are located in the `test/linalg` directory.
