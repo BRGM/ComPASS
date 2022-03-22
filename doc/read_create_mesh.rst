@@ -27,11 +27,11 @@ Several io functions are available from the MeshTools package and a MeshTools ob
 passed as mesh to the :func:`simulation.init <ComPASS.simulation.base.init>` method.
 
 
-Using Eclipse
--------------
+Using Petrel/Eclipse grid format
+--------------------------------
 
 A faulted Petrel grid can be import and remeshed using CGAL under the hood using the :code:`PetrelGrid` from the :code:`ComPASS.utils.petrel` module.
-The faces of the Petrel cells are split on their discontinuities to keep the nombre of cells constant (faster computation).
+The faces of the Petrel cells are split on their discontinuities to keep the number of cells constant (faster computation).
 The permeability tensors are extracted from the Petrel file using the :code:`PetrelGrid.permeability` property.
 
 More information and examples in the :ref:`example scripts section<eclipse_grid>`.
