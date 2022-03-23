@@ -52,7 +52,7 @@ def vanGenuchten_kr(Pr, Slr, Sgr, n, Sl_reg=0.99):
             ss = 1.0 - (1.0 - Slb ** (1.0 / m)) ** m
             ds = Slb ** (1.0 / m - 1.0) * (1.0 - Slb ** (1.0 / m)) ** (m - 1.0)
 
-            return scale * (2.0 * ds * ss * np.sqrt(Slb) + ss ** 2 / 2.0 / np.sqrt(Slb))
+            return scale * (2.0 * ds * ss * np.sqrt(Slb) + ss**2 / 2.0 / np.sqrt(Slb))
         else:  # Sl < 1 - Sgr
             # regularization
             return reg_slope
@@ -87,13 +87,16 @@ if __name__ == "__main__":
     import matplotlib.pylab as plt
 
     n = 1000
-    Sg = np.linspace(0, 1, n)
-    krg = np.hstack([kr_laws[1][0](Sg), kr_laws[2][0](Sg)])
-    Sg = np.hstack([Sg, Sg])
-    plt.plot(Sg, krg, "o")
-    plt.savefig("krg.png")
+    S = np.linspace(0, 1, n)
+    krg = kr_laws[1][0](S)
+    krl = kr_laws[1][1](S)
+    plt.plot(S, krg, ".", color="red")
+    plt.plot(S, krl, ".")
+    plt.xlabel("S")
+    plt.ylabel("krg (in red), krl (in blue)")
+    plt.savefig("kr.png")
 
-    from scipy.optimize import approx_fprime
+    # from scipy.optimize import approx_fprime
 
-    comp = lambda sat, l, eps=1e-10: l[2](sat) - approx_fprime(sat, l[0], eps)
-    check = [comp(s, kr_laws[1]) for s in np.linspace(0, 0.6, 100)]
+    # comp = lambda sat, l, eps=1e-10: l[2](sat) - approx_fprime(sat, l[0], eps)
+    # check = [comp(s, kr_laws[1]) for s in np.linspace(0, 0.6, 100)]

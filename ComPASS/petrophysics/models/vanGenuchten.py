@@ -88,10 +88,13 @@ if __name__ == "__main__":
     import matplotlib.pylab as plt
 
     n = 1000
-    Sg = np.linspace(0, 1, n)
-    pc = np.hstack([laws[1][0](Sg), laws[2][0](Sg)])
-    Sg = np.hstack([Sg, Sg])
-    plt.plot(Sg, pc, "o")
-    plt.ylim(1e-1, 1e10)
+    Sg = np.linspace(0, 0.599, n)
+    pc = laws[1][0](Sg)
+    # pc = np.hstack([laws[1][0](Sg), laws[2][0](Sg)])
+    # Sg = np.hstack([Sg, Sg])
+    plt.plot(Sg, pc, ".")
+    plt.ylim(1e-1, 1e15)
     plt.yscale("log")
+    plt.xlabel("Sg")
+    plt.ylabel("van Genuchten Pc (rt = 1)")
     plt.savefig("Pc.png")
