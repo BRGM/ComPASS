@@ -98,6 +98,8 @@ you can execute the following line:
 
     python3 your_script.py --lsolver.new.direct True --lsolver.view True
 
+.. _linear_solvers_script:
+
 Instanciate your own linear solver object
 -----------------------------------------
 

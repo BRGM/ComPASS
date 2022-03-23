@@ -1,7 +1,9 @@
+.. _eos:
+
 Equations of state
 ==================
 
-Different *equations of state* exist. It determines the possible phases and
+Different *equations of state* (eos) exist. It determines the possible phases and
 components and the matrix of presence of the components in the phases.
 It also fix some physical laws (phase density, ...).
  - linear_water : one phase (liquid), one component (water).

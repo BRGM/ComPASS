@@ -92,6 +92,7 @@ Or in a synthetic way:
     face_centers = simulation.face_centers()
     simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
 
+.. _frac_edges_bc:
 
 Neumann fracture edges
 ----------------------
@@ -116,6 +117,7 @@ of faces (or a mask). Follows an example:
     left_fracture_edges = simulation.find_fracture_edges(where)
     simulation.set_Neumann_fracture_edges(left_fracture_edges, Neumann)
 
+.. _atmBC:
 
 Atmospheric boundary condition
 ------------------------------
@@ -144,11 +146,16 @@ initialize the nodes. Follows a synthetic way using the :code:`set` function:
 
 .. code-block:: python
 
-    is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
+    is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_vertices
     X_top = simulation.build_state(
         simulation.Context.gas_FF_no_liq_outflow, p=Patm, T=Tinit, Cag=0.99,
     )
     simulation.node_states().set(is_ff, X_top)
+
+.. _far_field_atmBC:
+
+Change the far-field values
+...........................
 
 To modify the far-field values, the :func:`simulation.set_atm_...` are useful
 if the values are constant in space, such as:
@@ -167,19 +174,22 @@ If the far-field values are not constant in space, the object
     gasPhase = simulation.phase_index(simulation.Phase.gas)
     liquidPhase = simulation.phase_index(simulation.Phase.liquid)
 
-    is_ff = simulation.get_freeflow_nodes()
-    ff_ns = simulation.freeflow_node_states()
+    is_ff = simulation.get_freeflow_nodes() # array of bool of size n_vertices
+    ff_ns = simulation.freeflow_node_states() # Far-field values arrays
     vertices = simulation.vertices()
-    xmid = (x_max - x_min) / 2.0
+    zmid = (z_max - z_min) / 2.0
+    top_vertices = vertices[:,2] > zmid
     ff_ns.p[is_ff] = patm # scalar value : only gas pressure
     ff_ns.T[is_ff,gasPhase] = Tatm
     ff_ns.T[is_ff,liquidPhase] = Train
-    ff_ns.imposed_flux[is_ff, waterComponent] = -3.0e-2 # molar flux, one for each component
+    # the following molar flux contains one value for each component (air=0, water=1)
+    ff_ns.imposed_flux[np.logical_and(is_ff, top_vertices), waterComponent] = -3.0e-2
     ff_ns.Hm[is_ff, :] = 0.0
     ff_ns.HT[is_ff] = 0.0
 
 .. warning::
 
+    The far-field values are distinct from the boundary nodes values !
     The far-field values are accessed with
     :code:`simulation.freeflow_node_states`
     whereas the boundary values are accessed with the usual object

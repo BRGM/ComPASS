@@ -8,6 +8,9 @@ The :code:`ComPASS.timestep_management` method gathers these constants as follow
 
 .. code-block:: python
 
+    from ComPASS.timeloops import TimeStepManager
+    ...
+
     tsmger = TimeStepManager(
         initial_timestep=1 * year,
         minimum_timestep=1e-1, # in s

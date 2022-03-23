@@ -1,3 +1,5 @@
+.. _fractures_sec:
+
 Defining fractures
 ==================
 
@@ -21,8 +23,13 @@ through the
 
 .. code-block:: python
 
+    def select_fracture_faces():
+        fc = simulation.compute_global_face_centers()
+        return abs(fc[:, 1]) < 0.5
+
     simulation.init(
         ...,
+        fracture_faces=select_fracture_faces,
         fracture_permeability=k_fracture,
         fracture_porosity=omega_fracture,
         fracture_thermal_conductivity=K_fracture,

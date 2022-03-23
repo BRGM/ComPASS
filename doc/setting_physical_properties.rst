@@ -60,14 +60,22 @@ For example setting up the reservoir thermal conductivity can be done as follows
         ...,
     )
 
-Capillary pressure and relative permeability
---------------------------------------------
+Capillary pressure and relative permeabilities
+----------------------------------------------
 
-One particular regionalized property is the capillary pressure.
-It is possible de define your own capillary pressure or to load
+Particular regionalized properties are the capillary pressure
+and the relative permeabilities.
+It is possible de define your own laws or to load
 one already implemented.
-The capillary pressure is regionalized via the rocktype defined for each
-cell and fracture face. The rocktype is set using the
+It is regionalized via the rocktype defined for each
+cell and fracture face.
+
+.. _setting_rocktypes:
+
+Rocktypes
+.........
+
+The rocktype is set using the
 :code:`set_global_rocktype` keyword in the
 :func:`simulation.init <ComPASS.simulation.base.init>` function.
 For example:
@@ -75,10 +83,15 @@ For example:
 .. code-block:: python
 
     def select_global_rocktype():
-        cellflags = simulation.global_cellflags()
+        # you can define the rocktype (for example depending on the geometry)
+        cell_centers = simulation.compute_global_cell_centers()
+        COX = cell_centers[:, 1] > Lx / 2  # right half
+        CCT = cell_centers[:, 1] <= Lx / 2.0
         cellrocktype = simulation.global_cell_rocktypes().reshape((-1, 2))
-        cellrocktype[:] = np.stack((cellflags, cellflags), axis=-1)
+        cellrocktype[COX] = 1
+        cellrocktype[CCT] = 2
 
+        # or you can rely on values you already initialized in the flags
         # Careful : the size of global_fracture_rocktypes is NbFace !
         faceflags = simulation.global_faceflags()
         fracrocktype = simulation.global_fracture_rocktypes().reshape((-1, 2))
@@ -100,16 +113,23 @@ By default the rocktype values are 1.
     All the faces are in :code:`global_fracture_rocktypes`, not only the
     fracture faces.
 
-And, for example, you can use the already implemented van Genuchten capillary
+.. _pc_kr:
+
+Capillary pressure
+..................
+
+By default the capillary pressure is null.
+The capillary functions are in the ComPASS/petrophysics/models directory and you can
+define new ones in the python language.
+For example, you can use the already implemented van Genuchten capillary
 function as follows:
 
 .. code-block:: python
 
     simulation.set_vanGenuchten_capillary_pressure()
 
-The capillary functions are in the ComPASS/petrophysics/models directory and you can
-define new ones in the python language.
-By default the capillary pressure is null.
+Relative permeabilities
+.......................
 
 Using the rocktypes, it is also possible to define and regionalize
 the relative permeability of each phase with the

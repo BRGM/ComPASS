@@ -77,7 +77,7 @@ tsmger = TimeStepManager(
     initial_timestep=100 * day,
     maximum_timestep=output_period,
     minimum_timestep=1 * day,  # execution stops if smaller dt
-    increase_factor=2.5,
+    increase_factor=2.5,  # if success : next dt = increase_factor * previous dt
 )
 
 simulation.standard_loop(
