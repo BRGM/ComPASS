@@ -42,7 +42,7 @@ initial_state = simulation.build_state(simulation.Context.liquid, p=pres, T=Tres
 simulation.all_states().set(initial_state)
 
 # You can iterate over states and print them
-print(f"Follows all states after initialization:")
+print(f"Follows the cell states after initialization:")
 for state in simulation.cell_states():
     print(state)
 
@@ -56,7 +56,7 @@ for state, position in zip(simulation.all_states(), simulation.all_positions()):
 # Or rather use the direct accesor over the whole array
 simulation.all_states().p[:] = rho * g * simulation.all_positions()[:, 2]
 
-print(f"Follows all the pressure states after modifications:")
+print(f"Follows the node pressure states after modifications:")
 print(simulation.node_states().p)
 
 # You can acces a specific state and change its values
@@ -65,3 +65,12 @@ S.p = 3
 S.S[:] = 0.5
 print(f"Follows the specific state which has been modified:")
 print(simulation.all_states()[2])
+
+# You can specify a condition to restrain set() on a specific group
+diphasic_state = simulation.build_state(simulation.Context.diphasic, p=pres, Sg=0.3)
+vertices = simulation.vertices()
+top_nodes = vertices[:, -1] > grid.origin[-1] + grid.extent[-1] / 2
+simulation.node_states().set(top_nodes, diphasic_state)
+print(f"Follows the node states after modification of top half (diphasic state):")
+for z, ns in zip(vertices[:, -1], simulation.node_states()):
+    print(f"with z coord {z}, state is {ns}")
