@@ -181,9 +181,10 @@ class Newton:
         kernel.Residu_compute(dt)
         convergence_scheme.reset_references(dt)
         mpi.master_print(
-            "initial residuals (reference)",
-            convergence_scheme.reference_pv,
-            convergence_scheme.reference_closure,
+            f"timestep mass residual(s) scale(s): "
+            f"{' '.join(f'{x:.5g}' for x in convergence_scheme.reference_pv[:-1])}\n"
+            f"             energy residual scale: {convergence_scheme.reference_pv[-1]:.5g}\n"
+            f"  closure equations residual scale: {convergence_scheme.reference_closure:.5g}"
         )
 
         for iteration in range(self.maximum_number_of_iterations):
@@ -206,11 +207,13 @@ class Newton:
                 convergence_scheme.relative_norm(display_contributions)
             )
             mpi.master_print(
-                "Newton % 3d          residuals" % (iteration + 1),
-                # FIXME: performs computation and synchronization between procs
-                convergence_scheme.pv_norms(),
-                "rel",
-                relative_residuals[-1],
+                f"Newton {iteration + 1: 3d} residuals: ",
+                f"mass {' '.join(f'{x:12.5g}' for x in convergence_scheme.latest_pv_norms[:-1])} ",
+                f"energy {convergence_scheme.latest_pv_norms[-1]:12.5g}",
+                f" closure {convergence_scheme.latest_closure_norm:12.5g} "
+                if convergence_scheme.latest_closure_norm > 0
+                else "",
+                f"relative (conv. crit.) {relative_residuals[-1]:12.5g}",
             )
             self.status = NewtonStatus(iteration + 1, self.lsolver_iterations)
             for callback in self.iteration_callbacks:
