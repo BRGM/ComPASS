@@ -72,6 +72,7 @@ class Legacy:
         return self._closure
 
     def reset_conservation_reference(self, dt):
+        # global accumulation over the whole simulation domain (all procs involved)
         global_accumulation = self.simulation.total_accumulation(reset_states=False)
         global_reference = global_accumulation / (1000.0 * dt) + 1.0
         self.reference_pv = np.maximum(self.pv_norms(), global_reference)
