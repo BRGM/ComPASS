@@ -34,7 +34,12 @@ class Legacy:
         local[0] += np.linalg.norm(residuals.own_producers, 1)
         global_norms = np.zeros(self.simulation.Residuals.npv(), dtype=np.double)
         MPI.COMM_WORLD.Allreduce(local, global_norms, MPI.SUM)
+        self._global_norms = global_norms
         return global_norms
+
+    @property
+    def latest_pv_norms(self):
+        return self._global_norms
 
     def pv_norms_contributions(self):
         residuals = self.residuals
@@ -58,7 +63,13 @@ class Legacy:
         kernel = self.kernel
         assert kernel
         closure = kernel.Residu_RelativeNorm_local_closure()
-        return MPI.COMM_WORLD.allreduce(closure, MPI.SUM)
+        closure = MPI.COMM_WORLD.allreduce(closure, MPI.SUM)
+        self._closure = closure
+        return closure
+
+    @property
+    def latest_closure_norm(self):
+        return self._closure
 
     def reset_conservation_reference(self, dt):
         global_accumulation = self.simulation.total_accumulation(reset_states=False)
