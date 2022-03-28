@@ -74,6 +74,38 @@ You will also need a few additional python modules:
      sudo python3 setup.py install
 
 
+MeshTools installation
+^^^^^^^^^^^^^^^^^^^^^^
+
+ComPASS v4 series rely on the MeshTools package
+that provides various structures and utility functions to handle meshes.
+The package is written in C++ and has python bindings
+produced using `pybind11 <https://pybind11.readthedocs.io/en/stable>`_.
+
+This dependency will disappear with the v5 series.
+
+You can clone `MeshTools repository <https://gitlab.inria.fr/charms/MeshTools>`_:
+
+.. code-block:: shell
+
+  git clone https://gitlab.inria.fr/charms/MeshTools.git
+
+As for ComPASS, the compilation relies on
+`scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+to run `CMake <https://cmake.org/>`_ through `setup.py`.
+The following should do the job:
+
+.. code-block:: shell
+
+  python setup.py install -DMESHTOOLS_TRIES_TO_USE_CGAL=OFF
+
+The `-DMESHTOOLS_TRIES_TO_USE_CGAL=OFF` flag is optional. The default is that
+MeshTools tries to wrap (a small) part of the CGAL library. Some (advanced)
+example scripts use CGAL but now rely on the
+`pyCGAL package <https://gitlab.brgm.fr/brgm/geomodelling/public/pycgal>`_
+that provides bindings closer to the C++ CGAL code.
+
+
 ComPASS installation
 ^^^^^^^^^^^^^^^^^^^^
 
