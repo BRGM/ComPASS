@@ -52,27 +52,6 @@ You will also need a few additional python modules:
 
   python3 -m pip install scikit-build setuptools-scm sortedcontainers verstr vtkwriters
 
-.. note::
-   The installation of PETSc is undoubtedly one of the trickiest part.
-   If you need to build PETSc from source please refer to
-   `PETSc installation instructions <https://www.mcs.anl.gov/petsc/documentation/installation.html>`_.
-
-   You will probably want to install `mpi4py` and `petsc4py` along with PETSc, using the
-   `--download-petsc4py=yes --download-mpi4py=yes --with-mpi4py=yes --with-petsc4py=yes` configuration flags.
-
-   It's likely that you need to define `PETSC_ARCH` environment variable along with `PETSC_DIR`.
-
-   Try to follow carefully hints given at each stage of the compilation / installation steps of PETSc.
-
-   If you need/want to manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 20.04)
-
-   .. code-block:: shell
-
-     wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.12.0.tar.gz
-     tar xf petsc4py-3.12.0.tar.gz
-     cd petsc4py-3.12.0
-     sudo python3 setup.py install
-
 
 MeshTools installation
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -157,6 +136,32 @@ will compile in `Debug` mode with 4 compilation threads and will activate the *w
     python3 setup.py install -DComPASS_WITH_ALL_PHYSICS=ON
 
 will compile and install all available physics.
+
+
+Troubleshooting
+^^^^^^^^^^^^^^^
+
+**PETSc**
+
+The installation of PETSc is undoubtedly one of the trickiest part.
+If you need to build PETSc from source please refer to
+`PETSc installation instructions <https://www.mcs.anl.gov/petsc/documentation/installation.html>`_.
+
+You will probably want to install `mpi4py` and `petsc4py` along with PETSc, using the
+`--download-petsc4py=yes --download-mpi4py=yes --with-mpi4py=yes --with-petsc4py=yes` configuration flags.
+
+It's likely that you need to define `PETSC_ARCH` environment variable along with `PETSC_DIR`.
+
+Try to follow carefully hints given at each stage of the compilation / installation steps of PETSc.
+
+If you need/want to manually instal petsc4py the version must match PETSc version (3.12 for Ubuntu 20.04)
+
+.. code-block:: shell
+
+  wget https://bitbucket.org/petsc/petsc4py/downloads/petsc4py-3.12.0.tar.gz
+  tar xf petsc4py-3.12.0.tar.gz
+  cd petsc4py-3.12.0
+  sudo python3 setup.py install
 
 **Permission related problems**
 
