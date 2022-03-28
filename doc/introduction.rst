@@ -63,11 +63,11 @@ produced using `pybind11 <https://pybind11.readthedocs.io/en/stable>`_.
 
 This dependency will disappear with the v5 series.
 
-You can clone `MeshTools repository <https://gitlab.inria.fr/charms/MeshTools>`_:
+You can clone `MeshTools repository <https://github.com/BRGM/MeshTools>`_:
 
 .. code-block:: shell
 
-  git clone https://gitlab.inria.fr/charms/MeshTools.git
+  git clone https://github.com/BRGM/MeshTools.git
 
 As for ComPASS, the compilation relies on
 `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
@@ -88,22 +88,11 @@ that provides bindings closer to the C++ CGAL code.
 ComPASS installation
 ^^^^^^^^^^^^^^^^^^^^
 
-Clone `ComPASS repository <https://gitlab.inria.fr/charms/ComPASS>`_:
+Clone `ComPASS repository <https://github.com/BRGM/ComPASS>`_:
 
-  - through ssh:
+.. code-block:: shell
 
-  .. code-block:: shell
-
-    git clone git@gitlab.inria.fr:charms/ComPASS.git
-
-  - or https:
-
-  .. code-block:: shell
-
-    git clone https://gitlab.inria.fr/charms/ComPASS.git
-
-  .. note::
-    You may also replace `gitlab.inria.fr/charms` with `github.com/BRGM` in the previous URL.
+  git clone https://github.com/BRGM/ComPASS.git
 
 Compilation relies on `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
 to run `CMake <https://cmake.org/>`_ through `setup.py`.
@@ -136,6 +125,15 @@ will compile in `Debug` mode with 4 compilation threads and will activate the *w
     python3 setup.py install -DComPASS_WITH_ALL_PHYSICS=ON
 
 will compile and install all available physics.
+
+.. note::
+  *MeshTools* and *ComPASS* are developed on the
+  `Inria gitlab server <https://gitlab.inria.fr/charms>`_.
+  The main branches are mirrored to `github.com/BRGM` so that
+  any github URL above can be replaced with `gitlab.inria.fr/charms`
+  to have access to development branches.
+  An access to `Inria gitlab server <https://gitlab.inria.fr/charms>`_
+  can be provided upon `request <mailto:compass@brgm.fr>`_.
 
 
 Troubleshooting
