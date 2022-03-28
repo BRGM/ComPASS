@@ -50,7 +50,7 @@ You will also need a few additional python modules:
 
 .. code-block:: shell
 
-  python3 -m pip install scikit-build sortedcontainers vtkwriters
+  python3 -m pip install scikit-build setuptools-scm sortedcontainers verstr vtkwriters
 
 .. note::
    The installation of PETSc is undoubtedly one of the trickiest part.
