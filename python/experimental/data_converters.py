@@ -3,7 +3,7 @@ import numpy as np
 
 
 def flatten_dtype(dtype):
-    " return the corresponding flat sub-array dtype "
+    "return the corresponding flat sub-array dtype"
     dtype = np.dtype(dtype)
     shape = ()
     while True:
@@ -15,8 +15,7 @@ def flatten_dtype(dtype):
 
 
 class SubArray:
-    """
-    """
+    """ """
 
     def __init__(self, dtype):
         self._dtype = flatten_dtype(dtype)

@@ -8,7 +8,7 @@ def geometric_progression(n, u0, S, tol=1e-8):
     assert 0 < u0 < S
     assert n > 1
     R = lambda a: u0 * (a ** (n + 1) - 1) / (a - 1) - S
-    dRda = lambda a: u0 * ((n * (a - 1) + 1) * a ** n / (a - 1) ** 2)
+    dRda = lambda a: u0 * ((n * (a - 1) + 1) * a**n / (a - 1) ** 2)
     a = np.exp(np.log(S / u0) / n)
     assert a > 1
     Ra = R(a)
@@ -34,10 +34,21 @@ def make_mesh(r, theta, layer_thickness):
         pass
 
     def radius_vertices(alpha, z):
-        res = np.vstack([r * np.cos(alpha), r * np.sin(alpha), np.tile(z, r.shape[0]),])
+        res = np.vstack(
+            [
+                r * np.cos(alpha),
+                r * np.sin(alpha),
+                np.tile(z, r.shape[0]),
+            ]
+        )
         return res.T
 
-    vertices = np.vstack([radius_vertices(0, 0), radius_vertices(theta, 0),])
+    vertices = np.vstack(
+        [
+            radius_vertices(0, 0),
+            radius_vertices(theta, 0),
+        ]
+    )
 
     nr = r.shape[0]
     ni = np.arange(0, nr - 1)
@@ -67,10 +78,21 @@ def make_grid(r, dy, layer_thickness):
         pass
 
     def base_vertices(y, z):
-        res = np.vstack([r, np.tile(y, r.shape[0]), np.tile(z, r.shape[0]),])
+        res = np.vstack(
+            [
+                r,
+                np.tile(y, r.shape[0]),
+                np.tile(z, r.shape[0]),
+            ]
+        )
         return res.T
 
-    vertices = np.vstack([base_vertices(0, 0), base_vertices(dy, 0),])
+    vertices = np.vstack(
+        [
+            base_vertices(0, 0),
+            base_vertices(dy, 0),
+        ]
+    )
 
     nr = r.shape[0]
     ni = np.arange(0, nr - 1)

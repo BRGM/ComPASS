@@ -26,7 +26,8 @@ class PressureAMG:
             try:
                 self.amg_pc.setType(PETSc.PC.Type.HYPRE)
                 PETSc.Options().setValue(  # petsc4py API doesn't allow us to set this parameter another way
-                    "-pc_hypre_boomeramg_strong_threshold", 0.5,
+                    "-pc_hypre_boomeramg_strong_threshold",
+                    0.5,
                 )
             except PETSc.Error:  # If PETSc is not compiled with HYPRE use default AMG from PETSc
                 mpi.master_print(
@@ -68,7 +69,7 @@ class BlockJacobi(PETSc.PC):
 
 
 class CPRAMG(PETSc.PC):
-    """ PETSc implementation of the CPR-AMG preconditioning procedure"""
+    """PETSc implementation of the CPR-AMG preconditioning procedure"""
 
     def __init__(self, linear_system, amg_type="hypre", comm=PETSc.COMM_WORLD):
         # CPR-AMG is a multiplicative composite PC :

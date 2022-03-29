@@ -211,7 +211,9 @@ def set_initial_bc_values():
     # correct freeflow nodes states
     is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
     X_top = simulation.build_state(
-        simulation.Context.diphasic_FF_liq_outflow, p=PgGal, T=TGal,
+        simulation.Context.diphasic_FF_liq_outflow,
+        p=PgGal,
+        T=TGal,
     )
     simulation.node_states().set(is_ff, X_top)
 

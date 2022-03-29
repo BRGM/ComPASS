@@ -30,7 +30,11 @@ gravity = 10
 cct_z = 1.5
 
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(x, y, z), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(x, y, z),
+    origin=(0, 0, 0),
+)
 # vertices, hexs = GT.grid2hexs((nx, ny, nz), (x, y, z))
 # hexs = np.asarray(hexs, dtype=MT.idtype())
 # mesh = MT.HexMesh.make(vertices, hexs)

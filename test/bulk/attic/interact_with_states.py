@@ -28,7 +28,11 @@ nx, ny, nz = 30, 20, 10
 
 ComPASS.set_gravity(0)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
 def make_wells():

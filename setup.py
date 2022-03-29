@@ -18,7 +18,8 @@ build_info_file = "version_info"
 # Generate info about package compilation
 with Path(f"./{package_name}/{build_info_file}").open("w") as f:
     print(
-        f"{package_name} {scm.get_version()}", file=f,
+        f"{package_name} {scm.get_version()}",
+        file=f,
     )
     print(f"built {datetime.now().isoformat()}", file=f)
     print(f"with python {platform.python_version()} on {platform.node()}", file=f)
@@ -52,6 +53,8 @@ setup(
         f"{package_name}.utils",
         f"{package_name}.wells",
     ],
-    package_data={package_name: [build_info_file],},
+    package_data={
+        package_name: [build_info_file],
+    },
     setup_requires=["setuptools_scm"],
 )

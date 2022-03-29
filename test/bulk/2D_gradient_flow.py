@@ -58,7 +58,11 @@ final_time = 5 * Lx / (U / omega_reservoir)
 print("Final time is set to: %.2f years" % (final_time / year))
 ## Velocity (with omega is 2.4 m / hour, good final time is 8 to 10 hours  ! Initial time step is 7e-3 seconds
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(0, 0, 0),
+)
 
 on_the_left = lambda x: x <= grid.origin[0]
 on_the_left_in_the_middle = (

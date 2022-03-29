@@ -155,7 +155,11 @@ class PetscIterativeSolver(IterativeSolver):
     """
 
     def __init__(
-        self, linear_system, settings, pc=None, comm=PETSc.COMM_WORLD,
+        self,
+        linear_system,
+        settings,
+        pc=None,
+        comm=PETSc.COMM_WORLD,
     ):
 
         self.activate_cpramg = None
@@ -180,7 +184,10 @@ class PetscIterativeSolver(IterativeSolver):
 
     settings = property(
         fget=lambda self: IterativeSolverSettings(
-            self.method, self.tolerance, self.max_iterations, None,
+            self.method,
+            self.tolerance,
+            self.max_iterations,
+            None,
         ),
         fset=lambda self, value: self.set_settings(value),
         doc="Iterative solver settings",
@@ -249,7 +256,9 @@ class PetscDirectSolver(DirectSolver):
     """
 
     def __init__(
-        self, linear_system, comm=PETSc.COMM_WORLD,
+        self,
+        linear_system,
+        comm=PETSc.COMM_WORLD,
     ):
 
         super().__init__(linear_system)

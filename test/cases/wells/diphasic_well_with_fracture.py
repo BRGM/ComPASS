@@ -44,7 +44,11 @@ simulation.set_fracture_thickness(th_frac)
 
 nh = 2 * int(L / dh)
 assert nh > 0
-grid = ComPASS.Grid(shape=(nh, nh, nv), extent=(2 * L, 2 * L, H), origin=(-L, -L, 0),)
+grid = ComPASS.Grid(
+    shape=(nh, nh, nv),
+    extent=(2 * L, 2 * L, H),
+    origin=(-L, -L, 0),
+)
 
 
 def make_producer():
@@ -61,7 +65,7 @@ def fracture_faces():
     dz = H / nv
     assert dz > 0
     assert abs(zf % dz) < 1e-5, "fracture must be located on cell boundary"
-    return (np.fabs(z - zf) < (0.25 * dz)) & (np.sqrt(x ** 2 + y ** 2) < Rf)
+    return (np.fabs(z - zf) < (0.25 * dz)) & (np.sqrt(x**2 + y**2) < Rf)
 
 
 simulation.init(

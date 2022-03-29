@@ -40,7 +40,11 @@ fluid_properties.specific_mass = rhow
 fluid_properties.dynamic_viscosity = muf
 simulation.set_rock_volumetric_heat_capacity(rhocp)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(10.0, 10.0, H), origin=(-5, -5, -H),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(10.0, 10.0, H),
+    origin=(-5, -5, -H),
+)
 
 
 def top_nodes():
@@ -84,7 +88,10 @@ set_boundary_heat_flux()
 final_time = 2e6 * year
 # ComPASS.set_maximum_timestep(0.1*final_time)
 current_time = standard_loop(
-    simulation, initial_timestep=1 * day, final_time=final_time, nitermax=140,
+    simulation,
+    initial_timestep=1 * day,
+    final_time=final_time,
+    nitermax=140,
 )
 
 T = simulation.cell_states().T

@@ -25,7 +25,11 @@ K_matrix = 2.0
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
 
-grid = ComPASS.Grid(shape=(10, 10, 10), extent=(2, 1, 1), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(10, 10, 10),
+    extent=(2, 1, 1),
+    origin=(0, 0, 0),
+)
 
 simulation.init(
     mesh=grid,

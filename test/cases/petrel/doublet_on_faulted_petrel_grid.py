@@ -96,7 +96,9 @@ simulation.close_well(producer_id)
 
 # search pressure equilibrium
 simulation.standard_loop(
-    initial_timestep=30 * day, final_time=10 * year, no_output=True,
+    initial_timestep=30 * day,
+    final_time=10 * year,
+    no_output=True,
 )
 
 # -- Step 2: doublet production -----------------------------------------------

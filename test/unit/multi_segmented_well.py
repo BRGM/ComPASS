@@ -39,7 +39,11 @@ simulation.set_gravity(gravity)
 
 nh = 2 * int(L / dh)
 assert nh > 0
-grid = ComPASS.Grid(shape=(nh, nh, nv), extent=(2 * L, 2 * L, H), origin=(-L, -L, 0),)
+grid = ComPASS.Grid(
+    shape=(nh, nh, nv),
+    extent=(2 * L, 2 * L, H),
+    origin=(-L, -L, 0),
+)
 
 
 def make_wells():

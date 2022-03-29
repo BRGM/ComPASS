@@ -40,4 +40,4 @@ def drhodp(p, T):
 def drhodT(p, T):
     u = 0.018016
     R = 8.3145
-    return -p * u / (R * T ** 2)
+    return -p * u / (R * T**2)

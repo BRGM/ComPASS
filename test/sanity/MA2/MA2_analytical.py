@@ -54,13 +54,13 @@ class MA2_analytical:
         TL = self.TL
         QE = self.QE
         thcond = self.thermal_conductivity
-        td = np.reshape((D * np.asarray(t, dtype=np.double)) / (4 * L ** 2), (-1, 1))
+        td = np.reshape((D * np.asarray(t, dtype=np.double)) / (4 * L**2), (-1, 1))
         xd = np.ravel(np.asarray(x, dtype=np.double)) / L
         Td = 1 - np.tile(xd, (td.shape[0], 1))
         # Solution by D. Thiéry - there are errors here
-        n = int((1 + np.sqrt(8 / (np.pi ** 2 * precision))) / 2) + 1
+        n = int((1 + np.sqrt(8 / (np.pi**2 * precision))) / 2) + 1
         for k in range(n):
             w = (2 * (k + 1) - 1) * np.pi
-            Td += (8 / w ** 2) * np.cos(0.5 * w * xd) * np.exp(-(w ** 2) * td)
+            Td += (8 / w**2) * np.cos(0.5 * w * xd) * np.exp(-(w**2) * td)
 
         return TL + ((QE * L) / thcond) * Td

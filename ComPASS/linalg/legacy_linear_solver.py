@@ -71,7 +71,10 @@ class LegacyIterativeSolver(IterativeSolver):
     """
 
     def __init__(
-        self, linear_system, settings, activate_cpramg=True,
+        self,
+        linear_system,
+        settings,
+        activate_cpramg=True,
     ):
         """
         :param settings: An IterativeSolverSettings object containing the wanted parameters for iterative solving
@@ -80,7 +83,10 @@ class LegacyIterativeSolver(IterativeSolver):
         self.activate_cpramg = activate_cpramg
         super().__init__(linear_system, settings)
         self.kernel.SolvePetsc_Init(
-            settings.max_iterations, settings.tolerance, self.activate_cpramg, False,
+            settings.max_iterations,
+            settings.tolerance,
+            self.activate_cpramg,
+            False,
         )
         # Good ol' Fortran doesn't set restart at initialization... We gotta do it ourselves
         self.restart_size = self.my_settings.restart_size
@@ -169,7 +175,9 @@ class LegacyDirectSolver(DirectSolver):
     """
 
     def __init__(
-        self, linear_system, comm=PETSc.COMM_WORLD,
+        self,
+        linear_system,
+        comm=PETSc.COMM_WORLD,
     ):
         super().__init__(linear_system)
         self.linear_system = linear_system

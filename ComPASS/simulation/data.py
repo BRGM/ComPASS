@@ -103,7 +103,7 @@ def compute_dof_locations():
 
 def all_positions():
     """Returns all position of degrees of freedom stacked in the same order
-       as states.
+    as states.
     """
     return np.vstack(
         [_sw.vertices(), compute_fracture_centers(), compute_cell_centers()]

@@ -28,7 +28,11 @@ Lx, Ly, Lz = 1000.0, 1000.0, 1000.0
 Ox, Oy, Oz = 0, 0, 0
 nx, ny, nz = 2, 2, 1
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 simulation.init(
     mesh=grid,

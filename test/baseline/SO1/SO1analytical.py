@@ -62,7 +62,10 @@ Lx, Ly, Lz = 870, 10.0, 10.0
 dx = 10.0
 
 # below you can speciy any parameter that is accepted by build_solution
-solution = build_solution(Qinj=3e-5, Syz=Ly * Lz,)
+solution = build_solution(
+    Qinj=3e-5,
+    Syz=Ly * Lz,
+)
 
 day = 86400.0  # seconds
 x = np.arange(0, Lx + 0.5 * dx, dx)

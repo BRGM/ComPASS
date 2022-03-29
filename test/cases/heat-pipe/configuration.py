@@ -92,7 +92,7 @@ mtol = 1e-6
 xtol = 1e-8
 sol = []
 for ki in k:
-    dpm, dpe = build(k=10 ** ki, K=K, phi=phi)
+    dpm, dpe = build(k=10**ki, K=K, phi=phi)
     f = lambda S: abs(dpm(p, S) - dpe(p, S))
     res = minimize_scalar(f, method="brent", bracket=(0.0, 1.0), tol=mtol)
     message = f"k={10**ki:.2g} : S={res.x:.3g} |f(S)|={f(res.x):.5g}"

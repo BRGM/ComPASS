@@ -93,7 +93,9 @@ class RawMesh:
             res[:] = self.cell_types
         except AttributeError:
             RawMesh.fill_types(
-                res, self.cell_nodes.get_subsizes(), [[4, "tet"], [8, "voxel"]],
+                res,
+                self.cell_nodes.get_subsizes(),
+                [[4, "tet"], [8, "voxel"]],
             )
 
     def fill_face_types(self, res):
@@ -101,7 +103,9 @@ class RawMesh:
             res[:] = self.face_types
         except AttributeError:
             RawMesh.fill_types(
-                res, self.face_nodes.get_subsizes(), [[3, "triangle"], [4, "pixel"]],
+                res,
+                self.face_nodes.get_subsizes(),
+                [[3, "triangle"], [4, "pixel"]],
             )
 
     @classmethod

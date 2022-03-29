@@ -69,7 +69,8 @@ def parametric_functor(*params, **documented_params):
 if __name__ == "__main__":
 
     @parametric_functor(
-        a="slope", b=("intersection with ordinates axis", 0),
+        a="slope",
+        b=("intersection with ordinates axis", 0),
     )
     class Line2D:
         """Line equation"""

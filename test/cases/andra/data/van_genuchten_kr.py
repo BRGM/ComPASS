@@ -52,7 +52,7 @@ def vanGenuchten_kr(Pr, Slr, Sgr, n, Sl_reg=0.99):
             ss = 1.0 - (1.0 - Slb ** (1.0 / m)) ** m
             ds = Slb ** (1.0 / m - 1.0) * (1.0 - Slb ** (1.0 / m)) ** (m - 1.0)
 
-            return scale * (2.0 * ds * ss * np.sqrt(Slb) + ss ** 2 / 2.0 / np.sqrt(Slb))
+            return scale * (2.0 * ds * ss * np.sqrt(Slb) + ss**2 / 2.0 / np.sqrt(Slb))
         else:  # Sl < 1 - Sgr
             # regularization
             return reg_slope

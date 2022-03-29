@@ -56,7 +56,10 @@ planes = planes[:n]
 
 # output normals as vtu
 vtkw.write_vtu(
-    vtkw.points_as_vtu_doc(origins[:n], pointdata={"normals": normals[:n]},),
+    vtkw.points_as_vtu_doc(
+        origins[:n],
+        pointdata={"normals": normals[:n]},
+    ),
     "normals.vtu",
 )
 

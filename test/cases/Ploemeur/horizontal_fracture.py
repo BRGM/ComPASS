@@ -185,9 +185,12 @@ injection_duration = 0.1 * final_time
 current_time = simulation.standard_loop(
     final_time=injection_duration,
     time_step_manager=TimeStepManager(
-        1e-5, maximum_timestep=0.5 * output_period,  # initial time steps
+        1e-5,
+        maximum_timestep=0.5 * output_period,  # initial time steps
     ),
-    iteration_callbacks=[collect_production_temperatures,],
+    iteration_callbacks=[
+        collect_production_temperatures,
+    ],
     output_period=output_period,
 )
 
@@ -217,7 +220,8 @@ simulation.standard_loop(
     initial_time=current_time,
     final_time=final_time,
     time_step_manager=TimeStepManager(
-        1e-5, maximum_timestep=0.5 * output_period,  # initial time steps
+        1e-5,
+        maximum_timestep=0.5 * output_period,  # initial time steps
     ),
     iteration_callbacks=[collect_production_temperatures, reinject_production],
     output_period=output_period,
@@ -225,7 +229,8 @@ simulation.standard_loop(
 
 if rank == master:
     np.save(
-        ComPASS.to_output_directory("production_temperatures"), production_temperatures,
+        ComPASS.to_output_directory("production_temperatures"),
+        production_temperatures,
     )
 
 # simulation.postprocess()

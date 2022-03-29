@@ -35,7 +35,11 @@ simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
 def select_fractures():
@@ -85,5 +89,7 @@ left_fracture_edges = simulation.find_fracture_edges(where)
 simulation.set_Neumann_fracture_edges(left_fracture_edges, Neumann)
 
 simulation.standard_loop(
-    initial_timestep=10, final_time=2 * day, output_period=4 * hour,
+    initial_timestep=10,
+    final_time=2 * day,
+    output_period=4 * hour,
 )

@@ -138,7 +138,7 @@ if ComPASS.mpi.is_on_master_proc:
                     nodeflags[nn] = sea_flag
                 elif (xyz_topo[0] - x_top_diphasic) ** 2 + (
                     xyz_topo[1] - y_top_diphasic
-                ) ** 2 < top_diphasic_radius ** 2:
+                ) ** 2 < top_diphasic_radius**2:
                     nodeflags[nn] = top_diphasic_flag
                 else:
                     nodeflags[nn] = top_diphasic_flag  # top_gas_flag
@@ -181,7 +181,7 @@ def lininterp(depths, top, gradient):
 
 
 def inside_heat_source(pts):
-    return (pts[:, 0] - x_source) ** 2 + (pts[:, 1] - y_source) ** 2 < radius ** 2
+    return (pts[:, 0] - x_source) ** 2 + (pts[:, 1] - y_source) ** 2 < radius**2
 
 
 def set_fracture_state(state, depths):

@@ -265,6 +265,9 @@ def default_Newton(simulation, tolerance=1e-5, max_iterations=8, lsolver=None):
         # The default lsolver is a legacy iterative solver
         # which uses the CPR-AMG preconditioner
         lsolver = linear_solver(
-            simulation, legacy=False, direct=False, from_options=True,
+            simulation,
+            legacy=False,
+            direct=False,
+            from_options=True,
         )
     return Newton(simulation, tolerance, max_iterations, lsolver)

@@ -71,7 +71,7 @@ simulation.all_states().set(X0)
 # Set boundary conditions
 vertices = simulation.vertices()
 x, y = vertices[:, 0], vertices[:, 1]
-simulation.reset_dirichlet_nodes((x ** 2 + y ** 2) > R ** 2 - epsilon)
+simulation.reset_dirichlet_nodes((x**2 + y**2) > R**2 - epsilon)
 
 # tsmger = TimeStepManager(
 #     initial_timestep=1e-4 * day,

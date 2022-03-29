@@ -15,7 +15,11 @@ simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 shape = nx, ny, nz = 4, 4, 6
-grid = ComPASS.Grid(shape=shape, extent=shape, origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=shape,
+    extent=shape,
+    origin=(0, 0, 0),
+)
 
 
 def make_wells():

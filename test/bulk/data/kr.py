@@ -2,7 +2,7 @@ import numpy as np
 
 
 def fkr(S):
-    return S ** 2
+    return S**2
 
 
 def dfkrdS(S):

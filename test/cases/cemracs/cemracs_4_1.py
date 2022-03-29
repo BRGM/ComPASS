@@ -59,7 +59,11 @@ assert fluid_properties.thermal_expansivity == 0
 simulation.set_gravity(0)
 simulation.set_fracture_thickness(df)
 
-grid = ComPASS.Grid(shape=(n, n, n), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(n, n, n),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
 def make_well():
@@ -163,7 +167,7 @@ centers = simulation.cell_centers()[:ncells]
 usol_c = simulation.cell_states().p[:ncells]
 centers_x, centers_y = centers[:, 0], centers[:, 1]
 ua_sol = sol(centers_x, centers_y)
-sum_squares = lambda a: np.sum(a ** 2)
+sum_squares = lambda a: np.sum(a**2)
 error_c = np.array([sum_squares(usol_c - ua_sol), sum_squares(ua_sol)], np.double)
 if not mpi.is_on_master_proc:
     MPI.COMM_WORLD.Reduce(

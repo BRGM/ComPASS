@@ -437,7 +437,9 @@ def _part_mesh(use_Kway, connectivity_file=None):
         connectivity_file = Path(connectivity_file)
         connectivity_file.parent.mkdir(parents=True, exist_ok=True)
         np.savez(
-            connectivity_file, neighbors=neighbors, offsets=offsets,
+            connectivity_file,
+            neighbors=neighbors,
+            offsets=offsets,
         )
     if nparts > 1:
         # Fortran indexing of neighbors
@@ -509,7 +511,10 @@ def dump_global_mesh(simulation):
     boundary_nodes, boundary_faces = filter_adjacency_table(boundaries)
     vertices = simulation.global_vertices()
     vtkw.write_vtp(
-        vtkw.vtp_doc(vertices[boundary_nodes], boundary_faces,),
+        vtkw.vtp_doc(
+            vertices[boundary_nodes],
+            boundary_faces,
+        ),
         str(output_directory / "boundary_faces"),
     )
 
@@ -560,7 +565,8 @@ def _set_property_on_global_mesh(property, location, value, fractures=None):
     assert location == "cell" or location == "fracture"
     kernel = get_kernel()
     buffer = np.array(
-        getattr(kernel, "get_global_%s_%s_buffer" % (location, property))(), copy=False,
+        getattr(kernel, "get_global_%s_%s_buffer" % (location, property))(),
+        copy=False,
     )
     n = buffer.shape[0]
     dim = 3

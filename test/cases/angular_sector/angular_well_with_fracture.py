@@ -53,7 +53,7 @@ def make_fractures():
     dz = H / nb_layers
     # select horizontal fault axis in the middle of the simulation domain
     x, y, z = [face_centers[:, j] for j in range(3)]
-    top_fracture = (x ** 2 + y ** 2 < fracture_radius ** 2) & (
+    top_fracture = (x**2 + y**2 < fracture_radius**2) & (
         np.abs(z - (2 / 3) * H) < 0.25 * dz
     )
     bottom_fracture = np.abs(z - (1 / 3) * H) < 0.25 * dz

@@ -52,7 +52,8 @@ fracture_faces = np.array(fracture_faces)
 
 
 ComPASS.init(
-    mesh=mesh, fracture_faces=lambda: fracture_faces,
+    mesh=mesh,
+    fracture_faces=lambda: fracture_faces,
 )
 
 # print('Old computation')

@@ -182,7 +182,11 @@ def set_Dirichlet_state(state):
     SgGal = set_diphasic_equilibrium(PgGal, TGal, HurGal)
     # in build_state p = Pref = Pg in diphasic EOS
     XGal = simulation.build_state(
-        simulation.Context.diphasic, p=PgGal, T=TGal, Sg=SgGal, rocktype=2,
+        simulation.Context.diphasic,
+        p=PgGal,
+        T=TGal,
+        Sg=SgGal,
+        rocktype=2,
     )
     state.set(node_flags == gallery_flag, XGal)
     # in porous media : top

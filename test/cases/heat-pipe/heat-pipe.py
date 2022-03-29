@@ -41,7 +41,9 @@ ComPASS.set_output_directory_and_logfile(
 simulation.set_gravity(gravity)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), extent=(Lx, Ly, H), origin=(-0.5 * Lx, -0.5 * Ly, -H),
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, H),
+    origin=(-0.5 * Lx, -0.5 * Ly, -H),
 )
 
 simulation.init(
@@ -69,7 +71,9 @@ newton = Newton(simulation, 1e-5, 8, lsolver)
 tsmger = TimeStepManager(1 * day)
 
 simulation.standard_loop(
-    final_time=final_time, newton=newton, time_step_manager=tsmger,
+    final_time=final_time,
+    newton=newton,
+    time_step_manager=tsmger,
 )
 
 simulation.postprocess(convert_temperature=True)

@@ -63,7 +63,9 @@ def hydrostatic_pressure(zbottom, ztop, nz):
 slim = hns * ds
 ns = 2 * hns
 grid = ComPASS.Grid(
-    shape=(ns, ns, nv), extent=(ns * ds, ns * ds, H), origin=(-slim, -slim, 0),
+    shape=(ns, ns, nv),
+    extent=(ns * ds, ns * ds, H),
+    origin=(-slim, -slim, 0),
 )
 
 

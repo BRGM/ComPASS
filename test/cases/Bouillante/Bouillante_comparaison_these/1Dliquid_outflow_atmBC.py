@@ -55,7 +55,11 @@ simulation.set_atm_temperature(Tatm)
 simulation.set_atm_rain_flux(0.0)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 if ComPASS.mpi.is_on_master_proc:
 

@@ -34,13 +34,20 @@ def _process_dirichlet_nodes(
 
 
 def set_global_dirichlet_nodes(
-    simulation, both=None, pressure=None, temperature=None,
+    simulation,
+    both=None,
+    pressure=None,
+    temperature=None,
 ):
     assert mpi.is_on_master_proc
     kernel = get_kernel()
     info = np.rec.array(simulation.global_node_info(), copy=False)
     _process_dirichlet_nodes(
-        info, both, pressure, temperature, simulation.has_energy_transfer_enabled(),
+        info,
+        both,
+        pressure,
+        temperature,
+        simulation.has_energy_transfer_enabled(),
     )
     kernel.global_mesh_count_dirichlet_nodes()
 
@@ -58,11 +65,18 @@ def clear_dirichlet_nodes(simulation, update_scheme=True):
 
 
 def set_dirichlet_nodes(
-    simulation, both=None, pressure=None, temperature=None,
+    simulation,
+    both=None,
+    pressure=None,
+    temperature=None,
 ):
     info = np.rec.array(simulation.node_info(), copy=False)
     _process_dirichlet_nodes(
-        info, both, pressure, temperature, simulation.has_energy_transfer_enabled(),
+        info,
+        both,
+        pressure,
+        temperature,
+        simulation.has_energy_transfer_enabled(),
     )
 
 

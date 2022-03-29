@@ -32,7 +32,7 @@ def S2(states, rocktypes, kr, dkrdS):
     nb_phases = kr.shape[1]
     S = states.S
     assert nb_phases == 2, "Should not be called if np==1"
-    kr[...] = S ** 2
+    kr[...] = S**2
     dkrdS.fill(0)
     for k in range(nb_phases):
         dkrdS[:, k, k] = 2 * S[:, k]

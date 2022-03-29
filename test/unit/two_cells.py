@@ -11,5 +11,7 @@ import two_cells_simulation
 simulation = two_cells_simulation.make()
 
 current_time = simulation.standard_loop(
-    initial_timestep=1, nitermax=2, output_period=1,
+    initial_timestep=1,
+    nitermax=2,
+    output_period=1,
 )

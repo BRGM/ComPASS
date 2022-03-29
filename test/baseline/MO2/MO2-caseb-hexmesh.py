@@ -38,7 +38,10 @@ mesh = hexmesh.make_mesh(rw + np.cumsum(r), theta, H)
 epsilon = 0.1 * rw  # tolerance value to select nodes (boundary conditions...)
 
 simulation.init(
-    mesh=mesh, cell_porosity=omega, cell_permeability=k, cell_thermal_conductivity=K,
+    mesh=mesh,
+    cell_porosity=omega,
+    cell_permeability=k,
+    cell_thermal_conductivity=K,
 )
 
 # Set the kr functions after initialization
@@ -50,14 +53,14 @@ simulation.all_states().set(X0)
 # Set boundary conditions
 vertices = simulation.vertices()
 x, y = vertices[:, 0], vertices[:, 1]
-simulation.reset_dirichlet_nodes((x ** 2 + y ** 2) > R ** 2 - epsilon)
+simulation.reset_dirichlet_nodes((x**2 + y**2) > R**2 - epsilon)
 
 # Neumann at the well face
 mass_flux = qw * (theta / (2 * np.pi))
 Neumann = ComPASS.NeumannBC(-mass_flux, compute_heat_flux=True)
 face_centers = simulation.face_centers()
 x, y, z = [face_centers[:, j] for j in range(3)]
-well_face = (x ** 2 + y ** 2) <= rw ** 2 + epsilon
+well_face = (x**2 + y**2) <= rw**2 + epsilon
 well_face_nodes = simulation.facenodes(well_face)
 simulation.set_Neumann_faces(well_face, Neumann)
 

@@ -4,19 +4,18 @@ from .. import mpi
 
 
 class EdgeTagger:
-    """We use bitwise or to code different edge family flagging both nodes.
-    """
+    """We use bitwise or to code different edge family flagging both nodes."""
 
     @staticmethod
     def family_id(i):
         # No more than 30 families because we encode family on a 4 bits integer
         assert i < 31, "too many families"
-        return 2 ** i
+        return 2**i
 
     def __init__(self, edges_families, verbose=False):
         """:param edges_families: edges to be tagged with edges described by their nodes
-           (i.e. edges_families is a sequence of sequence of tuple of size 2 or a sequence of 2 columns arrays)
-           :param verbose: if True will output a bit of information during the tagging operation
+        (i.e. edges_families is a sequence of sequence of tuple of size 2 or a sequence of 2 columns arrays)
+        :param verbose: if True will output a bit of information during the tagging operation
         """
         assert len(edges_families) < 31, "no more than 30 families"
         self.edges_families = edges_families
@@ -35,7 +34,7 @@ class EdgeTagger:
 
 def tag_edges_families(simulation, families, verbose=False):
     """Builds an EdgeTagger to tag all edges families.
-       Parameters are the same as :py:class:`EdgeTagger`
+    Parameters are the same as :py:class:`EdgeTagger`
     """
     EdgeTagger(families, verbose)(simulation)
 
@@ -50,8 +49,8 @@ def fracture_edges_and_node_flags(simulation, verbose=False):
 
 def retrieve_fracture_edges_families(simulation, verbose=False):
     """Retrieve all fracture edges families among fracture edges.
-       :param verbose: if True will output a summary of what has been retrieved
-       :return: a dicitonnary of edges families with the key being the family id
+    :param verbose: if True will output a summary of what has been retrieved
+    :return: a dicitonnary of edges families with the key being the family id
     """
     fracture_edges, flags = fracture_edges_and_node_flags(simulation, verbose)
     result = {}
@@ -70,9 +69,9 @@ def retrieve_fracture_edges_families(simulation, verbose=False):
 
 def retrieve_fracture_edges_with_node_tag(simulation, node_tags, verbose=False):
     """Retrieve all fracture edges sharing a node_atgs.
-       :param node_tags: a node tag or a list of node_tags
-       :param verbose: if True will output a summary of what has been retrieved
-       :return: a list of (possibly empty) list of edges in the same order as the node_tags parameter
+    :param node_tags: a node tag or a list of node_tags
+    :param verbose: if True will output a summary of what has been retrieved
+    :return: a list of (possibly empty) list of edges in the same order as the node_tags parameter
     """
     try:
         node_tags = list(node_tags)

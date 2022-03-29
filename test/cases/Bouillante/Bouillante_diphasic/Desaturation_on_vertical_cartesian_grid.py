@@ -50,7 +50,11 @@ simulation.set_rock_volumetric_heat_capacity(CpRoche)
 
 if ComPASS.mpi.is_on_master_proc:
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+        extent=(Lx, Ly, Lz),
+        origin=(Ox, Oy, Oz),
+    )
 
     def Dirichlet_node():
         vertices = np.rec.array(simulation.global_vertices())
@@ -149,7 +153,10 @@ sys.stdout.flush()
 init_dt = 1.0 * day
 final_time = 1000.0 * year
 output_period = 0.02 * final_time
-tsmger = TimeStepManager(initial_timestep=0.01 * hour, maximum_timestep=10.0 * year,)
+tsmger = TimeStepManager(
+    initial_timestep=0.01 * hour,
+    maximum_timestep=10.0 * year,
+)
 
 simulation.standard_loop(
     time_step_manager=tsmger,

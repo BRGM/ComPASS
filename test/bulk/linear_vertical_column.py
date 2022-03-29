@@ -39,7 +39,11 @@ fluid_properties.dynamic_viscosity = muf
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(10.0, 10.0, H), origin=(-5, -5, -H),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(10.0, 10.0, H),
+    origin=(-5, -5, -H),
+)
 
 
 def top_nodes():

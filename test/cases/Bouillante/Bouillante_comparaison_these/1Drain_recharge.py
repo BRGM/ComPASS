@@ -51,7 +51,11 @@ simulation.set_rain_temperature(Train)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 simulation.init(
     mesh=grid,
@@ -75,7 +79,9 @@ def set_iso_states():
     def set_states(states, z):
         states.context[:] = simulation.Context.liquid
         states.p[:] = lininterp(
-            Topz - z, Pporous, gravity * 999.0,
+            Topz - z,
+            Pporous,
+            gravity * 999.0,
         )  # Sg = 0 and no entry pressure if capillary pressure, so pl = pg
         states.T[:] = Tporous
         states.S[:] = [0, 1]
@@ -91,7 +97,10 @@ def set_iso_states():
 
 set_iso_states()
 X_top = simulation.build_state(
-    simulation.Context.diphasic_FF_liq_outflow, p=Pporous, T=Ttop, Cal=0.01,
+    simulation.Context.diphasic_FF_liq_outflow,
+    p=Pporous,
+    T=Ttop,
+    Cal=0.01,
 )
 simulation.node_states().set(is_ff, X_top)
 

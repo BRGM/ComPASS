@@ -12,7 +12,7 @@ holder = None
 def vanGenuchten(Pr, Slr, Sgr, n, Slb_reg=0.99):
     m = n / (1.0 - n)  # usualy m = 1 - 1/n and slb ** (-1/m)
     # the law is regularized to allow for Sg = Sgr
-    Pc1 = Pr * (Slb_reg ** m - 1.0) ** (1.0 / n)
+    Pc1 = Pr * (Slb_reg**m - 1.0) ** (1.0 / n)
     alpha = Pc1 / (Slb_reg - 1.0)
     eps = 1.0e-7  # eps is not so small because the Pc is high
 
@@ -23,7 +23,7 @@ def vanGenuchten(Pr, Slr, Sgr, n, Slb_reg=0.99):
         assert Slb > eps  # stay at a certain distance of the asymptote
 
         if Slb < Slb_reg:  # Sg far enough from Sgr
-            return Pr * (Slb ** m - 1.0) ** (1.0 / n)
+            return Pr * (Slb**m - 1.0) ** (1.0 / n)
         else:  # Sg close or equal to Sgr
             # the law is regularized to allow for Sg = Sgr
             return alpha * (Slb - Slb_reg) + Pc1
@@ -43,7 +43,7 @@ def vanGenuchten(Pr, Slr, Sgr, n, Slb_reg=0.99):
                 / n
                 * dSlbdS
                 * Slb ** (m - 1.0)
-                * (Slb ** m - 1.0) ** (1.0 / n - 1.0)
+                * (Slb**m - 1.0) ** (1.0 / n - 1.0)
             )
         else:
             return alpha * dSlbdS

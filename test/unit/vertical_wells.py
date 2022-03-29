@@ -16,7 +16,11 @@ import ComPASS.mpi as mpi
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(6, 6, 2), extent=(4, 4, 2), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(6, 6, 2),
+    extent=(4, 4, 2),
+    origin=(0, 0, 0),
+)
 
 
 def make_wells():

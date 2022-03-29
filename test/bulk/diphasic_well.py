@@ -39,7 +39,11 @@ simulation.set_gravity(gravity)
 
 nh = 2 * int(L / dh)
 assert nh > 0
-grid = ComPASS.Grid(shape=(nh, nh, nv), extent=(2 * L, 2 * L, H), origin=(-L, -L, 0),)
+grid = ComPASS.Grid(
+    shape=(nh, nh, nv),
+    extent=(2 * L, 2 * L, H),
+    origin=(-L, -L, 0),
+)
 
 
 def make_producer():
@@ -93,7 +97,9 @@ assert np.all(simulation.dirichlet_node_states().p == simulation.node_states().p
 simulation.close_well(wid)
 
 tsmger = TimeStepManager(
-    initial_timestep=1 * year, increase_factor=2.0, decrease_factor=0.2,
+    initial_timestep=1 * year,
+    increase_factor=2.0,
+    decrease_factor=0.2,
 )
 
 simulation.standard_loop(
@@ -113,7 +119,10 @@ simulation.open_well(wid)
 simulation.set_well_property(wid, imposed_flowrate=Qm)
 
 simulation.standard_loop(
-    initial_time=0, initial_timestep=hour, output_period=day, final_time=30 * day,
+    initial_time=0,
+    initial_timestep=hour,
+    output_period=day,
+    final_time=30 * day,
 )
 
 assert simulation.all_states().S[:, 0].max() > 0.1

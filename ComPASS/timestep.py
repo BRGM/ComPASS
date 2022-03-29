@@ -69,7 +69,11 @@ def _flash_wells(simulation):
 
 
 def make_one_timestep(
-    simulation, newton, tick, timesteps, display_residual_contributions=False,
+    simulation,
+    newton,
+    tick,
+    timesteps,
+    display_residual_contributions=False,
 ):
 
     # CHECKME: do we need to retrieve kernel here???

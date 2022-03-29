@@ -39,7 +39,11 @@ fluid_properties.specific_mass = rhow
 fluid_properties.dynamic_viscosity = muf
 simulation.set_rock_volumetric_heat_capacity(rhocp)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(10.0, 10.0, H), origin=(-5, -5, -H),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(10.0, 10.0, H),
+    origin=(-5, -5, -H),
+)
 
 
 def top_nodes():

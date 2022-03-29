@@ -17,7 +17,9 @@ def test_access_vertices():
 
     nx, ny, nz = 3, 2, 1
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+    )
 
     def dirichlet_nodes():
         vertices = simulation.global_vertices()

@@ -53,10 +53,12 @@ simulation.all_states().set(X0)
 # Set boundary conditions
 vertices = simulation.vertices()
 x, y = vertices[:, 0], vertices[:, 1]
-simulation.reset_dirichlet_nodes((x ** 2 + y ** 2) > R ** 2 - epsilon)
+simulation.reset_dirichlet_nodes((x**2 + y**2) > R**2 - epsilon)
 
 simulation.standard_loop(
-    initial_timestep=1e-4 * day, final_time=day, output_period=minute,
+    initial_timestep=1e-4 * day,
+    final_time=day,
+    output_period=minute,
 )
 
 # if necessary simulation results can be directly postprocessed here

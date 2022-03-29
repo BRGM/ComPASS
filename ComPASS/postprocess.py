@@ -149,7 +149,10 @@ class PostProcessor:
             cells = cells[:nb_own_cells]
         vtkw.write_vtu(
             vtkw.polyhedra_vtu_doc(
-                mesh["vertices"], cells, pointdata=nodedata, celldata=celldata,
+                mesh["vertices"],
+                cells,
+                pointdata=nodedata,
+                celldata=celldata,
             ),
             piecefile,
         )
@@ -175,7 +178,9 @@ class PostProcessor:
                 used, faces_nodes = filter_adjacency_table(faces_nodes)
                 vtkw.write_vtp(
                     vtkw.vtp_doc(
-                        mesh["vertices"][used], faces_nodes, celldata=fracdata,
+                        mesh["vertices"][used],
+                        faces_nodes,
+                        celldata=fracdata,
                     ),
                     fracpiecefile,
                 )
@@ -194,7 +199,9 @@ class PostProcessor:
                 )
         vtkw.write_pvtu(
             vtkw.pvtu_doc(
-                self.vertices_type, pieces, celldata_types={"proc": self.proc_id_type},
+                self.vertices_type,
+                pieces,
+                celldata_types={"proc": self.proc_id_type},
             ),
             self.to_paraview_directory("mesh.pvtu"),
         )

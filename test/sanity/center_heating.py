@@ -63,7 +63,8 @@ def set_dirichlet_nodes():
     boundary = simulation.get_global_boundary_vertices()
     vtkw.write_vtu(
         vtkw.points_as_vtu_doc(
-            vertices, pointdata={"boundary": np.array(boundary, dtype=np.int)},
+            vertices,
+            pointdata={"boundary": np.array(boundary, dtype=np.int)},
         ),
         ComPASS.to_output_directory("boundary_vertices"),
     )

@@ -63,7 +63,11 @@ ComPASS.set_output_directory_and_logfile(__file__)
 
 if ComPASS.mpi.is_on_master_proc:
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+        extent=(Lx, Ly, Lz),
+        origin=(Ox, Oy, Oz),
+    )
 
     def Dirichlet_node():
         vertices = np.rec.array(simulation.global_vertices())
@@ -119,7 +123,7 @@ def lininterp(depths, top, gradient):
 
 
 def inside_heat_source(pts):
-    return (pts[0] - x_source) ** 2 + (pts[1] - y_source) ** 2 < radius ** 2
+    return (pts[0] - x_source) ** 2 + (pts[1] - y_source) ** 2 < radius**2
 
 
 def molar_fraction_balance(Pg, T):
@@ -214,7 +218,8 @@ standard_loop(
     final_time=final_time,
     output_every=20,
     time_step_manager=TimeStepManager(
-        initial_timestep=init_dt, maximum_timestep=max_dt,
+        initial_timestep=init_dt,
+        maximum_timestep=max_dt,
     ),
     newton=newton,
     # iteration_callbacks=[ma_fonction],

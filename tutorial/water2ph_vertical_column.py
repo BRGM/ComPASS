@@ -32,7 +32,9 @@ simulation.set_gravity(0)  # no gravity
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), extent=(Lx, Ly, H), origin=(-Lx / 2, -Ly / 2, -H),
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, H),
+    origin=(-Lx / 2, -Ly / 2, -H),
 )
 
 
@@ -79,5 +81,7 @@ tsmger = TimeStepManager(
 )
 
 simulation.standard_loop(
-    final_time=final_time, time_step_manager=tsmger, output_period=output_period,
+    final_time=final_time,
+    time_step_manager=tsmger,
+    output_period=output_period,
 )

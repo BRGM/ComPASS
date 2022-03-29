@@ -35,11 +35,17 @@ simulation.set_rock_volumetric_heat_capacity(1.0)
 fluid_properties.thermal_expansivity = 0
 
 
-shape = [1,] * 3
+shape = [
+    1,
+] * 3
 shape[axis] = n
-extent = [1,] * 3
+extent = [
+    1,
+] * 3
 extent[axis] = L
-origin = [-0.5,] * 3
+origin = [
+    -0.5,
+] * 3
 origin[axis] = -0.5 * L
 grid_info = {"shape": shape, "extent": extent, "origin": origin}
 # grid = MT.grid3D(

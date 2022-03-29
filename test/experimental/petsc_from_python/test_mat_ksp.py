@@ -41,9 +41,9 @@ A.setPreallocationNNZ(5)
 
 # precompute values for setting
 # diagonal and non-diagonal entries
-diagv = 2.0 / hx ** 2 + 2.0 / hy ** 2
-offdx = -1.0 / hx ** 2
-offdy = -1.0 / hy ** 2
+diagv = 2.0 / hx**2 + 2.0 / hy**2
+offdx = -1.0 / hx**2
+offdy = -1.0 / hy**2
 
 # loop over owned block of rows on this
 # processor and insert entry values

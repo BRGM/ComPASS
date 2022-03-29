@@ -22,7 +22,7 @@ class SimulationInfo:
 
 class SimmulationBase:
     """
-        A temporary object to group true members for simulation objects.
+    A temporary object to group true members for simulation objects.
     """
 
     def __init__(self, well_data_provider):
@@ -39,19 +39,19 @@ class SimmulationBase:
 
     def add_well_connections(self, well_pairs=None, proc_requests=None):
         """
-            Given a sequence of well ids pairs `(source, target)`,
-            create connections between simulations domains so that domains
-            where the target exists can acces flowrate informations from the source
-            well (wherever they are).
+        Given a sequence of well ids pairs `(source, target)`,
+        create connections between simulations domains so that domains
+        where the target exists can acces flowrate informations from the source
+        well (wherever they are).
 
-            The well informations are explicitely synchronised by calling
-            `self.well_connections.synchronize()`.
+        The well informations are explicitely synchronised by calling
+        `self.well_connections.synchronize()`.
 
-            The source information can be access using the `__getitem__` method
-            on self.well_connections : e.g. `self.well_connections[source].mass_flowrate`.
+        The source information can be access using the `__getitem__` method
+        on self.well_connections : e.g. `self.well_connections[source].mass_flowrate`.
 
-            :param well_pairs: a sequence of well ids pairs `(source, target)`
-            :param proc_requests: a sequence of pair (proc, list of wells to make available)
+        :param well_pairs: a sequence of well ids pairs `(source, target)`
+        :param proc_requests: a sequence of pair (proc, list of wells to make available)
         """
         add_well_connections(
             self.well_connections,

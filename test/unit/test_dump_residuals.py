@@ -25,5 +25,7 @@ def dump_residual(newton_tick):
 
 
 current_time = simulation.standard_loop(
-    initial_timestep=1, nitermax=2, newton_iteration_callbacks=[dump_residual],
+    initial_timestep=1,
+    nitermax=2,
+    newton_iteration_callbacks=[dump_residual],
 )

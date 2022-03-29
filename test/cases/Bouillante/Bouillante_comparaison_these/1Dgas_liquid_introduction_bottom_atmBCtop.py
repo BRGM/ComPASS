@@ -49,7 +49,11 @@ simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 simulation.init(
     mesh=grid,
@@ -64,14 +68,24 @@ simulation.set_freeflow_faces(on_zmax(grid)(fc))
 is_ff = simulation.get_freeflow_nodes()  # array of bool of size n_nodes
 
 # init gas
-X0 = simulation.build_state(simulation.Context.gas, p=Ptop, T=Tporous,)
+X0 = simulation.build_state(
+    simulation.Context.gas,
+    p=Ptop,
+    T=Tporous,
+)
 # top (freeflow) values
 Xtop = simulation.build_state(
-    simulation.Context.gas_FF_no_liq_outflow, p=Ptop, T=Tporous,
+    simulation.Context.gas_FF_no_liq_outflow,
+    p=Ptop,
+    T=Tporous,
 )
 # bottom values (liquid)
 Pbot = Patm + gravity * 1000 * Lz
-Xbot = simulation.build_state(simulation.Context.liquid, p=Pbot, T=Tporous,)
+Xbot = simulation.build_state(
+    simulation.Context.liquid,
+    p=Pbot,
+    T=Tporous,
+)
 
 simulation.all_states().set(X0)
 simulation.node_states().set(is_ff, Xtop)

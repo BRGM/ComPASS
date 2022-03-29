@@ -65,7 +65,9 @@ def hydrostatic_pressure(zbottom, ztop, nz):
 slim = hns * ds
 ns = 2 * hns
 grid = ComPASS.Grid(
-    shape=(ns, ns, nv), extent=(ns * ds, ns * ds, H), origin=(-slim, -slim, 0),
+    shape=(ns, ns, nv),
+    extent=(ns * ds, ns * ds, H),
+    origin=(-slim, -slim, 0),
 )
 
 
@@ -130,7 +132,9 @@ def set_well_property(wid, property, value):
 
 
 simulation.standard_loop(
-    initial_timestep=1, output_period=1, nitermax=1,
+    initial_timestep=1,
+    output_period=1,
+    nitermax=1,
 )
 
 

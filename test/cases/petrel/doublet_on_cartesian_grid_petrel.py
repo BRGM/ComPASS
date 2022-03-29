@@ -82,5 +82,7 @@ for states, xyz in [
     set_pressure(states, xyz)
 
 simulation.standard_loop(
-    initial_timestep=30 * day, final_time=30 * year, output_period=year,
+    initial_timestep=30 * day,
+    final_time=30 * year,
+    output_period=year,
 )

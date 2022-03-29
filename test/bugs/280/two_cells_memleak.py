@@ -32,7 +32,11 @@ K_matrix = 2.0
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(2, 1, 1), extent=(2, 1, 1), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(2, 1, 1),
+    extent=(2, 1, 1),
+    origin=(0, 0, 0),
+)
 
 
 def dirichlet_nodes():
@@ -64,7 +68,10 @@ mem = MemStatus("script", skip_first=True)
 for _ in range(200):
     nitermax += 2
     t0 = simulation.standard_loop(
-        initial_time=t0, initial_timestep=1, nitermax=nitermax, output_period=1,
+        initial_time=t0,
+        initial_timestep=1,
+        nitermax=nitermax,
+        output_period=1,
     )
     mem.update(verbose=True)
 

@@ -120,5 +120,7 @@ standard_loop(
     initial_timestep=30 * day,
     final_time=final_time,
     output_period=output_period,
-    output_callbacks=[my_graph,],
+    output_callbacks=[
+        my_graph,
+    ],
 )

@@ -182,7 +182,8 @@ class TimeloopLogCallback:
 
 
 def get_callbacks_from_options(
-    newton, tick0,
+    newton,
+    tick0,
 ):
 
     timestep_callbacks = []

@@ -207,7 +207,7 @@ class Zone(object):
 
 
 class ZoneManager(object):
-    """ ZoneManager(size, check_consistency_default)
+    """ZoneManager(size, check_consistency_default)
 
     A ZoneManager object works on a list of indices of length 'size',
     ie. equivalent to 'range(size)'. It produces Zone objects that
@@ -316,7 +316,7 @@ class ZoneManager(object):
         del self._namedzones[name]
 
     def __getattr__(self, attr):
-        """ Delegation of read-only dict behavior to internal data
+        """Delegation of read-only dict behavior to internal data
 
         Methods accessible here are:
             'keys', 'values', 'items', 'iterkeys', 'itervalues',
@@ -334,7 +334,7 @@ class ZoneManager(object):
             )
 
     def check_consistency(self, indices, flag):
-        """ Check if indices are in the range of manager's indices.
+        """Check if indices are in the range of manager's indices.
         Raise an error if not.
 
         If flag is False, checking is skipped.
@@ -350,7 +350,7 @@ class ZoneManager(object):
             raise ValueError("indices must be >= 0 and < manager.size")
 
     def build_from_mask(self, mask, name=None, check_consistency=False):
-        """ Return a zone corresponding to mask.
+        """Return a zone corresponding to mask.
 
         mask must 1d array of boolean the size of the manager.
 
@@ -364,7 +364,7 @@ class ZoneManager(object):
         return self.build_from_indices(indices, name, check_consistency)
 
     def build_from_indices(self, indices, name=None, check_consistency=None):
-        """ Return a zone corresponding to indices.
+        """Return a zone corresponding to indices.
 
         If name is specified, the zone is registred with this name.
 
@@ -416,7 +416,7 @@ class ZoneManager(object):
         return zone
 
     def add_partition_callback(self, func):
-        """ add a callback invoked at new partition creation.
+        """add a callback invoked at new partition creation.
 
         WARNING: advanced usage only
 
@@ -431,7 +431,7 @@ class ZoneManager(object):
             self._partition_callbacks[other] = func.__name__
 
     def remove_partition_callback(self, func):
-        """ remove a callback invoked at new partition creation.
+        """remove a callback invoked at new partition creation.
 
         WARNING: advanced usage only
 
@@ -446,7 +446,7 @@ class ZoneManager(object):
             self._partition_callbacks.pop(other, None)
 
     def _invoke_partition_callbacks(self):
-        """ invoke the partition callbacks.
+        """invoke the partition callbacks.
 
         ONLY USED BY : build_from_indices()
 
@@ -513,8 +513,8 @@ class Zict:
             return default
 
     def setdefault(self, key, default=None):
-        """ Return zict.get(k, default),
-            also set zict[k]= default if k not in zict"""
+        """Return zict.get(k, default),
+        also set zict[k]= default if k not in zict"""
         try:
             return self[key]
         except KeyError:
@@ -522,7 +522,7 @@ class Zict:
             return default
 
     def pop(self, key, *default):
-        """ Remove specified key and return the corresponding value.
+        """Remove specified key and return the corresponding value.
 
         If key is not found, default is returned if given, otherwise
         KeyError is raised.
@@ -608,7 +608,7 @@ class Zict:
         return True
 
     def _setitem(self, key, value):
-        """ __setitem__() implementation
+        """__setitem__() implementation
 
         Note: the separation with `__setitem__` avoid unwanted recursions.
         """
@@ -693,8 +693,7 @@ class Zict:
 
 
 class ZoneMap:
-    """
-    """
+    """ """
 
     def __init__(self, zone_manager):
         self._manager = zone_manager
@@ -705,7 +704,7 @@ class ZoneMap:
         return self._manager
 
     def get(self, zone):
-        ""
+        """"""
         if not zone:
             return None
         for part, value in self._data:
@@ -714,7 +713,7 @@ class ZoneMap:
         raise KeyError(zone)
 
     def set(self, zone, value):
-        ""
+        """"""
         if not zone:
             return
         zone = zone.union(*(k for k, v in self._data if v is value))  # utile ?

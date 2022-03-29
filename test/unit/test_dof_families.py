@@ -19,7 +19,10 @@ ComPASS.set_output_directory_and_logfile(__file__)
 grid = ComPASS.Grid(shape)
 
 simulation.init(
-    mesh=grid, cell_permeability=1, cell_porosity=0.5, cell_thermal_conductivity=1,
+    mesh=grid,
+    cell_permeability=1,
+    cell_porosity=0.5,
+    cell_thermal_conductivity=1,
 )
 
 mpi.master_print("\nNode families\n")

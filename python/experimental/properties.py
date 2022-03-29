@@ -3,8 +3,7 @@ from zones import Zone
 
 
 class Initializer:
-    """ initialize internal state.
-    """
+    """initialize internal state."""
 
     def __init__(self):
         self._data = {}
@@ -19,7 +18,7 @@ class Initializer:
 
 
 class Descriptor:
-    """ descriptor object.
+    """descriptor object.
     `obj.attr = value` delegates to `obj.attr[...] = value`
     """
 
@@ -46,7 +45,7 @@ class Descriptor:
 
 
 class Setter:
-    """ set item with zone objects as keys.
+    """set item with zone objects as keys.
 
     `...` (ellipsis) is also a valid key, setting value to ellipsis key
     clears internal state and sets the default value.
@@ -61,7 +60,7 @@ class Setter:
             self._add_zone_value(key, value)
 
     def _add_zone_value(self, zone, value):
-        ""
+        """"""
         assert isinstance(zone, Zone)
         if not zone:
             return
@@ -75,7 +74,7 @@ class Setter:
 
 
 class MultiKeySetter(Setter):
-    """ set item with multiple keys.
+    """set item with multiple keys.
 
     Setting value on two zones:
     >>> p[a, b] = value
@@ -99,8 +98,7 @@ class MultiKeySetter(Setter):
 
 
 class Getter:
-    """ get values from specified zone.
-    """
+    """get values from specified zone."""
 
     # NOTE  On pourrait faire du __getitem__ si le dtype étant connu par
     #       ailleurs.
@@ -110,8 +108,7 @@ class Getter:
 
 
 class TypedItems(Setter, Getter):
-    """
-    """
+    """ """
 
     def __init__(self, type):
         super().__init__()

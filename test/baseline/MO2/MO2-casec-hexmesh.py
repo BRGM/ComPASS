@@ -48,16 +48,19 @@ mesh = hexmesh.make_mesh(rw + np.cumsum(r), theta, rw)
 
 def select_well_face(centers):
     x, y, z = [centers[:, j] for j in range(3)]
-    return (x ** 2 + y ** 2) <= rw ** 2 + epsilon
+    return (x**2 + y**2) <= rw**2 + epsilon
 
 
 def select_dirichlet(points):
     x, y, z = [points[:, j] for j in range(3)]
-    return (x ** 2 + y ** 2) >= R ** 2 - epsilon
+    return (x**2 + y**2) >= R**2 - epsilon
 
 
 simulation.init(
-    mesh=mesh, cell_porosity=omega, cell_permeability=k, cell_thermal_conductivity=K,
+    mesh=mesh,
+    cell_porosity=omega,
+    cell_permeability=k,
+    cell_thermal_conductivity=K,
 )
 
 simulation.set_kr_functions(kr_functions)

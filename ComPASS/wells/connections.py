@@ -43,7 +43,10 @@ class WellDataConnection:
         if data is None:
             return
         wellhead = WellHead(
-            data.molar_flowrate, data.energy_flowrate, data.pressure, data.temperature,
+            data.molar_flowrate,
+            data.energy_flowrate,
+            data.pressure,
+            data.temperature,
         )
         self._value = wellhead
         comm = mpi.communicator()

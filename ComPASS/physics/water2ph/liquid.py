@@ -9,7 +9,7 @@ def h(p, T):
     d = 1.45008e-2
     T0 = 273.0
     dT = T - T0
-    return a + b * dT + c * dT ** 2 + d * dT ** 3
+    return a + b * dT + c * dT**2 + d * dT**3
 
 
 def dhdp(p, T):
@@ -23,7 +23,7 @@ def dhdT(p, T):
     d = 1.45008e-2
     T0 = 273.0
     dT = T - T0
-    return b + 2 * c * dT + 3 * d * dT ** 2
+    return b + 2 * c * dT + 3 * d * dT**2
 
 
 def mu(p, T):
@@ -48,7 +48,7 @@ def dmudT(p, T):
     dssdT = 0.021482 * (
         1.0 + (T - 273.0 - 8.435) / np.sqrt(8078.4 + (T - 273.0 - 8.435) ** 2)
     )
-    return -1.0e-3 * dssdT / ss ** 2
+    return -1.0e-3 * dssdT / ss**2
 
 
 def rho(p, T):
@@ -61,8 +61,8 @@ def rho(p, T):
     b2 = 4.8695e-20
     c1 = 1.8452e-14
     c2 = -5.9978e-23
-    ss = rho0 + a * T + b * T ** 2
-    cw = a1 + a2 * p + T * (b1 + b2 * p) + T ** 2 * (c1 + c2 * p)
+    ss = rho0 + a * T + b * T**2
+    cw = a1 + a2 * p + T * (b1 + b2 * p) + T**2 * (c1 + c2 * p)
     return ss * (1.0 + cw * (p - psat(T)))
 
 
@@ -76,9 +76,9 @@ def drhodp(p, T):
     b2 = 4.8695e-20
     c1 = 1.8452e-14
     c2 = -5.9978e-23
-    ss = rho0 + a * T + b * T ** 2
-    cw = a1 + a2 * p + T * (b1 + b2 * p) + T ** 2 * (c1 + c2 * p)
-    dcwdp = a2 + b2 * T + c2 * T ** 2
+    ss = rho0 + a * T + b * T**2
+    cw = a1 + a2 * p + T * (b1 + b2 * p) + T**2 * (c1 + c2 * p)
+    dcwdp = a2 + b2 * T + c2 * T**2
     return ss * (dcwdp * (p - psat(T)) + cw)
 
 
@@ -92,9 +92,9 @@ def drhodT(p, T):
     b2 = 4.8695e-20
     c1 = 1.8452e-14
     c2 = -5.9978e-23
-    ss = rho0 + a * T + b * T ** 2
+    ss = rho0 + a * T + b * T**2
     dssdT = a + 2 * b * T
-    cw = a1 + a2 * p + T * (b1 + b2 * p) + T ** 2 * (c1 + c2 * p)
+    cw = a1 + a2 * p + T * (b1 + b2 * p) + T**2 * (c1 + c2 * p)
     dcwdT = b1 + b2 * p + 2 * T * (c1 + c2 * p)
     return dssdT * (1.0 + cw * (p - psat(T))) + ss * (
         dcwdT * (p - psat(T)) - cw * dpsatdT(T)

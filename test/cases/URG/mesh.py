@@ -45,7 +45,11 @@ hull = Hull(
 
 # output normals as vtu
 vtkw.write_vtu(
-    vtkw.points_as_vtu_doc(origins, pointdata={"normals": normals},), "normals.vtu"
+    vtkw.points_as_vtu_doc(
+        origins,
+        pointdata={"normals": normals},
+    ),
+    "normals.vtu",
 )
 
 origins = [Point(*a) for a in origins]
@@ -58,8 +62,18 @@ print("built", len(list(mesh.surfaces())), "surface meshes")
 
 def dump_model(model, filename):
     mesh_arrays = [S.as_arrays() for S in model.surfaces()]
-    nodes_offset = np.cumsum([0,] + [a[0].shape[0] for a in mesh_arrays])
-    faces_offset = np.cumsum([0,] + [a[1].shape[0] for a in mesh_arrays])
+    nodes_offset = np.cumsum(
+        [
+            0,
+        ]
+        + [a[0].shape[0] for a in mesh_arrays]
+    )
+    faces_offset = np.cumsum(
+        [
+            0,
+        ]
+        + [a[1].shape[0] for a in mesh_arrays]
+    )
     all_vertices = np.vstack([a[0] for a in mesh_arrays])
     all_faces = np.vstack(
         [a[1] + offset for a, offset in zip(mesh_arrays, nodes_offset[:-1])]
@@ -93,7 +107,14 @@ raw_data = np.loadtxt(filename, skiprows=6)
 data = np.ma.array(raw_data, mask=raw_data == float(info.nodata))
 centers = info.centers()
 
-xyz = np.transpose(np.vstack([a.ravel() for a in centers] + [raw_data.ravel(),]))
+xyz = np.transpose(
+    np.vstack(
+        [a.ravel() for a in centers]
+        + [
+            raw_data.ravel(),
+        ]
+    )
+)
 
 xyz = xyz[raw_data.ravel() != float(info.nodata)]
 

@@ -5,7 +5,7 @@ import numpy as np
 class Solution(namedtuple("params", ["Pw", "qw", "mu", "km", "rho", "rw"])):
     def __call__(self, x, y):
         Pw, qw, mu, km, rho, rw = self
-        r = np.sqrt(x ** 2 + y ** 2)
+        r = np.sqrt(x**2 + y**2)
         res = Pw * np.ones(r.shape)
         mask = r > rw
         res[mask] = Pw + ((qw * mu) / (2 * np.pi * km * rho)) * np.log(r[mask] / rw)

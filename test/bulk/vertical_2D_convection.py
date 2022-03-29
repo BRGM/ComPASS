@@ -27,7 +27,11 @@ phires = 0.15  # column porosity
 Kres = 2  # bulk cell thermal conductivity W/m/K
 
 nz = 51
-grid = ComPASS.Grid(shape=(nz, 1, nz), extent=(H, H / nz, H), origin=(0.0, 0.0, -H),)
+grid = ComPASS.Grid(
+    shape=(nz, 1, nz),
+    extent=(H, H / nz, H),
+    origin=(0.0, 0.0, -H),
+)
 
 
 def dirichlet_boundaries():
@@ -80,5 +84,8 @@ lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(
-    initial_timestep=year, final_time=200 * year, output_period=5 * year, newton=newton,
+    initial_timestep=year,
+    final_time=200 * year,
+    output_period=5 * year,
+    newton=newton,
 )

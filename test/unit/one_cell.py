@@ -21,7 +21,11 @@ K_matrix = 2.0
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(1, 1, 1), extent=(1, 1, 1), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(1, 1, 1),
+    extent=(1, 1, 1),
+    origin=(0, 0, 0),
+)
 
 
 def dirichlet_nodes():
@@ -49,5 +53,7 @@ initial_state = simulation.build_state(simulation.Context.liquid, p=pR, T=TR)
 simulation.all_states().set(initial_state)
 
 current_time = simulation.standard_loop(
-    initial_timestep=1, nitermax=2, output_period=1,
+    initial_timestep=1,
+    nitermax=2,
+    output_period=1,
 )

@@ -30,13 +30,13 @@ def dfkrldS(Sl):
 
 def fkrg(Sl):
     S = Sstar(Sl)
-    return ((1 - S) ** 2) * (1 - S ** 2)
+    return ((1 - S) ** 2) * (1 - S**2)
 
 
 def dfkrgdS(Sl):
     S = Sstar(Sl)
     dS = dSstardSl(Sl)
-    return -2 * dS * (1 - S) * ((1 - S ** 2) + (1 - S) * S)
+    return -2 * dS * (1 - S) * ((1 - S**2) + (1 - S) * S)
 
 
 def kr_functions(states, rocktypes, kr, dkrdS):

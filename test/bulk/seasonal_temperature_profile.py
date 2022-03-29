@@ -39,7 +39,9 @@ simulation.set_gravity(0)
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), extent=(dz, dz, H), origin=(-0.5 * dz, -0.5 * dz, -H),
+    shape=(nx, ny, nz),
+    extent=(dz, dz, H),
+    origin=(-0.5 * dz, -0.5 * dz, -H),
 )
 
 

@@ -13,7 +13,7 @@ except IndexError:
 
 
 class PressureAMG(object):
-    """ The PC object used by CPR-AMG to apply an AMG procedure on the pressure unknowns"""
+    """The PC object used by CPR-AMG to apply an AMG procedure on the pressure unknowns"""
 
     def __init__(self, A, pressure_IS, amg_type, comm=PETSc.COMM_WORLD):
         self.pressure_IS = pressure_IS
@@ -32,7 +32,8 @@ class PressureAMG(object):
             try:
                 self.amg_pc.setType(PETSc.PC.Type.HYPRE)
                 PETSc.Options().setValue(
-                    "-pc_hypre_boomeramg_strong_threshold", 0.5,
+                    "-pc_hypre_boomeramg_strong_threshold",
+                    0.5,
                 )
             except PETSc.Error:  # If HYPRE is not available use default AMG from PETSc
                 mpi.master_print(
@@ -58,7 +59,7 @@ class PressureAMG(object):
 
 
 class CPRAMG(PETSc.PC):
-    """ PETSc implementation of the CPR-AMG preconditioning procedure"""
+    """PETSc implementation of the CPR-AMG preconditioning procedure"""
 
     def __init__(self, A, part_data, amg_type="hypre", comm=PETSc.COMM_WORLD):
         # CPR-AMG is a multiplicative composite PC :

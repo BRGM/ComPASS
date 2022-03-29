@@ -20,7 +20,10 @@ def test_face_centers():
     Lx, Ly, Lz = 100.0, 100.0, 100.0
     nx, ny, nz = 10, 10, 10
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+        extent=(Lx, Ly, Lz),
+    )
 
     def fractures():
         centers = simulation.compute_global_face_centers()

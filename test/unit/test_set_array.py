@@ -16,10 +16,17 @@ H = 10.0
 simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-grid = ComPASS.Grid(shape=(1, 1, nz), extent=(10.0, 10.0, H), origin=(-5, -5, -H),)
+grid = ComPASS.Grid(
+    shape=(1, 1, nz),
+    extent=(10.0, 10.0, H),
+    origin=(-5, -5, -H),
+)
 
 simulation.init(
-    mesh=grid, cell_permeability=1.0, cell_porosity=0.5, cell_thermal_conductivity=1.0,
+    mesh=grid,
+    cell_permeability=1.0,
+    cell_porosity=0.5,
+    cell_thermal_conductivity=1.0,
 )
 
 X0 = simulation.build_state(simulation.Context.liquid, p=3.14, T=1.0)

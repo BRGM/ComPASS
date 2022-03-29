@@ -23,7 +23,11 @@ def test_dump_mesh():
     Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
     nx, ny, nz = 9, 6, 4
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+        extent=(Lx, Ly, Lz),
+        origin=(Ox, Oy, Oz),
+    )
 
     def set_dirichlet():
         vertices = simulation.global_vertices()

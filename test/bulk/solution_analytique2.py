@@ -59,6 +59,6 @@ if __name__ == "__main__":
     Dx = 1
     nt = math.floor(tfinal / dt)
     Rd = rhow * Phi * b + rhoCp * (1 - Phi)
-    P = (U ** 2 + 4 * Dx * Rd * (mu + gamma)) ** (1 / 2)
+    P = (U**2 + 4 * Dx * Rd * (mu + gamma)) ** (1 / 2)
     print("avant test")
     test()

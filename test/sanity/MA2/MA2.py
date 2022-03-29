@@ -40,11 +40,18 @@ axis = 0  # axis {0: Ox, 1: Oy, 2: Oz}
 
 ComPASS.set_gravity(0)
 
-shape = [1,] * 3
+shape = [
+    1,
+] * 3
 shape[axis] = int(L / ds) + 1
-extent = [L / ds,] * 3
+extent = [
+    L / ds,
+] * 3
 extent[axis] = L
-grid = ComPASS.Grid(shape=shape, extent=extent,)
+grid = ComPASS.Grid(
+    shape=shape,
+    extent=extent,
+)
 
 
 def select_dirichlet_nodes():

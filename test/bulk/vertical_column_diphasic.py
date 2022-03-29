@@ -30,7 +30,9 @@ simulation = ComPASS.load_eos("diphasic")
 simulation.set_gravity(gravity)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), extent=(ds, ds, H), origin=(-0.5 * ds, -0.5 * ds, -H),
+    shape=(nx, ny, nz),
+    extent=(ds, ds, H),
+    origin=(-0.5 * ds, -0.5 * ds, -H),
 )
 
 simulation.init(

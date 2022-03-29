@@ -84,7 +84,9 @@ def timeloop_analysis(directory):
 #     help="ouput paraview/mesh.pvtu file with cell distribution (proc variable)",
 # )
 @click.argument("directories", nargs=-1)
-def timeloop_analysis_command(directories,):
+def timeloop_analysis_command(
+    directories,
+):
     for directory in directories:
         timeloop_analysis(directory)
 

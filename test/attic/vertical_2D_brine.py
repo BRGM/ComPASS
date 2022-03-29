@@ -29,7 +29,11 @@ gravity = 9.81
 nz = 21
 
 simulation.set_gravity(gravity)
-grid = ComPASS.Grid(shape=(nz, 1, nz), extent=(H, H / nz, H), origin=(0.0, 0.0, -H),)
+grid = ComPASS.Grid(
+    shape=(nz, 1, nz),
+    extent=(H, H / nz, H),
+    origin=(0.0, 0.0, -H),
+)
 
 simulation.init(
     mesh=grid,
@@ -54,7 +58,9 @@ lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 timestep = TimeStepManager(
-    initial_timestep=10 * day, increase_factor=2.0, decrease_factor=0.2,
+    initial_timestep=10 * day,
+    increase_factor=2.0,
+    decrease_factor=0.2,
 )
 
 simulation.standard_loop(

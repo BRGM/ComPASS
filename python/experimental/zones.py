@@ -7,8 +7,7 @@ from mpi4py import MPI
 
 
 class Zone:
-    """ Base class for zone objects
-    """
+    """Base class for zone objects"""
 
     __slots__ = "__id__", "__weakref__"
 
@@ -37,7 +36,7 @@ class Zone:
 
 
 class BaseManager:
-    ""
+    """"""
 
     def __init__(self, size):
         # indices and partition
@@ -129,8 +128,7 @@ class BaseManager:
 
 
 class Factory(BaseManager):
-    """
-    """
+    """ """
 
     def from_mask(self, mask):
         assert len(mask) == self.size
@@ -173,8 +171,7 @@ class Factory(BaseManager):
 
 
 class Calculator(BaseManager):
-    """
-    """
+    """ """
 
     def _prepare_cls(self, parents, namespace):
         super()._prepare_cls(parents, namespace)

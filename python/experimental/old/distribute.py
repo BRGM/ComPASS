@@ -37,7 +37,7 @@ class ZoneArrayItem:
         ref = weakref.ref(self)
 
         def cb(new_indices, ref=ref):
-            """ change array par array[new_indices]
+            """change array par array[new_indices]
 
             return True si doit être nettoyé
 
@@ -105,7 +105,10 @@ class ZoneManager_bis(ZoneManager):
             callbacks = self.get_reduce_callbacks(zone)
             if callbacks:
                 _, jj, ii = np.intersect1d(
-                    indices, zone.content(), return_indices=True, assume_unique=True,
+                    indices,
+                    zone.content(),
+                    return_indices=True,
+                    assume_unique=True,
                 )
                 ii = ii[np.argsort(order[jj])]
                 to_remove = [cb for cb in callbacks if cb(ii)]
@@ -129,7 +132,7 @@ class ZoneManager_bis(ZoneManager):
 
 class GrandManitou:
     def variables(self):
-        """ renvoie le namespace des propriétés gérées
+        """renvoie le namespace des propriétés gérées
 
         certaines propriétés (ex locations) sont pré-remplies
 
@@ -139,8 +142,7 @@ class GrandManitou:
         """
 
     def zones(self):
-        """ renvoie le namespace des domaines (zones) gérées
-        """
+        """renvoie le namespace des domaines (zones) gérées"""
 
     def distribute(self, *args):
         # args: partition des cells, nodes, faces, ...

@@ -36,7 +36,11 @@ vertices = np.array(
         [R * np.cos(theta), R * np.sin(theta), H],
     ]
 )
-cellnodes = np.array([[0, 1, 2, 3, 4, 5],])
+cellnodes = np.array(
+    [
+        [0, 1, 2, 3, 4, 5],
+    ]
+)
 mesh = MT.WedgeMesh.make(vertices, cellnodes)
 
 epsilon = 1e-4 * R  # tolerance value to select nodes (boundary conditions...)

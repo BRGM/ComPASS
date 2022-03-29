@@ -140,7 +140,11 @@ def set_boundary_fluxes():
 set_boundary_fluxes()
 
 lsolver = linear_solver(
-    simulation, legacy=False, tolerance=1e-13, restart_size=200, max_iterations=2000,
+    simulation,
+    legacy=False,
+    tolerance=1e-13,
+    restart_size=200,
+    max_iterations=2000,
 )
 newton = Newton(simulation, 1e-8, 8, lsolver)
 

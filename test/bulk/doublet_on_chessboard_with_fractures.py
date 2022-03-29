@@ -36,7 +36,11 @@ simulation = ComPASS.load_eos("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
 def color_grid():
@@ -46,7 +50,11 @@ def color_grid():
         grid.shape,
         (3, 3, 2),
         mpi.communicator().size,
-        loops_order=(2, 1, 0,),  # x first then y then z
+        loops_order=(
+            2,
+            1,
+            0,
+        ),  # x first then y then z
     )
     return colors.ravel(order="F")
 

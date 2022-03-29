@@ -19,7 +19,10 @@ ComPASS.set_output_directory_and_logfile(__file__)
 grid = ComPASS.Grid(shape=(1, 1, 1))
 
 simulation.init(
-    mesh=grid, cell_porosity=0.5, cell_permeability=1, cell_thermal_conductivity=1,
+    mesh=grid,
+    cell_porosity=0.5,
+    cell_permeability=1,
+    cell_thermal_conductivity=1,
 )
 
 simulation.set_liquid_capillary_pressure((Pc, dPcdS))

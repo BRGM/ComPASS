@@ -25,7 +25,9 @@ simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), origin=(-0.5, -0.5, -0.5), extent=(1.0, 1.0, 1.0),
+    shape=(nx, ny, nz),
+    origin=(-0.5, -0.5, -0.5),
+    extent=(1.0, 1.0, 1.0),
 )
 
 

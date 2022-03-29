@@ -36,7 +36,11 @@ vertices = np.array(
         [R * np.cos(theta), R * np.sin(theta), H],
     ]
 )
-cellnodes = np.array([[0, 1, 2, 3, 4, 5],])
+cellnodes = np.array(
+    [
+        [0, 1, 2, 3, 4, 5],
+    ]
+)
 mesh = MT.WedgeMesh.make(vertices, cellnodes)
 
 epsilon = 1e-4 * R  # tolerance value to select nodes (boundary conditions...)
@@ -65,7 +69,7 @@ simulation.all_states().set(X0)
 # Set boundary conditions
 vertices = simulation.vertices()
 x, y = vertices[:, 0], vertices[:, 1]
-simulation.reset_dirichlet_nodes((x ** 2 + y ** 2) > R ** 2 - epsilon)
+simulation.reset_dirichlet_nodes((x**2 + y**2) > R**2 - epsilon)
 
 assert mpi.is_on_master_proc  # test is not to be run in parallel (one cell !)
 
@@ -81,7 +85,9 @@ simulation.standard_loop(
     initial_timestep=1e-4 * day,
     final_time=day,
     output_period=hour,
-    iteration_callbacks=[check,],
+    iteration_callbacks=[
+        check,
+    ],
 )
 
 # if necessary simulation results can be directly postprocessed here

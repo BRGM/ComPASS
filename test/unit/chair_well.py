@@ -29,7 +29,11 @@ ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
 def create_well():
@@ -80,7 +84,10 @@ simulation.all_states().set(X0)
 simulation.reset_dirichlet_nodes(on_vertical_boundaries(grid))
 
 simulation.standard_loop(
-    initial_time=0, initial_timestep=hour, output_period=day, final_time=day,
+    initial_time=0,
+    initial_timestep=hour,
+    output_period=day,
+    final_time=day,
 )
 
 simulation.postprocess(time_unit="day", convert_temperature=True)

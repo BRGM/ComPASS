@@ -31,12 +31,19 @@ simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(rhocpr)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
 simulation.init(
-    mesh=grid, cell_porosity=phi, cell_permeability=k, cell_thermal_conductivity=K,
+    mesh=grid,
+    cell_porosity=phi,
+    cell_permeability=k,
+    cell_thermal_conductivity=K,
 )
 
 # Init physical values

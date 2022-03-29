@@ -44,7 +44,11 @@ gas_context = simulation.Context.gas
 
 if ComPASS.mpi.is_on_master_proc:
 
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz),)
+    grid = ComPASS.Grid(
+        shape=(nx, ny, nz),
+        extent=(Lx, Ly, Lz),
+        origin=(Ox, Oy, Oz),
+    )
 
     def Dirichlet_node():
         vertices = np.rec.array(simulation.global_vertices())

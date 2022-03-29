@@ -20,7 +20,11 @@ ComPASS.set_output_directory_and_logfile(__file__)
 simulation = ComPASS.load_eos("water2ph")
 simulation.set_gravity(0)
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(nx, ny, nz), origin=(0, 0, 0),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(nx, ny, nz),
+    origin=(0, 0, 0),
+)
 
 hpath = [
     (1, 1),
@@ -75,7 +79,8 @@ simulation.all_states().set(X0)
 
 
 simulation.standard_loop(
-    nitermax=0, fixed_timestep=1,
+    nitermax=0,
+    fixed_timestep=1,
 )
 
 # simulation results can be directly postprocessed here

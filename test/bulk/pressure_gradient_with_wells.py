@@ -61,7 +61,10 @@ def hydrostatic_pressure(zbottom, ztop, nz, nbsteps=100):
     return lambda zeta: np.interp(zeta, z[::-1], pressures[::-1])
 
 
-grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz),)
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+)
 
 
 def create_well(x, y):

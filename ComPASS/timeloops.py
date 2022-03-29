@@ -259,10 +259,27 @@ def standard_loop(
             callback(n, t)
         shooter.shoot(t)
 
-    events.update([Event(tout, [output_actions,]) for tout in specific_outputs])
+    events.update(
+        [
+            Event(
+                tout,
+                [
+                    output_actions,
+                ],
+            )
+            for tout in specific_outputs
+        ]
+    )
 
     def add_output_event(tout):
-        events.add(Event(tout, [output_actions,]))
+        events.add(
+            Event(
+                tout,
+                [
+                    output_actions,
+                ],
+            )
+        )
 
     # FIXME: use tick as argument not (t, n)
     @mpi.on_master_proc

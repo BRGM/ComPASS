@@ -12,7 +12,12 @@ import ComPASS.mpi as mpi
 
 _locations = ["nodes", "faces", "cells"]
 ElementValues = namedtuple(
-    "ElementValues", _locations, defaults=[None,] * len(_locations)
+    "ElementValues",
+    _locations,
+    defaults=[
+        None,
+    ]
+    * len(_locations),
 )
 
 
@@ -577,7 +582,9 @@ class SalomeWrapper:
         self.mesh = CompassWrapper(self._simulation)
         simulation = self._simulation
         flags = ElementValues(
-            simulation.nodeflags(), simulation.faceflags(), simulation.cellflags(),
+            simulation.nodeflags(),
+            simulation.faceflags(),
+            simulation.cellflags(),
         )
         self.info.rebuild_from_flags(flags, self.masks, self.mesh)
 

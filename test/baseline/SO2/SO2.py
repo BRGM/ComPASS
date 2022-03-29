@@ -53,12 +53,19 @@ fluid_properties = simulation.get_fluid_properties()
 fluid_properties.volumetric_heat_capacity = rhocp
 
 nb_steps = int(L / ds) + 1
-shape = [1,] * 3
+shape = [
+    1,
+] * 3
 shape[axis] = nb_steps
-extent = [L / ds,] * 3
+extent = [
+    L / ds,
+] * 3
 extent[axis] = L
 
-grid = ComPASS.Grid(shape=shape, extent=extent,)
+grid = ComPASS.Grid(
+    shape=shape,
+    extent=extent,
+)
 on_the_left = on_xmin(grid)
 on_the_right = on_xmax(grid)
 

@@ -31,7 +31,10 @@ print(
 final_time = Lx / (U / omega_reservoir)
 print("Final time is set to: %.2f years" % (final_time / year))
 
-grid = ComPASS.Grid(shape=(nx, 1, 1), extent=(Lx, Lx / nx, Lx / nx),)
+grid = ComPASS.Grid(
+    shape=(nx, 1, 1),
+    extent=(Lx, Lx / nx, Lx / nx),
+)
 
 on_the_left = lambda x: x <= grid.origin[0]
 on_the_right = lambda x: x >= grid.origin[0] + grid.extent[0]

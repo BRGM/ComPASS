@@ -80,7 +80,11 @@ ptr = np.hstack([[0], np.cumsum(lengths)])
 
 assert len(matdat) == row + 1
 A = csr_matrix(
-    (np.hstack(matdat), np.hstack(matcol), np.hstack([[0], np.cumsum(lengths)]),),
+    (
+        np.hstack(matdat),
+        np.hstack(matcol),
+        np.hstack([[0], np.cumsum(lengths)]),
+    ),
     shape=(row + 1, row + 1),
 )
 print("matrix size", A.shape)

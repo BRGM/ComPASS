@@ -78,7 +78,11 @@ def write_polyhedra_vtu_mesh(
     cells = [[facenodes[face] for face in faces] for faces in cellfaces]
     vtkw.write_vtu(
         vtkw.polyhedra_vtu_doc(
-            vertices, cells, pointdata=pointdata, celldata=celldata, ofmt=ofmt,
+            vertices,
+            cells,
+            pointdata=pointdata,
+            celldata=celldata,
+            ofmt=ofmt,
         ),
         filename,
     )

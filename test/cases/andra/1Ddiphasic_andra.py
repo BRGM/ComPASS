@@ -34,7 +34,9 @@ simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(rock_internal_energy)
 
 grid = ComPASS.Grid(
-    shape=(nx, ny, nz), extent=(ds, ds, H), origin=(-0.5 * ds, -0.5 * ds, 0.0),
+    shape=(nx, ny, nz),
+    extent=(ds, ds, H),
+    origin=(-0.5 * ds, -0.5 * ds, 0.0),
 )
 
 bottom_flag = 3
@@ -127,5 +129,7 @@ run_loop = lambda final_time, no_output=True: simulation.standard_loop(
     output_every=10,
 )
 
-run_loop(1000 * year,)
+run_loop(
+    1000 * year,
+)
 # simulation.postprocess()
