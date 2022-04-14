@@ -172,14 +172,14 @@ def init(
                 messages.error("You cannot define both grid and mesh keywords")
             mesh = grid
     init_and_load_mesh(mesh)
-    if mpi.is_on_master_proc and set_global_flags is not None:
-        assert callable(set_global_flags)
-        set_global_flags()
     if mpi.is_on_master_proc:
         well_list = list(wells())
         kernel.set_well_geometries(well_list)
         kernel.global_mesh_mesh_bounding_box()
         kernel.global_mesh_compute_all_connectivies()
+        if set_global_flags is not None:
+            assert callable(set_global_flags)
+            set_global_flags()
         check_well_geometry(well_list)
         fractures = call_if_callable(fracture_faces)
         if fractures is not None:
