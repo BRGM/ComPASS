@@ -33,7 +33,7 @@ Packages used to build and run simulations:
   sudo apt-get install --yes python3-dev python3-click python3-numpy python3-setuptools \
     python3-pytest-xdist python3-pip python3-wheel \
     wget build-essential gcc gfortran cmake libopenmpi-dev \
-    libmetis-dev libpetsc-real-dev python3-mpi4py python3-petsc4py-real cmake-curses-gui
+    libmetis-dev libpetsc-real-dev python3-mpi4py python3-petsc4py-real cmake-curses-gui git
 
 You may want to install the `python-is-python3 <https://packages.ubuntu.com/focal/python-is-python3>`_
 package so that `python3` becomes the default python interpreter.
@@ -50,7 +50,7 @@ You will also need a few additional python modules:
 
 .. code-block:: shell
 
-  python3 -m pip install scikit-build setuptools-scm sortedcontainers verstr vtkwriters
+  python3 -m pip install scikit-build setuptools-scm sortedcontainers verstr vtkwriters numba
 
 
 MeshTools installation
@@ -76,7 +76,9 @@ The following should do the job:
 
 .. code-block:: shell
 
-  python setup.py install -DMESHTOOLS_TRIES_TO_USE_CGAL=OFF
+  cd MeshTools
+  python3 setup.py install -DMESHTOOLS_TRIES_TO_USE_CGAL=OFF
+  cd ..
 
 The `-DMESHTOOLS_TRIES_TO_USE_CGAL=OFF` flag is optional. The default is that
 MeshTools tries to wrap (a small) part of the CGAL library. Some (advanced)
@@ -97,20 +99,23 @@ Clone `ComPASS repository <https://github.com/BRGM/ComPASS>`_:
 Compilation relies on `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
 to run `CMake <https://cmake.org/>`_ through `setup.py`.
 
-cd to the root directory and run the installation:
+cd to the root directory and run the installation (by default no physics is install so you will
+get a warning, later is explained how to compile one or all physics):
 
   .. code-block:: shell
 
+    cd ComPASS
     python3 setup.py install
 
 or alternatively in develop mode with verbose output:
 
   .. code-block:: shell
 
+    cd ComPASS
     python3 setup.py develop
 
 and you may also use all `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
-options to control the behavior of `CMake <https://cmake.org/>`_
+options to control the behavior of `CMake <https://cmake.org/>`_.
 
 For example:
 
@@ -118,7 +123,7 @@ For example:
 
     python3 setup.py develop --build-type Debug -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
 
-will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics.
+will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics,
 
   .. code-block:: shell
 
