@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# Cartesian grid, box of 4000m in depth
+# Cartesian grid, box of 2000m in depth
 # Gas only
 # Imposed Dirichlet BC at the bottom
 # Homogeneous Neumann BC at both sides
@@ -20,17 +20,18 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
 from ComPASS.utils.grid import on_zmax
+from ComPASS.postprocess import postprocess
 
-Lz = 4000.0
-nz = 200
+Lz = 2000.0
+nz = 150
 dz = Lz / nz
 nx = ny = 3
 Lx = Ly = nx * dz
-Ox, Oy, Oz = 0.0, 0.0, -3000.0
+Ox, Oy, Oz = 0.0, 0.0, -2000.0
 Topz = Oz + Lz
 
 omega_reservoir = 0.35  # reservoir porosity
-k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
+k_reservoir = 1e-12  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
 Tatm = 600.0
 Tinit = 700.0
@@ -91,15 +92,12 @@ newton = Newton(simulation, 1e-7, 15, lsolver)
 
 final_time = 150.0 * year
 output_period = 0.05 * final_time
-
-run_loop = lambda final_time, no_output=True: simulation.standard_loop(
-    reset_iteration_counter=True,
-    initial_time=0,
+simulation.standard_loop(
     final_time=final_time,
     newton=newton,
     time_step_manager=tsmger,
     # output_period=output_period,
-    no_output=no_output,
+    no_output=True,
 )
 
-run_loop(final_time)
+# simulation.postprocess()
