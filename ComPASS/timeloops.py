@@ -207,6 +207,10 @@ def standard_loop(
             nb_output = max(2, nb_output)
             if total_time is not None:
                 output_period = total_time / (nb_output - 1)
+            else:
+                print(
+                    "WARNING: nb_output has no impact because final_time is not set in standard_loop."
+                )
     else:
         if nb_output is not None:
             print("WARNING: output_period is overriding nb_output in standard_loop.")
