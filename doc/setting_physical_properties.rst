@@ -60,15 +60,57 @@ For example setting up the reservoir thermal conductivity can be done as follows
         ...,
     )
 
+Mesh objects identification after the distribution
+-------------------------------------------------
+
+With the parallelism, the indexes of the mesh objects
+(cells, nodes, faces) change after the distribution of the mesh
+done in the
+:func:`simulation.init <ComPASS.simulation.base.init>` function.
+ComPASS includes a tool named *flags* to identify the objects
+after the distribution. It is usefull for example when you tag
+objects using a mesh generator and you want to use the information
+after the distribution. The flags are not used elsewhere in the ComPASS
+code, it is for you to track some mesh information.
+
+The first step is to set the global flags using the
+:code:`set_global_flags` keyword in the
+:func:`simulation.init <ComPASS.simulation.base.init>` function. The flags
+contain one integer by object, which is initialized to 0.
+Then you can retrieve the flags with the local indexes of the mesh objects.
+For example:
+
+.. code-block:: python
+
+    gallery_flag = 3
+    def set_flags():
+        nodeflags = simulation.global_nodeflags() #  already init with 0
+        vertices = simulation.global_vertices() #  all vertices coordinates
+        gallery_vertices = on_zmin(grid)(vertices) #  bool array
+        nodeflags[gallery_vertices] = gallery_flag
+
+    simulation.init(
+        ...,
+        set_global_flags=set_flags,
+        ...,
+    )
+
+    nodeflags = simulation.nodeflags()
+    Xgal = simulation.build_state(simulation.Context.gas, p=pgal, T=Tgal)
+    simulation.node_states().set(nodeflags == gallery_flag, Xgal)
+
+
 Capillary pressure and relative permeabilities
 ----------------------------------------------
 
 Particular regionalized properties are the capillary pressure
-and the relative permeabilities.
+and the relative permeabilities when there is at least
+two phases.
 It is possible de define your own laws or to load
 one already implemented.
 It is regionalized via the rocktype defined for each
-cell and fracture face.
+cell and fracture face. Then the rocktype is a variable
+used by the code that you can initialize (by default is 1).
 
 .. _setting_rocktypes:
 
@@ -87,14 +129,14 @@ For example:
         cell_centers = simulation.compute_global_cell_centers()
         COX = cell_centers[:, 1] > Lx / 2  # right half
         CCT = cell_centers[:, 1] <= Lx / 2.0
-        cellrocktype = simulation.global_cell_rocktypes().reshape((-1, 2))
+        cellrocktype = simulation.global_cell_rocktypes()
         cellrocktype[COX] = 1
         cellrocktype[CCT] = 2
 
         # or you can rely on values you already initialized in the flags
         # Careful : the size of global_fracture_rocktypes is NbFace !
         faceflags = simulation.global_faceflags()
-        fracrocktype = simulation.global_fracture_rocktypes().reshape((-1, 2))
+        fracrocktype = simulation.global_fracture_rocktypes()
         fracrocktype[:] = np.stack((faceflags, faceflags), axis=-1)
 
     simulation.init(
@@ -142,3 +184,7 @@ For example:
 
     from data.van_genuchten_kr import kr_functions
     simulation.set_kr_functions(kr_functions)
+
+By default (when the EOS contains two phases)
+the relative permeability of each phase is the
+square of the phase saturation.
