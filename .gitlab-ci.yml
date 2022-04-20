@@ -236,6 +236,7 @@ diphasic freeflow:
     - python 1Dgas_atmBC.py
     - python 1Dliquid_outflow_atmBC.py
     - python 1Drain_recharge.py
+    - python 1Dwater_recharge_by_atmBC.py
 
 diphasic andra:
   stage: test
