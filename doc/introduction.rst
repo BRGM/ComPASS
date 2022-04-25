@@ -187,6 +187,12 @@ The script has been successfully tested at the beginning of February 2022.
 Linux script
 ^^^^^^^^^^^^
 
+Execute the following script with:
+
+.. code-block:: bash
+
+  source install-linux-with-conda
+
 .. literalinclude:: ../miscellaneous/install-linux-with-conda
    :language: bash
    :linenos:
