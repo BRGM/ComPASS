@@ -170,11 +170,6 @@ Step 6: Atmospheric boundary condition
   it corresponds to the :code:`simulation.Context.diphasic_FF_no_liq_outflow`
   context.
 
-.. warning::
-
-  Up to now the Dirichlet node states must be set **after** the node states
-  where the atmospheric BC is imposed.
-
 * Modify the far-field value of the
   :ref:`atmospheric boundary condition<far_field_atmBC>`
   to set the temperature to 20C.
