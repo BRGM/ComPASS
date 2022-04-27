@@ -59,6 +59,7 @@ contains
       PgCwg = f*inc%Comp(WATER_COMP, LIQUID_PHASE)
       ! WARNING: don't divide inequality by Pg (migth be negative during Newton iteration)
       if (PgCag + PgCwg > inc%phase_pressure(GAS_PHASE)) then
+         ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 0.d0
          inc%Saturation(LIQUID_PHASE) = 1.d0
