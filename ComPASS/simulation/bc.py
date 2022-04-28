@@ -154,18 +154,23 @@ def set_freeflow_faces(simulation, faces):
     simulation.scheme.compute_volumes()  # update the site volume (no vol at ff nodes)
 
 
-def reset_freeflow_faces(simulation, faces):
+def reset_freeflow_faces(simulation, faces=None):
     """
-    Delete all freeflow faces and select new ones using mask functions
+    Delete all freeflow faces. If faces are given,
+    select new ones using mask functions
     (must be True where the face is a *freeflow* face)
     or a sequence of faces id that will become freeflow faces.
 
     :param simulation: the simulation object
-    :param faces: a sequence with boolean values or faces id
+    :param faces: (None by default) a sequence with boolean values or faces id
     """
     kernel = get_kernel()
     kernel.clear_freeflow_faces()
-    set_freeflow_faces(simulation, faces)
+    if faces is not None:
+        set_freeflow_faces(simulation, faces)
+    else:
+        # update the site volume (no vol at ff nodes)
+        simulation.scheme.compute_volumes()
 
 
 def get_freeflow_nodes(simulation):
