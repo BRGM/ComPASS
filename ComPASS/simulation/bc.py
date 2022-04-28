@@ -151,6 +151,7 @@ def set_freeflow_faces(simulation, faces):
         faces = np.nonzero(faces)[0]
     assert np.all(faces >= 0) and np.all(faces < nf)
     kernel.set_freeflow_faces(faces + 1)  # C -> Fortran indexing
+    simulation.scheme.compute_volumes()  # update the site volume (no vol at ff nodes)
 
 
 def reset_freeflow_faces(simulation, faces):

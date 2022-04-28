@@ -32,11 +32,15 @@ module VAGFrac
       CellDarcyRocktypesLocal, NodeDarcyRocktypesLocal, FracDarcyRocktypesLocal, &
       CellFourierRocktypesLocal, NodeFourierRocktypesLocal, FracFourierRocktypesLocal, &
       CellThermalSourceLocal, FracThermalSourceLocal, NodebyFractureLocal, &
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      IsFreeflowNode, &
+#endif
       PorositeCellLocal, PorositeFracLocal, SurfFracLocal, VolCellLocal, nbNodeFaceMax, &
       NbFaceLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, NbNodeLocal_Ncpus, &
       IdNodeLocal, IdFaceLocal, FracToFaceLocal, &
       SubArrayView, MeshSchema_subarrays_views, &
-      DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray
+      DOFFamilyArray, MeshSchema_allocate_DOFFamilyArray, MeshSchema_free_DOFFamilyArray, &
+      number_of_nodes
 
    use Physics, only: Thickness
    use SchemeParameters, only: &
@@ -561,8 +565,23 @@ contains
       do k = 1, NbNodeLocal_Ncpus(commRank + 1)
          if (IdNodeLocal(k)%P /= "d" .and. VolDarcy%nodes(k) < eps) then
             if (DebugUtils_is_own_frac_node(k) .or. IdNodeLocal(k)%Proc /= 'g') then
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+               if (allocated(IsFreeflowNode)) then
+                  if (.not. IsFreeflowNode(k)) then
+                     print *, "vol non dirichlet node nor freeflow node < 0"
+                     print *, "node", k, "at", XNodeLocal(:, k), "has volume", VolDarcy%nodes(k)
+                     everything_ok = .false.
+                  endif
+               else
+                  print *, "vol non dirichlet node < 0"
+                  print *, "node", k, "at", XNodeLocal(:, k), "has volume", VolDarcy%nodes(k)
+                  everything_ok = .false.
+               endif
+#else
                print *, "vol non dirichlet node < 0"
                print *, "node", k, "at", XNodeLocal(:, k), "has volume", VolDarcy%nodes(k)
+               everything_ok = .false.
+#endif
             end if
          end if
       end do
@@ -600,6 +619,9 @@ contains
       bind(C, name="VAGFrac_VolsDarcy")
       real(c_double), value, intent(in) :: omegaDarcyCell
       real(c_double), value, intent(in) :: omegaDarcyFrac
+      logical, allocatable, dimension(:) :: nz_node_vol
+
+      allocate (nz_node_vol(number_of_nodes()))
 
       call VAGFrac_allocate_Darcy_volumes
 
@@ -611,23 +633,34 @@ contains
       !call DebugUtils_dump_mesh_info()
       !call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
 
+      nz_node_vol = IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n"
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) then
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+      endif
+#endif
       CALL VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
          CellDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeDarcyRocktypesLocal, &
-         IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+         nz_node_vol, &
          omegaDarcyCell, &
          NodebyCellLocal, &
          VolDarcy%cells, &
          VolDarcy%nodes)
 
+      nz_node_vol = IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y" ! not necessary with nodebyfracturelocal ?
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) &
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+#endif
       CALL VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
          FracDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeDarcyRocktypesLocal, &
-         IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "y", &
+         nz_node_vol, &
          omegaDarcyFrac, &
          NodebyFractureLocal, &
          VolDarcy%fractures, &
@@ -638,29 +671,41 @@ contains
       PoroVolDarcy%fractures = PorositeFracLocal*Thickness*SurfFracLocal
       PoroVolDarcy%nodes = 0.d0
 
+      nz_node_vol = IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n"
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) &
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+#endif
       CALL VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
          CellDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeDarcyRocktypesLocal, &
-         IdNodeLocal(:)%P /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+         nz_node_vol, &
          omegaDarcyCell, &
          NodebyCellLocal, &
          PoroVolDarcy%cells, &
          PoroVolDarcy%nodes)
 
+      nz_node_vol = IdNodeLocal(:)%P /= "d"
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) &
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+#endif
       CALL VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
          FracDarcyRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeDarcyRocktypesLocal, &
-         IdNodeLocal(:)%P /= "d", &
+         nz_node_vol, &
          omegaDarcyFrac, &
          NodebyFractureLocal, &
          PoroVolDarcy%fractures, &
          PoroVolDarcy%nodes)
 
       call VAGFrac_check_volumes()
+
+      deallocate (nz_node_vol)
 
    end subroutine VAGFrac_VolsDarcy
 
@@ -670,28 +715,45 @@ contains
       type(DOFFamilyArray), intent(inout) :: quantities
       real(c_double), intent(in) :: omegaFourierCell
       real(c_double), intent(in) :: omegaFourierFrac
+      logical, allocatable, dimension(:) :: nz_node_vol
+
+      allocate (nz_node_vol(number_of_nodes()))
 
       quantities%nodes = 0.d0
+
+      nz_node_vol = IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n"
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) &
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+#endif
       call VAGFrac_SplitCellVolume( &
          NbCellLocal_Ncpus(commRank + 1), &
          CellFourierRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeFourierRocktypesLocal, &
-         IdNodeLocal(:)%T /= "d" .AND. IdNodeLocal(:)%Frac == "n", &
+         nz_node_vol, &
          omegaFourierCell, &
          NodebyCellLocal, &
          quantities%cells, quantities%nodes &
          )
+
+      nz_node_vol = IdNodeLocal(:)%T /= "d"
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      if (allocated(IsFreeflowNode)) &
+         nz_node_vol = nz_node_vol .AND. .not. IsFreeflowNode
+#endif
       call VAGFrac_SplitCellVolume( &
          NbFracLocal_Ncpus(commRank + 1), &
          FracFourierRocktypesLocal, &
          NbNodeLocal_Ncpus(commRank + 1), &
          NodeFourierRocktypesLocal, &
-         IdNodeLocal(:)%T /= "d", &
+         nz_node_vol, &
          omegaFourierFrac, &
          NodebyFractureLocal, &
          quantities%fractures, quantities%nodes &
          )
+
+      deallocate (nz_node_vol)
 
    end subroutine VAGFrac_distribute_fourier_quantities
 
