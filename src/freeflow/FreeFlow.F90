@@ -12,7 +12,7 @@ module FreeFlow
    use CommonMPI, only: CommonMPI_abort
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
-      AtmState, &
+      IdNodeLocal, AtmState, &
       IsFreeflowNode, &
       MeshSchema_local_face_surface, &
       SurfFreeFlowLocal, &
@@ -52,31 +52,61 @@ contains
 
    end subroutine FreeFlow_reset_faces
 
-   subroutine FreeFlow_set_faces(faces)
+   subroutine FreeFlow_set_area_distribution(faces, Freeflow_area_distribution)
       integer(c_int), intent(in) :: faces(:)
+      real(c_double), dimension(:), allocatable, intent(inout) :: Freeflow_area_distribution
       integer(c_int) :: k, fk
+      integer(c_int) :: s, p, nb_freeflow_nodes
       real(c_double) :: surface_fraction
-      integer(c_int) :: s, p, nb_facenodes
+
+      if (size(SurfFreeFlowLocal) /= number_of_nodes()) &
+         call CommonMPI_abort("FreeFlow_set_freeflow_faces: inconsistent size for freeflow surface array.")
 
       do k = 1, size(faces)
          fk = faces(k)
-         nb_facenodes = NodebyFaceLocal%Pt(fk + 1) - NodebyFaceLocal%Pt(fk)
-         surface_fraction = MeshSchema_local_face_surface(fk)/nb_facenodes
+         nb_freeflow_nodes = 0
          do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
             s = NodebyFaceLocal%Num(p)
-            IsFreeflowNode(s) = .true.
-            AtmState(s)%Pressure = atm_pressure
-            AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
-#ifdef ComPASS_WITH_diphasic_PHYSICS
-            AtmState(s)%Temperature(GAS_PHASE) = atm_temperature
-#endif
-            AtmState(s)%Comp = atm_comp
-            AtmState(s)%Imposed_flux = rain_flux
-            AtmState(s)%Hm = Hm
-            AtmState(s)%HT = HT
-            SurfFreeFlowLocal(s) = SurfFreeFlowLocal(s) + surface_fraction
+            if (IsFreeflowNode(s)) & ! in FF (not a Dirichlet node)
+               nb_freeflow_nodes = nb_freeflow_nodes + 1
+         enddo
+         surface_fraction = MeshSchema_local_face_surface(fk)/nb_freeflow_nodes
+         do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
+            s = NodebyFaceLocal%Num(p)
+            if (IsFreeflowNode(s)) &
+               Freeflow_area_distribution(s) = Freeflow_area_distribution(s) + surface_fraction
          enddo
       enddo
+
+   end subroutine FreeFlow_set_area_distribution
+
+   subroutine FreeFlow_set_faces(faces)
+      integer(c_int), intent(in) :: faces(:)
+      integer(c_int) :: k, fk
+      integer(c_int) :: s, p
+
+      do k = 1, size(faces)
+         fk = faces(k)
+         do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
+            s = NodebyFaceLocal%Num(p)
+            if (IdNodeLocal(s)%T .ne. "d" .AND. IdNodeLocal(s)%P .ne. "d") then
+               IsFreeflowNode(s) = .true.
+               AtmState(s)%Pressure = atm_pressure
+               AtmState(s)%Temperature(LIQUID_PHASE) = rain_temperature
+#ifdef ComPASS_WITH_diphasic_PHYSICS
+               AtmState(s)%Temperature(GAS_PHASE) = atm_temperature
+#endif
+               AtmState(s)%Comp = atm_comp
+               AtmState(s)%Imposed_flux = rain_flux
+               AtmState(s)%Hm = Hm
+               AtmState(s)%HT = HT
+            endif
+         enddo
+      enddo
+
+      ! fill SurfFreeFlowLocal with the distribution of the face area
+      ! over the freeflow nodes (no Dirichlet node)
+      call FreeFlow_set_area_distribution(faces, SurfFreeFlowLocal)
 
    end subroutine FreeFlow_set_faces
 
