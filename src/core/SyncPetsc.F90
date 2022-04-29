@@ -19,6 +19,8 @@ module SyncPetsc
       NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
       NbFracLocal_Ncpus, NbCellLocal_Ncpus
 
+#include <ComPASS_PETSc_definitions.h>
+
    implicit none
 
    type, bind(C) :: MatrixSize
@@ -273,7 +275,7 @@ subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
 
    ! get values from x_s
    call VecGetArrayF90(x_s, ptr, Ierr)
-   CHKERRQ(Ierr)
+   CMP_PETSC_CHECK(Ierr)
 
    ! increment node
    do i = 1, NbNodeLocal
@@ -304,6 +306,6 @@ subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
    end do
 
    call VecRestoreArrayF90(x_s, ptr, Ierr)
-   CHKERRQ(Ierr)
+   CMP_PETSC_CHECK(Ierr)
 
 end subroutine syncpetsc_getsolnodefracwell

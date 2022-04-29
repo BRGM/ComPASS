@@ -49,6 +49,7 @@ module NN
    use WellState, only: WellState_allocate, WellState_free
 
 #include <petsc/finclude/petsc.h>
+#include <ComPASS_PETSc_definitions.h>
 
    use petsc
 
@@ -118,10 +119,12 @@ contains
       integer :: Ierr
 
       ! initialisation petsc/MPI
-      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr); CHKERRQ(Ierr)
+      call PetscInitialize(PETSC_NULL_CHARACTER, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! cf. https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscInitializeFortran.html
-      call PetscInitializeFortran(Ierr); CHKERRQ(Ierr)
+      call PetscInitializeFortran(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! init mpi, communicator/commRank/commSize
       call CommonMPI_init(PETSC_COMM_WORLD)

@@ -38,6 +38,7 @@ module SolvePetsc
    use IncPrimSecd, only: NbIncTotalPrim_ctx
 
 #include <petsc/finclude/petsc.h>
+#include <ComPASS_PETSc_definitions.h>
 
    use petsc
 
@@ -239,89 +240,89 @@ contains
       ! create tmp vectors for CPR-AMG
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NBlockrowL, NBlockrowG, v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(v_pt, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NBlockrowL, NBlockrowG, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(P1v_pt, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NrowL, NrowG, P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(P1v, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NrowL, NrowG, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(AP1v, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
 #ifdef _THERMIQUE_
 
       ! AP1v_t
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NBlockrowL, NBlockrowG, AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(AP1v_t, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P2AP1v_t
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NBlockrowL, NBlockrowG, P2AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(P2AP1v_t, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(P2AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(P2AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P2AP1v
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NrowL, NrowG, P2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(P2AP1v, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(P2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(P2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P2AP1v
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NrowL, NrowG, AP2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecSet(AP2AP1v, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(AP2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(AP2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       if (.not. allocated(IsTprimNodeFracOwn)) then
          allocate (IsTprimNodeFracOwn(NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)))
@@ -385,9 +386,9 @@ contains
       call SolvePetsc_SetSm
 
       call PCSetUp(pc_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call KSPSetUp(ksp_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_SetUp
 
@@ -405,15 +406,15 @@ contains
 ! #endif
 
       call PCSetUp(pcamg_p, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PCSetUp(pcilu0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
 ! #ifdef _THERMIQUE_
 
 !     call PCSetUp(pcamg_t, Ierr)
-!     CHKERRQ(Ierr)
+!     CMP_PETSC_CHECK(Ierr)
 ! #endif
 
    end subroutine SolvePetsc_cpramgPCSetUp
@@ -587,7 +588,7 @@ contains
                         NrowL, NcolL, &
                         NrowG, NcolG, &
                         0, d_nnz, 0, o_nnz, A_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       deallocate (d_nnz)
       deallocate (o_nnz)
@@ -631,7 +632,7 @@ contains
                end do
 
                call MatSetValues(A_mpi, m, idxm, n, idxn, JacA%Val(:, :, j), INSERT_VALUES, Ierr)
-               CHKERRQ(Ierr)
+               CMP_PETSC_CHECK(Ierr)
 
             else ! col is wellinj or wellprod, insert JacA%Val(1,:,j)
                do s = 1, NbCompThermique
@@ -646,7 +647,7 @@ contains
                end do
                call MatSetValues(A_mpi, m, idxm, 1, idxn, tmp, INSERT_VALUES, Ierr)
                !write(*,*) 'Setting values done on', commRank
-               CHKERRQ(Ierr)
+               CMP_PETSC_CHECK(Ierr)
             end if
          end do
       end do
@@ -670,22 +671,22 @@ contains
                idxm(1) = row
 
                call MatSetValues(A_mpi, 1, idxm, n, idxn, JacA%Val(:, 1, j), INSERT_VALUES, Ierr)
-               CHKERRQ(Ierr)
+               CMP_PETSC_CHECK(Ierr)
 
             else ! col is wellinj or wellprod, insert JacA%Val(1,1,j)
 
                idxm(1) = row
                idxn(1) = col
                call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
-               CHKERRQ(Ierr)
+               CMP_PETSC_CHECK(Ierr)
             end if
          end do
       end do
 
       call MatAssemblyBegin(A_mpi, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatAssemblyEnd(A_mpi, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       !write(*,*) '>>>>>>>>>> A is set <<<<<<<<<<'
       !call MatView(A_mpi,PETSC_VIEWER_STDOUT_WORLD,Ierr)
@@ -710,14 +711,14 @@ contains
             col = ColLToColGBlock(JacA%Num(j)) - 1 ! 0-based in petsc
 
             call MatSetValue(Ap, row, col, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
-            CHKERRQ(Ierr)
+            CMP_PETSC_CHECK(Ierr)
          end do
       end do
 
       call MatAssemblyBegin(Ap, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatAssemblyEnd(Ap, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! call MatView(Ap,PETSC_VIEWER_STDOUT_WORLD,Ierr)
 
@@ -782,20 +783,20 @@ contains
 #ifdef _WITH_FREEFLOW_STRUCTURES_
                   if (JacA%Num(j) <= NbNodeLocal .and. IsFreeflowNode(JacA%Num(j))) then  ! FIXME: FreeFlow node, T is first inc (not always)
                      call MatSetValue(At, row, col, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
-                     CHKERRQ(Ierr)
+                     CMP_PETSC_CHECK(Ierr)
                      call CommonMPI_abort('in solvePetsc entered in new loop (_WITH_FREEFLOW_STRUCTURES_)')
                   else ! reservoir node, T is second inc
                      call MatSetValue(At, row, col, JacA%Val(2, 2, j), INSERT_VALUES, Ierr)
-                     CHKERRQ(Ierr)
+                     CMP_PETSC_CHECK(Ierr)
                   endif
 #else
                   ! reservoir node, T is second inc
                   call MatSetValue(At, row, col, JacA%Val(2, 2, j), INSERT_VALUES, Ierr)
-                  CHKERRQ(Ierr)
+                  CMP_PETSC_CHECK(Ierr)
 #endif
                else
                   call MatSetValue(At, row, col, 0.d0, INSERT_VALUES, Ierr)
-                  CHKERRQ(Ierr)
+                  CMP_PETSC_CHECK(Ierr)
                end if
             end do
 
@@ -807,10 +808,10 @@ contains
 
                if (row == col) then
                   call MatSetValue(At, row, col, 1.d0, INSERT_VALUES, Ierr)
-                  CHKERRQ(Ierr)
+                  CMP_PETSC_CHECK(Ierr)
                else
                   call MatSetValue(At, row, col, 0.d0, INSERT_VALUES, Ierr)
-                  CHKERRQ(Ierr)
+                  CMP_PETSC_CHECK(Ierr)
                end if
             end do
 
@@ -818,9 +819,9 @@ contains
       end do
 
       call MatAssemblyBegin(At, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatAssemblyEnd(At, MAT_FINAL_ASSEMBLY, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! call MatView(At,PETSC_VIEWER_STDOUT_WORLD,Ierr)
 
@@ -845,10 +846,10 @@ contains
       ! So the good choice would be KSP_NORM_PRECONDITIONED
       ! call KSPSetNormType(ksp_mpi, KSP_NORM_PRECONDITIONED, Ierr)
       call KSPSetNormType(ksp_mpi, KSP_NORM_UNPRECONDITIONED, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       ! CHECKME: why no atol???
       call KSPSetTolerances(ksp_mpi, PetscKspTol, PETSC_DEFAULT_REAL, 1.d10, kspitmax, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       if (.not. allocated(kspHistory)) then
          allocate (kspHistory(kspitmax + 1))
       else
@@ -858,10 +859,10 @@ contains
          end if
       end if
       call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       ! CHECKME: no restart!!!
       call KSPGMRESSetRestart(ksp_mpi, restart_iteration, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_Ksp_configuration
 
@@ -869,13 +870,19 @@ contains
 
       PetscErrorCode :: Ierr
 
-      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
-      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
-      call KSPSetType(ksp_mpi, KSPPREONLY, Ierr); CHKERRQ(Ierr)
-      call KSPGetPC(ksp_mpi, pc_mpi, Ierr); CHKERRQ(Ierr)
-      call PCSetType(pc_mpi, PCLU, Ierr); CHKERRQ(Ierr)
+      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call KSPSetType(ksp_mpi, KSPPREONLY, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call PCSetType(pc_mpi, PCLU, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      call KSPSetFromOptions(ksp_mpi, Ierr); CHKERRQ(Ierr)
+      call KSPSetFromOptions(ksp_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_CreateKsp_direct_solver
 
@@ -883,32 +890,45 @@ contains
 
       PetscErrorCode :: Ierr
 
-      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
-      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
+      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! CHECKME: Cf. PETSc doc
       ! Normally, it is best to use the KSPSetFromOptions() command and
       ! then set the KSP type from the options database
-      call KSPSetType(ksp_mpi, KSPGMRES, Ierr); CHKERRQ(Ierr)
+      call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
 
       ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
-      !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr); CHKERRQ(Ierr)
+      !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      call KSPGetPC(ksp_mpi, pc_mpi, Ierr); CHKERRQ(Ierr)
+      call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      ! call PCSetType(pc_mpi,PCNONE,Ierr); CHKERRQ(Ierr)
+      ! call PCSetType(pc_mpi,PCNONE,Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      ! call PCSetType(pc_mpi, PCLU, Ierr); CHKERRQ(Ierr)
+      ! call PCSetType(pc_mpi, PCLU, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      call PCSetType(pc_mpi, PCHYPRE, Ierr); CHKERRQ(Ierr)
+      call PCSetType(pc_mpi, PCHYPRE, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       ! ! Euclid in hypre: ILU(k), k is level
-      ! call PCHYPRESetType(pc_mpi, "euclid", Ierr); CHKERRQ(Ierr)
-      ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr); CHKERRQ(Ierr)
-      ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr); CHKERRQ(Ierr)
-      call PCHYPRESetType(pc_mpi, 'boomeramg', Ierr); CHKERRQ(Ierr)
+      ! call PCHYPRESetType(pc_mpi, "euclid", Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      ! call PetscOptionsSetValue("-pc_hypre_euclid_levels", "0", Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      ! call PetscOptionsSetValue("-pc_hypre_euclid_bj","1",Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call PCHYPRESetType(pc_mpi, 'boomeramg', Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
-      call KSPSetFromOptions(ksp_mpi, Ierr); CHKERRQ(Ierr)
+      call KSPSetFromOptions(ksp_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_CreateKsp
 
@@ -927,25 +947,28 @@ contains
       ! FIXME: the following lines are duplicated in SolvePetsc_CreateKsp
 
       ! ksp solver create
-      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr); CHKERRQ(Ierr)
-      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr); CHKERRQ(Ierr)
+      call KSPCreate(ComPASS_COMM_WORLD, ksp_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call KSPSetOperators(ksp_mpi, A_mpi, A_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! CHECKME: Cf. PETSc doc
       ! Normally, it is best to use the KSPSetFromOptions() command and
       ! then set the KSP type from the options database
-      call KSPSetType(ksp_mpi, KSPGMRES, Ierr); CHKERRQ(Ierr)
+      call KSPSetType(ksp_mpi, KSPGMRES, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call SolvePetsc_Ksp_configuration(PetscKspTol, kspitmax, kspitmax)
 
       ! ! monitor
       ! call KSPMonitorSet(ksp_mpi, KSPMonitorDefault, &
       !      PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! set preconditioner CPR-AMG
       call KSPGetPC(ksp_mpi, pc_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCSetType(pc_mpi, PCSHELL, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! apply shell pc
 #ifdef _THERMIQUE_
@@ -957,71 +980,71 @@ contains
 
       ! call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_PT_multiplicative, Ierr)
       ! call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_T_multiplicative, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 #else
       call PCShellSetApply(pc_mpi, SolvePetsc_cpramgPCApply_P_multiplicative, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 #endif
 
       ! setup shell pc and solver
       call PCShellSetSetUp(pc_mpi, SolvePetsc_cpramgPCSetUp, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Set KSP options from the options database
       call KSPSetFromOptions(ksp_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! 2. PC Pression
       call PCCreate(ComPASS_COMM_WORLD, pcamg_p, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCSetOperators(pcamg_p, Ap, Ap, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCSetType(pcamg_p, PCHYPRE, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCHYPRESetType(pcamg_p, "boomeramg", Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PetscOptionsSetValue(PETSC_NULL_OPTIONS, "-pc_hypre_boomeramg_strong_threshold", "0.5", Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PCSetFromOptions(pcamg_p, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! 3. PC ilu0
       call PCCreate(ComPASS_COMM_WORLD, pcilu0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCSetOperators(pcilu0, A_mpi, A_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PCSetType(pcilu0, PCBJACOBI, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PCSetFromOptions(pcilu0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
 ! #ifdef _THERMIQUE_
 
       ! ! 4. PC Temperature
       ! call PCCreate(ComPASS_COMM_WORLD, pcamg_t, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PCSetOperators(pcamg_t, At, At, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call PCSetType(pcamg_t, PCHYPRE, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PCHYPRESetType(pcamg_t, "boomeramg", Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PetscOptionsSetValue("-pc_hypre_boomeramg_strong_threshold","0.5",Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PCSetFromOptions(pcamg_t, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call PCSetType(pcamg_t, PCLU, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PCFactorSetMatSolverPackage(pcamg_t, MATSOLVERSUPERLU_DIST, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call PCFactorSetMatSolverPackage(pcamg_t, MATSOLVERMUMPS, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
 ! #endif
 
@@ -1050,9 +1073,9 @@ contains
       ! Pression part of v:
       ! v_pt = R1*v, R1: restriction matrix to pression
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, NbNodeFrac
          iv = (i - 1)*NbCompThermique + 1
@@ -1065,20 +1088,20 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_1^{-1} v_pt, AMG
       call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v has been initialized as 0
       ! The part hors pression is always 0
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, NbNodeFrac
          iv = (i - 1)*NbCompThermique + 1
@@ -1091,25 +1114,25 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = A*P1v
       call MatMult(A_mpi, P1v, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = v - AP1v
       call VecAYPX(AP1v, -1.d0, v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = P_2^{-1} AP1v, ILU(0)
       call PCApply(pcilu0, AP1v, Pv, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = Pv + P1v
       call VecAXPY(Pv, 1.d0, P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! ! *** ILU0 first, AMG second *** !
       ! !   P1^{-1}: ilu0 for all
@@ -1117,18 +1140,18 @@ contains
 
       ! ! Pv = P_2^{-1} v, ILU(0)
       ! call PCApply(pcilu0, v, Pv, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call MatMult(A_mpi, Pv, AP1v, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call VecAYPX(AP1v, -1.d0, v, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call VecGetArrayReadF90(AP1v, ptr1, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call VecGetArrayF90(v_pt, ptr2, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! do i=1, Nb
       !    iv = (i-1)*NbCompThermique + 1
@@ -1136,18 +1159,18 @@ contains
       ! end do
 
       ! call VecRestoreArrayReadF90(AP1v, ptr1, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! ! P1v_pt = P_1^{-1} v_pt, AMG
       ! call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call VecGetArrayF90(Pv, ptr2, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! do i=1, Nb
       !       iv = (i-1)*NbCompThermique + 1
@@ -1155,9 +1178,9 @@ contains
       ! end do
 
       ! call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call VecRestoreArrayF90(Pv, ptr2, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_cpramgPCApply_P_multiplicative
 
@@ -1180,14 +1203,14 @@ contains
 
       ! Pv = P_2^{-1} v, ILU(0)
       call PCApply(pcilu0, v, Pv, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pression part of v:
       ! v_pt = R1*v, R1: restriction matrix to pression
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1195,20 +1218,20 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_1^{-1} v_pt, AMG
       call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v has been initialized as 0
       ! The part hors pression and temperature is always 0
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(Pv, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1216,9 +1239,9 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_cpramgPCApply_P_additive
 
@@ -1245,9 +1268,9 @@ contains
       ! Pression part of v
       ! v_pt = R1*v, R1: restriction matrix to pression
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1255,20 +1278,20 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_1^{-1} v_pt, AMG
       call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v has been initialized as 0
       ! The part hors pression is always 0
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1276,24 +1299,24 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = A*P1v
       call MatMult(A_mpi, P1v, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = v - AP1v
       call VecAYPX(AP1v, -1.d0, v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Temperature part of AP1v
       ! AP1v_t = R2*AP1v, R2: restriction matrix to temperature
       call VecGetArrayReadF90(AP1v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(AP1v_t, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1306,20 +1329,20 @@ contains
       end do
 
       call VecRestoreArrayReadF90(AP1v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(AP1v_t, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P2AP1v_t = P_2^{-1} AP1v_t, AMG
       call PCApply(pcamg_t, AP1v_t, P2AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P2AP1v has been initialized as 0
       ! The part hors temperature is always 0
       call VecGetArrayReadF90(P2AP1v_t, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P2AP1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1332,29 +1355,29 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P2AP1v_t, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P2AP1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP2AP1v = A * P2AP1v
       call MatMult(A_mpi, P2AP1v, AP2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP2AP1v = AP1v - AP2AP1v
       call VecAYPX(AP2AP1v, -1.d0, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = P_3^{-1} AP2AP1v, ILU(0)
       call PCApply(pcilu0, AP2AP1v, Pv, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = Pv + P2AP1v
       call VecAXPY(Pv, 1.d0, P2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = Pv + P1v
       call VecAXPY(Pv, 1.d0, P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_cpramgPCApply_PT_multiplicative
 
@@ -1379,9 +1402,9 @@ contains
       ! Pression part of v:
       ! v_pt = R1*v, R1: restriction matrix to pression
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1389,20 +1412,20 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_1^{-1} v_pt, AMG
       call PCApply(pcamg_p, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v has been initialized as 0
       ! The part hors pression and temperature is always 0
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 1
@@ -1410,16 +1433,16 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Temperature part of v:
       ! v_pt = R2*v, R2: restriction matrix to temperature
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1432,18 +1455,18 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_2^{-1} v_pt, AMG
       call PCApply(pcamg_t, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1456,25 +1479,25 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = A*P1v
       call MatMult(A_mpi, P1v, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = v - AP1v
       call VecAYPX(AP1v, -1.d0, v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = P_3^{-1} AP1v, ILU(0)
       call PCApply(pcilu0, AP1v, Pv, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = Pv + P1v
       call VecAXPY(Pv, 1.d0, P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_cpramgPCApply_PT_additive
 
@@ -1498,9 +1521,9 @@ contains
       ! Temperature part of v:
       ! v_pt = R2*v, R2: restriction matrix to temperature
       call VecGetArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1513,18 +1536,18 @@ contains
       end do
 
       call VecRestoreArrayReadF90(v, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(v_pt, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! P1v_pt = P_2^{-1} v_pt, AMG
       call PCApply(pcamg_t, v_pt, P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecGetArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecGetArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, Nb
          iv = (i - 1)*NbCompThermique + 2
@@ -1537,25 +1560,25 @@ contains
       end do
 
       call VecRestoreArrayReadF90(P1v_pt, ptr1, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecRestoreArrayF90(P1v, ptr2, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = A*P1v
       call MatMult(A_mpi, P1v, AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! AP1v = v - AP1v
       call VecAYPX(AP1v, -1.d0, v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = P_3^{-1} AP1v, ILU(0)
       call PCApply(pcilu0, AP1v, Pv, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! Pv = Pv + P1v
       call VecAXPY(Pv, 1.d0, P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_cpramgPCApply_T_multiplicative
 
@@ -1570,36 +1593,36 @@ contains
       call VecCreateMPI(ComPASS_COMM_WORLD, &
                         NrowL, NrowG, &
                         Sm_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecSet(Sm_mpi, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(Sm_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(Sm_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       !  ! create x_mpi
       !  call VecDuplicate(Sm_mpi, x_mpi, Ierr)
-      !  CHKERRQ(Ierr)
+      !  CMP_PETSC_CHECK(Ierr)
 
       !  call VecSet(x_mpi, 0.d0, Ierr)
-      !  CHKERRQ(Ierr)
+      !  CMP_PETSC_CHECK(Ierr)
       !  call VecAssemblyBegin(x_mpi, Ierr)
-      !  CHKERRQ(Ierr)
+      !  CMP_PETSC_CHECK(Ierr)
       !  call VecAssemblyEnd(x_mpi, Ierr)
-      !  CHKERRQ(Ierr)
+      !  CMP_PETSC_CHECK(Ierr)
 
       ! create y_mpi
       call VecDuplicate(Sm_mpi, y_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecSet(y_mpi, 0.d0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyBegin(y_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecAssemblyEnd(y_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_CreateSm
 
@@ -1613,7 +1636,7 @@ contains
 
       ! set Sm to Sm_mpi
       call VecGetArrayF90(Sm_mpi, ptr, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       do i = 1, NbNodeOwn + NbFracOwn
 
@@ -1630,14 +1653,14 @@ contains
       end do
 
       call VecRestoreArrayF90(Sm_mpi, ptr, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       ! call VecSetValues(Sm_mpi, JacA%Nb, Sm_ix, Sm, INSERT_VALUES, Ierr)
 
       ! call VecAssemblyBegin(Sm_mpi, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call VecAssemblyEnd(Sm_mpi, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       ! call VecView(Sm_mpi, PETSC_VIEWER_STDOUT_WORLD, Ierr)
 
@@ -1703,7 +1726,7 @@ contains
                         NBlockrowL, NBlockcolL, &
                         NBlockrowG, NBlockcolG, &
                         0, d_nnz, 0, o_nnz, Ap, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
 ! #ifdef _THERMIQUE_
 
@@ -1711,7 +1734,7 @@ contains
 !          NBlockrowL, NBlockcolL, &
 !          NBlockrowG, NBlockcolG, &
 !          0, d_nnz, 0, o_nnz, At, Ierr)
-!     CHKERRQ(Ierr)
+!     CMP_PETSC_CHECK(Ierr)
 ! #endif
 
       deallocate (d_nnz)
@@ -1727,29 +1750,29 @@ contains
       PetscErrorCode :: Ierr
 
       call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename)//'_structure.dat', viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call KSPView(ksp_mpi, viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerFlush(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerDestroy(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename)//'_A.dat', viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatView(A_mpi, viewer, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerFlush(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerDestroy(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerASCIIOpen(ComPASS_COMM_WORLD, trim(basename)//'_b.dat', viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecView(Sm_mpi, viewer, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerFlush(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PetscViewerDestroy(viewer, ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
    end subroutine SolvePetsc_dump_system
 
@@ -1760,7 +1783,8 @@ contains
       integer(c_int) :: NkspIter
       PetscErrorCode :: Ierr
 
-      call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr); CHKERRQ(Ierr)
+      call KSPGetIterationNumber(ksp_mpi, NkspIter, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       NkspIter = NkspIter
 
    end function SolvePetsc_KspSolveIterationNumber
@@ -1801,15 +1825,16 @@ contains
    function SolvePetsc_KspSolve(x) result(reason)
       Vec, intent(inout) :: x
       integer(c_int) :: reason
+
       KSPConvergedReason :: native_reason ! this wraps a C enum
       PetscErrorCode :: Ierr
 
       call KSPSolve(ksp_mpi, Sm_mpi, x, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call KSPGetConvergedReason(ksp_mpi, native_reason, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       reason = native_reason ! FIXME: avoid conversion... use petsc4py / enums ?
-      CHKERRQ(Ierr)
 
    end function SolvePetsc_KspSolve
 
@@ -1818,16 +1843,22 @@ contains
       PetscReal :: a
       PetscErrorCode :: Ierr
 
-      call VecCopy(Sm_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
-      call VecScale(y_mpi, -1.d0, Ierr); CHKERRQ(Ierr)
-      call MatMultAdd(A_mpi, x, y_mpi, y_mpi, Ierr); CHKERRQ(Ierr)
+      call VecCopy(Sm_mpi, y_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call VecScale(y_mpi, -1.d0, Ierr)
+      CMP_PETSC_CHECK(Ierr)
+      call MatMultAdd(A_mpi, x, y_mpi, y_mpi, Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       write (*, *) 'linear solution check ||AX-b||'
-      call VecNorm(y_mpi, NORM_1, a, Ierr); CHKERRQ(Ierr)
+      call VecNorm(y_mpi, NORM_1, a, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       write (*, *) 'N1', a
-      call VecNorm(y_mpi, NORM_2, a, Ierr); CHKERRQ(Ierr)
+      call VecNorm(y_mpi, NORM_2, a, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       write (*, *) 'N2', a
-      call VecNorm(y_mpi, NORM_INFINITY, a, Ierr); CHKERRQ(Ierr)
+      call VecNorm(y_mpi, NORM_INFINITY, a, Ierr)
+      CMP_PETSC_CHECK(Ierr)
       write (*, *) 'NI', a
 
    end subroutine SolvePetsc_check_solution
@@ -1858,11 +1889,11 @@ contains
       if (SolvePetsc_isInitialized .eqv. .true.) then
          ! Destroy PETSc objects if they were created by SolvePetsc_Init
          call KSPDestroy(ksp_mpi, Ierr)
-         CHKERRQ(Ierr)
+         CMP_PETSC_CHECK(Ierr)
          call MatDestroy(A_mpi, Ierr)
-         CHKERRQ(Ierr)
+         CMP_PETSC_CHECK(Ierr)
          call VecDestroy(Sm_mpi, Ierr)
-         CHKERRQ(Ierr)
+         CMP_PETSC_CHECK(Ierr)
       end if
 
    end subroutine SolvePetsc_free
@@ -1876,42 +1907,42 @@ contains
 
       ! Destroy
       call PCDestroy(pc_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call KSPDestroy(ksp_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatDestroy(A_mpi, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call PCDestroy(pcamg_p, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call PCDestroy(pcilu0, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call MatDestroy(Ap, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       call VecDestroy(v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(P1v_pt, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(P1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
 #ifdef _THERMIQUE_
       ! call PCDestroy(pcamg_t, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
       ! call MatDestroy(At, Ierr)
-      ! CHKERRQ(Ierr)
+      ! CMP_PETSC_CHECK(Ierr)
 
       call VecDestroy(AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(P2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(P2AP1v_t, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
       call VecDestroy(AP2AP1v, Ierr)
-      CHKERRQ(Ierr)
+      CMP_PETSC_CHECK(Ierr)
 
       deallocate (IsTprimNodeFracOwn)
       deallocate (IsTprimNodeFracLocal)

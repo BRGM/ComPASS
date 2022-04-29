@@ -378,15 +378,22 @@ show :
         "
 static const char help[] = \"PETSc test program.\";
 #include <petscts.h>
+#include <petscversion.h>
+#if PETSC_VERSION_MAJOR>=3 && PETSC_VERSION_MINOR>=17
+#include <petscerror.h>
+#define CheckError(ierr) PetscCall(ierr)
+#else
+#define CheckError(ierr) CHKERRQ(ierr)
+#endif
 int main(int argc,char *argv[]) {
   PetscErrorCode ierr;
   TS ts;
 
-  ierr = PetscInitialize(&argc,&argv,0,help);CHKERRQ(ierr);
-  ierr = TSCreate(PETSC_COMM_WORLD,&ts);CHKERRQ(ierr);
-  ierr = TSSetFromOptions(ts);CHKERRQ(ierr);
-  ierr = ${_PETSC_TSDestroy};CHKERRQ(ierr);
-  ierr = PetscFinalize();CHKERRQ(ierr);
+  ierr = PetscInitialize(&argc,&argv,0,help);CheckError(ierr);
+  ierr = TSCreate(PETSC_COMM_WORLD,&ts);CheckError(ierr);
+  ierr = TSSetFromOptions(ts);CheckError(ierr);
+  ierr = ${_PETSC_TSDestroy};CheckError(ierr);
+  ierr = PetscFinalize();CheckError(ierr);
   return 0;
 }
 "
