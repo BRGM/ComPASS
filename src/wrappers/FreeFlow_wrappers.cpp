@@ -21,6 +21,9 @@
 #include "attribute_array.h"
 #include "wrap_array_holder.h"
 
+extern "C" {
+void reset_freeflow_nodes();
+}
 #ifdef _WITH_FREEFLOW_STRUCTURES_
 // Fortran functions
 extern "C" {
@@ -116,6 +119,7 @@ void add_freeflow_wrappers(py::module& module) {
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    module.def("clear_freeflow_faces", &clear_freeflow_faces);
+   module.def("reset_freeflow_nodes", &reset_freeflow_nodes);
    module.def("set_atm_temperature", &set_atm_temperature);
    module.def("set_rain_temperature", &set_rain_temperature);
    module.def("set_atm_pressure", &set_atm_pressure);
@@ -138,5 +142,7 @@ void add_freeflow_wrappers(py::module& module) {
    module.def("freeflow_node_states", []() {
       return StateFFArray::retrieve(retrieve_freeflow_node_states);
    });
+#else
+   module.def("reset_freeflow_nodes", []() {});
 #endif
 }

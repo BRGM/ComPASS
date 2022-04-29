@@ -125,6 +125,10 @@ def reset_dirichlet_nodes(
         pressure=apply_if_callable(pressure_selection),
         temperature=apply_if_callable(temperature_selection),
     )
+    # the set of freeflow nodes may have changed (if Dir touches FF)
+    # and the area distribution also
+    kernel = get_kernel()
+    kernel.reset_freeflow_nodes()
     simulation.scheme.compute_volumes()
 
 

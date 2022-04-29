@@ -13,7 +13,7 @@ module FreeFlow
    use InteroperabilityStructures, only: cpp_array_wrapper
    use MeshSchema, only: &
       IdNodeLocal, AtmState, &
-      IsFreeflowNode, &
+      IsFreeflowNode, FreeflowFaces, &
       MeshSchema_local_face_surface, &
       SurfFreeFlowLocal, &
       number_of_nodes, &
@@ -34,6 +34,8 @@ contains
 
       if (.not. allocated(IsFreeflowNode)) then
          allocate (IsFreeflowNode(nn))
+         if (allocated(FreeflowFaces)) & ! is allocated in FreeFlow_set_faces
+            call CommonMPI_abort("FreeFlow_set_freeflow_faces: FreeflowFaces should not be already allocated.")
          if (allocated(SurfFreeFlowLocal)) &
             call CommonMPI_abort("FreeFlow_set_freeflow_faces: SurfFreeFlowLocal should not be already allocated.")
          allocate (SurfFreeFlowLocal(nn))
@@ -49,6 +51,7 @@ contains
 
       IsFreeflowNode = .false.
       SurfFreeFlowLocal = 0.d0
+      if (allocated(FreeflowFaces)) deallocate (FreeflowFaces)
 
    end subroutine FreeFlow_reset_faces
 
@@ -58,9 +61,6 @@ contains
       integer(c_int) :: k, fk
       integer(c_int) :: s, p, nb_freeflow_nodes
       real(c_double) :: surface_fraction
-
-      if (size(SurfFreeFlowLocal) /= number_of_nodes()) &
-         call CommonMPI_abort("FreeFlow_set_freeflow_faces: inconsistent size for freeflow surface array.")
 
       do k = 1, size(faces)
          fk = faces(k)
@@ -84,6 +84,14 @@ contains
       integer(c_int), intent(in) :: faces(:)
       integer(c_int) :: k, fk
       integer(c_int) :: s, p
+
+      ! store the freeflow faces index
+#ifndef NDEBUG
+      if (allocated(FreeflowFaces)) &
+         call CommonMPI_abort("FreeFlow_set_faces: FreeflowFaces should not be already allocated.")
+#endif
+      allocate (FreeflowFaces(size(faces)))
+      FreeflowFaces = faces
 
       do k = 1, size(faces)
          fk = faces(k)
@@ -109,6 +117,34 @@ contains
       call FreeFlow_set_area_distribution(faces, SurfFreeFlowLocal)
 
    end subroutine FreeFlow_set_faces
+
+   subroutine FreeFlow_reset_freeflow_nodes() &
+      bind(C, name="reset_freeflow_nodes")
+      integer :: k, fk
+      integer :: s, p
+
+      ! reset the old values (the Dirichlet nodes may have changed,
+      ! the freeflow faces no, so use FreeflowFaces)
+      ! Do not call FreeFlow_reset_faces to keep FreeflowFaces
+      IsFreeflowNode = .false.
+      SurfFreeFlowLocal = 0.d0
+
+      ! identify again the FF nodes
+      do k = 1, size(FreeflowFaces)
+         fk = FreeflowFaces(k)
+         do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
+            s = NodebyFaceLocal%Num(p)
+            if (IdNodeLocal(s)%T .ne. "d" .AND. IdNodeLocal(s)%P .ne. "d") then
+               IsFreeflowNode(s) = .true.
+            endif
+         enddo
+      enddo
+
+      ! fill SurfFreeFlowLocal with the distribution of the FF face area
+      ! over the Freeflow nodes
+      call FreeFlow_set_area_distribution(FreeflowFaces, SurfFreeFlowLocal)
+
+   end subroutine FreeFlow_reset_freeflow_nodes
 
    subroutine FreeFlow_set_faces_C(faces_wrapper) &
       bind(C, name="set_freeflow_faces")

@@ -169,6 +169,7 @@ module MeshSchema
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    logical(c_bool), allocatable, dimension(:), target :: &
       IsFreeflowNode    !< Boolean to identify the nodes Freeflow Boundary Condition (atmospheric BC)
+   integer, allocatable, dimension(:) :: FreeflowFaces    !< Index of the faces Freeflow Boundary Condition (atmospheric BC)
    type(TYPE_FFfarfield), allocatable, dimension(:), target :: &
       AtmState    !< contains the atm values at each FF node
 #endif
@@ -2357,6 +2358,7 @@ contains
       deallocate (IdNodeLocal)
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       deallocate (IsFreeflowNode)
+      if (allocated(FreeflowFaces)) deallocate (FreeflowFaces)
       deallocate (AtmState)
 #endif
 
