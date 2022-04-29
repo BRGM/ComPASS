@@ -45,6 +45,17 @@ class Properties:
 def init(
     grid=None,
     mesh=None,
+    cell_porosity=lambda: None,
+    cell_permeability=lambda: None,
+    cell_thermal_conductivity=lambda: None,
+    cell_omega_Darcy=lambda: None,
+    cell_omega_Fourier=lambda: None,
+    fracture_porosity=lambda: None,
+    fracture_permeability=lambda: None,
+    fracture_thermal_conductivity=lambda: None,
+    fracture_omega_Darcy=lambda: None,
+    fracture_omega_Fourier=lambda: None,
+    cell_heat_source=None,
     wells=lambda: [],
     display_well_ids=False,
     fracture_faces=lambda: None,
@@ -57,7 +68,6 @@ def init(
     use_Kway_part_graph=False,
     well_model="single_phase",
     dump_mesh_before_distribution=False,
-    **kwargs,
 ):
     """
     Initialize many simulation properties and distribute the mesh.
@@ -85,6 +95,8 @@ def init(
         it can also be a mask over all nodes
     :param set_temperature_dirichlet_nodes: the ids of all nodes that hold constant temperature boundary conditions
         it can also be a mask over all nodes
+    :param cell_heat_source: volumic thermal source term (will be multiplicated by the cell volume)
+        for each cell
 
     Petrophysical parameters are mandatory depending on the elements that are present (if there are no fractures,
     fracture properties are not mandatory).
@@ -141,14 +153,11 @@ def init(
             "omega_Fourier",
         ]:
             name = "%s_%s" % (location, property)
-            try:
-                f = kwargs[name]
-                if callable(f):
-                    properties[name] = f
-                else:
-                    properties[name] = make_property_accessor(f)
-            except KeyError:
-                properties[name] = lambda: None
+            f = eval(name)
+            if callable(f):
+                properties[name] = f
+            else:
+                properties[name] = make_property_accessor(f)
     # FUTURE: This could be managed through a context manager ?
     assert not simulation.initialized
     # FIXME: grid is kept for backward compatibility, should be deprecated
@@ -188,8 +197,8 @@ def init(
             assert callable(set_global_rocktype)
             set_global_rocktype()
         _set_petrophysics_on_global_mesh(properties, fractures)
-        if "cell_heat_source" in kwargs:
-            value = call_if_callable(kwargs["cell_heat_source"])
+        if cell_heat_source is not None:
+            value = call_if_callable(cell_heat_source)
             _set_property_on_global_mesh("heat_source", "cell", value)
         kernel.build_well_connectivity()
         # FIXME: we should distinguish well nature and well status
