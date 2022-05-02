@@ -133,15 +133,9 @@ output_period = 0.01 * final_time
 ComPASS.set_maximum_timestep(0.7 * year)
 
 
-def ma_fonction(it_timestep, time):
-    if it_timestep > 1:
-        ComPASS.mpi.abort()
-
-
 standard_loop(
     initial_timestep=init_dt,
     final_time=final_time,
     output_every=20,
-    # iteration_callbacks=[ma_fonction],
     # output_period = output_period, specific_outputs=[1. * day], output_every=20,
 )

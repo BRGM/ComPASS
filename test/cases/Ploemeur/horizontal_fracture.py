@@ -162,14 +162,14 @@ has_producer = simulation.nb_producers() > 0
 assert simulation.nb_producers() <= 1
 
 
-def collect_production_temperatures(n, t):
+def collect_production_temperatures(tick):
     if has_producer:
         assert simulation.nb_producers() == 1
         producers_perforations = list(simulation.producers_perforations())
         wellhead_state = producers_perforations[0][
             -1
         ]  # latest perforation corresponds to well head
-        production_data = (t, wellhead_state.temperature)
+        production_data = (tick.time, wellhead_state.temperature)
     else:
         production_data = None
     production_data = communicator.gather(production_data, root=master)
@@ -204,14 +204,14 @@ else:
     injector_data = None
 
 # weak coupling: injection at t_n is production at t_{n-1}
-def reinject_production(n, t):
+def reinject_production(tick):
     if rank == master:
         production_data = production_temperatures[-1]
     else:
         production_data = None
     production_data = communicator.bcast(production_data, root=master)
     tprod, Tprod = production_data
-    assert t == tprod
+    assert tick.time == tprod
     if injector_data is not None:
         injector_data.injection_temperature = Tprod
 

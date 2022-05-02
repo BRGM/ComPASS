@@ -85,8 +85,10 @@ dirichlet_nodes = np.nonzero(simulation.nodeflags())[0]
 dirichlet_T = simulation.dirichlet_node_states().T
 
 
-def change_surface_temperature(n, t):
-    dirichlet_T[dirichlet_nodes] = Tmean + deltaT * np.sin(t * (2 * np.pi / year))
+def change_surface_temperature(tick):
+    dirichlet_T[dirichlet_nodes] = Tmean + deltaT * np.sin(
+        tick.time * (2 * np.pi / year)
+    )
 
 
 # Construct the linear solver and newton objects outside the time loop

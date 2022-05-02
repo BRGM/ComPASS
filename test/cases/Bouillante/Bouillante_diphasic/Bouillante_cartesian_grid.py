@@ -205,11 +205,6 @@ final_time = 100.0 * year
 output_period = 0.01 * final_time
 
 
-def ma_fonction(it_timestep, time):
-    if it_timestep > 50:
-        ComPASS.mpi.abort()
-
-
 lsolver = linear_solver(simulation, from_options=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
@@ -222,6 +217,6 @@ standard_loop(
         maximum_timestep=max_dt,
     ),
     newton=newton,
-    # iteration_callbacks=[ma_fonction],
+    nitermax=50,
     # output_period = output_period, specific_outputs=[1. * day], output_every=20,
 )

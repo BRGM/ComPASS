@@ -110,11 +110,11 @@ probe_pressure = []
 print(len(probes), "probes on proc", mpi.proc_rank, probe_cells)
 
 
-def store_data(n, t):
+def store_data(tick):
     if len(probe_cells) > 0:
-        probe_pressure.append((t, simulation.cell_states().p[probe_cells]))
+        probe_pressure.append((tick.time, simulation.cell_states().p[probe_cells]))
     else:
-        probe_pressure.append((t, []))
+        probe_pressure.append((tick.time, []))
 
 
 final_time = 1.2  # 3600
