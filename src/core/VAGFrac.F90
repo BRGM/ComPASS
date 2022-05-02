@@ -551,7 +551,6 @@ contains
    subroutine VAGFrac_check_volumes()
 
       integer :: k
-      integer :: Ierr = -1
       logical :: everything_ok = .true.
 
       do k = 1, NbCellLocal_Ncpus(commRank + 1)
@@ -594,7 +593,6 @@ contains
          end if
       end do
 
-      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr)
       if (.not. everything_ok) then
          call CommonMPI_abort("VAG volume check failed!")
       end if
@@ -810,10 +808,12 @@ contains
       bind(C, name="VAGFrac_VolsFourier")
       real(c_double), value, intent(in) :: omegaFourierCell
       real(c_double), value, intent(in) :: omegaFourierFrac
+      integer :: Ierr = -1
 
       call VAGFrac_allocate_Fourier_volumes
 
 #ifndef NDEBUG
+      call MPI_Barrier(ComPASS_COMM_WORLD, Ierr) ! not useful, but help to print ?
       write (*, *) "Splitting volumes statistics:"
       write (*, *) minval(VolCellLocal), "< cell volume <", maxval(VolCellLocal)
       write (*, *) minval(PorositeCellLocal), "< cell porosity <", maxval(PorositeCellLocal)
