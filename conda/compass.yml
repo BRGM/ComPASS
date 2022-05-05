@@ -33,4 +33,3 @@ dependencies:
   - verstr
   - vtkwriters
   - git+https://github.com/BRGM/MeshTools.git
-  - git+https://github.com/BRGM/ComPASS.git
