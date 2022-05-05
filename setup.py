@@ -1,12 +1,13 @@
-import sys
+# dirty workaround around sysconfig.get_platform bug on MacOSX
+import os
+import sysconfig
 
-try:
-    from skbuild import setup
-except ImportError:
-    print("scikit-build is required to build from source!", file=sys.stderr)
-    print("Install it running: python -m pip install scikit-build.", file=sys.stderr)
-    sys.exit(1)
+platform_tag = sysconfig.get_platform()
+if platform_tag.startswith("macosx"):
+    assert all(platform_tag.split("-")), "Cannot use platform information!"
+    os.environ["_PYTHON_HOST_PLATFORM"] = platform_tag
 
+# Generate info about package compilation
 import setuptools_scm as scm
 from pathlib import Path
 import platform
@@ -15,7 +16,6 @@ from datetime import datetime
 package_name = "ComPASS"
 build_info_file = "version_info"
 
-# Generate info about package compilation
 with Path(f"./{package_name}/{build_info_file}").open("w") as f:
     print(
         f"{package_name} {scm.get_version()}",
@@ -29,15 +29,9 @@ with Path(f"./{package_name}/{build_info_file}").open("w") as f:
 for f in Path(f"{package_name}/eos").glob("[!_]*"):
     f.unlink()
 
+from skbuild import setup
+
 setup(
-    name=package_name,
-    use_scm_version={"write_to": f"{package_name}/_version.py"},
-    author="various contributors",
-    author_email="anr-charms@brgm.fr",
-    description="A parallel multiphase multicomponents simulator.",
-    long_description="",
-    url="https://charms.gitlabpages.inria.fr/ComPASS/",
-    license="GPLv3/CeCILLv2.1",
     packages=[
         package_name,
         f"{package_name}.eos",
@@ -56,5 +50,4 @@ setup(
     package_data={
         package_name: [build_info_file],
     },
-    setup_requires=["setuptools_scm"],
 )
