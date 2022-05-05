@@ -1,0 +1,36 @@
+name: compass
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- python=3.9
+- pip
+- pkgconfig
+- git
+- setuptools>=61
+- setuptools_scm>=6.2
+- wheel
+- scikit-build
+- ninja
+- cmake
+- c-compiler
+- cxx-compiler
+- fortran-compiler
+- pybind11
+- numpy
+- numba
+- scipy
+- metis
+- openssh
+- openmpi
+- mpi4py
+- petsc4py
+- pip:
+  - click
+  - inept<0.2
+  - pyyaml
+  - sortedcontainers
+  - verstr
+  - vtkwriters
+  - git+https://github.com/BRGM/MeshTools.git
+  - git+https://github.com/BRGM/ComPASS.git
