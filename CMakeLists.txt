@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.12)
-cmake_policy(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
+cmake_policy(VERSION 3.13)
 
 project(ComPASS Fortran C CXX)
 
@@ -227,6 +227,8 @@ endif(${PETSc_VERSION} VERSION_LESS 3.8)
 find_package(LAPACK REQUIRED)
 
 enable_testing()
+
+include(physics.cmake OPTIONAL)
 
 # CHECKME: Should languages be enabled here or at the beginning as project
 # properties enable_language(Fortran) enable_language(C) enable_language(CXX)

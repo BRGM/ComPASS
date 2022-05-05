@@ -1,4 +1,4 @@
-cmake/config.cmake
+physics.cmake
 ComPASS/_version.py
 ComPASS/version_info
 

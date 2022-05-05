@@ -1,12 +1,9 @@
 # Configuration to be built
 set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
 
-option(ComPASS_WITH_ALL_PHYSICS
-       "Build all physics modules - this will overide other physics options"
-       OFF
-)
+option(ComPASS_WITH_ALL_PHYSICS "build all physics modules" OFF)
 foreach(_conf ${CONFIGURATIONS})
-  option(ComPASS_WITH_${_conf}_PHYSICS "Build ${_conf} module" OFF)
+  option(ComPASS_WITH_${_conf}_PHYSICS "build ${_conf} module" OFF)
 endforeach()
 
 include(all_sources.cmake)
