@@ -13,6 +13,145 @@ Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
 Unfortunately subtle differences may exist from one system to another.
 Please do not hesitate to submit issues/comments to improve this section.
 
+
+Install using conda environments
+--------------------------------
+
+As of today, using
+`conda environments <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_
+is probably the fatest way to get ready to use ComPASS.
+It will download a lot of dependencies, that may represent a subsequent payload
+and will occupy a certain amount of your drive, but you will
+end up with an isolated environments to use and/or develop ComPASS.
+ComPASS will stil be compiled on your system,
+yet if you are interested in maximising performance and/or exploiting
+libraries that have been fine-tuned for your system (e.g. PETSc)
+you may want to consider a native build (cf. the next secitons).
+
+Prerequisites
+^^^^^^^^^^^^^
+
+Step 1: Install conda
+"""""""""""""""""""""
+
+You will need to have
+`conda <https://docs.conda.io/projects/conda/en/latest/index.html>`_
+on your system.
+Please consider reading the
+`installation instructions
+<https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html>`_.
+The easiest (and lightest) way is probably to install
+`Miniconda <https://docs.conda.io/projects/conda/en/latest/glossary.html#miniconda-glossary>`_.
+Miniconda installers can be found on this
+`download page <https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links>`_.
+
+Step 2: configure conda
+"""""""""""""""""""""""
+
+Once you have installed conda (either through Miniconda or Anaconda) you should have
+the conda command available on your path.
+
+We still need to add the `anaconda-client <https://github.com/Anaconda-Platform/anaconda-client>`_
+package to your conda :code:`base` environment
+(or any other environment that you may wish to use). It will install
+a command line client that provides an interface to Anaconda Cloud and will
+enable you to use environment description stored on the Anaconda Cloud.
+
+.. code-block:: bash
+
+  conda activate base
+  conda install anaconda-client
+
+
+Step 3 (optional): replace conda with mamba
+"""""""""""""""""""""""""""""""""""""""""""
+
+`Mamba <https://github.com/mamba-org/mamba>`_
+is a reimplementation of the conda package manager in C++
+which is much faster than conda and will speed-up
+some (not all...) of the installation step.
+
+You can install it from `conda-forge <https://conda-forge.org/>`_.
+
+.. code-block:: bash
+
+  conda activate base
+  conda install -c conda-forge mamba
+
+or for one-liners:
+
+.. code-block:: bash
+
+  conda install -n base -c conda-forge mamba
+
+In the following you can replace all the occurences of
+the :code:`conda` command with the :code:`mamba` command.
+
+
+You're almost there
+^^^^^^^^^^^^^^^^^^^
+
+We provide two ComPASS environments at `anaconda.org <https://anaconda.org/brgm/environments>`_
+which have been tested on Linux and MacOSX platforms.
+
+You only want to use ComPASS
+""""""""""""""""""""""""""""
+
+Activate your conda :code:`base` environment if necessary
+(:code:`conda activate base` or :code:`source activate base` depending
+on your settings).
+
+Then just create the environment:
+
+.. code-block:: bash
+
+  conda env create brgm/compass-latest
+
+It may be a bit long because MeshTools and ComPASS packages will be
+compiled under the hood, but that's it.
+Once it is finished, you can activate the :code:`compass-latest` environment.
+
+.. code-block:: bash
+
+  conda activate compass-latest
+
+And you can start :ref:`using simulation scripts <Setting-up a simulation>`.
+
+You want to develop ComPASS
+"""""""""""""""""""""""""""
+
+Activate your conda :code:`base` environment if necessary.
+Then create the environment:
+
+.. code-block:: bash
+
+  conda env create brgm/compass
+
+It will install all the dependencies of ComPASS
+(including the compilation and installation of the MeshTools package).
+Once it is finished, you can activate the :code:`compass` environment,
+clone the ComPASS repository and compile and install it in development mode.
+
+.. code-block:: bash
+
+  conda activate compass
+  git clone https://github.com/BRGM/ComPASS.git
+  pip install -e ComPASS
+
+Then you can start :ref:`using simulation scripts <Setting-up a simulation>`.
+Any modification in the ComPASS source python scripts will be reflected
+immediately in the ComPASS package
+(thanks to the pip development mode - :code:`-e` install option).
+If you modify Fortran or C++ source files you will have to re-run pip
+that will trigger the compilation of modified source files.
+
+Usefull `conda env create` options
+""""""""""""""""""""""""""""""""""
+
+:code:`--force`: force creation of environment (removing a previously existing environment of the same name)
+
+:code:`-n new_name`: will rename the generated environment
+
 .. _install with Ubuntu:
 
 Native installation on Linux
@@ -171,46 +310,6 @@ If you need/want to manually instal petsc4py the version must match PETSc versio
 When running in a docker environment or on a distant machine you may face
 permission related problems. Try to add the  setuptools :code:`--user` option at the
 end of the compilation directive to use your local python site.
-
-
-Install in a conda environment
-------------------------------
-
-This relies on the conda-forge channel and will create an isolated `compass` environment.
-
-Check the comment in the following bash script to adpat to your own needs.
-Packages in the conda-forge channel are sometimes a bit too new...
-You might get instabilities if you change version numbers.
-The script has been successfully tested at the beginning of February 2022.
-
-
-Linux script
-^^^^^^^^^^^^
-
-Execute the following script with:
-
-.. code-block:: bash
-
-  source install-linux-with-conda
-
-.. literalinclude:: ../miscellaneous/install-linux-with-conda
-   :language: bash
-   :linenos:
-
-Download script:
-:download:`install-on-linux-with-conda <../miscellaneous/install-linux-with-conda>`
-
-MacOS script (with clang)
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This script is not fully tested yet (feedback is wellcome).
-
-.. literalinclude:: ../miscellaneous/install-mac-with-conda
-   :language: bash
-   :linenos:
-
-Download script:
-:download:`install-on-linux-with-conda <../miscellaneous/install-mac-with-conda>`
 
 
 Using docker environments
