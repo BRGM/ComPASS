@@ -19,7 +19,7 @@ Install using conda environments
 
 As of today, using
 `conda environments <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_
-is probably the fatest way to get ready to use ComPASS.
+is probably the fastest way to get ready to use ComPASS.
 It will download a lot of dependencies, that may represent a subsequent payload
 and will occupy a certain amount of your drive, but you will
 end up with an isolated environments to use and/or develop ComPASS.
