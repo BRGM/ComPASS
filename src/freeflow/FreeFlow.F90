@@ -130,19 +130,21 @@ contains
       SurfFreeFlowLocal = 0.d0
 
       ! identify again the FF nodes
-      do k = 1, size(FreeflowFaces)
-         fk = FreeflowFaces(k)
-         do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
-            s = NodebyFaceLocal%Num(p)
-            if (IdNodeLocal(s)%T .ne. "d" .AND. IdNodeLocal(s)%P .ne. "d") then
-               IsFreeflowNode(s) = .true.
-            endif
+      if (allocated(FreeflowFaces)) then
+         do k = 1, size(FreeflowFaces)
+            fk = FreeflowFaces(k)
+            do p = NodebyFaceLocal%Pt(fk) + 1, NodebyFaceLocal%Pt(fk + 1)
+               s = NodebyFaceLocal%Num(p)
+               if (IdNodeLocal(s)%T .ne. "d" .AND. IdNodeLocal(s)%P .ne. "d") then
+                  IsFreeflowNode(s) = .true.
+               endif
+            enddo
          enddo
-      enddo
 
-      ! fill SurfFreeFlowLocal with the distribution of the FF face area
-      ! over the Freeflow nodes
-      call FreeFlow_set_area_distribution(FreeflowFaces, SurfFreeFlowLocal)
+         ! fill SurfFreeFlowLocal with the distribution of the FF face area
+         ! over the Freeflow nodes
+         call FreeFlow_set_area_distribution(FreeflowFaces, SurfFreeFlowLocal)
+      endif
 
    end subroutine FreeFlow_reset_freeflow_nodes
 
