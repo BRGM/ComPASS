@@ -53,8 +53,13 @@ def vanGenuchten(Pr, Slr, Sgr, n, Slb_reg=0.99):
     return Pc, dPcdS
 
 
+# dictionary where the key contains the rocktype and the value
+# contains two fonctions : the capillary pressure Pc(Sg)
+# and the derivative dPcdS(Sg)
 laws = {
+    # rocktype=1, Pr=15e6, Slr=0.4, Sgr=0, n=1.49, Slb_reg=0.99
     1: vanGenuchten(15.0e6, 0.4, 0, 1.49),
+    # rocktype=2, Pr=2e6, Slr=0.01, Sgr=0, n=1.54, Slb_reg=0.99
     2: vanGenuchten(2.0e6, 0.01, 0, 1.54),
 }
 
