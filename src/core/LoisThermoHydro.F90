@@ -1489,8 +1489,8 @@ contains
             call LoisThermoHydro_dfdX_ps( &
                context, NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
          end do
-         ! FIXME: why not calling on RHS?
-         !        because we don't use directly kr variations in Jacobian but divKrVisco...
+         ! CHECKME: why not calling on RHS?
+         !          because we don't use directly kr variations in Jacobian but divKrVisco...
          call LoisThermoHydro_local_Schur( &
             NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, dXssurdXp(:, :, k), dfdX_secd, dkr(:, :, k))
       end do
