@@ -54,8 +54,6 @@ module LoisThermoHydro
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    use Physics, only: atm_flux_radiation, soil_emissivity, Stephan_Boltzmann_cst
-#endif
-#ifdef _WITH_FREEFLOW_STRUCTURES_
    use FreeFlowTypes, only: TYPE_FFfarfield
 #endif
 
