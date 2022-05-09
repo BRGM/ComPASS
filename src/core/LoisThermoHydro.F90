@@ -1138,9 +1138,10 @@ contains
 
       integer :: i, j
 
-      ! dv/dXp - dv/dXs*dXs/dXp
-      ! dval = dfdX_prim - dXssurdXp*dfdX_secd
-      ! all the mats is in (col, row) index order, only need to consider as transpose
+      ! on entry dval = (df/dXp)
+      ! computes: (df/dXp) - (df/dXs)*(dXs/dXp) and stores it in dval
+      ! that is: dval = dval - dXssurdXp*dfdX_secd
+      ! all the matrices are in (col, row) index order, only need to be considered as transposed
       call dgemm('N', 'N', &
                  nb_unknows, nb_phases, nb_closures, &
                  -1.d0, dXssurdXp, NbIncTotalPrimMax, dfdX_secd, &
