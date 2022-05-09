@@ -1134,7 +1134,9 @@ contains
       double precision, intent(in) :: dfdX_secd(NbEqFermetureMax, nb_phases)
       double precision, intent(inout) :: dval(NbIncTotalPrimMax, nb_phases)
       double precision, optional, intent(in) :: SmdXs(NbEqFermetureMax)
-      double precision, optional, intent(inout) :: Smval(nb_phases)
+      double precision, optional, intent(out) :: Smval(nb_phases)
+
+      integer :: i, j
 
       ! dv/dXp - dv/dXs*dXs/dXp
       ! dval = dfdX_prim - dXssurdXp*dfdX_secd
@@ -1149,11 +1151,14 @@ contains
          call CommonMPI_abort("Both second members arguments should be provided!")
 #endif
 
-      ! - dv/dXs*SmdXs
       if (present(SmdXs)) then
-         call dgemv('T', nb_closures, nb_phases, &
-                    -1.d0, dfdX_secd, NbEqFermetureMax, &
-                    SmdXs, 1, 0.d0, Smval, 1)
+         ! Smval = - (df/dXs)*SmdXs
+         Smval = 0.d0
+         do i = 1, nb_phases
+            do j = 1, nb_closures
+               Smval(i) = Smval(i) - dfdX_secd(j, i)*SmdXs(j)
+            end do
+         end do
       end if
 
    end subroutine LoisThermoHydro_local_Schur
