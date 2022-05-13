@@ -22,7 +22,6 @@ module LocalMesh
       ARRAY1dble, ARRAY3dble, ARRAY2Int, ARRAY1Int8, ARRAY1Int, ARRAY2dble, &
       CommonType_deallocCSR, copy_sparsity_pattern
    use CommonMPI, only: Ncpus, CommonMPI_abort
-
    use GlobalMesh
    ! use PartitionMesh, only: &
    ! ProcbyCell
@@ -46,7 +45,7 @@ module LocalMesh
       CellbyNode, &
       IdNode, IdFace, IdCell, &
       NodebyWellInj, NodebyWellProd, &
-      NodebyMSWell, NodebyMSWell, &
+      NodebyMSWell, NodebyMSWell, MSWellNodebyNode, &
       GeomInj, GeomProd, GeomMSWell, &
       NbFace, NbCell, NbNode, &
       CellThermalSource, FracThermalSource, CondThermalFrac, &
@@ -105,9 +104,12 @@ module LocalMesh
       NbWellProdOwnS_Ncpus     !< Number of Production Wells own for all CPUs
 
    ! MSWell
+   integer, protected :: NbMSWellNode !Total number of MSWell nodes
    integer, dimension(:), allocatable, public :: &
       NbMSWellResS_Ncpus, & !< Number of MSWells res=own+ghost for all CPUs
-      NbMSWellOwnS_Ncpus  !< Number of MSWells own for all CPUs
+      NbMSWellOwnS_Ncpus, &  !< Number of MSWells own for all CPUs
+      NbMSWellNodeOwnS_Ncpus, & !< Number of own nodes from Local MSWells for all CPUs
+      NbMSWellNodeResS_Ncpus    !< Number of res=own+ghost nodes from Local MSWells for all CPUs
 
    ! Well connectivities in global number
    type(CSR), dimension(:), allocatable, public :: &
@@ -120,6 +122,7 @@ module LocalMesh
       NodebyWellInjLocal_Ncpus, & !< Node (local number) of injection wells res=own+ghost for all CPUs
       NodebyWellProdLocal_Ncpus, & !< Node (local number) of production wells res=own+ghost for all CPUs
       NodebyMSWellLocal_Ncpus     !< Node (local number) of  multi-segmented wells res=own+ghost for all CPUs
+   !< For MSWells we store the global mswell node index in Val
 
    Double precision, protected :: &
       meshSizeS_xmax, & !< Temporary vector to send global size of mesh xmax
@@ -156,7 +159,8 @@ module LocalMesh
    type(CSR), dimension(:), allocatable, public :: &
       WellInjbyProc, & !< Local injection Wells by proc in num global (CSR)
       WellProdbyProc, &   !< Local production Wells by proc in num global (CSR)
-      MSWellbyProc     !< Local MSWells by proc in num global (CSR)
+      MSWellbyProc, &     !< Local MSWells by proc in num global (CSR)
+      MSWellNodebyProc    !< Local MSWellsNodes by proc in num global (CSR)
 
    !! DataWellRes_Ncpus(num_welllocal,num_proc)
    type(WellData_type), allocatable, dimension(:, :), public :: DataWellInjRes_Ncpus !< Data of injection well (Radius,...) for local well
@@ -168,7 +172,8 @@ module LocalMesh
       NumNodebyProc_Ncpus, &
       NumFracbyProc_Ncpus, &
       NumWellInjbyProc_Ncpus, &
-      NumWellProdbyProc_Ncpus
+      NumWellProdbyProc_Ncpus, &
+      NumMSWellNodebyProc_Ncpus
 
    !! IdFaceRes_Ncpus
    !   = -2 if Frac
@@ -327,7 +332,9 @@ module LocalMesh
       LocalMesh_NodeDatabyWellLocal, & ! make NodeDatabyWellLocal_Ncpus(ip1)
       !
       LocalMesh_FracToFace, & ! make FracToFaceLocal(ip1)
-      LocalMesh_FaceToFrac
+      LocalMesh_FaceToFrac, &
+      !
+      LocalMesh_MSWellNodebyProc !make NbNodeMSWellResS_Ncpus(ip1) and NbNodeMSWellOwnS_Ncpus(ip1))
 
 contains
 
@@ -361,6 +368,8 @@ contains
       ! local info mswell res and own
       allocate (NbMSWellResS_Ncpus(Ncpus))
       allocate (NbMSWellOwnS_Ncpus(Ncpus))
+      allocate (NbMSWellNodeResS_Ncpus(Ncpus))
+      allocate (NbMSWellNodeOwnS_Ncpus(Ncpus))
 
       ! local mesh and connectivities in num (global)
       allocate (FacebyCellRes_Ncpus(Ncpus))
@@ -419,6 +428,7 @@ contains
       allocate (WellInjbyProc(Ncpus))
       allocate (WellProdbyProc(Ncpus))
       allocate (MSWellbyProc(Ncpus))
+      allocate (MSWellNodebyProc(Ncpus))
 
       ! IdFace/Node
       allocate (IdFaceRes_Ncpus(Ncpus))
@@ -462,6 +472,8 @@ contains
       allocate (proc_color(Ncpus))
       allocate (well_color(max(GeomInj%Nb, GeomProd%Nb, GeomMSWell%Nb)))
 
+      NbMSWellNode = NodebyMSWell%Pt(NodebyMSWell%Nb + 1)
+
       do i = 0, Ncpus - 1
 
          !> Set Mesh and connectivities in num (global)
@@ -484,7 +496,7 @@ contains
                                       NodebyWellProd, NodebyWellProdRes_Ncpus)
 
          call LocalMesh_NodebyWellRes(i, NbMSWellResS_Ncpus, MSWellbyProc, &
-                                      NodebyMSWell, NodebyMSWellRes_Ncpus)
+                                      NodebyMSWell, NodebyMSWellRes_Ncpus, MSWellNodebyNode) !Save global mswell node numbering
 
          ! vectors used to transform num (global) to num (local)
          call LocalMesh_GlobalToLocal(i)    ! localbyGlobalNode
@@ -497,7 +509,7 @@ contains
          ! Wells (WellInj and WellProd) and MSWells
          call LocalMesh_NodebyWellLocal(i, NodebyWellInjRes_Ncpus, localbyGlobalNode, NodebyWellInjLocal_Ncpus)
          call LocalMesh_NodebyWellLocal(i, NodebyWellProdRes_Ncpus, localbyGlobalNode, NodebyWellProdLocal_Ncpus)
-         call LocalMesh_NodebyWellLocal(i, NodebyMSWellRes_Ncpus, localbyGlobalNode, NodebyMSWellLocal_Ncpus)
+         call LocalMesh_NodebyWellLocal(i, NodebyMSWellRes_Ncpus, localbyGlobalNode, NodebyMSWellLocal_Ncpus, .true.) !Save global mswell node numbering
 
          call LocalMesh_IdFaceRes(i)        ! IdFaceRes_Ncpus(ip1)
          call LocalMesh_IdNodeRes(i)        ! IdNodeRes_Ncpus(ip1)
@@ -530,6 +542,9 @@ contains
          call LocalMesh_WellbyNodeOwn(i, &
                                       NbNodeOwnS_Ncpus, NbMSWellResS_Ncpus, &
                                       NodebyMSWellLocal_Ncpus, MSWellbyNodeOwn_Ncpus)
+
+         ! Fill the global MSWell node numbering
+         call LocalMesh_MSWellNodebyProc(i)
 
          call LocalMesh_CellbyFracOwn(i)    ! CellbyFracOwn_Ncpus(ip1)
          call LocalMesh_NodebyFracOwn(i)    ! NodebyFracOwn_Ncpus(ip1)
@@ -603,6 +618,9 @@ contains
       call LocalMesh_compute_local_info(WellInjbyProc, GeomInj%Nb, NbWellInjOwnS_Ncpus, NumWellInjbyProc_Ncpus)
       call LocalMesh_compute_local_info(WellProdbyProc, GeomProd%Nb, NbWellProdOwnS_Ncpus, NumWellProdbyProc_Ncpus)
 
+      call LocalMesh_compute_local_info(MSWellNodebyProc, NbMSWellNode, &
+                                        NbMSWellNodeOwnS_Ncpus, NumMSWellNodebyProc_Ncpus)
+
       ! Mesh Size
       meshSizeS_xmax = Mesh_xmax
       meshSizeS_xmin = Mesh_xmin
@@ -626,6 +644,7 @@ contains
          call CommonType_deallocCSR(WellInjbyProc(i))
          call CommonType_deallocCSR(WellProdbyProc(i))
          call CommonType_deallocCSR(MSWellbyProc(i))
+         call CommonType_deallocCSR(MSWellNodebyProc(i))
       end do
 
       deallocate (CellbyProc)
@@ -635,6 +654,7 @@ contains
       deallocate (WellInjbyProc)
       deallocate (WellProdbyProc)
       deallocate (MSWellbyProc)
+      deallocate (MSWellNodebyProc)
       deallocate (DataWellInjRes_Ncpus)
       deallocate (DataWellProdRes_Ncpus)
       deallocate (DataMSWellRes_Ncpus)
@@ -1596,16 +1616,22 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine LocalMesh_NodebyWellRes(ip, NbWellResS_Ncpus, WellbyProc, NodebyWell, NodebyWellRes_Ncpus)
+      subroutine LocalMesh_NodebyWellRes(ip, NbWellResS_Ncpus, WellbyProc, NodebyWell, NodebyWellRes_Ncpus, WellNodebyNode)
       integer, intent(in) :: ip
       integer, dimension(:), intent(in) ::NbWellResS_Ncpus
       type(CSR), dimension(:), intent(in) :: WellbyProc
       type(CSR), intent(in) :: NodebyWell
       type(CSR), dimension(:), intent(inout) :: NodebyWellRes_Ncpus
+      ! optional input
+      integer, dimension(:), optional, intent(in) ::WellNodebyNode
 
+      logical :: fill_global_info_value
       integer :: ip1, k, numWellRes, Vsize, cpt
 
       ip1 = ip + 1
+
+      fill_global_info_value = .false. ! default behavior
+      if (present(WellNodebyNode)) fill_global_info_value = .true.
 
       NodebyWellRes_Ncpus(ip1)%Nb = NbWellResS_Ncpus(ip1)
       allocate (NodebyWellRes_Ncpus(ip1)%Pt(NodebyWellRes_Ncpus(ip1)%Nb + 1))
@@ -1623,6 +1649,7 @@ contains
       Vsize = NodebyWellRes_Ncpus(ip1)%Pt(NodebyWellRes_Ncpus(ip1)%Nb + 1)
       allocate (NodebyWellRes_Ncpus(ip1)%Num(Vsize))
 
+      if (fill_global_info_value) allocate (NodebyWellRes_Ncpus(ip1)%Val(Vsize))
       ! filling of Num
       do k = 1, WellbyProc(ip1)%Pt(WellbyProc(ip1)%Nb + 1)
 
@@ -1630,6 +1657,13 @@ contains
          do cpt = 1, NodebyWell%Pt(numWellRes + 1) - NodebyWell%Pt(numWellRes)
             NodebyWellRes_Ncpus(ip1)%Num(NodebyWellRes_Ncpus(ip1)%Pt(k) + cpt) = &
                NodebyWell%Num(NodebyWell%Pt(numWellRes) + cpt)
+
+            !Put mswell node global  numbering in Val
+            if (fill_global_info_value) then
+               NodebyWellRes_Ncpus(ip1)%Val(NodebyWellRes_Ncpus(ip1)%Pt(k) + cpt) = &
+                  WellNodebyNode(NodebyWell%Num(NodebyWell%Pt(numWellRes) + cpt))
+            endif
+
          enddo
       enddo
 
@@ -1683,28 +1717,38 @@ contains
    pure &
 #endif
       subroutine LocalMesh_NodebyWellLocal(ip, nodebyWellRes_Ncpus, &
-                                           locbyGlobalNode, nodebyWellLocal_Ncpus)
-
+                                           locbyGlobalNode, nodebyWellLocal_Ncpus, &
+                                           save_global_info)
       integer, intent(in) :: ip
       integer, dimension(:), intent(in) :: locbyGlobalNode
       type(CSR), dimension(:), intent(in) ::nodebyWellRes_Ncpus
       type(CSR), dimension(:), intent(inout) ::nodebyWellLocal_Ncpus
+      ! optional input
+      logical, optional, intent(in) :: save_global_info
 
+      logical save_global_info_value
       integer :: ip1, Nb, Nnnz, i
 
       ip1 = ip + 1
+
+      save_global_info_value = .false. ! default behavior
+      if (present(save_global_info)) save_global_info_value = save_global_info
 
       Nb = nodebyWellRes_Ncpus(ip1)%Nb
       nodebyWellLocal_Ncpus(ip1)%Nb = Nb
       Nnnz = nodebyWellRes_Ncpus(ip1)%Pt(Nb + 1)
       allocate (nodebyWellLocal_Ncpus(ip1)%Pt(Nb + 1))
       allocate (nodebyWellLocal_Ncpus(ip1)%Num(Nnnz))
+      if (save_global_info_value) allocate (nodebyWellLocal_Ncpus(ip1)%Val(Nnnz))
 
       do i = 1, Nb + 1
          nodebyWellLocal_Ncpus(ip1)%Pt(i) = nodebyWellRes_Ncpus(ip1)%Pt(i)
       end do
       do i = 1, Nnnz
          nodebyWellLocal_Ncpus(ip1)%Num(i) = locbyGlobalNode(NodebyWellRes_Ncpus(ip1)%Num(i))
+         if (save_global_info_value) then
+            nodebyWellLocal_Ncpus(ip1)%Val(i) = NodebyWellRes_Ncpus(ip1)%Val(i)
+         endif
       enddo
 
    end subroutine LocalMesh_NodebyWellLocal
@@ -3027,5 +3071,107 @@ contains
       end do
 
    end subroutine LocalMesh_make_GtoL_map
+
+   subroutine LocalMesh_MSWellNodebyProc(ip)
+
+      integer, intent(in) :: ip
+      integer  :: k, nb_mswells, s, num_s, ip1, l, i, nb, idx, nproc_idx
+      !array that stores the mswell local nodes according to which proc owns them
+      integer, dimension(:), allocatable :: nb_MSWellNode_Ncpus, idx_MSWellNode_Ncpus
+      !array that stores the mswell num info of the local nodes according to which proc owns them
+      integer, dimension(:, :), allocatable :: num_MSWellNode_Ncpus
+
+      allocate (nb_MSWellNode_Ncpus(Ncpus))
+      allocate (idx_MSWellNode_Ncpus(Ncpus))
+      nb_MSWellNode_Ncpus(:) = 0
+
+      ip1 = ip + 1
+      !For each local mswell
+      nb_mswells = NbMSWellResS_Ncpus(ip1)
+      NbMSWellNodeOwnS_Ncpus(ip1) = 0
+      NbMSWellNodeResS_Ncpus(ip1) = NodebyMSWellLocal_Ncpus(ip1)%Pt(nb_mswells + 1) ! total number mswell local nodes
+
+      allocate (num_MSWellNode_Ncpus(Ncpus, NbMSWellNodeResS_Ncpus(ip1)))
+      idx_MSWellNode_Ncpus(:) = 1
+      num_MSWellNode_Ncpus(:, :) = 0
+
+      do k = 1, nb_mswells
+
+         ! looping from  queue to  head
+         do s = NodebyMSWellLocal_Ncpus(ip1)%Pt(k) + 1, NodebyMSWellLocal_Ncpus(ip1)%Pt(k + 1)
+            num_s = NodebyMSWellLocal_Ncpus(ip1)%Num(s) ! s is the  well node numbering, and num_s is the local node mesh numbering
+
+            if (IdNodeRes_Ncpus(ip1)%Val(num_s)%Proc == "o") then ! node own
+               !Count the nodes owned
+               NbMSWellNodeOwnS_Ncpus(ip1) = NbMSWellNodeOwnS_Ncpus(ip1) + 1
+               nproc_idx = ip1
+
+            else
+               do l = 2, NodebyProc(ip1)%Nb
+                  if (num_s .le. NodebyProc(ip1)%pt(l + 1)) then
+
+                     nproc_idx = NodebyProc(ip1)%val(l) + 1
+                     exit
+                  end if
+               end do
+            end if
+
+            !Save total number and num info
+            nb_MSWellNode_Ncpus(nproc_idx) = nb_MSWellNode_Ncpus(nproc_idx) + 1
+            idx = idx_MSWellNode_Ncpus(nproc_idx)
+            !save global mswell node idx
+            num_MSWellNode_Ncpus(nproc_idx, idx) = NodebyMSWellLocal_Ncpus(ip1)%Val(s)! save the global mswell node index
+            idx_MSWellNode_Ncpus(nproc_idx) = idx_MSWellNode_Ncpus(nproc_idx) + 1
+
+         end do
+      end do
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!      Note:   The algorithm above can fail if in the final matrix mesh partition,
+!!              there is at least one proc which does not own a mswell node
+!!              This can happen when we are solving only a mswell system problem
+!!              without reservoir unkowns. In that case use less procs.
+!!
+!!      if ((NbMSWellNodeOwnS_Ncpus(ip1) .eq. 0) .and. (nb_mswells > 0)) then  !At some point Petsc wrapper or ComPASS won't work
+!!         call CommonMPI_abort("Error at LocalMesh: Current MSWells module  only works if all processors &
+!!                              own at least one mswell node. Use less number of procs")
+!!      end if
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      nb = Ncpus
+      MSWellNodebyProc(ip1)%Nb = nb
+
+      allocate (MSWellNodebyProc(ip1)%Pt(nb + 1))
+      allocate (MSWellNodebyProc(ip1)%Val(nb))
+      allocate (MSWellNodebyProc(ip1)%Num(NbMSWellNodeResS_Ncpus(ip1)))
+
+      MSWellNodebyProc(ip1)%Pt(1) = 0
+      MSWellNodebyProc(ip1)%Pt(2) = nb_MSWellNode_Ncpus(ip1)
+      MSWellNodebyProc(ip1)%Val(1) = ip
+      !Fill data for current proc
+
+      do i = 1, nb_MSWellNode_Ncpus(ip1)
+         MSWellNodebyProc(ip1)%Num(i) = num_MSWellNode_Ncpus(ip1, i) !num info
+      end do
+
+      !Fill data for the other procs which share nodes from local mswells
+      idx = 3
+      do nproc_idx = 1, Ncpus !
+         if ((nproc_idx /= ip1)) then
+
+            MSWellNodebyProc(ip1)%Pt(idx) = MSWellNodebyProc(ip1)%Pt(idx - 1) + nb_MSWellNode_Ncpus(nproc_idx)
+            MSWellNodebyProc(ip1)%Val(idx - 1) = nproc_idx - 1
+            do i = 1, nb_MSWellNode_Ncpus(nproc_idx)
+               MSWellNodebyProc(ip1)%Num(MSWellNodebyProc(ip1)%Pt(idx - 1) + i) = num_MSWellNode_Ncpus(nproc_idx, i) !num info
+            end do
+            idx = idx + 1
+
+         end if
+
+      end do
+
+      deallocate (num_MSWellNode_Ncpus)
+      deallocate (idx_MSWellNode_Ncpus)
+      deallocate (nb_MSWellNode_Ncpus)
+
+   end subroutine LocalMesh_MSWellNodebyProc
 
 end module LocalMesh

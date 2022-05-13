@@ -31,6 +31,7 @@ omega = 0.15           # reservoir porosity
 k = 5e-14              # reservoir horizontal permeability in m^2
 K = 2                  # bulk thermal conductivity in W/m/K
 Qm = 200 * ton / hour
+sleep = False
 # fmt: on
 
 simulation = ComPASS.load_eos("water2ph")
@@ -69,12 +70,13 @@ def make_wells():
     # return [ pwell, iwell]
 
 
-# pid = os.getpid()
-# print("MPI rank:", mpi.proc_rank)
-# print("Process id:", pid)
-# print("Sleeping...")
-# kernel = get_kernel()
-# kernel.init_wait_for_debug(True)
+if sleep:
+    pid = os.getpid()
+    print("MPI rank:", mpi.proc_rank)
+    print("Process id:", pid)
+    print("Sleeping...")
+    kernel = get_kernel()
+    kernel.init_wait_for_debug(True)
 
 
 simulation.init(

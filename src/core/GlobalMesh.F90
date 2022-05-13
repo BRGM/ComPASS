@@ -111,9 +111,12 @@ module GlobalMesh
 
    ! Connectivities Well
    type(CSR), protected :: &
-      NodebyWellInj, & !< CSR list of Nodes of each injection Well
+      NodebyWellInj, &   !< CSR list of Nodes of each injection Well
       NodebyWellProd, &  !< CSR list of Nodes of each production Well
-      NodebyMSWell      !< CSR list of Nodes of each MSWell
+      NodebyMSWell       !< CSR list of Nodes of each MSWell
+
+   integer, dimension(:), allocatable :: &
+      MSWellNodebyNode     !<  mswell global node numbering
 
    !type(FractureInfoCOC), protected :: &
    !type(COC), protected :: &
@@ -741,6 +744,7 @@ contains
       call DefWell_clear_global_well_geometries(GeomMSWell)
       deallocate (PermCell)
       deallocate (PermFrac)
+      deallocate (MSWellNodebyNode)
 
 #ifdef _THERMIQUE_
       deallocate (CondThermalCell)
@@ -1108,8 +1112,31 @@ contains
       call BuildWellConnectivity(GeomInj, NodebyWellInj, NodeDatabyWellInj)
       call BuildWellConnectivity(GeomProd, NodebyWellProd, NodeDatabyWellProd)
       call BuildWellConnectivity(GeomMSWell, NodebyMSWell, NodeDatabyMSWell)
+      call BuildWellNodesNumbering(NodebyMSWell, MSWellNodebyNode)
 
    end subroutine GlobalMesh_WellConnectivity
+
+   !> \brief Build MSWellNodebyMSWell
+   !!  uses well node  numbering
+   subroutine BuildWellNodesNumbering(NodebyWell, WellNodebyNode)
+
+      type(CSR), intent(in) :: NodebyWell
+      integer, dimension(:), allocatable :: WellNodebyNode
+      integer :: i, s, well_node_idx, nb_wells
+
+      nb_wells = NodebyWell%Nb
+      allocate (WellNodebyNode(NbNode))
+      WellNodebyNode(:) = -1
+
+      well_node_idx = 1
+      do i = 1, nb_wells
+         do s = NodebyWell%Pt(i) + 1, NodebyWell%Pt(i + 1)
+            WellNodebyNode(NodebyWell%Num(well_node_idx)) = well_node_idx
+            well_node_idx = well_node_idx + 1
+         end do
+      end do
+
+   end subroutine BuildWellNodesNumbering
 
    subroutine fill_CSR(ptr, indices, csrdata, c_indexing)
 

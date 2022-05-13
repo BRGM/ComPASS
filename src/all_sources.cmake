@@ -39,7 +39,7 @@ set(ComPASSCore_SRCS
 
 set(ComPASSWells_SRCS DefWell.F90 DefFlashWells.F90 WellState.F90)
 
-set(ComPASSMSWells_SRCS DefMSWell.F90)
+set(ComPASSMSWells_SRCS DefMSWell.F90 MeshSchemaMSWells.F90)
 
 set(ComPASSFreeFlow_SRCS IncPrimSecdFreeFlow.F90 FreeFlow.F90 FreeFlowTypes.F90)
 

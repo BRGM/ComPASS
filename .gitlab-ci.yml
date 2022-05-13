@@ -192,7 +192,8 @@ more sanity tests:
         unit/salome/test_standalone.py \
         unit/salome/test_with_compass.py \
         unit/chair_well.py \
-        unit/one_cell.py
+        unit/one_cell.py \
+        unit/multi_segmented_well.py
       do
         echo "------------------------------------------------------------"
         echo "Running: $f"
@@ -271,7 +272,8 @@ various parallel tests:
         unit/dof_families.py \
         bulk/chain_random_wells.py \
         unit/well_connectivity.py \
-        unit/test_close_perforations.py
+        unit/test_close_perforations.py \
+        unit/multi_segmented_well.py
       do
         echo "------------------------------------------------------------"
         echo "Running: $f"

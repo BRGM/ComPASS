@@ -47,6 +47,7 @@ module NN
    use DefFlash, only: DefFlash_Flash_cv
    use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells, DefFlashWells_free
    use WellState, only: WellState_allocate, WellState_free
+   use MeshSchemaMSWells, only: MeshSchemaMSWells_make, MeshSchemaMSWells_free
 
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
@@ -162,6 +163,7 @@ contains
       bind(C, name="init_phase2_build_local_mesh")
 
       call MeshSchema_make
+      call MeshSchemaMSWells_make
 
       ! free some tmps in LocalMesh
       if (commRank == 0) then
@@ -265,6 +267,10 @@ contains
       call VAGFrac_free
       call IncPrimSecd_free
       call LoisThermoHydro_free
+
+      !MSWells  Stuff
+      call MeshSchemaMSWells_free
+
       call IncCV_free
       call DirichletContribution_free
       call NeumannContribution_free
