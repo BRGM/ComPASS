@@ -65,9 +65,7 @@ module IncCVReservoir
       IncCVReservoir_LoadIncPreviousTimeStep, &
       IncCVReservoir_SaveIncPreviousTimeStep, &
       IncCVReservoir_free, &
-      IncCVReservoir_compute_density
-
-   private :: &
+      IncCVReservoir_compute_density, &
       IncCVReservoir_NewtonIncrement_reservoir
 
 contains
@@ -205,21 +203,31 @@ contains
 
    end subroutine IncCVReservoir_NewtonIncrement
 
-   !> \brief Realize Newton increment of each control volume           <br>
+!> \brief Realize Newton increment of each control volume           <br>
    !! NOMBERING IS FIXED:                                              <br>
    !!  Pressure=1,                                                     <br>
    !!  Temperature=2,                                                   <br>
    !!  Molar fraction of present component (without Ctilde),           <br>
    !!  Saturation of present phase,                                     <br>
    !!  Molar fraction only present in absent phase: Ctilde (put into inc%AccVol(icp) ???)
-   subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax)
+   !!
+   !!  Note: this function is also used to update MSWellNodes values. Thus, in that case
+   !!        the flag  mswells_flag needs to be set to .true.
+   !!        This updates the phases pressures and avoid free surface flow stuff
+   !!
+   subroutine IncCVReservoir_NewtonIncrement_reservoir(inc, incre, relax, mswells_flag)
 
       type(TYPE_IncCVReservoir), intent(inout) :: inc
       double precision, intent(in) :: incre(NbIncTotalMax), relax
+      logical, optional, intent(in) :: mswells_flag
 
       integer :: i, icp, iph
       integer :: NbIncPTC, NbIncTotal, NbPhasePresente
       integer :: ic
+      logical :: using_mswells_flag
+
+      using_mswells_flag = .false.
+      if (present(mswells_flag)) using_mswells_flag = mswells_flag
 
       ic = inc%ic
       NbIncPTC = NbIncPTC_ctx(ic)
@@ -228,6 +236,11 @@ contains
 
       ! increment Pressure
       inc%Pression = inc%Pression + relax*incre(1)
+
+      if (using_mswells_flag) then
+         !Set phase pressure for all phases
+         inc%phase_pressure(:) = inc%Pression
+      endif
 
       !    write(*,*)' increment P ',relax,incre(1)
 
@@ -251,15 +264,17 @@ contains
 
          inc%Saturation(iph) = inc%Saturation(iph) + relax*incre(iph + NbIncPTC)
       end do
-
 #ifdef _WITH_FREEFLOW_STRUCTURES_
-      ! increment freeflow molar flowrate
+! increment freeflow molar flowrate
       if (ic >= 2**NbPhase) then ! FIXME: loop over freeflow dof only, avoid reservoir node
-         do i = 1, NbPhasePresente
-            iph = NumPhasePresente_ctx(i, ic)
-
-            inc%FreeFlow_flowrate(iph) = inc%FreeFlow_flowrate(iph) + relax*incre(iph + NbIncPTC + NbPhasePresente)
-         enddo
+         if (.not. using_mswells_flag) then
+            do i = 1, NbPhasePresente
+               iph = NumPhasePresente_ctx(i, ic)
+               inc%FreeFlow_flowrate(iph) = inc%FreeFlow_flowrate(iph) + relax*incre(iph + NbIncPTC + NbPhasePresente)
+            enddo
+         else
+            call CommonMPI_abort("MSWells cannot be used with Freeflow structures.")
+         endif
       endif
 #endif
 

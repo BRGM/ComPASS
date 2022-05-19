@@ -17,6 +17,9 @@ module IncCV
    use IncCVWells, only: &
       IncCVWells_allocate, IncCVWells_free, IncCVWells_NewtonIncrement, &
       IncCVWells_SaveIncPreviousTimeStep, IncCVWells_LoadIncPreviousTimeStep
+   use IncCVMSWells, only: &
+      IncCVMSWells_allocate, IncCVMSWells_free, IncCVMSWells_NewtonIncrement, &
+      IncCMSWells_SaveIncPreviousTimeStep, IncCMSWells_LoadIncPreviousTimeStep
 
    implicit none
 
@@ -33,6 +36,7 @@ contains
 
       call IncCVReservoir_allocate
       call IncCVWells_allocate
+      call IncCVMSWells_allocate
 
    end subroutine IncCV_allocate
 
@@ -40,6 +44,7 @@ contains
 
       call IncCVReservoir_free
       call IncCVWells_free
+      call IncCVMSWells_free
 
    end subroutine IncCV_free
 
@@ -87,6 +92,7 @@ contains
 
       call IncCVReservoir_SaveIncPreviousTimeStep
       call IncCVWells_SaveIncPreviousTimeStep
+      call IncCMSWells_SaveIncPreviousTimeStep
 
    end subroutine IncCV_SaveIncPreviousTimeStep
 
@@ -98,6 +104,7 @@ contains
 
       call IncCVReservoir_LoadIncPreviousTimeStep
       call IncCVWells_LoadIncPreviousTimeStep
+      call IncCMSWells_LoadIncPreviousTimeStep
 
    end subroutine IncCV_LoadIncPreviousTimeStep
 

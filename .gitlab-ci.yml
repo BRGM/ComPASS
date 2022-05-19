@@ -193,7 +193,8 @@ more sanity tests:
         unit/salome/test_with_compass.py \
         unit/chair_well.py \
         unit/one_cell.py \
-        unit/multi_segmented_well.py
+        unit/multi_segmented_well.py \
+        unit/mswell_load_test.py
       do
         echo "------------------------------------------------------------"
         echo "Running: $f"
