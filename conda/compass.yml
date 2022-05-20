@@ -25,11 +25,12 @@ dependencies:
 - openmpi
 - mpi4py
 - petsc4py
+- inept<0.2
+- verstr
+- vtkwriters
+- sortedcontainers
+- pyyaml
 - pip:
-  - click
-  - inept<0.2
-  - pyyaml
-  - sortedcontainers
-  - verstr
-  - vtkwriters
   - git+https://github.com/BRGM/MeshTools.git
+variables:
+  PIP_NO_BUILD_ISOLATION: false
