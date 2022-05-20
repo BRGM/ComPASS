@@ -163,7 +163,7 @@ def init(
     # FIXME: grid is kept for backward compatibility, should be deprecated
     if type(mesh) is str:
         if not os.path.exists(mesh):
-            print("Mesh file (%s) not found!" % mesh)
+            messages.warning("Mesh file (%s) not found!" % mesh)
         messages.error("Loading mesh from file is desactivated.")
     else:
         if grid is not None:
@@ -204,13 +204,11 @@ def init(
         # FIXME: we should distinguish well nature and well status
         for well in well_list:
             if well.closed:
-                print("WARNING")
-                print("WARNING")
-                print("WARNING Closed well will be DISCARDED.")
-                print("WARNING Set the well as a producer or injector,")
-                print("WARNING and close it before running the simulation.")
-                print("WARNING")
-                print("WARNING")
+                messages.warning(
+                    "Closed well will be DISCARDED.\n"
+                    "Set the well as a producer or injector "
+                    "and close it before running the simulation.",
+                )
                 break
         kernel.set_well_data(well_list, display_well_ids)
         kernel.compute_well_indices()

@@ -24,7 +24,7 @@ class Timer:
         :param fieldwidth: the width used to print event name
         """
         if not (collect_events or output):
-            message.warning(
+            messages.warning(
                 """Your timer is probably useless
             as it neither outputs timed event nor collect them!"""
             )

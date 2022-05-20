@@ -24,6 +24,7 @@ from .newton import Newton, default_Newton
 from .dumps import Dumper
 from .callbacks import get_callbacks_from_options
 from .utils.units import bar, year
+from . import messages
 
 
 Event = namedtuple("Event", ["time", "actions"])
@@ -208,12 +209,12 @@ def standard_loop(
             if total_time is not None:
                 output_period = total_time / (nb_output - 1)
             else:
-                print(
-                    "WARNING: nb_output has no impact because final_time is not set in standard_loop."
+                messages.warning(
+                    "nb_output has no impact because final_time is not set in standard_loop."
                 )
     else:
         if nb_output is not None:
-            print("WARNING: output_period is overriding nb_output in standard_loop.")
+            messages.warning("output_period is overriding nb_output in standard_loop.")
     assert output_period is None or output_period > 0
     if time_step_manager:
         assert initial_timestep is None and fixed_timestep is None
