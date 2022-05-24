@@ -1810,38 +1810,51 @@ contains
       real(c_double), intent(out) :: dval(NbIncTotalPrimMax, NbComp, NbPhase)
       real(c_double), intent(out) :: Smval(NbComp, NbPhase)
 
-      real(c_double) :: f(NbComp), dPf(NbComp), dTf(NbComp)
+      real(c_double) :: f(NbComp, NbPhase), dPf(NbComp, NbPhase), dTf(NbComp, NbPhase)
       real(c_double) :: dCf(NbComp), dSf(NbPhase)
       real(c_double) :: dfdX(NbIncTotalMax)
-      real(c_double) :: dfdX_secd(NbEqFermetureMax, NbComp, NbPhase)
-      integer :: i, iph, icp
+      real(c_double) :: dfdX_secd(NbEqFermetureMax, NbPhase)
+      real(c_double) :: dval_icp(NbIncTotalPrimMax, NbPhase)
+      real(c_double) :: Smval_icp(NbPhase)
+      integer :: i, j, iph, icp
 
       val = 0.d0
-      dval = 0.d0
-      Smval = 0.d0
-      dCf = 0.d0 ! Alaways null (specific enthalpy)
-      dfdX_secd = 0.d0
+      dCf = 0.d0 ! Always null (specific enthalpy)
 
+      ! fill f, dPf and dTf (loop over phase only)
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         call f_SpecificEnthalpy(iph, inc%phase_pressure(iph), inc%Temperature, f, dPf, dTf)
-         do icp = 1, NbComp
-            val(icp, i) = f(icp) ! val
+         call f_SpecificEnthalpy(iph, inc%phase_pressure(iph), inc%Temperature, f(:, iph), dPf(:, iph), dTf(:, iph))
+      enddo
+
+      do icp = 1, NbComp
+         dval_icp = 0.d0
+         Smval_icp = 0.d0
+         dfdX_secd = 0.d0
+         do i = 1, ctxinfo%NbPhasePresente
+            iph = ctxinfo%NumPhasePresente(i)
+            val(icp, i) = f(icp, iph) ! val
             ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
             dSf = 0.d0
-            dSf(iph) = dPf(icp)*dpadS(iph)
-            call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf(icp), dTf(icp), dCf, dSf, dfdX)
+            dSf(iph) = dPf(icp, iph)*dpadS(iph)
+            call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf(icp, iph), dTf(icp, iph), dCf, dSf, dfdX)
             ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
             ! and dfdX_secd w.r.t. the secondary unknowns
             call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                         dval(:, icp, i), dfdX_secd(:, icp, i))
-         end do
-      end do
+                                         dval_icp(:, i), dfdX_secd(:, i))
+         end do ! i
 
-      do icp = 1, NbComp
          call LoisThermoHydro_local_Schur( &
             ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
-            dXssurdXp, dfdX_secd(:, icp, :), dval(:, icp, :), SmdXs, Smval(icp, :))
+            dXssurdXp, dfdX_secd, dval_icp, SmdXs, Smval_icp)
+
+         do i = 1, NbPhase
+            do j = 1, NbIncTotalPrimMax
+               dval(j, icp, i) = dval_icp(j, i)
+            end do
+            Smval(icp, i) = Smval_icp(i)
+         end do
+
       end do
 
    end subroutine LoisThermoHydro_SpecificEnthalpy_cv
