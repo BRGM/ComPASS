@@ -21,6 +21,7 @@ namespace py = pybind11;
 extern "C" {
 
 void IncCVMSWells_copy_states_from_reservoir();
+void MSWellsData_init();
 }
 
 struct MSWell {};
@@ -32,4 +33,6 @@ void add_mswell_wrappers(py::module& module) {
               &IncCVMSWells_copy_states_from_reservoir,
               "For each vertex of all  multi-segmented producer wells, copy "
               "the  Coats variables from the reservoir");
+
+   module.def("mswells_init_edge_data", &MSWellsData_init);
 }

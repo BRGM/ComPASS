@@ -48,7 +48,7 @@ module NN
    use DefFlashWells, only: DefFlashWells_allocate, DefFlashWells_NewtonFlashLinWells, DefFlashWells_free
    use WellState, only: WellState_allocate, WellState_free
    use MeshSchemaMSWells, only: MeshSchemaMSWells_make, MeshSchemaMSWells_free
-
+   use MSWellsData, only: MSWellsData_allocate, MSWellsData_free
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
 
@@ -197,6 +197,9 @@ contains
       ! allocate flux
       call Flux_allocate
 
+      !MSWell stuff
+      call MSWellsData_allocate
+
       ! csr structure of Jacobian
       ! allocate memory of Jacobian ans Sm
       call Jacobian_StrucJacBigA
@@ -269,6 +272,7 @@ contains
       call LoisThermoHydro_free
 
       !MSWells  Stuff
+      call MSWellsData_free
       call MeshSchemaMSWells_free
 
       call IncCV_free

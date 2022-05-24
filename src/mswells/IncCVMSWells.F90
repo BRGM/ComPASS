@@ -114,16 +114,11 @@ contains
       bind(C, name="IncCVMSWells_copy_states_from_reservoir")
 
       integer :: s, k, nums, nbwells
-      double precision :: user_thcond
 #ifndef ComPASS_DIPHASIC_CONTEXT
 
       call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
 
 #else
-
-#ifdef _THERMIQUE_
-      user_thcond = 2.0 !Thermal conductivity
-#endif
 
       nbwells = NbMSWellLocal_Ncpus(commRank + 1)
       do k = 1, nbwells

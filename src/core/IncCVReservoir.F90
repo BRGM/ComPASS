@@ -10,7 +10,7 @@ module IncCVReservoir
 
    use iso_c_binding, only: c_int, c_double, c_size_t
 
-   use CommonMPI, only: ComPASS_COMM_WORLD, commRank
+   use CommonMPI, only: ComPASS_COMM_WORLD, CommonMPI_abort, commRank
 
    use DefModel, only: &
       NbPhase, NbComp, NbContexte, NbEqEquilibreMax, NbIncPTCMax, &
