@@ -74,7 +74,7 @@ module IncPrimSecd
       IncPrimSecd_dFsurdX_cv, & ! compute dF/dX for each cv (called from IncPrimSecdFreeFlow)
       IncPrimSecd_compPrim_nodes
 
-   private :: &
+   public :: &
       IncPrimSecd_compute_cv, & ! all operations for one cv
       IncPrimSecd_dXssurdXp_cv              ! compute dFs/dXp
 

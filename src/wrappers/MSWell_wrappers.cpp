@@ -22,6 +22,7 @@ extern "C" {
 
 void IncCVMSWells_copy_states_from_reservoir();
 void MSWellsData_init();
+void IncPrimSecdMSWells_compute();
 }
 
 struct MSWell {};
@@ -35,4 +36,5 @@ void add_mswell_wrappers(py::module& module) {
               "the  Coats variables from the reservoir");
 
    module.def("mswells_init_edge_data", &MSWellsData_init);
+   module.def("IncPrimSecdMSWells_compute", &IncPrimSecdMSWells_compute);
 }
