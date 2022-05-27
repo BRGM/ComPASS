@@ -23,6 +23,7 @@ extern "C" {
 void IncCVMSWells_copy_states_from_reservoir();
 void MSWellsData_init();
 void IncPrimSecdMSWells_compute();
+void LoisThermoHydroMSWells_compute();
 }
 
 struct MSWell {};
@@ -37,4 +38,6 @@ void add_mswell_wrappers(py::module& module) {
 
    module.def("mswells_init_edge_data", &MSWellsData_init);
    module.def("IncPrimSecdMSWells_compute", &IncPrimSecdMSWells_compute);
+   module.def("LoisThermoHydroMSWells_compute",
+              &LoisThermoHydroMSWells_compute);
 }

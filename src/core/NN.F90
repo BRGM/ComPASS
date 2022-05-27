@@ -50,6 +50,7 @@ module NN
    use MeshSchemaMSWells, only: MeshSchemaMSWells_make, MeshSchemaMSWells_free
    use MSWellsData, only: MSWellsData_allocate, MSWellsData_free
    use IncPrimSecdMSWells, only: IncPrimSecdMSWells_allocate, IncPrimSecdMSWells_free
+   use LoisThermoHydroMSWells, only: LoisThermoHydroMSWells_allocate, LoisThermoHydroMSWells_free
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
 
@@ -201,6 +202,7 @@ contains
       !MSWell stuff
       call MSWellsData_allocate
       call IncPrimSecdMSWells_allocate
+      call LoisThermoHydroMSWells_allocate
 
       ! csr structure of Jacobian
       ! allocate memory of Jacobian ans Sm
@@ -274,6 +276,7 @@ contains
       call LoisThermoHydro_free
 
       !MSWells  Stuff
+      call LoisThermoHydroMSWells_free
       call IncPrimSecdMSWells_free
       call MSWellsData_free
       call MeshSchemaMSWells_free
