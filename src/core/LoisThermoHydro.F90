@@ -54,6 +54,7 @@ module LoisThermoHydro
       CompPhaseDOFFamilyArray, MeshSchema_allocate_CompPhaseDOFFamilyArray, MeshSchema_free_CompPhaseDOFFamilyArray
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    use Physics, only: atm_flux_radiation, soil_emissivity, Stephan_Boltzmann_cst
+
    use FreeFlowTypes, only: TYPE_FFfarfield
 #endif
 
@@ -250,7 +251,7 @@ module LoisThermoHydro
       LoisThermoHydro_divP_wellinj, &
       LoisThermoHydro_divPrim_nodes
 
-   private :: &
+   public :: &
       LoisThermoHydro_divPrim_cv, & ! main function for prim divs for each control volume (cv)
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       LoisThermoHydro_divPrim_FreeFlow_cv, & ! prim divs for Molar flowrates in Freeflow dof
@@ -267,7 +268,8 @@ module LoisThermoHydro
       LoisThermoHydro_fill_gradient_dfdX, & ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
       LoisThermoHydro_dfdX_ps, & ! fill dfdX_prim/dfdX_secd with the derivatives w.r.t. the primary/secondary unknowns
       LoisThermoHydro_DensiteMolaire_cv, & ! prim divs: densitemolaire
-      LoisThermoHydro_Viscosite_cv, & !            1/viscosite
+      LoisThermoHydro_UnSurViscosite_cv, & !            1/viscosite
+      LoisThermoHydro_Viscosite_cv, & !            viscosite
       LoisThermoHydro_Inc_cv, & !            called with Pression, Temperature, phase molar fractions and FF unknowns
       LoisThermoHydro_Saturation_cv, & !            Saturation
       !
@@ -279,7 +281,7 @@ module LoisThermoHydro
 
 #ifdef _THERMIQUE_
 
-   private :: &
+   public :: &
       LoisThermoHydro_EnergieInterne_cv, & !  Enthalpie
       LoisThermoHydro_Enthalpie_cv, &
       LoisThermoHydro_SpecificEnthalpy_cv
@@ -553,7 +555,7 @@ contains
       type(ContextInfo) :: ctxinfo
 
       do k = 1, NbIncLocal
-         call LoisThermoHydro_viscosite_cv( &
+         call LoisThermoHydro_UnSurViscosite_cv( &
             inc(k), dpadS(:, k), dXssurdXp(:, :, k), SmdXs(:, k), NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
             wa_UnsurViscosite(:, k), wa_divUnsurViscosite(:, :, k), wa_SmUnSurViscosite(:, k))
       end do
@@ -1349,7 +1351,7 @@ contains
 
    end subroutine LoisThermoHydro_densitemassique_cv
 
-   subroutine LoisThermoHydro_viscosite_cv( &
+   subroutine LoisThermoHydro_UnSurViscosite_cv( &
       inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       real(c_double), intent(in) :: dpadS(NbPhase)
@@ -1393,25 +1395,87 @@ contains
          NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
          dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
-   end subroutine LoisThermoHydro_viscosite_cv
+   end subroutine LoisThermoHydro_UnSurViscosite_cv
 
-   subroutine LoisThermoHydro_densitemolaire_cv( &
-      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+   subroutine LoisThermoHydro_viscosite_cv( &
+      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       real(c_double), intent(in) :: dpadS(NbPhase)
       double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
       double precision, intent(in) :: SmdXs(NbEqFermetureMax)
       integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
       integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
+      ! optional input
+      logical, optional, intent(in):: use_abs_ordering
+
       double precision, intent(out) :: val(NbPhase)
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
       double precision, intent(out) :: Smval(NbPhase)
 
-      integer :: i, iph, context, nb_phases
+      integer :: i, iph, context, nb_phases, idx
+      double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: dfdX(NbIncTotalMax)
+      double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
+      logical          :: set_use_abs_ordering
+
+      set_use_abs_ordering = .false. !Use relative ordering by default
+      if (present(use_abs_ordering)) set_use_abs_ordering = use_abs_ordering
+      val = 0.d0
+      dval = 0.d0
+      Smval = 0.d0
+      dfdX_secd = 0.d0
+      context = inc%ic
+      nb_phases = NbPhasePresente_ctx(context)
+      do i = 1, nb_phases
+         iph = NumPhasePresente_ctx(i, context)
+         if (set_use_abs_ordering) then
+            idx = iph
+         else
+            idx = i
+         endif
+         call f_Viscosite(iph, inc%phase_pressure(iph), inc%Temperature, &
+                          inc%Comp(:, iph), &
+                          f, dPf, dTf, dCf)
+         dSf = 0.d0
+         dSf(iph) = dPf*dpadS(iph)
+         val(idx) = f
+         ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
+         call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
+         ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
+         ! and dfdX_secd w.r.t. the secondary unknowns
+         call LoisThermoHydro_dfdX_ps( &
+            inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dval(:, idx), dfdX_secd(:, idx))
+      end do
+
+      call LoisThermoHydro_local_Schur( &
+         NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, &
+         dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
+
+   end subroutine LoisThermoHydro_viscosite_cv
+
+   subroutine LoisThermoHydro_densitemolaire_cv( &
+      inc, dpadS, dXssurdXp, SmdXs, NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
+      type(TYPE_IncCVReservoir), intent(in)  :: inc
+      real(c_double), intent(in) :: dpadS(NbPhase)
+      double precision, intent(in) :: dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      double precision, intent(in) :: SmdXs(NbEqFermetureMax)
+      integer, intent(in) :: NumIncTotalPrimCV(NbIncTotalPrimMax)
+      integer, intent(in) :: NumIncTotalSecondCV(NbEqFermetureMax)
+      ! optional input
+      logical, optional, intent(in):: use_abs_ordering
+
+      double precision, intent(out) :: val(NbPhase)
+      double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
+      double precision, intent(out) :: Smval(NbPhase)
+
+      integer :: i, iph, context, nb_phases, idx
       double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
+      logical          :: set_use_abs_ordering
 
+      set_use_abs_ordering = .false. !Use relative ordering by default
+      if (present(use_abs_ordering)) set_use_abs_ordering = use_abs_ordering
       val = 0.d0
       dval = 0.d0
       Smval = 0.d0
@@ -1421,8 +1485,13 @@ contains
       nb_phases = NbPhasePresente_ctx(context)
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
+         if (set_use_abs_ordering) then
+            idx = iph
+         else
+            idx = i
+         endif
          call f_DensiteMolaire( &
-            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(i), dPf, dTf, dCf)
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(idx), dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
@@ -1430,7 +1499,7 @@ contains
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps( &
-            context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dval(:, i), dfdX_secd(:, i))
+            context, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, dval(:, idx), dfdX_secd(:, idx))
       end do
 
       call LoisThermoHydro_local_Schur( &
@@ -1489,8 +1558,8 @@ contains
             call LoisThermoHydro_dfdX_ps( &
                context, NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), dfdX(:, iph), dkr(:, iph, k), dfdX_secd(:, iph))
          end do
-         ! CHECKME: why not calling on RHS?
-         !          because we don't use directly kr variations in Jacobian but divKrVisco...
+         ! FIXME: why not calling on RHS?
+         !        because we don't use directly kr variations in Jacobian but divKrVisco...
          call LoisThermoHydro_local_Schur( &
             NbIncTotalPrim_ctx(context), NbEqFermeture_ctx(context), NbPhase, dXssurdXp(:, :, k), dfdX_secd, dkr(:, :, k))
       end do
@@ -1570,7 +1639,7 @@ contains
    subroutine LoisThermoHydro_Saturation_cv(inc, ctxinfo, &
                                             NumIncTotalPrimCV, NumIncTotalSecondCV, &
                                             dXssurdXp, &
-                                            dval)
+                                            dval, use_abs_ordering)
 
       ! input
       type(TYPE_IncCVReservoir), intent(in)  :: inc
@@ -1580,24 +1649,38 @@ contains
          NumIncTotalSecondCV(NbEqFermetureMax)
       double precision, intent(in) :: & ! (col, row) index order
          dXssurdXp(NbIncTotalPrimMax, NbEqFermetureMax)
+      ! optional input
+      logical, optional, intent(in):: use_abs_ordering
 
       ! output
       double precision, intent(out) :: dval(NbIncTotalPrimMax, NbPhase)
 
       ! tmp
-      integer :: i, k
+      integer :: i, k, idx, last_idx
+      logical :: set_use_abs_ordering
+
+      set_use_abs_ordering = .false. !Use relative ordering by default
+      if (present(use_abs_ordering)) set_use_abs_ordering = use_abs_ordering
 
       dval(:, :) = 0.d0
-
       ! FIXME: Elimination of the last present phase (sum S =1 forced in the code)
       DO i = 1, ctxinfo%NbPhasePresente - 1
 
          IF (ANY(NumIncTotalPrimCV == i + ctxinfo%NbIncPTC)) THEN ! S is prim
             do k = 1, NbIncTotalPrimMax
                if (NumIncTotalPrimCV(k) == i + ctxinfo%NbIncPTC) then
-                  dval(k, i) = 1.d0
 
-                  dval(k, ctxinfo%NbPhasePresente) = -1.d0
+                  if (set_use_abs_ordering) then
+                     idx = ctxinfo%NumPhasePresente(i)
+                     last_idx = ctxinfo%NumPhasePresente(ctxinfo%NbPhasePresente)
+                  else
+                     idx = i
+                     last_idx = ctxinfo%NbPhasePresente
+                  endif
+
+                  dval(k, idx) = 1.d0
+                  dval(k, last_idx) = -1.d0
+
                endif
             enddo
          ELSE if (inc%ic < 2**NbPhase) then ! FIXME: avoid freeflow nodes: S not found in reservoir dof
@@ -1691,7 +1774,7 @@ contains
 
    subroutine LoisThermoHydro_EnergieInterne_cv( &
       inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
-      NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+      NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       real(c_double), intent(in) :: dpadS(NbPhase)
 
@@ -1703,6 +1786,8 @@ contains
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
          NumIncTotalSecondCV(NbEqFermetureMax)
+      ! optional input
+      logical, optional, intent(in):: use_abs_ordering
 
       ! output
       double precision, intent(out) :: val(NbPhase)
@@ -1713,9 +1798,11 @@ contains
       double precision :: f, dPf, dTf, dCf(NbComp), dSf(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
+      logical          :: set_use_abs_ordering
+      integer :: i, iph, idx
 
-      integer :: i, iph
-
+      set_use_abs_ordering = .false. !Use relative ordering by default
+      if (present(use_abs_ordering)) set_use_abs_ordering = use_abs_ordering
       val = 0.d0
       dval = 0.d0
       Smval = 0.d0
@@ -1723,9 +1810,14 @@ contains
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
+         if (set_use_abs_ordering) then
+            idx = iph
+         else
+            idx = i
+         endif
          call f_EnergieInterne( &
             iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
-         val(i) = f ! val
+         val(idx) = f ! val
          dSf = 0.d0
          dSf(iph) = dpf*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
@@ -1733,7 +1825,7 @@ contains
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dval(:, i), dfdX_secd(:, i))
+                                      dval(:, idx), dfdX_secd(:, idx))
       end do
 
       call LoisThermoHydro_local_Schur( &
@@ -1743,7 +1835,7 @@ contains
    end subroutine LoisThermoHydro_EnergieInterne_cv
 
    subroutine LoisThermoHydro_Enthalpie_cv(inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
-                                           NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
+                                           NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
 
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       real(c_double), intent(in) :: dpadS(NbPhase)
@@ -1755,6 +1847,8 @@ contains
       integer, intent(in) :: &
          NumIncTotalPrimCV(NbIncTotalPrimMax), &
          NumIncTotalSecondCV(NbEqFermetureMax)
+      ! optional input
+      logical, optional, intent(in):: use_abs_ordering
 
       ! output
       double precision, intent(out) :: val(NbPhase)
@@ -1766,8 +1860,11 @@ contains
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
 
-      integer :: i, iph
+      integer :: i, iph, idx
+      logical          :: set_use_abs_ordering
 
+      set_use_abs_ordering = .false. !Use relative ordering by default
+      if (present(use_abs_ordering)) set_use_abs_ordering = use_abs_ordering
       val = 0.d0
       dval = 0.d0
       Smval = 0.d0
@@ -1775,16 +1872,21 @@ contains
 
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
+         if (set_use_abs_ordering) then
+            idx = iph
+         else
+            idx = i
+         endif
          call f_Enthalpie(iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
-         val(i) = f ! val
+         val(idx) = f ! val
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
          call LoisThermoHydro_fill_gradient_dfdX(inc%ic, iph, dPf, dTf, dCf, dSf, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps(inc%ic, NumIncTotalPrimCV, NumIncTotalSecondCV, dfdX, &
-                                      dval(:, i), dfdX_secd(:, i))
+                                      dval(:, idx), dfdX_secd(:, idx))
       end do
 
       call LoisThermoHydro_local_Schur( &
