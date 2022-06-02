@@ -13,3 +13,13 @@ and C++ and Fortran code using `doxygen <https://www.doxygen.nl/index.html>`_.
 For test purpos, documentation can be generated using the `registry.gitlab.inria.fr/charms/compass/doc-environment`
 docker image and executing the generate `generate_doc.bash` script from within the `docs` directory.
 The generated documentation will output to the `docs/html` directory.
+
+To generate the documentation locally, execute:
+
+.. code:: bash
+
+    cd doc
+    cp -vf ../README.rst ../LICENSE.rst .
+    cp -vf ../CodingConventions.rst ./developers_corner/
+    sphinx-apidoc ../ComPASS -o python_reference
+    sphinx-build . html
