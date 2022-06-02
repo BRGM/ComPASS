@@ -96,17 +96,19 @@ class TimeloopLogCallback:
     """
     A structure that retrieves and stores operating data of the timeloop, newton and lsolver objects.
     Gathered data is stored into a nested dictionary and dumped to the output directory using YAML.
-    Is activated at runtime using --callbacks.timeloop_log True.
+    Is activated at runtime using --callbacks.timeloop_log True
+    or can be added in the script with options.compass_config["callbacks.timeloop_log"] = True.
     File timeloop_log.yaml stores compact data for each time step
-    (physical time, number of newton attempts, success dt)
+    (physical time, number of newton attempts, success dt).
     File time_step_log/time_step_<i>_log.yaml stores data for every attempt in time step i,
     detailed newton convergence, linear status and residual history in case of failure.
     """
 
     def __init__(self, filename, newton):
         self.dict = {}
-        self.last_newton_start = time.time()
-        self.last_timestep_start = time.time()
+        now = time.time()
+        self.last_newton_start = now
+        self.last_timestep_start = now
         self.attempts = [{}]
         self.newton = newton
         os.makedirs(to_output_directory("time_step_log"), exist_ok=True)
@@ -117,6 +119,7 @@ class TimeloopLogCallback:
         self.attempts[-1]["status"] = "success"
         timestep_dict = {"time": tick.time - tick.latest_timestep}
         newton_it = []
+        lsolver_it_attempt = []
         ts_log_filename = to_output_directory(
             f"time_step_log/time_step_{tick.iteration}_log.yaml"
         )
@@ -124,6 +127,11 @@ class TimeloopLogCallback:
             pass
         for i, attempt_dict in enumerate(self.attempts):
             newton_it.append(len(attempt_dict) - 2)
+            lsolver_it = []
+            for ni in range(newton_it[-1]):
+                ni += 1
+                lsolver_it.append(attempt_dict[f"newton {ni}"]["linear_iterations"])
+            lsolver_it_attempt.append(lsolver_it)
             if mpi.is_on_master_proc:
                 with open(ts_log_filename, "a") as f:
                     yaml.safe_dump(
@@ -132,35 +140,40 @@ class TimeloopLogCallback:
                         default_flow_style=False,
                         sort_keys=False,
                     )
+        now = time.time()
         timestep_dict.update(
             {
                 "newton_iterations_per_attempt": newton_it,
+                "lsolver_iterations_per_newton": lsolver_it_attempt,
                 "success_dt": tick.latest_timestep,
-                "computing_time": time.time() - self.last_timestep_start,
+                "computation_time": now - self.last_timestep_start,
             }
         )
-        self.last_timestep_start = time.time()
+        self.last_timestep_start = now
         if mpi.is_on_master_proc:
             with open(to_output_directory("timeloop_log.yaml"), "a") as f:
                 yaml.safe_dump(
                     {f"time_step {tick.iteration}": timestep_dict},
                     f,
                     default_flow_style=False,
+                    indent=2,
                     sort_keys=False,
                 )
         self.attempts = [{}]
 
     def newton_iteration_callback(self, newton_tick):
+        now = time.time()
         self.attempts[-1]["dt"] = newton_tick.current_dt
         self.attempts[-1][f"newton {newton_tick.iteration}"] = {
             "linear_iterations": self.newton.lsolver.nit,
             "linear_solver_status": explain_reason(self.newton.lsolver.ksp_reason),
-            "cpu_time": time.time() - self.last_newton_start,
+            "cpu_time": now - self.last_newton_start,
             "residual": float(self.newton.relative_residuals[-1]),
         }
-        self.last_newton_start = time.time()
+        self.last_newton_start = now
 
     def linear_failure_callback(self, newton_tick):
+        now = time.time()
         self.attempts[-1]["dt"] = newton_tick.current_dt
         self.attempts[-1][f"newton {newton_tick.iteration}"] = {
             "linear_iterations": self.newton.lsolver.nit,
@@ -168,10 +181,10 @@ class TimeloopLogCallback:
                 float(x) for x in self.newton.lsolver.residual_history
             ),
             "linear_solver_status": explain_reason(self.newton.lsolver.ksp_reason),
-            "cpu_time": time.time() - self.last_newton_start,
+            "cpu_time": now - self.last_newton_start,
         }
         self.attempts[-1]["status"] = "linear_failure"
-        self.last_newton_start = time.time()
+        self.last_newton_start = now
         self.attempts.append({})
 
     def newton_failure_callback(self, newton_tick):

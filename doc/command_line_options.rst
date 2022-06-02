@@ -16,7 +16,7 @@ Setting the value of a node will activate all nodes along the path that leads to
 values with a default (in parentheses). Dashed lines denote a `switch` relationship between the nodes they are connected to,
 meaning that they cannot be simultaneously activated. Turning one of them on will turn the others off.
 Group nodes cannot be assigned a value: they are just a namespace for the option tree that comes after them.
-They can only be activated if the path that leads to them is, and their subtree options are set (or have a default value)
+They can only be activated if the path that leads to them is, and their subtree options are set (or have a default value).
 
 The subtrees that are activated by command line options at runtime are stored in two `Config` objects, and
 are used by the ``linalg/factory.py`` to construct the corresponding `LinearSolver` object and by the `ComPASS.callbacks` module
@@ -27,39 +27,49 @@ procedure with the CPR-AMG preconditioning method, and the callback `Config`
 only sets up the simulation log, as can be read on the diagrams above.
 
 +------------------------------------------------+-----------------------------------------------------+
-| Option keyword                                 | Description                                         |
+| **callbacks** option keyword                   | Description                                         |
 +================================================+=====================================================+
-| ``abort_on_linear_failure <True/False>``       | - Interrupt execution when a linear                 |
-|                                                | - solve error occurs                                |
+| ``abort_on_linear_failure <True/False>``       | | Interrupt execution when a linear                 |
+|                                                | | solve error occurs                                |
 +------------------------------------------------+-----------------------------------------------------+
-| ``abort_on_newton_failure <True/False>``       | - Interrupt execution when Newton loop              |
-|                                                | - fails to converge                                 |
+| ``abort_on_newton_failure <True/False>``       | | Interrupt execution when Newton loop              |
+|                                                | | fails to converge                                 |
 +------------------------------------------------+-----------------------------------------------------+
-| ``abort <t>``                                  | - Interrupt execution at specified physical time    |
+| ``dump_system_on_linear_failure <True/False>`` | | Write linear system (operator, RHS and residual   |
+|                                                | | history) in a file and store it in the output     |
+|                                                | | directory in case of linear solve error           |
 +------------------------------------------------+-----------------------------------------------------+
-| ``dump_system_on_linear_failure <True/False>`` | - Write linear system (operator, RHS and residual   |
-|                                                | - history) in a file and store it in the output     |
-|                                                | - directory in case of linear solve error           |
+| ``abort <t>``                                  | | Interrupt execution at specified physical time    |
 +------------------------------------------------+-----------------------------------------------------+
-| ``linear_system_dump <t1,t2,...>``             | - Write linear systems (operator and RHS) in  files |
-|                                                | - and store them in the output directory at         |
-|                                                | - the specified physical times                      |
+| ``timeloop_log <True/False>``                  | | Write informations about the time steps,          |
+|                                                | | the Newton and the linear solver convergences     |
+|                                                | | in yaml files in `time_step_log` directory in     |
+|                                                | | the output directory                              |
 +------------------------------------------------+-----------------------------------------------------+
-| ``linear_system_binary_dump <t1,t2,...>``      | - Write linear systems (operator and RHS) in        |
-|                                                | - binary files and store them in the output         |
-|                                                | - directory at the specified physical times         |
+| ``linear_system_dump <t1,t2,...>``             | | Write linear systems (operator and RHS) in  files |
+|                                                | | and store them in the output directory at         |
+|                                                | | the specified physical times                      |
 +------------------------------------------------+-----------------------------------------------------+
-| ``simulation_log <True/False>``                | - Write various information about the               |
-|                                                | - simulation in YAML files and store                |
-|                                                | - them in the output directory.                     |
+| ``linear_system_binary_dump <t1,t2,...>``      | | Write linear systems (operator and RHS) in        |
+|                                                | | binary files and store them in the output         |
+|                                                | | directory at the specified physical times         |
 +------------------------------------------------+-----------------------------------------------------+
+
+
+**Remark**: if you prefer, you can also specify the options in the simulation script using:
+
+.. code:: python
+
+  from ComPASS import options
+  options.compass_config["callbacks.timeloop_log"] = True
+
 
 .. _shell_syntax_target:
 
 Shell syntax
 ~~~~~~~~~~~~
 
-Accessing inner options is achieved with the following syntax :
+Accessing inner options is achieved with the following syntax:
 
 .. code:: console
 
@@ -73,7 +83,7 @@ example command:
   $ python3 <script_name>.py --lsolver.legacy.direct True
 
 will trigger constructor for an LU solver in the legacy implementation. Note that default values
-will activate the subtree automatically, meaning that :
+will activate the subtree automatically, meaning that:
 
 .. code:: console
 

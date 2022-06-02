@@ -43,7 +43,18 @@ The :func:`postprocess` function creates the states.pvd file in the
 output-water2ph_vertical_column/paraview/ directory. You can precise
 an other directory name in :code:`ComPASS.set_output_directory_and_logfile()`.
 
+* By default, information about the simulation and the convergence
+  are stored for each time step in the
+  output-water2ph_vertical_column/time_step_log directory
+  and a summary in output-water2ph_vertical_column/timeloop_log.yaml.
+  Some scripts to analyse the information are in the ../test/utilities/
+  directory.
 
+For exemple you can execute:
+
+.. code-block:: shell
+
+  python3 ../test/utilities/timeloops_analysis.py ./output-water2ph_vertical_column
 
 Step 2: Improve the script
 --------------------------
