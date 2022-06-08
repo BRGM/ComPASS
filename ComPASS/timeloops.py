@@ -231,7 +231,7 @@ def standard_loop(
         iteration_callbacks = tuple(cb for cb in iteration_callbacks)
     else:
         iteration_callbacks = ()
-    iteration_callbacks += get_callbacks_from_options(newton, tick0)
+    iteration_callbacks += get_callbacks_from_options(newton, tick0, no_output)
     if output_callbacks is None:
         output_callbacks = tuple()
     if specific_outputs is None:

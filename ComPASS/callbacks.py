@@ -197,6 +197,7 @@ class TimeloopLogCallback:
 def get_callbacks_from_options(
     newton,
     tick0,
+    no_output=False,
 ):
 
     timestep_callbacks = []
@@ -238,7 +239,8 @@ def get_callbacks_from_options(
             )
             newton_iteration_callbacks.extend([dump_trigger])
 
-    if compass_config.get("callbacks.timeloop_log"):
+    # avoid if no_output=True (write in two files at each time step)
+    if not no_output and compass_config.get("callbacks.timeloop_log"):
         timeloop_log_filename = compass_config["callbacks.timeloop_log"]
         timeloop_log_callback = TimeloopLogCallback(timeloop_log_filename, newton)
         timestep_callbacks.append(timeloop_log_callback.timeloop_callback)
