@@ -63,8 +63,16 @@ def vanGenuchten_kr(Pr, Slr, Sgr, n, Sl_reg=0.99):
 
 
 kr_laws = {
+    # vanGenuchten_kr(Pr, Slr, Sgr, n, Sl_reg=0.99)
     1: vanGenuchten_kr(15.0e6, 0.4, 0, 1.49),
     2: vanGenuchten_kr(2.0e6, 0.01, 0, 1.54),
+    4: vanGenuchten_kr(2.0e6, 0, 0, 1.5),  # Cigeo backfill in access drifts
+    5: vanGenuchten_kr(1.6e7, 0, 0, 1.6),  # Cigeo Bentonite
+    6: vanGenuchten_kr(1.5e6, 0, 0, 1.5),  # Cigeo EDZ
+    7: vanGenuchten_kr(1.5e7, 0, 0, 1.5),  # Cigeo argilite (natural medium)
+    8: vanGenuchten_kr(
+        1.5e7, 0, 0, 1.5
+    ),  # Cigeo acquifer (on the top of the natural medium)
 }
 
 

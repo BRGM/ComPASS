@@ -61,6 +61,13 @@ laws = {
     1: vanGenuchten(15.0e6, 0.4, 0, 1.49),
     # rocktype=2, Pr=2e6, Slr=0.01, Sgr=0, n=1.54, Slb_reg=0.99
     2: vanGenuchten(2.0e6, 0.01, 0, 1.54),
+    4: vanGenuchten(2.0e6, 0, 0, 1.5),  # Cigeo backfill in access drifts
+    5: vanGenuchten(1.6e7, 0, 0, 1.6),  # Cigeo Bentonite
+    6: vanGenuchten(1.5e6, 0, 0, 1.5),  # Cigeo EDZ
+    7: vanGenuchten(1.5e7, 0, 0, 1.5),  # Cigeo argilite (natural medium)
+    8: vanGenuchten(
+        1.5e7, 0, 0, 1.5
+    ),  # Cigeo acquifer (on the top of the natural medium)
 }
 
 
