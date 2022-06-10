@@ -24,6 +24,9 @@ void IncCVMSWells_copy_states_from_reservoir();
 void MSWellsData_init();
 void IncPrimSecdMSWells_compute();
 void LoisThermoHydroMSWells_compute();
+void LeafMSWells_init_data();
+void VSHydroMSWells_init();
+void VSHydroMSWells_compute();
 }
 
 struct MSWell {};
@@ -40,4 +43,9 @@ void add_mswell_wrappers(py::module& module) {
    module.def("IncPrimSecdMSWells_compute", &IncPrimSecdMSWells_compute);
    module.def("LoisThermoHydroMSWells_compute",
               &LoisThermoHydroMSWells_compute);
+
+   module.def("mswells_init_leaf_data", &LeafMSWells_init_data);
+
+   module.def("VSHydroMSWells_init", &VSHydroMSWells_init);
+   module.def("VSHydroMSWells_compute", &VSHydroMSWells_compute);
 }

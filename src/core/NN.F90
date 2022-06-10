@@ -51,6 +51,8 @@ module NN
    use MSWellsData, only: MSWellsData_allocate, MSWellsData_free
    use IncPrimSecdMSWells, only: IncPrimSecdMSWells_allocate, IncPrimSecdMSWells_free
    use LoisThermoHydroMSWells, only: LoisThermoHydroMSWells_allocate, LoisThermoHydroMSWells_free
+   use VSHydroMSWells, only: VSHydroMSWells_allocate, VSHydroMSWells_free
+   use LeafMSWells, only: LeafMSWells_allocate, LeafMSWells_free
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
 
@@ -203,6 +205,8 @@ contains
       call MSWellsData_allocate
       call IncPrimSecdMSWells_allocate
       call LoisThermoHydroMSWells_allocate
+      call LeafMSWells_allocate
+      call VSHydroMSWells_allocate
 
       ! csr structure of Jacobian
       ! allocate memory of Jacobian ans Sm
@@ -276,6 +280,8 @@ contains
       call LoisThermoHydro_free
 
       !MSWells  Stuff
+      call LeafMSWells_free
+      call VSHydroMSWells_free
       call LoisThermoHydroMSWells_free
       call IncPrimSecdMSWells_free
       call MSWellsData_free
