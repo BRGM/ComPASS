@@ -2,6 +2,8 @@ import numpy as np
 import numba
 
 
+# The relative permeability of the liquid phase is expressed by integrating
+# the Mualem prediction model in the van Genuchten capillarity model
 def vanGenuchten_kr(Pr, Slr, Sgr, n, Sl_reg=0.99):
     m = 1.0 - 1.0 / n
     scale = 1.0 / (1.0 - Slr - Sgr)
