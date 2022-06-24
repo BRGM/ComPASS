@@ -222,10 +222,10 @@ contains
       real(c_double), intent(out) :: dFsurdX(NbIncTotalMax, NbEqFermetureMax)
       real(c_double), intent(out) :: SmF(NbEqFermetureMax)
 
-      integer :: i, mi, iph, iph1, iph2, icp, j, jph, n, jph_n, numj, numc1, numc2
+      integer :: i, mi, iph, iph1, iph2, icp, j, jph, n, jph_n, numj
       real(c_double) :: &
-         f1, df1dpa, dTf1, dCf1(NbComp), &
-         f2, df2dpa, dTf2, dCf2(NbComp)
+         f1, df1dpa, df1dT, df1dC(NbComp), &
+         f2, df2dpa, df2dT, df2dC(NbComp)
 
       dFsurdX = 0.d0  ! local to this file, cannot rely on previous computation in IncPrimSecd
       SmF = 0.d0
@@ -252,7 +252,7 @@ contains
 
       ! --------------------------------------------------------------------------
       ! thermodynamic equilibrium - fugacities equality
-      ! 2. F = f_i^alpha * C_i^alpha - f_i^beta * C_i^beta
+      ! 2. F = f_i^alpha - f_i^beta
 #if defined ComPASS_SINGLE_PHASE
       ! FIXME: put this test in between NDEBUG preprocessors directives
       !        Once some CI tests are run in Debug mode
@@ -261,47 +261,43 @@ contains
 #else
       if (cv_info%NbEqEquilibre /= 0) then
 
-         do i = 1, cv_info%NbEqEquilibre !
+         do i = 1, cv_info%NbEqEquilibre
 
             icp = cv_info%NumCompEqEquilibre(i) ! component i
             iph1 = cv_info%Num2PhasesEqEquilibre(1, i) ! phase alpha
             iph2 = cv_info%Num2PhasesEqEquilibre(2, i) ! phase beta
-            numc1 = cv_info%NumIncComp2NumIncPTC(icp, iph1) ! num of C_i^alpha in IncPTC
-            numc2 = cv_info%NumIncComp2NumIncPTC(icp, iph2) ! num of C_i^beta in IncPTC
 
             ! fugacity and derivative
-            call f_Fugacity(icp, iph1, inc%phase_pressure(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, dTf1, dCf1)
-            call f_Fugacity(icp, iph2, inc%phase_pressure(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, dTf2, dCf2)
+            call f_Fugacity(icp, iph1, inc%phase_pressure(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, df1dT, df1dC)
+            call f_Fugacity(icp, iph2, inc%phase_pressure(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, df2dT, df2dC)
 
             ! derivative wrt reference pressure
             ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa because pa = P - Pc(S)
-            dFsurdX(1, i + mi) = df1dpa*inc%Comp(icp, iph1) - df2dpa*inc%Comp(icp, iph2)
+            dFsurdX(1, i + mi) = df1dpa - df2dpa
 
 #ifdef _THERMIQUE_
             ! derivative wrt temperature
-            dFsurdX(2, i + mi) = dTf1*inc%Comp(icp, iph1) - dTf2*inc%Comp(icp, iph2)
+            dFsurdX(2, i + mi) = df1dT - df2dT
 #endif
 
-            ! derivative Components
-            ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
-            ! d (f(P,T,C)*C_i)/dC_j =     df/dC_j*C_i, j!=i
-            dFsurdX(numc1, i + mi) = f1   ! first part of   d (f1(P,T,C)*C_i)/dC_i
-
-            do j = 1, NbComp     ! df1/dC_j*C_i    for every j which is in iph1
+            ! derivative of df1dC wrt the components
+            do j = 1, NbComp
                if (MCP(j, iph1) == 1) then ! phase iph1 contains component j
                   numj = cv_info%NumIncComp2NumIncPTC(j, iph1) ! num of C_j^iph1 in Inc
-                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + inc%Comp(icp, iph1)*dCf1(j)
+                  dFsurdX(numj, i + mi) = df1dC(j)
                end if
             end do
 
-            dFsurdX(numc2, i + mi) = -f2   ! first part of   - d (f2(P,T,C)*C_i)/dC_i
-
-            do j = 1, NbComp     ! - df2/dC_j*C_i    for every j which is in iph2
+            ! derivative of (- df2dC ) wrt the Components
+            do j = 1, NbComp
                if (MCP(j, iph2) == 1) then ! phase iph2 contains component j
                   numj = cv_info%NumIncComp2NumIncPTC(j, iph2) ! num of C_j^iph2 in Inc
-                  dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - inc%Comp(icp, iph2)*dCf2(j)
+                  dFsurdX(numj, i + mi) = -df2dC(j)
                end if
             end do
+
+            ! SmF
+            SmF(i + mi) = f1 - f2
 
             ! derivative wrt the primary saturations S_j; 1 <= j <= n-1
             ! Careful of the derivative of fn(pn, ....) wrt S_j due to
@@ -327,9 +323,7 @@ contains
                if (iph2 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph2)*df2dpa*inc%Comp(icp, iph2)
             end do
 
-            ! SmF
-            SmF(i + mi) = f1*inc%Comp(icp, iph1) - f2*inc%Comp(icp, iph2)
-         end do
+         end do ! component i
 
       end if
 #endif

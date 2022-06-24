@@ -35,7 +35,7 @@ module Thermodynamics
 
 contains
 
-   ! Fugacity coefficient
+   ! Fugacity = fugacity coefficient *  component phase molar fraction
    !< icp component identifier
    !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< P is the phase pressure
@@ -55,11 +55,18 @@ contains
       dfdC = 0.d0
 
       if (iph == GAS_PHASE) then
-         f = p
-         dfdp = 1.d0
+         f = p*C(icp)
+         dfdp = C(icp)
+         dfdC(icp) = p
       else if (iph == LIQUID_PHASE) then
          ! FIXME: use Poynting correction?
          call FluidThermodynamics_Psat(T, f, dfdT)
+         ! f is Psat here
+         ! we compute fugacity = Psat * C(icp) in place
+         ! so the order of operations below is important
+         dfdT = dfdT*C(icp)
+         dfdC(icp) = f
+         f = f*C(icp)
 #ifndef NDEBUG
       else
          call CommonMPI_abort('Unknow phase in f_Fugacity')

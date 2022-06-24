@@ -21,7 +21,7 @@ module DefFlash
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
       GAS_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity
+   use Thermodynamics, only: f_Fugacity, f_Fugacity_coefficient
 
    implicit none
 
@@ -30,35 +30,45 @@ module DefFlash
 
 contains
 
-   pure subroutine DiphasicFlash_component_fugacities(icp, inc, fg, fl)
+   pure subroutine DiphasicFlash_fugacity_coeffficients(icp, inc, fg, fl)
       integer(c_int), intent(in) :: icp
       type(Type_IncCVReservoir), intent(inout) :: inc
       real(c_double), intent(out) :: fg, fl
 
       real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
 
-      call f_Fugacity(icp, GAS_PHASE, inc%phase_pressure(GAS_PHASE), &
-                      inc%Temperature, inc%Comp(:, GAS_PHASE), fg, dPf, dTf, dCf)
-      call f_Fugacity(icp, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
-                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), fl, dPf, dTf, dCf)
+      call f_Fugacity_coefficient(icp, GAS_PHASE, inc%phase_pressure(GAS_PHASE), &
+                                  inc%Temperature, inc%Comp(:, GAS_PHASE), fg, dPf, dTf, dCf)
+      call f_Fugacity_coefficient(icp, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                                  inc%Temperature, inc%Comp(:, LIQUID_PHASE), fl, dPf, dTf, dCf)
 
-   end subroutine DiphasicFlash_component_fugacities
+   end subroutine DiphasicFlash_fugacity_coeffficients
+
+   pure subroutine DiphasicFlash_liquid_fugacities(inc, fa, fw)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+      real(c_double), intent(out) :: fa, fw
+
+      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
+
+      call f_Fugacity(AIR_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
+      call f_Fugacity(WATER_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), fw, dPf, dTf, dCf)
+
+   end subroutine DiphasicFlash_liquid_fugacities
 
    pure subroutine DiphasicFlash_liquid_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
-      real(c_double) :: f
-      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
-      real(c_double) :: PgCag, PgCwg
+      real(c_double) :: fa, fw
 
-      call f_Fugacity(AIR_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
-                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
-      PgCag = f*inc%Comp(AIR_COMP, LIQUID_PHASE)
-      call f_Fugacity(WATER_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
-                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), f, dPf, dTf, dCf)
-      PgCwg = f*inc%Comp(WATER_COMP, LIQUID_PHASE)
+      ! compute liquid fugacity of both components
+      call DiphasicFlash_liquid_fugacities(inc, fa, fw)
+
+      ! WARNING: the following relies on the ideal gas assumption
+      !          and assumes fa = PaCag and fw = PgCwg
       ! WARNING: don't divide inequality by Pg (migth be negative during Newton iteration)
-      if (PgCag + PgCwg > inc%phase_pressure(GAS_PHASE)) then
+      if (fa + fw > inc%phase_pressure(GAS_PHASE)) then
          ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 0.d0
@@ -73,9 +83,9 @@ contains
       real(c_double) :: fg, fl
       real(c_double) :: Cla, Clw
 
-      call DiphasicFlash_component_fugacities(AIR_COMP, inc, fg, fl)
+      call DiphasicFlash_fugacity_coeffficients(AIR_COMP, inc, fg, fl)
       Cla = (fg/fl)*inc%Comp(AIR_COMP, GAS_PHASE)
-      call DiphasicFlash_component_fugacities(WATER_COMP, inc, fg, fl)
+      call DiphasicFlash_fugacity_coeffficients(WATER_COMP, inc, fg, fl)
       Clw = (fg/fl)*inc%Comp(WATER_COMP, GAS_PHASE)
       if (Cla + Clw > 1.d0) then ! Liquid appears
          inc%ic = DIPHASIC_CONTEXT

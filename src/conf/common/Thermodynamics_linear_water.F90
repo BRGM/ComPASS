@@ -37,7 +37,7 @@ module Thermodynamics
 
    public :: &
       get_fluid_properties, &
-      f_Fugacity, & ! Fugacity
+      f_Fugacity, & ! Fugacity (raises error because single phase)
       f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
       f_Viscosite, & ! \mu^alpha(P,T,C)

@@ -24,7 +24,8 @@ module Thermodynamics
       f_DensiteMolaire, &  !< \xi^alpha(P,T,C)
       f_DensiteMassique, &  !< \rho^alpha(P,T,C)
       f_Viscosite, &  !< \mu^alpha(P,T,C)
-      air_Henry  !< Henry coef for air comp
+      air_Henry, &  !< Henry coef for air comp
+      f_Fugacity_coefficient  !< Fugacity coefficient
 
 #ifdef _THERMIQUE_
    public :: &
@@ -76,8 +77,7 @@ contains
    !< p is the phase pressure
    !< T is the temperature
    !< C is the phase molar fractions
-   pure subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
-      bind(C, name="FluidThermodynamics_fugacity")
+   pure subroutine f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
       integer(c_int), intent(in) :: icp, iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
@@ -96,6 +96,34 @@ contains
             call f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
          endif
       endif
+
+   end subroutine f_Fugacity_coefficient
+
+   ! Fugacity = fugacity coefficient * component phase molar fraction
+   !< icp component identifier
+   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
+   !< p is the phase pressure
+   !< T is the temperature
+   !< C is the phase molar fractions
+   pure subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_fugacity")
+      integer(c_int), intent(in) :: icp, iph
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
+
+      ! fugacity coefficient of comp icp and phase iph
+      call f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
+
+      ! here f = C(icp)
+      ! we compute f = f * C(icp) in place
+      ! so the order of operations below is important
+      dfdp = dfdp*C(icp)
+      dfdT = dfdT*C(icp)
+      ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
+      ! d (f(P,T,C)*C_i)/dC_j =     df/dC_j*C_i, j!=i
+      dfdC = dfdC*C(icp) ! df/dC_j*C_i (for all j)
+      dfdC(icp) = dfdC(icp) + f ! add f when j=i
+      f = f*C(icp)
 
    end subroutine f_Fugacity
 

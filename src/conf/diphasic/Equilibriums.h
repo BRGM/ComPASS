@@ -15,18 +15,14 @@ PhaseVector diphasic_equilibrium(const PhaseVector& pa, const double& T,
    double f, df, Jag, Jal, Jwg, Jwl, det, Ra, Rw;
 
    for (; maxiter != 0; --maxiter) {
-      std::tie(f, df) = fugacity(Components::air, Phases::gas, pg, T, Cga);
-      Ra = f * Cga;
-      Jag = df * Cga + f;
+      std::tie(Ra, Jag) = fugacity(Components::air, Phases::gas, pg, T, Cga);
       std::tie(f, df) = fugacity(Components::air, Phases::liquid, pl, T, Cla);
-      Ra -= f * Cla;
-      Jal = -df * Cla - f;
-      std::tie(f, df) = fugacity(Components::water, Phases::gas, pg, T, Cga);
-      Rw = f * (1 - Cga);
-      Jwg = df * (1 - Cga) - f;
+      Ra -= f;
+      Jal = -df;
+      std::tie(Rw, Jwg) = fugacity(Components::water, Phases::gas, pg, T, Cga);
       std::tie(f, df) = fugacity(Components::water, Phases::liquid, pl, T, Cla);
-      Rw -= f * (1 - Cla);
-      Jwl = -df * (1 - Cla) + f;
+      Rw -= f;
+      Jwl = -df;
       if (fabs(Ra) + fabs(Rw) < atol) return PhaseVector{{Cga, Cla}};
       // Newton: X -> X - J^-1 R
       det = Jag * Jwl - Jwg * Jal;
