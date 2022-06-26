@@ -72,7 +72,7 @@ contains
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
 
 #ifndef NDEBUG
-      call CommonMPI_abort("Fugacity should never be called with a single component.")
+      call CommonMPI_abort("Fugacity should never be called with a single phase.")
 #endif
 
    end subroutine f_Fugacity
