@@ -47,7 +47,6 @@ module IncPrimSecdMSWells
       NodebyMSWellLocal, NodeDatabyMSWellLocal, &
       DataMSWellLocal, NbMSWellLocal_Ncpus
 
-   use Thermodynamics, only: f_Fugacity
    use IncPrimSecdTypes, only: ControlVolumeInfo, IncPrimSecdTypes_collect_cv_info
 
    use IncPrimSecd, only: &
