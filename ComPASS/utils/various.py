@@ -1,5 +1,6 @@
 from itertools import product
 from pathlib import Path
+from .units import year
 
 import numpy as np
 
@@ -70,7 +71,7 @@ def tensor_coordinates(tensor, name, diagonal_only=False):
     return {name: tensor}
 
 
-def _reload(simulation, snapshot, old_style):
+def _reload(simulation, snapshot, mapping, old_style):
     sep = "_" if old_style else " "
     states_locations = simulation.states_locations()
     phases = simulation.phases()
@@ -78,15 +79,20 @@ def _reload(simulation, snapshot, old_style):
         phases = ["fluid"]
     components = simulation.components()
     for location, states in states_locations:
+        if location not in mapping:
+            # if no mapping is given, use identity
+            mapping[location] = np.arange(len(states.p[:]))
         if not old_style:
-            states.context[:] = snapshot[f"{location} context"]
+            states.context[:] = snapshot[f"{location} context"][mapping[location]]
         else:
             states.context[:] = -1
-        states.p[:] = snapshot[f"{location}{sep}pressure"]
-        states.T[:] = snapshot[f"{location}{sep}temperature"]
+        states.p[:] = snapshot[f"{location}{sep}pressure"][mapping[location]]
+        states.T[:] = snapshot[f"{location}{sep}temperature"][mapping[location]]
         if len(phases) > 1:
             for phk, phase in enumerate(phases):
-                states.S[:, phk] = snapshot[f"{location}{sep}{phase} saturation"]
+                states.S[:, phk] = snapshot[f"{location}{sep}{phase} saturation"][
+                    mapping[location]
+                ]
         else:
             states.S.fill(1)
         if len(components) > 1:
@@ -98,7 +104,7 @@ def _reload(simulation, snapshot, old_style):
                             name = f"fracture_comp_{comp} in {phase}"
                     else:
                         name = f"{location} {comp} fraction in {phase}"
-                    states.C[:, phk, ci] = snapshot[name]
+                    states.C[:, phk, ci] = snapshot[name][mapping[location]]
         else:
             states.C.fill(1)
 
@@ -107,6 +113,7 @@ def reload_snapshot(
     simulation,
     path,
     iteration=None,
+    mapping={},
     verbose=True,
     old_style=False,
     reset_dirichlet=True,
@@ -117,6 +124,7 @@ def reload_snapshot(
 
     .. warning::
         The mesh and its partition must be exactly the same.
+        Or use the mapping dictionnary to init the mapping for the state locations.
         Do not forget to reset Dirichlet conditions if necessary.
 
     .. warning::
@@ -127,6 +135,16 @@ def reload_snapshot(
     :param path: the path to the ComPASS output directory that will be used to reload simulation state
     :param iteration: the ouput to reload (must be present in `path/snapshots` file)
                       if None (the default) the latest output from snapshots will be reloaded.
+    :param mapping: mapping dictionnary for each necessary location if the reloaded mesh does not
+                    coincide with the present mesh.
+                 reloaded mesh  --------------------------------------> present mesh
+            |----------|----------|                              |-----|-----|-----|-----|
+            |     0    |     1    |                              |  0  |  1  |  2  |  3  |
+            |----------|----------|                              |-----|-----|-----|-----|
+            |     2    |     3    |                              |  4  |  5  |  6  |  7  |
+            |----------|----------|                              |-----|-----|-----|-----|
+                          mapping['cells'] = [0, 0, 1, 1, 2, 2, 3, 3]
+                          mapping['nodes'] = [...]
     :param verbose: if True will display a few information on master
                     proc about the reloaded snapshot (defaults to True).
     :param old_style: use old style output (defaults to False)
@@ -158,10 +176,10 @@ def reload_snapshot(
     snapshot = np.load(
         snapdir / "states" / f"state_{index:05d}_proc_{mpi.proc_rank:06d}.npz"
     )
-    _reload(simulation, snapshot, old_style)
+    _reload(simulation, snapshot, mapping, old_style)
     if verbose:
         mpi.master_print(
-            f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t}"
+            f"Reloaded snapshot {index} from {str(snapdir)} directory corresponding to time {t} s = {t/year} y"
         )
     if old_style:
         mpi.master_print(
