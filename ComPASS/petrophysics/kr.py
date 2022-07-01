@@ -38,7 +38,5 @@ def S2(states, rocktypes, kr, dkrdS):
         dkrdS[:, k, k] = 2 * S[:, k]
 
 
-def set_kr_functions(simulation, f=None):
-    if f is None:
-        f = S2
+def set_kr_functions(simulation, f=S2):
     simulation.set_fill_kr_arrays(f)
