@@ -56,7 +56,7 @@ contains
    end subroutine f_Fugacity
 
    ! FIXME #51 densite massique
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
@@ -111,7 +111,7 @@ contains
    end subroutine f_DensiteMolaire
 
    ! FIXME #51 densite massique
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
@@ -127,7 +127,7 @@ contains
 
    end subroutine f_DensiteMassique
 
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
@@ -163,7 +163,7 @@ contains
    end subroutine f_Viscosite
 
    ! EnergieInterne
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
@@ -201,7 +201,7 @@ contains
    end subroutine f_proxy_enthalpy
 
    ! Enthalpie
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
@@ -227,7 +227,7 @@ contains
    end subroutine f_Enthalpie
 
    ! Specific Enthalpy (used in FreeFlow)
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
+   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
 #ifdef NDEBUG

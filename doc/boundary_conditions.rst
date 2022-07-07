@@ -79,8 +79,8 @@ Careful : then molar flux must be defined for each component !
 .. code-block:: python
 
     Neumann = ComPASS.NeumannBC()
-    Neumann.heat_flux = bottom_heat_flux
-    Neumann.molar_flux[:] = Qm # one value by component
+    Neumann.heat_flux = bottom_heat_flux # in W/m^2 = J/m^2/s
+    Neumann.molar_flux[:] = Qm # one value by component (in mol/m^2/s)
     face_centers = simulation.face_centers()
     simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
 

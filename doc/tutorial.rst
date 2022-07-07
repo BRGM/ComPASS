@@ -67,7 +67,7 @@ Step 2: Improve the script
   and the fracture faces if any, but it does not depends on the boundary conditions.
 
 * Transform the bottom boundary into a Neumann BC with
-  heat flux only (bottom_heat_flux = 0.08 J/m^2/s).
+  heat flux only (bottom_heat_flux = 0.08  W/m^2).
 
 
 Step 3: Change the EOS
