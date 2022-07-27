@@ -1,3 +1,5 @@
+from .init import init
+
 from ..timeloops import standard_loop
 
 from ..timestep import make_one_timestep
@@ -16,6 +18,7 @@ from ..wells.wells import (
     well_injection_history,
     close_perforations,
     set_well_model,
+    check_well_geometry,
 )
 
 from ..utils.grid import (
@@ -51,7 +54,7 @@ from .bc import (
 
 from ..io.mesh import write_mesh, write_polyhedra_vtu_mesh
 
-from .utils import facenodes, postprocess, eos_name
+from .utils import facenodes, postprocess, eos_name, collect_all_edges
 
 from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions

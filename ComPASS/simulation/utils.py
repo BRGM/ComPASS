@@ -102,3 +102,17 @@ def eos_name(simulation):
         raise CompassException("Not a valid ComPASS eos!")
     assert len(m.groups()) == 1
     return m.groups()[0]
+
+
+def collect_all_edges(simulation):
+    assert not simulation.mesh_is_local, "mesh is assumed to be global"
+    face_nodes = simulation.get_global_connectivity().NodebyFace
+    edges = []
+    for face in face_nodes:
+        nodes = np.array(face, copy=False)
+        for i in range(nodes.shape[0]):
+            edges.append((nodes[i - 1], nodes[i]))
+    edges = np.array(edges)
+    assert edges.ndim == 2 and edges.shape[1] == 2
+    edges = np.sort(edges, axis=1)
+    return np.unique(edges, axis=0)

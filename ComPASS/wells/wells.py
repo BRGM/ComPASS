@@ -13,6 +13,7 @@ from ..timeloops import Event
 from ..mpi import master_print
 from ..dump_wells import _wells_info
 from ..exceptions import CompassException
+from .. import messages
 
 
 def create_well_from_segments(
@@ -376,3 +377,30 @@ def set_well_model(simulation, well_model):
     if not (well_model == "single_phase" or well_model == "two_phases"):
         raise CompassException("Well model must be single_phase or two_phases.")
     simulation.well_model = well_model
+
+
+def check_well_geometry(simulation, wells):
+    if len(wells) == 0:
+        return
+
+    def to_edge_array(raw_edges):
+        assert raw_edges.ndim == 2 and raw_edges.shape[1] == 2
+        edge_type = np.dtype([("v1", np.uint64), ("v2", np.uint64)])
+        edges = np.empty(raw_edges.shape[0], dtype=edge_type)
+        for i, edge in enumerate(raw_edges):
+            edges[i] = tuple(edge)
+        return edges
+
+    edges = to_edge_array(simulation.collect_all_edges())
+    for wi, well in enumerate(wells):
+        well_segments = well.geometry.segments
+        well_edges = np.unique(np.sort(well_segments, axis=1), axis=0)
+        assert well_edges.shape == well_segments.shape, "duplicate well edge"
+        well_edges = to_edge_array(well_edges)
+        if not np.all(np.isin(well_edges, edges)):
+            message = "Well %d has edges that are not in mesh edges" % wi
+            explanation = ""
+            for edge in well_edges:
+                if not np.isin(edge, edges):
+                    explanation += f"edge {edge} is not in mesh\n"
+            messages.error(message, explanation=explanation)
