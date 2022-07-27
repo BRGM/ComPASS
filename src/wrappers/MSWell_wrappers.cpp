@@ -27,6 +27,10 @@ void LoisThermoHydroMSWells_compute();
 void LeafMSWells_init_data();
 void VSHydroMSWells_init();
 void VSHydroMSWells_compute();
+void ResiduMSWells_compute(double);
+void ResiduMSWells_reset_history();
+void JacobianMSWells_ComputeJacSm(double, bool);
+void JacobianMSWells_print_LA_info_to_file(double, int);
 }
 
 struct MSWell {};
@@ -48,4 +52,9 @@ void add_mswell_wrappers(py::module& module) {
 
    module.def("VSHydroMSWells_init", &VSHydroMSWells_init);
    module.def("VSHydroMSWells_compute", &VSHydroMSWells_compute);
+   module.def("ResiduMSWells_compute", &ResiduMSWells_compute);
+   module.def("ResiduMSWells_reset_history", &ResiduMSWells_reset_history);
+   module.def("JacobianMSWells_ComputeJacSm", &JacobianMSWells_ComputeJacSm);
+   module.def("JacobianMSWells_print_LA_info_to_file",
+              &JacobianMSWells_print_LA_info_to_file);
 }

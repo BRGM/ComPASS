@@ -194,7 +194,8 @@ more sanity tests:
         unit/chair_well.py \
         unit/one_cell.py \
         unit/multi_segmented_well.py \
-        unit/mswell_load_test.py
+        unit/mswell_load_test.py \
+        unit/mswell_only_test.py
       do
         echo "------------------------------------------------------------"
         echo "Running: $f"

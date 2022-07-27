@@ -33,6 +33,7 @@ void add_SyncPetsc_wrappers(py::module &);
 void add_VAGFrac_wrappers(py::module &);
 void add_freeflow_wrappers(py::module &);
 void add_mswell_wrappers(py::module &module);
+void add_ResiduMSWells_wrappers(py::module &module);
 
 // FIXME: this should be elsewhere as it internals and not wrappers
 void add_simulation_pyinternals(py::module &);
@@ -66,6 +67,7 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_VAGFrac_wrappers(module);
    add_freeflow_wrappers(module);
    add_mswell_wrappers(module);
+   add_ResiduMSWells_wrappers(module);
 
    // FIXME: this should be elsewhere as it is more an internal than a wrapper
    add_simulation_pyinternals(module);

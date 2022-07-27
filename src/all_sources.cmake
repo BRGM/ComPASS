@@ -46,9 +46,11 @@ set(ComPASSMSWells_SRCS
     MSWellsData.F90
     IncPrimSecdMSWells.F90
     LoisThermoHydroMSWells.F90
-    DFMHydroMSWells.F90
     VSHydroMSWells.F90
+    DFMHydroMSWells.F90
     LeafMSWells.F90
+    ResiduMSWells.F90
+    JacobianMSWells.F90
 )
 
 set(ComPASSFreeFlow_SRCS IncPrimSecdFreeFlow.F90 FreeFlow.F90 FreeFlowTypes.F90)
@@ -119,6 +121,7 @@ set(WRAPPERS_SRCS
     Well_wrappers.cpp
     Well_wrappers.F90
     MSWell_wrappers.cpp
+    ResiduMSWells_wrappers.cpp
 )
 
 unset(_tmp)

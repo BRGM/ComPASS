@@ -22,6 +22,8 @@ module MeshInfo
       type(PartElement) :: fractures
       type(PartElement) :: injectors
       type(PartElement) :: producers
+      type(PartElement) :: mswells
+      type(PartElement) :: mswell_nodes
    end type PartInfo
 
 contains

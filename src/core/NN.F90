@@ -53,6 +53,8 @@ module NN
    use LoisThermoHydroMSWells, only: LoisThermoHydroMSWells_allocate, LoisThermoHydroMSWells_free
    use VSHydroMSWells, only: VSHydroMSWells_allocate, VSHydroMSWells_free
    use LeafMSWells, only: LeafMSWells_allocate, LeafMSWells_free
+   use ResiduMSWells, only: ResiduMSWells_allocate, ResiduMSWells_free
+   use JacobianMSWells, only: JacobianMSWells_StrucJacA, JacobianMSWells_free
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
 
@@ -207,6 +209,8 @@ contains
       call LoisThermoHydroMSWells_allocate
       call LeafMSWells_allocate
       call VSHydroMSWells_allocate
+      call ResiduMSWells_allocate
+      call JacobianMSWells_StrucJacA
 
       ! csr structure of Jacobian
       ! allocate memory of Jacobian ans Sm
@@ -280,6 +284,8 @@ contains
       call LoisThermoHydro_free
 
       !MSWells  Stuff
+      call JacobianMSWells_free
+      call ResiduMSWells_free
       call LeafMSWells_free
       call VSHydroMSWells_free
       call LoisThermoHydroMSWells_free

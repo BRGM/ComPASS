@@ -416,6 +416,10 @@ contains
       info%injectors%nb = NbWellInjLocal_Ncpus(rank + 1)
       info%producers%nb_owns = NbWellProdOwn_Ncpus(rank + 1)
       info%producers%nb = NbWellProdLocal_Ncpus(rank + 1)
+      info%mswells%nb_owns = NbMSWellOwn_Ncpus(rank + 1)
+      info%mswells%nb = NbMSWellLocal_Ncpus(rank + 1)
+      info%mswell_nodes%nb_owns = NbMSWellNodeOwn_Ncpus(rank + 1)
+      info%mswell_nodes%nb = NbMSWellNodeLocal_Ncpus(rank + 1)
 
    end subroutine MeshSchema_part_info_by_rank
 
@@ -433,6 +437,12 @@ contains
       info%injectors%nb = NbWellInjLocal_Ncpus(commRank + 1)
       info%producers%nb_owns = NbWellProdOwn_Ncpus(commRank + 1)
       info%producers%nb = NbWellProdLocal_Ncpus(commRank + 1)
+      info%mswells%nb = NbMSWellLocal_Ncpus(commRank + 1)
+      info%mswells%nb_owns = NbMSWellOwn_Ncpus(commRank + 1)
+      info%mswells%nb_owns = NbMSWellOwn_Ncpus(commRank + 1)
+      info%mswells%nb = NbMSWellLocal_Ncpus(commRank + 1)
+      info%mswell_nodes%nb_owns = NbMSWellNodeOwn_Ncpus(commRank + 1)
+      info%mswell_nodes%nb = NbMSWellNodeLocal_Ncpus(commRank + 1)
 
    end subroutine MeshSchema_part_info
 

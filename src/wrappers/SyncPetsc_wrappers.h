@@ -37,4 +37,6 @@ struct PartInfo {
    PartElement fractures;
    PartElement injectors;
    PartElement producers;
+   PartElement mswells;
+   PartElement mswell_nodes;
 };
