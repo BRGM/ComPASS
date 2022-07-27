@@ -66,7 +66,16 @@ class SimmulationBase:
 
 
 class Simulation:
-    def __init__(self):
+    already_instanciated = False
+
+    def __init__(self, kernel=None):
+        assert not Simulation.already_instanciated, "Simulation must be a singleton"
+        Simulation.already_instanciated = True
+        # a copy of the python object is made on the C++ side
+        # so that the simulation will not be garbage collected
+        assert kernel is not None
+        kernel.register_simulation(self)
+
         # self.base = SimulationBase() # is not allowed because __setattr__ is prohibited
         well_data_provider = partial(get_wellhead, self)
         self.__dict__["base"] = SimmulationBase(well_data_provider)
@@ -94,6 +103,3 @@ class Simulation:
         for src in _fake_members:
             res.extend(dir(src))
         return res
-
-
-self = Simulation()

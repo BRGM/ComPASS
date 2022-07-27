@@ -1,8 +1,8 @@
 """
 
-This module acts like a singleton object holding the state of the simulation.
+This module defines a class that is a singleton object holding the state of the simulation.
 
-In a futur evolution, it should become a class that accepts several instances.
+In a futur evolution, the singleton constraint should be released.
 
 """
 

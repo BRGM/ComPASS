@@ -22,10 +22,9 @@ def load_eos(eosname):
     #     if key not in gdict:
     #         gdict[key] = kdict[key]
     kernel.init_model()
-    from .simulation import _simulation_object
+    from .simulation._simulation_object import Simulation
 
-    kernel.register_simulation(_simulation_object.self)
-    return _simulation_object.self
+    return Simulation(kernel)
 
 
 class Wrapper:
