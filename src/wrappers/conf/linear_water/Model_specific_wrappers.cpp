@@ -10,7 +10,6 @@ struct Fluid_properties {
    double compressibility;
    double thermal_expansivity;
    double volumetric_heat_capacity;
-   double dynamic_viscosity;
    double reference_pressure;
    double reference_temperature;
 };
@@ -26,7 +25,6 @@ void init_model() {
    properties->compressibility = 0;
    properties->thermal_expansivity = 0;
    properties->volumetric_heat_capacity = 1;
-   properties->dynamic_viscosity = 1;
    properties->reference_pressure = 1E5;        // 1 bar
    properties->reference_temperature = 293.15;  // 20°C
 }
@@ -34,7 +32,7 @@ void init_model() {
 void finalize_model() {}
 
 template <typename Function>
-inline double call_physical_function(Function function, double p, double T) {
+inline double call_physical_subroutine(Function function, double p, double T) {
    constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
    constexpr int NP = ComPASS_NUMBER_OF_PHASES;
    static_assert(NC == 1, "we assume there is only one component");
@@ -42,19 +40,29 @@ inline double call_physical_function(Function function, double p, double T) {
    double f, dfdp, dfdT;
    double C[NC] = {1};
    double dfdC[NC] = {0};
-   function(1, f, T, C, f, dfdp, dfdT, dfdC);
+   function(1, p, T, C, f, dfdp, dfdT, dfdC);
    return f;
 }
 
+template <typename Function>
+inline double call_physical_function(Function function, double p, double T) {
+   constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
+   constexpr int NP = ComPASS_NUMBER_OF_PHASES;
+   static_assert(NC == 1, "we assume there is only one component");
+   static_assert(NP == 1, "we assume there is only one phase");
+   double C[NC] = {1};
+   return function(1, p, T, C);
+}
+
 inline double molar_density(double p, double T) {
-   return call_physical_function(FluidThermodynamics_molar_density, p, T);
+   return call_physical_subroutine(FluidThermodynamics_molar_density, p, T);
 }
 
 inline double molar_enthalpy(double p, double T) {
-   return call_physical_function(FluidThermodynamics_molar_enthalpy, p, T);
+   return call_physical_subroutine(FluidThermodynamics_molar_enthalpy, p, T);
 }
 
-inline double dynamic_viscosity(double p, double T) {
+inline double cpp_dynamic_viscosity(double p, double T) {
    return call_physical_function(FluidThermodynamics_dynamic_viscosity, p, T);
 }
 
@@ -66,7 +74,6 @@ void add_specific_model_wrappers(py::module &module) {
                       &Fluid_properties::thermal_expansivity)
        .def_readwrite("volumetric_heat_capacity",
                       &Fluid_properties::volumetric_heat_capacity)
-       .def_readwrite("dynamic_viscosity", &Fluid_properties::dynamic_viscosity)
        .def_readwrite("reference_pressure",
                       &Fluid_properties::reference_pressure)
        .def_readwrite("reference_temperature",
@@ -79,7 +86,7 @@ void add_specific_model_wrappers(py::module &module) {
    // scalars...
    module.def("molar_density", py::vectorize(molar_density));
    module.def("molar_enthalpy", py::vectorize(molar_enthalpy));
-   module.def("dynamic_viscosity", py::vectorize(dynamic_viscosity));
+   module.def("cpp_dynamic_viscosity", py::vectorize(cpp_dynamic_viscosity));
 
    py::enum_<Component>(module, "Component")
        .value("single_component", Component::single_component);

@@ -4,6 +4,7 @@ import MeshTools as MT
 
 import ComPASS
 from ComPASS.timeloops import standard_loop
+from ComPASS.physics.utils import constant_physical_property
 from ComPASS.utils.units import *
 from ComPASS.timestep_management import TimeStepManager
 
@@ -84,7 +85,7 @@ fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.compressibility = 1e-10  # it helps...
 fluid_properties.volumetric_heat_capacity = rhofcpf
-fluid_properties.dynamic_viscosity = muf
+simulation.set_viscosity_functions(constant_physical_property(muf))
 
 simulation.set_gravity(0)
 simulation.set_fracture_thickness(fracture_thickness)

@@ -17,7 +17,7 @@ module LoisThermoHydro
       f_PartialMolarEnthalpy, &
 #endif
 #endif
-      f_Viscosite, f_DensiteMolaire, f_DensiteMassique
+      f_Viscosity_with_derivatives, f_DensiteMolaire, f_DensiteMassique
 #ifdef ComPASS_WITH_diphasic_PHYSICS
    use DefModel, only: WATER_COMP, GAS_PHASE
 #endif
@@ -1378,9 +1378,9 @@ contains
       nb_phases = NbPhasePresente_ctx(context)
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
-         call f_Viscosite(iph, inc%phase_pressure(iph), inc%Temperature, &
-                          inc%Comp(:, iph), &
-                          f, dPf, dTf, dCf)
+         call f_Viscosity_with_derivatives(iph, inc%phase_pressure(iph), inc%Temperature, &
+                                           inc%Comp(:, iph), &
+                                           f, dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          val(i) = 1.d0/f
@@ -1435,9 +1435,9 @@ contains
          else
             idx = i
          endif
-         call f_Viscosite(iph, inc%phase_pressure(iph), inc%Temperature, &
-                          inc%Comp(:, iph), &
-                          f, dPf, dTf, dCf)
+         call f_Viscosity_with_derivatives(iph, inc%phase_pressure(iph), inc%Temperature, &
+                                           inc%Comp(:, iph), &
+                                           f, dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          val(idx) = f
@@ -2557,8 +2557,8 @@ contains
                                   DensiteMolaire, dP_DensiteMolaire, dTf, dCf)
 
             ! Viscosite
-            call f_Viscosite(LIQUID_PHASE, Pws, Tw, Cw, &
-                             Viscosite, dP_Viscosite, dTf, dCf)
+            call f_Viscosity_with_derivatives(LIQUID_PHASE, Pws, Tw, Cw, &
+                                              Viscosite, dP_Viscosite, dTf, dCf)
 
 #ifdef _THERMIQUE_
             ! Enthalpie

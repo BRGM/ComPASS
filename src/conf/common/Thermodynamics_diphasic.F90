@@ -16,6 +16,8 @@ module Thermodynamics
                        get_model_configuration, MCP
    use CommonType, only: ModelConfiguration
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use Thermodynamics_interface, only: &
+      f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
@@ -23,7 +25,6 @@ module Thermodynamics
       f_Fugacity, &  !< Fugacity
       f_DensiteMolaire, &  !< \xi^alpha(P,T,C)
       f_DensiteMassique, &  !< \rho^alpha(P,T,C)
-      f_Viscosite, &  !< \mu^alpha(P,T,C)
       air_Henry, &  !< Henry coef for air comp
       f_Fugacity_coefficient  !< Fugacity coefficient
 
@@ -233,30 +234,6 @@ contains
       dCf(WATER_COMP) = dCf(WATER_COMP)*M + zeta*MCP(WATER_COMP, iph)*M_H2O
 
    end subroutine f_DensiteMassique
-
-   ! Viscosities
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   pure subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      if (iph == GAS_PHASE) then
-         f = 2.d-5
-      else if (iph == LIQUID_PHASE) then
-         f = 1.d-3
-      endif
-
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-
-   end subroutine f_Viscosite
 
 #ifdef _THERMIQUE_
 

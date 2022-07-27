@@ -16,6 +16,7 @@ from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.mpi as mpi
 from ComPASS.mpi import MPI  # underlying mpi4py.MPI
+from ComPASS.physics.utils import constant_physical_property
 
 
 H = 1000
@@ -50,7 +51,8 @@ ComPASS.set_output_directory_and_logfile(f"cemracs_4_1_{n}")
 simulation = ComPASS.load_eos("linear_water")
 fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rho
-fluid_properties.dynamic_viscosity = mu
+simulation.set_viscosity_functions(constant_physical_property(mu))
+
 assert fluid_properties.compressibility == 0
 assert fluid_properties.thermal_expansivity == 0
 # fluid_properties.volumetric_heat_capacity = rhor*cpr # not relevant here - use default value

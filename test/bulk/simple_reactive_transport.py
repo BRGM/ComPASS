@@ -26,6 +26,7 @@ from ComPASS.timeloops import TimeloopTick
 from ComPASS.linalg.factory import linear_solver
 from scipy.optimize import newton_krylov
 import numpy as np
+from ComPASS.physics.utils import constant_physical_property
 
 import sys
 from copy import copy
@@ -118,8 +119,8 @@ ComPASS.set_output_directory_and_logfile(__file__)
 fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhow
 fluid_properties.volumetric_heat_capacity = b
-fluid_properties.dynamic_viscosity = muf
 simulation.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_viscosity_functions(constant_physical_property(muf))
 
 simulation.init(
     mesh=grid,

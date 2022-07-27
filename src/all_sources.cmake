@@ -1,6 +1,6 @@
 set(ComPASSCommonCore_SRCS
     CommonMPI.F90 CommonType.F90 InteroperabilityStructures.F90 MeshInfo.F90
-    Physics.F90 SchemeParameters.F90
+    SchemeParameters.F90
 )
 
 unset(_tmp)
@@ -10,6 +10,7 @@ endforeach()
 set(ComPASSCommonCore_SRCS ${_tmp})
 
 set(ComPASSCore_SRCS
+    Physics.F90
     DebugUtils.F90
     GlobalMesh.F90
     IncCV.F90
@@ -80,7 +81,9 @@ foreach(_src ${ComPASSFreeFlow_SRCS})
 endforeach()
 set(ComPASSFreeFlow_SRCS ${_tmp})
 
-set(CONF_SRCS DefFlash.F90 DefModel.F90 Thermodynamics.F90)
+set(CONF_SRCS DefFlash.F90 DefModel.F90 ../common/Thermodynamics_interface.F90
+              Thermodynamics.F90
+)
 
 set(WRAPPERS_SRCS
     COC.h
@@ -126,6 +129,8 @@ set(WRAPPERS_SRCS
     LinearSystemBuilderMSWells.h
     LinearSystemMSWells_wrapper.cpp
     LinearSystemMSWells_wrapper.cpp
+    Thermodynamics_wrappers.cpp
+    Thermodynamics_register.F90
 )
 
 unset(_tmp)

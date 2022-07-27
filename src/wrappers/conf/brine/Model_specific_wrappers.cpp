@@ -70,8 +70,10 @@ inline double molar_enthalpy(double p, double T, double Cs) {
    return compute_property(FluidThermodynamics_molar_enthalpy, p, T, Cs);
 }
 
-inline double dynamic_viscosity(double p, double T, double Cs) {
-   return compute_property(FluidThermodynamics_dynamic_viscosity, p, T, Cs);
+inline double cpp_dynamic_viscosity(double p, double T, double Cs) {
+   auto state = build_state(p, T, Cs);
+   return FluidThermodynamics_dynamic_viscosity(
+       ComPASS_SINGLE_PHASE, state.p, state.T, state.C.data()->data());
 }
 
 void add_specific_model_wrappers(py::module &module) {
@@ -93,7 +95,7 @@ void add_specific_model_wrappers(py::module &module) {
         Brine molar density
 
         )doc"));
-   module.def("dynamic_viscosity", py::vectorize(dynamic_viscosity),
+   module.def("cpp_dynamic_viscosity", py::vectorize(cpp_dynamic_viscosity),
               help_add_parameters(R"doc(
         Brine dynamic visosity
 

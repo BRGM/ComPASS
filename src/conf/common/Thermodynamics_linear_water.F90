@@ -14,6 +14,8 @@ module Thermodynamics
    use CommonMPI, only: ComPASS_COMM_WORLD
    use DefModel, only: NbPhase, NbComp, IndThermique
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use Thermodynamics_interface, only: &
+      f_Viscosity_with_derivatives, f_Viscosity
 
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
@@ -27,7 +29,6 @@ module Thermodynamics
       real(c_double) :: compressibility
       real(c_double) :: thermal_expansivity
       real(c_double) :: volumetric_heat_capacity
-      real(c_double) :: dynamic_viscosity
       real(c_double) :: reference_pressure
       real(c_double) :: reference_temperature
    end type
@@ -40,7 +41,6 @@ module Thermodynamics
       f_Fugacity, & ! Fugacity (raises error because single phase)
       f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
-      f_Viscosite, & ! \mu^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie
 
@@ -110,24 +110,6 @@ contains
       call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
-
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_Viscosite(iph, P, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      f = fluid_properties%dynamic_viscosity
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-
-   end subroutine f_Viscosite
 
    ! EnergieInterne
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE

@@ -35,6 +35,7 @@ void add_freeflow_wrappers(py::module &);
 void add_mswell_wrappers(py::module &module);
 void add_ResiduMSWells_wrappers(py::module &module);
 void add_LinearSystemMSWells_wrapper(py::module &module);
+void add_physical_properties_wrappers(py::module &module);
 
 // FIXME: this should be elsewhere as it internals and not wrappers
 void add_simulation_pyinternals(py::module &);
@@ -70,6 +71,7 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_mswell_wrappers(module);
    add_ResiduMSWells_wrappers(module);
    add_LinearSystemMSWells_wrapper(module);
+   add_physical_properties_wrappers(module);
 
    // FIXME: this should be elsewhere as it is more an internal than a wrapper
    add_simulation_pyinternals(module);

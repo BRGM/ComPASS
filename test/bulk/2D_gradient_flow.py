@@ -10,6 +10,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 import numpy as np
+from ComPASS.physics.utils import constant_physical_property
 
 
 rhow = 1  # 1E3
@@ -43,8 +44,8 @@ else:
 fluid_properties = simulation.get_fluid_properties()
 fluid_properties.specific_mass = rhow
 fluid_properties.volumetric_heat_capacity = b
-fluid_properties.dynamic_viscosity = muf
 simulation.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_viscosity_functions(constant_physical_property(muf))
 
 # mu = 3E-4 # dynamic viscosity of pur water around 100°C (will change with temperature)
 U = (k_reservoir / muf) * (pleft - pright) / Lx

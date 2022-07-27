@@ -72,19 +72,16 @@ inline double gas_molar_enthalpy(double p, double T,
 inline double phase_dynamic_viscosity(
     const Phase &phase, double p, double T,
     py::array_t<double, py::array::c_style> &C) {
-   double mu, dmudp, dmudT;
-   Component_vector dmudC;
-   FluidThermodynamics_dynamic_viscosity(to_underlying(phase), p, T, C.data(),
-                                         mu, dmudp, dmudT, dmudC.data());
-   return mu;
+   return FluidThermodynamics_dynamic_viscosity(to_underlying(phase), p, T,
+                                                C.data());
 }
 
-inline double gas_dynamic_viscosity(
+inline double cpp_gas_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
    return phase_dynamic_viscosity(Phase::gas, p, T, C);
 }
 
-inline double liquid_dynamic_viscosity(
+inline double cpp_liquid_dynamic_viscosity(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
    return phase_dynamic_viscosity(Phase::liquid, p, T, C);
 }
@@ -115,9 +112,10 @@ void add_specific_model_wrappers(py::module &module) {
    module.def("gas_molar_enthalpy", py::vectorize(gas_molar_enthalpy));
    module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
    module.def("gas_molar_density", py::vectorize(gas_molar_density));
-   module.def("liquid_dynamic_viscosity",
-              py::vectorize(liquid_dynamic_viscosity));
-   module.def("gas_dynamic_viscosity", py::vectorize(gas_dynamic_viscosity));
+   module.def("cpp_liquid_dynamic_viscosity",
+              py::vectorize(cpp_liquid_dynamic_viscosity));
+   module.def("cpp_gas_dynamic_viscosity",
+              py::vectorize(cpp_gas_dynamic_viscosity));
    module.def("Psat", py::vectorize(Psat));
    module.def("Tsat", py::vectorize(Tsat));
 

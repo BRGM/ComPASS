@@ -19,6 +19,8 @@ module Thermodynamics
       NbPhase, NbComp, IndThermique, &
       GAS_PHASE, LIQUID_PHASE
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use Thermodynamics_interface, only: &
+      f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
@@ -26,7 +28,6 @@ module Thermodynamics
       f_Fugacity, & ! Fugacity
       f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
-      f_Viscosite, & ! \mu^alpha(P,T,C)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
@@ -176,45 +177,6 @@ contains
       call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
-
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_Viscosite(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: Tref, a, da, b
-
-      if (iph == GAS_PHASE) then
-         f = (0.361d0*T - 10.2d0)*1.d-7
-         dPf = 0.d0
-         dTf = 0.361*1.d-7
-         dCf = 0.d0
-      else if (iph == LIQUID_PHASE) then
-         Tref = T - 273.d0 - 8.435d0
-         b = sqrt(8078.4d0 + Tref**2)
-         a = 0.021482d0*(Tref + b) - 1.2d0
-         da = 0.021482d0*(1.d0 + Tref/b)
-         f = 1.d-3/a
-         dPf = 0.d0
-         dTf = -f*(da/a)
-         dCf = 0.d0
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('Unknow phase in f_Viscosite')
-#endif
-
-      end if
-
-   end subroutine f_Viscosite
 
    ! EnergieInterne
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE

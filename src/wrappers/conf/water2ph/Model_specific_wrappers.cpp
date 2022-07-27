@@ -29,6 +29,7 @@ inline double phase_molar_density(double p, double T) {
    double xsi, dxsidp, dxsidT;
    double C[NC] = {1};
    double dxsidC[NC] = {0};
+   // PHASE + 1 : convert Python to Fortran convention
    FluidThermodynamics_molar_density(PHASE + 1, p, T, C, xsi, dxsidp, dxsidT,
                                      dxsidC);
    return xsi;
@@ -47,6 +48,7 @@ inline double phase_molar_enthalpy(double p, double T) {
    double h, dhdp, dhdT;
    double C[NC] = {1};
    double dhdC[NC] = {0};
+   // PHASE + 1 : convert Python to Fortran convention
    FluidThermodynamics_molar_enthalpy(PHASE + 1, p, T, C, h, dhdp, dhdT, dhdC);
    return h;
 }
@@ -61,19 +63,16 @@ inline double liquid_molar_enthalpy(double p, double T) {
 
 template <int PHASE>
 inline double phase_dynamic_viscosity(double p, double T) {
-   double mu, dmudp, dmudT;
    double C[NC] = {1};
-   double dmudC[NC] = {0};
-   FluidThermodynamics_dynamic_viscosity(PHASE + 1, p, T, C, mu, dmudp, dmudT,
-                                         dmudC);
-   return mu;
+   // PHASE + 1 : convert Python to Fortran convention
+   return FluidThermodynamics_dynamic_viscosity(PHASE + 1, p, T, C);
 }
 
-inline double gas_dynamic_viscosity(double p, double T) {
+inline double cpp_gas_dynamic_viscosity(double p, double T) {
    return phase_dynamic_viscosity<GAS_PHASE>(p, T);
 }
 
-inline double liquid_dynamic_viscosity(double p, double T) {
+inline double cpp_liquid_dynamic_viscosity(double p, double T) {
    return phase_dynamic_viscosity<LIQUID_PHASE>(p, T);
 }
 
@@ -96,11 +95,12 @@ void add_specific_model_wrappers(py::module &module) {
    module.def("Tsat", py::vectorize(Tsat));
    module.def("gas_molar_density", py::vectorize(gas_molar_density));
    module.def("gas_molar_enthalpy", py::vectorize(gas_molar_enthalpy));
-   module.def("gas_dynamic_viscosity", py::vectorize(gas_dynamic_viscosity));
+   module.def("cpp_gas_dynamic_viscosity",
+              py::vectorize(cpp_gas_dynamic_viscosity));
    module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
    module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
-   module.def("liquid_dynamic_viscosity",
-              py::vectorize(liquid_dynamic_viscosity));
+   module.def("cpp_liquid_dynamic_viscosity",
+              py::vectorize(cpp_liquid_dynamic_viscosity));
 
    py::enum_<Component>(module, "Component").value("water", Component::water);
 

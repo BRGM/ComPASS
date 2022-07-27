@@ -9,6 +9,7 @@ from .. import mpi
 from .._kernel import simulation_wrapper
 from ..wells.wells import get_wellhead
 from ..wells.connections import WellDataConnections, add_well_connections
+from ..physics.physical_properties import FluidMixtureProperties
 
 _not_available = object()
 _fake_members = base, data, utils, simulation_wrapper
@@ -25,7 +26,7 @@ class SimmulationBase:
     A temporary object to group true members for simulation objects.
     """
 
-    def __init__(self, well_data_provider):
+    def __init__(self, kernel, well_data_provider):
         self.info = SimulationInfo()
         # FIXME: should be encapsulated elsewhere
         self.alignment = AlignmentMethod.inverse_diagonal
@@ -36,6 +37,11 @@ class SimmulationBase:
         self.well_model = None
         self.unknown_producers_density = True
         self.scheme = None
+        self.fluid_mixture = FluidMixtureProperties(
+            # fixme : number_of_components can be different in each phase ?
+            kernel.number_of_phases(),
+            kernel.number_of_components(),
+        )
 
     def add_well_connections(self, well_pairs=None, proc_requests=None):
         """
@@ -78,7 +84,8 @@ class Simulation:
 
         # self.base = SimulationBase() # is not allowed because __setattr__ is prohibited
         well_data_provider = partial(get_wellhead, self)
-        self.__dict__["base"] = SimmulationBase(well_data_provider)
+        self.__dict__["base"] = SimmulationBase(kernel, well_data_provider)
+        self.set_viscosity_functions()
 
     def __setattr__(self, name, value):
         setattr(self.__dict__["base"], name, value)

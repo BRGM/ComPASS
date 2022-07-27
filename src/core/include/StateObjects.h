@@ -1,4 +1,13 @@
 #pragma once
+#include <array>
+
+template <typename Model_type>
+struct Xa {
+   using Model = Model_type;
+   typename Model::Real p;
+   typename Model::Real T;
+   typename Model::Phase_component_matrix C;
+};
 
 template <typename Model_type>
 struct IncCV {
@@ -38,3 +47,5 @@ using StateArray = XArrayWrapper<X>;
 using XFF =
     FFfarfield<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;
 using StateFFArray = XArrayWrapper<XFF>;
+using Xalpha =
+    Xa<Model<ComPASS_NUMBER_OF_COMPONENTS, ComPASS_NUMBER_OF_PHASES>>;

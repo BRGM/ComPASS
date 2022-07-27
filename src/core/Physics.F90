@@ -9,6 +9,7 @@
 module Physics
 
    use iso_c_binding, only: c_double
+   use DefModel, only: NbComp
 
    real(c_double) :: gravity = 9.81d0
 
@@ -43,5 +44,33 @@ module Physics
    !       we wait for v.4.1.0 and parameter distribution from python
    ! Volumetric heat capacity
    real(c_double) :: CpRoche = 800.d0*2000.d0 !< J/m3
+
+   type, bind(C) :: Xalpha
+      real(c_double) :: pressure, temperature, molar_fractions(NbComp)
+   end type Xalpha
+
+contains
+
+   !< P is phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   function make_Xalpha(p, T, C) result(X)
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      type(Xalpha) :: X
+      X%pressure = p
+      X%temperature = T
+      X%molar_fractions = C
+   end function make_Xalpha
+
+   !< P is phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   subroutine extract_from_Xalpha(X, p, T, C)
+      type(Xalpha), intent(in) :: X
+      real(c_double), intent(out) :: p, T, C(NbComp)
+      p = X%pressure
+      T = X%temperature
+      C = X%molar_fractions
+   end subroutine extract_from_Xalpha
 
 end module Physics

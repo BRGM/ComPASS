@@ -16,6 +16,8 @@ module Thermodynamics
    use, intrinsic :: iso_c_binding, only: c_double, c_int
    use DefModel, only: NbPhase, NbComp, IndThermique
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
+   use Thermodynamics_interface, only: &
+      f_Viscosity_with_derivatives, f_Viscosity
 
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
@@ -27,7 +29,6 @@ module Thermodynamics
       f_Fugacity, & ! Fugacity (raises error because single phase)
       f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
-      f_Viscosite, & ! \mu^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie
 
@@ -125,41 +126,6 @@ contains
       call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
-
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_Viscosite(iph, P, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_dynamic_viscosity")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: Tref, ns, dnsdT, b, dbdT, Cs, sc, dscdCs
-
-      Tref = T - 273.d0 - 8.435d0
-      b = sqrt(8078.4d0 + Tref**2)
-      dbdT = Tref/b
-      ! ns : no salt
-      ns = 0.021482d0*(Tref + b) - 1.2
-      dnsdT = 0.021482d0*(1.d0 + dbdT)
-      ! sc: salt correction
-      Cs = C(ComPASS_SALT_COMPONENT)
-      sc = 1.d0 + Cs*1.34d0 + 6.12d0*Cs**2
-      dscdCs = 1.34d0 + 2*6.12d0*Cs
-
-      f = 1.d-3*sc/ns
-      dPf = 0.d0
-      dTf = -1.d-3*sc*(dnsdT/(ns**2))
-      dCf(ComPASS_SALT_COMPONENT) = 1.d-3*(dscdCs)/ns
-      dCf(ComPASS_WATER_COMPONENT) = 0.d0
-
-   end subroutine f_Viscosite
 
    ! EnergieInterne
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE

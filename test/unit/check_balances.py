@@ -10,6 +10,7 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.physics.utils import constant_physical_property
 
 
 p0 = 1.0  # initial reservoir pressure
@@ -37,7 +38,7 @@ fluid_properties.reference_pressure = p0
 fluid_properties.compressibility = 0.1
 fluid_properties.reference_temperature = T0
 fluid_properties.thermal_expansivity = 0.1
-fluid_properties.dynamic_viscosity = 1.0
+simulation.set_viscosity_functions(constant_physical_property(1.0))
 simulation.set_rock_volumetric_heat_capacity(rhocpr)
 
 

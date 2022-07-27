@@ -26,7 +26,7 @@ module LoisThermoHydroMSWells
 #ifdef _THERMIQUE_
       f_EnergieInterne, f_Enthalpie, &
 #endif
-      f_Viscosite, f_DensiteMolaire, f_DensiteMassique
+      f_DensiteMolaire, f_DensiteMassique
    use DefModel, only: &
       NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
       NbEqEquilibreMax, NbIncPTCMax, NbIncTotalPrimMax, &
