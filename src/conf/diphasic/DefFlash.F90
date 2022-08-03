@@ -30,7 +30,7 @@ module DefFlash
 
 contains
 
-   pure subroutine DiphasicFlash_fugacity_coeffficients(icp, inc, fg, fl)
+   subroutine DiphasicFlash_fugacity_coeffficients(icp, inc, fg, fl)
       integer(c_int), intent(in) :: icp
       type(Type_IncCVReservoir), intent(inout) :: inc
       real(c_double), intent(out) :: fg, fl
@@ -44,7 +44,7 @@ contains
 
    end subroutine DiphasicFlash_fugacity_coeffficients
 
-   pure subroutine DiphasicFlash_liquid_fugacities(inc, fa, fw)
+   subroutine DiphasicFlash_liquid_fugacities(inc, fa, fw)
       type(Type_IncCVReservoir), intent(inout) :: inc
       real(c_double), intent(out) :: fa, fw
 
@@ -57,7 +57,7 @@ contains
 
    end subroutine DiphasicFlash_liquid_fugacities
 
-   pure subroutine DiphasicFlash_liquid_to_diphasic(inc)
+   subroutine DiphasicFlash_liquid_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       real(c_double) :: fa, fw
@@ -77,7 +77,7 @@ contains
 
    end subroutine DiphasicFlash_liquid_to_diphasic
 
-   pure subroutine DiphasicFlash_gas_to_diphasic(inc)
+   subroutine DiphasicFlash_gas_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       real(c_double) :: fg, fl
@@ -117,7 +117,7 @@ contains
    !! Applied to IncNode, IncFrac and IncCell.
    !! \param[in]      porovol   porous Volume ?????
    !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
-   pure subroutine DiphasicFlash_Flash_cv(inc)
+   subroutine DiphasicFlash_Flash_cv(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       integer(c_int) :: context

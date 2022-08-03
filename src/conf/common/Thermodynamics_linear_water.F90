@@ -15,6 +15,7 @@ module Thermodynamics
    use DefModel, only: NbPhase, NbComp, IndThermique
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
 #ifndef NDEBUG
@@ -25,12 +26,7 @@ module Thermodynamics
 
    !isobar thermal expansivity (K-1) and isothermal compressibility (Pa-1)
    type, bind(c) :: fluid_properties_type
-      real(c_double) :: specific_mass
-      real(c_double) :: compressibility
-      real(c_double) :: thermal_expansivity
       real(c_double) :: volumetric_heat_capacity
-      real(c_double) :: reference_pressure
-      real(c_double) :: reference_temperature
    end type
 
    ! OPTIMIZE: is there a loss of performance uing the target keyword?
@@ -39,7 +35,6 @@ module Thermodynamics
    public :: &
       get_fluid_properties, &
       f_Fugacity, & ! Fugacity (raises error because single phase)
-      f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie
@@ -76,38 +71,17 @@ contains
 
    end subroutine f_Fugacity
 
-   ! Densite molaire
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      f = fluid_properties%specific_mass &
-          *exp(fluid_properties%compressibility*(P - fluid_properties%reference_pressure)) &
-          *exp(fluid_properties%thermal_expansivity*(T - fluid_properties%reference_temperature))
-      dPf = f*fluid_properties%compressibility
-      dTf = f*fluid_properties%thermal_expansivity
-      dCf = 0.d0
-
-   end subroutine f_DensiteMolaire
-
    ! Densite Massique
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
+   subroutine f_DensiteMassique(iph, P, T, C, f, dfdP, dfdT, dfdC)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+      real(c_double), intent(out) :: f, dfdP, dfdT, dfdC(NbComp)
 
-      call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
+      call f_MolarDensity_with_derivatives(iph, P, T, C, f, dfdP, dfdT, dfdC)
 
    end subroutine f_DensiteMassique
 

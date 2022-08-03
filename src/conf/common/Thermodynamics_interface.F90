@@ -28,6 +28,7 @@ module Thermodynamics_interface
    end type Law_with_derivatives_ptr
 
    type(Law_with_derivatives_ptr), dimension(NbPhase) :: viscosity_with_derivatives
+   type(Law_with_derivatives_ptr), dimension(NbPhase) :: molar_density_with_derivatives
 
    abstract interface
       function law(X) result(f)
@@ -42,6 +43,7 @@ module Thermodynamics_interface
    end type Law_ptr
 
    type(Law_ptr), dimension(NbPhase) :: viscosity
+   type(Law_ptr), dimension(NbPhase) :: molar_density
 
 contains
 
@@ -82,5 +84,43 @@ contains
       call extract_from_Xalpha(dfdX, dfdP, dfdT, dfdC)
 
    end subroutine f_Viscosity_with_derivatives
+
+   ! Phase molar density
+   !< iph is an identifier for each phase
+   !< P is the phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   function f_MolarDensity(iph, p, T, C) result(f) &
+      bind(C, name="FluidThermodynamics_molar_density")
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double) :: f
+
+      ! use molar density defined in Python
+      f = molar_density(iph)%f(make_Xalpha(p, T, C))
+
+   end function f_MolarDensity
+
+   ! Phase molar density and its derivatives
+   !< iph is an identifier for each phase
+   !< P is the phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   subroutine f_MolarDensity_with_derivatives(iph, p, T, C, f, dfdP, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_molar_density_with_derivatives")
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
+      real(c_double), intent(out), target :: f
+      type(Xalpha) :: dfdX
+
+      ! use molar density defined in Python
+      call molar_density_with_derivatives(iph)%f( &
+         make_Xalpha(p, T, C), c_loc(f), dfdX)
+      call extract_from_Xalpha(dfdX, dfdP, dfdT, dfdC)
+
+   end subroutine f_MolarDensity_with_derivatives
 
 end module Thermodynamics_interface

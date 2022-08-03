@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.physics.utils import constant_physical_property
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 import MeshTools as MT
 import vtkwriters as vtkw
 
@@ -28,10 +29,14 @@ simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 fluid_properties = simulation.get_fluid_properties()
-fluid_properties.specific_mass = 1.0
 fluid_properties.volumetric_heat_capacity = 1.0
 simulation.set_rock_volumetric_heat_capacity(1.0)
-fluid_properties.thermal_expansivity = 0
+simulation.set_molar_density_functions(
+    build_pure_phase_volumetric_mass_density(
+        specific_mass=1.0,
+        thermal_expansivity=0.0,
+    ),
+)
 simulation.set_viscosity_functions(constant_physical_property(1.0))
 
 grid_info = {

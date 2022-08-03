@@ -17,7 +17,7 @@ module LoisThermoHydro
       f_PartialMolarEnthalpy, &
 #endif
 #endif
-      f_Viscosity_with_derivatives, f_DensiteMolaire, f_DensiteMassique
+      f_Viscosity_with_derivatives, f_MolarDensity_with_derivatives, f_DensiteMassique
 #ifdef ComPASS_WITH_diphasic_PHYSICS
    use DefModel, only: WATER_COMP, GAS_PHASE
 #endif
@@ -1471,7 +1471,7 @@ contains
       double precision, intent(out) :: Smval(NbPhase)
 
       integer :: i, iph, context, nb_phases, idx
-      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: dfdP, dfdT, dfdC(NbComp), dfdS(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase)
       logical          :: set_use_abs_ordering
@@ -1492,12 +1492,12 @@ contains
          else
             idx = i
          endif
-         call f_DensiteMolaire( &
-            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(idx), dPf, dTf, dCf)
-         dSf = 0.d0
-         dSf(iph) = dPf*dpadS(iph)
+         call f_MolarDensity_with_derivatives( &
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(idx), dfdP, dfdT, dfdC)
+         dfdS = 0.d0
+         dfdS(iph) = dfdP*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS)
-         call LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(context, iph, dfdP, dfdT, dfdC, dfdS, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps( &
@@ -2553,8 +2553,8 @@ contains
             Cw(:) = DataWellInjLocal(k)%CompTotal(:) ! C_w
 
             ! Molar density
-            call f_DensiteMolaire(LIQUID_PHASE, Pws, Tw, Cw, &
-                                  DensiteMolaire, dP_DensiteMolaire, dTf, dCf)
+            call f_MolarDensity_with_derivatives(LIQUID_PHASE, Pws, Tw, Cw, &
+                                                 DensiteMolaire, dP_DensiteMolaire, dTf, dCf)
 
             ! Viscosite
             call f_Viscosity_with_derivatives(LIQUID_PHASE, Pws, Tw, Cw, &

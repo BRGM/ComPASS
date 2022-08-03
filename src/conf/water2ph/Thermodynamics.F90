@@ -20,13 +20,13 @@ module Thermodynamics
       GAS_PHASE, LIQUID_PHASE
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
    public :: &
       f_Fugacity, & ! Fugacity
-      f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
@@ -75,106 +75,17 @@ contains
 
    end subroutine f_Fugacity
 
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: Z, dZ
-      real(c_double), parameter :: u = 0.018016d0
-      real(c_double), parameter :: R = 8.3145d0
-
-      Z = 1.d0 ! CHECKME: ?
-      dZ = 0.d0
-
-      f = p*u/(R*T*Z)
-      dPf = u/(R*T*Z)
-      dTf = -p*u/(R*T*Z)**2*(R*T*dZ + R*Z)
-      dCf = 0.d0
-
-   end subroutine f_DensiteMolaire_gas
-
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double), parameter :: rho0 = 780.83795d0
-      real(c_double), parameter :: a = 1.6269192d0
-      real(c_double), parameter :: b = -3.0635410d-3
-      real(c_double), parameter :: a1 = 2.4638d-9
-      real(c_double), parameter :: a2 = 1.1343d-17
-      real(c_double), parameter :: b1 = -1.2171d-11
-      real(c_double), parameter :: b2 = 4.8695d-20
-      real(c_double), parameter :: c1 = 1.8452d-14
-      real(c_double), parameter :: c2 = -5.9978d-23
-      real(c_double) :: Cs, cw, dcwp, dcwt
-      real(c_double) :: ds, ss, rs
-      real(c_double) :: Psat, dT_Psat, prel
-
-      Cs = 0.d0 ! salinity
-      rs = 0.d0
-
-      call FluidThermodynamics_Psat(T, Psat, dT_Psat)
-
-      ss = (rho0 + a*T + b*T**2)*(1.d0 + 6.51d-4*Cs)
-      ds = (a + b*T*2.d0)*(1.d0 + 6.51d-4*Cs)
-      cw = (1.d0 + 5.d-2*rs) &
-           *(a1 + a2*p + T*(b1 + b2*p) + T**2*(c1 + c2*p))
-      dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
-      dcwt = (1.d0 + 5.d-2*rs)*((b1 + b2*p) + T*2.d0*(c1 + c2*p))
-      prel = p - Psat
-      f = ss*(1.d0 + cw*prel)
-      dPf = ss*dcwp*prel + ss*cw
-      dTf = ds*(1.d0 + cw*prel) + ss*dcwt*prel - ss*cw*dT_Psat
-      dCf = 0.d0
-
-   end subroutine f_DensiteMolaire_liquid
-
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMolaire(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      if (iph == GAS_PHASE) then
-         call f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      else if (iph == LIQUID_PHASE) then
-         call f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
-#endif
-      endif
-
-   end subroutine f_DensiteMolaire
-
    ! FIXME #51 densite massique
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf)
+   subroutine f_DensiteMassique(iph, p, T, C, f, dfdP, dfdT, dfdC)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+      real(c_double), intent(out) :: f, dfdP, dfdT, dfdC(NbComp)
 
-      call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
+      call f_MolarDensity_with_derivatives(iph, P, T, C, f, dfdP, dfdT, dfdC)
 
    end subroutine f_DensiteMassique
 

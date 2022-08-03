@@ -5,6 +5,7 @@ import MeshTools as MT
 import ComPASS
 from ComPASS.timeloops import standard_loop
 from ComPASS.physics.utils import constant_physical_property
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 from ComPASS.utils.units import *
 from ComPASS.timestep_management import TimeStepManager
 
@@ -82,9 +83,13 @@ fracture_thickness = 0.005
 
 simulation = ComPASS.load_eos("linear_water")
 fluid_properties = simulation.get_fluid_properties()
-fluid_properties.specific_mass = rhof
-fluid_properties.compressibility = 1e-10  # it helps...
 fluid_properties.volumetric_heat_capacity = rhofcpf
+simulation.set_molar_density_functions(
+    build_pure_phase_volumetric_mass_density(
+        specific_mass=rhof,
+        compressibility=1e-10,  # it helps...
+    ),
+)
 simulation.set_viscosity_functions(constant_physical_property(muf))
 
 simulation.set_gravity(0)

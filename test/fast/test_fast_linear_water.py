@@ -10,6 +10,7 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 
 
 def test__extrems__no_gravity(T_injection_degC=33.0, flow_velocity_m_s=1.0e-6):
@@ -43,8 +44,9 @@ def test__extrems__no_gravity(T_injection_degC=33.0, flow_velocity_m_s=1.0e-6):
     simulation.set_gravity(0)
     simulation.set_rock_volumetric_heat_capacity(rhor * Cr)
 
-    p = simulation.get_fluid_properties()
-    p.compressibility = 1e-8
+    simulation.set_molar_density_functions(
+        build_pure_phase_volumetric_mass_density(compressibility=1e-8),
+    )
 
     grid = ComPASS.Grid(shape=shape, extent=extent, origin=origin)
 

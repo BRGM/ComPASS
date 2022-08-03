@@ -27,6 +27,7 @@ from ComPASS.linalg.factory import linear_solver
 from scipy.optimize import newton_krylov
 import numpy as np
 from ComPASS.physics.utils import constant_physical_property
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 
 import sys
 from copy import copy
@@ -117,9 +118,11 @@ simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 fluid_properties = simulation.get_fluid_properties()
-fluid_properties.specific_mass = rhow
 fluid_properties.volumetric_heat_capacity = b
 simulation.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_molar_density_functions(
+    build_pure_phase_volumetric_mass_density(specific_mass=rhow),
+)
 simulation.set_viscosity_functions(constant_physical_property(muf))
 
 simulation.init(

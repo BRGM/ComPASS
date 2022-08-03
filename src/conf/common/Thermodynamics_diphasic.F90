@@ -17,13 +17,13 @@ module Thermodynamics
    use CommonType, only: ModelConfiguration
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
    public :: &
       f_Fugacity, &  !< Fugacity
-      f_DensiteMolaire, &  !< \xi^alpha(P,T,C)
       f_DensiteMassique, &  !< \rho^alpha(P,T,C)
       air_Henry, &  !< Henry coef for air comp
       f_Fugacity_coefficient  !< Fugacity coefficient
@@ -45,7 +45,7 @@ contains
    !< p is the phase pressure
    !< T is the temperature
    !< C is the phase molar fractions
-   pure subroutine f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
+   subroutine f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
 
@@ -57,7 +57,7 @@ contains
       real(c_double), parameter :: R = 8.314d0
 
       call FluidThermodynamics_Psat(T, Psat, dPsatdT)
-      call f_DensiteMolaire_liquid(p, T, C, zeta, dzetadp, dzetadT, dzetadC)
+      call f_MolarDensity_with_derivatives(LIQUID_PHASE, p, T, C, zeta, dzetadp, dzetadT, dzetadC)
 
       deltap = p - Psat ! p is the phase pressure ie pl
       RTzeta = R*T*zeta
@@ -80,7 +80,7 @@ contains
    !< p is the phase pressure
    !< T is the temperature
    !< C is the phase molar fractions
-   pure subroutine f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
+   subroutine f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
       integer(c_int), intent(in) :: icp, iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
@@ -108,7 +108,7 @@ contains
    !< p is the phase pressure
    !< T is the temperature
    !< C is the phase molar fractions
-   pure subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
+   subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
       bind(C, name="FluidThermodynamics_fugacity")
       integer(c_int), intent(in) :: icp, iph
       real(c_double), intent(in) :: p, T, C(NbComp)
@@ -146,92 +146,28 @@ contains
 
    end subroutine
 
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double), parameter :: Rgp = 8.314d0
-
-      f = p/(Rgp*T)
-      dPf = 1/(Rgp*T)
-      dTf = -p/Rgp/T**2
-      dCf = 0.d0
-
-   end subroutine f_DensiteMolaire_gas
-
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      f = 1000.d0/M_H2O
-      dPf = 0.d0
-      dTf = 0.d0
-      dCf = 0.d0
-
-   end subroutine f_DensiteMolaire_liquid
-
-   ! Molar density
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMolaire(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      if (iph == GAS_PHASE) then
-         call f_DensiteMolaire_gas( &
-            p, T, C, f, dPf, dTf, dCf)
-      else if (iph == LIQUID_PHASE) then
-         call f_DensiteMolaire_liquid( &
-            p, T, C, f, dPf, dTf, dCf)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_DensiteMolaire')
-#endif
-      endif
-
-   end subroutine f_DensiteMolaire
-
    ! Massic density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMassique(iph, p, T, C, f, dPf, dTf, dCf) &
+   subroutine f_DensiteMassique(iph, p, T, C, f, dfdP, dfdT, dfdC) &
       bind(C, name="FluidThermodynamics_specific_mass")
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+      real(c_double), intent(out) :: f, dfdP, dfdT, dfdC(NbComp)
 
       real(c_double) :: zeta, M
       integer :: icp
 
-      call f_DensiteMolaire(iph, p, T, C, zeta, dPf, dTf, dCf)
+      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
 
       M = MCP(AIR_COMP, iph)*M_air*C(AIR_COMP) + MCP(WATER_COMP, iph)*M_H2O*C(WATER_COMP)
       f = zeta*M
-      dPf = dPf*M
-      dTf = dTf*M
-      dCf(AIR_COMP) = dCf(AIR_COMP)*M + zeta*MCP(AIR_COMP, iph)*M_air
-      dCf(WATER_COMP) = dCf(WATER_COMP)*M + zeta*MCP(WATER_COMP, iph)*M_H2O
+      dfdP = dfdP*M
+      dfdT = dfdT*M
+      dfdC(AIR_COMP) = dfdC(AIR_COMP)*M + zeta*MCP(AIR_COMP, iph)*M_air
+      dfdC(WATER_COMP) = dfdC(WATER_COMP)*M + zeta*MCP(WATER_COMP, iph)*M_H2O
 
    end subroutine f_DensiteMassique
 
@@ -242,11 +178,7 @@ contains
    !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
+   subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
@@ -256,7 +188,7 @@ contains
       real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp)
 
       call f_Enthalpie(iph, p, T, C, enth, denthdP, denthdT, denthdC)
-      call f_DensiteMolaire(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
+      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
       f = enth - p/zeta
       paovzeta2 = p/(zeta**2)
       dPf = denthdP - 1.d0/zeta + paovzeta2*dzetadP

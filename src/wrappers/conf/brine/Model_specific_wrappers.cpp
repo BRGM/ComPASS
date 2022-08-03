@@ -17,7 +17,7 @@ static_assert(ComPASS_NUMBER_OF_CONTEXTS == 1, "Wrong number of contexts.");
 // FIXME: assuming liquid phase is the latest phase
 constexpr int LIQUID_PHASE = 0;
 
-using fluid_property = decltype(FluidThermodynamics_molar_density);
+using fluid_property = decltype(FluidThermodynamics_molar_enthalpy);
 
 void init_model() {
    py::print();
@@ -62,8 +62,10 @@ inline double compute_property(fluid_property f, double p, double T,
    return prop;
 }
 
-inline double molar_density(double p, double T, double Cs) {
-   return compute_property(FluidThermodynamics_molar_density, p, T, Cs);
+inline double cpp_molar_density(double p, double T, double Cs) {
+   auto state = build_state(p, T, Cs);
+   return FluidThermodynamics_molar_density(ComPASS_SINGLE_PHASE, state.p,
+                                            state.T, state.C.data()->data());
 }
 
 inline double molar_enthalpy(double p, double T, double Cs) {
@@ -90,7 +92,7 @@ void add_specific_model_wrappers(py::module &module) {
           .c_str();
    };
 
-   module.def("molar_density", py::vectorize(molar_density),
+   module.def("cpp_molar_density", py::vectorize(cpp_molar_density),
               help_add_parameters(R"doc(
         Brine molar density
 

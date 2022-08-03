@@ -16,7 +16,7 @@ module LeafMSWells
 #ifdef _THERMIQUE_
       f_Enthalpie, &
 #endif
-      f_Viscosity, f_DensiteMolaire
+      f_Viscosity, f_MolarDensity
    use DefModel, only: &
       NbPhase, NbComp, &
       NbIncTotalPrimMax, &
@@ -236,18 +236,16 @@ contains
             LeafDataMSWell(leaf_data_idx_s)%PressionRes = PRes
             LeafDataMSWell(leaf_data_idx_s)%BDC = BDCIn
 
-            ! deniste molaire
-            call f_DensiteMolaire(LIQUID_PHASE, &
-                                  LeafDataMSWell(leaf_data_idx_s)%Pression, &
-                                  LeafDataMSWell(leaf_data_idx_s)%Temperature, &
-                                  LeafDataMSWell(leaf_data_idx_s)%Comp, &
-                                  zliquid, dPf, dTf, dCf)
+            ! molar density
+            zliquid = f_MolarDensity(LIQUID_PHASE, &
+                                     LeafDataMSWell(leaf_data_idx_s)%Pression, &
+                                     LeafDataMSWell(leaf_data_idx_s)%Temperature, &
+                                     LeafDataMSWell(leaf_data_idx_s)%Comp)
 
-            call f_DensiteMolaire(GAS_PHASE, &
+            zgas = f_MolarDensity(GAS_PHASE, &
                                   LeafDataMSWell(leaf_data_idx_s)%Pression, &
                                   LeafDataMSWell(leaf_data_idx_s)%Temperature, &
-                                  LeafDataMSWell(leaf_data_idx_s)%Comp, &
-                                  zgas, dPf, dTf, dCf)
+                                  LeafDataMSWell(leaf_data_idx_s)%Comp)
             ! viscosite molaire
             viscoliq = f_Viscosity(LIQUID_PHASE, &
                                    LeafDataMSWell(leaf_data_idx_s)%Pression, &

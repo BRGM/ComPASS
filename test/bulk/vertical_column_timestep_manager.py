@@ -14,6 +14,7 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.exceptions import SanityCheckFailure
 from ComPASS.physics.utils import constant_physical_property
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
@@ -36,8 +37,10 @@ simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
 fluid_properties = simulation.get_fluid_properties()
-fluid_properties.specific_mass = rhow
 simulation.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_molar_density_functions(
+    build_pure_phase_volumetric_mass_density(specific_mass=rhow),
+)
 simulation.set_viscosity_functions(constant_physical_property(muf))
 
 grid = ComPASS.Grid(

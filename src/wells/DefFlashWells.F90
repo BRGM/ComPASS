@@ -56,7 +56,7 @@ module DefFlashWells
       DensitemolaireKrViscoCompWellInj, &
       LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
    use Thermodynamics, only: &
-      ! f_DensiteMolaire,
+      ! f_MolarDensity,
       f_DensiteMassique, f_Enthalpie
    use MeshSchema, only: &
       DataWellInjLocal, &
@@ -494,8 +494,8 @@ contains
 
    ! subroutine DefFlashWells_PressureDropInj
 
-   !   double precision :: Sat(NbPhase), dCf(NbComp), dSf(NbPhase)
-   !   double precision :: Rhotmp, dz, Ptmp, ztmp, dPf, dTf
+   !   double precision :: Sat(NbPhase)
+   !   double precision :: Rhotmp, dz, Ptmp, ztmp
    !   integer :: i, s, k, nums1, nums2, pts1, pts2
 
    !   do k=1, NbWellInjLocal_Ncpus(commRank+1)
@@ -524,8 +524,8 @@ contains
    !       ! pressure update loop:  p^{n+1} = p^{n} + rho(p^{n}) * g * (z^{n+1} - z^{n})
    !       do i=1, WellsNslice
    !         ztmp = ztmp + dz
-   !         call f_DensiteMolaire(LIQUID_PHASE, Ptmp, PerfoWellInj(pts1)%Temperature, &
-   !             DataWellInjLocal(k)%CompTotal, Sat, Rhotmp, dPf, dTf, dCf, dSf)
+   !         Rhotmp = f_MolarDensity(LIQUID_PHASE, Ptmp, PerfoWellInj(pts1)%Temperature, &
+   !             DataWellInjLocal(k)%CompTotal, Sat)
    !         ! gravity points downwards, heights points upwards, hence the negative sign
    !         Ptmp = Ptmp - gravity * Rhotmp * dz
    !       end do

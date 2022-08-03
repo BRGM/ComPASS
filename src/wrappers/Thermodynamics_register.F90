@@ -12,7 +12,9 @@ module Thermodynamics_register
       c_ptr, c_funptr, c_f_procpointer, c_f_pointer
    use DefModel, only: NbPhase
    use Thermodynamics_interface, only: &
-      viscosity_with_derivatives, viscosity
+      viscosity_with_derivatives, viscosity, &
+      molar_density_with_derivatives, molar_density
+
    implicit none
 
 contains
@@ -44,5 +46,33 @@ contains
       enddo
 
    end subroutine register_c_viscosities_without_derivatives
+
+   subroutine register_c_molar_densities_with_derivatives(a) &
+      bind(C, name="register_c_molar_densities_with_derivatives")
+      type(c_ptr), value, intent(in) :: a
+
+      integer :: k
+      type(c_funptr), pointer :: all_pointers(:)
+
+      call c_f_pointer(a, all_pointers, [NbPhase])
+      do k = 1, NbPhase
+         call c_f_procpointer(all_pointers(k), molar_density_with_derivatives(k)%f)
+      enddo
+
+   end subroutine register_c_molar_densities_with_derivatives
+
+   subroutine register_c_molar_densities_without_derivatives(a) &
+      bind(C, name="register_c_molar_densities_without_derivatives")
+      type(c_ptr), value, intent(in) :: a
+
+      integer :: k
+      type(c_funptr), pointer :: all_pointers(:)
+
+      call c_f_pointer(a, all_pointers, [NbPhase])
+      do k = 1, NbPhase
+         call c_f_procpointer(all_pointers(k), molar_density(k)%f)
+      enddo
+
+   end subroutine register_c_molar_densities_without_derivatives
 
 end module Thermodynamics_register

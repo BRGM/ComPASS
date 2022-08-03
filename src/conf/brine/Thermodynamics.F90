@@ -17,6 +17,7 @@ module Thermodynamics
    use DefModel, only: NbPhase, NbComp, IndThermique
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
 #ifndef NDEBUG
@@ -27,7 +28,6 @@ module Thermodynamics
 
    public :: &
       f_Fugacity, & ! Fugacity (raises error because single phase)
-      f_DensiteMolaire, & ! \xi^alpha(P,T,C)
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie
@@ -60,70 +60,12 @@ contains
    !< P is phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_density")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: Cs, cw, dcwdp, dcwdT
-      real(c_double) :: sc, dscdT, dscdCs
-      real(c_double) :: Psat, dPsatdT
-      real(c_double) :: rs, cwrs
-
-      real(c_double), parameter :: rho0 = 780.83795d0
-      real(c_double), parameter :: a = 1.6269192d0
-      real(c_double), parameter :: b = -3.0635410d-3
-      real(c_double), parameter :: a1 = 2.4638d-9
-      real(c_double), parameter :: a2 = 1.1343d-17
-      real(c_double), parameter :: b1 = -1.2171d-11
-      real(c_double), parameter :: b2 = 4.8695d-20
-      real(c_double), parameter :: c1 = 1.8452d-14
-      real(c_double), parameter :: c2 = -5.9978d-23
-
-      ! Pure water part
-      rs = 0.d0 ! CHECKME: What is this???? Link to capillary pressure?
-      cwrs = 1.d0 + 5.d-2*rs
-      cw = cwrs*(a1 + a2*P + T*(b1 + b2*P) + T**2*(c1 + c2*P))
-      dcwdp = cwrs*(a2 + b2*T + c2*T**2)
-      dcwdT = cwrs*((b1 + b2*P) + T*2.d0*(c1 + c2*P))
-
-      ! Salt correction
-      Cs = C(ComPASS_SALT_COMPONENT)
-      sc = (rho0 + a*T + b*T**2)*(1.d0 + 6.51d-4*Cs)
-      dscdT = (a + 2.d0*b*T)*(1.d0 + 6.51d-4*Cs)
-      dscdCs = 6.51d-4*(rho0 + a*T + b*T**2)
-
-      !  pure water
-      Psat = (T - 273.d0)**4.d0/1.0d3
-      dPsatdT = 4.d0*(T - 273.d0)**3.d0/1.0d3
-
-      f = sc*(1.d0 + cw*(P - Psat))
-      dPf = sc*dcwdp*(P - Psat) + sc*cw
-      dTf = dscdT*(1.d0 + cw*(P - Psat)) + sc*(dcwdT*(P - Psat) - cw*dPsatdT)
-      dCf(ComPASS_SALT_COMPONENT) = dscdCs*(1.d0 + cw*(P - Psat))
-      dCf(ComPASS_WATER_COMPONENT) = 0.d0
-
-   end subroutine f_DensiteMolaire
-
-   ! FIXME #51 densite massique
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
+   subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: P, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      call f_DensiteMolaire(iph, P, T, C, f, dPf, dTf, dCf)
+      call f_MolarDensity_with_derivatives(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_DensiteMassique
 

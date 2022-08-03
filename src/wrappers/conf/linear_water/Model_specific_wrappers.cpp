@@ -6,12 +6,7 @@
 #include "Thermodynamics.h"
 
 struct Fluid_properties {
-   double specific_mass;
-   double compressibility;
-   double thermal_expansivity;
    double volumetric_heat_capacity;
-   double reference_pressure;
-   double reference_temperature;
 };
 
 // Fortran functions
@@ -21,12 +16,7 @@ Fluid_properties *get_fluid_properties();
 
 void init_model() {
    auto properties = get_fluid_properties();
-   properties->specific_mass = 1;
-   properties->compressibility = 0;
-   properties->thermal_expansivity = 0;
    properties->volumetric_heat_capacity = 1;
-   properties->reference_pressure = 1E5;        // 1 bar
-   properties->reference_temperature = 293.15;  // 20°C
 }
 
 void finalize_model() {}
@@ -54,8 +44,8 @@ inline double call_physical_function(Function function, double p, double T) {
    return function(1, p, T, C);
 }
 
-inline double molar_density(double p, double T) {
-   return call_physical_subroutine(FluidThermodynamics_molar_density, p, T);
+inline double cpp_molar_density(double p, double T) {
+   return call_physical_function(FluidThermodynamics_molar_density, p, T);
 }
 
 inline double molar_enthalpy(double p, double T) {
@@ -68,23 +58,15 @@ inline double cpp_dynamic_viscosity(double p, double T) {
 
 void add_specific_model_wrappers(py::module &module) {
    py::class_<Fluid_properties>(module, "FluidProperties")
-       .def_readwrite("specific_mass", &Fluid_properties::specific_mass)
-       .def_readwrite("compressibility", &Fluid_properties::compressibility)
-       .def_readwrite("thermal_expansivity",
-                      &Fluid_properties::thermal_expansivity)
        .def_readwrite("volumetric_heat_capacity",
-                      &Fluid_properties::volumetric_heat_capacity)
-       .def_readwrite("reference_pressure",
-                      &Fluid_properties::reference_pressure)
-       .def_readwrite("reference_temperature",
-                      &Fluid_properties::reference_temperature);
+                      &Fluid_properties::volumetric_heat_capacity);
 
    module.def("get_fluid_properties", &get_fluid_properties,
               py::return_value_policy::reference);
 
    // provided mainly for consistency... we are filling arrays with constant
    // scalars...
-   module.def("molar_density", py::vectorize(molar_density));
+   module.def("cpp_molar_density", py::vectorize(cpp_molar_density));
    module.def("molar_enthalpy", py::vectorize(molar_enthalpy));
    module.def("cpp_dynamic_viscosity", py::vectorize(cpp_dynamic_viscosity));
 

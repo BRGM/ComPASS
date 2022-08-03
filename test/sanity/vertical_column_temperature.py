@@ -11,6 +11,7 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.physics.utils import constant_physical_property
+from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 from ComPASS.timeloops import standard_loop
 
 from ComPASS.exceptions import SanityCheckFailure
@@ -37,7 +38,9 @@ simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
 fluid_properties = simulation.get_fluid_properties()
-fluid_properties.specific_mass = rhow
+simulation.set_molar_density_functions(
+    build_pure_phase_volumetric_mass_density(specific_mass=rhow),
+)
 simulation.set_viscosity_functions(constant_physical_property(muf))
 simulation.set_rock_volumetric_heat_capacity(rhocp)
 

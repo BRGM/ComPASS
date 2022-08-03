@@ -10,10 +10,10 @@
 
 constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
 constexpr int NP = ComPASS_NUMBER_OF_PHASES;
-static_assert(NP == X::Model::np, "Wrong numpber of phases.");
-static_assert(NC == X::Model::nc, "Wrong numpber of components.");
-static_assert(NP == 2, "Wrong numpber of phases.");
-static_assert(NC == 1, "Wrong numpber of components.");
+static_assert(NP == X::Model::np, "Wrong number of phases.");
+static_assert(NC == X::Model::nc, "Wrong number of components.");
+static_assert(NP == 2, "Wrong number of phases.");
+static_assert(NC == 1, "Wrong number of components.");
 static_assert(ComPASS_NUMBER_OF_CONTEXTS == 3, "Wrong number of contexts.");
 
 // FIXME: assuming liquid phase is the latest phase
@@ -26,20 +26,16 @@ void finalize_model() {}
 
 template <int PHASE>
 inline double phase_molar_density(double p, double T) {
-   double xsi, dxsidp, dxsidT;
    double C[NC] = {1};
-   double dxsidC[NC] = {0};
    // PHASE + 1 : convert Python to Fortran convention
-   FluidThermodynamics_molar_density(PHASE + 1, p, T, C, xsi, dxsidp, dxsidT,
-                                     dxsidC);
-   return xsi;
+   return FluidThermodynamics_molar_density(PHASE + 1, p, T, C);
 }
 
-inline double gas_molar_density(double p, double T) {
+inline double cpp_gas_molar_density(double p, double T) {
    return phase_molar_density<GAS_PHASE>(p, T);
 }
 
-inline double liquid_molar_density(double p, double T) {
+inline double cpp_liquid_molar_density(double p, double T) {
    return phase_molar_density<LIQUID_PHASE>(p, T);
 }
 
@@ -93,11 +89,12 @@ inline double Tsat(double p) {
 void add_specific_model_wrappers(py::module &module) {
    module.def("Psat", py::vectorize(Psat));
    module.def("Tsat", py::vectorize(Tsat));
-   module.def("gas_molar_density", py::vectorize(gas_molar_density));
+   module.def("cpp_gas_molar_density", py::vectorize(cpp_gas_molar_density));
    module.def("gas_molar_enthalpy", py::vectorize(gas_molar_enthalpy));
    module.def("cpp_gas_dynamic_viscosity",
               py::vectorize(cpp_gas_dynamic_viscosity));
-   module.def("liquid_molar_density", py::vectorize(liquid_molar_density));
+   module.def("cpp_liquid_molar_density",
+              py::vectorize(cpp_liquid_molar_density));
    module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
    module.def("cpp_liquid_dynamic_viscosity",
               py::vectorize(cpp_liquid_dynamic_viscosity));
