@@ -12,13 +12,14 @@ from .physical_properties import PhaseProperty
 from .physical_properties_wrappers import register_property
 
 
-def set_viscosity_functions(simulation, functions=None):
+def set_viscosity_functions(simulation, functions=None, *, check_derivatives=True):
     """
     Set the viscosity functions (with and without the derivatives)
     for all phases.
     If no viscosity function is given, use default values.
     To use another function, give the function
     :param functions: (optional) list of PhaseProperty (one by phase)
+    :param check_derivatives: (True by default) check the derivatives of the property
     """
     if functions is not None:
         messages.warning("overriding default viscosity functions")
@@ -34,6 +35,7 @@ def set_viscosity_functions(simulation, functions=None):
         "dynamic_viscosity",
         functions,
         register_c_property_module,
+        check_derivatives,
     )
 
 

@@ -6,12 +6,17 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 import numpy as np
+from .utils import property_sanity_check
 
 
 # register the phase properties in Python and Fortran
 # property_name = 'dynamic_viscosity' or 'molar_density'
 def register_property(
-    simulation, property_name, property_functions, register_c_property_module
+    simulation,
+    property_name,
+    property_functions,
+    register_c_property_module,
+    check_derivatives,
 ):
 
     n_phases = simulation.number_of_phases()
@@ -25,6 +30,10 @@ def register_property(
 
     for i, prop in enumerate(property_functions):
         simulation.fluid_mixture.register(property_name, i, prop)
+
+    if check_derivatives:
+        # use the vectorized functions
+        property_sanity_check(simulation, property_name)
 
     register_c_property_module.with_derivatives(
         *(
