@@ -17,8 +17,8 @@ dependencies:
 - cxx-compiler
 - fortran-compiler
 - pybind11
-- numpy
-- numba
+- numpy>=1.21
+- numba!=0.55.2
 - scipy
 - metis
 - openssh
