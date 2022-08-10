@@ -21,29 +21,17 @@ module LoisThermoHydroMSWells
 
 #else
 
-   use CommonMPI, only: commRank, CommonMPI_abort
-   use Thermodynamics, only: &
-#ifdef _THERMIQUE_
-      f_EnergieInterne, f_Enthalpie, &
-#endif
-      f_DensiteMolaire, f_DensiteMassique
+   use CommonMPI, only: commRank
    use DefModel, only: &
-      NbPhase, NbComp, IndThermique, LIQUID_PHASE, MCP, &
-      NbEqEquilibreMax, NbIncPTCMax, NbIncTotalPrimMax, &
-      NbIncTotalMax, NbEqFermetureMax, &
-      NbPhasePresente_ctx, NumPhasePresente_ctx
+      NbPhase, NbComp, IndThermique, &
+      NbIncTotalPrimMax
    use NumbyContext, only: &
-      NumCompEqEquilibre_ctx, Num2PhasesEqEquilibre_ctx, NumIncComp2NumIncPTC_ctx, &
-      NbEqEquilibre_ctx, NbEqFermeture_ctx, NumCompCtilde_ctx, &
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
-      NbCompCtilde_ctx, NbIncPTC_ctx, NbIncTotalPrim_ctx
+      NbIncPTC_ctx
    use IncCVReservoir, only: &
-      TYPE_IncCVReservoir, &
-      IncNode, IncCell, IncFrac, &
-      NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus
+      TYPE_IncCVReservoir
 
    use IncCVMSWells, only: &
-      TYPE_IncCVReservoir, &
       IncMSWell
 
    use IncPrimSecdMSWells, only: &
@@ -51,9 +39,8 @@ module LoisThermoHydroMSWells
       IncPrimSecdMSWell
 
    use MeshSchema, only: &
-      NbNodeLocal_Ncpus, &
-      NodebyMSWellLocal, NodeDatabyMSWellLocal, &
-      DataMSWellLocal, NbMSWellLocal_Ncpus
+      NodebyMSWellLocal, &
+      NbMSWellLocal_Ncpus
 
    use LoisThermoHydro, only: &
       ContextInfo, &
@@ -64,9 +51,7 @@ module LoisThermoHydroMSWells
       LoisThermoHydro_Inc_cv, &
       LoisThermoHydro_Saturation_cv, &
       LoisThermoHydro_EnergieInterne_cv, &
-      LoisThermoHydro_Enthalpie_cv, &
-      LoisThermoHydro_dfdX_ps, &
-      LoisThermoHydro_fill_gradient_dfdX
+      LoisThermoHydro_Enthalpie_cv
 #endif
 
    implicit none

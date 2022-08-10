@@ -9,18 +9,17 @@ module LeafMSWells
    use MeshSchema
    use VSHydroMSWells
 #else
-   use iso_c_binding, only: c_double, c_bool, c_int, c_char
+   use iso_c_binding, only: c_double, c_char
 
-   use CommonMPI, only: commRank, CommonMPI_abort
+   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
-      f_EnergieInterne, f_Enthalpie, &
+      f_Enthalpie, &
 #endif
-      f_Viscosity, f_DensiteMolaire, f_DensiteMassique
+      f_Viscosity, f_DensiteMolaire
    use DefModel, only: &
-      NbPhase, NbComp, IndThermique, &
-      NbEqEquilibreMax, NbIncPTCMax, NbIncTotalPrimMax, &
-      NbIncTotalMax, NbEqFermetureMax, &
+      NbPhase, NbComp, &
+      NbIncTotalPrimMax, &
       NbPhasePresente_ctx, NumPhasePresente_ctx
 
 #ifdef ComPASS_DIPHASIC_CONTEXT
@@ -28,18 +27,14 @@ module LeafMSWells
       GAS_PHASE, LIQUID_PHASE
 #endif
 
-   use mpi, only: MPI_Abort
-   use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
    use CommonType, only: CSR
-   use InteroperabilityStructures, only: cpp_array_wrapper
 
    use IncCVReservoir, only: &
-      TYPE_IncCVReservoir, IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx
+      NumPhasePresente_ctx, NbPhasePresente_ctx
 
    use MeshSchema, only: &
       XNodeLocal, &
       NodebyMSWellLocal, &
-      NodeDatabyMSWellLocal, &
       DataMSWellLocal, NbMSWellLocal_Ncpus
 
    use VSHydroMSWells, only: VSHydroMSWell
