@@ -62,7 +62,12 @@ class PhaseStateStruct:
 # contains lists with the phases properties
 class FluidMixtureProperties:
 
-    __property_names__ = ("dynamic_viscosity", "molar_density")
+    components_molar_mass = None
+    __property_names__ = (
+        "dynamic_viscosity",
+        "molar_density",
+        "volumetric_mass_density",
+    )
 
     def __init__(self, n_phases, n_components):
         self.n_components = n_components
@@ -83,6 +88,13 @@ class FluidMixtureProperties:
         if name in self.__property_names__:
             return tuple(self.properties[name])
         raise AttributeError(name)
+
+    def set_components_molar_mass(self, components_molar_mass):
+        if np.isscalar(components_molar_mass):
+            assert self.n_components == 1
+            self.components_molar_mass = np.array([components_molar_mass], dtype=float)
+        else:
+            self.components_molar_mass = np.asarray(components_molar_mass)
 
 
 class CompiledPhaseProperty:

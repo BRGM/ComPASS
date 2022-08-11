@@ -57,7 +57,7 @@ module DefFlashWells
       LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
    use Thermodynamics, only: &
       ! f_MolarDensity,
-      f_DensiteMassique, f_Enthalpie
+      f_VolumetricMassDensity, f_Enthalpie
    use MeshSchema, only: &
       DataWellInjLocal, &
       NodeDatabyWellInjLocal, &
@@ -558,8 +558,6 @@ contains
       bind(C, name="DefFlashWells_TimeFlash_producers_single_phase")
 
       double precision :: T, ResT, Pws, Ci(NbComp), sumni, E
-      double precision :: rhoMean
-      double precision :: dPf, dTf, dCf(NbComp) ! not used for now, empty passed to f_Enthalpie
       integer :: k, s
       logical :: converged
 
@@ -587,8 +585,7 @@ contains
 
             ! update PhysPerfoWell
             PerfoWellProd(s)%Temperature = T
-            call f_DensiteMassique(LIQUID_PHASE, Pws, T, Ci, rhoMean, dPf, dTf, dCf)
-            PerfoWellProd(s)%Density = rhoMean
+            PerfoWellProd(s)%Density = f_VolumetricMassDensity(LIQUID_PHASE, Pws, T, Ci)
 
          end do ! end of well k
       end do
@@ -601,8 +598,6 @@ contains
 
       double precision :: Tws, Pws, Sg, Sl
       double precision :: rhog, rhol, rho
-      ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, dCf(NbComp)
       integer :: s, sr
 
       do s = NodebyWellProdLocal%Pt(wk) + 1, NodebyWellProdLocal%Pt(wk)
@@ -616,11 +611,11 @@ contains
          PerfoWellProd(s)%Saturation = IncNode(sr)%Saturation
          rho = 0.d0
          if (Sg > 0) then
-            call f_DensiteMassique(GAS_PHASE, Pws, Tws, IncNode(sr)%Comp(:, GAS_PHASE), rhog, dPf, dTf, dCf)
+            rhog = f_VolumetricMassDensity(GAS_PHASE, Pws, Tws, IncNode(sr)%Comp(:, GAS_PHASE))
             rho = rho + Sg*rhog
          end if
          if (Sl > 0) then
-            call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, IncNode(sr)%Comp(:, LIQUID_PHASE), rhol, dPf, dTf, dCf)
+            rhol = f_VolumetricMassDensity(LIQUID_PHASE, Pws, Tws, IncNode(sr)%Comp(:, LIQUID_PHASE))
             rho = rho + Sl*rhol
          end if
          PerfoWellProd(s)%Density = rho
@@ -709,12 +704,12 @@ contains
                      print *, "Residue is", abs(ResT), "Well_idx= ", wk, "node_idx= ", s
                   end if
                   PerfoWellProd(s)%Temperature = Tws
-                  call f_DensiteMassique(ID_PHASE, Pws, Tws, Cw, PerfoWellProd(s)%Density, dPf, dTf, dCf)
+                  PerfoWellProd(s)%Density = f_VolumetricMassDensity(ID_PHASE, Pws, Tws, Cw)
                else ! perforation is diphasic
                   PerfoWellProd(s)%Temperature = Tws
                   ! molarFrac is not used in the computation of the massique densities
-                  call f_DensiteMassique(GAS_PHASE, Pws, Tws, Cw, rhog, dPf, dTf, dCf)
-                  call f_DensiteMassique(LIQUID_PHASE, Pws, Tws, Cw, rhol, dPf, dTf, dCf)
+                  rhog = f_VolumetricMassDensity(GAS_PHASE, Pws, Tws, Cw)
+                  rhol = f_VolumetricMassDensity(LIQUID_PHASE, Pws, Tws, Cw)
                   Sg = (xg/rhog)/((xg/rhog) + ((1.d0 - xg)/rhol))
                   Sl = 1.d0 - Sg
                   PerfoWellProd(s)%Density = Sl*rhol + Sg*rhog

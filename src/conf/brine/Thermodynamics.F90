@@ -17,7 +17,9 @@ module Thermodynamics
    use DefModel, only: NbPhase, NbComp, IndThermique
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      ! FIXME #51 f_VolumetricMassDensity = f_MolarDensity
       f_MolarDensity_with_derivatives, f_MolarDensity, &
+      f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
 #ifndef NDEBUG
@@ -28,7 +30,6 @@ module Thermodynamics
 
    public :: &
       f_Fugacity, & ! Fugacity (raises error because single phase)
-      f_DensiteMassique, & ! \rho^alpha(P,T,C)
       f_EnergieInterne, &
       f_Enthalpie
 
@@ -54,20 +55,6 @@ contains
 #endif
 
    end subroutine f_Fugacity
-
-   ! FIXME #51 densite massique
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_DensiteMassique(iph, P, T, C, f, dPf, dTf, dCf)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: P, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      call f_MolarDensity_with_derivatives(iph, P, T, C, f, dPf, dTf, dCf)
-
-   end subroutine f_DensiteMassique
 
    ! EnergieInterne
    !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE

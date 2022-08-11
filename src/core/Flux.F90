@@ -31,7 +31,7 @@ module Flux
       NodebyCellLocal, FracbyCellLocal, NodebyFaceLocal, &
       FracToFaceLocal, FaceToFracLocal, XNodeLocal, XFaceLocal, XCellLocal
 
-   use Thermodynamics, only: f_DensiteMassique
+   use Thermodynamics, only: f_VolumetricMassDensity
 
    implicit none
 
@@ -137,7 +137,7 @@ contains
       double precision, intent(out) :: rho(NbPhase)
 
       integer :: k
-      double precision :: rhoext, dP, dT, dC(NbComp)
+      double precision :: rhoext
 
       rho = 0.d0
 
@@ -147,13 +147,13 @@ contains
                rho(k) = 0.5*(rho1(k) + rho2(k))
             else
                ! FIXME: how to use phase pressure?
-               call f_DensiteMassique(k, X2%Pression, X2%Temperature, X2%Comp, rhoext, dP, dT, dC)
+               rhoext = f_VolumetricMassDensity(k, X2%Pression, X2%Temperature, X2%Comp(:, k))
                rho(k) = 0.5*(rho1(k) + rhoext)
             endif
          else
             if (phase_can_be_present(k, X2%ic)) then
                ! FIXME: how to use phase pressure?
-               call f_DensiteMassique(k, X1%Pression, X1%Temperature, X1%Comp, rhoext, dP, dT, dC)
+               rhoext = f_VolumetricMassDensity(k, X1%Pression, X1%Temperature, X1%Comp(:, k))
                rho(k) = 0.5*(rhoext + rho2(k))
             endif
          endif

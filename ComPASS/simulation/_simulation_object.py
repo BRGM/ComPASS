@@ -86,7 +86,11 @@ class Simulation:
         well_data_provider = partial(get_wellhead, self)
         self.__dict__["base"] = SimmulationBase(kernel, well_data_provider)
         self.set_viscosity_functions()
-        self.set_molar_density_functions()
+        self.set_molar_density_functions(
+            _update_volumetric_mass_density_functions=False
+        )
+        # also updates the volumetric mass density functions
+        self.set_components_molar_mass()
 
     def __setattr__(self, name, value):
         setattr(self.__dict__["base"], name, value)

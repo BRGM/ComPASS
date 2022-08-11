@@ -17,7 +17,8 @@ module LoisThermoHydro
       f_PartialMolarEnthalpy, &
 #endif
 #endif
-      f_Viscosity_with_derivatives, f_MolarDensity_with_derivatives, f_DensiteMassique
+      f_Viscosity_with_derivatives, f_MolarDensity_with_derivatives, &
+      f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity
 #ifdef ComPASS_WITH_diphasic_PHYSICS
    use DefModel, only: WATER_COMP, GAS_PHASE
 #endif
@@ -1322,7 +1323,7 @@ contains
       double precision, intent(out) :: Smval(NbPhase)
 
       integer :: i, iph, context, nb_phases
-      double precision :: dPf, dTf, dCf(NbComp), dSf(NbPhase)
+      double precision :: dfdP, dfdT, dfdC(NbComp), dfdS(NbPhase)
       double precision :: dfdX(NbIncTotalMax)
       double precision :: dfdX_secd(NbEqFermetureMax, NbPhase) !=NbEqFermetureMax
 
@@ -1335,12 +1336,12 @@ contains
       nb_phases = NbPhasePresente_ctx(context)
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
-         call f_DensiteMassique( &
-            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dPf, dTf, dCf)
-         dSf = 0.d0
-         dSf(iph) = dPf*dpadS(iph)
+         call f_VolumetricMassDensity_with_derivatives( &
+            iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), val(iph), dfdP, dfdT, dfdC)
+         dfdS = 0.d0
+         dfdS(iph) = dfdP*dpadS(iph)
          ! fill dfdX = (df/dP, df/dT, df/dC, df/dS) - iph because we use MCP
-         call LoisThermoHydro_fill_gradient_dfdX(context, iph, dPf, dTf, dCf, dSf, dfdX)
+         call LoisThermoHydro_fill_gradient_dfdX(context, iph, dfdP, dfdT, dfdC, dfdS, dfdX)
          ! fill dval with the derivatives w.r.t. the primary unknowns (dval=dfdX_prim)
          ! and dfdX_secd w.r.t. the secondary unknowns
          call LoisThermoHydro_dfdX_ps( &
@@ -2895,8 +2896,7 @@ contains
       M = 0.d0
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
-         call f_DensiteMassique( &
-            iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph), rho_iph, dPf, dTf, dCf)
+         rho_iph = f_VolumetricMassDensity(iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph))
          call f_Enthalpie( &
             iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph), h_iph, dPf, dTf, dCf)
          M = M + X%Saturation(iph)*rho_iph

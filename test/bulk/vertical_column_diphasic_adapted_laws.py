@@ -6,9 +6,6 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-import numpy as np
-import numba as nb
-
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.linalg.factory import linear_solver
@@ -37,6 +34,10 @@ viscosities = [0] * simulation.number_of_phases()
 viscosities[gas_index] = gas_water2ph_viscosities
 viscosities[liquid_index] = liquid_water2ph_viscosities
 simulation.set_viscosity_functions(viscosities)
+# Modify the mass density using the default molar density and
+# other molar masses
+molar_masses = [29.0e-3, 0.018016]
+simulation.set_components_molar_mass(molar_masses)
 
 grid = ComPASS.Grid(
     shape=(nx, ny, nz),

@@ -20,14 +20,15 @@ module Thermodynamics
       GAS_PHASE, LIQUID_PHASE
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
+      ! FIXME #51 f_VolumetricMassDensity = f_MolarDensity
       f_MolarDensity_with_derivatives, f_MolarDensity, &
+      f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
    public :: &
       f_Fugacity, & ! Fugacity
-      f_DensiteMassique, & ! \rho^alpha(P,T,C)
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
@@ -74,20 +75,6 @@ contains
       end if
 
    end subroutine f_Fugacity
-
-   ! FIXME #51 densite massique
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_DensiteMassique(iph, p, T, C, f, dfdP, dfdT, dfdC)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dfdP, dfdT, dfdC(NbComp)
-
-      call f_MolarDensity_with_derivatives(iph, P, T, C, f, dfdP, dfdT, dfdC)
-
-   end subroutine f_DensiteMassique
 
    ! EnergieInterne
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE

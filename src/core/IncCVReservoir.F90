@@ -33,7 +33,7 @@ module IncCVReservoir
       eps
 
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
-   use Thermodynamics, only: f_DensiteMassique
+   use Thermodynamics, only: f_VolumetricMassDensity
 
    implicit none
 
@@ -406,13 +406,13 @@ contains
       type(TYPE_IncCVReservoir), intent(in) :: inc
       real(c_double) :: rho
       integer :: m, mph
-      real(c_double) :: rhoph, drhodp, drhodT, drhodC(NbComp)
+      real(c_double) :: rhoph
 
       rho = 0.d0
       do m = 1, NbPhasePresente_ctx(inc%ic)
          mph = NumPhasePresente_ctx(m, inc%ic)
-         call f_DensiteMassique(mph, inc%phase_pressure(mph), inc%Temperature, &
-                                inc%Comp(:, mph), rhoph, drhodp, drhodT, drhodC)
+         rhoph = f_VolumetricMassDensity(mph, inc%phase_pressure(mph), inc%Temperature, &
+                                         inc%Comp(:, mph))
          rho = rho + rhoph*inc%Saturation(mph)
       end do
 

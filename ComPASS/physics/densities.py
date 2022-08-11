@@ -33,6 +33,19 @@ gas_diphasic_molar_densities = PhaseProperty(
 liquid_diphasic_molar_densities = constant_physical_property(1000.0 / 18.0e-3)
 
 
+def assert_diphasic_components_indexes(simulation):
+    air_component = int(simulation.Component.air) - 1
+    water_component = int(simulation.Component.water) - 1
+    # assumed in diphasic definition
+    assert air_component == 0
+    assert water_component == 1
+
+
+# M_H2O = 18.0e-3
+# M_air = 29.0e-3
+diphasic_components_molar_mass = [29.0e-3, 18.0e-3]
+
+
 def gas_water2ph_volumetric_mass_density_with_derivatives(X, dfdX):
     dfdX.molar_fractions.fill(0)
     # Z = 1.0  # CHECKME: ?

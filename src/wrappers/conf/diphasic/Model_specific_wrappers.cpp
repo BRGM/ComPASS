@@ -83,13 +83,9 @@ inline double cpp_liquid_dynamic_viscosity(
    return phase_dynamic_viscosity(Phase::liquid, p, T, C);
 }
 
-inline double specific_mass(const Phase &phase, const X &x) {
-   double rho, drhodp, drhodT;
-   Component_vector drhodC;
-   FluidThermodynamics_specific_mass(to_underlying(phase), x.p, x.T,
-                                     x.C[enum_to_rank(phase)].data(), rho,
-                                     drhodp, drhodT, drhodC.data());
-   return rho;
+inline double cpp_volumetric_mass_density(const Phase &phase, const X &x) {
+   return FluidThermodynamics_volumetric_mass_density(
+       to_underlying(phase), x.p, x.T, x.C[enum_to_rank(phase)].data());
 }
 
 inline double Psat(double T) {
@@ -271,7 +267,7 @@ Parameters
 
 )doc");
 
-   module.def("specific_mass", &specific_mass);
+   module.def("cpp_volumetric_mass_density", &cpp_volumetric_mass_density);
 
    module.def(
        "diphasic_equilibrium",

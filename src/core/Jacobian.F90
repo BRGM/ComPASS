@@ -2866,7 +2866,7 @@ contains
                rhsavrho2(k) = 0.5*rhsrho2(k)
             else
                ! FIXME: how to use phase pressure?
-               !    call f_DensiteMassique(k, X2%Pression, X2%Temperature, X2%Comp, rhoext, dP, dT, dC)
+               !    call f_VolumetricMassDensity_with_derivatives(k, X2%Pression, X2%Temperature, X2%Comp, rhoext, dP, dT, dC)
                davrhodXp1(:, k) = 0.5*drhodXp1(:, k)
                !   davrhodXp2(:, k) = 0.5*drhodXp2(:, k)
                rhsavrho1(k) = 0.5*rhsrho1(k)
@@ -2875,7 +2875,7 @@ contains
          else
             if (phase_can_be_present(k, X2%ic)) then
                ! FIXME: how to use phase pressure?
-               !    call f_DensiteMassique(k, X1%Pression, X1%Temperature, X1%Comp, rhoext, dP, dT, dC)
+               !    call f_VolumetricMassDensity_with_derivatives(k, X1%Pression, X1%Temperature, X1%Comp, rhoext, dP, dT, dC)
                ! davrhodXp1(:, k) = 0.5*drhodXp1(:, k)
                davrhodXp2(:, k) = 0.5*drhodXp2(:, k)
                !   rhsavrho1(k) = 0.5*rhsrho1(k)

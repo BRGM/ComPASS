@@ -76,7 +76,7 @@ module Residu
       NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
       SurfFreeFlowLocal
 
-   use Thermodynamics, only: f_DensiteMassique
+   use Thermodynamics, only: f_VolumetricMassDensity
 
    implicit none
 
@@ -277,7 +277,6 @@ contains
 
       integer :: iph, icp, alpha
       double precision :: sum_Mm, nablapn, rho(NbPhase)
-      real(c_double) :: dP, dT, dC(NbComp) ! dummy values
 
       ! FIXME: there should be no capillary pressure
 #ifndef NDEBUG
@@ -295,7 +294,7 @@ contains
       sum_Mm = 0.d0
       do iph = 1, NbPhasePresente_ctx(X%ic)
          alpha = NumPhasePresente_ctx(iph, X%ic)
-         call f_DensiteMassique(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp, rho(iph), dP, dT, dC)
+         rho(iph) = f_VolumetricMassDensity(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp)
          do icp = 1, NbComp
             if (MCP(icp, alpha) == 1) then
                nablapn = nablapn - nz*Mm(icp, alpha)*gravity

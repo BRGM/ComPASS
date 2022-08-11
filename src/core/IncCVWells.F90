@@ -30,7 +30,7 @@ module IncCVWells
    use DefModel, only: NbComp, NbPhase, LIQUID_PHASE
    use Physics, only: gravity
 
-   use Thermodynamics, only: f_DensiteMassique
+   use Thermodynamics, only: f_VolumetricMassDensity_with_derivatives
 
    use IncCVReservoir, only: IncNode, NumPhasePresente_ctx, NbPhasePresente_ctx, IncCVReservoir_compute_density
 
@@ -245,7 +245,7 @@ contains
       integer :: n
       real(c_double) :: Cfoo(NbComp)
       real(c_double) :: dz, rho, x
-      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy variables
+      real(c_double) :: dfdP, dfdT, dfdC(NbComp) ! dummy variables execpt dfdC
 
       p = p_p
       if (use_reservoir_temperature) then
@@ -254,14 +254,15 @@ contains
          T = T_p
       end if
       Cfoo = 0.d0
+      Cfoo(NbComp) = 1.d0
+#ifndef NDEBUG
+      if (NbComp .ne. 1) &
+         call CommonMPI_abort("We assume density does not depend on molar fractions, only true if NbComp=1.")
+#endif
       dz = (XNodeLocal(3, parent) - XNodeLocal(3, son))/Npiece
       do n = 1, Npiece
          x = (n - 1)/Npiece ! the last integration point is dz above s
-         call f_DensiteMassique(phase, p, x*T + (1.d0 - x)*T_p, Cfoo, rho, dPf, dTf, dCf)
-#ifndef NDEBUG
-         if (any(abs(dCf) > 0.d0)) &
-            call CommonMPI_abort("We assume density does not depend on molar fractions.")
-#endif
+         call f_VolumetricMassDensity_with_derivatives(phase, p, x*T + (1.d0 - x)*T_p, Cfoo, rho, dfdP, dfdT, dfdC)
          p = p + gravity*rho*dz
       end do
 

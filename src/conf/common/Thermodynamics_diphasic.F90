@@ -18,13 +18,13 @@ module Thermodynamics
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics_interface, only: &
       f_MolarDensity_with_derivatives, f_MolarDensity, &
+      f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
       f_Viscosity_with_derivatives, f_Viscosity
 
    implicit none
 
    public :: &
       f_Fugacity, &  !< Fugacity
-      f_DensiteMassique, &  !< \rho^alpha(P,T,C)
       air_Henry, &  !< Henry coef for air comp
       f_Fugacity_coefficient  !< Fugacity coefficient
 
@@ -145,31 +145,6 @@ contains
       H = H1 + (T - T1)*dHdT
 
    end subroutine
-
-   ! Massic density
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_DensiteMassique(iph, p, T, C, f, dfdP, dfdT, dfdC) &
-      bind(C, name="FluidThermodynamics_specific_mass")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dfdP, dfdT, dfdC(NbComp)
-
-      real(c_double) :: zeta, M
-      integer :: icp
-
-      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
-
-      M = MCP(AIR_COMP, iph)*M_air*C(AIR_COMP) + MCP(WATER_COMP, iph)*M_H2O*C(WATER_COMP)
-      f = zeta*M
-      dfdP = dfdP*M
-      dfdT = dfdT*M
-      dfdC(AIR_COMP) = dfdC(AIR_COMP)*M + zeta*MCP(AIR_COMP, iph)*M_air
-      dfdC(WATER_COMP) = dfdC(WATER_COMP)*M + zeta*MCP(WATER_COMP, iph)*M_H2O
-
-   end subroutine f_DensiteMassique
 
 #ifdef _THERMIQUE_
 

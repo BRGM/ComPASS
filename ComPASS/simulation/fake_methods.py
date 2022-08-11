@@ -68,9 +68,15 @@ from ..physics.physical_properties_wrappers import (
     liquid_molar_density,
     gas_molar_density,
     molar_density,
+    liquid_volumetric_mass_density,
+    gas_volumetric_mass_density,
+    volumetric_mass_density,
 )
 from ..physics.set_viscosity import set_viscosity_functions
-from ..physics.set_densities import set_molar_density_functions
+from ..physics.set_densities import (
+    set_molar_density_functions,
+    set_components_molar_mass,
+)
 
 from ..linalg.factory import linear_solver
 from ..newton import default_Newton
