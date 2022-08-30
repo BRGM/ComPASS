@@ -294,7 +294,7 @@ contains
       sum_Mm = 0.d0
       do iph = 1, NbPhasePresente_ctx(X%ic)
          alpha = NumPhasePresente_ctx(iph, X%ic)
-         rho(iph) = f_VolumetricMassDensity(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp)
+         rho(iph) = f_VolumetricMassDensity(alpha, X%phase_pressure(alpha), X%Temperature, X%Comp(:, alpha))
          do icp = 1, NbComp
             if (MCP(icp, alpha) == 1) then
                nablapn = nablapn - nz*Mm(icp, alpha)*gravity
