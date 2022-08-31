@@ -106,7 +106,7 @@ contains
       dPf = sc*dcwdp*(P - Psat) + sc*cw
       dTf = dscdT*(1.d0 + cw*(P - Psat)) + sc*(dcwdT*(P - Psat) - cw*dPsatdT)
       dCf(ComPASS_SALT_COMPONENT) = dscdCs*(1.d0 + cw*(P - Psat))
-      dCf(ComPASS_WATER_COMPONENT) = -dCf(ComPASS_SALT_COMPONENT)
+      dCf(ComPASS_WATER_COMPONENT) = 0.d0
 
    end subroutine f_DensiteMolaire
 
@@ -158,7 +158,7 @@ contains
       dPf = 0.d0
       dTf = -1.d-3*sc*(dnsdT/(ns**2))
       dCf(ComPASS_SALT_COMPONENT) = 1.d-3*(dscdCs)/ns
-      dCf(ComPASS_WATER_COMPONENT) = -dCf(ComPASS_SALT_COMPONENT)
+      dCf(ComPASS_WATER_COMPONENT) = 0.d0
 
    end subroutine f_Viscosite
 
