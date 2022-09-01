@@ -67,6 +67,7 @@ class FluidMixtureProperties:
         "dynamic_viscosity",
         "molar_density",
         "volumetric_mass_density",
+        "molar_enthalpy",
     )
 
     def __init__(self, n_phases, n_components):

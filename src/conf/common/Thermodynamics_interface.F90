@@ -30,6 +30,7 @@ module Thermodynamics_interface
    type(Law_with_derivatives_ptr), dimension(NbPhase) :: viscosity_with_derivatives
    type(Law_with_derivatives_ptr), dimension(NbPhase) :: molar_density_with_derivatives
    type(Law_with_derivatives_ptr), dimension(NbPhase) :: volumetric_mass_density_with_derivatives
+   type(Law_with_derivatives_ptr), dimension(NbPhase) :: molar_enthalpy_with_derivatives
 
    abstract interface
       function law(X) result(f)
@@ -46,6 +47,7 @@ module Thermodynamics_interface
    type(Law_ptr), dimension(NbPhase) :: viscosity
    type(Law_ptr), dimension(NbPhase) :: molar_density
    type(Law_ptr), dimension(NbPhase) :: volumetric_mass_density
+   type(Law_ptr), dimension(NbPhase) :: molar_enthalpy
 
 contains
 
@@ -162,5 +164,43 @@ contains
       call extract_from_Xalpha(dfdX, dfdP, dfdT, dfdC)
 
    end subroutine f_VolumetricMassDensity_with_derivatives
+
+   ! Phase molar enthalpy
+   !< iph is an identifier for each phase
+   !< P is the phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   function f_MolarEnthalpy(iph, p, T, C) result(f) &
+      bind(C, name="FluidThermodynamics_molar_enthalpy")
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double) :: f
+
+      ! use molar enthalpy defined in Python
+      f = molar_enthalpy(iph)%f(make_Xalpha(p, T, C))
+
+   end function f_MolarEnthalpy
+
+   ! Phase molar enthalpy and its derivatives
+   !< iph is an identifier for each phase
+   !< P is the phase Pressure
+   !< T is the Temperature
+   !< C is the phase molar fractions
+   subroutine f_MolarEnthalpy_with_derivatives(iph, p, T, C, f, dfdP, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_molar_enthalpy_with_derivatives")
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
+      real(c_double), intent(out), target :: f
+      type(Xalpha) :: dfdX
+
+      ! use molar enthalpy defined in Python
+      call molar_enthalpy_with_derivatives(iph)%f( &
+         make_Xalpha(p, T, C), c_loc(f), dfdX)
+      call extract_from_Xalpha(dfdX, dfdP, dfdT, dfdC)
+
+   end subroutine f_MolarEnthalpy_with_derivatives
 
 end module Thermodynamics_interface

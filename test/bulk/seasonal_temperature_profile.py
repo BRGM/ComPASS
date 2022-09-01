@@ -14,6 +14,7 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import FixedTimeStep
+from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
 
 
 p0 = 0.0 * bar  # dummy pressure no gravity
@@ -33,8 +34,9 @@ dz = H / nz
 
 simulation = ComPASS.load_eos("linear_water")
 simulation.set_rock_volumetric_heat_capacity(rhor * cpr)
-fluid_properties = simulation.get_fluid_properties()
-fluid_properties.volumetric_heat_capacity = rhor * cpr
+simulation.set_molar_enthalpy_functions(
+    build_pure_phase_enthalpy(volumetric_heat_capacity=rhor * cpr),
+)
 simulation.set_gravity(0)
 ComPASS.set_output_directory_and_logfile(__file__)
 

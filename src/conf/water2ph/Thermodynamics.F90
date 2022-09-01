@@ -23,7 +23,8 @@ module Thermodynamics
       ! FIXME #51 f_VolumetricMassDensity = f_MolarDensity
       f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
-      f_Viscosity_with_derivatives, f_Viscosity
+      f_Viscosity_with_derivatives, f_Viscosity, &
+      f_MolarEnthalpy_with_derivatives, f_MolarEnthalpy
 
    implicit none
 
@@ -31,8 +32,7 @@ module Thermodynamics
       f_Fugacity, & ! Fugacity
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
-      f_EnergieInterne, &
-      f_Enthalpie
+      f_EnergieInterne
 
 contains
 
@@ -81,82 +81,14 @@ contains
    !< P is the phase Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
+   subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      call f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf)
+      call f_MolarEnthalpy_with_derivatives(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_EnergieInterne
-
-   pure subroutine f_specific_enthalpy_gas(p, T, f, dPf, dTf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(out) :: f, dPf, dTf
-
-      real(c_double), parameter :: a = 1990.89d+3
-      real(c_double), parameter :: b = 190.16d+1
-
-      f = a + T*b
-      dPf = 0.d0
-      dTf = b
-
-   end subroutine f_specific_enthalpy_gas
-
-   pure subroutine f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(out) :: f, dPf, dTf
-
-      real(c_double), parameter :: a = -14.4319d+3
-      real(c_double), parameter :: b = 4.70915d+3
-      real(c_double), parameter :: cc = -4.87534d0
-      real(c_double), parameter :: d = 1.45008d-2
-      real(c_double), parameter :: T0 = 273.d0
-      real(c_double) :: TdegC
-
-      TdegC = T - T0
-      f = a + b*TdegC + cc*(TdegC**2) + d*(TdegC**3)
-      dPf = 0.d0
-      dTf = b + 2.d0*cc*TdegC + 3.d0*d*(TdegC**2)
-
-   end subroutine f_specific_enthalpy_liquid
-
-   ! Enthalpie
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   ! If Enthalpide depends on the compositon C, change DefFlash.F90
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_enthalpy")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-#ifndef NDEBUG
-      if (NbComp /= 1) &
-         call CommonMPI_abort("Specific enthalpy formulation is ok for a single component...")
-#endif
-
-      if (iph == GAS_PHASE) then
-         call f_specific_enthalpy_gas(p, T, f, dPf, dTf)
-      else if (iph == LIQUID_PHASE) then
-         call f_specific_enthalpy_liquid(p, T, f, dPf, dTf)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_Enthalpie')
-#endif
-      end if
-
-      dCf = 0.d0
-
-   end subroutine f_Enthalpie
 
    !< T is the Temperature
    pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &

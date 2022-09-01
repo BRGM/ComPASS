@@ -20,6 +20,7 @@ rhof = 1e3  # specific mass in kg/m^3
 cpf = 4200  # specific heat in J/kg/K
 rhofcpf = rhof * cpf  # volumetric heat capacity
 muf = 1e-3  # viscosity Pa.s
+# get_fluid_properties does not exist anymore, use set_property_functions
 fluid_properties = ComPASS.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.volumetric_heat_capacity = rhofcpf

@@ -37,7 +37,6 @@ g = 10.0
 simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
-fluid_properties = simulation.get_fluid_properties()
 simulation.set_molar_density_functions(
     build_pure_phase_volumetric_mass_density(specific_mass=rhow),
 )

@@ -12,6 +12,7 @@ from ComPASS.timeloops import standard_loop, TimeStepManager
 import numpy as np
 from ComPASS.physics.utils import constant_physical_property
 from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
+from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
 
 
 rhow = 1  # 1E3
@@ -42,9 +43,11 @@ if onecomp:
         simulation.lock_context(2)
 else:
     simulation = ComPASS.load_eos("water_with_tracer")
-fluid_properties = simulation.get_fluid_properties()
-fluid_properties.volumetric_heat_capacity = b
+
 simulation.set_rock_volumetric_heat_capacity(rhocp)
+simulation.set_molar_enthalpy_functions(
+    build_pure_phase_enthalpy(volumetric_heat_capacity=b),
+)
 simulation.set_molar_density_functions(
     build_pure_phase_volumetric_mass_density(specific_mass=rhow),
 )

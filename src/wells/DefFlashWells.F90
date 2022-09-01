@@ -57,7 +57,7 @@ module DefFlashWells
       LoisThermoHydro_divPrim_nodes, LoisThermoHydro_divP_wellinj
    use Thermodynamics, only: &
       ! f_MolarDensity,
-      f_VolumetricMassDensity, f_Enthalpie
+      f_VolumetricMassDensity, f_MolarEnthalpy
    use MeshSchema, only: &
       DataWellInjLocal, &
       NodeDatabyWellInjLocal, &
@@ -645,8 +645,7 @@ contains
       double precision :: Tws, Pws, xg, Sg, Sl, ResT
       double precision :: Hgas, Hliq, rhog, rhol
       double precision :: sumni, E
-      ! not used, empty passed to f_Enthalpie
-      double precision :: dPf, dTf, dP_Tsat, Cw(NbComp), dCf(NbComp)
+      double precision :: dP_Tsat, Cw(NbComp)
       integer :: wk, s, ID_PHASE ! ID_PHASE=(-1 if diphasique, GAS_PHASE if gas, LIQUID_PHASE if liq)
       logical :: converged
 
@@ -678,8 +677,8 @@ contains
                call FluidThermodynamics_Tsat(Pws, Tws, dP_Tsat)
                ! thus compute liq_molarfrac thanks to the energy, and the enthalpies
                ! molarFrac is not used in the computation of the enthalpies
-               call f_Enthalpie(GAS_PHASE, Pws, Tws, Cw, Hgas, dPf, dTf, dCf)
-               call f_Enthalpie(LIQUID_PHASE, Pws, Tws, Cw, Hliq, dPf, dTf, dCf)
+               Hgas = f_MolarEnthalpy(GAS_PHASE, Pws, Tws, Cw)
+               Hliq = f_MolarEnthalpy(LIQUID_PHASE, Pws, Tws, Cw)
 
                xg = (E/sumni - Hliq)/(Hgas - Hliq)
 

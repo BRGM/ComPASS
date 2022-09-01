@@ -51,7 +51,7 @@ module LoisThermoHydroMSWells
       LoisThermoHydro_Inc_cv, &
       LoisThermoHydro_Saturation_cv, &
       LoisThermoHydro_EnergieInterne_cv, &
-      LoisThermoHydro_Enthalpie_cv
+      LoisThermohydro_MolarEnthalpy_cv
 #endif
 
    implicit none
@@ -251,15 +251,15 @@ contains
                                              lois_thydro%SmEnergieInterne, &
                                              .true.) !Use absolute ordering
       ! Enthalpie
-      call LoisThermoHydro_Enthalpie_cv(inc, dpadS, ctxinfo, &
-                                        inc_primsecd%dXssurdXp, &
-                                        inc_primsecd%SmdXs, &
-                                        inc_primsecd%NumIncTotalPrimCV, &
-                                        inc_primsecd%NumIncTotalSecondCV, &
-                                        lois_thydro%Enthalpie, &
-                                        lois_thydro%divEnthalpie, &
-                                        lois_thydro%SmEnthalpie, &
-                                        .true.) !Use absolute ordering
+      call LoisThermohydro_MolarEnthalpy_cv(inc, dpadS, ctxinfo, &
+                                            inc_primsecd%dXssurdXp, &
+                                            inc_primsecd%SmdXs, &
+                                            inc_primsecd%NumIncTotalPrimCV, &
+                                            inc_primsecd%NumIncTotalSecondCV, &
+                                            lois_thydro%Enthalpie, &
+                                            lois_thydro%divEnthalpie, &
+                                            lois_thydro%SmEnthalpie, &
+                                            .true.) !Use absolute ordering
 #endif
 
    end subroutine LoisThermoHydroMSWells_compute_cv

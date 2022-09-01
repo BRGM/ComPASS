@@ -8,6 +8,7 @@ from ComPASS.physics.utils import constant_physical_property
 from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
 from ComPASS.utils.units import *
 from ComPASS.timestep_management import TimeStepManager
+from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
 
 #%% mesh
 
@@ -82,8 +83,9 @@ K_matrix = 2  # bulk thermal conductivity in W/m/K
 fracture_thickness = 0.005
 
 simulation = ComPASS.load_eos("linear_water")
-fluid_properties = simulation.get_fluid_properties()
-fluid_properties.volumetric_heat_capacity = rhofcpf
+simulation.set_molar_enthalpy_functions(
+    build_pure_phase_enthalpy(volumetric_heat_capacity=rhofcpf),
+)
 simulation.set_molar_density_functions(
     build_pure_phase_volumetric_mass_density(
         specific_mass=rhof,

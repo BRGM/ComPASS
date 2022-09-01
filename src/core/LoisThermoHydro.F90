@@ -12,7 +12,7 @@ module LoisThermoHydro
    use CommonMPI, only: commRank, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
-      f_EnergieInterne, f_Enthalpie, &
+      f_EnergieInterne, f_MolarEnthalpy, f_MolarEnthalpy_with_derivatives, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       f_PartialMolarEnthalpy, &
 #endif
@@ -287,7 +287,7 @@ module LoisThermoHydro
 
    public :: &
       LoisThermoHydro_EnergieInterne_cv, & !  Enthalpie
-      LoisThermoHydro_Enthalpie_cv
+      LoisThermohydro_MolarEnthalpy_cv
 #endif
 
 contains
@@ -660,9 +660,9 @@ contains
                                                 EnergieInterne, divEnergieInterne, SmEnergieInterne)
 
          ! Enthalpie
-         call LoisThermoHydro_Enthalpie_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
-                                           NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                           Enthalpie, divEnthalpie, SmEnthalpie)
+         call loisthermohydro_MolarEnthalpy_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
+                                               NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+                                               Enthalpie, divEnthalpie, SmEnthalpie)
 
          ! term: DensiteMolaire * Energieinterne * Saturation
          call LoisThermoHydro_DensiteMolaireEnergieInterneSat_cv( &
@@ -812,7 +812,8 @@ contains
          !       liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
          call LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv(inc(k), ctxinfo, &
                                                                 divFreeFlowMolarFlowrate(:, :, k), SmFreeFlowMolarFlowrate(:, k), &
-                                                            PartialMolarEnthalpy, divPartialMolarEnthalpy, SmPartialMolarEnthalpy, &
+                                                                PartialMolarEnthalpy, &
+                                                                divPartialMolarEnthalpy, SmPartialMolarEnthalpy, &
                                                                 divComp, SmComp, &
                                                                 FreeFlowMolarFlowrateEnthalpie(:, k), &
                                                                 divFreeFlowMolarFlowrateEnthalpie(:, :, k), &
@@ -1837,8 +1838,8 @@ contains
 
    end subroutine LoisThermoHydro_EnergieInterne_cv
 
-   subroutine LoisThermoHydro_Enthalpie_cv(inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
-                                           NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
+   subroutine LoisThermohydro_MolarEnthalpy_cv(inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
+                                               NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval, use_abs_ordering)
 
       type(TYPE_IncCVReservoir), intent(in)  :: inc
       real(c_double), intent(in) :: dpadS(NbPhase)
@@ -1880,7 +1881,7 @@ contains
          else
             idx = i
          endif
-         call f_Enthalpie(iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
+         call f_MolarEnthalpy_with_derivatives(iph, inc%phase_pressure(iph), inc%Temperature, inc%Comp(:, iph), f, dPf, dTf, dCf)
          dSf = 0.d0
          dSf(iph) = dPf*dpadS(iph)
          val(idx) = f ! val
@@ -1896,7 +1897,7 @@ contains
          ctxinfo%NbIncTotalPrim, ctxinfo%NbEqFermeture, NbPhase, &
          dXssurdXp, dfdX_secd, dval, SmdXs, Smval)
 
-   end subroutine LoisThermoHydro_Enthalpie_cv
+   end subroutine LoisThermohydro_MolarEnthalpy_cv
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    ! Partial molar enthalpy
@@ -2562,9 +2563,9 @@ contains
                                               Viscosite, dP_Viscosite, dTf, dCf)
 
 #ifdef _THERMIQUE_
-            ! Enthalpie
-            call f_Enthalpie(LIQUID_PHASE, Pws, Tw, Cw, &
-                             Enthalpie, dP_Enthalpie, dTf, dCf)
+            ! Enthalpy
+            call f_MolarEnthalpy_with_derivatives(LIQUID_PHASE, Pws, Tw, Cw, &
+                                                  Enthalpie, dP_Enthalpie, dTf, dCf)
 #endif
 
             do i = 1, NbComp
@@ -2888,7 +2889,6 @@ contains
 
       integer :: context, nb_phases, i, iph
       real(c_double) :: rho_iph, h_iph, H, M
-      real(c_double) :: dPf, dTf, dCf(NbComp) ! not used
 
       context = X%ic
       nb_phases = NbPhasePresente_ctx(context)
@@ -2897,8 +2897,8 @@ contains
       do i = 1, nb_phases
          iph = NumPhasePresente_ctx(i, context)
          rho_iph = f_VolumetricMassDensity(iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph))
-         call f_Enthalpie( &
-            iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph), h_iph, dPf, dTf, dCf)
+         h_iph = f_MolarEnthalpy( &
+                 iph, X%phase_pressure(iph), X%Temperature, X%Comp(:, iph))
          M = M + X%Saturation(iph)*rho_iph
          H = H + X%Saturation(iph)*rho_iph*h_iph
       end do

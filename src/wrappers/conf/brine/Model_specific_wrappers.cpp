@@ -17,8 +17,6 @@ static_assert(ComPASS_NUMBER_OF_CONTEXTS == 1, "Wrong number of contexts.");
 // FIXME: assuming liquid phase is the latest phase
 constexpr int LIQUID_PHASE = 0;
 
-using fluid_property = decltype(FluidThermodynamics_molar_enthalpy);
-
 void init_model() {
    py::print();
    py::print();
@@ -51,25 +49,16 @@ inline X build_state(double p, double T, double Cs) {
    return result;
 }
 
-inline double compute_property(fluid_property f, double p, double T,
-                               double Cs) {
-   double prop, dpropdp, dpropdT;
-   auto state = build_state(p, T, Cs);
-   X::Model::Phase_component_matrix dpropdC;
-   X::Model::Phase_vector dpropdS;
-   f(ComPASS_SINGLE_PHASE, state.p, state.T, state.C.data()->data(), prop,
-     dpropdp, dpropdT, dpropdC.data()->data());
-   return prop;
-}
-
 inline double cpp_molar_density(double p, double T, double Cs) {
    auto state = build_state(p, T, Cs);
    return FluidThermodynamics_molar_density(ComPASS_SINGLE_PHASE, state.p,
                                             state.T, state.C.data()->data());
 }
 
-inline double molar_enthalpy(double p, double T, double Cs) {
-   return compute_property(FluidThermodynamics_molar_enthalpy, p, T, Cs);
+inline double cpp_molar_enthalpy(double p, double T, double Cs) {
+   auto state = build_state(p, T, Cs);
+   return FluidThermodynamics_molar_enthalpy(ComPASS_SINGLE_PHASE, state.p,
+                                             state.T, state.C.data()->data());
 }
 
 inline double cpp_dynamic_viscosity(double p, double T, double Cs) {
@@ -102,7 +91,7 @@ void add_specific_model_wrappers(py::module &module) {
         Brine dynamic visosity
 
         )doc"));
-   module.def("molar_enthalpy", py::vectorize(molar_enthalpy),
+   module.def("cpp_molar_enthalpy", py::vectorize(cpp_molar_enthalpy),
               help_add_parameters(R"doc(
         Brine molar enthalpy
 

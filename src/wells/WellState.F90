@@ -16,7 +16,7 @@ module WellState
    use LoisThermoHydro, only: &
       DensitemolaireKrViscoCompNode, &
       DensitemolaireKrViscoEnthalpieNode
-   use Thermodynamics, only: f_Enthalpie
+   use Thermodynamics, only: f_MolarEnthalpy_with_derivatives
    use MeshSchema, only: NodeDatabyWellProdLocal
    use IncPrimSecd, only: IncPrimSecd_compPrim_nodes
 
@@ -164,7 +164,7 @@ contains
       converged = .false.
       ResT = 1E+10
       do i = 1, newton_itermax
-         call f_Enthalpie(Phase, p, T, Ci, H, dHdP, dHdT, dHdC)
+         call f_MolarEnthalpy_with_derivatives(Phase, p, T, Ci, H, dHdP, dHdT, dHdC)
          ResT = E - H*n ! residual
          if (abs(ResT) < newton_tol) then
             converged = .true.

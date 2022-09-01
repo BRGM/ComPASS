@@ -5,34 +5,9 @@
 #include "StateObjects.h"
 #include "Thermodynamics.h"
 
-struct Fluid_properties {
-   double volumetric_heat_capacity;
-};
-
-// Fortran functions
-extern "C" {
-Fluid_properties *get_fluid_properties();
-}
-
-void init_model() {
-   auto properties = get_fluid_properties();
-   properties->volumetric_heat_capacity = 1;
-}
+void init_model() {}
 
 void finalize_model() {}
-
-template <typename Function>
-inline double call_physical_subroutine(Function function, double p, double T) {
-   constexpr int NC = ComPASS_NUMBER_OF_COMPONENTS;
-   constexpr int NP = ComPASS_NUMBER_OF_PHASES;
-   static_assert(NC == 1, "we assume there is only one component");
-   static_assert(NP == 1, "we assume there is only one phase");
-   double f, dfdp, dfdT;
-   double C[NC] = {1};
-   double dfdC[NC] = {0};
-   function(1, p, T, C, f, dfdp, dfdT, dfdC);
-   return f;
-}
 
 template <typename Function>
 inline double call_physical_function(Function function, double p, double T) {
@@ -48,8 +23,8 @@ inline double cpp_molar_density(double p, double T) {
    return call_physical_function(FluidThermodynamics_molar_density, p, T);
 }
 
-inline double molar_enthalpy(double p, double T) {
-   return call_physical_subroutine(FluidThermodynamics_molar_enthalpy, p, T);
+inline double cpp_molar_enthalpy(double p, double T) {
+   return call_physical_function(FluidThermodynamics_molar_enthalpy, p, T);
 }
 
 inline double cpp_dynamic_viscosity(double p, double T) {
@@ -57,17 +32,10 @@ inline double cpp_dynamic_viscosity(double p, double T) {
 }
 
 void add_specific_model_wrappers(py::module &module) {
-   py::class_<Fluid_properties>(module, "FluidProperties")
-       .def_readwrite("volumetric_heat_capacity",
-                      &Fluid_properties::volumetric_heat_capacity);
-
-   module.def("get_fluid_properties", &get_fluid_properties,
-              py::return_value_policy::reference);
-
    // provided mainly for consistency... we are filling arrays with constant
    // scalars...
    module.def("cpp_molar_density", py::vectorize(cpp_molar_density));
-   module.def("molar_enthalpy", py::vectorize(molar_enthalpy));
+   module.def("cpp_molar_enthalpy", py::vectorize(cpp_molar_enthalpy));
    module.def("cpp_dynamic_viscosity", py::vectorize(cpp_dynamic_viscosity));
 
    py::enum_<Component>(module, "Component")

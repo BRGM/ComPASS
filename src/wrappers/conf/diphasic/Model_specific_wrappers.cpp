@@ -49,20 +49,17 @@ inline double cpp_gas_molar_density(
 
 inline double phase_molar_enthalpy(const Phase &phase, double p, double T,
                                    py::array_t<double, py::array::c_style> &C) {
-   double h, dhdp, dhdT;
-   Component_vector dhdC;
-   FluidThermodynamics_molar_enthalpy(to_underlying(phase), p, T, C.data(), h,
-                                      dhdp, dhdT, dhdC.data());
-   return h;
+   return FluidThermodynamics_molar_enthalpy(to_underlying(phase), p, T,
+                                             C.data());
 }
 
-inline double liquid_molar_enthalpy(
+inline double cpp_liquid_molar_enthalpy(
     double p, double T, py::array_t<double, py::array::c_style> &C) {
    return phase_molar_enthalpy(Phase::liquid, p, T, C);
 }
 
-inline double gas_molar_enthalpy(double p, double T,
-                                 py::array_t<double, py::array::c_style> &C) {
+inline double cpp_gas_molar_enthalpy(
+    double p, double T, py::array_t<double, py::array::c_style> &C) {
    return phase_molar_enthalpy(Phase::gas, p, T, C);
 }
 
@@ -101,8 +98,9 @@ inline double Tsat(double p) {
 }
 
 void add_specific_model_wrappers(py::module &module) {
-   module.def("liquid_molar_enthalpy", py::vectorize(liquid_molar_enthalpy));
-   module.def("gas_molar_enthalpy", py::vectorize(gas_molar_enthalpy));
+   module.def("cpp_liquid_molar_enthalpy",
+              py::vectorize(cpp_liquid_molar_enthalpy));
+   module.def("cpp_gas_molar_enthalpy", py::vectorize(cpp_gas_molar_enthalpy));
    module.def("cpp_liquid_molar_density",
               py::vectorize(cpp_liquid_molar_density));
    module.def("cpp_gas_molar_density", py::vectorize(cpp_gas_molar_density));

@@ -18,7 +18,8 @@ module Thermodynamics
       ! FIXME #51 f_VolumetricMassDensity = f_MolarDensity
       f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
-      f_Viscosity_with_derivatives, f_Viscosity
+      f_Viscosity_with_derivatives, f_Viscosity, &
+      f_MolarEnthalpy_with_derivatives, f_MolarEnthalpy
 
 #ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
@@ -26,30 +27,11 @@ module Thermodynamics
 
    implicit none
 
-   !isobar thermal expansivity (K-1) and isothermal compressibility (Pa-1)
-   type, bind(c) :: fluid_properties_type
-      real(c_double) :: volumetric_heat_capacity
-   end type
-
-   ! OPTIMIZE: is there a loss of performance uing the target keyword?
-   type(fluid_properties_type), target :: fluid_properties
-
    public :: &
-      get_fluid_properties, &
       f_Fugacity, & ! Fugacity (raises error because single phase)
-      f_EnergieInterne, &
-      f_Enthalpie
+      f_EnergieInterne
 
 contains
-
-   function get_fluid_properties() result(properties_p) &
-      bind(C, name="get_fluid_properties")
-
-      type(c_ptr) :: properties_p
-
-      properties_p = c_loc(fluid_properties)
-
-   end function get_fluid_properties
 
    ! Fugacity coefficients
    !< icp component identifier
@@ -83,35 +65,8 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      call f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf)
+      call f_MolarEnthalpy_with_derivatives(iph, P, T, C, f, dPf, dTf, dCf)
 
    end subroutine f_EnergieInterne
-
-   subroutine f_enthalpy_proxy(T, f, dTf)
-      real(c_double), value, intent(in) :: T
-      real(c_double), intent(out) :: f, dTf
-
-      f = fluid_properties%volumetric_heat_capacity*T
-      dTf = fluid_properties%volumetric_heat_capacity
-
-   end subroutine f_enthalpy_proxy
-
-   ! Enthalpie
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-   subroutine f_Enthalpie(iph, P, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_enthalpy")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      call f_enthalpy_proxy(T, f, dTf)
-      dPf = 0.d0
-      dCf = 0.d0
-
-   end subroutine f_Enthalpie
 
 end module Thermodynamics

@@ -26,6 +26,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
+from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
 
 p_reservoir = 0  # no flow - linear water eos
 Tleft, Tright = 33.0, 5.0  # K or deg C no matter
@@ -49,8 +50,9 @@ simulation = ComPASS.load_eos("linear_water")
 simulation.set_gravity(0)
 rhocp = rho_reservoir * cp_reservoir
 simulation.set_rock_volumetric_heat_capacity(rhocp)
-fluid_properties = simulation.get_fluid_properties()
-fluid_properties.volumetric_heat_capacity = rhocp
+simulation.set_molar_enthalpy_functions(
+    build_pure_phase_enthalpy(volumetric_heat_capacity=rhocp),
+)
 
 nb_steps = int(L / ds) + 1
 shape = [

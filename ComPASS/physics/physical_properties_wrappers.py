@@ -10,7 +10,7 @@ from .utils import property_sanity_check
 
 
 # register the phase properties in Python and Fortran
-# property_name = 'dynamic_viscosity' or 'molar_density'
+# property_name = 'dynamic_viscosity', 'molar_density', 'mass_density' or 'molar_enthalpy'
 def register_property(
     simulation,
     property_name,
@@ -160,3 +160,28 @@ def liquid_dynamic_viscosity(simulation, pressure, temperature, molar_fractions=
     iph = simulation.phase_index(simulation.Phase.liquid)
     X = simulation.Xalpha(pressure, temperature, molar_fractions)
     return phase_property(simulation, "dynamic_viscosity", iph, X)
+
+
+# brine : salt_molar_fraction is a scalar
+# linear_water : salt_molar_fraction is missing
+def molar_enthalpy(simulation, pressure, temperature, salt_molar_fraction=None):
+    iph = simulation.phase_index(simulation.Phase.single_phase)
+    molar_fractions = build_molar_fractions(simulation, salt_molar_fraction)
+    X = simulation.Xalpha(pressure, temperature, molar_fractions)
+    return phase_property(simulation, "molar_enthalpy", iph, X)
+
+
+# diphasic, immiscible2ph : molar_fractions is a vector
+# water2ph : molar_fractions is absent
+def gas_molar_enthalpy(simulation, pressure, temperature, molar_fractions=None):
+    iph = simulation.phase_index(simulation.Phase.gas)
+    X = simulation.Xalpha(pressure, temperature, molar_fractions)
+    return phase_property(simulation, "molar_enthalpy", iph, X)
+
+
+# diphasic, immiscible2ph : molar_fractions is a vector
+# water2ph : molar_fractions is absent
+def liquid_molar_enthalpy(simulation, pressure, temperature, molar_fractions=None):
+    iph = simulation.phase_index(simulation.Phase.liquid)
+    X = simulation.Xalpha(pressure, temperature, molar_fractions)
+    return phase_property(simulation, "molar_enthalpy", iph, X)

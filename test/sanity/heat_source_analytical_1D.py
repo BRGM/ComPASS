@@ -12,6 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.physics.utils import constant_physical_property
 from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
+from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
 from ComPASS.timeloops import standard_loop
 
 import MeshTools as MT
@@ -29,8 +30,9 @@ def u(pts):
 simulation = ComPASS.load_eos("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
-fluid_properties = simulation.get_fluid_properties()
-fluid_properties.volumetric_heat_capacity = 1.0
+simulation.set_molar_enthalpy_functions(
+    build_pure_phase_enthalpy(volumetric_heat_capacity=1.0),
+)
 simulation.set_rock_volumetric_heat_capacity(1.0)
 simulation.set_molar_density_functions(
     build_pure_phase_volumetric_mass_density(

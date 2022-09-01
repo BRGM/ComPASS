@@ -19,7 +19,8 @@ module Thermodynamics
    use Thermodynamics_interface, only: &
       f_MolarDensity_with_derivatives, f_MolarDensity, &
       f_VolumetricMassDensity_with_derivatives, f_VolumetricMassDensity, &
-      f_Viscosity_with_derivatives, f_Viscosity
+      f_Viscosity_with_derivatives, f_Viscosity, &
+      f_MolarEnthalpy_with_derivatives, f_MolarEnthalpy
 
    implicit none
 
@@ -31,7 +32,6 @@ module Thermodynamics
 #ifdef _THERMIQUE_
    public :: &
       f_EnergieInterne, &
-      f_Enthalpie, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       f_PartialMolarEnthalpy, &
 #endif
@@ -148,7 +148,7 @@ contains
 
 #ifdef _THERMIQUE_
 
-   ! Internal energy = enthalpie - Pressure (here everything is volumic)
+   ! Molar internal energy = molar enthalpy - Pressure/molar density
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
@@ -162,7 +162,7 @@ contains
       real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
       real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp)
 
-      call f_Enthalpie(iph, p, T, C, enth, denthdP, denthdT, denthdC)
+      call f_MolarEnthalpy_with_derivatives(iph, p, T, C, enth, denthdP, denthdT, denthdC)
       call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
       f = enth - p/zeta
       paovzeta2 = p/(zeta**2)
@@ -172,6 +172,7 @@ contains
 
    end subroutine f_EnergieInterne
 
+#ifdef _WITH_FREEFLOW_STRUCTURES_
    pure subroutine f_gas_partial_molar_enthalpy(p, T, f, dPf, dTf)
       real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
@@ -198,24 +199,7 @@ contains
 
    end subroutine f_gas_partial_molar_enthalpy
 
-   pure subroutine f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
-
-      call f_gas_partial_molar_enthalpy(p, T, fspec, dfspecdP, dfspecdT)
-
-      f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
-      dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
-      dTf = dfspecdT(AIR_COMP)*C(AIR_COMP) + dfspecdT(WATER_COMP)*C(WATER_COMP)
-      dCf(AIR_COMP) = fspec(AIR_COMP)
-      dCf(WATER_COMP) = fspec(WATER_COMP)
-
-   end subroutine f_gas_enthalpy
-
-   pure subroutine f_liquid_enthalpy(p, T, C, f, dPf, dTf, dCf)
+   pure subroutine f_liquid_molar_enthalpy(p, T, C, f, dPf, dTf, dCf)
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
@@ -236,41 +220,13 @@ contains
       dTf = dTss*M_H2O
       dCf = 0.d0
 
-   end subroutine f_liquid_enthalpy
-
-   ! Enthalpie
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   !< C is the phase molar fractions
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_Enthalpie(iph, p, T, C, f, dPf, dTf, dCf) &
-      bind(C, name="FluidThermodynamics_molar_enthalpy")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      if (iph == GAS_PHASE) then
-         call f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
-      else if (iph == LIQUID_PHASE) then
-         call f_liquid_enthalpy(p, T, C, f, dPf, dTf, dCf)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort("Unknow phase in f_Enthalpie.")
-#endif
-      endif
-
-   end subroutine f_Enthalpie
+   end subroutine f_liquid_molar_enthalpy
 
    ! Partial Molar Enthalpy (used in FreeFlow)
    ! each phase contains an array : [h_i^\alpha, i in Comp]
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
-#ifdef _WITH_FREEFLOW_STRUCTURES_
 #ifdef NDEBUG
    pure &
 #endif
@@ -291,7 +247,7 @@ contains
          f = 0.d0
          dPf = 0.d0
          dTf = 0.d0
-         call f_liquid_enthalpy(p, T, C, f(WATER_COMP), dPf(WATER_COMP), dTf(WATER_COMP), dCf)
+         call f_liquid_molar_enthalpy(p, T, C, f(WATER_COMP), dPf(WATER_COMP), dTf(WATER_COMP), dCf)
 #ifndef NDEBUG
       else
          call CommonMPI_abort("Unknow phase in f_PartialMolarEnthalpy.")

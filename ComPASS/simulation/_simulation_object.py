@@ -91,6 +91,7 @@ class Simulation:
         )
         # also updates the volumetric mass density functions
         self.set_components_molar_mass()
+        self.set_molar_enthalpy_functions()
 
     def __setattr__(self, name, value):
         setattr(self.__dict__["base"], name, value)

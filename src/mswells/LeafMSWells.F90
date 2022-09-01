@@ -14,7 +14,7 @@ module LeafMSWells
    use CommonMPI, only: commRank, ComPASS_COMM_WORLD, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
-      f_Enthalpie, &
+      f_MolarEnthalpy, &
 #endif
       f_Viscosity, f_MolarDensity
    use DefModel, only: &
@@ -187,7 +187,6 @@ contains
 
       integer :: leaf_data_idx_s, nbwells, k, s
       real(c_double) ::  hgas, hliq, zgas, zliquid
-      real(c_double) ::  dPf, dTf, dCf(NbComp)
 
       real(c_double) ::  PwIn, TwIn, VslIn, VsgIn, PRes, WIP
       real(c_double) ::  sgas, sliq, viscogas, viscoliq, Tliq, Tgas, Th20, Ten
@@ -256,18 +255,16 @@ contains
                                    LeafDataMSWell(leaf_data_idx_s)%Pression, &
                                    LeafDataMSWell(leaf_data_idx_s)%Temperature, &
                                    LeafDataMSWell(leaf_data_idx_s)%Comp)
-            ! enthalpie
-            call f_Enthalpie(LIQUID_PHASE, &
-                             LeafDataMSWell(leaf_data_idx_s)%Pression, &
-                             LeafDataMSWell(leaf_data_idx_s)%Temperature, &
-                             LeafDataMSWell(leaf_data_idx_s)%Comp, &
-                             hliq, dPf, dTf, dCf)
+            ! enthalpy
+            hliq = f_MolarEnthalpy(LIQUID_PHASE, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Pression, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Temperature, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Comp)
 
-            call f_Enthalpie(GAS_PHASE, &
-                             LeafDataMSWell(leaf_data_idx_s)%Pression, &
-                             LeafDataMSWell(leaf_data_idx_s)%Temperature, &
-                             LeafDataMSWell(leaf_data_idx_s)%Comp, &
-                             hgas, dPf, dTf, dCf)
+            hgas = f_MolarEnthalpy(GAS_PHASE, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Pression, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Temperature, &
+                                   LeafDataMSWell(leaf_data_idx_s)%Comp)
 
             sliq = 1.d0 - sgas
             Tgas = zgas/viscogas*sgas

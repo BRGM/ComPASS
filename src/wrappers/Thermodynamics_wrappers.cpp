@@ -30,6 +30,8 @@ void register_c_volumetric_mass_densities_with_derivatives(
     decltype(phy_prop_d));
 void register_c_volumetric_mass_densities_without_derivatives(
     decltype(phy_prop));
+void register_c_molar_enthalpies_with_derivatives(decltype(phy_prop_d));
+void register_c_molar_enthalpies_without_derivatives(decltype(phy_prop));
 }
 
 void add_physical_properties_wrappers(py::module &module) {
@@ -95,4 +97,25 @@ void add_physical_properties_wrappers(py::module &module) {
           }
           register_c_volumetric_mass_densities_without_derivatives(phy_prop);
        });
+   module.def(
+       "register_c_molar_enthalpies_with_derivatives", [](py::args args) {
+          if (py::len(args) != ComPASS_NUMBER_OF_PHASES)
+             throw std::runtime_error("wrong number of phases");
+          for (std::size_t k = 0; k < ComPASS_NUMBER_OF_PHASES; ++k) {
+             phy_prop_d[k] =
+                 reinterpret_cast<Physical_property_with_derivatives_ptr>(
+                     args[k].cast<std::uintptr_t>());
+          }
+          register_c_molar_enthalpies_with_derivatives(phy_prop_d);
+       });
+   module.def("register_c_molar_enthalpies_without_derivatives",
+              [](py::args args) {
+                 if (py::len(args) != ComPASS_NUMBER_OF_PHASES)
+                    throw std::runtime_error("wrong number of phases");
+                 for (std::size_t k = 0; k < ComPASS_NUMBER_OF_PHASES; ++k) {
+                    phy_prop[k] = reinterpret_cast<Physical_property_ptr>(
+                        args[k].cast<std::uintptr_t>());
+                 }
+                 register_c_molar_enthalpies_without_derivatives(phy_prop);
+              });
 }
