@@ -40,6 +40,118 @@ You can retrieve global properties using the corresponding `get_*` functions, e.
     the :func:`simulation.init <ComPASS.simulation.base.init>` method
     that will distribute all properties to the partitioned mesh.
 
+Fluid physical properties
+-------------------------
+
+Part of the fluid properties can be adapted:
+  - the molar density and the components molar mass,
+  - the viscosity,
+  - the enthalpy.
+
+You can choose one of the property already defined (carreful that the
+phase.s and component.s are compatible) or you can define your own function.
+The property must be defined **with and without** the partial derivatives
+**for each phase**.
+The property function with the partial derivatives returns the property
+value and has two arguments :
+  - :code:`X` which contains *X.temperature*, *X.pressure* and *X.molar_fractions*,
+  - :code:`dfdX` which is filled with thepartial derivatives *dfdX.temperature*,
+    *dfdX.pressure* and *dfdX.molar_fractions*.
+
+The property function without the derivatives returns the property
+value and its argument is :code:`X`.
+
+.. code-block:: python
+
+    def first_phase_property_with_derivatives(X, dfdX):
+        dfdX.pressure = 0
+        dfdX.molar_fractions.fill(0)
+        dfdX.temperature = 0
+        return 0.3
+
+    def first_phase_property_without_derivatives(X):
+        return 0.3
+
+    first_phase_property = PhaseProperty(
+        with_derivatives=first_phase_property_with_derivatives,
+        without_derivatives=first_phase_property_without_derivatives,
+    )
+
+
+Then the phase properties must be set (follows an example with a two-phase physics)
+where *property* is **molar_density**, **viscosity** or **enthalpy**:
+
+.. code-block:: python
+
+    simulation.set_property_functions(
+        [
+            first_phase_property,
+            second_phase_property,
+        ]
+    )
+
+When setting the property some checks are done by default to test that the
+functions with and without the partial derivatives return the same value and
+that the partial derivatives are correct. To desactivate the verifications, use the
+:code:`check_derivatives=False` option.
+
+Use :code:`set_components_molar_mass` to modify the components molar mass,
+follows an example with two components:
+
+.. code-block:: python
+
+    molar_masses = [29.0e-3, 0.018016]
+    simulation.set_components_molar_mass(molar_masses)
+
+The volumetric mass density (expressed in kg/m^3) is always set as:
+
+.. math::
+    \text{volumetric_mass_density}^\alpha = (\sum_{i\in {\mathcal C}} C_i^{\alpha} * \text{molar_masses}[i])*\text{molar_density}^\alpha
+
+
+To test the implementation of the property function, you can use the
+:code:`PhaseStateStruct` class whose constructor needs the number of components.
+
+.. code-block:: python
+
+    from ComPASS.physics.physical_properties import PhaseStateStruct
+    p = 1.0 * bar
+    T = 280.0
+    C = np.array([0.0, 1.0])
+    phase_state_type = PhaseStateStruct(number_of_components)
+    # creates X such that X.pressure=p, X.temperature=T and X.molar_fractions=C
+    X = phase_state_type.Xalpha(p, T, C)
+    # creates the good shape object
+    dfdX = phase_state_type.empty_Xalpha()
+    property_value = first_phase_property_with_derivatives(X, dfdX)
+    print("The property is equal to ", property_value)
+    print("The derivative with respect to the temperature is ", dfdX.temperature)
+
+
+The file :download:`call_python_viscosity.py <../test/unit/call_python_viscosity.py>`
+presents more examples about how to call the property function.
+
+**Some facilities:**
+
+Special functions (build_pure_phase_property) have been implemented to
+recover the :code:`fluid_properties` utility from the *linear_water*
+equation of state to define the property using the *specific_mass,
+compressibility, thermal_expansivity,* ...
+
+If the property is constant:
+
+.. code-block:: python
+
+    from ComPASS.physics.utils import constant_physical_property
+
+    simulation.set_property_functions(
+        property_functions=[
+            constant_physical_property(2.0e-5),
+            constant_physical_property(1.0e-3),
+        ]
+    )
+
+
 Regionalized properties
 -----------------------
 
