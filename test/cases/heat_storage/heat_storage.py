@@ -106,7 +106,7 @@ simulation.all_states().set(initial_state)
 dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(initial_state)  # will init all variables: context, states...
 
-rho = lambda p, z: simulation.liquid_molar_density(p, geotherm(z))
+rho = lambda p, z: simulation.liquid_volumetric_mass_density(p, geotherm(z))
 hp = hydrostatic_pressure(0, ztop, ptop, rho, 2 * nb_layers, gravity=gravity)
 
 
@@ -136,7 +136,7 @@ t = histories[:, 0] * week
 
 if with_wells:
 
-    rho_ref = simulation.liquid_molar_density(ptop, Ttop)
+    rho_ref = simulation.liquid_volumetric_mass_density(ptop, Ttop)
 
     def mass_flowrate(Qv):  # m3/h to kg/s /2. => Halfdomain
         return 0.5 * (rho_ref / hour) * Qv

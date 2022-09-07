@@ -106,7 +106,7 @@ if ComPASS.mpi.communicator().size == 1:
     if plt:
         x = simulation.cell_centers()[:, 0]
         mu = simulation.liquid_dynamic_viscosity(states.p, states.T)
-        rho = simulation.liquid_molar_density(states.p, states.T)
+        rho = simulation.liquid_volumetric_mass_density(states.p, states.T)
         plt.clf()
         plt.subplot(121)
         plt.plot(x, mu)

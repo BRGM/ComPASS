@@ -47,7 +47,7 @@ def hydrostatic_pressure(zbottom, ztop, nz):
     assert zbottom < ztop
     nbsteps = 100
     z = np.linspace(zbottom, ztop, nz)[::-1]  # from top to bottom
-    rho = simulation.liquid_molar_density
+    rho = simulation.liquid_volumetric_mass_density
     p = ptop
     pressures = [p]
     for zbot, ztop in zip(z[1:], z[:-1]):
@@ -122,7 +122,7 @@ set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
 
 # output the initial state before the simulation is run
-rho = simulation.liquid_molar_density
+rho = simulation.liquid_volumetric_mass_density
 node_states = simulation.node_states()
 cell_states = simulation.cell_states()
 io.write_mesh(
@@ -133,7 +133,7 @@ io.write_mesh(
         "dirichlet temperature": K2degC(simulation.temperature_dirichlet_values()),
         "initial pressure": node_states.p,
         "initial temperature": K2degC(node_states.T),
-        "liquid density": rho(node_states.p, node_states.T),
+        "liquid volumetric mass density": rho(node_states.p, node_states.T),
         "Psat for T reservoir": simulation.Psat(node_states.T),
         "Tsat for p reservoir": K2degC(simulation.Tsat(node_states.p)),
     },

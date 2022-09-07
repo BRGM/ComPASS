@@ -129,7 +129,7 @@ simulation.set_kr_functions(kr_functions)
 
 
 def hydrostatic_pressure(Ptop, T, C, dz):
-    rho = simulation.liquid_molar_density(Ptop, T, C)
+    rho = simulation.liquid_volumetric_mass_density(Ptop, T, C)
     return Ptop + gravity * rho * dz
 
 

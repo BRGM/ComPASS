@@ -24,7 +24,7 @@ depth_boiling = 1.5 * km
 
 depth = np.linspace(0, depth_boiling, 200)
 g = ComPASS.get_gravity()
-dpdz = lambda _, p: ComPASS.liquid_molar_density(p, ComPASS.Tsat(p)) * g
+dpdz = lambda _, p: ComPASS.liquid_volumetric_mass_density(p, ComPASS.Tsat(p)) * g
 p = [1 * bar]
 r = ode(dpdz).set_integrator("lsoda")
 r.set_initial_value(p[0], depth[0])
@@ -41,7 +41,7 @@ print(
     K2degC(Tdb),
     "degC",
 )
-rho = ComPASS.liquid_molar_density(pdb, Tdb)
+rho = simulation.liquid_volumetric_mass_density(pdb, Tdb)
 print(
     "bottom hydrostatic conditions",
     (pdb + rho * g * (H - depth[-1])) / MPa,

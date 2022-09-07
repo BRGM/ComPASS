@@ -76,7 +76,7 @@ ComPASS.init(
 
 def set_initial_states(states, z):
     g = ComPASS.get_gravity()
-    rho = ComPASS.liquid_molar_density(p0, T0)
+    rho = simulation.liquid_volumetric_mass_density(p0, T0)
     states.context[:] = 2
     states.p[:] = p0 + rho * g * (Lz - z)
     states.T[:] = T0

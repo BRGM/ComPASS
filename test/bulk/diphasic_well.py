@@ -79,7 +79,7 @@ print(f"   delta pressure to boiling: {(simulation.Psat(Ttop) - ptop)/bar:.1f} b
 
 X0 = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
 # approximate rho
-rho = simulation.liquid_molar_density(ptop, Ttop)
+rho = simulation.liquid_volumetric_mass_density(ptop, Ttop)
 ztop = grid.origin[2] + grid.extent[2]
 
 

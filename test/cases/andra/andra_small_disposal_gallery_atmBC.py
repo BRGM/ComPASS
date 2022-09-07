@@ -129,7 +129,7 @@ simulation.set_freeflow_faces([y * y + z * z <= r * r + eps for _, y, z in fc])
 
 
 def hydrostatic_pressure(Ptop, T, C, dz):
-    rho = simulation.liquid_molar_density(Ptop, T, C)
+    rho = simulation.liquid_volumetric_mass_density(Ptop, T, C)
     return Ptop + gravity * rho * dz
 
 

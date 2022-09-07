@@ -18,7 +18,7 @@ simulation = ComPASS.load_eos("water2ph")
 
 # liquid specific density
 T = np.linspace(20, 400)
-xsi = simulation.liquid_molar_density(1 * bar, degC2K(T))
+xsi = simulation.liquid_volumetric_mass_density(1 * bar, degC2K(T))
 if plt:
     plt.clf()
     plt.title("liquid specific mass")
@@ -40,7 +40,10 @@ except ImportError:
 else:
     depth = np.linspace(0, 3000, 200)  # 0 - 3km
     g = simulation.get_gravity()
-    dpdz = lambda _, p: simulation.liquid_molar_density(p, simulation.Tsat(p)) * g
+    dpdz = (
+        lambda _, p: simulation.liquid_volumetric_mass_density(p, simulation.Tsat(p))
+        * g
+    )
     p = [1 * bar]
     r = ode(dpdz).set_integrator("lsoda")
     r.set_initial_value(p[0], depth[0])

@@ -48,7 +48,7 @@ def hydrostatic_pressure(zbottom, ztop, nz):
     assert zbottom < ztop
     nbsteps = 100
     z = np.linspace(zbottom, ztop, nz)[::-1]  # from top to bottom
-    rho = simulation.liquid_molar_density
+    rho = simulation.liquid_volumetric_mass_density
     p = ptop
     pressures = [p]
     for zbot, ztop in zip(z[1:], z[:-1]):

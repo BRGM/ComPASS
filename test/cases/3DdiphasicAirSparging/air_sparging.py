@@ -75,7 +75,7 @@ k_matrix = 5.3e-11  # domain permeability in m^2
 phi_matrix = 0.39  # domain porosity
 cell_thermal_cond = 0.0
 gravity = ComPASS.get_gravity()
-# rho_fluid_density = ComPASS.liquid_molar_density((p_atm), Tall)
+# rho_fluid_density = simulation.liquid_volumetric_mass_density((p_atm), Tall)
 
 
 Topflag = 3
@@ -216,7 +216,10 @@ def set_states(state, z, mask=True):
     state.p[lower] = lininterp(
         -z[lower],
         p_atm,
-        gravity * ComPASS.liquid_molar_density(p_atm, Tall, pure_phase_molar_fraction),
+        gravity
+        * simulation.liquid_volumetric_mass_density(
+            p_atm, Tall, pure_phase_molar_fraction
+        ),
     )
     state.T[lower] = Tall
     state.S[lower] = [0, 1]
@@ -247,7 +250,9 @@ def set_Neumann_fluxes():
     face_flags = ComPASS.faceflags()
     Neumann_inj_faces = np.zeros(len(face_flags), dtype=bool)
     Neumann_inj_faces[face_flags == Injflag] = True
-    Density_inj = ComPASS.liquid_molar_density(p_atm, Tall, liq_molar_fraction_inj)
+    Density_inj = simulation.liquid_volumetric_mass_density(
+        p_atm, Tall, liq_molar_fraction_inj
+    )
     Pinj = lininterp(4.5, p_atm, gravity * Density_inj)
     # init Neumann ComPASS object
     Neumann = ComPASS.NeumannBC()
@@ -385,7 +390,7 @@ print("time after the time loop", end_of_simu / year, "years")
 # # wherecenter = (vertices[:,0] == center[0]) & (vertices[:,1] == center[1]) & (vertices[:,2] == center[2])
 # # Tcenter = states.T[wherecenter]
 # # Pcenter = states.p[wherecenter]
-# # Rhocenter = ComPASS.liquid_molar_density(Pcenter, Tcenter)
+# # Rhocenter = simulation.liquid_volumetric_mass_density(Pcenter, Tcenter)
 # # Viscocenter = ComPASS.liquid_dynamic_viscosity(Pcenter, Tcenter)
 # # print('Tcenter (K):', Tcenter, 'Pcenter (Pa):', Pcenter, 'Rhocenter:', Rhocenter, 'Viscocenter:', Viscocenter)
 
