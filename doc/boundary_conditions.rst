@@ -72,8 +72,8 @@ Neumann faces
 Neumann boundary condition are set via the
 :func:`simulation.set_Neumann_faces` function
 using a special ComPASS object called
-:code:`ComPASS.NeumannBC` (containing the heat flux and/or
-the molar flux).
+:code:`ComPASS.NeumannBC` (containing the heat flux in W/m^2 and/or
+the molar flux in mol/m^2/s).
 Careful : then molar flux must be defined for each component !
 
 .. code-block:: python

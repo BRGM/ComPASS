@@ -7,6 +7,7 @@ ComPASS |version|
    :caption: Contents:
 
    introduction
+   equations_glossary
    setting_simulation
    examples
    tutorial

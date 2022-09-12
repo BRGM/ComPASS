@@ -10,7 +10,7 @@ The documentation also includes documentation generated from python docstrings
 using the sphinx `autodoc <https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`_ extension
 and C++ and Fortran code using `doxygen <https://www.doxygen.nl/index.html>`_.
 
-For test purpos, documentation can be generated using the `registry.gitlab.inria.fr/charms/compass/doc-environment`
+For test purpose, documentation can be generated using the `registry.gitlab.inria.fr/charms/compass/doc-environment`
 docker image and executing the generate `generate_doc.bash` script from within the `docs` directory.
 The generated documentation will output to the `docs/html` directory.
 
