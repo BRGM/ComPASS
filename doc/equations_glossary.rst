@@ -81,12 +81,17 @@ Glossary and notations
   \hdashline
   \text{fugacity} & f_i^\alpha, i \in \mathcal{C}, \alpha \in \mathcal{P}  & Pa &  \\
   \hdashline
-  \text{partial molar enthalpy} & h_i^\alpha, i \in \mathcal{C}, \alpha \in \mathcal{P}   & J.mol^{-1} & h_i^\alpha = \left.\frac{\partial H^\alpha}{\partial N_i}\right|_{T,P}  \text{with } H^\alpha \\
+  \text{specific enthalpy} & H^\alpha, \alpha \in \mathcal{P}   & J.kg^{-1} &  \\
+  \hdashline
+  \text{partial molar enthalpy} & h_i^\alpha, i \in \mathcal{C}, \alpha \in \mathcal{P}   & J.mol^{-1} & h_i^\alpha = \left.\frac{\partial \tilde{H}^\alpha}{\partial N_i}\right|_{T,P}  \text{with } \tilde{H}^\alpha \\
    & & & \text{ the extensif enthalpy in } J \\
   \hdashline
   \text{molar enthalpy} & h^\alpha, \alpha \in \mathcal{P}   & J.mol^{-1} & h^\alpha = \sum\limits_{i\in\mathcal{C}} C_i^\alpha h_i^\alpha \\
+   & & & \text{and } h^\alpha = (\sum\limits_{i\in\mathcal{C}} M_i C_i^\alpha) H^\alpha \\
   \hdashline
-  \text{molar internal energy} & e^\alpha, \alpha \in \mathcal{P}   & J.mol^{-1} &  \\
+  \text{internal energy} & E^\alpha, \alpha \in \mathcal{P}   & J.kg^{-1} &  \\
+  \hdashline
+  \text{molar internal energy} & e^\alpha, \alpha \in \mathcal{P}   & J.mol^{-1} & e^\alpha = (\sum\limits_{i\in\mathcal{C}} M_i C_i^\alpha) E^\alpha \\
   \hdashline
   \text{rock energy} & E_r  & J.m^{-3} &  \\
   \text{per unit rock volume} & & & \\
@@ -102,3 +107,39 @@ Glossary and notations
   \text{energy flux} & q_e   & J.m^{-2}.s^{-1} & q_e = \sum\limits_{\alpha \in \mathcal{P}} h^\alpha \zeta^\alpha {\mathbf q}^\alpha  \\
   \hline
   \end{array}
+
+.. _water2ph_equations:
+
+.. warning::
+
+  In some physics which contain only **one component** (like *water2ph*) the balance
+  equations are adapted to solve the mass and energy balance equations (by multiplying the first equation
+  by the molar mass of the component, :math:`M_{H_2O}` for *water2ph*):
+
+
+  .. math::
+
+    \begin{array}{r l c}
+    \phi \partial_t (\sum\limits_{\alpha\in P} \rho^\alpha S^\alpha C_i^\alpha) + \mathrm{div} ( \sum\limits_{\alpha\in \mathcal{P}} C^\alpha_i \rho^\alpha {\mathbf q}^\alpha ) &=& 0, & i\in \mathcal{C}, \\
+    \phi \partial_t (\sum\limits_{\alpha\in P} \rho^\alpha S^\alpha E^\alpha) + (1-\phi) \partial_t E_r + \mathrm{div} ( \sum\limits_{\alpha \in \mathcal{P}} H^\alpha \rho^\alpha {\mathbf q}^\alpha - \lambda \nabla T ) &=& 0. &
+    \end{array}
+
+  The energy balance equation remains the same because :math:`\rho^\alpha E^\alpha = \zeta^\alpha e^\alpha`
+  and :math:`H^\alpha \rho^\alpha = h^\alpha \zeta^\alpha`.
+
+  To do so, the core of ComPASS stays identical and we define :math:`\zeta^\alpha = \rho^\alpha`, :math:`e^\alpha = E^\alpha`
+  and :math:`h^\alpha = H^\alpha`, which is equivalent to consider that :math:`M_{H_2O}=1`
+  (let us recall that :math:`C_{H_2O}^\alpha = 1` because there is only one component).
+
+  **Careful**: this can have an impact on the set-up of the simulation, especially when setting a
+  :ref:`Neumann boundary flux<neumann_faces_bc>`.
+  Keep in mind that, when using the *water2ph* physics, you need to give the mass flux instead of the molar flux (:math:`M_{H_2O}=1`)
+  using the :code:`ComPASS.NeumannBC().molar_flux` object.
+
+  .. code-block:: python
+
+      Neumann = ComPASS.NeumannBC()
+      Neumann.heat_flux = bottom_heat_flux # in W/m^2 = J/m^2/s
+      Neumann.molar_flux[:] = Qm # one value by component in kg/m^2/s !
+      face_centers = simulation.face_centers()
+      simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)

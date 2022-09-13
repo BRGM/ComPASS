@@ -66,8 +66,8 @@ Step 2: Improve the script
   contains all the states needed to initialize the VAG sites : the nodes, the cells
   and the fracture faces if any, but it does not depends on the boundary conditions.
 
-* Transform the bottom boundary into a Neumann BC with
-  heat flux only (bottom_heat_flux = 0.08  W/m^2).
+* Transform the bottom boundary into a :ref:`Neumann BC<neumann_faces_bc>` with
+  heat flux only (bottom_heat_flux = :math:`0.08  W.m^{-2}`).
 
 
 Step 3: Change the EOS
@@ -149,7 +149,7 @@ Step 5: Add a vertical fracture
 
 * Change the Neumann boundary condition at the bottom to apply a
   :ref:`Neumann flux at the fracture edges<frac_edges_bc>` only.
-  Apply a molar flux of 0.1 mol/m^2/s on the water component
+  Apply a molar flux of :math:`0.1 mol.m^{-2}.s^{-1}` on the water component
   (the water component is the second one) and the corresponding heat flux
   using the :func:`simulation.liquid_molar_enthalpy()` function. In the diphasic
   eos this function takes the following arguments: the liquid pressure, the temperature and the phases
@@ -174,7 +174,7 @@ Step 6: Atmospheric boundary condition
   the relative permeabilities to help the convergence.
 
 * Change the top boundary condition: the top nodes with coordinates x <= 0
-  remains Dirichlet BC (with Sg = 0.5, p=p0, T=T0),
+  remains Dirichlet BC (with Sg=0.5, p=p0, T=T0),
   the top faces with face center coordinates x >= 0 becomes :ref:`atmospheric BC<atmBC>`.
   Initialize the porous media **nodes** where the atmospheric BC is imposed
   with Sg=0.5, p=p0 and T=T0,

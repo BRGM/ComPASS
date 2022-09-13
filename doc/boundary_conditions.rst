@@ -66,15 +66,24 @@ follows an example:
     Must be at thermodynamic equilibrium, the Dirichlet nodes remain in the
     computation of the residual !
 
+
+.. _neumann_faces_bc:
+
 Neumann faces
 -------------
 
 Neumann boundary condition are set via the
 :func:`simulation.set_Neumann_faces` function
 using a special ComPASS object called
-:code:`ComPASS.NeumannBC` (containing the heat flux in W/m^2 and/or
-the molar flux in mol/m^2/s).
-Careful : then molar flux must be defined for each component !
+:code:`ComPASS.NeumannBC` (containing the heat flux in
+:math:`W.m^{-2}` and/or the molar flux in
+:math:`mol.m^{-2}.s^{-1}`).
+Careful: then molar flux must be defined for each component !
+
+**Remark**: if using the *water2ph* physics, the :ref:`system writes the
+mass balance equation instead of the molar balance equation<water2ph_equations>`,
+then :code:`ComPASS.NeumannBC().molar_flux` must be initialized
+with the mass flux expressed in :math:`kg.m^{-2}.s^{-1}`.
 
 .. code-block:: python
 
