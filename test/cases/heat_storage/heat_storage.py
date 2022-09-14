@@ -72,7 +72,7 @@ def create_well():
         P = make_well(xy)
         P.id = idp
         P.produce()
-        P.operate_on_flowrate = 0, 1 * bar  # pressure limit to avoid gaz phase
+        P.operate_on_flowrate = 0, 1 * bar  # pressure limit to avoid gas phase
         return [I, P]
 
     return create_reversible_well((-600, 0), idW1i, idW1p) + create_reversible_well(

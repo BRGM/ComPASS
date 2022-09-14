@@ -65,7 +65,8 @@ Glossary and notations
   \text{bulk thermal} & \lambda & W.m^{-1}.K^{-1} & \text{of the fluid} \\
   \text{conductivity} & & & \text{and rock mixture} \\
   \hdashline
-  \text{permeability tensor} & \Lambda & m^2 &  \\
+  \text{permeability tensor} & \Lambda & m^2 & \text{resistance of the} \\
+    & & & \text{medium to the flow}  \\
   \hdashline
   \text{relative permeability} & kr^\alpha, \alpha \in \mathcal{P} & \emptyset &  \\
   \hdashline
@@ -112,7 +113,7 @@ Glossary and notations
 
 .. warning::
 
-  In some physics which contain only **one component** (like *water2ph*) the balance
+  In some physics which contain a **single component** (like *water2ph*) the balance
   equations are adapted to solve the mass and energy balance equations (by multiplying the first equation
   by the molar mass of the component, :math:`M_{H_2O}` for *water2ph*):
 

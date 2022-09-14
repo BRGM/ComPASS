@@ -5,12 +5,12 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# use immiscible2ph EOS (air only in gaz phase, water only in liquid phase)
+# use immiscible2ph EOS (air only in gas phase, water only in liquid phase)
 # Cartesian grid, 1D box with lx=1000m, 200 cells
 # Homogeneous Neumann at all BC
 # no gravity
 # the left half is initiated with liquid,
-#   the right half with linear Sg between 0 at Lx/2 and 1 at Lx
+#   the right half with gas
 
 import ComPASS
 import numpy as np
@@ -35,7 +35,7 @@ omega_reservoir = 0.35  # reservoir porosity
 k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
 Ptop = 1.0e5  # porous top Pressure
-Tporous = 300.0  # porous Temperature (used also to init the freeflow nodes)
+Tporous = 300.0  # porous Temperature
 CpRoche = 2.0e6
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 

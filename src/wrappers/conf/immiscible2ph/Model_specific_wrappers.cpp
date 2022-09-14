@@ -208,7 +208,7 @@ Parameters
 :param context: context (i.e. liquid, gas or diphasic)
 :param p: pressure
 :param T: temperature
-:param Sg: gaz phase saturation
+:param Sg: gas phase saturation
 
 )doc");
 }

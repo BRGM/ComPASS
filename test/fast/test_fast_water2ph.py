@@ -60,7 +60,7 @@ def test__extrems__no_gravity(T_injection_degC=33.0, flow_velocity_m_s=1.0e-6):
         states.context[:] = 2  # liquid
         states.p[:] = p0
         states.T[:] = T0
-        states.S[:] = [0, 1]  # phase saturations (gaz, liquid)
+        states.S[:] = [0, 1]  # phase saturations (gas, liquid)
         states.C[:] = 1.0  # component fraction... here only one component
 
     for states in [

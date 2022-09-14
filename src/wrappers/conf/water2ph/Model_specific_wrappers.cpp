@@ -184,7 +184,7 @@ void add_specific_model_wrappers(py::module &module) {
 Construct a state given a specific context and physical parameters.
 
 Monophasic states (i.e. liquid and gas) must be set-up using pressure and temperature.
-Diphasic state must be set-up using either pressure or temperature and gaz phase saturation.
+Diphasic state must be set-up using either pressure or temperature and gas phase saturation.
 The saturation conditions will be use to compute missing parameters (pressure or temperature).
 
 Parameters
@@ -193,7 +193,7 @@ Parameters
 :param context: context (i.e. liquid, gas or diphasic)
 :param p: pressure
 :param T: temperature
-:param Sg: gaz phase saturation
+:param Sg: gas phase saturation
 
 )doc");
 }

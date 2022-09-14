@@ -1038,7 +1038,7 @@ contains
                           + inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(icp, i)*SmComp(icp, iph)
             enddo ! icp
 
-         else ! gaz phase
+         else ! gas phase
 
             ! 1. val: FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
             val(i) = inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(WATER_COMP, i)

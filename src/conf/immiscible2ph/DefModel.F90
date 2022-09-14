@@ -58,7 +58,7 @@ module DefModel
    ! MCP: the components are potentially present in which phase(s) ?
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = RESHAPE((/ &
-                    1, 0, & ! AIR_COMP = 1 is present only in gaz phase
+                    1, 0, & ! AIR_COMP = 1 is present only in gas phase
                     0, 1 & ! WATER_COMP = 2 is present only in liquid phase
                     /), (/NbComp, NbPhase/))
 

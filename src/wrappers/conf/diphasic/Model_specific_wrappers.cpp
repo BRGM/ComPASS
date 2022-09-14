@@ -257,8 +257,8 @@ Parameters
 :param context: context (i.e. liquid, gas, diphasic, or specific outflow BC context)
 :param p: reference pressure
 :param T: temperature
-:param Sg: gaz phase saturation
-:param Cag: gaz phase air molar fraction
+:param Sg: gas phase saturation
+:param Cag: gas phase air molar fraction
 :param Cal: liquid phase air molar fraction
 :param outflow_mass_flowrates: mass flowrates of the outflow
 :param rocktype: rocktype index

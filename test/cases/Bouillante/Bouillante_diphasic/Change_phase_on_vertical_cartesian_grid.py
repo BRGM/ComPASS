@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# Cartesian grid, initialized with gaz at the bottom and liquid at the top
+# Cartesian grid, initialized with gas at the bottom and liquid at the top
 # needs lot of Newton iterations to start the convergence
 
 import ComPASS
