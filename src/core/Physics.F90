@@ -13,7 +13,7 @@ module Physics
    real(c_double) :: gravity = 9.81d0
 
    ! Far field atm constants
-   ! must be compatible with reference pressure !!! (called in f_SpecificEnthalpy which does not depend on P)
+   ! must be compatible with reference pressure !!! (called in f_PartialMolarEnthalpy which does not depend on P)
    real(c_double) :: atm_pressure = 1.d5
    real(c_double) :: atm_temperature = 300.d0
    real(c_double) :: rain_temperature = 300.d0

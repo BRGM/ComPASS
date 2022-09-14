@@ -24,7 +24,7 @@ module LoisThermoHydroMSWells
    use CommonMPI, only: commRank, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
-      f_EnergieInterne, f_Enthalpie, f_SpecificEnthalpy, &
+      f_EnergieInterne, f_Enthalpie, &
 #endif
       f_Viscosite, f_DensiteMolaire, f_DensiteMassique
    use DefModel, only: &

@@ -12,7 +12,10 @@ module LoisThermoHydro
    use CommonMPI, only: commRank, CommonMPI_abort
    use Thermodynamics, only: &
 #ifdef _THERMIQUE_
-      f_EnergieInterne, f_Enthalpie, f_SpecificEnthalpy, &
+      f_EnergieInterne, f_Enthalpie, &
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      f_PartialMolarEnthalpy, &
+#endif
 #endif
       f_Viscosite, f_DensiteMolaire, f_DensiteMassique
 #ifdef ComPASS_WITH_diphasic_PHYSICS
@@ -258,9 +261,9 @@ module LoisThermoHydro
       LoisThermoHydro_FreeFlowMolarFlowrateComp_cv, & ! FreeFlowMolarFlowrate * Comp
       LoisThermoHydro_FreeFlowHmComp_cv, & ! Hm * (Ci - Ci_atm)
 #ifdef _THERMIQUE_
-      LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv, & ! FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)  ; FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
+      LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv, & ! FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)  ; FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
       LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv, & ! HT * (T - atm_temperature) - net Radiation (which is a factor of T**4)
-      LoisThermoHydro_AtmEnthalpie_cv, & ! SpecificEnthalpy(water, gas) of the far field atmosphere ; Enthalpie(liquid) of the far field atmosphere
+      LoisThermoHydro_AtmEnthalpy_cv, & ! [PartialMolarEnthalpy(water, gas) of the far field atmosphere ; Enthalpy(liquid) of the far field atmosphere]
 #endif
 #endif
       LoisThermoHydro_init_cv, & ! init infos according to ic (context) for each control volume (cv)
@@ -283,8 +286,7 @@ module LoisThermoHydro
 
    public :: &
       LoisThermoHydro_EnergieInterne_cv, & !  Enthalpie
-      LoisThermoHydro_Enthalpie_cv, &
-      LoisThermoHydro_SpecificEnthalpy_cv
+      LoisThermoHydro_Enthalpie_cv
 #endif
 
 contains
@@ -709,7 +711,7 @@ contains
       FreeFlowHmComp, divFreeFlowHmComp, SmFreeFlowHmComp, &
       FreeFlowMolarFlowrateEnthalpie, divFreeFlowMolarFlowrateEnthalpie, SmFreeFlowMolarFlowrateEnthalpie, &
       FreeFlowHTTemperatureNetRadiation, divFreeFlowHTTemperatureNetRadiation, SmFreeFlowHTTemperatureNetRadiation, &
-      AtmEnthalpie)
+      AtmMolarEnthalpy)
 
       ! input
       integer, intent(in) :: NbIncLocal
@@ -746,15 +748,15 @@ contains
          FreeFlowHTTemperatureNetRadiation(NbIncLocal), &
          divFreeFlowHTTemperatureNetRadiation(NbIncTotalPrimMax, NbIncLocal), &
          SmFreeFlowHTTemperatureNetRadiation(NbIncLocal), &
-         AtmEnthalpie(NbPhase, NbIncLocal)
+         AtmMolarEnthalpy(NbPhase, NbIncLocal)
 
       ! tmp
       double precision :: &
          divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
          SmComp(NbComp, NbPhase), &
-         SpecificEnthalpy(NbComp, NbPhase), &
-         divSpecificEnthalpy(NbIncTotalPrimMax, NbComp, NbPhase), &
-         SmSpecificEnthalpy(NbComp, NbPhase)
+         PartialMolarEnthalpy(NbComp, NbPhase), &
+         divPartialMolarEnthalpy(NbIncTotalPrimMax, NbComp, NbPhase), &
+         SmPartialMolarEnthalpy(NbComp, NbPhase)
       integer :: k, i, iph, icp
       type(ContextInfo) :: ctxinfo
 
@@ -800,16 +802,16 @@ contains
                                                 SmFreeFlowHmComp(:, :, k))
 
 #ifdef _THERMIQUE_
-         ! SpecificEnthalpy
-         call LoisThermoHydro_SpecificEnthalpy_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
-                                                  NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
-                                                  SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy)
+         ! PartialMolarEnthalpy
+         call LoisThermoHydro_PartialMolarEnthalpy_cv(inc(k), dpadS(:, k), ctxinfo, dXssurdXp(:, :, k), SmdXs(:, k), &
+                                                      NumIncTotalPrimCV(:, k), NumIncTotalSecondCV(:, k), &
+                                                      PartialMolarEnthalpy, divPartialMolarEnthalpy, SmPartialMolarEnthalpy)
 
-         ! term: gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
+         ! term: gas-> FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
          !       liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
          call LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv(inc(k), ctxinfo, &
                                                                 divFreeFlowMolarFlowrate(:, :, k), SmFreeFlowMolarFlowrate(:, k), &
-                                                                SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy, &
+                                                            PartialMolarEnthalpy, divPartialMolarEnthalpy, SmPartialMolarEnthalpy, &
                                                                 divComp, SmComp, &
                                                                 FreeFlowMolarFlowrateEnthalpie(:, k), &
                                                                 divFreeFlowMolarFlowrateEnthalpie(:, :, k), &
@@ -822,9 +824,9 @@ contains
                                                                    divFreeFlowHTTemperatureNetRadiation(:, k), &
                                                                    SmFreeFlowHTTemperatureNetRadiation(k))
 
-         ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with gas temperature
-         !       liquid-> Enthalpie(liquid) of the far field atmosphere with liquid temperature (rain)
-         call LoisThermoHydro_AtmEnthalpie_cv(AtmState(k), AtmEnthalpie(:, k))
+         ! term: gas-> PartialMolarEnthalpy(water, gas) of the far field atmosphere with gas temperature
+         !       liquid-> MolarEnthalpy(liquid) of the far field atmosphere with liquid temperature (rain)
+         call LoisThermoHydro_AtmEnthalpy_cv(AtmState(k), AtmMolarEnthalpy(:, k))
 #endif
       end do ! k
 
@@ -975,12 +977,12 @@ contains
    end subroutine LoisThermoHydro_FreeFlowHmComp_cv
 
 #ifdef _THERMIQUE_
-   ! term: gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
+   ! term: gas-> FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
    !       liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
    subroutine LoisThermoHydro_FreeFlowMolarFlowrateEnthalpie_cv( &
       inc, ctxinfo, &
       divFreeFlowMolarFlowrate, SmFreeFlowMolarFlowrate, &
-      SpecificEnthalpy, divSpecificEnthalpy, SmSpecificEnthalpy, &
+      PartialMolarEnthalpy, divPartialMolarEnthalpy, SmPartialMolarEnthalpy, &
       divComp, SmComp, &
       val, dval, Smval)
 
@@ -990,9 +992,9 @@ contains
       double precision, intent(in) :: &
          divFreeFlowMolarFlowrate(NbIncTotalPrimMax, NbPhase), &
          SmFreeFlowMolarFlowrate(NbPhase), &
-         SpecificEnthalpy(NbComp, NbPhase), &
-         divSpecificEnthalpy(NbIncTotalPrimMax, NbComp, NbPhase), &
-         SmSpecificEnthalpy(NbComp, NbPhase), &
+         PartialMolarEnthalpy(NbComp, NbPhase), &
+         divPartialMolarEnthalpy(NbIncTotalPrimMax, NbComp, NbPhase), &
+         SmPartialMolarEnthalpy(NbComp, NbPhase), &
          divComp(NbIncTotalPrimMax, NbComp, NbPhase), &
          SmComp(NbComp, NbPhase)
 
@@ -1015,38 +1017,38 @@ contains
          if (iph == LIQUID_PHASE) then ! FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
 
             do icp = 1, NbComp
-               ! 1. val: FreeFlowMolarFlowrate(liquid) * sum_icp( SpecificEnthalpy(icp,i)*Comp(icp,iph) )
+               ! 1. val: FreeFlowMolarFlowrate(liquid) * sum_icp( PartialMolarEnthalpy(icp,i)*Comp(icp,iph) )
                val(i) = val(i) &
-                        + inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(icp, i)*inc%Comp(icp, iph)
+                        + inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(icp, i)*inc%Comp(icp, iph)
 
                ! 2. dval
                do k = 1, ctxinfo%NbIncTotalPrim
                   dval(k, i) = dval(k, i) &
-                               + divFreeFlowMolarFlowrate(k, i)*SpecificEnthalpy(icp, i)*inc%Comp(icp, iph) &
-                               + inc%FreeFlow_flowrate(iph)*divSpecificEnthalpy(k, icp, i)*inc%Comp(icp, iph) &
-                               + inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(icp, i)*divComp(k, icp, iph)
+                               + divFreeFlowMolarFlowrate(k, i)*PartialMolarEnthalpy(icp, i)*inc%Comp(icp, iph) &
+                               + inc%FreeFlow_flowrate(iph)*divPartialMolarEnthalpy(k, icp, i)*inc%Comp(icp, iph) &
+                               + inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(icp, i)*divComp(k, icp, iph)
                enddo ! k
 
                ! 3. Smval
                Smval(i) = Smval(i) &
-                          + SmFreeFlowMolarFlowrate(i)*SpecificEnthalpy(icp, i)*inc%Comp(icp, iph) &
-                          + inc%FreeFlow_flowrate(iph)*SmSpecificEnthalpy(icp, i)*inc%Comp(icp, iph) &
-                          + inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(icp, i)*SmComp(icp, iph)
+                          + SmFreeFlowMolarFlowrate(i)*PartialMolarEnthalpy(icp, i)*inc%Comp(icp, iph) &
+                          + inc%FreeFlow_flowrate(iph)*SmPartialMolarEnthalpy(icp, i)*inc%Comp(icp, iph) &
+                          + inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(icp, i)*SmComp(icp, iph)
             enddo ! icp
 
          else ! gaz phase
 
-            ! 1. val: FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
-            val(i) = inc%FreeFlow_flowrate(iph)*SpecificEnthalpy(WATER_COMP, i)
+            ! 1. val: FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
+            val(i) = inc%FreeFlow_flowrate(iph)*PartialMolarEnthalpy(WATER_COMP, i)
 
             ! 2. dval
             do k = 1, ctxinfo%NbIncTotalPrim
-               dval(k, i) = divFreeFlowMolarFlowrate(k, i)*SpecificEnthalpy(WATER_COMP, i) &
-                            + inc%FreeFlow_flowrate(iph)*divSpecificEnthalpy(k, WATER_COMP, i)
+               dval(k, i) = divFreeFlowMolarFlowrate(k, i)*PartialMolarEnthalpy(WATER_COMP, i) &
+                            + inc%FreeFlow_flowrate(iph)*divPartialMolarEnthalpy(k, WATER_COMP, i)
             enddo ! k
             ! 3. Smval
-            Smval(i) = SmFreeFlowMolarFlowrate(i)*SpecificEnthalpy(WATER_COMP, i) &
-                       + inc%FreeFlow_flowrate(iph)*SmSpecificEnthalpy(WATER_COMP, i)
+            Smval(i) = SmFreeFlowMolarFlowrate(i)*PartialMolarEnthalpy(WATER_COMP, i) &
+                       + inc%FreeFlow_flowrate(iph)*SmPartialMolarEnthalpy(WATER_COMP, i)
 
          endif ! phase
       enddo
@@ -1097,9 +1099,9 @@ contains
 
    end subroutine LoisThermoHydro_FreeFlowHTTemperatureNetRadiation_cv
 
-   ! term: gas-> SpecificEnthalpy(water, gas) of the far field atmosphere with atm_temperature
-   !       liquid-> Enthalpie(liquid) of the far field atmosphere with rain_temperature
-   subroutine LoisThermoHydro_AtmEnthalpie_cv(atm, val)
+   ! term: gas-> PartialMolarEnthalpy(water, gas) of the far field atmosphere with atm_temperature
+   !       liquid-> Enthalpy(liquid) of the far field atmosphere with rain_temperature
+   subroutine LoisThermoHydro_AtmEnthalpy_cv(atm, val)
       type(TYPE_FFfarfield), intent(in) :: atm
       double precision, intent(out) :: val(NbPhase)
 
@@ -1109,17 +1111,17 @@ contains
 
       val = 0.d0
 
-      call f_SpecificEnthalpy(GAS_PHASE, atm%Pressure, atm%Temperature(GAS_PHASE), h, unused1, unused2)
+      call f_PartialMolarEnthalpy(GAS_PHASE, atm%Pressure, atm%Temperature(GAS_PHASE), h, unused1, unused2)
       val(GAS_PHASE) = h(WATER_COMP) ! CHECKME: we discard air fraction and we do not consider water fraction
 
-      call f_SpecificEnthalpy(LIQUID_PHASE, atm%Pressure, atm%Temperature(LIQUID_PHASE), h, unused1, unused2)
+      call f_PartialMolarEnthalpy(LIQUID_PHASE, atm%Pressure, atm%Temperature(LIQUID_PHASE), h, unused1, unused2)
       val(LIQUID_PHASE) = val(LIQUID_PHASE) + dot_product(h(1:NbComp), atm%Comp(1:NbComp, LIQUID_PHASE))
 
 #else
-      call CommonMPI_abort("LoisThermoHydro_AtmEnthalpie_cv is designed to be used with diphasic physics only.")
+      call CommonMPI_abort("LoisThermoHydro_AtmEnthalpy_cv is designed to be used with diphasic physics only.")
 #endif
 
-   end subroutine LoisThermoHydro_AtmEnthalpie_cv
+   end subroutine LoisThermoHydro_AtmEnthalpy_cv
 
 ! _THERMIQUE_
 #endif
@@ -1895,8 +1897,9 @@ contains
 
    end subroutine LoisThermoHydro_Enthalpie_cv
 
-   ! Specific enthalpy
-   subroutine LoisThermoHydro_SpecificEnthalpy_cv( &
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+   ! Partial molar enthalpy
+   subroutine LoisThermoHydro_PartialMolarEnthalpy_cv( &
       inc, dpadS, ctxinfo, dXssurdXp, SmdXs, &
       NumIncTotalPrimCV, NumIncTotalSecondCV, val, dval, Smval)
       type(TYPE_IncCVReservoir), intent(in)  :: inc
@@ -1926,7 +1929,7 @@ contains
       ! fill f, dPf and dTf (loop over phase only)
       do i = 1, ctxinfo%NbPhasePresente
          iph = ctxinfo%NumPhasePresente(i)
-         call f_SpecificEnthalpy(iph, inc%phase_pressure(iph), inc%Temperature, f(:, iph), dPf(:, iph), dTf(:, iph))
+         call f_PartialMolarEnthalpy(iph, inc%phase_pressure(iph), inc%Temperature, f(:, iph), dPf(:, iph), dTf(:, iph))
       enddo
 
       do icp = 1, NbComp
@@ -1959,8 +1962,10 @@ contains
 
       end do
 
-   end subroutine LoisThermoHydro_SpecificEnthalpy_cv
-
+   end subroutine LoisThermoHydro_PartialMolarEnthalpy_cv
+! _WITH_FREEFLOW_STRUCTURES_
+#endif
+! _THERMIQUE_
 #endif
 
    ! LoisThermoHydro_DensiteMolaireSat_cv is never called (cf. issue #292)
@@ -2638,7 +2643,7 @@ contains
       allocate (divFreeFlowHmCompNode(NbIncTotalPrimMax, NbComp, NbPhase, nbNode))
       allocate (SmFreeFlowHmCompNode(NbComp, NbPhase, nbNode))
 
-      ! if gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
+      ! if gas-> FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
       !    liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
       allocate (FreeFlowMolarFlowrateEnthalpieNode(NbPhase, nbNode))
       allocate (divFreeFlowMolarFlowrateEnthalpieNode(NbIncTotalPrimMax, NbPhase, nbNode))
@@ -2793,7 +2798,7 @@ contains
       deallocate (FreeFlowHmCompNode)
       deallocate (divFreeFlowHmCompNode)
       deallocate (SmFreeFlowHmCompNode)
-      ! if gas-> FreeFlowMolarFlowrate(gas) * SpecificEnthalpy(water, gas)
+      ! if gas-> FreeFlowMolarFlowrate(gas) * PartialMolarEnthalpy(water, gas)
       !    liquid-> FreeFlowMolarFlowrate(liquid) * Enthalpie(liquid)
       deallocate (FreeFlowMolarFlowrateEnthalpieNode)
       deallocate (divFreeFlowMolarFlowrateEnthalpieNode)

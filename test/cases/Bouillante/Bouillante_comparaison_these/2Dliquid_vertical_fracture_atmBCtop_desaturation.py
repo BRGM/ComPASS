@@ -161,7 +161,7 @@ def export_initial_states():
 final_time = 100 * year
 output_period = 0.05 * final_time
 timestep = TimeStepManager(
-    initial_timestep=1.0 * day,
+    initial_timestep=1000.0,
     minimum_timestep=1e-3,
     maximum_timestep=50 * year,
     increase_factor=1.4,

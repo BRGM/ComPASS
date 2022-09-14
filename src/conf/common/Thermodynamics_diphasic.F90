@@ -31,7 +31,9 @@ module Thermodynamics
    public :: &
       f_EnergieInterne, &
       f_Enthalpie, &
-      f_SpecificEnthalpy, &
+#ifdef _WITH_FREEFLOW_STRUCTURES_
+      f_PartialMolarEnthalpy, &
+#endif
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat
 #endif
@@ -286,7 +288,7 @@ contains
 
    end subroutine f_EnergieInterne
 
-   pure subroutine f_gas_specific_enthalpy(p, T, f, dPf, dTf)
+   pure subroutine f_gas_partial_molar_enthalpy(p, T, f, dPf, dTf)
       real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
 
@@ -310,7 +312,7 @@ contains
       dTf(AIR_COMP) = beta_air
       dTf(WATER_COMP) = beta_water*dTss
 
-   end subroutine f_gas_specific_enthalpy
+   end subroutine f_gas_partial_molar_enthalpy
 
    pure subroutine f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
       real(c_double), intent(in) :: p, T
@@ -319,7 +321,7 @@ contains
 
       real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
 
-      call f_gas_specific_enthalpy(p, T, fspec, dfspecdP, dfspecdT)
+      call f_gas_partial_molar_enthalpy(p, T, fspec, dfspecdP, dfspecdT)
 
       f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
       dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
@@ -379,15 +381,17 @@ contains
 
    end subroutine f_Enthalpie
 
-   ! Specific Enthalpy (used in FreeFlow)
+   ! Partial Molar Enthalpy (used in FreeFlow)
+   ! each phase contains an array : [h_i^\alpha, i in Comp]
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
    !< P is the phase Pressure
    !< T is the Temperature
+#ifdef _WITH_FREEFLOW_STRUCTURES_
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_SpecificEnthalpy(iph, p, T, f, dPf, dTf) &
-      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
+      subroutine f_PartialMolarEnthalpy(iph, p, T, f, dPf, dTf) &
+      bind(C, name="FluidThermodynamics_partial_molar_enthalpy")
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T
       real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
@@ -396,7 +400,7 @@ contains
       real(c_double) :: dCf(NbComp)
 
       if (iph == GAS_PHASE) then
-         call f_gas_specific_enthalpy(p, T, f, dPf, dTf)
+         call f_gas_partial_molar_enthalpy(p, T, f, dPf, dTf)
       else if (iph == LIQUID_PHASE) then
          C = 0.d0
          C(WATER_COMP) = 1.d0
@@ -406,11 +410,12 @@ contains
          call f_liquid_enthalpy(p, T, C, f(WATER_COMP), dPf(WATER_COMP), dTf(WATER_COMP), dCf)
 #ifndef NDEBUG
       else
-         call CommonMPI_abort("Unknow phase in f_SpecificEnthalpy.")
+         call CommonMPI_abort("Unknow phase in f_PartialMolarEnthalpy.")
 #endif
       endif
 
-   end subroutine f_SpecificEnthalpy
+   end subroutine f_PartialMolarEnthalpy
+#endif
 
    !> \brief Rock volumetric heat capacity
    pure subroutine f_CpGaz(c)

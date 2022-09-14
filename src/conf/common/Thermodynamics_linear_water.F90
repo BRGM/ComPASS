@@ -42,8 +42,7 @@ module Thermodynamics
       f_DensiteMassique, & ! \rho^alpha(P,T,C)
       f_Viscosite, & ! \mu^alpha(P,T,C)
       f_EnergieInterne, &
-      f_Enthalpie, &
-      f_SpecificEnthalpy
+      f_Enthalpie
 
 contains
 
@@ -171,29 +170,5 @@ contains
       dCf = 0.d0
 
    end subroutine f_Enthalpie
-
-   ! Specific Enthalpy (used in FreeFlow)
-   !< iph is an identifier for each phase, here only one phase: LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-   subroutine f_SpecificEnthalpy(iph, P, T, f, dPf, dTf) &
-      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-      integer(c_int), value, intent(in) :: iph
-      real(c_double), value, intent(in) :: P, T
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
-
-      real(c_double) :: fv, dTfv
-
-#ifndef NDEBUG
-      if (NbComp /= 1) &
-         call CommonMPI_abort("f_SpecificEnthalpy: single component assumed!")
-#endif
-
-      call f_enthalpy_proxy(T, fv, dTfv)
-      f = fv
-      dPf = 0.d0
-      dTf = dTfv
-
-   end subroutine f_SpecificEnthalpy
 
 end module Thermodynamics

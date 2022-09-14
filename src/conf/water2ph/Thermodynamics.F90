@@ -30,8 +30,7 @@ module Thermodynamics
       FluidThermodynamics_Psat, &
       FluidThermodynamics_Tsat, &
       f_EnergieInterne, &
-      f_Enthalpie, &
-      f_SpecificEnthalpy
+      f_Enthalpie
 
 contains
 
@@ -298,36 +297,6 @@ contains
       dCf = 0.d0
 
    end subroutine f_Enthalpie
-
-   ! Specific Enthalpy (used in FreeFlow)
-   !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
-   !< P is the phase Pressure
-   !< T is the Temperature
-#ifdef NDEBUG
-   pure &
-#endif
-      subroutine f_SpecificEnthalpy(iph, p, T, f, dPf, dTf) &
-      bind(C, name="FluidThermodynamics_molar_specific_enthalpy")
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
-
-#ifndef NDEBUG
-      if (NbComp /= 1) &
-         call CommonMPI_abort("Specific enthalpy formulation is ok for a single component...")
-#endif
-
-      if (iph == GAS_PHASE) then
-         call f_specific_enthalpy_gas(p, T, f(1), dPf(1), dTf(1))
-      else if (iph == LIQUID_PHASE) then
-         call f_specific_enthalpy_liquid(p, T, f(1), dPf(1), dTf(1))
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_Enthalpie')
-#endif
-      end if
-
-   end subroutine f_SpecificEnthalpy
 
    !< T is the Temperature
    pure subroutine FluidThermodynamics_Psat(T, Psat, dT_PSat) &
