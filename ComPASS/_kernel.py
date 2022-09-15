@@ -90,6 +90,7 @@ simulation_wrapper = Wrapper(
         "global_number_of_nodes",
         "dirichlet_node_states",
         "node_states",
+        "mswell_node_states",
         "cell_states",
         "fracture_states",
         "Residuals",

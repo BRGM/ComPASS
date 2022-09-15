@@ -201,7 +201,7 @@ contains
       !User Parameters, TODO: should be done using the Python interface
       !variables at leaf nodes
 #if ComPASS_NUMBER_OF_COMPONENTS == 1
-      BDCIn = 'r' ! 'f' for flowrate mode without reservoir data; 'r' flowrate with reservoir data
+      BDCIn = 'f' ! 'f' for flowrate mode without reservoir data; 'r' flowrate with reservoir data
       VsgIn = 0.0d0 !water2phase
 #elif ComPASS_NUMBER_OF_COMPONENTS == 2
       BDCIn = 'f' ! 'f' for flowrate mode without reservoir data

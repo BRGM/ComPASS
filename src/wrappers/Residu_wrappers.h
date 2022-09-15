@@ -14,3 +14,4 @@
 namespace py = pybind11;
 
 void add_Residu_wrappers(py::module& module);
+void add_ResiduMSWells_wrappers(py::module& module);

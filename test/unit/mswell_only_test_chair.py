@@ -1,5 +1,4 @@
 #
-
 # This file is part of ComPASS.
 #
 # ComPASS is free software: you can redistribute it and/or modify it under both the terms
@@ -7,32 +6,40 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-from ComPASS import simulation
 import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
+from ComPASS.utils.various import tensor_coordinates
 import ComPASS.io.mesh as io
 import ComPASS.dump_wells as dw
 import ComPASS.mpi as mpi
 from mpi4py import MPI
 import os
-from ComPASS._kernel import get_kernel
 from mswell_only_newton import MSWellsNewtonParam
 from mswell_only_newton import MSWellsNewton
 
+
 ################################################################################################
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
-ds = 100  # horizontal cell size
 H = 1000  # height of the well
-nv = 10  #  number of vertical layers
-hns = 1  # half the number of cells along basis side
+#################################################
+# Coarse
+# nv = 10  # number of vertical layers
+# nh = 20  # number of horizontal layers
+#################################################
+# Fine I
+nv = 100  # number of vertical layers
+nh = 200  # number of x-horizontal layers
+################################################
 rw = 0.05  # well radius
-ptop = 5.0e5  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
+ptop = 500000  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
 Ttop = 350  # , Kelvin, temperature at the top of the reservoir
 vgradT = 170 / km  # degrees per km - to reach 300 degC at the bottom
 geotherm = lambda zeta: Ttop
 gravity = 9.81
+injection = False
+Tinjection = degC2K(30.0)  # injection temperature - convert Celsius to Kelvin degrees
 epsilon = 0.0001
 omega_reservoir = 0.15  # reservoir porosity
 k_reservoir = (
@@ -42,14 +49,22 @@ K_reservoir = 2  # bulk thermal conductivity in W/m/K
 QwOut = 15.0  # Maximum imposed flow rate for producer
 PwOut = 5.0e5  # Minmum  imposed pressure for producer
 dt = 0.5  # initial timestep
-# dt = 10.0  # initial timestep
+# dt = 0.25  # initial timestep
 verbose = True
 water2phase = True
-ip_monitor = False
+ip_monitor = True
 sleep = False
 nprocs = MPI.COMM_WORLD.Get_size()
-dummy_swell_id = 0
-mswell_id = dummy_swell_id + 1  # well id - could be any number
+######################################################################
+# Mesh
+Lx, Ly, Lz = 1000.0, 1000.0, 1000.0
+Ox, Oy, Oz = -Lx, -Ly, 0
+nx, ny, nz = nh, 2, nv
+
+dx = Lx / nx
+lhb = 250.0  # length of the horizontal branch
+assert abs(lhb % dx) < 1e-5
+nhb = int(lhb / dx)  # length of the horizontal branch in cells
 
 ########################################################################
 if water2phase:
@@ -84,29 +99,57 @@ def hydrostatic_pressure(zbottom, ztop, nz):
     return lambda zeta: np.interp(zeta, z[::-1], pressures[::-1])
 
 
-slim = hns * ds
-ns = 2 * hns
+slim = H
 grid = ComPASS.Grid(
-    shape=(ns, ns, nv),
-    extent=(ns * ds, ns * ds, H),
-    origin=(-slim, -slim, 0),
+    shape=(nx, ny, nz),
+    extent=(2 * Lx, 2 * Ly, Lz),
+    origin=(Ox, Oy, Oz),
 )
 
 
-def create_well(multi_flag):
-    return simulation.create_vertical_well(
-        (0, 0), rw, multi_segmented=multi_flag, zmin=0
+def create_well():
+    vertices = simulation.global_vertices()
+    v = vertices.reshape((nx + 1, ny + 1, nz + 1, 3), order="F")
+    indices = np.reshape(
+        np.arange(vertices.shape[0]), (nx + 1, ny + 1, nz + 1), order="F"
+    )
+    # print(v[:,0,0]) # along Ox
+    # print(v[1,:,0]) # along Oy starting from v[1,0,0]
+    # print(indices[1,:,0]) # indices
+    # print(vertices[indices[1,:,0]])
+    ic, jc, kc = (nx + 1) // 2, (ny + 1) // 2, (nz + 1) // 2  # center indices
+    # print("Vertical branch", "-" * 20)
+    vertical_branch = indices[ic, jc, :]
+    # print(vertices[vertical_branch])
+    # print("Horizontal branch", "-" * 20)
+    horizontal_branch = indices[ic : ic + nhb + 1, jc, kc]
+    # print(vertices[horizontal_branch])
+    # print("Small vertical branch", "-" * 20)
+    small_vertical_branch = indices[ic + nhb, jc, : kc + 1]
+    # print(vertices[small_vertical_branch])
+    # exit()
+    vertical_branch.shape = -1, 1
+    horizontal_branch.shape = -1, 1
+    small_vertical_branch.shape = -1, 1
+    # well segments must be oriented from wellhead downwards
+    segments = np.vstack(
+        [
+            # nodes are from bottom to top
+            np.hstack([vertical_branch[1:], vertical_branch[:-1]]),
+            # order of nodes is ok
+            np.hstack([horizontal_branch[:-1], horizontal_branch[1:]]),
+            # nodes are from bottom to top
+            np.hstack([small_vertical_branch[1:], small_vertical_branch[:-1]]),
+        ]
+    )
+    return simulation.create_well_from_segments(
+        segments, well_radius=rw, multi_segmented=True
     )
 
 
-def make_producers():
-    dummy_swell = create_well(False)
-    dummy_swell.id = dummy_swell_id
-    dummy_swell.operate_on_flowrate = QwOut, PwOut
-    dummy_swell.produce()
-
-    mswell = create_well(True)
-    mswell.id = mswell_id
+def make_producer():
+    wid = 0  # well id - could be any number
+    mswell = create_well()
 
     if ip_monitor:
         mswell.operate_on_flowrate = QwOut, PwOut  # water2phase, IP-Monitor
@@ -117,7 +160,8 @@ def make_producers():
         )  # immiscible, water2phase no monitoring
 
     mswell.produce()
-    return [dummy_swell, mswell]
+    mswell.id = wid
+    return [mswell]
 
 
 def select_dirichlet_nodes():
@@ -137,20 +181,16 @@ if sleep:
 
 simulation.init(
     mesh=grid,
-    wells=make_producers,
     set_dirichlet_nodes=select_dirichlet_nodes,
+    wells=make_producer,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
 )
-
 # -- Set initial state and boundary conditions
 hp = hydrostatic_pressure(0, H, 2 * nv + 1)
 initial_state = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
 simulation.all_states().set(initial_state)
-simulation.mswell_node_states().set(
-    initial_state
-)  # not necessary if mswell-states are copied from the reservoir
 dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(initial_state)  # will init all variables: context, states...
 
@@ -159,14 +199,12 @@ def set_pT_distribution(states, z):
     states.p[:] = hp(z)
     states.T[:] = Ttop  # simulation.Tsat(states.p[:])# for liquid_context
     # states.T[:] = simulation.Tsat(states.p[:])  # for gas_liquid_context
-    states.accumulation[:] = 0
 
 
 set_pT_distribution(simulation.node_states(), simulation.vertices()[:, 2])
 set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[:, 2])
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
-
-################################################################################
+##########################################################################################
 # Newton and solver parameters
 t0 = 0.0
 tf = 2000  # 2000.0  # 3000.0  # 3000.0

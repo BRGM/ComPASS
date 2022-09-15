@@ -14,18 +14,23 @@ module Newton
    use mpi ! FIXME: when using 'use only' MPI_Allreduce is not found on some platform
 
    use CommonMPI, only: &
-      commRank, ComPASS_COMM_WORLD
-
+      commRank, ComPASS_COMM_WORLD, CommonMPI_abort
    use DefModel, only: &
       NbIncTotalMax, NbPhase, NbComp, &
       NumPhasePresente_ctx, NbPhasePresente_ctx, &
       IndThermique, MCP
+#ifdef ComPASS_DIPHASIC_CONTEXT
+   use DefModel, only: &
+      DIPHASIC_CONTEXT, GAS_PHASE, LIQUID_PHASE
+#endif
 
    use MeshSchema, only: &
       IdNodeLocal, &
       NbNodeLocal_Ncpus, NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
       NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
-      NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus
+      NbCellOwn_Ncpus, NbFracOwn_Ncpus, NbNodeOwn_Ncpus, &
+      NbMSWellNodeLocal_Ncpus, NbMSWellNodeOwn_Ncpus, &
+      NodebyMSWellLocal, NbMSWellLocal_Ncpus
 
    use NumbyContext, only: &
       NbIncPTC_ctx, NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
@@ -36,6 +41,14 @@ module Newton
    use IncCVReservoir, only: &
       IncNode, IncCell, IncFrac
 
+   use MeshSchemaMSWells, only: &
+      NbMSWellNodeOwn, &
+      NbMSWellNodeLocal, &
+      IncIdxNodebyMSWellLocal
+
+   use IncCVMSWells, only: &
+      IncMSWell
+
    implicit none
 
    type, bind(C) :: Newton_increments_pointers
@@ -44,6 +57,7 @@ module Newton
       type(c_ptr) :: cells
       type(c_ptr) :: injectors
       type(c_ptr) :: producers
+      type(c_ptr) :: mswell_nodes
    end type Newton_increments_pointers
 
    type Newton_increments
@@ -52,7 +66,10 @@ module Newton
       real(c_double), pointer :: cells(:, :)
       real(c_double), pointer :: injectors(:)
       real(c_double), pointer :: producers(:)
+      real(c_double), pointer :: mswell_nodes(:, :)
    end type Newton_increments
+
+   real(c_double) last_max_inc_mswells
 
    public :: &
       Newton_pointers_to_values
@@ -85,8 +102,14 @@ contains
          shape=[NbWellProdLocal_Ncpus(commRank + 1)] &
          )
 
+      call c_f_pointer( &
+         increment_pointers%mswell_nodes, increment_values%mswell_nodes, &
+         shape=[NbIncTotalMax, NbMSWellNodeLocal_Ncpus(commRank + 1)] &
+         )
+
    end subroutine Newton_pointers_to_values
 
+   !This function does not compute any relaxation for MSWellNodes
    function Newton_compute_relaxation_C(increments_pointers) &
       result(relaxation) &
       bind(C, name="Newton_compute_relaxation")
@@ -258,7 +281,7 @@ contains
       ! end do
 
       ! call MPI_Allreduce(pmaxlocal, pmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
-      ! call MPI_Allreduce(tmaxlocal, tmax, 1, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
+      ! call MPI_Allreduce(tmaxlocal, tmer": "compass",
       ! call MPI_Allreduce(smaxlocal, smax, NbPhase, MPI_DOUBLE, MPI_MIN, ComPASS_COMM_WORLD, Ierr)
 
       ! if(commRank==0) then
@@ -266,5 +289,129 @@ contains
       ! end if
 
    end subroutine Newton_compute_relaxation
+
+   !This function  computes the relaxation only for MSWellNodes
+   function Newton_compute_relaxation_mswells_C(increments_pointers) &
+      result(relaxation) &
+      bind(C, name="Newton_compute_relaxation_mswells")
+      type(Newton_increments_pointers), intent(in), value :: increments_pointers
+      real(c_double) :: relaxation
+      type(Newton_increments) :: increments
+
+      call Newton_pointers_to_values(increments_pointers, increments)
+      call Newton_compute_relaxation_mswells(increments, relaxation)
+
+   end function Newton_compute_relaxation_mswells_C
+
+   !This function  get the last max increment only for MSWellNodes
+   function Newton_get_last_max_inc_mswells_C() &
+      result(dxmax) &
+      bind(C, name="Newton_get_last_max_inc_mswells")
+      real(c_double) :: dxmax
+
+      dxmax = last_max_inc_mswells
+
+   end function Newton_get_last_max_inc_mswells_C
+
+   !> \brief Compute relaxation in Newton only for mswells.
+   !!
+   subroutine Newton_compute_max_increment_mswells(increments, dxmax)
+      type(Newton_increments), intent(in) :: increments
+      real(c_double), intent(out) :: dxmax
+
+      double precision :: &
+         incremaxlocal_P, &
+         incremaxlocal_T, &
+         incremaxlocal_C(NbComp, NbPhase), &
+         incremaxlocal_S(NbPhase), &
+         incremax_local(3), incremax_global(3), &
+         relax_global, incremax_S
+
+      integer :: k, i, ic, iph, icp, j, Ierr
+      integer :: nbwells, s, num_s, unk_idx_s
+      integer :: NbIncPTC
+
+#ifndef ComPASS_DIPHASIC_CONTEXT
+
+      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
+
+#else
+
+      incremaxlocal_P = 0.d0
+
+#ifdef _THERMIQUE_
+      incremaxlocal_T = 0.d0
+#endif
+      incremaxlocal_C(:, :) = 0.d0
+      incremaxlocal_S(:) = 0.d0
+
+      nbwells = NbMSWellLocal_Ncpus(commRank + 1) !local mswells
+
+      do k = 1, nbwells
+         ! looping from  queue to the  head
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+            num_s = NodebyMSWellLocal%Num(s)
+            !Unkown indices of node s
+            unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)
+
+            if (IdNodeLocal(num_s)%Proc == "g") cycle ! node not own
+
+            ic = IncMSWell(s)%coats%ic
+            NbIncPTC = NbIncPTC_ctx(ic)
+
+            incremaxlocal_P = max(incremaxlocal_P, abs(increments%mswell_nodes(1, unk_idx_s)))
+
+            do i = 2 + IndThermique, NbIncPTC
+               icp = NumIncPTC2NumIncComp_comp_ctx(i, ic)
+               iph = NumIncPTC2NumIncComp_phase_ctx(i, ic)
+
+               incremaxlocal_C(icp, iph) = max(incremaxlocal_C(icp, iph), abs(increments%mswell_nodes(i, unk_idx_s)))
+            enddo
+
+            do i = 1, NbPhasePresente_ctx(ic)
+               iph = NumPhasePresente_ctx(i, ic)
+
+               if (IncMSWell(s)%coats%ic .eq. DIPHASIC_CONTEXT) then
+                  incremaxlocal_S(iph) = max(incremaxlocal_S(iph), abs(increments%mswell_nodes(iph + NbIncPTC, unk_idx_s)))
+               endif
+            end do
+
+#ifdef _THERMIQUE_
+            incremaxlocal_T = max(incremaxlocal_T, abs(increments%mswell_nodes(2, unk_idx_s)))
+
+#endif
+
+         end do
+      end do
+
+      incremax_S = 0.d0
+      do i = 1, NbPhase ! S^alpha
+         incremax_S = max(incremax_S, incremaxlocal_S(i))
+      end do
+
+      incremax_local(1) = incremax_S
+      incremax_local(2) = incremaxlocal_P
+      incremax_local(3) = incremaxlocal_T
+
+      ! Get all incremax
+      call MPI_Allreduce(incremax_local, incremax_global, 3, MPI_DOUBLE, MPI_MAX, ComPASS_COMM_WORLD, Ierr)
+
+      !TODO: Should we implement relaxation-routine  as it is done for the Reservoir (previous function)?
+      dxmax = incremax_global(1) + incremax_global(2)/1.d+5 + incremax_global(3)/1.d+2
+      last_max_inc_mswells = dxmax !Save last maximum increment
+
+#endif
+   end subroutine Newton_compute_max_increment_mswells
+
+   subroutine Newton_compute_relaxation_mswells(increments, relaxation)
+      type(Newton_increments), intent(in) :: increments
+      real(c_double) :: relaxation
+      double precision ::   dxmax
+
+      call Newton_compute_max_increment_mswells(increments, dxmax)
+      relaxation = min(1.d0, 0.2d0/dxmax)
+
+   end subroutine Newton_compute_relaxation_mswells
 
 end module Newton

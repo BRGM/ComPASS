@@ -3,11 +3,14 @@ from petsc4py import PETSc
 
 
 class Synchronizer:
-    def __init__(self, system):
+    def __init__(self, system, only_mswells=False):
         # CHECKME: is there a way to check PETSc has been initialized here
         assert system.kernel is not None
         self.system = system
-        self.retrieve_fortran = system.kernel.SyncPetsc_GetSolNodeFracWell
+        if not only_mswells:
+            self.retrieve_fortran = system.kernel.SyncPetsc_GetSolNodeFracWell
+        else:
+            self.retrieve_fortran = system.kernel.SyncPetscMSWells_GetSolMSWell
         nbrows, nbcols = system.local_system_size
         gnbrows, gnbcols = system.global_system_size
         M = PETSc.Mat()

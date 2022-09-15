@@ -7,7 +7,6 @@
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
 
-from ComPASS import simulation
 import numpy as np
 
 import ComPASS
@@ -22,11 +21,11 @@ from mswell_only_newton import MSWellsNewtonParam
 from mswell_only_newton import MSWellsNewton
 
 ################################################################################################
-# A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
+# A vertical well with 4x4 grid basis and nv horizontal layers over H thickness
 ds = 100  # horizontal cell size
 H = 1000  # height of the well
 nv = 10  #  number of vertical layers
-hns = 1  # half the number of cells along basis side
+hns = 2  # half the number of cells along basis side
 rw = 0.05  # well radius
 ptop = 5.0e5  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
 Ttop = 350  # , Kelvin, temperature at the top of the reservoir
@@ -48,8 +47,7 @@ water2phase = True
 ip_monitor = False
 sleep = False
 nprocs = MPI.COMM_WORLD.Get_size()
-dummy_swell_id = 0
-mswell_id = dummy_swell_id + 1  # well id - could be any number
+mswid = 0  # mswell id - could be any number
 
 ########################################################################
 if water2phase:
@@ -93,31 +91,32 @@ grid = ComPASS.Grid(
 )
 
 
-def create_well(multi_flag):
-    return simulation.create_vertical_well(
-        (0, 0), rw, multi_segmented=multi_flag, zmin=0
-    )
+def create_well(center):
+    return simulation.create_vertical_well(center, rw, multi_segmented=True, zmin=0)
 
 
 def make_producers():
-    dummy_swell = create_well(False)
-    dummy_swell.id = dummy_swell_id
-    dummy_swell.operate_on_flowrate = QwOut, PwOut
-    dummy_swell.produce()
+    wid = mswid
+    centers = []
+    centers.append((-100, 0))
+    centers.append((100, 0))
+    mswells = []
+    nbwells = 2
 
-    mswell = create_well(True)
-    mswell.id = mswell_id
+    for i in range(nbwells):
+        mswells.append(create_well(centers[i]))
+        if ip_monitor:
+            mswells[i].operate_on_flowrate = QwOut, PwOut  # water2phase, IP-Monitor
+        else:
+            mswells[i].operate_on_pressure = (
+                PwOut,
+                100000,
+            )  # immiscible, water2phase no monitoring
 
-    if ip_monitor:
-        mswell.operate_on_flowrate = QwOut, PwOut  # water2phase, IP-Monitor
-    else:
-        mswell.operate_on_pressure = (
-            PwOut,
-            100000,
-        )  # immiscible, water2phase no monitoring
-
-    mswell.produce()
-    return [dummy_swell, mswell]
+        mswells[i].produce()
+        mswells[i].id = wid
+        wid = wid + 1
+    return mswells
 
 
 def select_dirichlet_nodes():
@@ -137,20 +136,18 @@ if sleep:
 
 simulation.init(
     mesh=grid,
-    wells=make_producers,
     set_dirichlet_nodes=select_dirichlet_nodes,
+    wells=make_producers,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
 )
 
+
 # -- Set initial state and boundary conditions
 hp = hydrostatic_pressure(0, H, 2 * nv + 1)
 initial_state = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
 simulation.all_states().set(initial_state)
-simulation.mswell_node_states().set(
-    initial_state
-)  # not necessary if mswell-states are copied from the reservoir
 dirichlet = simulation.dirichlet_node_states()
 dirichlet.set(initial_state)  # will init all variables: context, states...
 
@@ -159,17 +156,18 @@ def set_pT_distribution(states, z):
     states.p[:] = hp(z)
     states.T[:] = Ttop  # simulation.Tsat(states.p[:])# for liquid_context
     # states.T[:] = simulation.Tsat(states.p[:])  # for gas_liquid_context
-    states.accumulation[:] = 0
 
 
 set_pT_distribution(simulation.node_states(), simulation.vertices()[:, 2])
 set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[:, 2])
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
 
+
+# simulation.close_well(mswid)#close one well
 ################################################################################
 # Newton and solver parameters
 t0 = 0.0
-tf = 2000  # 2000.0  # 3000.0  # 3000.0
+tf = 1000  # 2000.0  # 3000.0  # 3000.0
 dtmax = 40.0
 if water2phase:
     newtonMaxIter = 40

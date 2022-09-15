@@ -55,6 +55,7 @@ module NN
    use LeafMSWells, only: LeafMSWells_allocate, LeafMSWells_free
    use ResiduMSWells, only: ResiduMSWells_allocate, ResiduMSWells_free
    use JacobianMSWells, only: JacobianMSWells_StrucJacA, JacobianMSWells_free
+   use IncCVMSWells, only: TYPE_IncCVMSWells, IncMSWell
 #include <petsc/finclude/petsc.h>
 #include <ComPASS_PETSc_definitions.h>
 
@@ -88,6 +89,7 @@ module NN
 
    private :: &
       NN_flash_control_volumes, &
+      NN_flash_mswells, &
       NN_init_output_streams, &
       NN_partition_mesh
 
@@ -238,6 +240,19 @@ contains
 
    end subroutine NN_init_phase2_setup_solvers
 
+   subroutine NN_flash_mswells(mswell_states)
+      type(TYPE_IncCVMSWells), intent(inout) :: mswell_states(:)
+
+      integer :: k, n
+
+      n = size(mswell_states)
+      do k = 1, n
+         call DefFlash_Flash_cv(mswell_states(k)%coats)
+         mswell_states(k)%coats%phase_pressure(:) = mswell_states(k)%coats%Pression
+      end do
+
+   end subroutine NN_flash_mswells
+
    subroutine NN_flash_control_volumes(states)
       type(Type_IncCVReservoir), intent(inout) :: states(:)
 
@@ -262,6 +277,9 @@ contains
       ! choose between linear or non-linear update of the Newton unknown Pw
       ! The next subroutines also compute the mode of the wells ('pressure' or 'flowrate')
       call DefFlashWells_NewtonFlashLinWells
+
+      !Flash for MSWellNodes
+      call NN_flash_mswells(IncMSWell)
 
    end subroutine NN_flash_all_control_volumes
 

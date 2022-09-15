@@ -15,7 +15,8 @@ module LocalMeshWrapper
    use MeshSchema, only: &
       NodeFlagsLocal, CellFlagsLocal, FaceFlagsLocal, &
       CellTypesLocal, FaceTypesLocal, XNodeLocal, &
-      NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus
+      NbNodeLocal_Ncpus, NbCellLocal_Ncpus, NbFracLocal_Ncpus, &
+      NbMSWellNodeLocal_Ncpus
    use VAGFrac, only: &
       ThermalSourceVol, &
       PoroVolFourier
@@ -278,5 +279,11 @@ contains
       integer(c_size_t) :: n
       call retrieve_size_if_allocated(n, NbCellLocal_Ncpus, "NbCellLocal_Ncpus")
    end function nb_cells
+
+   function nb_mswell_nodes() result(n) &
+      bind(C, name="nb_mswell_nodes")
+      integer(c_size_t) :: n
+      call retrieve_size_if_allocated(n, NbMSWellNodeLocal_Ncpus, "NbMSWellNodeLocal_Ncpus")
+   end function nb_mswell_nodes
 
 end module LocalMeshWrapper

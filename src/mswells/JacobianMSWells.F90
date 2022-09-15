@@ -93,7 +93,9 @@ module JacobianMSWells
    type(CSRArray2dble), public, target :: JacA
 
 #define _DEBUG_JAC_MSWELLS_ 0
-#ifdef  _DEBUG_JAC_MSWELLS_
+#define _DEBUG_JAC_IP_MSWELLS_ 0
+
+#if  _DEBUG_JAC_MSWELLS_ ==1
    type(CSRArray2dble), public, target :: JacANoAlig
 #endif
 
@@ -122,7 +124,8 @@ module JacobianMSWells
       JacobianMSWells_StrucJacA, &    !< init non-zero structure of Jacobian, Acc and Residuals
       JacobianMSWells_JacA_Sm, &    !< Jacobian and right hand side
       JacobianMSWells_free, &
-      JacobianMSWells_print_LA_info_to_file
+      JacobianMSWells_print_LA_info_to_file, &
+      JacobianMSWells_print_IP_info_to_file
 
    private :: &
       JacobianMSWells_JacA_Sm_prod, &
@@ -244,7 +247,7 @@ contains
 
       ! allocate JacA%Val
       allocate (JacA%Val(NbCompThermique, NbCompThermique, Nz)) ! number of non zero
-#ifdef _DEBUG_JAC_MSWELLS_
+#if  _DEBUG_JAC_MSWELLS_ == 1
       allocate (JacANoAlig%Val(NbCompThermique, NbCompThermique, Nz)) ! number of non zero
 #endif
       ! allocate Sm and SmQw
@@ -259,9 +262,8 @@ contains
       deallocate (NbNnzbyLine)
       deallocate (NumNzbyLine)
 
-#ifdef _DEBUG_JAC_MSWELLS_
-
       if (commRank == 0) then !Master proc
+#if  _DEBUG_JAC_MSWELLS_ == 1
          open (unit=110, file='reswell_vec.val', status='unknown', action='write')
          write (110, *) ""
          close (110)
@@ -277,9 +279,22 @@ contains
          open (unit=110, file='jacobian_ali.val', status='unknown', action='write')
          write (110, *) ""
          close (110)
-
-      endif
 #endif
+#if _DEBUG_JAC_IP_MSWELLS_ == 1
+
+         open (unit=110, file='qwwell.val', status='unknown', action='write')
+         write (110, *) ""
+         close (110)
+
+         open (unit=110, file='pwwell.val', status='unknown', action='write')
+         write (110, *) ""
+         close (110)
+
+         open (unit=110, file='QPwell.val', status='unknown', action='write')
+         write (110, *) ""
+         close (110)
+#endif
+      endif
    end subroutine JacobianMSWells_StrucJacA
 
    !> \brief Fill Sm with the residual values
@@ -323,7 +338,7 @@ contains
 
       if (alignment_flag) then
          ! Alignment of Jacobian
-#ifdef _DEBUG_JAC_MSWELLS_
+#if  _DEBUG_JAC_MSWELLS_ == 1
          JacANoAlig%Val(:, :, :) = JacA%Val(:, :, :)
 #endif
          call JacobianMSWells_Alignment_man !call manual method
@@ -1471,7 +1486,7 @@ contains
       deallocate (JacA%Pt)
       deallocate (JacA%Num)
       deallocate (JacA%Val)
-#ifdef _DEBUG_JAC_MSWELLS_
+#if  _DEBUG_JAC_MSWELLS_ == 1
       deallocate (JacANoAlig%Val)
 #endif
 
@@ -1480,13 +1495,51 @@ contains
 
    end subroutine JacobianMSWells_free
 
+   subroutine JacobianMSWells_print_IP_info_to_file(t) &
+      bind(C, name="JacobianMSWells_print_IP_info_to_file")
+
+      real(c_double), intent(in), value :: t
+      integer :: s, k, nbwells
+#if _DEBUG_JAC_IP_MSWELLS_ == 1
+      if (commRank == 0) then !Master proc
+         !Flowrate
+         open (unit=110, file='qwwell.val', status='old', position='append', action='write')
+
+         !Pressure at head
+         open (unit=310, file='pwwell.val', status='old', position='append', action='write')
+
+         !IP
+         open (unit=410, file='QPwell.val', status='old', position='append', action='write')
+
+         nbwells = NbMSWellLocal_Ncpus(commRank + 1)
+         do k = 1, nbwells
+
+            write (110, *) t, QwByMSWell(k)
+            if (DataMSWellLocal(k)%IndWell == 'p') then
+               write (410, *) t, 1
+            else
+               write (410, *) t, 2
+            end if
+
+            s = NodebyMSWellLocal%Pt(k + 1) !Head
+            write (310, *) t, IncMSWell(s)%coats%Pression
+
+         end do
+         close (110)
+         close (310)
+         close (410)
+
+      end if
+#endif
+   end subroutine JacobianMSWells_print_IP_info_to_file
+
    subroutine JacobianMSWells_print_LA_info_to_file(Delta_t, Iter) &
       bind(C, name="JacobianMSWells_print_LA_info_to_file")
 
       real(c_double), intent(in), value :: Delta_t
       integer(c_int), intent(in), value :: Iter
       integer :: s, k, num_s, unk_idx_s, m, kc
-#ifdef _DEBUG_JAC_MSWELLS_
+#if _DEBUG_JAC_MSWELLS_ == 1
 
       if (commRank == 0) then !Master proc
          !Residual

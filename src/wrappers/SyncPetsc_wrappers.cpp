@@ -27,6 +27,8 @@ extern "C" {
 void syncpetsc_getsolnodefracwell_(Vec*, NewtonIncrements::Pointers<double>);
 void SyncPetsc_colnum(int*, std::size_t);
 void MeshSchema_part_info(PartInfo&);
+void SyncPetscMSWells_colnum(int*, std::size_t);
+void syncpetscmswells_getsolmswell_(Vec*, NewtonIncrements::Pointers<double>);
 }
 
 #include <pybind11/numpy.h>
@@ -66,7 +68,9 @@ void add_SyncPetsc_wrappers(py::module& module) {
        .def_readonly("nodes", &PartInfo::nodes)
        .def_readonly("fractures", &PartInfo::fractures)
        .def_readonly("injectors", &PartInfo::injectors)
-       .def_readonly("producers", &PartInfo::producers);
+       .def_readonly("producers", &PartInfo::producers)
+       .def_readonly("mswells", &PartInfo::mswells)
+       .def_readonly("mswell_nodes", &PartInfo::mswell_nodes);
 
    module.def("part_info", []() {
       auto res = std::make_unique<PartInfo>();
@@ -90,5 +94,16 @@ void add_SyncPetsc_wrappers(py::module& module) {
               [](py::array_t<int, py::array::c_style>& ColNum) {
                  assert(ColNum.ndim() == 1);
                  SyncPetsc_colnum(ColNum.mutable_data(), ColNum.size());
+              });
+   module.def("SyncPetscMSWells_colnum",
+              [](py::array_t<int, py::array::c_style>& ColNum) {
+                 assert(ColNum.ndim() == 1);
+                 SyncPetscMSWells_colnum(ColNum.mutable_data(), ColNum.size());
+              });
+
+   module.def("SyncPetscMSWells_GetSolMSWell",
+              [](py::object V, NewtonIncrements& increments) {
+                 auto vec = cast_to_PETSc<Vec>(V);
+                 syncpetscmswells_getsolmswell_(&vec, increments.pointers());
               });
 }

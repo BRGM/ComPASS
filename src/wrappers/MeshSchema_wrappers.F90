@@ -20,7 +20,7 @@
           NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFaceOwn_Ncpus, NbFracOwn_Ncpus, &
           NbWellInjOwn_Ncpus, NbWellProdOwn_Ncpus, &
           XCellLocal, XFaceLocal, &
-          NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc
+          NumNodebyProc, NumFracbyProc, NumWellInjbyProc, NumWellProdbyProc, NumMSWellNodebyProc
 
        implicit none
 
@@ -304,5 +304,13 @@
           call retrieve_dof_family(NumWellInjbyProc, coc)
 
        end subroutine retrieve_NumWellInjbyProc
+
+       subroutine retrieve_NumMSWellNodebyProc(coc) &
+          bind(C, name="retrieve_NumMSWellNodebyProc")
+          type(cpp_COC), intent(inout) :: coc
+
+          call retrieve_dof_family(NumMSWellNodebyProc, coc)
+
+       end subroutine retrieve_NumMSWellNodebyProc
 
     end module MeshSchema_wrappers

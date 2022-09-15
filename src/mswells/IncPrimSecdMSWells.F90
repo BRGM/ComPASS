@@ -47,6 +47,7 @@ module IncPrimSecdMSWells
       NodebyMSWellLocal, NodeDatabyMSWellLocal, &
       DataMSWellLocal, NbMSWellLocal_Ncpus
 
+   use Thermodynamics, only: f_Fugacity
    use IncPrimSecdTypes, only: ControlVolumeInfo, IncPrimSecdTypes_collect_cv_info
 
    use IncPrimSecd, only: &
@@ -165,6 +166,18 @@ contains
                                     inc_primsecd%dXssurdXp, inc_primsecd%SmdXs)
 
    end subroutine IncPrimSecdMSWells_compute_cv
+
+   !> \brief  Link with the C code
+   subroutine IncPrimSecdMSWells_PrimToSecd_C(increments_pointers) &
+      bind(C, name="IncPrimSecdMSWells_PrimToSecd")
+
+      type(Newton_increments_pointers), intent(in), value :: increments_pointers
+      type(Newton_increments) :: increments
+
+      call Newton_pointers_to_values(increments_pointers, increments)
+      call IncPrimSecdMSWells_PrimToSecd(increments%mswell_nodes)
+
+   end subroutine IncPrimSecdMSWells_PrimToSecd_C
 
    !> \brief Compute secd values using prim values
    !! secd = SmdX - dXssurdXp * prim

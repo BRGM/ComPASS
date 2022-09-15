@@ -31,6 +31,7 @@ void retrieve_own_cell_states(StateArray&);
 void retrieve_injection_whp(XArrayWrapper<double>&);
 void retrieve_production_whp(XArrayWrapper<double>&);
 void retrieve_production_whp(XArrayWrapper<double>&);
+void retrieve_mswell_node_states(StateArray&);
 void set_face_with_neumann_contribution(int, const NeumannBC&);
 void set_faces_with_neumann_contribution(int, const int*, const NeumannBC&);
 void set_face_neumann_contributions(int, int*, NeumannBC*);
@@ -175,6 +176,10 @@ void add_IncCV_wrappers(py::module& module) {
    module.def("number_of_components",
               []() { return ComPASS_NUMBER_OF_COMPONENTS; });
    module.def("number_of_phases", []() { return ComPASS_NUMBER_OF_PHASES; });
+
+   module.def("mswell_node_states", []() {
+      return StateArray::retrieve(retrieve_mswell_node_states);
+   });
 
    // FUTURE: PYBIND11_NUMPY_DTYPE shall support arrays in forthcoming release
    // of pybind11 PYBIND11_NUMPY_DTYPE(X, context, p, T, C, S, accumulation);

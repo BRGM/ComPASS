@@ -19,6 +19,7 @@ std::size_t nb_fractures();
 std::size_t nb_cells();
 std::size_t nb_injectors();
 std::size_t nb_producers();
+std::size_t nb_mswell_nodes();
 }
 
 struct NewtonIncrements {
@@ -29,12 +30,15 @@ struct NewtonIncrements {
       T* cells;
       T* injectors;
       T* producers;
+      T* mswell_nodes;
    };
    std::vector<double> nodes;
    std::vector<double> fractures;
    std::vector<double> cells;
    std::vector<double> injectors;
    std::vector<double> producers;
+   std::vector<double> mswell_nodes;
+
    NewtonIncrements() = default;
    NewtonIncrements(const NewtonIncrements&) = default;
    NewtonIncrements(NewtonIncrements&&) = default;
@@ -68,17 +72,17 @@ struct NewtonIncrements {
       std::fill(begin(injectors), end(injectors), 0);
       producers.resize(nb_producers());
       std::fill(begin(producers), end(producers), 0);
+      mswell_nodes.resize(npv() * nb_mswell_nodes());
+      std::fill(begin(mswell_nodes), end(mswell_nodes), 0);
    }
    auto pointers() {
-      return Pointers<double>{
-          nodes.data(),     fractures.data(), cells.data(),
-          injectors.data(), producers.data(),
-      };
+      return Pointers<double>{nodes.data(),     fractures.data(),
+                              cells.data(),     injectors.data(),
+                              producers.data(), mswell_nodes.data()};
    }
    auto pointers() const {
-      return Pointers<const double>{
-          nodes.data(),     fractures.data(), cells.data(),
-          injectors.data(), producers.data(),
-      };
+      return Pointers<const double>{nodes.data(),     fractures.data(),
+                                    cells.data(),     injectors.data(),
+                                    producers.data(), mswell_nodes.data()};
    }
 };

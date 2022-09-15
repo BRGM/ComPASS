@@ -15,6 +15,7 @@
        use IncCVReservoir, only: IncAll, IncNode, IncCell, IncFrac
        use MeshSchema, only: NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus
        use IncCVWells, only: IncPressionWellProd, IncPressionWellInj
+       use IncCVMSWells, only: IncMSWell, TYPE_IncCVMSWells
        use DirichletContribution, only: IncNodeDirBC
        use InteroperabilityStructures, only: cpp_array_wrapper
 
@@ -29,6 +30,7 @@
           retrieve_dirichlet_node_states, &
           retrieve_all_states, &
           retrieve_node_states, &
+          retrieve_mswell_node_states, &
           retrieve_fracture_states, &
           retrieve_cell_states, &
           retrieve_injection_whp, &
@@ -79,6 +81,31 @@
           end if
 
        end subroutine retrieve_state_array
+
+       subroutine retrieve_state_array_mswells(states, cpp_array)
+
+          type(TYPE_IncCVMSWells), allocatable, dimension(:), target, intent(inout) :: states
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          integer(c_size_t) :: n
+
+          if (.not. allocated(states)) then
+             cpp_array%p = C_NULL_PTR
+             cpp_array%n = 0
+          else
+             n = size(states)
+             cpp_array%n = n
+             if (n == 0) then
+#ifdef TRACK_ZERO_SIZE_ARRAY
+                ! FIXME: Remove comment
+                write (*, *) '!!!!!!!!!!!!!!!!!!!!!!! Zero size array'
+#endif
+                cpp_array%p = C_NULL_PTR
+             else
+                cpp_array%p = c_loc(states(1))
+             end if
+          end if
+
+       end subroutine retrieve_state_array_mswells
 
        subroutine retrieve_pointed_state_array(states, cpp_array)
 
@@ -190,5 +217,11 @@
           type(cpp_array_wrapper), intent(out) :: cpp_array
           call retrieve_double_array(IncPressionWellProd, cpp_array)
        end subroutine retrieve_production_whp
+
+       subroutine retrieve_mswell_node_states(cpp_array) &
+          bind(C, name="retrieve_mswell_node_states")
+          type(cpp_array_wrapper), intent(out) :: cpp_array
+          call retrieve_state_array_mswells(IncMSWell, cpp_array)
+       end subroutine retrieve_mswell_node_states
 
     end module IncCVWrapper

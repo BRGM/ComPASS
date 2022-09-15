@@ -35,6 +35,8 @@ module IncCVMSWells
 #endif
    implicit none
 
+#define _DEBUG_INCCVM_MSWELLS_ 0
+
    type, bind(C) :: TYPE_IncCVMSWells
       !Unkowns per Node
       type(TYPE_IncCVReservoir) :: coats
@@ -58,7 +60,8 @@ module IncCVMSWells
       IncCVMSWells_free, &
       IncCVMSWells_compute_coupling, &
       IncCVMSWells_set_compute_coupling, &
-      IncCVMSWells_NewtonIncrement
+      IncCVMSWells_NewtonIncrement, &
+      IncCVMSWells_print_info_to_file
 contains
 
    !> \brief Allocate well unknowns vectors
@@ -72,7 +75,13 @@ contains
       allocate (IncMSWell(Nnz))
       allocate (IncCoatsMSWellPreviousTimeStep(Nnz))
       compute_coupling_mswells = .false.
-
+#if _DEBUG_INCCVM_MSWELLS_ == 1
+      if (commRank == 0) then !Master proc
+         open (unit=110, file='mswell.val', status='unknown', action='write')
+         write (110, *) ""
+         close (110)
+      endif
+#endif
    end subroutine IncCVMSWells_allocate
 
    !> \brief Deallocate well unknowns vectors
@@ -192,5 +201,42 @@ contains
       compute_coupling_mswells = flag
 
    end subroutine IncCVMSWells_set_compute_coupling
+
+   subroutine IncCVMSWells_print_info_to_file() &
+      bind(C, name="IncCVMSWells_print_info_to_file")
+
+      integer :: s, k, nbwells, num_s
+#ifndef ComPASS_DIPHASIC_CONTEXT
+
+      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
+
+#else
+#if _DEBUG_INCCVM_MSWELLS_ == 1
+
+      if (commRank == 0) then !Master proc
+         open (unit=110, file='mswell.val', status='old', position='append', action='write')
+
+         nbwells = NbMSWellLocal_Ncpus(commRank + 1)
+         do k = 1, nbwells
+
+            ! looping from  queue to  head
+            do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+               num_s = NodebyMSWellLocal%Num(s)    ! index of s in the reservoir (local mesh)
+
+               write (110, *) XNodeLocal(1, num_s), XNodeLocal(3, num_s), &
+                  IncMSWell(s)%coats%Saturation(GAS_PHASE), &
+                  IncMSWell(s)%coats%Pression, &
+                  IncMSWell(s)%coats%Temperature, &
+                  IncMSWell(s)%coats%ic
+            end do
+
+         end do
+         write (110, *) " "
+         close (110)
+
+      end if
+#endif
+#endif
+   end subroutine IncCVMSWells_print_info_to_file
 
 end module IncCVMSWells

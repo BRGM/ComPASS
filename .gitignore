@@ -30,7 +30,10 @@ build*
 *.pdf
 *.spl
 *.html
-
+*.val
+*.dat
+*.swp
+*_BACK
 docs/doxygen/html
 docs/doxygen/xml
 docs/_build
