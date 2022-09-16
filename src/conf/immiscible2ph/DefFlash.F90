@@ -26,7 +26,7 @@ module DefFlash
       IndThermique, NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-#ifndef _THERMIQUE_
+#ifndef NDEBUG
    use CommonMPI, only: CommonMPI_abort
 #endif
 
@@ -76,6 +76,13 @@ contains
          inc%Saturation(GAS_PHASE) = MIN(MAX(inc%Saturation(GAS_PHASE), 0.d0), 1.d0)
          inc%Saturation(LIQUID_PHASE) = MIN(MAX(inc%Saturation(LIQUID_PHASE), 0.d0), 1.d0)
 
+#ifndef NDEBUG
+         ! needs that MCP = 0 implies C = 0 : refer to issue #552
+         if (dabs(inc%Comp(WATER_COMP, GAS_PHASE)) .gt. 1e-7) &
+            call CommonMPI_abort("C(WATER_COMP, GAS_PHASE) != 0")
+         if (dabs(inc%Comp(AIR_COMP, LIQUID_PHASE)) .gt. 1e-7) &
+            call CommonMPI_abort("C(AIR_COMP, LIQUID_PHASE) != 0")
+#endif
       else
          print *, "Error in Flash: no such context"
       end if
