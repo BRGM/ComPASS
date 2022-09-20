@@ -25,7 +25,7 @@ from .dumps import Dumper
 from .callbacks import get_callbacks_from_options
 from .utils.units import bar, year
 from . import messages
-
+from ComPASS._kernel import get_kernel
 
 Event = namedtuple("Event", ["time", "actions"])
 TimeloopTick = namedtuple(
@@ -394,6 +394,14 @@ def standard_loop(
                 callback(n, t)
         pcsp[:] = simulation.cell_states().p
         pcsT[:] = simulation.cell_states().T
+        #################################################################################################################
+        # Print mswell info every time iteration
+        kernel = get_kernel()
+        kernel.IncCVMSWells_print_info_to_file()  # directive _DEBUG_INCCVM_MSWELLS_ needs to be set to 1 in fortran file
+        kernel.JacobianMSWells_print_IP_info_to_file(
+            -1
+        )  # directive _DEBUG_JAC_IP_MSWELLS_ needs to be set to 1 in fortran file
+        #################################################################################################################
     if output_after_loop:
         output_actions(tick)
     # Check if some events were left unprocessed

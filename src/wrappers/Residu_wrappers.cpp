@@ -18,6 +18,7 @@ extern "C" {
 void Residu_associate_pointers(XArrayWrapper<double>, XArrayWrapper<double>,
                                XArrayWrapper<double>, XArrayWrapper<double>,
                                XArrayWrapper<double>, XArrayWrapper<double>,
+                               XArrayWrapper<double>, XArrayWrapper<double>,
                                XArrayWrapper<double>, XArrayWrapper<double>);
 void Residu_update_accumulation();
 // FIXME: all fortran functions could be grouped in a single header file
@@ -32,6 +33,8 @@ std::size_t nb_injectors();
 std::size_t number_of_own_injectors();
 std::size_t nb_producers();
 std::size_t number_of_own_producers();
+std::size_t number_of_mswell_nodes();
+std::size_t number_of_own_mswell_nodes();
 int number_of_components();
 }
 
@@ -42,6 +45,8 @@ struct Residuals {
    std::size_t cells_offset;
    std::size_t injectors_offset;
    std::size_t producers_offset;
+   std::size_t mswell_nodes_offset;
+   std::size_t mswell_nodes_acc_offset;
    auto nodes_size() const { return fractures_offset; }
    auto nodes_begin() { return values.data(); }
    auto nodes_end() { return values.data() + nodes_size(); }
@@ -54,9 +59,17 @@ struct Residuals {
    auto injectors_size() const { return producers_offset - injectors_offset; }
    auto injectors_begin() { return values.data() + injectors_offset; }
    auto injectors_end() { return values.data() + injectors_size(); }
-   auto producers_size() const { return values.size() - producers_offset; }
+   auto producers_size() const {
+      return mswell_nodes_offset - producers_offset;
+   }
    auto producers_begin() { return values.data() + producers_offset; }
    auto producers_end() { return values.data() + producers_size(); }
+   auto mswell_nodes_size() const {
+      return values.size() - mswell_nodes_offset;
+   }
+   auto mswell_nodes_begin() { return values.data() + mswell_nodes_offset; }
+   auto mswell_nodes_end() { return values.data() + mswell_nodes_size(); }
+
    auto nodes_accumulation_size() const { return nodes_size(); }
    auto nodes_accumulation_begin() { return accumulations.data(); }
    auto nodes_accumulation_end() {
@@ -75,6 +88,13 @@ struct Residuals {
    }
    auto cells_accumulation_end() {
       return accumulations.data() + cells_accumulation_size();
+   }
+   auto mswell_nodes_accumulation_size() const { return mswell_nodes_size(); }
+   auto mswell_nodes_accumulation_begin() {
+      return accumulations.data() + mswell_nodes_acc_offset;
+   }
+   auto mswell_nodes_accumulation_end() {
+      return accumulations.data() + mswell_nodes_accumulation_size();
    }
    auto own_nodes_size() const {
       assert(number_of_own_nodes() >= 0);
@@ -101,6 +121,12 @@ struct Residuals {
       assert(number_of_own_producers() <= producers_size());
       return number_of_own_producers();
    }
+   auto own_mswell_nodes_size() const {
+      assert(number_of_own_mswell_nodes() >= 0);
+      assert(number_of_own_mswell_nodes() <= mswell_nodes_size());
+      return number_of_own_mswell_nodes();
+   }
+
    Residuals() { reset(); }
    void reset() {
       const auto sou = npv();
@@ -108,11 +134,14 @@ struct Residuals {
       cells_offset = fractures_offset + sou * number_of_fractures();
       injectors_offset = cells_offset + sou * number_of_cells();
       producers_offset = injectors_offset + nb_injectors();
-      const auto n = producers_offset + nb_producers();
+      mswell_nodes_offset = producers_offset + nb_producers();
+      mswell_nodes_acc_offset = injectors_offset;
+      const auto n = mswell_nodes_offset + sou * number_of_mswell_nodes();
       if (values.size() != n) {
          values.resize(n);
          values.shrink_to_fit();
-         accumulations.resize(injectors_offset);
+         accumulations.resize(mswell_nodes_acc_offset +
+                              sou * number_of_mswell_nodes());
          accumulations.shrink_to_fit();
       }
       const auto p = values.data();
@@ -123,7 +152,10 @@ struct Residuals {
           {producers_begin(), producers_size()},
           {nodes_accumulation_begin(), nodes_accumulation_size()},
           {fractures_accumulation_begin(), fractures_accumulation_size()},
-          {cells_accumulation_begin(), cells_accumulation_size()});
+          {cells_accumulation_begin(), cells_accumulation_size()},
+          {mswell_nodes_begin(), mswell_nodes_size()},
+          {mswell_nodes_accumulation_begin(),
+           mswell_nodes_accumulation_size()});
    }
    // number of primary variables
    static std::size_t npv() {
@@ -259,6 +291,24 @@ void add_Residu_wrappers(py::module& module) {
               return py::array_t<double>{
                   cast_to_pyarray_shape(number_of_own_producers()),
                   self.producers_begin()};
+           },
+           py::keep_alive<0, 1>())
+       .def_property_readonly(
+           "mswell_nodes",
+           [](Residuals& self) {
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.mswell_nodes_size(),
+                                        Residuals::npv()),
+                  self.mswell_nodes_begin()};
+           },
+           py::keep_alive<0, 1>())
+       .def_property_readonly(
+           "own_mswell_nodes",
+           [](Residuals& self) {
+              return py::array_t<double>{
+                  cast_to_pyarray_shape(self.own_mswell_nodes_size(),
+                                        Residuals::npv()),
+                  self.mswell_nodes_begin()};
            },
            py::keep_alive<0, 1>());
 

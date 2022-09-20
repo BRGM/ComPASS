@@ -124,7 +124,7 @@ contains
          !!LeafNodebyMSWellLocal%Pt(1) = 0
          !!LeafNodebyMSWellLocal%Pt(2) = 2
 
-         !!!!!!!First leaf is the bottom at the origin
+         !!!!!First leaf is the bottom at the origin
          !!k = 1
          !!LeafNodebyMSWellLocal%Num(1) = NodebyMSWellLocal%Pt(k) + 1 !idx node at mswell
          !!LeafNodebyMSWellLocal%Num(1) = 1 !Local idx node at mswell
@@ -144,7 +144,7 @@ contains
          !!      exit
          !!   endif
          !!end do
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       else if (nb_mswells .eq. 2) then !Two mswells
 
          NbMSWellLeafNodes = 2
@@ -195,7 +195,7 @@ contains
       !User Parameters, TODO: should be done using the Python interface
       !variables at leaf nodes
 #if ComPASS_NUMBER_OF_COMPONENTS == 1
-      BDCIn = 'f' ! 'f' for flowrate mode without reservoir data; 'r' flowrate with reservoir data
+      BDCIn = 'r' ! 'f' for flowrate mode without reservoir data; 'r' flowrate with reservoir data
       VsgIn = 0.0d0 !water2phase
 #elif ComPASS_NUMBER_OF_COMPONENTS == 2
       BDCIn = 'f' ! 'f' for flowrate mode without reservoir data

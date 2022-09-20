@@ -48,7 +48,14 @@ nprocs = MPI.COMM_WORLD.Get_size()
 dummy_swell_id = 0
 mswell_id = dummy_swell_id + 1  # well id - could be any number
 
-
+################################################################################################
+# Important Note:
+# It should be verified that:
+# i) mswells/LeafMSWells.F90:LeafMSWells_allocate()
+# ii)mswells/LeafMSWells.F90:LeafMSWells_init()
+# are configured for the single mswell and the  type of diphasic model
+# if kernel.mswells_init_leaf_data() is called
+#################################################################################################
 if water2phase:
     simulation = ComPASS.load_eos("water2ph")
 else:
@@ -167,5 +174,5 @@ kernel.mswells_copy_states_from_reservoir()
 kernel.mswells_init_edge_data()
 kernel.IncPrimSecdMSWells_compute()
 kernel.LoisThermoHydroMSWells_compute()
-kernel.mswells_init_leaf_data()
-kernel.VSHydroMSWells_init()
+##kernel.mswells_init_leaf_data() #This can crash if not set correctly
+##kernel.VSHydroMSWells_init()

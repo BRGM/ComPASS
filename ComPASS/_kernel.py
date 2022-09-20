@@ -255,13 +255,15 @@ simulation_wrapper = Wrapper(
         "unlock_context",
         "build_state",
         "all_states",
-        # wells
+        # wells, mswells
         "nb_producers",
         "nb_injectors",
+        "nb_mswells",
         "producers_information",
         "injectors_information",
         "producers_data",
         "injectors_data",
+        "mswells_data",
         "producer_perforations",
         "injector_perforations",
         "producers_perforations",

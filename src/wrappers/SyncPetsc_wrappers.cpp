@@ -24,6 +24,8 @@
 
 // Fortran functions
 extern "C" {
+void syncpetsc_getsolnodefracwellmswell_(Vec*,
+                                         NewtonIncrements::Pointers<double>);
 void syncpetsc_getsolnodefracwell_(Vec*, NewtonIncrements::Pointers<double>);
 void SyncPetsc_colnum(int*, std::size_t);
 void MeshSchema_part_info(PartInfo&);
@@ -48,6 +50,13 @@ void add_SyncPetsc_wrappers(py::module& module) {
               [](py::object V, NewtonIncrements& increments) {
                  auto vec = cast_to_PETSc<Vec>(V);
                  syncpetsc_getsolnodefracwell_(&vec, increments.pointers());
+              });
+
+   module.def("SyncPetsc_GetSolNodeFracWellMSWell",
+              [](py::object V, NewtonIncrements& increments) {
+                 auto vec = cast_to_PETSc<Vec>(V);
+                 syncpetsc_getsolnodefracwellmswell_(&vec,
+                                                     increments.pointers());
               });
 
    //     module.def("SyncPetsc_global_matrix_size", []() {

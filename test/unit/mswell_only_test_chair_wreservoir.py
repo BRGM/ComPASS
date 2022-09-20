@@ -1,4 +1,5 @@
 #
+
 # This file is part of ComPASS.
 #
 # ComPASS is free software: you can redistribute it and/or modify it under both the terms
@@ -10,15 +11,19 @@ import numpy as np
 
 import ComPASS
 from ComPASS.utils.units import *
-from ComPASS.utils.various import tensor_coordinates
 import ComPASS.io.mesh as io
 import ComPASS.dump_wells as dw
 import ComPASS.mpi as mpi
 from mpi4py import MPI
 import os
-from mswell_only_newton import MSWellsNewtonParam
-from mswell_only_newton import MSWellsNewton
-
+from ComPASS._kernel import get_kernel
+from ComPASS.linalg.solver import IterativeSolverSettings
+from ComPASS.timestep_management import TimeStepManager
+from ComPASS.linalg.factory import linear_solver
+from ComPASS.newton import Newton
+from ComPASS.newton_coupled import NewtonCoupled
+from ComPASS.utils.grid import on_vertical_boundaries
+from ComPASS.simulation import AlignmentMethod
 
 ################################################################################################
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
@@ -65,6 +70,24 @@ dx = Lx / nx
 lhb = 250.0  # length of the horizontal branch
 assert abs(lhb % dx) < 1e-5
 nhb = int(lhb / dx)  # length of the horizontal branch in cells
+################################################################################
+class NewtonParameters:
+    def __init__(self, dt):
+        #########################################################################
+        # Newton and solver parameters
+        self.t0 = 0.0
+        self.tf = 2000  # 3000  # 2000  # 3000.0
+        self.dtmax = 40.0
+        if water2phase:
+            self.newtonMaxIter = 40
+        else:
+            self.newtonMaxIter = 100
+        self.TotalMaxIter = 2000
+        self.crit_resrel = 1.0e-9
+        self.crit_dxmax = 1.0e-10
+        #########################################################################
+        self.dt = dt
+
 
 ################################################################################################
 # Important Note:
@@ -73,6 +96,7 @@ nhb = int(lhb / dx)  # length of the horizontal branch in cells
 # ii)mswells/LeafMSWells.F90:LeafMSWells_init()
 # are configured for the chair mswell and the  type of diphasic model
 #################################################################################################
+
 
 if water2phase:
     simulation = ComPASS.load_eos("water2ph")
@@ -185,15 +209,16 @@ if sleep:
     kernel = get_kernel()
     kernel.init_wait_for_debug(True)
 
-
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=select_dirichlet_nodes,
     wells=make_producer,
+    set_dirichlet_nodes=select_dirichlet_nodes,
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=K_reservoir,
 )
+#############################################################################################
+# First step
 # -- Set initial state and boundary conditions
 hp = hydrostatic_pressure(0, H, 2 * nv + 1)
 initial_state = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
@@ -206,33 +231,51 @@ def set_pT_distribution(states, z):
     states.p[:] = hp(z)
     states.T[:] = Ttop  # simulation.Tsat(states.p[:])# for liquid_context
     # states.T[:] = simulation.Tsat(states.p[:])  # for gas_liquid_context
+    states.accumulation[:] = 0
 
 
 set_pT_distribution(simulation.node_states(), simulation.vertices()[:, 2])
 set_pT_distribution(simulation.cell_states(), simulation.compute_cell_centers()[:, 2])
 set_pT_distribution(dirichlet, simulation.vertices()[:, 2])
-##########################################################################################
-# Newton and solver parameters
-t0 = 0.0
-tf = 2000  # 2000.0  # 3000.0  # 3000.0
-dtmax = 40.0
-if water2phase:
-    newtonMaxIter = 40
-else:
-    newtonMaxIter = 100
-TotalMaxIter = 2000
-crit_resrel = 1.0e-9
-crit_dxmax = 1.0e-10
-######################################################
-mynewton_par = MSWellsNewtonParam(
-    t0=t0,
-    tf=tf,
-    dt=dt,
-    dtmax=dtmax,
-    newtonMaxIter=newtonMaxIter,
-    TotalMaxIter=TotalMaxIter,
-    verbose=verbose,
+
+# Init
+kernel = get_kernel()
+kernel.mswells_copy_states_from_reservoir()
+kernel.mswells_init_edge_data()
+kernel.IncPrimSecdMSWells_compute()
+kernel.LoisThermoHydroMSWells_compute()
+kernel.mswells_init_leaf_data()
+kernel.VSHydroMSWells_init()  # Computes initial pressure, don't call this when reinit from file
+
+mynewtonparam = NewtonParameters(dt)
+tsmger = TimeStepManager(
+    # initial_timestep=1 * year, increase_factor=2.0, decrease_factor=0.2,
+    initial_timestep=dt,
+    increase_factor=1.1,
+    decrease_factor=0.5,
+    maximum_timestep=mynewtonparam.dtmax,
 )
-mynewton = MSWellsNewton(mynewton_par, simulation=simulation)
-## Run Newton ##
-mynewton.solve()
+
+# We have a closed/open mswell, thus we need a DirectSolver and  need to specify not to use a LegacyLSolver
+lsolver = linear_solver(simulation, legacy=False, direct=True)
+# simulation.close_well(mswell_id)#close one well
+simulation.alignment = (
+    AlignmentMethod.manual
+)  # simulations that have mswells need manual alignment to be set
+
+
+newton = NewtonCoupled(
+    simulation,
+    tol=mynewtonparam.crit_resrel,
+    dxmax_tol=mynewtonparam.crit_dxmax,
+    maxit=mynewtonparam.newtonMaxIter,
+    lsolver=lsolver,
+)
+simulation.standard_loop(
+    newton=newton,
+    final_time=mynewtonparam.tf,  # more than enough to reach pressure equilibrium
+    time_step_manager=tsmger,
+    nitermax=mynewtonparam.TotalMaxIter,
+    output_after_loop=True,
+    no_output=True,
+)

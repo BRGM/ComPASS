@@ -333,7 +333,8 @@ contains
 
 #ifndef ComPASS_DIPHASIC_CONTEXT
 
-      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
+      call CommonMPI_abort( &
+         "In function Newton_compute_max_increment_mswells: Multi-segmented wells are only implemented for diphasic physics!")
 
 #else
 

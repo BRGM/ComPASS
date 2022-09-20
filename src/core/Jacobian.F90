@@ -9,7 +9,32 @@
 #include "gravity_average_rho.def"
 
 module Jacobian
-
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   use iso_c_binding
+   use InteroperabilityStructures
+   use mpi
+   use CommonType
+   use CommonMPI
+   use DefModel
+   use LoisThermoHydro
+   use NumbyContext
+   use Physics
+   use Newton
+   use SchemeParameters
+   use IncCVReservoir
+   use IncCVReservoirTypes
+   use IncCVWells
+   use VAGFrac
+   use NumbyContext
+   use IncPrimSecd
+   use MeshSchema
+   use Flux
+   use Residu
+   use MeshSchemaMSWells
+   use JacobianMSWells, &
+      MSWells_JacA => JacA, MSWells_Sm => Sm
+   use IncCVMSWells
+#else
    use iso_c_binding, only: c_double, c_int, c_bool
    use InteroperabilityStructures, only: &
       csr_block_matrix_wrapper, retrieve_csr_block_matrix, &
@@ -23,6 +48,11 @@ module Jacobian
       NumPhasePresente_ctx, NbPhasePresente_ctx, LIQUID_PHASE, &
       NbComp, NbPhase, NbCompThermique, NbContexte, MCP, aligmat, NbIncTotalPrimMax, &
       phase_can_be_present
+
+#ifdef ComPASS_DIPHASIC_CONTEXT
+   use DefModel, only: &
+      GAS_PHASE, LIQUID_PHASE, DIPHASIC_CONTEXT
+#endif
 
    use LoisThermoHydro, only: &
       DensiteMolaireKrViscoCompWellInj, DensiteMolaireKrViscoEnthalpieWellInj, &
@@ -99,7 +129,12 @@ module Jacobian
       WellInjbyNodeOwn, WellProdbyNodeOwn, CellbyFracOwn, &
       NbFracCellMax, NbNodeCellMax, NbNodeFaceMax, &
       FracToFaceLocal, XNodeLocal, XCellLocal, XFaceLocal, &
-      SurfFreeFlowLocal
+      SurfFreeFlowLocal, &
+      NodebyMSWellLocal, NodeDatabyMSWellLocal, &
+      DataMSWellLocal, NbMSWellLocal_Ncpus, &
+      NbNodeLocal_Ncpus, NbNodeOwn_Ncpus, &
+      NbMSWellNodeOwn_Ncpus, NbMSWellNodeLocal_Ncpus, &
+      MSWellbyNodeOwn
 
    use Flux, only: FluxDarcyKI, FluxDarcyFI
 
@@ -111,20 +146,32 @@ module Jacobian
       ResiduNode, ResiduCell, ResiduFrac, &
       ResiduWellInj, ResiduWellProd
 
+   use MeshSchemaMSWells, only: &
+      NbMSWellLocal, NbMSWellNodeOwn, &
+      NbMSWellNodeLocal, &
+      IncIdxNodebyMSWellLocal
+   use JacobianMSWells, only: &
+      MSWells_JacA => JacA, MSWells_Sm => Sm
+   use IncCVMSWells, only: &
+      IncMSWell, IncCVMSWells_compute_coupling
+
+#endif
    implicit none
 
-   !            node, frac, cell, wellinj, wellprod
-   !           | a11, a12, a13, a14, a15 | node own
-   ! JacBigA = | a21, a22, a23, 0,   0   | frac own
-   !           | a31, a32, a33, 0,   0   | cell (own and ghost)
-   !           ! a41, 0,   0,   a44, 0   | wellinj own
-   !           ! a51, 0,   0,   0,   a55 | wellprod own
+   !            node, frac, cell, wellinj, wellprod, mswellnodes local
+   !           | a11,  a12, a13, a14, a15,  a16 | node own
+   ! JacBigA = | a21,  a22, a23, 0,   0,     0  | frac own
+   !           | a31,  a32, a33, 0,   0,     0  | cell (own and ghost)
+   !           ! a41,  0,   0,   a44, 0,     0  | wellinj own
+   !           ! a51,  0,   0,   0,   a55,   0  | wellprod own
+   !           ! a61 , 0,   0,   0,   0,   a66  | mswellnodes own
 
-   !            node, frac, wellinj, wellprod
-   ! JacA =    | A11, A12, A13, A14 | node own
-   !           | A21, A22, 0,   0   | frac own
-   !           | A31, 0,   A33, 0   | wellinj own,
-   !           | A41, 0,   0,   A44 | wellprod own
+   !            node, frac, wellinj, wellprod, mswellnodes
+   ! JacA =    | A11, A12, A13, A14,  A15 | node own
+   !           | A21, A22, 0,   0,     0  | frac own
+   !           | A31, 0,   A33, 0,     0  | wellinj own,
+   !           | A41, 0,   0,   A44,   0  | wellprod own
+   !           | A51, 0,   0,   0,    A55 | mswellnodes own
 
    type(CSRArray2dble), public, target :: JacBigA
    type(CSRArray2dble), public, target :: JacA
@@ -140,6 +187,13 @@ module Jacobian
    ! for an element in JacBigA, we need to known its num in JacBigA%Val.
    ! the following vectors are used for this purpose
    integer, allocatable, dimension(:), private :: csrK, csrSR
+
+   !Offsets for mswell_nodes
+   !where does the index of the  MSWell block matrix starts
+   integer mswells_JacBigA_row_off, mswells_JacA_row_off
+   integer mswells_JacBigA_num_off, mswells_JacA_num_off
+   !Offsets for local mswell_nodes variable index enumeration (to be used for cols index)
+   integer mswells_JacBigA_unk_lcl_off, mswells_JacA_unk_lcl_off
 
    public :: &
       Jacobian_StrucJacBigA, & !< non-zero structure of Jacobian before Schur
@@ -163,6 +217,8 @@ module Jacobian
       Jacobian_JacBigA_BigSm_frac, &  ! (3)
       Jacobian_JacBigA_BigSm_wellinj, &  !
       Jacobian_JacBigA_BigSm_wellprod, &  !
+      Jacobian_JacBigA_BigSm_mswells, &    !Initialize mswells states if the mswell is closed
+      Jacobian_JacBigA_BigSm_coupling_mswells, &
       !
       ! In (2), we compute div( DensiteMolaire*Kr*Visco*Comp)*V_{k,s}
       !                  + DensiteMolaire*Kr*Visco*Comp*div(V_{k,s})
@@ -347,6 +403,12 @@ contains
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       call Jacobian_JacBigA_BigSm_FF_node
 #endif
+      !loop of mswells
+      call Jacobian_JacBigA_BigSm_mswells
+      if (IncCVMSWells_compute_coupling()) then
+         !Compute contribution  with coupling
+         call Jacobian_JacBigA_BigSm_coupling_mswells
+      endif
 
       call Jacobian_JacBigA_BigSm_dirichlet_nodes
 
@@ -1934,6 +1996,227 @@ contains
 
    end subroutine Jacobian_JacBigA_BigSm_wellprod
 
+   ! This subroutine only adds to JacBigA and Sm the contribution from
+   ! mswells without coupling with the resevoir
+
+   subroutine Jacobian_JacBigA_BigSm_mswells
+      integer :: k, s, unk_idx_s, glb_unk_idx_s, num_s, Nz, Nz_local
+      integer :: i, j, l, JacRow_end_idx_s, JacRow_begin_idx_s
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      do k = 1, NbMSWellLocal
+
+         !For all nodes at the well, from queue to head
+         !s is the well node numbering
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+            num_s = NodebyMSWellLocal%Num(s) !numbering in mesh
+
+            unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)!unkown idx @ MSWells_JacA
+            glb_unk_idx_s = unk_idx_s + mswells_JacBigA_row_off  !unkown idx row @ JacBigA
+
+            !Set default state for mswells if it is closed. TODO: this should be done elsewhere
+            if (DataMSWellLocal(k)%IndWell == 'c') IncMSWell(s)%coats%ic = 1 !Default context
+
+            if (IdNodeLocal(num_s)%Proc == "g") cycle ! node not own
+
+            if (DataMSWellLocal(k)%IndWell == 'c') then !the mswell is closed
+               !TODO: This is already done in JacobianMSWells_JacA_Sm_prod, but we are still separating
+               !      the calling of that function and the present function at the python level
+
+               !Nz: Diagonal idx in MSWells_JacA & JacBigA (Recall we built the diagonals terms first for each row in a66)
+               !TODO: we can search for Nz manually to make it more robust
+               Nz = JacBigA%Pt(glb_unk_idx_s) + 1 + 1 !need to sum the offset col of a61
+
+               if (NbComp .eq. 1) then
+                  !Put the Identity matrix
+                  JacBigA%Val(1, 1, Nz) = 1.d0
+#ifdef _THERMIQUE_
+                  JacBigA%Val(NbComp + 1, NbComp + 1, Nz) = 1.d0
+
+#endif
+               else if (NbComp .eq. 2) then
+                  !This matrix has to be the inverse as the one used for the manual alignment which depends on the default context being used above
+                  JacBigA%Val(1, 1, Nz) = 1.d0
+                  JacBigA%Val(1, 3, Nz) = -1.d0
+                  JacBigA%Val(2, 3, Nz) = 1.d0
+                  JacBigA%Val(3, 2, Nz) = 1.d0
+
+               else
+#ifndef NDEBUG
+                  call CommonMPI_abort( &
+                     "Jacobian: mswells closing feature only supported for components no bigger than 2")
+#endif
+
+               end if
+
+               cycle !continue s-loop
+            else !the mswell is not closed. Then just copy entries from MSWells only  RHS & block-matrix
+
+               bigSm(:, glb_unk_idx_s) = MSWells_Sm(:, unk_idx_s)
+
+               JacRow_begin_idx_s = MSWells_JacA%Pt(unk_idx_s)     !First column at the row of node s
+               JacRow_end_idx_s = MSWells_JacA%Pt(unk_idx_s + 1)   !Last column at the row of node s
+               !Sum MSWells contribution
+               do l = 1, JacRow_end_idx_s - JacRow_begin_idx_s
+
+                  Nz_local = MSWells_JacA%Pt(unk_idx_s) + l
+                  Nz = JacBigA%Pt(glb_unk_idx_s) + l + 1 !need to sum the offset col of a61
+
+                  do j = 1, NbIncTotalPrimMax
+                     do i = 1, NbComp
+
+                        JacBigA%Val(j, i, Nz) = JacBigA%Val(j, i, Nz) + MSWells_JacA%Val(j, i, Nz_local)
+                     end do
+#ifdef _THERMIQUE_
+
+                     JacBigA%Val(j, NbComp + 1, Nz) = JacBigA%Val(j, NbComp + 1, Nz) + MSWells_JacA%Val(j, NbComp + 1, Nz_local)
+#endif
+                  end do
+               end do
+            end if
+
+         end do ! end of loop s
+
+      end do! end of loop NbMSWellLocal
+
+   end subroutine Jacobian_JacBigA_BigSm_mswells
+
+   ! mswells with coupling with the resevoir
+   ! No coupling at the head of mswell
+   subroutine Jacobian_JacBigA_BigSm_coupling_mswells
+      integer :: k, s, unk_idx_s, glb_unk_idx_s, glb_unk_col_idx_s, nums, nz
+      integer :: rows, cols, m, mph, n, icp
+      integer :: i, j, l
+      double precision :: Pws, Ps, WIDws, WIFws, Ps_Pws
+      real(c_double) :: dP_w(NbComp), dP_s(NbIncTotalPrimMax, NbComp) ! NbComp mass balance equation
+      real(c_double) :: dP_ER_w, der_ER_s(NbIncTotalPrimMax) ! energy balance equation
+      logical :: something_is_produced
+
+#ifndef ComPASS_DIPHASIC_CONTEXT
+      if (NbMSWellLocal > 0) then
+         call CommonMPI_abort( &
+            "In function Jacobian_JacBigA_BigSm_coupling_mswells: Multi-segmented wells are only implemented for diphasic physics!")
+      endif
+#else
+
+      do k = 1, NbMSWellLocal
+
+         !If the mswell is an injector or is closed, do nothing
+         if ((DataMSWellLocal(k)%IndWell == 'c') .or. (DataMSWellLocal(k)%Well_type == 'i')) cycle
+
+         !For all nodes at the well, ** from queue to the node before the head **
+         !s is the well node numbering
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1) - 1
+
+            nums = NodebyMSWellLocal%Num(s) !numbering in mesh
+
+            if (IdNodeLocal(nums)%Proc == "g") cycle ! node not own
+
+            something_is_produced = .false.
+            Pws = IncMSWell(s)%coats%Pression ! P_{w,s}
+            WIDws = NodeDatabyMSWellLocal%Val(s)%WID ! WID_{w,s}
+#ifdef _THERMIQUE_
+            WIFws = NodeDatabyMSWellLocal%Val(s)%WIF ! WIF_{w,s}
+#endif
+            dP_w = 0.d0
+            dP_s = 0.d0
+#ifdef _THERMIQUE_
+            dP_ER_w = 0.d0
+            der_ER_s = 0.d0
+#endif
+
+            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+               Ps = IncNode(nums)%phase_pressure(mph) ! IncNode(nums)%Pression       ! P_s
+               Ps_Pws = Ps - Pws
+               if ((Ps_Pws > 0.d0)) then ! if Ps_Pws < 0 then this term is zero
+                  something_is_produced = .true.
+                  ! derivative of
+                  !   sum_{Q_s \cap P_i} q_{w,s,i}
+                  !   sum_{Q_s \cap P_i} q_{w,s,e}
+                  do icp = 1, NbComp
+                     if (MCP(icp, mph) == 1) then ! \cap P_i
+                        ! p^w_s = p^w + {\Delta p}^(n-1)_s
+                        ! q^{i \mapsto w}_{i,s} = M^{\alpha}_i WI_s (p_s - p^w_s)
+                        dP_w(icp) = dP_w(icp) - DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws
+                        ! No capillary pressure in the well
+                        dP_s(:, icp) = dP_s(:, icp) + divDensiteMolaireKrViscoCompNode(:, icp, mph, nums)*WIDws*Ps_Pws
+                        dP_s(:, icp) = dP_s(:, icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws &
+                                       *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
+                     end if
+                  end do
+#ifdef _THERMIQUE_
+                  dP_ER_w = dP_ER_w - DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws
+                  der_ER_s = der_ER_s + divDensiteMolaireKrViscoEnthalpieNode(:, mph, nums)*WIDws*Ps_Pws
+                  der_ER_s = der_ER_s + DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws &
+                             *(divPressionNode(:, nums) + divPhasePressureNode(:, mph, nums))
+#endif
+               end if
+            end do ! end loop over phases (Q_s)
+
+            if (something_is_produced) then
+
+               unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)!unkown idx @ MSWells_JacA
+               glb_unk_idx_s = unk_idx_s + mswells_JacBigA_row_off  !unkown row-idx @ JacBigA
+               glb_unk_col_idx_s = unk_idx_s + mswells_JacBigA_unk_lcl_off  !unkown col-idx @ JacBigA
+
+               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+               !MSWell node eq.
+
+               !The first col-idx is a61
+               nz = JacBigA%Pt(glb_unk_idx_s) + 1
+               do icp = 1, NbComp
+                  JacBigA%Val(:, icp, nz) = JacBigA%Val(:, icp, nz) - dP_s(:, icp) ! term q_{w,s,i}, derivative of node s
+               end do
+#ifdef _THERMIQUE_
+               JacBigA%Val(:, NbComp + 1, nz) = JacBigA%Val(:, NbComp + 1, nz) - der_ER_s
+#endif
+
+               !The second col-idx is a66, and the first idx is the diagonal
+               nz = JacBigA%Pt(glb_unk_idx_s) + 2
+               do icp = 1, NbComp
+                  JacBigA%Val(1, icp, nz) = JacBigA%Val(1, icp, nz) - dP_w(icp) ! term q_{w,s,i}, derivative of P_w
+               end do
+#ifdef _THERMIQUE_
+               JacBigA%Val(1, NbComp + 1, nz) = JacBigA%Val(1, NbComp + 1, nz) - dP_ER_w
+#endif
+
+               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+               !Reservoir eq.
+
+               rows = nums
+               cols = nums
+
+               do n = JacBigA%Pt(rows) + 1, JacBigA%Pt(rows + 1)
+                  csrSR(JacBigA%Num(n)) = n - JacBigA%Pt(rows)
+               end do
+
+               ! Ask, s is node, k is production mswell
+               nz = JacBigA%Pt(rows) + csrSR(glb_unk_col_idx_s)
+               do icp = 1, NbComp
+                  JacBigA%Val(1, icp, nz) = JacBigA%Val(1, icp, nz) + dP_w(icp) ! term q_{w,s,i}, derivative of P_w
+               end do
+#ifdef _THERMIQUE_
+               JacBigA%Val(1, NbComp + 1, nz) = JacBigA%Val(1, NbComp + 1, nz) + dP_ER_w
+#endif
+
+               ! Ass, s is node
+               nz = JacBigA%Pt(rows) + csrSR(cols)
+               do icp = 1, NbComp
+                  JacBigA%Val(:, icp, nz) = JacBigA%Val(:, icp, nz) + dP_s(:, icp) ! term q_{w,s,i}, derivative of node s
+               end do
+#ifdef _THERMIQUE_
+               JacBigA%Val(:, NbComp + 1, nz) = JacBigA%Val(:, NbComp + 1, nz) + der_ER_s
+#endif
+
+            end if !something_is_produced
+
+         end do !s
+      end do !k
+#endif
+
+   end subroutine Jacobian_JacBigA_BigSm_coupling_mswells
+
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    ! loop of node, index is nums
    ! 1.1 div
@@ -3292,6 +3575,13 @@ contains
 
       integer :: k, rowk, colk
 
+      if (NbMSWellLocal > 0) then
+#ifndef NDEBUG
+         call CommonMPI_abort( &
+            "Jacobian: Diagonal alignment is not supported for mswells")
+#endif
+      end if
+
       ! rows of node own
       do k = 1, NbNodeOwn_Ncpus(commRank + 1)
 
@@ -3370,6 +3660,7 @@ contains
       bind(C, name="Jacobian_Alignment_man")
 
       integer :: k, rowk
+      integer :: glb_unk_idx_s, unk_idx_s, s, num_s, row_s
 
       ! rows of node own
       do k = 1, NbNodeOwn_Ncpus(commRank + 1)
@@ -3392,6 +3683,21 @@ contains
 
          rowk = k + NbNodeOwn_Ncpus(commRank + 1) ! row of k
          call Jacobian_Alignment_man_row(rowk, IncFrac(k)%ic)
+      end do
+
+      do k = 1, NbMSWellLocal
+         ! looping from  queue to  head
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+            num_s = NodebyMSWellLocal%Num(s)
+            !Unkown indices of node s
+            unk_idx_s = IncIdxNodebyMSWellLocal%Num(s) !row of s @ MSWells_JacA
+            glb_unk_idx_s = unk_idx_s + mswells_JacA_row_off  !unkown idx @ JacA
+            if (IdNodeLocal(num_s)%Proc == "g") cycle ! node not own
+
+            row_s = glb_unk_idx_s! row of s @ JacA
+            call Jacobian_Alignment_man_row(row_s, IncMSWell(s)%coats%ic) !k is not used
+         end do
       end do
 
    end subroutine Jacobian_Alignment_man
@@ -3521,7 +3827,7 @@ contains
       nb_rows = size(BigSm, 2)
 
 #ifndef NDEBUG
-      if (nb_rows /= (row_cells_end + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1))) &
+      if (nb_rows /= (row_cells_end + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1) + NbMSWellNodeOwn)) &
          call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_extract_submatrix!")
 #endif
 
@@ -3569,7 +3875,7 @@ contains
 
 #ifndef NDEBUG
       if (nb_rows /= (row_cells_offset + NbCellLocal_Ncpus(commRank + 1) &
-                      + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1))) &
+                      + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1) + NbMSWellNodeOwn)) &
          call CommonMPI_abort("Unconsistent number of rows in Jacobian_Schur_init_Sm!")
 #endif
 
@@ -3694,20 +4000,22 @@ contains
    ! Non-zero sturcture of Jacobian
    subroutine Jacobian_StrucJacBigA
 
-      !            node, frac, cell, wellinj, wellprod
-      !           | a11, a12, a13, a14, a15 | node own
-      ! JacBigA = | a21, a22, a23, 0,   0   | frac own
-      !           | a31, a32, a33, 0,   0   | cell (own and ghost)
-      !           ! a41, 0,   0,   a44, 0   | wellinj own
-      !           ! a51, 0,   0,   0,   a55 | wellprod own
+      !            node, frac, cell, wellinj, wellprod, mswell_nodes
+      !           | a11, a12, a13, a14, a15 a16 | node own
+      ! JacBigA = | a21, a22, a23, 0,   0   0   | frac own
+      !           | a31, a32, a33, 0,   0   0   | cell (own and ghost)
+      !           ! a41, 0,   0,   a44, 0   0   | wellinj own
+      !           ! a51, 0,   0,   0,   a55 0   | wellprod own
+      !           ! a61, 0,   0,   0,   0   a66 | mswell_nodes own
 
-      !            node, frac, wellinj, wellprod
-      ! JacA =    | A11, A12, A13, A14 | node own
-      !           | A21, A22, 0,   0   | frac own
-      !           | A31, 0,   A33, 0   | wellinj own,
-      !           | A41, 0,   0,   A44 | wellprod own
+      !            node, frac, wellinj, wellprod, mswell_nodes
+      ! JacA =    | A11, A12, A13, A14  A15     | node own
+      !           | A21, A22, 0,   0    0       | frac own
+      !           | A31, 0,   A33, 0    0       | wellinj own,
+      !           | A41, 0,   0,   A44  0       | wellprod own
+      !           ! A51, 0,   0,   0,   0   A55 | mswell_nodes own
       ! the nonzero structure of Aij is same as aij, i,j=1,2 in JacBigA
-      ! A31=a31, A33=a33, A41=a41, A44=a44
+      ! A31=a31, A33=a33, A41=a41, A44=a44, A55=a55
 
       ! The non zero structure of aij is based on the connectivities
       ! a11: NodebyNodeOwn if not dirichlet
@@ -3739,7 +4047,7 @@ contains
       integer, dimension(:), allocatable :: &
          nbNnzbyline ! number of non zeros each line
 
-      integer :: i, j, k, Nz, start
+      integer :: i, j, k, Nz, start, s, num_s, unk_idx_s, glb_unk_col_idx_s
       integer :: tmp
       integer :: &
          nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn, &
@@ -3757,6 +4065,9 @@ contains
       nbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
 
       JacBigA%Nb = nbNodeOwn + nbFracOwn + nbCellLocal + nbWellInjOwn + nbWellProdOwn
+      JacBigA%Nb = JacBigA%Nb + NbMSWellNodeOwn
+      mswells_JacBigA_unk_lcl_off = nbNodeLocal + nbFracLocal + nbCellLocal + nbWellInjLocal + nbWellProdLocal
+
       allocate (nbNnzbyLine(JacBigA%Nb))
       allocate (JacBigA%Pt(JacBigA%Nb + 1))
       allocate (BigSm(NbCompThermique, JacBigA%Nb))
@@ -3799,6 +4110,15 @@ contains
       do i = 1, nbWellProdOwn
          nbNnzbyLine(start + i) = &
             NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i) + 1 ! a55 is diag
+      end do
+
+      ! a6* in JacbigA
+      start = start + nbWellProdOwn
+      mswells_JacBigA_row_off = start
+      ! print*, 'DEBUG HERE', NbMSWellOwn_Ncpus(commRank+1)
+      do i = 1, NbMSWellNodeOwn! this is equal to MSWells_JacA%Nb
+         nbNnzbyLine(start + i) = &
+            MSWells_JacA%Pt(i + 1) - MSWells_JacA%Pt(i) + 1 !copy the nbcols of MSWells_JacA and sum the reservoir paired node
       end do
 
       ! JacBigA%Pt
@@ -3920,8 +4240,33 @@ contains
          start = start + 1
       end do
 
-      ! Sort JacbigA%Num
-      do i = 1, JacBigA%Nb
+      ! a61 in JacBigA, pairing mswell_node with reservoir_node
+      mswells_JacBigA_num_off = start
+      do k = 1, NbMSWellLocal
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+            num_s = NodebyMSWellLocal%Num(s) ! index of s in the reservoir (local mesh)
+
+            if (IdNodeLocal(num_s)%Proc /= "o") cycle ! node not own
+
+            unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)!unkown idx @ MSWells_JacA
+            JacBigA%Num(start + 1) = num_s
+            start = start + 1 + MSWells_JacA%Pt(unk_idx_s + 1) - MSWells_JacA%Pt(unk_idx_s) !cols of a66 to be filled
+         end do
+      end do
+
+      start = mswells_JacBigA_num_off + 1 !sum the offset of col a61
+      do i = 1, NbMSWellNodeOwn! this is equal to MSWells_JacA%Nb
+         ! a66 in JacBigA, copy cols from mswells_JacA using JacBigA offset
+         do j = 1, MSWells_JacA%Pt(i + 1) - MSWells_JacA%Pt(i) !cols at row i
+            JacBigA%Num(start + 1) = MSWells_JacA%Num(j + MSWells_JacA%Pt(i)) + mswells_JacBigA_unk_lcl_off
+            start = start + 1
+         end do
+         start = start + 1 !sum the offset of col  a61
+      end do
+
+      ! Sort JacbigA%Num until mswellnodes
+      do i = 1, mswells_JacBigA_row_off !JacBigA%Nb
 
          do k = 1, JacBigA%Pt(i + 1) - JacBigA%Pt(i)
             do j = JacBigA%Pt(i) + 1, JacBigA%Pt(i + 1) - k
@@ -3939,11 +4284,12 @@ contains
    end subroutine Jacobian_StrucJacBigA
 
    ! We speak in terms in blocks - that means one non-zero means one block that is non zero
-   !         node, frac, wellinj, wellprod
-   ! JacA = | A11, A12, A13, A14 | node own
-   !        | A21, A22, 0,   0   | frac own
-   !        | A31, 0,   A33, 0   | wellinj own
-   !        | A41, 0,   0,   A44 | wellprod own
+   !         node, frac, wellinj, wellprod, mswell_nodes
+   ! JacA = | A11, A12, A13, A14 A15 | node own
+   !        | A21, A22, 0,   0   0   | frac own
+   !        | A31, 0,   A33, 0   0   | wellinj own
+   !        | A41, 0,   0,   A44 0   | wellprod own
+   !        | A51, 0,   0,   0   A55 | mswell_nodes own
    ! the nonzero structure of Aij is same as aij in JacBigA, i,j=1,2
 
    ! The non zero structure of aij is based on the connectivities
@@ -3979,7 +4325,7 @@ contains
       nbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
       nbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
 
-      nb_rows = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn
+      nb_rows = nbNodeOwn + nbFracOwn + nbWellInjOwn + nbWellProdOwn + nbMSWellNodeOwn
       allocate (nbNnzbyLine(nb_rows))
 
 #ifndef NDEBUG
@@ -3993,7 +4339,8 @@ contains
          nbNnzbyLine(i) = NodebyNodeOwn%Pt(i + 1) - NodebyNodeOwn%Pt(i) &
                           + FracbyNodeOwn%Pt(i + 1) - FracbyNodeOwn%Pt(i) &
                           + WellInjbyNodeOwn%Pt(i + 1) - WellInjbyNodeOwn%Pt(i) &
-                          + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i)
+                          + WellProdbyNodeOwn%Pt(i + 1) - WellProdbyNodeOwn%Pt(i) &
+                          + MSWellbyNodeOwn%Pt(i + 1) - MSWellbyNodeOwn%Pt(i)
       end do
 
       ! A2* in JacA, rq: frac is not dir face
@@ -4015,6 +4362,15 @@ contains
       do i = 1, nbWellProdOwn
          nbNnzbyLine(start + i) = &
             NodebyWellProdLocal%Pt(i + 1) - NodebyWellProdLocal%Pt(i) + 1 ! A55 is diagonal
+      end do
+
+      ! A5* in JacA
+      start = start + nbWellProdOwn
+      mswells_JacA_row_off = start
+      do i = 1, NbMSWellNodeOwn! this is equal to MSWells_JacA%Nb
+         nbNnzbyLine(start + i) = &
+            MSWells_JacA%Pt(i + 1) - MSWells_JacA%Pt(i) + 1 ! copy the nbcols of MSWells_Jac
+         ! and sum the contribution of the reservoir paired node
       end do
 
       ! JacA%Pt
@@ -4055,7 +4411,7 @@ contains
    subroutine Jacobian_StrucJacA_fill_columns(M)
       type(CSRArray2dble), intent(inout) :: M
 
-      integer :: i, start
+      integer :: i, j, start, k, s, num_s, unk_idx_s, glb_unk_col_idx_s
       integer :: nbNodeOwn, nbFracOwn, nbWellInjOwn, nbWellProdOwn
       integer :: column_offset(4)
 
@@ -4085,6 +4441,24 @@ contains
          call fill_SM_column_number(FracbyNodeOwn, i, column_offset(2), M%Num, start)
          call fill_SM_column_number(WellInjbyNodeOwn, i, column_offset(3), M%Num, start)
          call fill_SM_column_number(WellProdbyNodeOwn, i, column_offset(4), M%Num, start)
+         ! A15(i;:)
+         do j = 1, MSWellbyNodeOwn%Pt(i + 1) - MSWellbyNodeOwn%Pt(i)
+            k = MSWellbyNodeOwn%Num(j + MSWellbyNodeOwn%Pt(i)) !number of the mswell which is linked with the reservoir node
+
+            !Find the reservoir node
+            do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+               if (IncIdxNodebyMSWellLocal%Val(s) == i) then
+
+                  unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)           !mswell_node unkown idx @ MSWells_JacA
+                  glb_unk_col_idx_s = unk_idx_s + mswells_JacA_unk_lcl_off  !unkown col idx @ JacA
+                  JacA%Num(start + j) = glb_unk_col_idx_s
+                  start = start + 1
+                  exit
+
+               end if
+            end do
+         end do
 #ifndef NDEBUG
          if (M%Pt(i + 1) /= start) &
             call CommonMPI_abort("Wrong offset in filling JacA node rows.")
@@ -4124,6 +4498,31 @@ contains
 #endif
       end do
 
+      ! A51 in JacBigA, pairing mswell_node with reservoir_node
+      mswells_JacA_num_off = start
+      do k = 1, NbMSWellLocal
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
+
+            num_s = NodebyMSWellLocal%Num(s) ! index of s in the reservoir (local mesh)
+
+            if (IdNodeLocal(num_s)%Proc /= "o") cycle ! node not own
+
+            unk_idx_s = IncIdxNodebyMSWellLocal%Num(s)!unkown idx @ MSWells_JacA
+            JacA%Num(start + 1) = num_s
+            start = start + 1 + MSWells_JacA%Pt(unk_idx_s + 1) - MSWells_JacA%Pt(unk_idx_s) !cols of A55 to be filled
+         end do
+      end do
+
+      ! A55 in JacBigA, copy cols from mswells_JacA using JacA offset
+      start = mswells_JacA_num_off + 1 !sum the offset of col  A51
+      do i = 1, NbMSWellNodeOwn! this is equal to MSWells_JacA%Nb
+         do j = 1, MSWells_JacA%Pt(i + 1) - MSWells_JacA%Pt(i) !cols at row i
+            JacA%Num(start + 1) = MSWells_JacA%Num(j + MSWells_JacA%Pt(i)) + mswells_JacA_unk_lcl_off
+            start = start + 1
+         end do
+         start = start + 1 !sum the offset of col  A51
+      end do
+
    end subroutine Jacobian_StrucJacA_fill_columns
 
    ! Non zero sturcture of JacA: JacBigA after Schur
@@ -4156,24 +4555,36 @@ contains
       !   bigA%Num, non zero structure of bigA
       !   arrange bigA%Num such that in each row, the cols is in inscreasing order
 
-      integer :: i, nb_rows, nb_cols, nnz
+      integer :: i, nb_rows, nb_rows_no_mswells, nb_cols, nnz
 
-      nb_rows = NbNodeOwn_Ncpus(commRank + 1) &
-                + NbFracOwn_Ncpus(commRank + 1) &
-                + NbWellInjOwn_Ncpus(commRank + 1) &
-                + NbWellProdOwn_Ncpus(commRank + 1)
+      nb_rows_no_mswells = NbNodeOwn_Ncpus(commRank + 1) &
+                           + NbFracOwn_Ncpus(commRank + 1) &
+                           + NbWellInjOwn_Ncpus(commRank + 1) &
+                           + NbWellProdOwn_Ncpus(commRank + 1)
+
+      nb_rows = nb_rows_no_mswells + NbMSWellNodeOwn
 
       nb_cols = NbNodeLocal_Ncpus(commRank + 1) &
                 + NbFracLocal_Ncpus(commRank + 1) &
                 + NbCellLocal_Ncpus(commRank + 1) &
                 + NbWellInjLocal_Ncpus(commRank + 1) &
-                + NbWellProdLocal_Ncpus(commRank + 1)
+                + NbWellProdLocal_Ncpus(commRank + 1) &
+                + NbMSWellNodeLocal
+
+      mswells_JacA_unk_lcl_off = NbNodeLocal_Ncpus(commRank + 1) &
+                                 + NbFracLocal_Ncpus(commRank + 1) &
+                                 + NbWellInjLocal_Ncpus(commRank + 1) &
+                                 + NbWellProdLocal_Ncpus(commRank + 1)
 
       JacA%Nb = nb_rows
       allocate (JacA%Pt(nb_rows + 1))
 
       call Jacobian_StrucJacA_fill_Pt(JacA%Pt)
 
+#ifndef NDEBUG
+      if (nb_rows_no_mswells /= mswells_JacA_row_off) &
+         call CommonMPI_abort("Wrong offset in filling JacA mswells rows.")
+#endif
       nnz = JacA%Pt(nb_rows + 1)
 
       allocate (JacA%Num(nnz))
@@ -4181,7 +4592,8 @@ contains
       call Jacobian_StrucJacA_fill_columns(JacA)
 
       ! Sort JacA%Num so that column indices are in ascending order
-      do i = 1, nb_rows
+      !               but rows of  mswells_nodes
+      do i = 1, nb_rows_no_mswells
          call quicksort(JacA%Num, JacA%Pt(i) + 1, JacA%Pt(i + 1))
       end do
 

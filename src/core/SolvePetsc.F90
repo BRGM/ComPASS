@@ -33,6 +33,8 @@ module SolvePetsc
       retrieve_id_array, &
       cpp_array_wrapper, &
       csr_block_matrix_wrapper
+   use MeshSchemaMSWells, only: &
+      NbMSWellLocal
 
    ! tmp
    use IncPrimSecd, only: NbIncTotalPrim_ctx
@@ -173,6 +175,10 @@ contains
 
       kspitmax = kspitmax_in
       PetscKspTol = ksptol_in
+      if (NbMSWellLocal > 0) then
+         call CommonMPI_abort( &
+            "Legacy::SolvePetsc_Init() does not support  mswells")
+      end if
 
       ! set tmp values
       NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)

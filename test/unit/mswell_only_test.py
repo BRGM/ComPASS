@@ -25,7 +25,7 @@ from mswell_only_newton import MSWellsNewton
 # A vertical well with 2x2 grid basis and nv horizontal layers over H thickness
 ds = 100  # horizontal cell size
 H = 1000  # height of the well
-nv = 10  #  number of vertical layers
+nv = 100  #  number of vertical layers
 hns = 1  # half the number of cells along basis side
 rw = 0.05  # well radius
 ptop = 5.0e5  # pressure at the top of the reservoir, 10*MPa one phase. 1*MPa for two phases
@@ -50,6 +50,13 @@ sleep = False
 nprocs = MPI.COMM_WORLD.Get_size()
 dummy_swell_id = 0
 mswell_id = dummy_swell_id + 1  # well id - could be any number
+################################################################################################
+# Important Note:
+# It is crucial to be verified that:
+# i) mswells/LeafMSWells.F90:LeafMSWells_allocate()
+# ii)mswells/LeafMSWells.F90:LeafMSWells_init()
+# are configured for the single mswell and the  type of diphasic model
+#################################################################################################
 
 ########################################################################
 if water2phase:

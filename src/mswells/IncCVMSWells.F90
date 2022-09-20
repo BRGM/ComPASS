@@ -34,8 +34,11 @@ module IncCVMSWells
       IncIdxNodebyMSWellLocal, NbMSWellNodeLocal_Ncpus
 #endif
    implicit none
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Set this to one to print mswells info like pressure, temperature, etc
+! See function IncCVMSWells_print_info_to_file below
 #define _DEBUG_INCCVM_MSWELLS_ 0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
    type, bind(C) :: TYPE_IncCVMSWells
       !Unkowns per Node
@@ -78,8 +81,12 @@ contains
 #if _DEBUG_INCCVM_MSWELLS_ == 1
       if (commRank == 0) then !Master proc
          open (unit=110, file='mswell.val', status='unknown', action='write')
-         write (110, *) ""
+         write (110, *) "# x-coord, z-coord, w_gas_sat,  w_pression,  w_T,  w_context"
          close (110)
+
+         open (unit=310, file='mswell_exd.val', status='unknown', action='write')
+         write (310, *) "# w_total_gas_sat"
+         close (310)
       endif
 #endif
    end subroutine IncCVMSWells_allocate
@@ -125,7 +132,8 @@ contains
       integer :: s, k, nums, nbwells
 #ifndef ComPASS_DIPHASIC_CONTEXT
 
-      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
+      call CommonMPI_abort( &
+         "In function IncCVMSWells_copy_states_from_reservoir: Multi-segmented wells are only implemented for diphasic physics!")
 
 #else
 
@@ -137,8 +145,11 @@ contains
             nums = NodebyMSWellLocal%Num(s)
 
             IncMSWell(s)%coats = IncNode(nums)
-            IncMSWell(s)%coats%Pression = IncMSWell(s)%coats%Pression
-            !IncMSWell(s)%coats%Pression = IncMSWell(s)%coats%Pression - 1
+            !IncMSWell(s)%coats%Pression = IncMSWell(s)%coats%Pression
+            ! FIXME: this a hard coded trick to make the producer produce
+            !        at the beginning of the simulation by lowering slightly
+            !        the well pressure below the reservoir pressure
+            IncMSWell(s)%coats%Pression = IncMSWell(s)%coats%Pression - 1
             !Set phase pressure for all phases
             IncMSWell(s)%coats%phase_pressure(:) = IncMSWell(s)%coats%Pression
 
@@ -205,19 +216,57 @@ contains
    subroutine IncCVMSWells_print_info_to_file() &
       bind(C, name="IncCVMSWells_print_info_to_file")
 
-      integer :: s, k, nbwells, num_s
-#ifndef ComPASS_DIPHASIC_CONTEXT
+      integer :: s, k, nbwells, num_s, num_ss
+      double precision :: dz, total_gas_sat
 
-      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
-
-#else
 #if _DEBUG_INCCVM_MSWELLS_ == 1
 
-      if (commRank == 0) then !Master proc
+#ifndef ComPASS_DIPHASIC_CONTEXT
+
+      call CommonMPI_abort( &
+         "In function IncCVMSWells_print_info_to_file: Multi-segmented wells are only implemented for diphasic physics!")
+
+#else
+      if (commRank == 0) then !Master proc, watch it: this only works if the proc 0 has a local mswell
+
          open (unit=110, file='mswell.val', status='old', position='append', action='write')
+         open (unit=310, file='mswell_exd.val', status='old', position='append', action='write')
 
          nbwells = NbMSWellLocal_Ncpus(commRank + 1)
          do k = 1, nbwells
+
+            ! Check if the well is closed
+            if (DataMSWellLocal(k)%IndWell == 'c') cycle
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!Compute total gas sat
+            total_gas_sat = 0.d0
+
+            ! looping  over the nodes stricly between the  queue to  head
+            do s = NodebyMSWellLocal%Pt(k) + 2, NodebyMSWellLocal%Pt(k + 1) - 1
+               num_s = NodebyMSWellLocal%Num(s)    ! index of s in the reservoir (local mesh)
+               num_ss = NodebyMSWellLocal%Num(s - 1)
+               dz = XNodeLocal(3, num_s) - XNodeLocal(3, num_ss)
+               total_gas_sat = total_gas_sat + dz*IncMSWell(s)%coats%Saturation(GAS_PHASE)
+
+            end do
+            !add bottom
+            s = NodebyMSWellLocal%Pt(k) + 1
+            num_s = NodebyMSWellLocal%Num(s)    ! index of s in the reservoir (local mesh)
+            num_ss = NodebyMSWellLocal%Num(s + 1)  ! next well node
+            dz = XNodeLocal(3, num_ss) - XNodeLocal(3, num_s)
+            total_gas_sat = total_gas_sat + 0.5*dz*IncMSWell(s)%coats%Saturation(GAS_PHASE)
+            !add head
+            s = NodebyMSWellLocal%Pt(k + 1)
+            num_s = NodebyMSWellLocal%Num(s)    ! index of s in the reservoir (local mesh)
+            num_ss = NodebyMSWellLocal%Num(s - 1)  ! previous well node
+            dz = XNodeLocal(3, num_s) - XNodeLocal(3, num_ss)
+            total_gas_sat = total_gas_sat + 0.5*dz*IncMSWell(s)%coats%Saturation(GAS_PHASE)
+
+            write (310, *) total_gas_sat
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!Print info
 
             ! looping from  queue to  head
             do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1)
@@ -228,11 +277,14 @@ contains
                   IncMSWell(s)%coats%Pression, &
                   IncMSWell(s)%coats%Temperature, &
                   IncMSWell(s)%coats%ic
+
             end do
 
          end do
          write (110, *) " "
          close (110)
+         write (310, *) " "
+         close (310)
 
       end if
 #endif

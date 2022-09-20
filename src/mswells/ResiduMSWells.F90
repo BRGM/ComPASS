@@ -312,18 +312,18 @@ contains
       double precision :: ecross_sec, xk_s, xk_sp, esize, flux_mph, flux_mph_icp, flux_mph_e
       double precision :: VsbyPhase(NbPhase), e_thcond, fluxF
       logical ::  phase_in_up_context
-#ifndef ComPASS_DIPHASIC_CONTEXT
-
-      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
-
-#else
-
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! Note: Not mandatory to put the ResiduMSWell equal to zero for ghost nodes,
       !       but it is very useful for debugging in parallel
 
       !We begin with the accumulation terms for all mswells
       do k = 1, NbMSWellLocal
+#ifndef ComPASS_DIPHASIC_CONTEXT
+
+         call CommonMPI_abort( &
+            "In function ResiduMSWells_compute_prod: Multi-segmented wells are only implemented for diphasic physics!")
+
+#else
 
          !If the mswell is an injector or is closed, do nothing
          if ((DataMSWellLocal(k)%IndWell == 'c') .or. (DataMSWellLocal(k)%Well_type == 'i')) cycle
@@ -516,9 +516,10 @@ contains
 #endif
 
          end do !s
+!ComPASS_DIPHASIC_CONTEXT
+#endif
 
       end do !k
-#endif
    end subroutine ResiduMSWells_compute_prod
 
    subroutine ResiduMSWells_free

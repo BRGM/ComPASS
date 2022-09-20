@@ -27,6 +27,7 @@ class DistributedSystem:
         yield getattr(part.fractures, attr) * NbCompThermique
         yield getattr(part.injectors, attr)
         yield getattr(part.producers, attr)
+        yield getattr(part.mswell_nodes, attr) * NbCompThermique
 
     def items_and_rows(self):
         kernel = self.kernel
@@ -37,6 +38,7 @@ class DistributedSystem:
         yield part.fractures, NbCompThermique
         yield part.injectors, 1
         yield part.producers, 1
+        yield part.mswell_nodes, NbCompThermique
 
     def __init__(self, kernel):
         assert kernel is not None

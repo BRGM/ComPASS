@@ -7,7 +7,31 @@
 !
 
 module Residu
-
+#ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
+   use, intrinsic :: iso_c_binding
+   use, intrinsic :: ieee_arithmetic
+   use CommonMPI
+   use InteroperabilityStructures
+   use CommonType
+   use DefModel
+   use LoisThermoHydro
+   use Physics
+   use IncPrimSecd
+   use Flux
+   use NeumannContribution
+   use NumbyContext
+   use IncCVReservoir
+   use IncCVWells
+   use DefWell
+   use VAGFrac
+   use MeshSchema
+   use InteroperabilityStructures
+   use ResiduMSWells
+   use JacobianMSWells, &
+      MSWells_JacA => JacA, MSWells_Sm => Sm
+   use IncCVMSWells
+   use Thermodynamics
+#else
    use, intrinsic :: iso_c_binding, only: c_int, c_double, c_f_pointer
    use, intrinsic :: ieee_arithmetic, only: ieee_value, ieee_quiet_nan
 
@@ -21,6 +45,10 @@ module Residu
       NbEqEquilibreMax, NbIncTotalPrimMax, &
       NbIncPTCMax, NbIncTotalMax, NbEqFermetureMax, &
       NbPhasePresente_ctx, NumPhasePresente_ctx
+#ifdef ComPASS_DIPHASIC_CONTEXT
+   use DefModel, only: &
+      GAS_PHASE, LIQUID_PHASE
+#endif
 
    use LoisThermoHydro, only: &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
@@ -39,7 +67,9 @@ module Residu
       DensitemolaireKrViscoEnthalpieCell, &
       DensitemolaireKrViscoEnthalpieFrac, &
       DensitemolaireSatComp, &
-      DensitemolaireEnergieInterneSat
+      DensitemolaireEnergieInterneSat, &
+      ContextInfo, &
+      LoisThermoHydro_init_cv
 
    use Physics, only: CpRoche, gravity
    use IncPrimSecd, only: SmFNode, SmFCell, SmFFrac
@@ -48,10 +78,15 @@ module Residu
    use NeumannContribution, only: NodeNeumannBC
 
    use NumbyContext, only: &
-      NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx
+      NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx, &
+      NbIncPTC_ctx, &
+      NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
+
    use IncCVReservoir, only: &
       NbCellLocal_Ncpus, NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
-      IncAll, IncNode, IncCell, IncFrac, TYPE_IncCVReservoir
+      IncAll, IncNode, IncCell, IncFrac, TYPE_IncCVReservoir, &
+      NumPhasePresente_ctx, NbPhasePresente_ctx
+
    use IncCVWells, only: &
       PerfoWellInj, DataWellInjLocal, &
       NbWellInjLocal_Ncpus, &
@@ -69,14 +104,35 @@ module Residu
       DataWellProdLocal, NodebyCellLocal, FracbyCellLocal, &
       FaceToFracLocal, FracToFaceLocal, NodebyFaceLocal, &
       XNodeLocal, &
+      NodebyMSWellLocal, DataMSWellLocal, NodeDatabyMSWellLocal, &
 #ifdef _WITH_FREEFLOW_STRUCTURES_
       IsFreeflowNode, AtmState, &
 #endif
       IdNodeLocal, NbNodeOwn_Ncpus, NbCellOwn_Ncpus, NbFracOwn_Ncpus, &
       NodebyWellInjLocal, NodeDatabyWellInjLocal, NbWellProdLocal_Ncpus, &
-      SurfFreeFlowLocal
+      SurfFreeFlowLocal, &
+      XNodeLocal, IdNodeLocal, &
+      NbMSWellNodeLocal_Ncpus
+
+   use MeshSchemaMSWells, only: &
+      NbMSWellNodeOwn, &
+      NbMSWellNodeLocal, &
+      IncIdxNodebyMSWellLocal, NbMSWellLocal
+
+   use InteroperabilityStructures, only: cpp_array_wrapper
+
+   use ResiduMSWells, only: &
+      ResiduMSWells_associate_pointers, ResiduMSWells_reset_history, &
+      ResiduMSWells_compute, ResiduMSWell, QwByMSWell
+
+   use JacobianMSWells, only: &
+      MSWells_JacA => JacA, MSWells_Sm => Sm
+
+   use IncCVMSWells, only: &
+      IncCVMSWells_compute_coupling, IncMSWell
 
    use Thermodynamics, only: f_VolumetricMassDensity
+#endif
 
    implicit none
 
@@ -114,19 +170,21 @@ module Residu
       Residu_reset_Dirichlet_nodes, &
       Residu_add_Neumann_contributions, &
       Residu_add_flux_contributions_wells, &
-      Residu_clear_absent_components_accumulation
+      Residu_clear_absent_components_accumulation, &
+      Residu_add_flux_coupling_mswells !Modifies ResiduMSWell & JacobianMSWell%Sm
 
 contains
 
    subroutine Residu_associate_pointers( &
       nodes, fractures, cells, injectors, producers, &
-      nodes_accumulation, fractures_accumulation, cells_accumulation &
-      ) &
+      nodes_accumulation, fractures_accumulation, cells_accumulation, &
+      mswell_nodes, mswell_nodes_accumulation) &
       bind(C, name="Residu_associate_pointers")
 
       type(cpp_array_wrapper), intent(in), value :: &
          nodes, cells, fractures, injectors, producers, &
-         nodes_accumulation, cells_accumulation, fractures_accumulation
+         nodes_accumulation, cells_accumulation, fractures_accumulation, &
+         mswell_nodes, mswell_nodes_accumulation
 
       if (nodes%n /= NbNodeLocal_Ncpus(commRank + 1)*NbCompThermique) &
          call CommonMPI_abort('inconsistent nodes residual size')
@@ -144,6 +202,10 @@ contains
          call CommonMPI_abort('inconsistent injectors residual size')
       if (producers%n /= NbWellProdLocal_Ncpus(commRank + 1)) &
          call CommonMPI_abort('inconsistent producers residual size')
+      if (mswell_nodes%n /= NbMSWellNodeLocal_Ncpus(commRank + 1)*NbCompThermique) &
+         call CommonMPI_abort('inconsistent mswell_nodes residual size')
+      if (mswell_nodes_accumulation%n /= NbMSWellNodeLocal_Ncpus(commRank + 1)*NbCompThermique) &
+         call CommonMPI_abort('inconsistent accumulation mswell_nodes size')
 
       call c_f_pointer(nodes%p, ResiduNode, [NbCompThermique, NbNodeLocal_Ncpus(commRank + 1)])
       call c_f_pointer(cells%p, ResiduCell, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
@@ -154,9 +216,11 @@ contains
       call c_f_pointer(cells_accumulation%p, AccVolCell_1, [NbCompThermique, NbCellLocal_Ncpus(commRank + 1)])
       call c_f_pointer(fractures_accumulation%p, AccVolFrac_1, [NbCompThermique, NbFracLocal_Ncpus(commRank + 1)])
 
+      call ResiduMSWells_associate_pointers(mswell_nodes, mswell_nodes_accumulation)
+
    end subroutine Residu_associate_pointers
 
-   !> \brief Clear ResiduCell/Frac/Node/Well
+   !> \brief Clear ResiduCell/Frac/Node/Well/MSWells
    subroutine Residu_clear_residuals()
 
       ResiduCell(:, :) = 0.d0
@@ -164,6 +228,8 @@ contains
       ResiduNode(:, :) = 0.d0
       ResiduWellInj(:) = 0.d0
       ResiduWellProd(:) = 0.d0
+      ResiduMSWell(:, :) = 0.d0
+      QwByMSWell(:) = 0.d0
 
    end subroutine Residu_clear_residuals
 
@@ -193,6 +259,8 @@ contains
             AccVolNode_1(i, k) = IncNode(k)%AccVol(i)
          end do
       end do
+
+      call ResiduMSWells_reset_history()
 
    end subroutine Residu_reset_history
 
@@ -247,6 +315,11 @@ contains
       call Residu_reset_Dirichlet_nodes
 
       call Residu_add_Neumann_contributions
+
+      call ResiduMSWells_compute(Delta_t) !Compute contribution for mswells without coupling with the reservoir
+      if (IncCVMSWells_compute_coupling()) then
+         call Residu_add_flux_coupling_mswells !Compute contribution  with coupling
+      endif
 
    end subroutine Residu_compute
 
@@ -840,6 +913,91 @@ contains
       end do ! end of production well k
 
    end subroutine Residu_add_flux_contributions_wells
+
+   ! Coupling between the Reservoir and mswells
+   ! No coupling at the head of mswell
+   subroutine Residu_add_flux_coupling_mswells
+
+      integer :: k, s, nums, unk_idx_s, icp, mph, m
+      double precision :: Flux_ks(NbComp), FluxT_ks
+      double precision :: Pws, Ps, WIDws, Ps_Pws
+      double precision :: qw, qe
+      ! double precision :: Tws, Ts, WIFws
+      logical something_is_produced
+
+      !For each producer
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      do k = 1, NbMSWellLocal
+
+         !If the mswell is an injector or is closed, do nothing
+         if ((DataMSWellLocal(k)%IndWell == 'c') .or. (DataMSWellLocal(k)%Well_type == 'i')) cycle
+
+         qw = 0.d0
+         qe = 0.d0
+
+         !For all nodes at the well, ** from queue to the node before the head **
+         !s is the well node numbering
+         do s = NodebyMSWellLocal%Pt(k) + 1, NodebyMSWellLocal%Pt(k + 1) - 1
+
+            nums = NodebyMSWellLocal%Num(s) !numbering of s @ the reservoir mesh
+
+            if (IdNodeLocal(nums)%Proc == "g") cycle
+
+            Flux_ks = 0.d0
+            FluxT_ks = 0.d0
+            something_is_produced = .false.
+
+            Pws = IncMSWell(s)%coats%Pression ! P_{w,s}
+            WIDws = NodeDatabyMSWellLocal%Val(s)%WID
+
+            do m = 1, NbPhasePresente_ctx(IncNode(nums)%ic) ! Q_s
+               mph = NumPhasePresente_ctx(m, IncNode(nums)%ic)
+               Ps = IncNode(nums)%phase_pressure(mph) ! IncNode(nums)%Pression ! P_s
+               Ps_Pws = Ps - Pws
+               if (Ps_Pws > 0.d0) then
+                  something_is_produced = .true.
+                  do icp = 1, NbComp
+                     if (MCP(icp, mph) == 1) then ! \cap P_i
+                        Flux_ks(icp) = Flux_ks(icp) + DensiteMolaireKrViscoCompNode(icp, mph, nums)*WIDws*Ps_Pws
+                     end if
+                  end do
+#ifdef _THERMIQUE_
+                  FluxT_ks = FluxT_ks + DensiteMolaireKrViscoEnthalpieNode(mph, nums)*WIDws*Ps_Pws
+#endif
+               end if
+            end do !m
+
+            qw = qw + sum(Flux_ks)
+            qe = qe + FluxT_ks
+
+            if (something_is_produced .eqv. .false.) write (*, *) '-- Not Producing - Node:', s
+
+            if (something_is_produced) then
+
+               !write(*,*) '-- Producing - Node:',s
+               unk_idx_s = IncIdxNodebyMSWellLocal%Num(s) !unkown row-idx @ ResiduMSWell
+
+               ResiduNode(1:NbComp, nums) = ResiduNode(1:NbComp, nums) + Flux_ks(:)
+
+               ResiduMSWell(1:NbComp, unk_idx_s) = ResiduMSWell(1:NbComp, unk_idx_s) - Flux_ks(:)
+               !Modify JacobianMSWell%Sm accordingly
+               MSWells_Sm(1:NbComp, unk_idx_s) = MSWells_Sm(1:NbComp, unk_idx_s) + Flux_ks(:)
+#ifdef _THERMIQUE_
+               ResiduNode(NbComp + 1, nums) = ResiduNode(NbComp + 1, nums) + FluxT_ks
+
+               ResiduMSWell(NbComp + 1, unk_idx_s) = ResiduMSWell(NbComp + 1, unk_idx_s) - FluxT_ks
+               !Modify JacobianMSWell%Sm accordingly
+               MSWells_Sm(NbComp + 1, unk_idx_s) = MSWells_Sm(NbComp + 1, unk_idx_s) + FluxT_ks
+#endif
+            end if
+         end do !s
+
+         !sum flux contribution for BDCs
+         QwByMSWell(k) = QwByMSWell(k) + qw
+
+      end do !k
+
+   end subroutine Residu_add_flux_coupling_mswells
 
 #ifdef _WITH_FREEFLOW_STRUCTURES_
    subroutine Residu_add_flux_contributions_FF_node

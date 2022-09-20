@@ -92,8 +92,12 @@ module JacobianMSWells
 
    type(CSRArray2dble), public, target :: JacA
 
-#define _DEBUG_JAC_MSWELLS_ 0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Set this to one to print mswells monitoring info
+! See function JacobianMSWells_print_IP_info_to_file
 #define _DEBUG_JAC_IP_MSWELLS_ 0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define _DEBUG_JAC_MSWELLS_ 0
 
 #if  _DEBUG_JAC_MSWELLS_ ==1
    type(CSRArray2dble), public, target :: JacANoAlig
@@ -362,9 +366,10 @@ contains
       logical :: is_node_s_own, is_node_sp_own, phase_in_up_context
 
 #ifndef ComPASS_DIPHASIC_CONTEXT
-
-      call CommonMPI_abort("Multi-segmented wells are only implemented for diphasic physics!")
-
+      if (NbMSWellLocal > 0) then
+         call CommonMPI_abort( &
+            "In function JacobianMSWells_JacA_Sm_prod: Multi-segmented wells are only implemented for diphasic physics!")
+      endif
 #else
 
       !For each producer

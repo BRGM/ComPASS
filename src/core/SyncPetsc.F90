@@ -17,7 +17,8 @@ module SyncPetsc
       NbWellInjOwn_Ncpus, NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, &
       NbWellProdLocal_Ncpus, NbWellProdOwn_Ncpus, &
       NbNodeOwn_Ncpus, NbFracOwn_Ncpus, NbNodeLocal_Ncpus, &
-      NbFracLocal_Ncpus, NbCellLocal_Ncpus
+      NbFracLocal_Ncpus, NbCellLocal_Ncpus, &
+      NbMSWellNodeLocal_Ncpus, NbMSWellNodeOwn_Ncpus, NumMSWellNodebyProc
 
 #include <ComPASS_PETSc_definitions.h>
 
@@ -42,9 +43,12 @@ contains
       nc = 0
       do i = 1, Ncpus
          nr = nr + (NbNodeLocal_Ncpus(i) + NbFracLocal_Ncpus(i))*NbCompThermique &
-              + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i)
+              + NbWellInjLocal_Ncpus(i) + NbWellProdLocal_Ncpus(i) &
+              + (NbMSWellNodeLocal_Ncpus(i))*NbCompThermique
+
          nc = nc + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i))*NbCompThermique &
-              + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+              + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i) &
+              + (NbMSWellNodeOwn_Ncpus(i))*NbCompThermique
       end do
       matrix_size%nbrows = nr
       matrix_size%nbcols = nc
@@ -57,10 +61,13 @@ contains
 
       matrix_size%nbrows = (NbNodeLocal_Ncpus(commRank + 1) &
                             + NbFracLocal_Ncpus(commRank + 1))*NbCompThermique &
-                           + NbWellInjLocal_Ncpus(commRank + 1) + NbWellProdLocal_Ncpus(commRank + 1)
+                           + NbWellInjLocal_Ncpus(commRank + 1) + NbWellProdLocal_Ncpus(commRank + 1) &
+                           + (NbMSWellNodeLocal_Ncpus(commRank + 1))*NbCompThermique
+
       matrix_size%nbcols = (NbNodeOwn_Ncpus(commRank + 1) &
                             + NbFracOwn_Ncpus(commRank + 1))*NbCompThermique &
-                           + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1)
+                           + NbWellInjOwn_Ncpus(commRank + 1) + NbWellProdOwn_Ncpus(commRank + 1) &
+                           + (NbMSWellNodeOwn_Ncpus(commRank + 1))*NbCompThermique
 
    end subroutine SyncPetsc_local_matrix_size
 
@@ -139,6 +146,7 @@ contains
       integer :: i, local_col_offset, global_col_offset(NCpus)
       integer :: NbNodeLocal, NbNodeOwn, NbFracLocal, NbFracOwn
       integer :: NbWellInjLocal, NbWellInjOwn, NbWellProdLocal, NbWellProdOwn
+      integer :: NbMSWellNodeLocal, NbMSWellNodeOwn
 
       NbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
       NbNodeOwn = NbNodeOwn_Ncpus(commRank + 1)
@@ -148,6 +156,8 @@ contains
       NbWellInjOwn = NbWellInjOwn_Ncpus(commRank + 1)
       NbWellProdLocal = NbWellProdLocal_Ncpus(commRank + 1)
       NbWellProdOwn = NbWellProdOwn_Ncpus(commRank + 1)
+      NbMSWellNodeLocal = NbMSWellNodeLocal_Ncpus(commRank + 1)
+      NbMSWellNodeOwn = NbMSWellNodeOwn_Ncpus(commRank + 1)
 
       local_col_offset = 0
       global_col_offset = 0
@@ -155,7 +165,9 @@ contains
          do i = 1, Ncpus - 1
             global_col_offset(i + 1) = global_col_offset(i) &
                                        + (NbNodeOwn_Ncpus(i) + NbFracOwn_Ncpus(i))*NbCompThermique &
-                                       + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i)
+                                       + NbWellInjOwn_Ncpus(i) + NbWellProdOwn_Ncpus(i) &
+                                       + (NbMSWellNodeOwn_Ncpus(i))*NbCompThermique
+
          end do
       end if
 
@@ -200,10 +212,23 @@ contains
          if (.not. check_dof_family(NumWellProdbyProc, NbWellProdOwn)) &
             call CommonMPI_abort("Inconsistent WellProd family")
 #endif
+
          call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumWellProdbyProc, 1, ColNum)
-         ! local_col_offset = local_col_offset + 1 * NbWellProdLocal
+         local_col_offset = local_col_offset + 1*NbWellProdLocal
       end if
-      ! global_col_offset = global_col_offset + 1 * NbWellProdOwn_Ncpus
+      global_col_offset = global_col_offset + 1*NbWellProdOwn_Ncpus
+
+      if (NbMSWellNodeLocal > 0) then
+#ifndef NDEBUG
+         if (size(NumMSWellNodebyProc%ids) /= NbMSWellNodeLocal) &
+            call CommonMPI_abort("Inconsistent number of MSWellNode dofs")
+         if (.not. check_dof_family(NumMSWellNodebyProc, NbMSWellNodeOwn)) &
+            call CommonMPI_abort("Inconsistent MSWellNode family")
+#endif
+         call SyncPetsc_colnum_dof_family(local_col_offset, global_col_offset, NumMSWellNodebyProc, NbCompThermique, ColNum)
+         local_col_offset = local_col_offset + NbMSWellNodeLocal*NbCompThermique
+      end if
+      global_col_offset = global_col_offset + NbCompThermique*NbMSWellNodeOwn_Ncpus
 
    end subroutine SyncPetsc_colnum
 
@@ -309,3 +334,86 @@ subroutine syncpetsc_getsolnodefracwell(x_s, increments_pointers)
    CMP_PETSC_CHECK(Ierr)
 
 end subroutine syncpetsc_getsolnodefracwell
+
+subroutine syncpetsc_getsolnodefracwellmswell(x_s, increments_pointers)
+
+#ifdef COMPASS_PETSC_VERSION_LESS_3_6
+#include <finclude/petscdef.h>
+#else
+#include <petsc/finclude/petsc.h>
+#endif
+
+   use petsc
+
+   use CommonMPI, only: commRank
+   use Newton, only: Newton_increments, Newton_pointers_to_values, Newton_increments_pointers
+   use DefModel, only: NbCompThermique !, psprim, NbContexte
+   use MeshSchema, only: &
+      NbWellInjLocal_Ncpus, NbWellInjLocal_Ncpus, NbWellProdLocal_Ncpus, &
+      NbNodeLocal_Ncpus, NbFracLocal_Ncpus, &
+      NbMSWellNodeLocal_Ncpus
+
+   implicit none
+
+   !Note: The Newton_increments vectors contain the solution of the whole complete system, i.e.,
+   !nodes, fracs, well_prod, well_inj and mswell_nodes. But x_s does not contain the mswell_nodes sol
+
+   Vec, intent(inout) :: x_s
+   type(Newton_increments_pointers), intent(in), value :: increments_pointers
+   type(Newton_increments) :: increments
+   integer :: i, j, start, start_mswell
+   integer :: NbNodeLocal, NbFracLocal, NbMSWellNodeLocal
+   PetscErrorCode :: Ierr
+   double precision, pointer :: ptr(:)
+
+   NbNodeLocal = NbNodeLocal_Ncpus(commRank + 1)
+   NbFracLocal = NbFracLocal_Ncpus(commRank + 1)
+   NbMSWellNodeLocal = NbMSWellNodeLocal_Ncpus(commRank + 1)
+
+   call Newton_pointers_to_values(increments_pointers, increments)
+
+   ! get values from x_s
+   call VecGetArrayF90(x_s, ptr, Ierr)
+   CMP_PETSC_CHECK(Ierr)
+
+   ! increment node
+   do i = 1, NbNodeLocal
+      start = (i - 1)*NbCompThermique
+      do j = 1, NbCompThermique
+         increments%nodes(j, i) = ptr(start + j)
+      end do
+   end do
+
+   ! increment frac
+   do i = 1, NbFracLocal
+      start = (i + NbNodeLocal - 1)*NbCompThermique
+      do j = 1, NbCompThermique
+         increments%fractures(j, i) = ptr(start + j)
+      end do
+   end do
+
+   ! increment well inj
+   start = (NbNodeLocal + NbFracLocal)*NbCompThermique
+   do i = 1, NbWellInjLocal_Ncpus(commRank + 1)
+      increments%injectors(i) = ptr(start + i)
+   end do
+
+   ! increment well prod
+   start = start + NbWellInjLocal_Ncpus(commRank + 1)
+   do i = 1, NbWellProdLocal_Ncpus(commRank + 1)
+      increments%producers(i) = ptr(start + i)
+   end do
+
+   ! increment mswell_nodes
+   start = start + NbWellProdLocal_Ncpus(commRank + 1)
+   do i = 1, NbMSWellNodeLocal
+      start_mswell = start + (i - 1)*NbCompThermique
+      do j = 1, NbCompThermique
+         increments%mswell_nodes(j, i) = ptr(start_mswell + j)
+      end do
+   end do
+
+   call VecRestoreArrayF90(x_s, ptr, Ierr)
+   CHKERRQ(Ierr)
+
+end subroutine syncpetsc_getsolnodefracwellmswell

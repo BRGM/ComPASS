@@ -8,7 +8,7 @@ class Synchronizer:
         assert system.kernel is not None
         self.system = system
         if not only_mswells:
-            self.retrieve_fortran = system.kernel.SyncPetsc_GetSolNodeFracWell
+            self.retrieve_fortran = system.kernel.SyncPetsc_GetSolNodeFracWellMSWell
         else:
             self.retrieve_fortran = system.kernel.SyncPetscMSWells_GetSolMSWell
         nbrows, nbcols = system.local_system_size

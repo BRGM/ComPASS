@@ -95,7 +95,11 @@ def _get_well_data(simulation, wells_data, wid):
 
 
 def _all_wells_data(simulation, own_only):
-    return [simulation.injectors_data(own_only), simulation.producers_data(own_only)]
+    return [
+        simulation.injectors_data(own_only),
+        simulation.producers_data(own_only),
+        simulation.mswells_data(own_only),
+    ]
 
 
 def get_well_data(simulation, wid, own_only=False):

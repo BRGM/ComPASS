@@ -37,6 +37,7 @@ void retrieve_NumNodebyProc(DofFamilyCOC&);
 void retrieve_NumFracbyProc(DofFamilyCOC&);
 void retrieve_NumWellProdbyProc(DofFamilyCOC&);
 void retrieve_NumWellInjbyProc(DofFamilyCOC&);
+void retrieve_NumMSWellNodebyProc(DofFamilyCOC&);
 void retrieve_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_big_jacobian(CsrBlockMatrixWrapper&);
 void retrieve_right_hand_side(DoubleArray2&);
@@ -78,6 +79,8 @@ void LinearSystemBuilder::compute_nonzeros() {
    const auto nb_well_inj_local = myrank_part_info.injectors.nb;
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
    const auto nb_well_prod_local = myrank_part_info.producers.nb;
+   const auto nb_mswell_nodes_own = myrank_part_info.mswell_nodes.nb_owns;
+   const auto nb_mswell_nodes_local = myrank_part_info.mswell_nodes.nb;
 
    auto columns = JacA.column;
    auto row_offset = [this](const std::size_t i) {
@@ -86,7 +89,7 @@ void LinearSystemBuilder::compute_nonzeros() {
 
    // local row/col size:  node own and frac own
    n_rowl = (nb_node_own + nb_frac_own) * nb_comp_thermique + nb_well_inj_own +
-            nb_well_prod_own;
+            nb_well_prod_own + nb_mswell_nodes_own * nb_comp_thermique;
    n_coll = n_rowl;
    // global row/col size: sum of all procs
    n_rowg = 0;
@@ -96,7 +99,10 @@ void LinearSystemBuilder::compute_nonzeros() {
    for (size_t i = 0; i < ncpus; i++) {
       n_rowg += (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) *
                     nb_comp_thermique +
-                part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
+                part_info[i].injectors.nb_owns +
+                part_info[i].producers.nb_owns +
+                part_info[i].mswell_nodes.nb_owns * nb_comp_thermique;
+
       rowstarts[i + 1] = n_rowg;
    }
    n_colg = n_rowg;
@@ -107,7 +113,7 @@ void LinearSystemBuilder::compute_nonzeros() {
    o_nnz.clear();
    o_nnz.resize(n, 0);
 
-   // N: Node, F: Frac, WI: well inj, WP: well prod
+   // N: Node, F: Frac, WI: well inj, WP: well prod, MWN: mswell-nodes
    // l: local, o: own
    auto nl_fo = nb_node_local + nb_frac_own;
    auto nl_fl = nb_node_local + nb_frac_local;
@@ -117,6 +123,10 @@ void LinearSystemBuilder::compute_nonzeros() {
        nb_node_local + nb_frac_local + nb_well_inj_local + nb_well_prod_own;
    auto nl_fl_wil_wpl =
        nb_node_local + nb_frac_local + nb_well_inj_local + nb_well_prod_local;
+   auto nl_fl_wil_wpl_mwno = nb_node_local + nb_frac_local + nb_well_inj_local +
+                             nb_well_prod_local + nb_mswell_nodes_own;
+   auto nl_fl_wil_wpl_mwnl = nb_node_local + nb_frac_local + nb_well_inj_local +
+                             nb_well_prod_local + nb_mswell_nodes_local;
 
    // rows associated with node own and frac own
    for (size_t i = 0; i < (nb_node_own + nb_frac_own); i++) {
@@ -158,11 +168,26 @@ void LinearSystemBuilder::compute_nonzeros() {
                  k < (i + 1) * nb_comp_thermique; k++) {
                d_nnz[k] += 1;
             }
-         } else {  // well prod ghost
+         } else if (lj >= nl_fl_wil_wpo &&
+                    lj < nl_fl_wil_wpl) {  // well prod ghost
             for (size_t k = i * nb_comp_thermique;
                  k < (i + 1) * nb_comp_thermique; k++) {
                o_nnz[k] += 1;
             }
+         } else if (lj >= nl_fl_wil_wpl &&
+                    lj < nl_fl_wil_wpl_mwno) {  // mswell_node own
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               d_nnz[k] += nb_comp_thermique;
+            }
+         } else if (lj >= nl_fl_wil_wpl_mwno &&
+                    lj < nl_fl_wil_wpl_mwnl) {  // mswell_node ghost
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               o_nnz[k] += nb_comp_thermique;
+            }
+         } else {
+            std::cerr << "Error in create Ampi" << std::endl;
          }
       }
    }
@@ -200,7 +225,44 @@ void LinearSystemBuilder::compute_nonzeros() {
             o_nnz[start + i] += 1;
 
          } else {
-            std::cout << "Error in create Ampi" << std::endl;
+            std::cerr << "Error in create Ampi" << std::endl;
+         }
+      }
+   }
+
+   // rows associated with mswell-nodes own
+   start += nb_well_inj_own + nb_well_prod_own;
+   for (size_t i = 0; i < nb_mswell_nodes_own; i++) {
+      auto li =
+          i + nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own;
+      for (size_t j = row_offset(li); j < row_offset(li + 1); j++) {
+         auto lj = columns[j] - 1;
+
+         if (lj < nb_node_own) {  //  node own
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               d_nnz[start + k] += nb_comp_thermique;
+            }
+         } else if (nb_node_own <= lj && lj < nb_node_local) {  // node ghost
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               o_nnz[start + k] += nb_comp_thermique;
+            }
+         } else if (lj >= nl_fl_wil_wpl &&
+                    lj < nl_fl_wil_wpl_mwno) {  // mswell node own
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               d_nnz[start + k] += nb_comp_thermique;
+            }
+         } else if (lj >= nl_fl_wil_wpl_mwno &&
+                    lj < nl_fl_wil_wpl_mwnl) {  // mswell node ghost
+
+            for (size_t k = i * nb_comp_thermique;
+                 k < (i + 1) * nb_comp_thermique; k++) {
+               o_nnz[start + k] += nb_comp_thermique;
+            }
+         } else {
+            std::cerr << "Error in create Ampi mswellnodes block" << std::endl;
          }
       }
    }
@@ -224,7 +286,8 @@ void LinearSystemBuilder::compute_ltog() {
       rowstart[i + 1] =
           rowstart[i] +
           (part_info[i].nodes.nb_owns + part_info[i].fractures.nb_owns) * n +
-          part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns;
+          part_info[i].injectors.nb_owns + part_info[i].producers.nb_owns +
+          (part_info[i].mswell_nodes.nb_owns) * n;
       colstart[i + 1] = rowstart[i + 1];
    }
 
@@ -237,9 +300,11 @@ void LinearSystemBuilder::compute_ltog() {
    const auto nb_well_inj_local = myrank_part_info.injectors.nb;
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
    const auto nb_well_prod_local = myrank_part_info.producers.nb;
+   const auto nb_mswell_nodes_own = myrank_part_info.mswell_nodes.nb_owns;
+   const auto nb_mswell_nodes_local = myrank_part_info.mswell_nodes.nb;
 
    rowl_to_rowg.resize(nb_node_own + nb_frac_own + nb_well_inj_own +
-                       nb_well_prod_own);
+                       nb_well_prod_own + nb_mswell_nodes_own);
    // ! node/frac
    for (size_t i = 0; i < nb_node_own + nb_frac_own; i++) {
       rowl_to_rowg[i] = rowstart[comm_rank] + i * n;  // C indexing
@@ -253,6 +318,13 @@ void LinearSystemBuilder::compute_ltog() {
       rowl_to_rowg[i + start] = ndisp + i;
    }
 
+   // ! mswell-nodes
+   start += nb_well_inj_own + nb_well_prod_own;
+   ndisp += nb_well_inj_own + nb_well_prod_own;
+   for (size_t i = 0; i < nb_mswell_nodes_own; i++) {
+      rowl_to_rowg[i + start] = ndisp + i * n;
+   }
+
    DofFamilyCOC NBP;
    retrieve_NumNodebyProc(NBP);
    DofFamilyCOC FBP;
@@ -262,14 +334,17 @@ void LinearSystemBuilder::compute_ltog() {
    DofFamilyCOC WPBP;
    retrieve_NumWellProdbyProc(WPBP);
 
-   int local_block_col_offset = 0;
+   DofFamilyCOC MSWN;
+   retrieve_NumMSWellNodebyProc(MSWN);
+
+   int local_block_col_offset{0};
    coll_to_colg.resize(nb_node_local + nb_frac_local + nb_well_inj_local +
-                       nb_well_prod_local);
+                       nb_well_prod_local + nb_mswell_nodes_local);
 
    auto fill_coll_to_colg = [this, &local_block_col_offset, &colstart](
                                 DofFamilyCOC dof_family, int dof_size) {
       // A lambda function to automatically fill coll_to_colg, for each unknown
-      // type (nodes, fractures, wells)
+      // type (nodes, fractures, wells, mwells)
       for (size_t i = 0; i < dof_family.size(); i++) {
          auto proc = (dof_family.content_data() + i)->proc;
          auto local_id =
@@ -309,6 +384,18 @@ void LinearSystemBuilder::compute_ltog() {
    if (nb_well_prod_local > 0) {
       fill_coll_to_colg(WPBP, 1);
       local_block_col_offset += nb_well_prod_local;
+      for (size_t i = 0; i < ncpus; i++) {
+         colstart[i] += part_info[i].producers.nb_owns;
+      }
+   }
+
+   // ! part mswell_nodes local in coll_to_colg
+   if (nb_mswell_nodes_local > 0) {
+      fill_coll_to_colg(MSWN, n);
+      local_block_col_offset += nb_mswell_nodes_local;
+      for (size_t i = 0; i < ncpus; i++) {
+         colstart[i] += n * part_info[i].mswell_nodes.nb_owns;
+      }
    }
 };
 
@@ -325,7 +412,11 @@ void LinearSystemBuilder::set_AMPI(py::object pyA) {
    const auto nb_frac_own = myrank_part_info.fractures.nb_owns;
    const auto nb_frac_local = myrank_part_info.fractures.nb;
    const auto nb_well_inj_own = myrank_part_info.injectors.nb_owns;
+   const auto nb_well_inj_local = myrank_part_info.injectors.nb;
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
+   const auto nb_well_prod_local = myrank_part_info.producers.nb;
+   const auto nb_mswell_nodes_own = myrank_part_info.mswell_nodes.nb_owns;
+   const auto nb_mswell_nodes_local = myrank_part_info.mswell_nodes.nb;
 
    std::vector<PetscInt> idxm(n,
                               -1);  // number of rows and their global indices
@@ -350,8 +441,12 @@ void LinearSystemBuilder::set_AMPI(py::object pyA) {
          block_indices(row, idxm);
          block_indices(col, idxn);
 
-         // Col is node or frac, insert JacA.block_data[offset:offset+n*n]
-         if (*(JacA.column + offset) - 1 < nb_node_local + nb_frac_local) {
+         // Col is node,frac or mswell_node, insert
+         // JacA.block_data[offset:offset+n*n]
+         if ((*(JacA.column + offset) - 1 < nb_node_local + nb_frac_local) ||
+             (*(JacA.column + offset) - 1 >= nb_node_local + nb_frac_local +
+                                                 nb_well_inj_local +
+                                                 nb_well_prod_local)) {
             MatSetValues(A, n, idxm.data(), n, idxn.data(),
                          JacA.block_data + offset * n * n, INSERT_VALUES);
          } else {          // col is wellinj or wellprod, insert
@@ -387,8 +482,43 @@ void LinearSystemBuilder::set_AMPI(py::object pyA) {
       }
    }
 
-   MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
-   MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+   PetscErrorCode ierr;
+   // Rows associated with mswell_nodes
+   for (std::size_t i =
+            nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own;
+        i < nb_node_own + nb_frac_own + nb_well_inj_own + nb_well_prod_own +
+                nb_mswell_nodes_own;
+        ++i) {
+      for (auto offset = row_offset(i); offset < row_offset(i + 1); ++offset) {
+         auto row = rowl_to_rowg[i];
+         auto col = coll_to_colg[static_cast<std::size_t>(
+             *(JacA.column + offset) - 1)];  // 0-based in petsc
+         block_indices(row, idxm);
+         block_indices(col, idxn);
+         if ((*(JacA.column + offset) - 1 > nb_node_local) &&
+             (*(JacA.column + offset) - 1 < nb_node_local + nb_frac_local +
+                                                nb_well_inj_local +
+                                                nb_well_prod_local)) {
+            std::cerr << "Error LinearSystemBuilder::set_AMPI()" << std::endl;
+
+         }
+
+         // Col is node  or mswell_node
+         else if (*(JacA.column + offset) - 1 <
+                  nb_node_local + nb_frac_local + nb_well_inj_local +
+                      nb_well_prod_local + nb_mswell_nodes_local) {
+            ierr =
+                MatSetValues(A, n, idxm.data(), n, idxn.data(),
+                             JacA.block_data + offset * n * n, INSERT_VALUES);
+            CHKERRABORT(PETSC_COMM_WORLD, ierr);
+         }
+      }
+   }
+
+   ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+   CHKERRABORT(PETSC_COMM_WORLD, ierr);
+   ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+   CHKERRABORT(PETSC_COMM_WORLD, ierr);
 };
 
 /** A function that sets the nonzeros entries in the Petsc vector RHS
@@ -403,6 +533,8 @@ void LinearSystemBuilder::set_RHS(py::object pyRHS) {
    const auto nb_frac_own = myrank_part_info.fractures.nb_owns;
    const auto nb_well_inj_own = myrank_part_info.injectors.nb_owns;
    const auto nb_well_prod_own = myrank_part_info.producers.nb_owns;
+   const auto nb_mswell_nodes_own = myrank_part_info.mswell_nodes.nb_owns;
+   const auto nb_mswell_nodes_local = myrank_part_info.mswell_nodes.nb;
 
    int row;
    std::vector<PetscInt> idxm(n, -1);
@@ -434,6 +566,17 @@ void LinearSystemBuilder::set_RHS(py::object pyRHS) {
       // VecSetValue takes in a global index, but JacRHS.p is a local variable
       // with block size n
       VecSetValue(RHS, row, *(JacRHS.p + n * (start + i)), INSERT_VALUES);
+   }
+
+   // Rows associated with mswell_nodes
+   start += nb_well_inj_own + nb_well_prod_own;
+   for (size_t i = 0; i < nb_mswell_nodes_own; i++) {
+      row = rowl_to_rowg[i + start];
+      block_indices(row, idxm);
+      for (size_t j = 0; j < n; j++) {
+         VecSetValue(RHS, idxm.data()[j], *(JacRHS.p + n * (start + i) + j),
+                     INSERT_VALUES);
+      }
    }
 
    VecAssemblyBegin(RHS);
