@@ -26,7 +26,7 @@ class SimmulationBase:
     A temporary object to group true members for simulation objects.
     """
 
-    def __init__(self, kernel, well_data_provider):
+    def __init__(self, model, well_data_provider):
         self.info = SimulationInfo()
         # FIXME: should be encapsulated elsewhere
         self.alignment = AlignmentMethod.inverse_diagonal
@@ -37,11 +37,9 @@ class SimmulationBase:
         self.well_model = None
         self.unknown_producers_density = True
         self.scheme = None
-        self.fluid_mixture = FluidMixtureProperties(
-            # fixme : number_of_components can be different in each phase ?
-            kernel.number_of_phases(),
-            kernel.number_of_components(),
-        )
+        # FIXME: can number of components be different in each phase?
+        np, nc = model  # number of components, number of phases
+        self.fluid_mixture = FluidMixtureProperties(np, nc)
 
     def add_well_connections(self, well_pairs=None, proc_requests=None):
         """
@@ -84,7 +82,8 @@ class Simulation:
 
         # self.base = SimulationBase() # is not allowed because __setattr__ is prohibited
         well_data_provider = partial(get_wellhead, self)
-        self.__dict__["base"] = SimmulationBase(kernel, well_data_provider)
+        model = (kernel.number_of_phases(), kernel.number_of_components())
+        self.__dict__["base"] = SimmulationBase(model, well_data_provider)
         self.set_viscosity_functions()
         self.set_molar_density_functions(
             _update_volumetric_mass_density_functions=False
