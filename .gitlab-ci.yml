@@ -7,6 +7,19 @@ variables:
 image:
   name: "registry.gitlab.inria.fr/charms/compass-images/sdk:${COMPASS_SDK}"
 
+# Pipelines will always be triggered when scheduled,
+# triggered manually using the web API or in the context of a merge request.
+# Pipelines will not be triggered by commits on the default branch
+# (nightly scheduled pipelines will run CI on the default branch).
+# Pipelines will not be triggered by commits on branches with name starting with NOCI
+# (except in the abovementioned cases).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_BRANCH !~ /^NOCI/
+
 stages:
   - check
   - build
@@ -14,62 +27,8 @@ stages:
   - release
   - documentation
 
-# Stops the pipeline if the branch is the default one
-# AND the pipeline source is neither schedule nor web
-not default branch:
-  stage: check
-  tags:
-    - sequential
-    - docker
-  script:
-    - |
-      if [[ $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "web" ]]
-      then
-        echo "****************************************************************"
-        echo "*                                                              *"
-        echo "*             Default branch CI done only at night             *"
-        echo "*                                                              *"
-        echo "*   If you want to force the CI execution,                     *"
-        echo "*                                   run the web pipeline.      *"
-        echo "*                                                              *"
-        echo "****************************************************************"
-        # if the project were public we could cancel the pipeline using GitLab API
-        # curl --request POST --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/${CI_JOB_ID}/cancel"
-        exit -1
-      fi
-
-# Stops the pipeline if the branch name starts with NOCI
-# AND the pipeline source is not web
-not NOCI:
-  stage: check
-  tags:
-    - sequential
-    - docker
-  script:
-    - |
-      if [[ $CI_PIPELINE_SOURCE != "web" && ${CI_COMMIT_BRANCH:0:4} == "NOCI" ]]
-      then
-        echo "****************************************************************"
-        echo "*                                                              *"
-        echo "*  Pipelines with name starting with NOCI automatically fail!  *"
-        echo "*                                                              *"
-        echo "*   If you want to force the CI execution,                     *"
-        echo "*                                   run the web pipeline.      *"
-        echo "*                                                              *"
-        echo "****************************************************************"
-        # if the project were public we could cancel the pipeline using GitLab API
-        # curl --request POST --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/${CI_JOB_ID}/cancel"
-        exit -1
-      fi
-
-
 check format:
   stage: check
-  needs:
-    # the pipeline is not stopped due to NOCI... branch
-    - job: not NOCI
-    # the pipeline is not stopped due to default branch
-    - job: not default branch
   tags:
     - sequential
     - docker
