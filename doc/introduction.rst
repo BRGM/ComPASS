@@ -13,26 +13,27 @@ Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
 Unfortunately subtle differences may exist from one system to another.
 Please do not hesitate to submit issues/comments to improve this section.
 
+.. _using conda environments:
 
-Install using conda environments
---------------------------------
+Using conda environments
+------------------------
 
 As of today, using
 `conda environments <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_
 is probably the fastest way to get ready to use ComPASS.
-It will download a lot of dependencies, that may represent a subsequent payload
-and will occupy a certain amount of your drive, but you will
-end up with an isolated environments to use and/or develop ComPASS.
-ComPASS will stil be compiled on your system,
-yet if you are interested in maximising performance and/or exploiting
+It will download a lot of dependencies: these may represent a subsequent payload
+and will occupy a certain amount of space on your drive. Yet, you will
+end up with an isolated environment to use and/or develop ComPASS.
+Though ComPASS will still be compiled on your system,
+if you are interested in maximising performance and/or exploiting
 libraries that have been fine-tuned for your system (e.g. PETSc)
-you may want to consider a native build (cf. the next secitons).
+you may want to consider a native build (cf. the next section).
 
 Prerequisites
 ^^^^^^^^^^^^^
 
-Step 1: Install conda
-"""""""""""""""""""""
+Install conda
+"""""""""""""
 
 You will need to have
 `conda <https://docs.conda.io/projects/conda/en/latest/index.html>`_
@@ -45,31 +46,22 @@ The easiest (and lightest) way is probably to install
 Miniconda installers can be found on this
 `download page <https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links>`_.
 
-Step 2: configure conda
-"""""""""""""""""""""""
-
 Once you have installed conda (either through Miniconda or Anaconda) you should have
-the conda command available on your path.
-
-We still need to add the `anaconda-client <https://github.com/Anaconda-Platform/anaconda-client>`_
-package to your conda :code:`base` environment
-(or any other environment that you may wish to use). It will install
-a command line client that provides an interface to Anaconda Cloud and will
-enable you to use environment description stored on the Anaconda Cloud.
+the conda command available on your path. You may consider updating conda to have the
+latest release.
 
 .. code-block:: bash
 
-  conda activate base
-  conda install anaconda-client
+  conda update -y conda
 
 
-Step 3 (optional): replace conda with mamba
-"""""""""""""""""""""""""""""""""""""""""""
+Replace conda with mamba (optional)
+"""""""""""""""""""""""""""""""""""
 
 `Mamba <https://github.com/mamba-org/mamba>`_
-is a reimplementation of the conda package manager in C++
+is an implementation of the conda package manager in C++
 which is much faster than conda and will speed-up
-some (not all...) of the installation step.
+many of the installation steps.
 
 You can install it from `conda-forge <https://conda-forge.org/>`_.
 
@@ -84,32 +76,33 @@ or for one-liners:
 
   conda install -n base -c conda-forge mamba
 
-In the following you can replace all the occurences of
+Then, in the following you can replace all the occurences of
 the :code:`conda` command with the :code:`mamba` command.
 
 
 You're almost there
 ^^^^^^^^^^^^^^^^^^^
 
-We provide two ComPASS environments at `anaconda.org <https://anaconda.org/brgm/environments>`_
-which have been tested on Linux and MacOSX platforms.
+We provide `several conda environments <https://github.com/BRGM/ComPASS/tree/main/conda>`_ for ComPASS that only differ
+in their final step.
 
-You only want to use ComPASS
-""""""""""""""""""""""""""""
-
-Activate your conda :code:`base` environment if necessary
+In both following cases you will need to have conda (or mamba) on your path
+and this may require to activate your conda :code:`base` environment
 (:code:`conda activate base` or :code:`source activate base` depending
 on your settings).
 
-Then just create the environment:
+Case 1: you only want to use the latest version of ComPASS
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Just create the environment:
 
 .. code-block:: bash
 
-  conda env create brgm/compass-latest
+  conda env create -f https://raw.githubusercontent.com/BRGM/ComPASS/main/conda/compass-latest.yml
 
-It may be a bit long because MeshTools and ComPASS packages will be
-compiled under the hood, but that's it.
-Once it is finished, you can activate the :code:`compass-latest` environment.
+The whole process may be a bit long because MeshTools and ComPASS packages will be
+downloaded and compiled under the hood, but that's it. Once it is finished,
+you can activate the :code:`compass-latest` environment.
 
 .. code-block:: bash
 
@@ -117,33 +110,55 @@ Once it is finished, you can activate the :code:`compass-latest` environment.
 
 And you can start :ref:`using simulation scripts <Setting-up a simulation>`.
 
-You want to develop ComPASS
-"""""""""""""""""""""""""""
+.. note::
+  Instead of *latest* you may also use the version tag *v4.4.1* that will
+  skip the latest developments.
 
-Activate your conda :code:`base` environment if necessary.
-Then create the environment:
+Case 2: you want to develop ComPASS
+"""""""""""""""""""""""""""""""""""
+
+First clone the ComPASS repository:
 
 .. code-block:: bash
 
-  conda env create brgm/compass
+  git clone https://github.com/BRGM/ComPASS.git
 
-It will install all the dependencies of ComPASS
-(including the compilation and installation of the MeshTools package).
-Once it is finished, you can activate the :code:`compass` environment,
-clone the ComPASS repository and compile and install it in development mode.
+Then go to ComPASS directory and create the *compass* conda environment
+that will contain all ComPASS dependencies
+(including the download, compilation and installation of the MeshTools package).
+
+.. code-block:: bash
+
+  cd ComPASS
+  conda env create -f conda/compass.yml
+
+Once it is finished, you can activate the :code:`compass` environment
+and install ComPASS in development mode.
 
 .. code-block:: bash
 
   conda activate compass
-  git clone https://github.com/BRGM/ComPASS.git
   pip install -e ComPASS
 
 Then you can start :ref:`using simulation scripts <Setting-up a simulation>`.
 Any modification in the ComPASS source python scripts will be reflected
 immediately in the ComPASS package
-(thanks to the pip development mode - :code:`-e` install option).
+(thanks to the pip development mode - cf. :code:`-e` install option).
 If you modify Fortran or C++ source files you will have to re-run pip
 that will trigger the compilation of modified source files.
+
+Check dedicated sections of this documentation for more information
+ (:ref:`developer's corner`).
+
+.. note::
+  *MeshTools* and *ComPASS* are developed on the
+  `Inria gitlab server <https://gitlab.inria.fr/charms>`_.
+  The main branches are mirrored to `github.com/BRGM` so that
+  any github URL above can be replaced with `gitlab.inria.fr/charms`
+  to have access to development branches.
+  An access to `Inria gitlab server <https://gitlab.inria.fr/charms>`_
+  can be provided upon `request <mailto:compass@brgm.fr>`_.
+
 
 Usefull `conda env create` options
 """"""""""""""""""""""""""""""""""
@@ -185,11 +200,12 @@ Add the following definitions at the end your ``.bashrc`` file.
   export CC=mpicc
   export PETSC_DIR=/usr/lib/petsc
 
-You will also need a few additional python modules:
+You will also need a few additional python modules
+(beware of the single quote to escape version constraints):
 
 .. code-block:: shell
 
-  python3 -m pip install scikit-build setuptools-scm sortedcontainers verstr vtkwriters numba
+  python3 -m pip install scikit-build 'setuptools>=61' 'setuptools-scm>=6.2' sortedcontainers verstr vtkwriters 'numpy>=1.21' 'numba!=0.55.2'
 
 
 MeshTools installation
@@ -260,15 +276,9 @@ For example:
 
   .. code-block:: shell
 
-    python3 setup.py develop --build-type Debug -j 4 -DComPASS_WITH_water2ph_PHYSICS=ON
+    python3 setup.py develop --build-type Debug -j 4
 
-will compile in `Debug` mode with 4 compilation threads and will activate the *water2ph* physics,
-
-  .. code-block:: shell
-
-    python3 setup.py install -DComPASS_WITH_ALL_PHYSICS=ON
-
-will compile and install all available physics.
+will compile in `Debug` mode with 4 compilation threads.
 
 .. note::
   *MeshTools* and *ComPASS* are developed on the
@@ -312,7 +322,10 @@ permission related problems. Try to add the  setuptools :code:`--user` option at
 end of the compilation directive to use your local python site.
 
 
-Using docker environments
--------------------------
+Using distributed docker environments (to be deprecated)
+--------------------------------------------------------
+
+If you want or need to use docker, you'd rather consider using
+one of the two steps above in an appropriate docker container.
 
 .. include:: using_docker.rst
