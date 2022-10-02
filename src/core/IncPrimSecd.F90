@@ -302,13 +302,15 @@ contains
             ! derivative wrt the primary saturations S_j; 1 <= j <= n-1
             ! Careful of the derivative of fn(pn, ....) wrt S_j due to
             !   the elimination of S_n using S_n = 1 - \Sum_{1 \leq j \leq n-1} S_j
-            ! Remark: p_alpha depends only on S_alpha
+            ! Remark: in (p_alpha, T_alpha, C_alpha), only p_alpha depends on S_alpha
             !   and dpadS = d(p_alpha)/d(S_alpha) with 1 <= alpha <= n
             !
-            ! for 1 <= a <= n-1:
-            !   fa(pa, ....) -> dfa/dS_j = dpa/dS_j * dfa/dpa != 0 only when j=a
+            ! for 1 <= alpha <= n-1:
+            !   f_alpha depends on (p_alpha, T_alpha, C_alpha) then
+            !   d(f_alpha)/d(S_j) = d(p_alpha)/d(S_j) * d(f_alpha)/d(p_alpha)
+            !   which is non-nul only when j=alpha (because p_alpha = p_ref + Pc(S_alpha))
             !
-            ! fn(pn, ....) -> dfn/dS_j = - dfn/dS_n = -dpa_n/dS_n * dfn/dpa_n
+            ! fn(pn, Tn, Cn) -> dfn/dS_j = - dfn/dS_n = -dp_n/dS_n * dfn/dp_n
             n = cv_info%NbPhasePresente
             jph_n = cv_info%NumPhasePresente(n) ! phase of the eliminated saturation
             do j = 1, n - 1
@@ -317,10 +319,12 @@ contains
 #ifndef NDEBUG
                if (jph == jph_n) call CommonMPI_abort("IncPrimSecd_dFsurdX_cv inconsistent phase indexing.")
 #endif
-               if (iph1 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph1)*df1dpa*inc%Comp(icp, iph1)
-               if (iph1 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph1)*df1dpa*inc%Comp(icp, iph1)
-               if (iph2 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph2)*df2dpa*inc%Comp(icp, iph2)
-               if (iph2 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph2)*df2dpa*inc%Comp(icp, iph2)
+               ! d(f_iph1)/d(S_j) careful if iph1 = n (see above)
+               if (iph1 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph1)*df1dpa
+               if (iph1 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph1)*df1dpa
+               ! - d(f_iph2)/d(S_j) careful if iph2 = n (see above)
+               if (iph2 == jph) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) - dpadS(iph2)*df2dpa
+               if (iph2 == jph_n) dFsurdX(numj, i + mi) = dFsurdX(numj, i + mi) + dpadS(iph2)*df2dpa
             end do
 
          end do ! component i
