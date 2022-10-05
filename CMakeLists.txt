@@ -110,13 +110,23 @@ set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 find_package(pybind11 2.6 QUIET) # try locally
+if(pybind11_FOUND)
+  if(${pybind11_VERSION} VERSION_GREATER 2.10)
+    message(
+      FATAL_ERROR
+        "\nCritical bug with pybind11 versions greater than 2.10.\n"
+        "Cf. ComPASS issue #558 at: "
+        "https://gitlab.inria.fr/charms/ComPASS/-/issues/558"
+    )
+  endif()
+endif()
 if(NOT pybind11_FOUND) # else fetch it from github
   message(STATUS "Could NOT find pybind11 (fetching it from GitHub)")
   include(FetchContent)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG v2.6.2
+    GIT_TAG v2.9.2
   )
   if(${CMAKE_VERSION} VERSION_LESS 3.14)
     FetchContent_GetProperties(pybind11)
