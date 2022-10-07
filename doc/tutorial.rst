@@ -70,11 +70,11 @@ Step 2: Improve the script
   heat flux only (bottom_heat_flux = :math:`0.08  W.m^{-2}`).
 
 
-Step 3: Change the EOS
-----------------------
+Step 3: Change the Physics
+----------------------------
 
-* Change the Equations of states (eos) from water2ph to diphasic. A small description of
-  the disponible eos is in the :ref:`documentation<eos>` section.
+* Change the physics from water2ph to diphasic. A small description of
+  the disponible physics is in the :ref:`documentation<physics>` section.
 
 How many phases and components do we use now ? Which context exist ?
 Which differences in the output in the terminal compared to previously ?
@@ -113,7 +113,7 @@ Step 4: Van Genuchten capillary pressure and relative permeabilities
 .. warning::
 
   Pc and kr should be set after the partition (done in :code:`simulation.init`)
-  and before the :func:`build_state` function of the diphasic eos
+  and before the :func:`build_state` function of the diphasic physics
   (because it calls the phase pressure function).
 
 
@@ -152,7 +152,7 @@ Step 5: Add a vertical fracture
   Apply a molar flux of :math:`0.1 mol.m^{-2}.s^{-1}` on the water component
   (the water component is the second one) and the corresponding heat flux
   using the :func:`simulation.liquid_molar_enthalpy()` function. In the diphasic
-  eos this function takes the following arguments: the liquid pressure, the temperature and the phases
+  physics this function takes the following arguments: the liquid pressure, the temperature and the phases
   molar fraction (use :code:`pure_phase_molar_fraction = [[0, 1], [1, 0]]`).
   The heat flux is equal to the molar flux times the liquid molar enthalpy.
 

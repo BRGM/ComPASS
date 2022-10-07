@@ -173,7 +173,7 @@ For example setting up the reservoir thermal conductivity can be done as follows
     )
 
 Mesh objects identification after the distribution
--------------------------------------------------
+--------------------------------------------------
 
 With the parallelism, the indexes of the mesh objects
 (cells, nodes, faces) change after the distribution of the mesh
@@ -297,6 +297,6 @@ For example:
     from data.van_genuchten_kr import kr_functions
     simulation.set_kr_functions(kr_functions)
 
-By default (when the EOS contains two phases)
+By default (when the physics contains at least two phases)
 the relative permeability of each phase is the
-square of the phase saturation.
+square of the phase saturation :math:`kr^\alpha = (S^\alpha)^2`.
