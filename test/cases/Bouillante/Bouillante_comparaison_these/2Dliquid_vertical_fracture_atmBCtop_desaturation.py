@@ -53,7 +53,10 @@ ComPASS.set_output_directory_and_logfile(__file__)
 
 # thermodynamic functions are only available once the eos is loaded
 pbottom = simulation.get_gravity() * H * 1000.0
-hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom, pure_phase_molar_fraction)
+liquid_index = simulation.phase_index(simulation.Phase.liquid)
+hbottom = simulation.liquid_molar_enthalpy(
+    pbottom, Tbottom, pure_phase_molar_fraction[liquid_index]
+)
 
 grid = ComPASS.Grid(
     shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(-0.5 * Lx, -0.5 * Ly, ztop - Lz)

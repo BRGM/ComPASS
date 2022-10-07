@@ -56,7 +56,8 @@ Tall = degC2K(30)
 
 qmass_inj = 5.0 / 3600.0  # 5m^3/h
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
-liq_molar_fraction_inj = pure_phase_molar_fraction
+liquid_index = simulation.phase_index(simulation.Phase.liquid)
+liq_molar_fraction_inj = pure_phase_molar_fraction[liquid_index]
 Sg_top = 1.0
 # # vDarcy = 4E-1 # m/s                         # qmass = velocity[m/s]*Section[m2]*Massevol
 # # qmass_vdh = (40/3600)*997
