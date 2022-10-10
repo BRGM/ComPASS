@@ -25,7 +25,7 @@ Lx, Ly, Lz = 3000.0, 2000.0, 100.0
 Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
 nx, ny, nz = 25, 18, 9
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 

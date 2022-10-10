@@ -82,7 +82,7 @@ omega_matrix = 0.15  # matrix porosity
 K_matrix = 2  # bulk thermal conductivity in W/m/K
 fracture_thickness = 0.005
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 simulation.set_molar_enthalpy_functions(
     build_pure_phase_enthalpy(volumetric_heat_capacity=rhofcpf),
 )

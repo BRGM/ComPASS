@@ -39,7 +39,7 @@ def test__extrems__no_gravity(T_injection_degC=33.0, flow_velocity_m_s=1.0e-6):
     shape = nx, ny, nz = 100, 1, 1
     origin = (0, -0.5 * Ly, -0.5 * Lz)
 
-    simulation = ComPASS.load_eos("linear_water")
+    simulation = ComPASS.load_physics("linear_water")
     ComPASS.set_output_directory_and_logfile(__file__)
     simulation.set_gravity(0)
     simulation.set_rock_volumetric_heat_capacity(rhor * Cr)

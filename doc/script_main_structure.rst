@@ -4,7 +4,7 @@ Main structure of the scripts
 A simulation script is composed of 4 main parts:
 
 1. Defining a simulation from one of the available physics, e.g.:
-:code:`simulation=ComPASS.load_eos("water2ph")`
+:code:`simulation=ComPASS.load_physics("water2ph")`
 
 and initializing variables, including creating and loading a global mesh.
 A mesh can be created explicitely or loaded from a file.

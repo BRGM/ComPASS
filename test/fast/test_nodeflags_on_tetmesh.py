@@ -17,7 +17,7 @@ from ComPASS.timeloops import standard_loop
 
 def test_nodeflags_on_tetmesh():
 
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
 
     gridshape = (1, 1, 1)
     gridextent = (1e3, 1e3, 1e3)

@@ -1,4 +1,5 @@
 import importlib
+from ComPASS.messages import deprecation
 
 from . import mpi
 
@@ -10,11 +11,11 @@ def get_kernel():
     return kernel
 
 
-def load_eos(eosname):
+def load_physics(physics_name):
     global kernel
     assert kernel is None
-    kernel = importlib.import_module("ComPASS.eos.%s" % eosname)
-    # CHECKME: we replace the behavior: from import ComPASS.eos.eosname import *
+    kernel = importlib.import_module("ComPASS.physics.%s" % physics_name)
+    # CHECKME: we replace the behavior: from import ComPASS.physics.physics_name import *
     #          there might be a more elegant way to do this
     # gdict = globals()
     # kdict = vars(kernel)
@@ -25,6 +26,11 @@ def load_eos(eosname):
     from .simulation._simulation_object import Simulation
 
     return Simulation(kernel)
+
+
+def load_eos(physics_name):
+    deprecation(f"Use load_physics({physics_name})")
+    return load_physics(physics_name)
 
 
 class Wrapper:

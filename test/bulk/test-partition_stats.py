@@ -12,7 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 pres = 10.0 * MPa

@@ -5,7 +5,7 @@
 # of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 # and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 #
-# use immiscible2ph EOS (air only in gas phase, water only in liquid phase)
+# use immiscible2ph physics (air only in gas phase, water only in liquid phase)
 # Cartesian grid, 1D box with lx=1000m, 200 cells
 # Homogeneous Neumann at all BC
 # no gravity
@@ -38,7 +38,7 @@ CpRoche = 2.0e6
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]
 Sg_right = 1.0
 
-simulation = ComPASS.load_eos("immiscible2ph")
+simulation = ComPASS.load_physics("immiscible2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)

@@ -25,8 +25,8 @@ with Path(f"./{package_name}/{build_info_file}").open("w") as f:
     print(f"with python {platform.python_version()} on {platform.node()}", file=f)
     print(f"build system info: {platform.platform()}", file=f)
 
-# Clean local eos directory (!_ is to keep __init__.py)
-for f in Path(f"{package_name}/eos").glob("[!_]*"):
+# Clean local physics directory (!_ is to keep __init__.py)
+for f in Path(f"{package_name}/physics").glob("[!_]*"):
     f.unlink()
 
 from skbuild import setup
@@ -34,7 +34,7 @@ from skbuild import setup
 setup(
     packages=[
         package_name,
-        f"{package_name}.eos",
+        f"{package_name}.physics",
         f"{package_name}.ghosts",
         f"{package_name}.io",
         f"{package_name}.linalg",

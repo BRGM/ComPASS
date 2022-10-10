@@ -29,7 +29,7 @@ g = 9.81                    # gravity in m/s^-2
 producer_id, injector_id = 0, 1
 # fmt: on
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
 

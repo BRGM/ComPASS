@@ -13,7 +13,7 @@ import ComPASS
 def test():
     nx, ny, nz = 1, 1, 1
 
-    ComPASS.load_eos("water2ph")
+    ComPASS.load_physics("water2ph")
     ComPASS.set_output_directory_and_logfile(__file__)
     grid = ComPASS.Grid(shape=(nx, ny, nz))
     ComPASS.init_and_load_mesh(grid)

@@ -5,7 +5,7 @@ from ComPASS.utils.units import *
 from ComPASS.petrophysics.models.Beaude2018 import Pc
 
 
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 pg = 1 * bar
 T = degC2K(20)
 Sg = np.linspace(0, 1)

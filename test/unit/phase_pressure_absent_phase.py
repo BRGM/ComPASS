@@ -13,7 +13,7 @@ from ComPASS.petrophysics.models.Beaude2018 import Pc, dPcdS
 pres = 50.0 * bar
 Tres = degC2K(350.0)
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(shape=(1, 1, 1))

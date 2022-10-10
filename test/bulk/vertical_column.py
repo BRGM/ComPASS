@@ -25,7 +25,7 @@ K_matrix = 2.0  # bulk thermal conductivity in W/m/K
 H = 3000.0  # column height
 nx, ny, nz = 1, 1, 300  # discretization
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(

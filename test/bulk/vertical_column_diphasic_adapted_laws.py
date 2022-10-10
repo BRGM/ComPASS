@@ -25,7 +25,7 @@ nx, ny, nz = 1, 1, 100  # discretization
 ds = H / nz
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_gravity(gravity)
 # use non-default viscosity functions
 gas_index = simulation.phase_index(simulation.Phase.gas)

@@ -8,7 +8,7 @@
 
 import ComPASS
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 
 print(f"gravity:", simulation.get_gravity())
 simulation.set_gravity(10)

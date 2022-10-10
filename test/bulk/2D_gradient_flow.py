@@ -37,12 +37,12 @@ exact_sol = True
 
 if onecomp:
     if exact_sol:
-        simulation = ComPASS.load_eos("linear_water")
+        simulation = ComPASS.load_physics("linear_water")
     else:
-        simulation = ComPASS.load_eos("water2ph")
+        simulation = ComPASS.load_physics("water2ph")
         simulation.lock_context(2)
 else:
-    simulation = ComPASS.load_eos("water_with_tracer")
+    simulation = ComPASS.load_physics("water_with_tracer")
 
 simulation.set_rock_volumetric_heat_capacity(rhocp)
 simulation.set_molar_enthalpy_functions(

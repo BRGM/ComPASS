@@ -33,7 +33,7 @@ cpf = 4200  # specific heat in J/kg/K
 rhofcpf = rhof * cpf  # volumetric heat capacity
 muf = 1e-3  # fluid dynamic viscosity
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 
 simulation.set_molar_enthalpy_functions(
     build_pure_phase_enthalpy(volumetric_heat_capacity=rhofcpf),

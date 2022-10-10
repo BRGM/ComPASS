@@ -20,7 +20,7 @@ thermal_cond = 2.0  # dummy value
 
 nx, ny, nz = (4,) * 3
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(

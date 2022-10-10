@@ -31,7 +31,7 @@ Tres = degC2K(60)  # reservoir temperature
 #%% -------------------------------------------------------------------
 
 ComPASS.set_output_directory_and_logfile(f"angular_sector_{nb_layers:02d}_layers")
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 simulation.set_gravity(0)
 
 mesh = extruded_sector(R, theta, ds, np.tile(H / nb_layers, nb_layers))

@@ -110,16 +110,16 @@ foreach(_conf ${CONFIGURATIONS})
   )
   include(${CONF_DIR}/cmake.conf)
 
-  set(eos_target ${_conf})
-  pybind11_add_module(${eos_target} wrappers/ComPASS_module.cpp)
+  set(physics_target ${_conf})
+  pybind11_add_module(${physics_target} wrappers/ComPASS_module.cpp)
   target_compile_definitions(
-    ${eos_target} PRIVATE ComPASS_CONFIGURATION_NAME=${eos_target}
+    ${physics_target} PRIVATE ComPASS_CONFIGURATION_NAME=${physics_target}
   )
-  target_link_libraries(${eos_target} PRIVATE ${CONF_TARGETNAME})
+  target_link_libraries(${physics_target} PRIVATE ${CONF_TARGETNAME})
 
   install(
-    TARGETS ${eos_target}
-    DESTINATION ${COMPASS_PYTHON_PACKAGE_NAME}/eos
+    TARGETS ${physics_target}
+    DESTINATION ${COMPASS_PYTHON_PACKAGE_NAME}/physics
     EXPORT ComPASS
   )
 

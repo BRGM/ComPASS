@@ -52,11 +52,11 @@ def select_dirichlet_nodes():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if onecomp:
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
     simulation.lock_context(2)
 else:
     assert False, "configuration temporarily desactivated"
-    simulation = ComPASS.load_eos("water_with_tracer")
+    simulation = ComPASS.load_physics("water_with_tracer")
 
 simulation.init(
     mesh=grid,

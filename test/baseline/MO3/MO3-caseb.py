@@ -35,7 +35,7 @@ qw = 0.028  # total production flow rate (for the whole reservoir i.e. theta = 2
 Tres = degC2K(234)
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(2.65e6)  # SI units J/m^3/°C
 

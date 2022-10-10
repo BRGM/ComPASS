@@ -14,7 +14,7 @@ import ComPASS.utils.mpl_backends as mpl_backends
 
 plt = mpl_backends.import_pyplot(False)
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 
 # liquid specific density
 T = np.linspace(20, 400)

@@ -17,7 +17,7 @@ except ImportError:
 import ComPASS
 from ComPASS.utils.units import *
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 
 H = 3 * km
 depth_boiling = 1.5 * km

@@ -75,9 +75,9 @@ nhb = int(lhb / dx)  # length of the horizontal branch in cells
 #################################################################################################
 
 if water2phase:
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
 else:
-    simulation = ComPASS.load_eos("immiscible2ph")
+    simulation = ComPASS.load_physics("immiscible2ph")
 
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)

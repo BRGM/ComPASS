@@ -22,7 +22,7 @@ def register_property(
     n_phases = simulation.number_of_phases()
     if n_phases == 1 and not isinstance(property_functions, (list, np.ndarray)):
         #  it is possible that property_functions is not a list
-        # if there is only one phase in the eos
+        # if there is only one phase in the physics
         property_functions = [property_functions]
     assert (
         len(property_functions) == n_phases
@@ -51,13 +51,17 @@ def register_property(
 
 
 def build_molar_fractions(simulation, salt_molar_fraction):
-    eos_name = simulation.eos_name()
+    physics_name = simulation.physics_name()
     if salt_molar_fraction is None:
-        assert eos_name == "linear_water", "Molar fractions missing in brine eos"
+        assert (
+            physics_name == "linear_water"
+        ), "Molar fractions missing in brine physics"
         molar_fractions = None
     else:
-        assert eos_name == "brine", "Do not give molar fractions in linear_water eos"
-        # in brine eos, only Cs is given amoung the two components
+        assert (
+            physics_name == "brine"
+        ), "Do not give molar fractions in linear_water physics"
+        # in brine physics, only Cs is given amoung the two components
         assert int(simulation.Component.salt) - 1 == 0
         # transpose is necessary when salt_molar_fraction is an array
         molar_fractions = np.array([salt_molar_fraction, 1.0 - salt_molar_fraction]).T

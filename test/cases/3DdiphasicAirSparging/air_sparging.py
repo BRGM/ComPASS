@@ -46,7 +46,7 @@ from ComPASS.simulation_context import SimulationContext
 ##############################################################
 ### Simulation parameters & Physics
 ##############################################################
-ComPASS.load_eos("immiscible2ph")
+ComPASS.load_physics("immiscible2ph")
 output_dir = "output-air-sparging"  # used for salome
 ComPASS.set_output_directory_and_logfile(__file__)
 

@@ -24,9 +24,9 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
-ComPASS.load_eos("liquid_water")
+ComPASS.load_physics("liquid_water")
 
-p_reservoir = 0  # no flow - linear water eos
+p_reservoir = 0  # no flow - linear water physics
 Tleft, Tright = 33.0, 5.0  # K or deg C no matter
 K_reservoir = 3  # W/m/K
 k_reservoir = 1.0  # not relevant - dummy value
@@ -99,9 +99,9 @@ def set_initial_values():
 ComPASS.set_output_directory_and_logfile(__file__)
 
 if onecomp:
-    ComPASS.load_eos("liquid_water")
+    ComPASS.load_physics("liquid_water")
 else:
-    ComPASS.load_eos("water_with_tracer")
+    ComPASS.load_physics("water_with_tracer")
 
 ComPASS.init(
     grid=grid,

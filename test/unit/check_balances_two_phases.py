@@ -27,7 +27,7 @@ Ox, Oy, Oz = -5, -5, -5
 nx, ny, nz = 10, 10, 10
 volume = Lx * Ly * Lz
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(rhocpr)
 

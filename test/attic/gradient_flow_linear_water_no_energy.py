@@ -13,7 +13,7 @@ from ComPASS.timeloops import standard_loop
 
 import numpy as np
 
-ComPASS.load_eos("linear_water")
+ComPASS.load_physics("linear_water")
 assert not ComPASS.has_energy_transfer_enabled()
 
 rhof = 1e3  # specific mass in kg/m^3

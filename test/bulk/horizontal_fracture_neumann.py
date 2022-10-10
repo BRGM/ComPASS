@@ -31,7 +31,7 @@ nx, ny, nz = 11, 11, 4
 dx = Lx / nx
 dz = Lz / nz
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 

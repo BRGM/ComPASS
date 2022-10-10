@@ -15,7 +15,7 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("brine")
+simulation = ComPASS.load_physics("brine")
 final_time = 200 * year
 output_period = 10.0 * year
 

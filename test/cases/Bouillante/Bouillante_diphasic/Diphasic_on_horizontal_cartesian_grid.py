@@ -49,7 +49,7 @@ left_flag = 2
 right_flag = 3
 
 
-ComPASS.load_eos("diphasic")
+ComPASS.load_physics("diphasic")
 ComPASS.set_gravity(gravity)
 ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)

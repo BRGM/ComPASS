@@ -38,10 +38,10 @@ nH = 50  # discretization
 nx, ny, nz = 2, 1, nH
 Lx, Ly, Lz = 2 * H / nH, H / nH, H
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
-# thermodynamic functions are only available once the eos is loaded
+# thermodynamic functions are only available once the physics is loaded
 pbottom = simulation.get_gravity() * H * 1000.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)
 

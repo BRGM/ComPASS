@@ -41,7 +41,7 @@ dx, dy, dz = 0.5, 10, 10
 shape = nx, ny, nz = int(Lx / dx), int(Ly / dy), int(Lz / dz)
 origin = (0, -0.5 * Ly, -0.5 * Lz)
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_rock_volumetric_heat_capacity(rhor * Cr)
 

@@ -49,7 +49,7 @@ n = 10
 
 ComPASS.set_output_directory_and_logfile(f"cemracs_4_1_{n}")
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 simulation.set_molar_density_functions(
     build_pure_phase_volumetric_mass_density(
         specific_mass=rho,

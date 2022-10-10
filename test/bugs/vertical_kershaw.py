@@ -40,8 +40,8 @@ vertices = MT.as_coordinate_array(mesh.vertices)
 vertices[:, 2] -= 1
 vertices[:, 2] *= H
 
-ComPASS.load_eos("liquid_water")
-# ComPASS.load_eos('linear_water')
+ComPASS.load_physics("liquid_water")
+# ComPASS.load_physics('linear_water')
 # fluid_properties = ComPASS.get_fluid_properties()
 # fluid_properties.specific_mass = rhof
 # fluid_properties.compressibility = 1E-10

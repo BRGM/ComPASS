@@ -138,7 +138,7 @@ the function :func:`simulation.set_freeflow_faces`:
 
 .. code-block:: python
 
-    simulation = ComPASS.load_eos("diphasic")
+    simulation = ComPASS.load_physics("diphasic")
     ...
     fc = simulation.compute_face_centers()
     simulation.set_freeflow_faces(on_zmax(grid)(fc))

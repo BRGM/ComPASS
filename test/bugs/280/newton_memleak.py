@@ -23,7 +23,7 @@ phi_matrix = 0.15
 K_matrix = 2.0
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 
 grid = ComPASS.Grid(
     shape=(10, 10, 10),

@@ -54,7 +54,7 @@ from .bc import (
 
 from ..io.mesh import write_mesh, write_polyhedra_vtu_mesh
 
-from .utils import facenodes, postprocess, eos_name, collect_all_edges
+from .utils import facenodes, postprocess, physics_name, collect_all_edges
 
 from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions

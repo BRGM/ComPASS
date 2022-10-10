@@ -10,8 +10,8 @@ def compare_dumps(a):
 
 
 def test_dump_array():
-    # FIXME: this is due to the fact each eos embeds everything
-    ComPASS.load_eos("linear_water")
+    # FIXME: this is due to the fact each physics embeds everything
+    ComPASS.load_physics("linear_water")
     a = np.ascontiguousarray(np.arange(6), dtype=np.double)
     a.shape = (-1, 2)
     compare_dumps(a)
@@ -20,8 +20,8 @@ def test_dump_array():
 
 
 def test_increment_array():
-    # FIXME: this is due to the fact each eos embeds everything
-    ComPASS.load_eos("linear_water")
+    # FIXME: this is due to the fact each physics embeds everything
+    ComPASS.load_physics("linear_water")
     a = np.ascontiguousarray(np.random.random((3, 2)), dtype=np.double)
     b = np.copy(a)
     ComPASS.increment_first_column_in_fortran(a)

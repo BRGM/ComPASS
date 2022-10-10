@@ -14,7 +14,7 @@ from ComPASS.timeloops import standard_loop, TimeStepManager
 
 nx, ny, nz = 2, 2, 2  # discretization
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(shape=(nx, ny, nz))

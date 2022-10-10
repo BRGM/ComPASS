@@ -19,7 +19,7 @@ nx = ny = nz = 10
 L = 100
 wid = 12  # well id
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(L, L, L))

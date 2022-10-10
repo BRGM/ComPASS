@@ -79,7 +79,7 @@ omega_matrix = 0.15  # matrix porosity
 K_matrix = 2  # bulk thermal conductivity in W/m/K
 fracture_thickness = 0.005
 
-ComPASS.load_eos("linear_water")
+ComPASS.load_physics("linear_water")
 fluid_properties = ComPASS.get_fluid_properties()
 fluid_properties.specific_mass = rhof
 fluid_properties.compressibility = 1e-10  # it helps...

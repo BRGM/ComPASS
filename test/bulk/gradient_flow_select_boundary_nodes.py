@@ -49,7 +49,7 @@ def select_dirichlet_nodes():
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 
 simulation.init(
     grid=grid,

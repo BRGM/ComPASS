@@ -26,7 +26,7 @@ assert abs(lhb % dx) < 1e-5
 nhb = int(lhb / dx)  # length of the horizontal branch in cells
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 simulation.set_gravity(0)
 
 grid = ComPASS.Grid(

@@ -24,7 +24,7 @@ from .base import (
     dump_global_mesh,
     part_mesh,
     setup_scheme,
-    _exit_eos_and_finalize,
+    _exit_physics_and_finalize,
 )
 
 # FIXME: grid is kept for backward compatibility, should be deprecated
@@ -226,4 +226,4 @@ def init(
     assert simulation.unknown_producers_density
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
-    atexit.register(_exit_eos_and_finalize)
+    atexit.register(_exit_physics_and_finalize)

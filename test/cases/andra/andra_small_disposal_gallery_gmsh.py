@@ -23,7 +23,7 @@ import gmsh_reader
 ComPASS.set_output_directory_and_logfile(__file__)
 
 """ ComPASS simulation"""
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 gravity = 9.81
 simulation.set_gravity(gravity)
 bulk_thermal_conductivity = 2.0  # W . K^-1 . m^-1
@@ -180,7 +180,7 @@ def set_Dirichlet_state(state):
 
     # in the galery value, get Sg from Hur for build_state
     SgGal = set_diphasic_equilibrium(PgGal, TGal, HurGal)
-    # in build_state p = Pref = Pg in diphasic EOS
+    # in build_state p = Pref = Pg in diphasic physics
     XGal = simulation.build_state(
         simulation.Context.diphasic,
         p=PgGal,
@@ -190,7 +190,7 @@ def set_Dirichlet_state(state):
     )
     state.set(node_flags == gallery_flag, XGal)
     # in porous media : top
-    # in build_state p = Pref = Pg in diphasic EOS
+    # in build_state p = Pref = Pg in diphasic physics
     # compute Pc and then Pg = Pc + Pl
     PgTop = Pc + PlTop
     XPorTop = simulation.build_state(simulation.Context.liquid, p=PgTop, T=TPor)

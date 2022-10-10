@@ -33,7 +33,7 @@ bottom_heat_flux = K * (Tres - Ttop) / caprock_thickness  # W/m2
 gravity = 9.81
 final_time = 1e5 * year
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(
     f"heatpipe-k{kres:g}.py", process_case_name=False
 )

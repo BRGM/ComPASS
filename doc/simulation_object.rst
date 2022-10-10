@@ -4,11 +4,11 @@ The python "simulation" object
 Most of the parameters used to run a simulation are accessible through
 a simulation object. The simulation object is created at the beginning
 of the script from one of the available physics, e.g.:
-:code:`simulation=ComPASS.load_eos("water2ph")`
+:code:`simulation=ComPASS.load_physics("water2ph")`
 
 .. warning::
     As of today, simulation is a *fake* object that wraps a mix of
-    pure python methods and compiled methods that reside in the eos module.
+    pure python methods and compiled methods that reside in the physics module.
 
     This is bound, and our mid-term goal is to implement a plain simulation object, with the goal
     to be able to handle several simulation objects at the same time.

@@ -12,8 +12,8 @@ import ComPASS
 
 def test_wells():
 
-    # FIXME: this is transitory but we need an eos to acces the well structure
-    simulation = ComPASS.load_eos("water2ph")
+    # FIXME: this is transitory but we need a physics to acces the well structure
+    simulation = ComPASS.load_physics("water2ph")
 
     W1 = ComPASS.Well()
     W1.geometry.radius = 0.1

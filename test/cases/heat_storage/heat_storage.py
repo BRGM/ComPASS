@@ -41,7 +41,7 @@ geotherm = lambda z: Ttop + vgradT * (ztop - z)
 # well ids: two wells 1 and 2 each can be producer (p) or injector (i)
 idW1i, idW1p, idW2i, idW2p = range(4)
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 # Waiting function to modify rock_volumetric heat capacity as function of rock

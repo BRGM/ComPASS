@@ -47,7 +47,7 @@ geotherm = (Tbot - Ttop) / Lz
 
 bot_flag = 4
 
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)

@@ -400,7 +400,7 @@ def _petrophysics_statistics_on_global_mesh(fractures):
                 print(buffer.min(), "<=", location, property, "<=", buffer.max())
 
 
-def _exit_eos_and_finalize():
+def _exit_physics_and_finalize():
     get_kernel().release_physics()
     get_kernel().release_simulation()
     _sw.finalize_model()

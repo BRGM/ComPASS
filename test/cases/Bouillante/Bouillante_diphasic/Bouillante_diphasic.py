@@ -58,8 +58,8 @@ top_diphasic_flag = 32
 
 basename = "Bouillante_Test02"
 
-ComPASS.load_eos("diphasic")
-# ComPASS.load_eos('water2ph')
+ComPASS.load_physics("diphasic")
+# ComPASS.load_physics('water2ph')
 ComPASS.set_gravity(gravity)
 ComPASS.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)

@@ -16,7 +16,7 @@ import MeshTools as MT
 
 H = 3 * km
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 basename = "47K/input.2"

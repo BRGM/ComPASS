@@ -16,7 +16,7 @@ import MeshTools as MT
 import vtkwriters as vtkw
 import gmsh_reader
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 
 filename = "case-tests/andra/andra_gallery.msh"
 

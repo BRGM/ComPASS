@@ -40,28 +40,28 @@ def set_viscosity_functions(simulation, functions=None, *, check_derivatives=Tru
 
 
 def get_default_viscosity_functions(simulation):
-    eos_name = simulation.eos_name()
+    physics_name = simulation.physics_name()
 
-    if eos_name == "diphasic" or eos_name == "immiscible2ph":
+    if physics_name == "diphasic" or physics_name == "immiscible2ph":
         assert_diphasic_phase_indexes(simulation)
         return [
             gas_diphasic_viscosities,
             liquid_diphasic_viscosities,
         ]
 
-    elif eos_name == "water2ph":
+    elif physics_name == "water2ph":
         assert_diphasic_phase_indexes(simulation)
         return [gas_water2ph_viscosities, liquid_water2ph_viscosities]
 
-    elif eos_name == "linear_water":
+    elif physics_name == "linear_water":
         return pure_phase_viscosities
 
-    elif eos_name == "brine":
+    elif physics_name == "brine":
         assert_salt_component_index(simulation)
         return brine_viscosities
 
     else:
-        raise "viscosity not implemented for this eos"
+        raise "viscosity not implemented for this physics"
 
 
 def assert_diphasic_phase_indexes(simulation):

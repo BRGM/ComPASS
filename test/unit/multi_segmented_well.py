@@ -34,7 +34,7 @@ Qm = 200 * ton / hour
 sleep = False
 # fmt: on
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 

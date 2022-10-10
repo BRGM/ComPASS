@@ -12,7 +12,7 @@ import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 ComPASS.set_gravity(9.81)
 ComPASS.set_rock_volumetric_heat_capacity(0)
 

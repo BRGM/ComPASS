@@ -15,7 +15,7 @@ import MeshTools as MT
 import MeshTools.GridTools as GT
 import vtkwriters as vtkw
 
-ComPASS.load_eos("diphasic")
+ComPASS.load_physics("diphasic")
 
 x, y, z = 15, 1, 15
 nx, ny, nz = 30, 1, 60

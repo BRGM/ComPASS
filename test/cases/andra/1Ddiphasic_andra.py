@@ -29,7 +29,7 @@ nx, ny, nz = 1, 1, 200  # discretization
 ds = H / nz
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(rock_internal_energy)
 

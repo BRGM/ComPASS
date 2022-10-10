@@ -19,7 +19,7 @@ def make(**init_args):
     # bulk thermal conductivity in W/m/K
     K_matrix = 2.0
 
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
     ComPASS.set_output_directory_and_logfile(__file__)
 
     grid = ComPASS.Grid(

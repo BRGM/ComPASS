@@ -115,7 +115,7 @@ def set_initial_values():
     set_states(simulation.all_states(), simulation.all_positions()[:, 0])
 
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 simulation.set_molar_enthalpy_functions(

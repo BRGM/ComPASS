@@ -13,7 +13,7 @@ from ComPASS.utils.units import *
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 
 Ttop = degC2K(25.0)
 Tbot = degC2K(180.0)

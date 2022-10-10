@@ -25,7 +25,7 @@ pres = 30 * bar  # reservoir pressure
 Sgres = 1.0 - 0.65  # reservoir saturation
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 simulation.set_gravity(0)
 simulation.set_rock_volumetric_heat_capacity(2.0e6)  # SI units J/m^3/°C
 

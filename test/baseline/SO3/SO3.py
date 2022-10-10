@@ -33,7 +33,7 @@ nx, ny, nz = 80, 100, 10
 bottom_reservoir = Oz + burden_thickness
 top_reservoir = bottom_reservoir + reservoir_thickness
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 

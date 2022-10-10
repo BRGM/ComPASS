@@ -95,11 +95,11 @@ def postprocess(simulation, **kwargs):
         postprocess_command(simulation.runtime.output_directory, **kwargs)
 
 
-def eos_name(simulation):
+def physics_name(simulation):
     kernel = simulation.get_kernel()
-    m = re.match("ComPASS\.eos\.(\w*)", kernel.__name__)
+    m = re.match("ComPASS\.physics\.(\w*)", kernel.__name__)
     if not m:
-        raise CompassException("Not a valid ComPASS eos!")
+        raise CompassException("Not a valid ComPASS physics!")
     assert len(m.groups()) == 1
     return m.groups()[0]
 

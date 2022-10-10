@@ -17,7 +17,7 @@ import vtkwriters as vtkw
 import gmsh_reader
 
 
-ComPASS.load_eos("diphasic")
+ComPASS.load_physics("diphasic")
 
 filename = "case-tests/andra/unstructured_prism_box.msh"
 

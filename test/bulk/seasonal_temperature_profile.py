@@ -32,7 +32,7 @@ H = 100.0  # column height
 nx, ny, nz = 1, 1, 200  # discretization
 dz = H / nz
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 simulation.set_rock_volumetric_heat_capacity(rhor * cpr)
 simulation.set_molar_enthalpy_functions(
     build_pure_phase_enthalpy(volumetric_heat_capacity=rhor * cpr),

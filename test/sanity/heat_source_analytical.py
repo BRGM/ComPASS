@@ -31,7 +31,7 @@ def cell_heat_source():
     return 2 * (2 * np.pi / L) ** 2 * u(centers)
 
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)
 simulation.set_molar_enthalpy_functions(

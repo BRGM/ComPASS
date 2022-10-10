@@ -43,7 +43,7 @@ nx, ny, nz = int(1.2 * nH), 1, nH
 Lx, Ly, Lz = 1.2 * H, 0.1 * H, H
 
 
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_liquid_capillary_pressure("Beaude2018")
 simulation.set_atm_temperature(Tatm)
 ptop = simulation.get_atm_pressure()
@@ -51,7 +51,7 @@ simulation.set_atm_rain_flux(0.0)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-# thermodynamic functions are only available once the eos is loaded
+# thermodynamic functions are only available once the physics is loaded
 pbottom = simulation.get_gravity() * H * 1000.0
 liquid_index = simulation.phase_index(simulation.Phase.liquid)
 hbottom = simulation.liquid_molar_enthalpy(

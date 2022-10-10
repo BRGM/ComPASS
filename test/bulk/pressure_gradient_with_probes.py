@@ -29,7 +29,7 @@ nx, ny, nz = 100, 1, 1  # discretization
 # Numbers to be exactly on faces between cells
 probe_locations = [(0.021 * Lx, 0, 0), (0.561 * Lx, 0, 0), (0.972 * Lx, 0, 0)]
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(0)  # no gravity
 

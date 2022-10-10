@@ -12,7 +12,7 @@ import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 
 omega_reservoir = 0.15  # reservoir porosity
 k_reservoir = 1e-12  # reservoir permeability in m^2

@@ -12,7 +12,7 @@ from . import mpi
 from MeshTools.GridTools import GridInfo as Grid
 from .RawMesh import RawMesh
 from .runtime import to_output_directory, set_output_directory_and_logfile
-from ._kernel import get_kernel, load_eos, common_wrapper
+from ._kernel import get_kernel, load_eos, load_physics, common_wrapper
 
 import verstr
 

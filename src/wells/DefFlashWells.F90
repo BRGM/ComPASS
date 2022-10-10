@@ -638,7 +638,7 @@ contains
 
 #ifdef ComPASS_SINGLE_PHASE
 
-      call CommonMPI_abort("You cannot have a two phase well model with a single phase eos!")
+      call CommonMPI_abort("You cannot have a two phase well model with a single phase physics!")
 
 #else
 

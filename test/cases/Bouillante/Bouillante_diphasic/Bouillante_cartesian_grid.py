@@ -56,7 +56,7 @@ diphasic_context = 3
 bot_flag = 4
 
 
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)

@@ -10,7 +10,7 @@ import ComPASS
 import doublet_utils
 from ComPASS.utils.units import *
 
-ComPASS.load_eos("water2ph")
+ComPASS.load_physics("water2ph")
 
 pres = 20.0 * MPa  # initial reservoir pressure
 Tres = degC2K(

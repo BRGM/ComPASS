@@ -14,7 +14,7 @@ from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 
 p0 = 1.0 * bar  # initial reservoir pressure
@@ -35,7 +35,7 @@ nx, ny, nz = 2 * nH, 1, nH
 Lx, Ly, Lz = 2 * H, 0.1 * H, H
 
 
-# thermodynamic functions are only available once the eos is loaded
+# thermodynamic functions are only available once the physics is loaded
 gravity = simulation.get_gravity()
 pbottom = gravity * H * 900.0
 hbottom = simulation.liquid_molar_enthalpy(pbottom, Tbottom)

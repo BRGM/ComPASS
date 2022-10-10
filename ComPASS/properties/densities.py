@@ -66,7 +66,7 @@ def gas_water2ph_volumetric_mass_density_without_derivatives(X):
     return X.pressure * M_H2O / (R * X.temperature)
 
 
-# in ComPASS water2ph eos, f_MolarDensity is mass density, see #348
+# in ComPASS water2ph physics, f_MolarDensity is mass density, see #348
 gas_water2ph_volumetric_mass_densities = PhaseProperty(
     with_derivatives=gas_water2ph_volumetric_mass_density_with_derivatives,
     without_derivatives=gas_water2ph_volumetric_mass_density_without_derivatives,
@@ -127,7 +127,7 @@ def liquid_water2ph_volumetric_mass_density_without_derivatives(X):
     return ss * (1.0 + cw * p_rel)
 
 
-# in ComPASS water2ph eos, f_MolarDensity is mass density, see #348
+# in ComPASS water2ph physics, f_MolarDensity is mass density, see #348
 liquid_water2ph_volumetric_mass_densities = PhaseProperty(
     with_derivatives=liquid_water2ph_volumetric_mass_density_with_derivatives,
     without_derivatives=liquid_water2ph_volumetric_mass_density_without_derivatives,
@@ -209,7 +209,7 @@ def brine_volumetric_mass_density_without_derivatives(X):
     return sc * (1.0 + cw * p_rel)
 
 
-# in ComPASS brine eos, f_MolarDensity is mass density, see #51
+# in ComPASS brine physics, f_MolarDensity is mass density, see #51
 brine_volumetric_mass_densities = PhaseProperty(
     with_derivatives=brine_volumetric_mass_density_with_derivatives,
     without_derivatives=brine_volumetric_mass_density_without_derivatives,
@@ -247,6 +247,6 @@ def build_pure_phase_volumetric_mass_density(
     )
 
 
-# in ComPASS linear_water eos, f_MolarDensity is mass density, see #51
+# in ComPASS linear_water physics, f_MolarDensity is mass density, see #51
 # linear_water -> pure_phase
 pure_phase_volumetric_mass_densities = build_pure_phase_volumetric_mass_density()

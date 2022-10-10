@@ -12,7 +12,7 @@ function from the `timeloops` module.
     import ComPASS
     from ComPASS.timeloops import standard_loop
 
-    simulation = ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_physics('water2ph')
 
     # init your simulation here...
 
@@ -26,7 +26,7 @@ You can easily profile only the standard_loop wrapping it with a few lines of co
     from ComPASS.timeloops import standard_loop
     from ComPASS import mpi # to access mpi.proc_rank
 
-    simulation = ComPASS.load_eos('water2ph')
+    simulation = ComPASS.load_physics('water2ph')
 
     # init your simulation here...
 

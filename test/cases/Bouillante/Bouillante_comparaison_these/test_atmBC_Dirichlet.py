@@ -29,7 +29,7 @@ Ttop = degC2K(25)
 CpRoche = 2.0e6
 gravity = 0.0
 
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 simulation.set_gravity(gravity)
 simulation.set_rock_volumetric_heat_capacity(CpRoche)
 ComPASS.set_output_directory_and_logfile(__file__)

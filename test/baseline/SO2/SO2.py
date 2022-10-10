@@ -28,7 +28,7 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.properties.enthalpies import build_pure_phase_enthalpy
 
-p_reservoir = 0  # no flow - linear water eos
+p_reservoir = 0  # no flow - linear water physics
 Tleft, Tright = 33.0, 5.0  # K or deg C no matter
 K_reservoir = 3  # bulk thermal conductivity W/m/K
 rho_reservoir = 2600.0  # rock density kg/m3
@@ -46,7 +46,7 @@ nb_outputs = 20
 
 ComPASS.set_output_directory_and_logfile(__file__)
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 simulation.set_gravity(0)
 rhocp = rho_reservoir * cp_reservoir
 simulation.set_rock_volumetric_heat_capacity(rhocp)

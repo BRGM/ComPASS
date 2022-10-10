@@ -32,7 +32,7 @@ def test_simple_tetmesh():
     zmax = vertices[:, -1].max()
     topnodes = np.nonzero(vertices[:, -1] == zmax)[0]
 
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
 
     ComPASS.set_output_directory_and_logfile(__file__)
 

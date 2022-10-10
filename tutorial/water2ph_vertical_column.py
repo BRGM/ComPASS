@@ -26,7 +26,7 @@ nx, ny, nz = 1, 1, 100  # discretization
 Lx = nx * H / nz
 Ly = ny * H / nz
 
-simulation = ComPASS.load_eos("water2ph")  # water component in gas or liquid phase
+simulation = ComPASS.load_physics("water2ph")  # water component in gas or liquid phase
 simulation.set_gravity(0)  # no gravity
 
 ComPASS.set_output_directory_and_logfile(__file__)

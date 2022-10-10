@@ -45,7 +45,7 @@ def test_more_faults_than_nodes():
             | on_plane_yz(pts, epsilon)
         )
 
-    simulation = ComPASS.load_eos("water2ph")
+    simulation = ComPASS.load_physics("water2ph")
     ComPASS.set_output_directory_and_logfile(__file__)
     print("Gravity:", simulation.get_gravity())
 

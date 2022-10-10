@@ -34,7 +34,7 @@ rhocp = 2000 * 800  # volumetric heat capacity
 muf = 1e-3
 g = 10.0
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(g)
 simulation.set_molar_density_functions(

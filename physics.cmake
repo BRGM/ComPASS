@@ -1,4 +1,4 @@
-# You can choose here which physic to build and make available in ComPASS
+# You can choose here which physics to build and make available in ComPASS
 # Available physics are:
 #
 # * water2ph: subcritical water with 2 phases

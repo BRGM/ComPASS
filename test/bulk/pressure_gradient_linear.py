@@ -32,7 +32,7 @@ mass_flux = 1e-1
 Lx, Ly, Lz = 100.0, 10.0, 10.0  # column dimensions
 nx, ny, nz = 100, 1, 1  # discretization
 
-simulation = ComPASS.load_eos("linear_water")
+simulation = ComPASS.load_physics("linear_water")
 simulation.set_molar_enthalpy_functions(
     build_pure_phase_enthalpy(volumetric_heat_capacity=rhofcpf),
 )

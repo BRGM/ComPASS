@@ -36,7 +36,7 @@ Qw = 100.0             # well imposed flowrate
 Lx, Ly, Lz = 1000.0, 1000.0, 100.0
 nx, ny, nz = 40, 40, 1  # discretization
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 

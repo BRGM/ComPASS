@@ -8,7 +8,7 @@ T = 280.0
 C = np.array([0.0, 1.0])
 
 # Test the implementation outside of ComPASS (without
-# loading an eos, then without the simulation object)
+# loading a physics, then without the simulation object)
 from ComPASS.properties.physical_properties import PhaseStateStruct
 
 # define the type of Xalpha (needs the number of components)
@@ -19,7 +19,7 @@ val_without_derivatives = liquid_diphasic_viscosities.without_derivatives(X)
 val_with_derivatives = liquid_diphasic_viscosities.with_derivatives(X, dfdX)
 assert np.allclose(val_without_derivatives, val_with_derivatives)
 print(
-    "without loading an eos the viscosity is ",
+    "without loading a physics the viscosity is ",
     val_with_derivatives,
     " and the derivatives are ",
     dfdX,
@@ -49,7 +49,7 @@ print(
 import ComPASS
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_eos("diphasic")
+simulation = ComPASS.load_physics("diphasic")
 # X = simulation.Xalpha(p, T, C)
 # print("using the simulation facilities",
 #     liquid_diphasic_viscosities.without_derivatives(X))

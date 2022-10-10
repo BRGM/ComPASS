@@ -58,34 +58,34 @@ def set_molar_density_functions(
 
 
 def get_default_molar_density_functions(simulation):
-    eos_name = simulation.eos_name()
+    physics_name = simulation.physics_name()
 
-    if eos_name == "diphasic" or eos_name == "immiscible2ph":
+    if physics_name == "diphasic" or physics_name == "immiscible2ph":
         assert_diphasic_phase_indexes(simulation)
         return [
             gas_diphasic_molar_densities,
             liquid_diphasic_molar_densities,
         ]
 
-    elif eos_name == "water2ph":
+    elif physics_name == "water2ph":
         assert_diphasic_phase_indexes(simulation)
-        # in ComPASS water2ph eos, f_MolarDensity is mass density, see #348
+        # in ComPASS water2ph physics, f_MolarDensity is mass density, see #348
         return [
             gas_water2ph_volumetric_mass_densities,
             liquid_water2ph_volumetric_mass_densities,
         ]
 
-    elif eos_name == "linear_water":
-        # in ComPASS linear_water eos, f_MolarDensity is mass density, see #51
+    elif physics_name == "linear_water":
+        # in ComPASS linear_water physics, f_MolarDensity is mass density, see #51
         return pure_phase_volumetric_mass_densities
 
-    elif eos_name == "brine":
-        # in ComPASS brine eos, f_MolarDensity is mass density, see #51
+    elif physics_name == "brine":
+        # in ComPASS brine physics, f_MolarDensity is mass density, see #51
         assert_salt_component_index(simulation)
         return brine_volumetric_mass_densities
 
     else:
-        raise "molar density not implemented for this eos"
+        raise "molar density not implemented for this physics"
 
 
 def _set_volumetric_mass_density_functions(
@@ -117,27 +117,27 @@ def _set_volumetric_mass_density_functions(
 
 
 def get_default_components_molar_mass(simulation):
-    eos_name = simulation.eos_name()
+    physics_name = simulation.physics_name()
 
-    if eos_name == "diphasic" or eos_name == "immiscible2ph":
+    if physics_name == "diphasic" or physics_name == "immiscible2ph":
         # components indexes guessed in diphasic_components_molar_mass
         assert_diphasic_components_indexes(simulation)
         return diphasic_components_molar_mass
 
-    elif eos_name == "water2ph":
-        # in ComPASS water2ph eos, f_MolarDensity is mass density, see #348
+    elif physics_name == "water2ph":
+        # in ComPASS water2ph physics, f_MolarDensity is mass density, see #348
         return 1.0
 
-    elif eos_name == "linear_water":
-        # in ComPASS linear_water eos, f_MolarDensity is mass density, see #51
+    elif physics_name == "linear_water":
+        # in ComPASS linear_water physics, f_MolarDensity is mass density, see #51
         return 1.0
 
-    elif eos_name == "brine":
-        # in ComPASS brine eos, f_MolarDensity is mass density, see #51
+    elif physics_name == "brine":
+        # in ComPASS brine physics, f_MolarDensity is mass density, see #51
         return [1.0, 1.0]
 
     else:
-        raise "no default components molar mass for this eos"
+        raise "no default components molar mass for this physics"
 
 
 def set_components_molar_mass(simulation, components_molar_mass=None):

@@ -40,9 +40,9 @@ def set_molar_enthalpy_functions(simulation, functions=None, *, check_derivative
 
 
 def get_default_molar_enthalpy_functions(simulation):
-    eos_name = simulation.eos_name()
+    physics_name = simulation.physics_name()
 
-    if eos_name == "diphasic":
+    if physics_name == "diphasic":
         assert_diphasic_phase_indexes(simulation)
         assert_diphasic_components_indexes(simulation)
         return [
@@ -50,7 +50,7 @@ def get_default_molar_enthalpy_functions(simulation):
             liquid_diphasic_molar_enthalpies,
         ]
 
-    elif eos_name == "immiscible2ph":
+    elif physics_name == "immiscible2ph":
         assert_diphasic_phase_indexes(simulation)
         assert_immiscible2ph_components_indexes(simulation)
         return [
@@ -58,18 +58,18 @@ def get_default_molar_enthalpy_functions(simulation):
             liquid_diphasic_molar_enthalpies,
         ]
 
-    elif eos_name == "water2ph":
+    elif physics_name == "water2ph":
         assert_diphasic_phase_indexes(simulation)
         return [gas_water2ph_enthalpies, liquid_water2ph_enthalpies]
 
-    elif eos_name == "linear_water":
+    elif physics_name == "linear_water":
         return pure_phase_enthalpies
 
-    elif eos_name == "brine":
+    elif physics_name == "brine":
         return brine_enthalpies
 
     else:
-        raise "molar enthalpy not implemented for this eos"
+        raise "molar enthalpy not implemented for this physics"
 
 
 def assert_diphasic_phase_indexes(simulation):
