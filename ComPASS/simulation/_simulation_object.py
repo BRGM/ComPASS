@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, update_wrapper
 from . import AlignmentMethod
 from . import fake_methods
 from . import base
@@ -98,7 +98,7 @@ class Simulation:
     def __getattr__(self, name):
         value = getattr(fake_methods, name, _not_available)
         if value is not _not_available:
-            return partial(value, self)
+            return update_wrapper(partial(value, self), value)
         for src in _fake_members:
             value = getattr(src, name, _not_available)
             if value is not _not_available:
