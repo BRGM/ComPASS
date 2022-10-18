@@ -5,10 +5,15 @@ from pathlib import Path
 import numpy as np
 
 import click
+import os
 import matplotlib.pyplot as plt
 import yaml
-from ComPASS.utils.units import *
 from yaml_utilities import *
+
+minute = 60  # s
+hour = 60 * minute
+day = 24 * hour
+year = 365.25 * day
 
 
 # def plot_advanced_simulation_log(yaml_directory, plot_directory):
@@ -156,7 +161,7 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
         )
         if total_nb_ls_it_in_newton > 0:
             print(
-                f"Linear solver: {total_nb_ls_it_in_newton - total_nb_ls_it_in_success_newton} useless  iterations out of {total_nb_ls_it_in_newton} "
+                f"Linear solver: {total_nb_ls_it_in_newton - total_nb_ls_it_in_success_newton} useless iterations out of {total_nb_ls_it_in_newton} "
                 f"({100*(total_nb_ls_it_in_success_newton/total_nb_ls_it_in_newton):.0f}% usefull).\n"
             )
 
@@ -225,6 +230,26 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
         print(f"Figure {figfile} has been created")
 
     return conv_log
+
+
+def plot_timestep(directories, directory_conv_log):
+    plt.clf()
+    for i, directory in enumerate(directories):
+        path = "/mnt/d/devel/ComPASS/test/cases/andra/comparaison"
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        os.chdir(path)
+        plt.plot(
+            directory_conv_log[i].time / year,
+            directory_conv_log[i].success_dt / year,
+            label="{}".format(os.path.basename(os.path.normpath(directory))),
+        )
+    plt.xlabel("time (y)")
+    plt.ylabel("timestep (y)")
+    plt.yscale("log")
+    plt.xscale("log")
+    plt.legend()
+    plt.legend(fontsize=8)
 
 
 def advanced_timeloop_analysis(conv_log, timestep_directory, plot_directory):
