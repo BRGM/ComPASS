@@ -1,5 +1,5 @@
 import numpy as np
-from ComPASS.physics.viscosities import liquid_diphasic_viscosities
+from ComPASS.properties.viscosities import liquid_diphasic_viscosities
 from ComPASS.utils.units import *
 
 
@@ -9,7 +9,7 @@ C = np.array([0.0, 1.0])
 
 # Test the implementation outside of ComPASS (without
 # loading an eos, then without the simulation object)
-from ComPASS.physics.physical_properties import PhaseStateStruct
+from ComPASS.properties.physical_properties import PhaseStateStruct
 
 # define the type of Xalpha (needs the number of components)
 phase_state_type = PhaseStateStruct(2)
@@ -25,7 +25,7 @@ print(
     dfdX,
 )
 # Create the object to use the vectorize function
-from ComPASS.physics.physical_properties import CompiledPhaseProperty
+from ComPASS.properties.physical_properties import CompiledPhaseProperty
 
 compiled_liquid_diphasic_viscosities = CompiledPhaseProperty(
     phase_state_type,

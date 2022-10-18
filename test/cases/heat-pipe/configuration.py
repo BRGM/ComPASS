@@ -1,6 +1,6 @@
 import numpy as np
 
-from ComPASS.physics.water2ph import liquid, gas, diphasic
+from ComPASS.properties.water2ph import liquid, gas, diphasic
 
 Tsat = diphasic.Tsat
 dTsatdp = diphasic.dTsatdp

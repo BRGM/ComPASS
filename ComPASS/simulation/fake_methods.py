@@ -60,8 +60,8 @@ from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions
 from ..petrophysics.capillary import set_liquid_capillary_pressure
 from ..petrophysics.models.vanGenuchten import set_vanGenuchten_capillary_pressure
-from ..physics.utils import Xalpha, empty_Xalpha
-from ..physics.physical_properties_wrappers import (
+from ..properties.utils import Xalpha, empty_Xalpha
+from ..properties.physical_properties_wrappers import (
     liquid_dynamic_viscosity,
     gas_dynamic_viscosity,
     dynamic_viscosity,
@@ -75,12 +75,12 @@ from ..physics.physical_properties_wrappers import (
     liquid_molar_enthalpy,
     gas_molar_enthalpy,
 )
-from ..physics.set_viscosity import set_viscosity_functions
-from ..physics.set_densities import (
+from ..properties.set_viscosity import set_viscosity_functions
+from ..properties.set_densities import (
     set_molar_density_functions,
     set_components_molar_mass,
 )
-from ..physics.set_molar_enthalpy import set_molar_enthalpy_functions
+from ..properties.set_molar_enthalpy import set_molar_enthalpy_functions
 
 from ..linalg.factory import linear_solver
 from ..newton import default_Newton

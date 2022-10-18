@@ -114,7 +114,7 @@ To test the implementation of the property function, you can use the
 
 .. code-block:: python
 
-    from ComPASS.physics.physical_properties import PhaseStateStruct
+    from ComPASS.properties.physical_properties import PhaseStateStruct
     p = 1.0 * bar
     T = 280.0
     C = np.array([0.0, 1.0])
@@ -142,7 +142,7 @@ If the property is constant:
 
 .. code-block:: python
 
-    from ComPASS.physics.utils import constant_physical_property
+    from ComPASS.properties.utils import constant_physical_property
 
     simulation.set_property_functions(
         property_functions=[

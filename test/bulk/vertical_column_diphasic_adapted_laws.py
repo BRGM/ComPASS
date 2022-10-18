@@ -11,7 +11,7 @@ from ComPASS.utils.units import *
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import TimeStepManager
-from ComPASS.physics.viscosities import *
+from ComPASS.properties.viscosities import *
 
 p0 = 1.0 * bar
 T0 = degC2K(20.0)

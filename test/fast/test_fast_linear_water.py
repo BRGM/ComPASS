@@ -10,7 +10,7 @@ import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
-from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
+from ComPASS.properties.densities import build_pure_phase_volumetric_mass_density
 
 
 def test__extrems__no_gravity(T_injection_degC=33.0, flow_velocity_m_s=1.0e-6):

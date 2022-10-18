@@ -7,14 +7,14 @@ T = np.linspace(273.15, 573.15, 10)
 
 
 def test_diphasic():
-    from ComPASS.physics.water2ph.diphasic import psat, dpsatdT, Tsat, dTsatdp
+    from ComPASS.properties.water2ph.diphasic import psat, dpsatdT, Tsat, dTsatdp
 
     assert check_derivatives(psat, dpsatdT, T)
     assert check_derivatives(Tsat, dTsatdp, p)
 
 
 def test_phases():
-    from ComPASS.physics.water2ph import gas, liquid
+    from ComPASS.properties.water2ph import gas, liquid
 
     def check(phase):
         assert check_partial_derivatives(

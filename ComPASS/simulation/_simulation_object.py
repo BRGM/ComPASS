@@ -9,7 +9,7 @@ from .. import mpi
 from .._kernel import simulation_wrapper
 from ..wells.wells import get_wellhead
 from ..wells.connections import WellDataConnections, add_well_connections
-from ..physics.physical_properties import FluidMixtureProperties
+from ..properties.physical_properties import FluidMixtureProperties
 
 _not_available = object()
 _fake_members = base, data, utils, simulation_wrapper

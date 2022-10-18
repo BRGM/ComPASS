@@ -14,7 +14,7 @@ from ComPASS.timeloops import standard_loop
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 from ComPASS.timestep_management import FixedTimeStep
-from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
+from ComPASS.properties.enthalpies import build_pure_phase_enthalpy
 
 
 p0 = 0.0 * bar  # dummy pressure no gravity

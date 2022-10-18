@@ -16,8 +16,8 @@ from ComPASS.timeloops import standard_loop
 import ComPASS.io.mesh as io
 import ComPASS.mpi as mpi
 from ComPASS.mpi import MPI  # underlying mpi4py.MPI
-from ComPASS.physics.utils import constant_physical_property
-from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
+from ComPASS.properties.utils import constant_physical_property
+from ComPASS.properties.densities import build_pure_phase_volumetric_mass_density
 
 
 H = 1000

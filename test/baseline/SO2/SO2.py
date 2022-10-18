@@ -26,7 +26,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop, TimeStepManager
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
-from ComPASS.physics.enthalpies import build_pure_phase_enthalpy
+from ComPASS.properties.enthalpies import build_pure_phase_enthalpy
 
 p_reservoir = 0  # no flow - linear water eos
 Tleft, Tright = 33.0, 5.0  # K or deg C no matter

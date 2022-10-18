@@ -13,8 +13,8 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 from ComPASS.timestep_management import FixedTimeStep, TimeStepManager
 from ComPASS.exceptions import SanityCheckFailure
-from ComPASS.physics.utils import constant_physical_property
-from ComPASS.physics.densities import build_pure_phase_volumetric_mass_density
+from ComPASS.properties.utils import constant_physical_property
+from ComPASS.properties.densities import build_pure_phase_volumetric_mass_density
 
 p0 = 1.0 * bar  # initial reservoir pressure
 T0 = degC2K(
