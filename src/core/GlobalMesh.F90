@@ -12,15 +12,15 @@
 !!      nbCell, nbFace, nbNode,   <br>
 !!      NodebyFace, FacebyCell, XNode,   <br>
 !!    and IdFace, Dir Part   <br>
-!! 2.a. calcul CellbyCell for metis   <br>
+!! 2.a. compute CellbyCell for metis   <br>
 !!    use NodebyFace, FacebyCell     <br>
 !!    to -> NodebyCell -> CellbyNode -> CellbyCell   <br>
-!! 2.b. calcul CellbyFace using FacebyCell    <br>
+!! 2.b. compute CellbyFace using FacebyCell    <br>
 !! 3. IdFace, Mesh Part
 
 module GlobalMesh
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
-   ! This for array that are interfaced with python/C++
+   ! This for arrays that are interfaced with python/C++
    use iso_c_binding, only: c_int, c_double, c_int8_t
    use mpi, only: MPI_Abort
    use CommonMPI
@@ -30,7 +30,7 @@ module GlobalMesh
    use DefMSWell
 
 #else
-   ! This for array that are interfaced with python/C++
+   ! This for arrays that are interfaced with python/C++
    use iso_c_binding, only: c_int, c_double, c_int8_t
 
    use mpi, only: MPI_Abort
