@@ -43,7 +43,7 @@ mswid = wid + 1        # mswell id - could be any number different from wid
 # sleep = True
 sleep = False
 
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 
