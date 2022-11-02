@@ -206,7 +206,7 @@ contains
 
       real(c_double), parameter :: a = -14.4319d+3
       real(c_double), parameter :: b = +4.70915d+3
-      real(c_double), parameter :: cc = -4.87534
+      real(c_double), parameter :: cc = -4.87534d0
       real(c_double), parameter :: d = 1.45008d-2
       real(c_double), parameter :: T0 = 273.d0
       real(c_double) :: ss, dTss, TdegC
