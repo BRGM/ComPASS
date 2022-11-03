@@ -124,6 +124,11 @@ contains
       end_cell = info%offset%cells - 1 + info%nb%cells
 
       allocate (IncAll(n))
+      do k = 1, n
+         ! it is necessary to init this value because it is never done for
+         ! Ctilde
+         IncAll(k)%AccVol = 0.d0
+      enddo
       IncNode => IncAll(begin_node:end_node)
       IncFrac => IncAll(begin_frac:end_frac)
       IncCell => IncAll(begin_cell:end_cell)
