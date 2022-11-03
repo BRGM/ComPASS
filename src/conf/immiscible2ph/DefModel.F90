@@ -68,28 +68,13 @@ module DefModel
    integer, parameter :: IndThermique = 0
 #endif
 
+   ! ! ****** Constants derived from model (do not edit) ****** ! !
+
 #include "../common/DefModel_constants.F90"
    ! FIXME: NbIncTotalMax is duplicated l.46 in src/wrappers/NewtonIncrements.h
    integer, parameter :: &
       NbEqFermetureMax = NbPhase + NbEqEquilibreMax, & !< Max number of closure laws
       NbIncTotalMax = NbIncPTCMax + NbPhase           !< Max number of unknowns P (T) C S
-
-   ! ! ! ****** Constants derived from model (do not edit) ****** ! !
-
-   ! ! Nombre Max d'eq d'equilibre
-   ! !               d'eq de fermeture thermodynamique
-   ! !               d'inc P (T) C
-   ! !               d'inc P (T) C primaires
-   ! integer, parameter :: &
-   ! NbEqEquilibreMax  = NbComp*(NbPhase-1),           & !< Max number of balance equations
-   ! NbEqFermetureMax  = NbPhase + NbEqEquilibreMax,   & !< Max number of closure laws
-   ! NbIncPTCMax       = 1 + IndThermique + sum(MCP),  &
-   ! NbIncPTCSecondMax = NbEqFermetureMax,             &
-   ! NbIncPTCSMax      = NbIncPTCMax + NbPhase,        &
-   ! NbIncPTCSPrimMax  = NbComp + IndThermique,        &
-   ! NbCompThermique   = NbComp + IndThermique
-
-   ! logical(c_bool) :: locked_context(NbContexte)
 
    ! ! ****** How to choose primary variables ****** ! !
 
@@ -99,15 +84,19 @@ module DefModel
    !     it is necessary to give PTCS Prim and PTC Secd for each context: psprim
    !
    ! WARNING
-   ! Il faut mettre les Sprim en dernier sinon il y a un pb qui reste a comprendre
+   ! Il faut mettre les Sprim en dernier sinon pb dans les liens entre IncPTC et IncTotal
    ! P est forcement primaire et en numero 1
    ! Si T est primaire elle doit etre en numero 2
+   ! C est numéroté ensuite (en fonction des phases présentes et des comp dans chaque phase)
+   ! S principale
+
    ! pschoise=3: Gauss method
    !     the matrix psprim and pssecd are defined formally for compile
 
    integer, parameter :: pschoice = 1
 ! Global unknowns depending on the context (in the thermal case)
 ! IF THE COMPONENT CANNOT BE PRESENT IN THE PHASE (due to MCP), IT HAS NO NUMBER.
+   ! Careful: the index of unknowns must coincide with the lines of there derivatives in IncPrimSecd.F90
 ! ic=1 GAS_CONTEXT:       P=1, T=2, Cga=3
 ! ic=2 LIQUID_CONTEXT:    P=1, T=2, Clw=3
 ! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cga=3, Clw=4, Sprincipal=5        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
@@ -123,8 +112,8 @@ module DefModel
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = RESHAPE((/ &
 #ifdef _THERMIQUE_
-                       P, T, 0, & ! GAS_CONTEXT=1
-                       P, T, 0, & ! LIQUID_CONTEXT=2
+                       P, T, 0, & ! GAS_CONTEXT=1   "0" in psprim means Ctilde ???
+                       P, T, 0, & ! LIQUID_CONTEXT=2   "0" in psprim means Ctilde ???
                        P, T, 5 & ! DIPHASIC_CONTEXT=3  Cga=3, Clw=4, Sprincipal=5
 #else
                        P, 2, & ! GAS_CONTEXT=1        Cga=2
@@ -140,9 +129,9 @@ module DefModel
                        3, 0, 0, 0, & ! LIQUID_CONTEXT=2    Clw=3
                        3, 4, 0, 0 & ! DIPHASIC_CONTEXT=3  Cga=3, Clw=4, Sprincipal=5
 #else
-                       0, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
-                       0, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
-                       2, 3, 5, 0 & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
+                       0, 0, 0, 0, & ! GAS_CONTEXT=1
+                       0, 0, 0, 0, & ! LIQUID_CONTEXT=2
+                       2, 3, 0, 0 & ! DIPHASIC_CONTEXT=3  Cga=2, Clw=3, Sprincipal=4
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
@@ -154,15 +143,15 @@ module DefModel
    double precision, parameter, &
       dimension(NbCompThermique, NbCompThermique, NbContexte) :: &
       aligmat = RESHAPE((/ &
-                        1.d0, 1.d0, 0.d0, & ! GAS_CONTEXT=1
-                        0.d0, 0.d0, 1.d0, &
-                        0.d0, 1.d0, 0.d0, &
-                        1.d0, 1.d0, 0.d0, & ! LIQUID_CONTEXT=2
-                        0.d0, 0.d0, 1.d0, &
-                        1.d0, 0.d0, 0.d0, &
-                        1.d0, 1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3
-                        0.d0, 0.d0, 1.d0, &
-                        1.d0, 0.d0, 0.d0 &
+                        1.d0, 1.d0, 0.d0, & ! GAS_CONTEXT=1            P: sum(component conservation)
+                        0.d0, 0.d0, 1.d0, & !                          T: energy conservation
+                        0.d0, 1.d0, 0.d0, & !                          ???: water conservation
+                        1.d0, 1.d0, 0.d0, & ! LIQUID_CONTEXT=2         P: sum(component conservation)
+                        0.d0, 0.d0, 1.d0, & !                          T: energy conservation
+                        1.d0, 0.d0, 0.d0, & !                          ???: air conservation
+                        1.d0, 1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3       P: sum(component conservation)
+                        0.d0, 0.d0, 1.d0, & !                          T: energy conservation
+                        1.d0, 0.d0, 0.d0 &  !                          Sg: air conservation
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
 
 #include "../common/DefModel_common.F90"

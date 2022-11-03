@@ -100,7 +100,7 @@ module DefModel
    ! Il faut mettre les Sprim en dernier sinon pb dans les liens entre IncPTC et IncTotal
    ! P est forcement primaire et en numero 1   (not in this physic)
    ! Si T est primaire elle doit etre en numero 2
-   ! C est numéroté ensuite (en fonction des phases présentes et des comp dans cahque phase)
+   ! C est numéroté ensuite (en fonction des phases présentes et des comp dans chaque phase)
    ! S principale
    ! freeflow flowrate of every phases
    ! Ctilde
