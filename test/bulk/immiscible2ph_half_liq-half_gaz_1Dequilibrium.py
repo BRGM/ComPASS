@@ -14,12 +14,8 @@
 
 import ComPASS
 import numpy as np
-import sys
 from ComPASS.utils.units import *
-from ComPASS.timeloops import standard_loop
-import ComPASS.messages
 from ComPASS.timestep_management import TimeStepManager
-from ComPASS.mpi import master_print
 from ComPASS.linalg.factory import linear_solver
 from ComPASS.newton import Newton
 
@@ -32,7 +28,7 @@ Ox, Oy, Oz = 0.0, 0.0, 0.0
 nz = ny = 1
 
 omega_reservoir = 0.35  # reservoir porosity
-k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
+k_reservoir = 1.0e-12  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity : no thermal diffusion
 Ptop = 1.0e5  # porous top Pressure
 Tporous = 300.0  # porous Temperature
@@ -47,13 +43,7 @@ simulation.set_rock_volumetric_heat_capacity(CpRoche)
 liquid_context = simulation.Context.liquid
 gas_context = simulation.Context.gas
 
-if ComPASS.mpi.is_on_master_proc:
-
-    grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz))
-
-
-if not ComPASS.mpi.is_on_master_proc:
-    grid = omega_reservoir = k_reservoir = cell_thermal_cond = None
+grid = ComPASS.Grid(shape=(nx, ny, nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz))
 
 simulation.init(
     mesh=grid,
@@ -85,7 +75,6 @@ def set_variable_initial_bc_values():
     set_states(simulation.cell_states(), simulation.compute_cell_centers()[:, 0])
 
 
-master_print("set initial and BC")
 set_variable_initial_bc_values()
 
 timestep = TimeStepManager(
@@ -110,5 +99,3 @@ current_time = simulation.standard_loop(
     output_period=output_period,
     newton=newton,
 )
-
-print("time after the time loop", current_time / year, "years")
