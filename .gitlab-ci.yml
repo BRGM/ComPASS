@@ -54,12 +54,14 @@ build:
         python setup.py bdist_wheel -j `nproc` \
           -DComPASS_WITH_water2ph_PHYSICS=ON \
           -DComPASS_WITH_linear_water_PHYSICS=ON \
-          -DComPASS_WITH_diphasic_PHYSICS=ON
+          -DComPASS_WITH_diphasic_PHYSICS=ON \
+          -DComPASS_WITH_immiscible2ph_PHYSICS=ON
       else
         python setup.py bdist_wheel -j `nproc` --build-type Debug \
           -DComPASS_WITH_water2ph_PHYSICS=ON \
           -DComPASS_WITH_linear_water_PHYSICS=ON \
-          -DComPASS_WITH_diphasic_PHYSICS=ON
+          -DComPASS_WITH_diphasic_PHYSICS=ON \
+          -DComPASS_WITH_immiscible2ph_PHYSICS=ON
       fi
   artifacts:
     paths:
