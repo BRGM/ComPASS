@@ -160,7 +160,7 @@ Check dedicated sections of this documentation for more information
   can be provided upon `request <mailto:compass@brgm.fr>`_.
 
 
-Usefull `conda env create` options
+Useful `conda env create` options
 """"""""""""""""""""""""""""""""""
 
 :code:`--force`: force creation of environment (removing a previously existing environment of the same name)

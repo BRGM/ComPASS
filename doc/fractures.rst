@@ -4,11 +4,12 @@ Defining fractures
 ==================
 
 The fractures are objects of codimension one, they are defined as a set of faces.
-The geometry of the fractures is given with the keyword :code:`fracture_faces` in
+The function which returns the geometry of the fractures
+is given with the keyword :code:`fracture_faces` in
 :func:`simulation.init <ComPASS.simulation.base.init>`.
-It can be a list of face global indexes, or a mask over all the faces.
+The geometry can be a list of face global indexes, or a mask over all the faces.
 
-The fracture thickness is up to know a global property which is set
+The fracture thickness is up to now a global property which is set
 (before calling the :func:`simulation.init <ComPASS.simulation.base.init>` function) as follows:
 
 .. code-block:: python

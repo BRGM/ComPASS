@@ -76,13 +76,13 @@ def init(
     :param wells: a python sequence of well objects
     :param display_well_ids: a boolean to output well ids at the beginning of the simulation (defaults to False)
     :param fracture_faces: the face id of faces that are to be considered as fractures,
-        it can also be a mask over all faces
-    :param set_dirichlet_nodes: the ids of all nodes that hold boundary conditions (pressure + temperature)
-        it can also be a mask over all nodes
-    :param set_pressure_dirichlet_nodes: the ids of all nodes that hold constant pressure boundary conditions
-        it can also be a mask over all nodes
-    :param set_temperature_dirichlet_nodes: the ids of all nodes that hold constant temperature boundary conditions
-        it can also be a mask over all nodes
+        or a mask over all faces, or a function with no argument which constructs one of the previous lists.
+    :param set_dirichlet_nodes: the ids of all nodes that hold boundary conditions (pressure + temperature),
+        or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
+    :param set_pressure_dirichlet_nodes: the ids of all nodes that hold constant pressure boundary conditions,
+        or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
+    :param set_temperature_dirichlet_nodes: the ids of all nodes that hold constant temperature boundary conditions,
+        or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
     :param cell_heat_source: volumic thermal source term (will be multiplicated by the cell volume)
         for each cell
 
@@ -90,7 +90,7 @@ def init(
     fracture properties are not mandatory).
 
     :param cell_permeability: can be a scalar, the diagonal part or the full permeability tensor, or an array
-        of any of these three types  with as many elements as mesh cells
+        of any of these three types with as many elements as mesh cells
     :param cell_porosity: can be a scalar or an array with as many elements as mesh cells
     :param cell_thermal_conductivity: can be a scalar, the diagonal part or the full permeanility tensor, or an array
         of any of these three types with as many elements as mesh cells

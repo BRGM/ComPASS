@@ -6,26 +6,58 @@ Setting up the boundary conditions
 Dirichlet nodes
 ---------------
 
+Identify the set of Dirichlet nodes
+...................................
+
 The set of Dirichlet nodes can be identified in the
-:func:`simulation.init<ComPASS.simulation.base.init>`
-method with the keyword :code:`set_dirichlet_nodes`, for example:
+:func:`simulation.init<ComPASS.simulation.init.init>`
+method with the keyword :code:`set_dirichlet_nodes`.
+It can be:
+ - a list of node global indexes (that will become Dirichlet nodes),
+ - a mask over all the nodes (must be True where the node is a Dirichlet node),
+ - a function with no argument which constructs one of the previous lists.
+   It is useful when you need objects no available before
+   :func:`simulation.init<ComPASS.simulation.init.init>` to construct the list,
+   for exemple :code:`simulation.global_vertices()` (which returns the coordinates
+   of all nodes). The following code also shows an example with the
+   :func:`simulation.vertical_boundaries(grid)<ComPASS.utils.grid.vertical_boundaries>`
+   function which takes no argument (it is called with
+   :func:`simulation.vertical_boundaries(grid)()`).
 
-.. code-block:: python
+   .. code-block:: python
 
-    simulation.init(
-        mesh = grid,
-        ...,
-        set_dirichlet_nodes=simulation.vertical_boundaries(grid),
-        ...,
-    )
+        simulation.init(
+            mesh = grid,
+            ...,
+            set_dirichlet_nodes=simulation.vertical_boundaries(grid),
+            ...,
+        )
 
-The function :func:`simulation.reset_dirichlet_nodes` modifies the
-set of Dirichlet nodes.
+Convenience functions are availabe when the mesh is a grid:
+ - Many functions are in *ComPASS.utils.grid*, such as
+   :func:`on_zmin(grid)(pts)<ComPASS.utils.grid.on_zmin>`
+   which returns a boolean vector with same size as *pts*.
+ - You can use
+   :func:`simulation.vertical_boundaries(grid)<ComPASS.utils.grid.vertical_boundaries>`,
+   :func:`simulation.bottom_boundary(grid)<ComPASS.utils.grid.bottom_boundary>`,
+   :func:`simulation.top_boundary(grid)<ComPASS.utils.grid.top_boundary>` or
+   :func:`simulation.all_boundaries(grid)<ComPASS.utils.grid.all_boundaries>`.
+
+
+The function
+:func:`simulation.reset_dirichlet_nodes<ComPASS.simulation.bc.reset_dirichlet_nodes>`
+modifies the set of Dirichlet nodes. It takes as argument:
+ - or a list of node **local** indexes,
+ - or a mask over all the local nodes,
+ - or a function that will be called on vertices coordinates
+   (:code:`simulation.vertices()`), it must construct one of the previous lists.
+All dirichlet node states will be copied from the current node states.
 It is useful to modify the set of Dirichlet nodes, for example
-between two calls of the time loop :func:`simulation.standard_loop`
+between two calls of the time loop
+:func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>`
 function.
-:func:`simulation.reset_dirichlet_nodes` is also convenient to identify
-the set of Dirichlet nodes after calling the
+:func:`simulation.reset_dirichlet_nodes<ComPASS.simulation.bc.reset_dirichlet_nodes>`
+is also convenient to identify the set of Dirichlet nodes **after** calling the
 :func:`simulation.init<ComPASS.simulation.base.init>` function, which has the
 advantage to deal with local arrays (after the partition).
 
@@ -35,10 +67,15 @@ advantage to deal with local arrays (after the partition).
         mesh = grid,
         ...,
     )
+    # on_vertical_boundaries(grid) will be called with simulation.vertices():
+    #           on_vertical_boundaries(grid)(simulation.vertices())
     simulation.reset_dirichlet_nodes(on_vertical_boundaries(grid))
 
-It is also possible to distinguish between the Temperature and the Pressure
-set of Dirichlet nodes, for example:
+Distinguish between the Temperature and the Pressure set of Dirichlet nodes
+...........................................................................
+
+You can distinguish the two sets in
+:func:`simulation.init<ComPASS.simulation.init.init>` such as:
 
 .. code-block:: python
 
@@ -50,9 +87,26 @@ set of Dirichlet nodes, for example:
         ...,
     )
 
+Or in
+:func:`simulation.reset_dirichlet_nodes<ComPASS.simulation.bc.reset_dirichlet_nodes>`:
+
+.. code-block:: python
+
+    simulation.init(
+        mesh = grid,
+        ...,
+    )
+    simulation.reset_dirichlet_nodes(
+        pressure_selection=select_pressure_Dirichlet_nodes(grid),
+        temperature_selection=select_temperature_Dirichlet_nodes(grid),
+    )
+
+Set the Dirichlet values
+........................
+
 The Dirichlet nodes must be initialized using the set of states contained in
 :func:`simulation.dirichlet_node_states`. Different ways to initialize the
-nodes are presented in :ref:`this script example<setting-initial-values>`,
+nodes are presented in :ref:`this section<setting-initial-values>`,
 follows an example:
 
 .. code-block:: python
@@ -150,7 +204,7 @@ Careful: the set of context are distinct !
 They are *gas_FF_no_liq_outflow*, *diphasic_FF_no_liq_outflow* and
 *diphasic_FF_liq_outflow*.
 
-:ref:`This script example<setting-initial-values>` presents different ways to
+Refer to :ref:`this section<setting-initial-values>` which presents different ways to
 initialize the nodes. Follows a synthetic way using the :code:`set` function:
 
 .. code-block:: python

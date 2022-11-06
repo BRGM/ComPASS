@@ -103,7 +103,7 @@ all_wells = set(doublets.ravel())
 proc_requests = [(mpi.master_proc_rank, all_wells)]
 simulation.add_well_connections(well_pairs=doublets, proc_requests=proc_requests)
 
-# A fuction giving the temperature delta imposed by heat network at time t
+# A function giving the temperature delta imposed by heat network at time t
 def network_deltaT(t):
     return 20 * (1 + np.sin(t * (2 * np.pi) / year))
 

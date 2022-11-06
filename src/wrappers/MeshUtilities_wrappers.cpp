@@ -108,7 +108,7 @@ void register_property_buffer(PyClass& pyclass, const char* name,
        // py::keep_alive<0, 1>(): because we want the holder instance to be kept
        // alive as long as the buffer is used - should be ok this is the default
        // for def_property it's useless till the buffers are allocated globally
-       // on the Fortran side but could become usefull later
+       // on the Fortran side but could become useful later
        py::return_value_policy::reference_internal);
 }
 

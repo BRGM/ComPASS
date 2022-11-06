@@ -156,13 +156,13 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
     if total_nb_newton_it > 0:
         print(
             f"    It means {total_nb_newton_it - total_nb_it_in_success_newton} useless Newton iterations out of {total_nb_newton_it} "
-            f"({100*(total_nb_it_in_success_newton/total_nb_newton_it):.0f}% usefull).\n"
+            f"({100*(total_nb_it_in_success_newton/total_nb_newton_it):.0f}% useful).\n"
             f"    There is an average of {nb_it_in_success_newton.mean():.0f} Newton iterations (when the Newton algo converged)."
         )
         if total_nb_ls_it_in_newton > 0:
             print(
                 f"Linear solver: {total_nb_ls_it_in_newton - total_nb_ls_it_in_success_newton} useless iterations out of {total_nb_ls_it_in_newton} "
-                f"({100*(total_nb_ls_it_in_success_newton/total_nb_ls_it_in_newton):.0f}% usefull).\n"
+                f"({100*(total_nb_ls_it_in_success_newton/total_nb_ls_it_in_newton):.0f}% useful).\n"
             )
 
     plt.clf()

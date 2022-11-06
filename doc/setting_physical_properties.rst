@@ -157,9 +157,15 @@ Regionalized properties
 
 Properties such as permeability, porosity, thermal conductivity are defined
 through the
-:func:`simulation.init <ComPASS.simulation.base.init>` function and the corresponding keywords for
-cell or fracture elements.
-
+:func:`simulation.init <ComPASS.simulation.init.init>` function and
+the corresponding keywords for cell or fracture elements
+({cell/fracture}_permeability, {cell/fracture}_porosity,
+{cell/fracture}_thermal_conductivity).
+For the permability and the thermal conductivity, you can give a scalar,
+the diagonal part or the full permeability tensor, or an array
+of any of these three types with as many elements as mesh cells/fractures.
+The porosity can be a scalar or an array with as many elements
+as mesh cells/fractures.
 
 For example setting up the reservoir thermal conductivity can be done as follows:
 
@@ -180,7 +186,7 @@ With the parallelism, the indexes of the mesh objects
 done in the
 :func:`simulation.init <ComPASS.simulation.base.init>` function.
 ComPASS includes a tool named *flags* to identify the objects
-after the distribution. It is usefull for example when you tag
+after the distribution. It is useful for example when you tag
 objects using a mesh generator and you want to use the information
 after the distribution. The flags are not used elsewhere in the ComPASS
 code, it is for you to track some mesh information.

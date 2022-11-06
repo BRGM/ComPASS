@@ -218,7 +218,7 @@ Adding the ``-p`` flag will run a parallel job with ``\`nproc\``` procs.
 
 **Running without internet / updating the local image**
 
-If you only want to dowload (or update) the image you can use the ``pull`` docker command (onced logged in to the gitlab registry):
+If you only want to download (or update) the image you can use the ``pull`` docker command (onced logged in to the gitlab registry):
 
 .. code-block:: shell
 
@@ -230,7 +230,7 @@ If you only want to dowload (or update) the image you can use the ``pull`` docke
 Parallel runs with docker need a specific configuration of the devices of the host that the container can access.
 Cf. the thread `here <https://github.com/open-mpi/ompi/issues/4948>`_.
 
-A simple (but dangerous ?) workaround can be to give the container access to all devices on the host with the `--privileged <https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities>`_ option.
+A simple (but dangerous?) workaround can be to give the container access to all devices on the host with the `--privileged <https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities>`_ option.
 
 **Encapsulate docker call in a bash command**
 

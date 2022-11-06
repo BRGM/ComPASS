@@ -96,20 +96,25 @@ def reset_dirichlet_nodes(
     temperature_selection=lambda pts: None,
 ):
     """
-    Select new Dirichlet nodes using mask functions
-    (must be True where the node is a Dirichlet node)
-    or a list of nodes that will become Dirichlet nodes.
+    Select new Dirichlet nodes using a list of nodes,
+    or a mask function or a function called on vertices coordinates.
     All dirichlet node states will be copied from the
     current node states.
 
     :param simulation: the simulation object
-    :param both_selection: a function that will be called on vertices coordinates
-                            to select both pressure and temperature dirichlet nodes
+    :param both_selection: the ids of all nodes that hold boundary conditions (pressure + temperature),
+                            or a mask over all nodes (must be True where the node is a Dirichlet node),
+                            or a function that will be called on vertices coordinates
+                            to select both pressure and temperature Dirichlet nodes
                             (default to no selection)
-    :param pressure_selection: a function that will be called on vertices coordinates
-                            to select both pressure dirichlet nodes (default to no selection)
-    :param temperature_selection: a function that will be called on vertices coordinates
-                            to select temperature dirichlet nodes (default to no selection)
+    :param pressure_selection: the ids of all nodes that hold pressure Dirichlet BC,
+                            or a mask over all nodes,
+                            or a function that will be called on vertices coordinates
+                            to select pressure Dirichlet nodes (default to no selection)
+    :param temperature_selection: the ids of all nodes that hold temperature Dirichlet BC,
+                            or a mask over all nodes,
+                            or a function that will be called on vertices coordinates
+                            to select temperature Dirichlet nodes (default to no selection)
     """
     clear_dirichlet_nodes(simulation, update_scheme=False)
     reset_dirichlet_nodes_states(simulation)

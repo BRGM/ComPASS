@@ -2,7 +2,7 @@
 
 namespace ComPASS {
 
-//// CHECKME: Is Undefined usefull?
+//// CHECKME: Is Undefined useful?
 // enum class Dof_label : std::size_t {
 //    Undefined = 0,
 //    Node,

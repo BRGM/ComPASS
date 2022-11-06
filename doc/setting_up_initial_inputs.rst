@@ -1,4 +1,4 @@
-.. _setting-initial-values:
+.. _ex-setting-initial-values:
 
 Setting up initial values
 =========================

@@ -172,7 +172,7 @@ def standard_loop(
     :param time_step_manager: A specfic time manager that will override the parameters ``fixed_timestep``
         or  ``initial_timestep`` (cf. :mod:`ComPASS.timestep_management` module).
     :param well_pressure_offset: if given the corresponfing pressure offset will be apply to wells
-        (this may be usefull to init wells operating on pressure) - if None, nothing is done. defaults to 1 bar.
+        (this may be useful to init wells operating on pressure) - if None, nothing is done. defaults to 1 bar.
     :param events: Is a sequence of events with actions to be process. The events must be compliant with
         the ComPASS.timeloops.Event namedtuple object.
     :param output_before_start: A boolean to specify if an output should be dumped before starting loop (default is True).
@@ -413,5 +413,5 @@ def standard_loop(
             mpi.master_print(
                 f"WARNING: Event at time {event.time} = {event.time / year} y was not reached."
             )
-    mpi.synchronize()  # is this usefull ?
+    mpi.synchronize()  # is this useful ?
     return t

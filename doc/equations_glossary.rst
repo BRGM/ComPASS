@@ -39,9 +39,9 @@ Glossary and notations
   \hline
   \text{name}                  &     \text{notation}       &   \text{unit} & \text{comments} \\
   \hline
-  \text{set of phases}      &   \mathcal{P}   &   \emptyset    &   \\
+  \text{set of phases}      &   \mathcal{P}   &   \emptyset    & \text{liquid and gas for example} \\
   \hdashline
-  \text{set of components}  &   \mathcal{C}   &   \emptyset    &   \\
+  \text{set of components}  &   \mathcal{C}   &   \emptyset    & \text{water and air for example} \\
   \hdashline
   \text{porosity}           &   \phi          &   \emptyset    & \text{void fraction} \\
    & & & \text{of the porous medium}  \\

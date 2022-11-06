@@ -25,11 +25,11 @@ Execution:
   python3 water2ph_vertical_column.py
 
 
-* What contains this simulation (mesh, petrophysics, boundary condition, initial states, ...) ?
+* What contains this simulation (mesh, petrophysics, boundary condition, initial states, ...)?
 
-* What are the output in the terminal ?
+* What are the output in the terminal?
 
-* To vizualize using Paraview:
+* To visualize using Paraview:
 
  Add :code:`simulation.postprocess()` at the end of the script and execute again.
 
@@ -73,11 +73,11 @@ Step 2: Improve the script
 Step 3: Change the Physics
 ----------------------------
 
-* Change the physics from water2ph to diphasic. A small description of
-  the disponible physics is in the :ref:`documentation<physics>` section.
+* Change the physics from *water2ph* to *diphasic*. A small description of
+  the disponible physics is in the :ref:`documentation<physics_section>` section.
 
-How many phases and components do we use now ? Which context exist ?
-Which differences in the output in the terminal compared to previously ?
+How many phases and components do we use now? Which context exist?
+Which differences in the output in the terminal compared to previously?
 
 * Add gravity changing the value in :code:`simulation.set_gravity(g)`.
 
@@ -87,7 +87,7 @@ Which differences in the output in the terminal compared to previously ?
 
 * Change the top boundary condition to impose a Dirichlet diphasic state with
   Sg = 0.5 at p0 and T0. You can add :code:`Sg=0.5` in :code:`simulation.build_state`.
- Is the air component present in the simulation ? Why ? You can print the state as follows:
+ Is the air component present in the simulation? Why? You can print the state as follows:
 
 .. code-block:: python
 
@@ -108,7 +108,7 @@ Step 4: Van Genuchten capillary pressure and relative permeabilities
   To avoid lots of time step failures,
   you might change the initial_timestep and the increase_factor.
 
-  What is the impact on the gas saturation ?
+  What is the impact on the gas saturation?
 
 .. warning::
 
@@ -123,7 +123,7 @@ Step 4: Van Genuchten capillary pressure and relative permeabilities
   You may need the :func:`simulation.compute_global_cell_centers()` method to get the
   coordinates of all the cells centers.
 
-  What is the impact on the gas saturation ?
+  What is the impact on the gas saturation?
 
 
 Step 5: Add a vertical fracture
@@ -156,7 +156,7 @@ Step 5: Add a vertical fracture
   molar fraction (use :code:`pure_phase_molar_fraction = [[0, 1], [1, 0]]`).
   The heat flux is equal to the molar flux times the liquid molar enthalpy.
 
-  Does the Newton algorithm converge ? Why ?
+  Does the Newton algorithm converge? Why?
 
 * To obtain the convegence, you need to change the maximum number of iterations of the
   :ref:`Newton algorithm<setting_newton>`
@@ -186,20 +186,23 @@ Step 6: Atmospheric boundary condition
   to set the temperature to 20C.
 
 * What happends if you add the capillary pressure and
-  the relative permeabilities ?
+  the relative permeabilities?
 
 * The convergence is difficult to obtain, in particular the first time step.
-  Then a solution is to call the :func:`simulation.standard_loop`
+  Then a solution is to call the
+  :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>` function
   a first time without the van Genuchten Pc nor kr over a very small
   number of time steps, to do so add :code:`nitermax = 5` in the argument
-  list of :func:`simulation.standard_loop`. It will stop the
-  time loop after 5 iterations, which will compute
+  list of :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>`.
+  It will stop the time loop after 5 iterations, which will compute
   an initialization.
-  After the call to the :func:`simulation.standard_loop`
+  After the call to the
+  :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>` function,
   set the Pc and kr, don't forget to initialize again the Dirichlet nodes
   (the :func:`simulation.build_state` function depends on the Pc)
-  and call again the :func:`simulation.standard_loop` function to simulate
-  the total time.
+  and call again the
+  :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>` function
+  to simulate the total time.
 
   Remark: the output of the :func:`simulation.standard_loop` is the time
   reached. It is useful sometimes so set that time as the initial time

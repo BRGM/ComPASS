@@ -12,6 +12,7 @@ are in the :ref:`example scripts<example_scripts>`.
 .. include:: fractures.rst
 .. include:: wells.rst
 .. include:: boundary_conditions.rst
+.. include:: initial_values.rst
 .. include:: simulation_object.rst
 .. include:: time_step_setting.rst
 .. include:: linear_solver_setting.rst

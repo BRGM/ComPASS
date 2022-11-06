@@ -7,21 +7,20 @@ Defining wells
 --------------
 
 The :func:`simulation.init <ComPASS.simulation.base.init>` function has a keyword parameter
-(*wells*) that can be used to pass a list of well objects.
+(*wells*) that is used to pass a function which creates a list of well objects.
 
-A well object is defined in two steps:
-    1. its geometry
-    2. its role (producer/injector)
-
-
-The well geometry is defined providing a list of mesh edges in random order.
-Edges will be automatically sorted. The only condition is that all edges can be
+A well object is created using its geometry providing a list of
+oriented edges (from wellhead downwards) in random order, with
+the :func:`simulation.create_well_from_segments <ComPASS.wells.wells.create_well_from_segments>`
+function. Edges will be automatically sorted. The only condition is that all edges can be
 chained up to the well head that must be unique.
-Well edges are defined as a pair of mesh vertices.
+Well edges are defined as a pair of mesh vertices oriented from wellhead downwards.
 
-Convenience functions are availabe for simple geometries:
-  - for vertical wells, init the geometry using the
-    :func:`simulation.create_vertical_well <ComPASS.wells.wells.create_vertical_well>` function
+Convenience functions are availabe for simple geometries
+  - for vertical wells, create the well geometry using the
+    :func:`well = simulation.create_vertical_well((Wx,Wy)) <ComPASS.wells.wells.create_vertical_well>` function,
+  - for a well described by a list of ordered nodes (describing the well from top to bottom), create the well geometry using the
+    :func:`well = simulation.create_single_branch_well(nodes) <ComPASS.wells.wells.create_single_branch_well>` function.
 
 Once the `well` object is created :
   1. It's a good practice to define a well id which must be a unique integer.
@@ -36,25 +35,25 @@ Once the `well` object is created :
 
   2. You set the operating conditions (either pressure or flowrate) with :
 
-       .. code-block:: python
+     .. code-block:: python
 
           well.operate_on_flowrate = Qw, np.inf # target flow rate in kg/s, threshold pressure
 
-      or:
+     or:
 
-       .. code-block:: python
+     .. code-block:: python
 
           well.operate_on_pressure = pw, Qmax # target pressure Pa, threshold flowrate
 
-      above the threshold pressure/flowrate, the well operating conditions will be switched.
+     Above the threshold pressure/flowrate, the well operating conditions will be switched.
 
-  3. You have to define the role of the well setting it as either a producer with:
+  3. You have to define the role of the well, setting it either as a producer with:
 
      .. code-block:: python
 
         well.produce()
 
-     or either an injector with:
+     either as an injector with:
 
      .. code-block:: python
 

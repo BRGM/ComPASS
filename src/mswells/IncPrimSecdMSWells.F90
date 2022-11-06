@@ -247,7 +247,7 @@ contains
             !    eliminated S = - sum_{S^alpha is prim} S^alpha
             ! iph is last present phase in vector (P,T,C,S,n_i)
             iph = NbIncPTC + NumPhasePresente_ctx(NbPhasePresente, ic)
-            var_inc(iph, unk_idx_s) = 0.d0 !> \todo FIXME: is usefull, because wrong numerotation of FreeFlow sat
+            var_inc(iph, unk_idx_s) = 0.d0 !> \todo FIXME: is useful, because wrong numerotation of FreeFlow sat
             do i = 1, NbPhasePresente - 1
                var_inc(iph, unk_idx_s) = var_inc(iph, unk_idx_s) - xp(NbIncPTCPrim + i)
             end do
