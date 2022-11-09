@@ -7,9 +7,9 @@ events, and the linear system options allow the tuning of the linear solver para
 ComPASS options are implemented with Farid Smai's option package `inept <https://pypi.org/project/inept/>`_,
 using hierarchy trees.
 
-.. image:: images/solver_options_tree.png
+.. image:: _static/images/solver_options_tree.png
 
-.. image:: images/callbacks_options_tree.png
+.. image:: _static/images/callbacks_options_tree.png
 
 To activate options, the user has to set the value of the option nodes of the tree.
 Setting the value of a node will activate all nodes along the path that leads to it, as well as all children

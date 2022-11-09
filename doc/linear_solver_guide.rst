@@ -46,7 +46,7 @@ ComPASS options are implemented with Farid Smai's option package `inept <https:/
 using the following hierarchy tree. See :ref:`the option documentation for ComPASS<shell_syntax_target>`
 for further information on option usage.
 
-.. image:: images/solver_options_tree.png
+.. image:: _static/images/solver_options_tree.png
 
 The table below describes the different keywords for linear solver setting in ComPASS. More information on
 numerical linear algebra can be found in `PETSc user's guide <https://petsc.org/release/docs/>`_, and a
