@@ -43,6 +43,19 @@ check format:
     - echo "Changed files:" ${changed_files}
     - pre-commit run --files ${changed_files}
 
+conda pristine build:
+  stage: build
+  image: continuumio/miniconda3
+  tags:
+    - build
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - conda install -n base -c conda-forge -y mamba
+    - mamba env create --file conda/compass.yml
+    - conda run -n compass python -m pip -vvv install .
+
 build:
   stage: build
   tags:
