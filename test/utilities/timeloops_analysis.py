@@ -146,7 +146,7 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
     )
 
     print(
-        f"Timestep intervalle: {min_dt:6g} s = {min_dt/year:6g} y"
+        f"Timestep interval: {min_dt:6g} s = {min_dt/year:6g} y"
         f" < {max_dt:6g} s = {max_dt/year:6g} y"
     )
     print(
@@ -157,7 +157,7 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
         print(
             f"    It means {total_nb_newton_it - total_nb_it_in_success_newton} useless Newton iterations out of {total_nb_newton_it} "
             f"({100*(total_nb_it_in_success_newton/total_nb_newton_it):.0f}% useful).\n"
-            f"    There is an average of {nb_it_in_success_newton.mean():.0f} Newton iterations (when the Newton algo converged)."
+            f"    There is an average of {nb_it_in_success_newton.mean():.0f} Newton iterations (when the Newton algorithm converged)."
         )
         if total_nb_ls_it_in_newton > 0:
             print(
