@@ -40,6 +40,8 @@ You can retrieve global properties using the corresponding `get_*` functions, e.
     the :func:`simulation.init <ComPASS.simulation.base.init>` method
     that will distribute all properties to the partitioned mesh.
 
+.. _fluid physical properties:
+
 Fluid physical properties
 -------------------------
 
@@ -151,6 +153,8 @@ If the property is constant:
         ]
     )
 
+
+.. _regionalized_properties:
 
 Regionalized properties
 -----------------------

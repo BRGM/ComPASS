@@ -35,7 +35,7 @@ def get_version_info():
 
 version, release = get_version_info()
 
-master_doc = "index"
+root_doc = "index"
 
 # -- General configuration ---------------------------------------------------
 
@@ -47,6 +47,8 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "recommonmark",  # for MarkDown
+    "sphinx_revealjs",
+    "sphinxcontrib.tikz",  # tikz pictures
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -55,9 +57,70 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "revealjs",
+    "training/test",
+    "training/meshes",
+    "README.txt",
+]
 
+# -- Options for reveal.js output --------------------------------------------
+# sphinx-build -M revealjs . .
+revealjs_style_theme = "beige"
+# contains static path (to store images or style files)
+revealjs_static_path = ["_static"]
 
+revealjs_script_conf = {
+    "controls": True,
+    "progress": True,
+    "center": True,
+    "transition": "slide",
+}
+revealjs_script_plugins = [
+    {
+        "name": "RevealNotes",
+        "src": "revealjs4/plugin/notes/notes.js",
+    },
+    {
+        "name": "RevealHighlight",
+        "src": "revealjs4/plugin/highlight/highlight.js",
+    },
+]
+revealjs_css_files = [
+    "revealjs4/plugin/highlight/zenburn.css",
+]
+
+# Grouping the document tree into LaTeX files. List of tuples
+# (source start file, target name, title, author, documentclass [howto/manual]).
+# sphinx-build -b latex . ./latex/; cd latex; make; cd -
+latex_documents = [
+    (
+        "training/latex_index",
+        "training_ComPASS_initiation.tex",
+        "ComPASS Initiation",
+        "Laurence Beaude, Simon Lopez and various contributors",
+        "manual",
+    ),
+]
+latex_logo = "_static/compass_logo.png"
+latex_elements = {
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    "papersize": "a4paper",
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
+    # Latex figure (float) alignment
+    #
+    "figure_align": "!htb",
+    "extraclassoptions": "openany",
+}
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -65,7 +128,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "sphinx_rtd_theme"
 # contains static path (to store images or style files)
 html_static_path = ["_static"]
-
+html_css_files = ["_static/custom.css"]  # todo to improve Solution appearance
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = "_static/compass_logo.png"
@@ -79,3 +142,11 @@ source_suffix = {
     ".txt": "markdown",
     ".md": "markdown",
 }
+
+rst_epilog = """
+.. include:: <s5defs.txt>
+.. raw:: html
+
+    <style> .red {color:red} </style>
+    <style> .lime {color:lime} </style>
+"""

@@ -11,6 +11,7 @@ ComPASS |version|
    setting_simulation
    examples
    tutorial
+   training/ComPASS_initiation
    linear_solver_guide
    CPR-AMG_preconditioner
    developer_corner

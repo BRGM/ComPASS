@@ -180,7 +180,7 @@ In the code the residue is decomposed in two parts:
 
 Here we will focuse on the computation of the second
 part of the residu, and because it appears in every
-balance equation we will focuse more precisly on the sum :
+balance equation we will focuse more precisely on the sum :
 <center>\f$
 \sum\limits_{\alpha \in {\cal Q}_{K_{Dof1,Dof2}^{\alpha,n}}^n \cap P_i} G_{i,Dof1,Dof2}^\alpha
 \f$   </center>

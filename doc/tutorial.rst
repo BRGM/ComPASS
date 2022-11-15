@@ -87,7 +87,7 @@ Which differences in the output in the terminal compared to previously?
 
 * Change the top boundary condition to impose a Dirichlet diphasic state with
   Sg = 0.5 at p0 and T0. You can add :code:`Sg=0.5` in :code:`simulation.build_state`.
- Is the air component present in the simulation? Why? You can print the state as follows:
+  Is the air component present in the simulation? Why? You can print the state as follows:
 
 .. code-block:: python
 

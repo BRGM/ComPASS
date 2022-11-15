@@ -3,6 +3,8 @@
 Setting up the boundary conditions
 ==================================
 
+.. _Dirichlet_bc:
+
 Dirichlet nodes
 ---------------
 

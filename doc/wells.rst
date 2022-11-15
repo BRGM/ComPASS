@@ -72,7 +72,7 @@ You can set well transients using the
 functions. You will find two examples in the :ref:`example scripts section<setting_well_transients>`.
 
 .. warning::
-    For the time being, closed wells are discard during simulation setup.
+    For the time being, closed wells are discarded during simulation setup.
     `simulation.init` will issue a warning not to distribute closed wells,
     but it's possible to close a well after `simulation.init` to start the simulation
     with a closed well.

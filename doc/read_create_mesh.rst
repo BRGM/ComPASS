@@ -1,3 +1,5 @@
+.. _setting_up_mesh:
+
 Import or create a mesh
 =======================
 
@@ -19,6 +21,11 @@ The command :code:`extruded_sector` meshes an horizontal angular sector and extr
 It is in the :code:`ComPASS.utils.angular_sector` module and it relies on MeshTools functions.
 
 Example: :download:`MO1.py <../test/baseline/MO1/MO1.py>`
+
+
+Using Salome
+------------
+
 
 Using MeshTools
 ---------------

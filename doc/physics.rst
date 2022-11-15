@@ -16,3 +16,5 @@ It also comes with default physical properties (such as the phase densities, vis
 .. code-block:: python
 
     simulation = ComPASS.load_physics("linear_water")
+
+You can define your own physical properties, refer to :ref:`this section <fluid physical properties>`.

@@ -38,6 +38,8 @@ Eventually the `Legacy` version is bound to disappear, but more tests
 have to be made with the newer `Petsc` implementation to
 guarantee accurate and robust results.
 
+.. _command_line_options:
+
 Command line options
 --------------------
 

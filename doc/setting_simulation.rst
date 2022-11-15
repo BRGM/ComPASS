@@ -13,7 +13,8 @@ are in the :ref:`example scripts<example_scripts>`.
 .. include:: wells.rst
 .. include:: boundary_conditions.rst
 .. include:: initial_values.rst
-.. include:: simulation_object.rst
+.. include:: time_loop.rst
 .. include:: time_step_setting.rst
 .. include:: linear_solver_setting.rst
 .. include:: setting_up_newton_options.rst
+.. include:: simulation_object.rst
