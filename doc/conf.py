@@ -8,6 +8,9 @@ import sys
 import os
 import sphinx_rtd_theme
 
+# This is for autodoc
+sys.path.insert(0, os.path.abspath(".."))
+
 # -- Project information -----------------------------------------------------
 
 project = "ComPASS"
