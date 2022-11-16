@@ -160,11 +160,11 @@ def set_Neumann_faces(faces, Neumann):
     faces = np.asarray(faces)
     if faces.dtype == np.bool:
         faces = np.nonzero(faces)[0]
-    faces += 1  # Fortran indexing starts at 1
-    _sw.set_Neumann_faces(faces, Neumann)
+    # Fortran indexing starts at 1
+    _sw.set_Neumann_faces(faces + 1, Neumann)
 
 
 def set_Neumann_fracture_edges(edges, Neumann):
     edges = np.asarray(edges)
-    edges += 1  # Fortran indexing starts at 1
-    _sw.set_Neumann_fracture_edges(edges, Neumann)
+    # Fortran indexing starts at 1
+    _sw.set_Neumann_fracture_edges(edges + 1, Neumann)
