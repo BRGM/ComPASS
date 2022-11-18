@@ -50,11 +50,13 @@ conda pristine build:
     - build
     - docker
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+   - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
     - conda install -n base -c conda-forge -y mamba
     - mamba env create --file conda/compass.yml
     - conda run -n compass python -m pip -vvv install .
+    - cd test/bulk
+    - conda run -n compass python doublet_on_cartesian_grid.py
 
 build:
   stage: build
