@@ -83,81 +83,95 @@ the :code:`conda` command with the :code:`mamba` command.
 You're almost there
 ^^^^^^^^^^^^^^^^^^^
 
-We provide `several conda environments <https://github.com/BRGM/ComPASS/tree/main/conda>`_ for ComPASS that only differ
-in their final step.
-
-In both following cases you will need to have conda (or mamba) on your path
+In the following, you will need to have conda (or mamba) on your path
 and this may require to activate your conda :code:`base` environment
 (:code:`conda activate base` or :code:`source activate base` depending
 on your settings).
 
-Case 1: you only want to use the latest version of ComPASS
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Step 1
+""""""
 
-Just create the environment:
-
-.. code-block:: bash
-
-  conda env create -f https://raw.githubusercontent.com/BRGM/ComPASS/main/conda/compass-latest.yml
-
-The whole process may be a bit long because MeshTools and ComPASS packages will be
-downloaded and compiled under the hood, but that's it. Once it is finished,
-you can activate the :code:`compass-latest` environment.
+Create the *compass* `conda environment <https://github.com/BRGM/ComPASS/tree/main/conda>`_.
 
 .. code-block:: bash
 
-  conda activate compass-latest
+  conda env create -f https://raw.githubusercontent.com/BRGM/ComPASS/main/conda/compass.yml
 
-And you can start :ref:`using simulation scripts <Setting-up a simulation>`.
-
-.. note::
-  Instead of *latest* you may also use the version tag *v4.4.1* that will
-  skip the latest developments.
-
-Case 2: you want to develop ComPASS
-"""""""""""""""""""""""""""""""""""
-
-First clone the ComPASS repository:
-
-.. code-block:: bash
-
-  git clone https://github.com/BRGM/ComPASS.git
-
-Then go to ComPASS directory and create the *compass* conda environment
-that will contain all ComPASS dependencies
-(including the download, compilation and installation of the MeshTools package).
-
-.. code-block:: bash
-
-  cd ComPASS
-  conda env create -f conda/compass.yml
-
-Once it is finished, you can activate the :code:`compass` environment
-and install ComPASS in development mode.
+The whole process may be a bit long because many packages will be
+downloaded and MeshTools will be compiled under the hood.
+Once it is finished, you can activate the *compass* environment with:
 
 .. code-block:: bash
 
   conda activate compass
-  pip install -e ComPASS
 
-Then you can start :ref:`using simulation scripts <Setting-up a simulation>`.
-Any modification in the ComPASS source python scripts will be reflected
-immediately in the ComPASS package
-(thanks to the pip development mode - cf. :code:`-e` install option).
-If you modify Fortran or C++ source files you will have to re-run pip
-that will trigger the compilation of modified source files.
+In the following we suppose that this *compass* environment has been activated.
 
-Check dedicated sections of this documentation for more information
- (:ref:`developer's corner`).
+Step 2
+""""""
 
-.. note::
-  *MeshTools* and *ComPASS* are developed on the
-  `Inria gitlab server <https://gitlab.inria.fr/charms>`_.
-  The main branches are mirrored to `github.com/BRGM` so that
-  any github URL above can be replaced with `gitlab.inria.fr/charms`
-  to have access to development branches.
-  An access to `Inria gitlab server <https://gitlab.inria.fr/charms>`_
-  can be provided upon `request <mailto:compass@brgm.fr>`_.
+Finally, there are two possibilities.
+
+a. **You only want to use the latest version of ComPASS**
+
+  You can compile and install compass using a single line pip command:
+
+  .. code-block:: bash
+
+    pip install git+https://github.com/BRGM/ComPASS.git
+
+  The whole process may be a bit long because the ComPASS code will be
+  downloaded and compiled under the hood, but that's it.
+
+  Once it is done, you can start :ref:`using simulation scripts <Setting-up a simulation>`.
+
+  Just **remember to activate the** *compass* **conda environment**
+  each time you want to use compass.
+
+
+b. **You want to develop ComPASS**
+
+  The main difference with the previous step is that you will
+  need a copy of the code repository.
+
+  First clone the ComPASS git repository using:
+
+  .. code-block:: bash
+
+    git clone https://github.com/BRGM/ComPASS.git
+
+  Then go to the newly created ComPASS directory where
+  you will probably want to install ComPASS in development mode
+  using the pip :code:`-e` flag:
+
+  .. code-block:: bash
+
+    cd ComPASS
+    pip install -e ComPASS
+
+  Now, you can start :ref:`using simulation scripts <Setting-up a simulation>`.
+
+  Any modification in the ComPASS source python scripts will be reflected
+  immediately in the ComPASS package
+  (thanks to the pip development mode - cf. :code:`-e` install option).
+  If you modify Fortran or C++ source files you will have to re-run pip
+  that will trigger the compilation of modified source files.
+
+  Check dedicated sections of this documentation for more information
+  (:ref:`developer's corner`).
+
+Additional remarks
+^^^^^^^^^^^^^^^^^^
+
+Verbose mode for pip
+""""""""""""""""""""
+
+If you need details about the pip installation step, you can run pip in
+verbose mode using the :code:`-vvv` flag, just running:
+
+.. code-block:: bash
+
+  pip -vvv install git+https://github.com/BRGM/ComPASS.git
 
 
 Useful `conda env create` options
@@ -167,10 +181,26 @@ Useful `conda env create` options
 
 :code:`-n new_name`: will rename the generated environment
 
+Gitlab servers used for collaborative development
+"""""""""""""""""""""""""""""""""""""""""""""""""
+
+*MeshTools* and *ComPASS* are developed on the
+`Inria gitlab server <https://gitlab.inria.fr/charms>`_.
+The main branches are mirrored to `github.com/BRGM` so that
+any github URL above can be replaced with `gitlab.inria.fr/charms`
+to have access to development branches.
+An access to `Inria gitlab server <https://gitlab.inria.fr/charms>`_
+can be provided upon `request <mailto:compass@brgm.fr>`_.
+
+
 .. _install with Ubuntu:
 
 Native installation on Linux
 ----------------------------
+
+Unless you know what your are doing, the preferred way to install
+ComPASS is to use conda environments for now
+(cf. :ref:`using conda environments`).
 
 Requirements
 ^^^^^^^^^^^^
