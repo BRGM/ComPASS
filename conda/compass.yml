@@ -16,7 +16,7 @@ dependencies:
 - c-compiler
 - cxx-compiler
 - fortran-compiler
-- pybind11<2.10
+- pybind11!=2.10.0
 - numpy>=1.21
 - numba!=0.55.2
 - scipy
