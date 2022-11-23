@@ -111,10 +111,10 @@ set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 find_package(pybind11 2.6 QUIET) # try locally
 if(pybind11_FOUND)
-  if(${pybind11_VERSION} VERSION_GREATER 2.10)
+  if(${pybind11_VERSION} VERSION_EQUAL 2.10.0)
     message(
       FATAL_ERROR
-        "\nCritical bug with pybind11 versions greater than 2.10.\n"
+        "\nThere is a critical bug with pybind11 version 2.10.0\n"
         "Cf. ComPASS issue #558 at: "
         "https://gitlab.inria.fr/charms/ComPASS/-/issues/558"
     )
