@@ -1,3 +1,21 @@
+Version 4.5.1
+=============
+
+This is a bug fix release that aims at having a robust installation
+procedure in a conda environment.
+A nightly CI test has been set-up to test a full conda environment
+creation from scratch and a simple ComPASS script is run in the
+newly created environment.
+
+We kept a single compass.yml conda environment file which is
+easier to maintain and less prone to divergence than two separate
+files. The documentation has been updated accordingly.
+
+Pybind11 version 2.10.0 is skipped
+as the make_iterator API changed introducing a regression.
+
+A small bug has also been corrected in the selection of boundary fracture edges.
+
 Version 4.5.0
 =============
 
