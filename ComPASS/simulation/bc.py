@@ -1,6 +1,6 @@
 import numpy as np
 
-from .. import mpi
+from .. import mpi, messages
 from .._kernel import get_kernel
 
 
