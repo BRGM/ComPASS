@@ -1,4 +1,5 @@
 # Documentation : https://charms.gitlabpages.inria.fr/ComPASS/
+
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
@@ -42,7 +43,7 @@ Ma, Mw = molar_masses = [Malkane(1), 0.018016]
 simulation.set_components_molar_mass(molar_masses)
 # http://www.atomer.fr/1/1_alcanes-lineaires.html
 simulation.set_molar_density_functions(
-    (constant_physical_property(3.0 / Ma), constant_physical_property(rho_water / Ma))
+    (constant_physical_property(3.0 / Ma), constant_physical_property(rho_water / Mw))
 )
 # https://fr.wikipedia.org/wiki/Ordres_de_grandeur_de_viscosit%C3%A9
 simulation.set_viscosity_functions(
@@ -110,10 +111,9 @@ def tag_fracture_faces():
 
 def matrix_permeability():
     cell_centers = simulation.compute_global_cell_centers()
-    xc, yc, zc = [cell_centers[:, j] for j in range(3)]
+    zc = cell_centers[:, 2]
     nc = cell_centers.shape[0]
-    k = np.empty(nc, dtype=np.double)
-    k.fill(k_matrix)
+    k = np.full(nc, k_matrix, dtype=np.double)
     k[zc >= -overburden_thickness] = k_overburden
     return k
 

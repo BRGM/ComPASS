@@ -15,6 +15,7 @@ nb_fractures = 20
 ptop = 1 * bar
 T0 = degC2K(20)
 gravity = 10.0
+seed = 1234  # change this to generate your own mesh !
 
 # -------------------------------------------------------------------
 # Reservoir petrophysics
@@ -50,13 +51,6 @@ grid = ComPASS.Grid(
 )
 
 # -------------------------------------------------------------------
-# Identify the Dirichlet nodes
-def dirichlet_boundaries_function():
-    pts = simulation.global_vertices()
-    return on_zmax(grid)(pts) | on_zmin(grid)(pts)
-
-
-# -------------------------------------------------------------------
 # Initialize the fracture network setting returning true
 # for face centers that are fracture faces
 def tag_fracture_faces():
@@ -82,7 +76,7 @@ def tag_fracture_faces():
         (nx + 1, nz + 1),
         (dx, dz),
         max(nx, nz) // 2,
-        seed=1234,
+        seed=seed,
     )
     # keep x, z center coordinates
     points = face_centers[interior_faces][:, (0, 2)]
@@ -94,18 +88,17 @@ def tag_fracture_faces():
 
 
 def matrix_permeability():
+    # set the overburden permeability
     cell_centers = simulation.compute_global_cell_centers()
-    xc, yc, zc = [cell_centers[:, j] for j in range(3)]
+    zc = cell_centers[:, 2]
     nc = cell_centers.shape[0]
-    k = np.empty(nc, dtype=np.double)
-    k.fill(k_matrix)
+    k = np.full(nc, k_matrix, dtype=np.double)
     k[zc >= -overburden_thickness] = k_overburden
     return k
 
 
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=dirichlet_boundaries_function,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
     cell_permeability=matrix_permeability,
@@ -129,11 +122,10 @@ all_states.set(Xl)
 z = simulation.all_positions()[:, 2]
 all_states.p[:] = ptop - rho * gravity * z
 
-dirichlet = simulation.dirichlet_node_states()
-z = simulation.vertices()[:, 2]
-dirichlet.set(Xl)
-dirichlet.set(z <= -depth, Xg)
-dirichlet.p[:] = ptop - rho * gravity * z
+# -------------------------------------------------------------------
+# Identify and set the Dirichlet nodes
+pts = simulation.vertices()
+simulation.reset_dirichlet_nodes(on_zmax(grid)(pts) | on_zmin(grid)(pts))
 
 # -------------------------------------------------------------------
 # Construct the linear solver and newton objects outside the time loop

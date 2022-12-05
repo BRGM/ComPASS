@@ -1,10 +1,4 @@
-#
-# This file is part of ComPASS.
-#
-# ComPASS is free software: you can redistribute it and/or modify it under both the terms
-# of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
-# and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
-#
+# Documentation : https://charms.gitlabpages.inria.fr/ComPASS/
 
 import itertools
 import numpy as np
@@ -14,8 +8,6 @@ from ComPASS.timestep_management import TimeStepManager
 from ComPASS.utils.units import *
 from MeshTools import HexMesh
 from MeshTools.utils import axis_extrusion
-
-import vtkwriters as vtkw
 
 # fmt: off
 # A vertical well in the middle of a regular square grid with x,y coordinates (0,0)
@@ -28,7 +20,7 @@ H = 100                # thickness of the reservoir / heigth of the well
 nv = 4                 # half the number of vertical layers
 rw = 0.1               # well radius (m)
 f_thickness = 0.1      # fracture thickness (m)
-ptop = 4 * MPa         # oressure at the top of the reservoir
+ptop = 4 * MPa         # pressure at the top of the reservoir
 Teps = 1               #  temperature at the top of the reservoir is set to Tsat(ptop) - Teps
 gravity = 9.81
 omega = 0.15           # reservoir porosity
@@ -117,7 +109,6 @@ def set_states(states, z):
 set_states(simulation.all_states(), simulation.all_positions()[:, 2])
 x, y, z = simulation.vertices().T
 simulation.reset_dirichlet_nodes(np.abs(z - H / 2) < epsilon)
-set_states(simulation.dirichlet_node_states(), z)
 assert np.all(simulation.dirichlet_node_states().p == simulation.node_states().p)
 
 simulation.close_well(wid)

@@ -65,8 +65,7 @@ def cell_permeability_function():
     cell_centers = simulation.compute_global_cell_centers()
     zc = cell_centers[:, 2]
     nbcells = cell_centers.shape[0]
-    permeability = np.empty(nbcells, dtype=np.double)
-    permeability[:] = k_burden
+    permeability = np.full(nbcells, k_burden, dtype=np.double)
     reservoir = (zc < -Hburden) & (zc > -total_depth + Hburden)
     permeability[reservoir] = k_reservoir
     return permeability

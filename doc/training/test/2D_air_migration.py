@@ -15,7 +15,7 @@ nb_fractures = 20
 ptop = 1 * bar
 T0 = degC2K(20)
 gravity = 10.0
-seed = 1234  # << change this !
+seed = 1234  # change this to generate your own mesh !
 
 # -------------------------------------------------------------------
 # Reservoir petrophysics
@@ -88,20 +88,12 @@ def tag_fracture_faces():
 
 
 def matrix_permeability():
-    # set the oervurden permeability
-    return k
-
-
-# -------------------------------------------------------------------
-# Identify the Dirichlet nodes
-def dirichlet_boundaries():
-    # set the dirichlet on zmin and zmax
-    return dirichlet_location
+    # set the overburden permeability
+    return something
 
 
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=dirichlet_boundaries,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
     cell_permeability=matrix_permeability,
@@ -125,11 +117,8 @@ all_states.set(Xl)
 z = simulation.all_positions()[:, 2]
 all_states.p[:] = ptop - rho * gravity * z
 
-dirichlet = simulation.dirichlet_node_states()
-z = simulation.vertices()[:, 2]
-dirichlet.set(Xl)
-dirichlet.set(z <= -depth, Xg)
-dirichlet.p[:] = ptop - rho * gravity * z
+# -------------------------------------------------------------------
+# Identify and set the Dirichlet nodes
 
 # -------------------------------------------------------------------
 # Construct the linear solver and newton objects outside the time loop

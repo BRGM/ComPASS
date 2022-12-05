@@ -1,5 +1,5 @@
 variables:
-  COMPASS_SDK: 0.1.9
+  COMPASS_SDK: 0.1.10
   # We assume that is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -158,6 +158,26 @@ time bulk scripts:
   script:
     - cd test
     - python utilities/pool.py bulk
+
+time training scripts:
+  stage: test
+  tags:
+    - parallel
+    - docker
+  before_script:
+    - python -m pip install --no-index -f dist ComPASS
+  script:
+    - cd doc/training/test
+    - rm doublet_in_fractured_medium.py  # contains holes (does not execute)
+    - rm 2D_air_migration.py  # contains holes (does not execute)
+    - rm init_reservoir_in_fractured_medium.py  # contains holes (does not execute)
+    - python ../../../test/utilities/pool.py .  # starting scripts
+    - cd ../../../test/training
+    - cp ../../doc/training/test/NODES.txt .  # copy the mesh
+    - cp ../../doc/training/test/TETRAS.txt .
+    - cp ../../doc/training/test/GROUPS.py .
+    - python init_reservoir_in_fractured_medium.py  # must execute init before doublet to reload snapshot
+    - python ../utilities/pool.py .  # final scripts
 
 linalg:
   stage: test
