@@ -30,7 +30,7 @@ module DefFlash
 
 contains
 
-   subroutine DiphasicFlash_fugacity_coeffficients(icp, inc, fg, fl)
+   subroutine DiphasicFlash_fugacity_coefficients(icp, inc, fg, fl)
       integer(c_int), intent(in) :: icp
       type(Type_IncCVReservoir), intent(inout) :: inc
       real(c_double), intent(out) :: fg, fl
@@ -42,7 +42,7 @@ contains
       call f_Fugacity_coefficient(icp, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
                                   inc%Temperature, inc%Comp(:, LIQUID_PHASE), fl, dPf, dTf, dCf)
 
-   end subroutine DiphasicFlash_fugacity_coeffficients
+   end subroutine DiphasicFlash_fugacity_coefficients
 
    subroutine DiphasicFlash_liquid_fugacities(inc, fa, fw)
       type(Type_IncCVReservoir), intent(inout) :: inc
@@ -83,9 +83,9 @@ contains
       real(c_double) :: fg, fl
       real(c_double) :: Cla, Clw
 
-      call DiphasicFlash_fugacity_coeffficients(AIR_COMP, inc, fg, fl)
+      call DiphasicFlash_fugacity_coefficients(AIR_COMP, inc, fg, fl)
       Cla = (fg/fl)*inc%Comp(AIR_COMP, GAS_PHASE)
-      call DiphasicFlash_fugacity_coeffficients(WATER_COMP, inc, fg, fl)
+      call DiphasicFlash_fugacity_coefficients(WATER_COMP, inc, fg, fl)
       Clw = (fg/fl)*inc%Comp(WATER_COMP, GAS_PHASE)
       if (Cla + Clw > 1.d0) then ! Liquid appears
          inc%ic = DIPHASIC_CONTEXT
