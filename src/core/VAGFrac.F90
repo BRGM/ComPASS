@@ -157,7 +157,7 @@ contains
 
       ! tmp
       integer :: &
-         in1, in2, inf, & ! num (face) in Unknown in a face
+         in1, in2, & ! num (face) in Unknown in a face
          n1, n2 ! num (local) in Unknown in a cell
 
       integer :: i, j, k, m, mm, nn, ipt, &
@@ -244,8 +244,6 @@ contains
             ! Rq: = 0 if face i is not frac
             call VAGFrac_UnkFaceToUnkCell(k, i, UnkFaceToUnkCell)
 
-            inf = nbNodeFace + 1 ! num (face) of frac in a face, in Unk=(node, frac)
-
             ! isobarycentre de la face
             xf(:) = 0.d0
 
@@ -303,7 +301,7 @@ contains
 
                if (is_fracture_face) then
 
-                  GkT(:, inf) = v12k(:)*ss
+                  GkT(:, nbUnkFace) = v12k(:)*ss
 
                else
 
