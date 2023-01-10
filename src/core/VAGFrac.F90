@@ -1045,9 +1045,12 @@ contains
                exit
             end if
          end do
-      else ! if i is not frac
-         UnkFaceToUnkCell(nbNodeFace + 1) = 0
       end if
+
+#ifndef NDEBUG
+      if ((IdFaceLocal(i) /= -2) .and. (UnkFaceToUnkCell(nbNodeFace + 1) /= 0)) &
+         call CommonMPI_abort("VAGFrac_UnkFaceToUnkCell: face is not fracture face!")
+#endif
 
    end subroutine VAGFrac_UnkFaceToUnkCell
 
