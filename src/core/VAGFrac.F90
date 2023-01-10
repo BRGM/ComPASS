@@ -172,7 +172,7 @@ contains
 
       double precision :: surf, volT
 
-      integer :: nbNodeCell, nbNodeFace, nbFracCell, nbFracFace, nbUnkFace
+      integer :: nbNodeCell, nbNodeFace, nbFracCell, nbUnkFace
 
       ! tmp values to simply notations
       integer :: nbCellLocal, nbFaceLocal, nbNodeLocal, nbFracLocal
@@ -232,8 +232,8 @@ contains
 
             ! number of nodes, frac, unknown in face i
             nbNodeFace = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
-            nbFracFace = 1
-            nbUnkFace = nbNodeFace + nbFracFace
+            nbUnkFace = nbNodeFace
+            if (is_fracture_face) nbUnkFace = nbUnkFace + 1
 
             ! Use:
             !    NodebyFaceLocal
