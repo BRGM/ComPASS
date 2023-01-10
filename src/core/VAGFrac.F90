@@ -180,6 +180,7 @@ contains
       ! the latest element is used only if the face is a fracture face
       ! and will hold the fracture rank in cell fractures (offset by the number of face nodes)
       integer, allocatable, dimension(:) :: UnkFaceToUnkCell
+      logical :: is_fracture_face
 
       nbCellLocal = NbCellLocal_Ncpus(commRank + 1)
       nbFaceLocal = NbFaceLocal_Ncpus(commRank + 1)
@@ -227,6 +228,7 @@ contains
          do j = FacebyCellLocal%Pt(k) + 1, FacebyCellLocal%Pt(k + 1)
 
             i = FacebyCellLocal%Num(j) ! num (local) of face
+            is_fracture_face = (IdFaceLocal(i) == -2)
 
             ! number of nodes, frac, unknown in face i
             nbNodeFace = NodebyFaceLocal%Pt(i + 1) - NodebyFaceLocal%Pt(i)
@@ -295,7 +297,14 @@ contains
                ! Grad T_12fk = 1/(3*volT) ( v12k (uf-uk) + v1fk (u1-uk) + vf2k (u2-uk) )
                ! where uf = 1/NbNodebyFace \sum_(n=node of face) u_n
 
-               if (IdFaceLocal(i) /= -2) then ! this face i (i is num (local) of face) is not a frac
+               if (is_fracture_face) then
+
+                  ss = 1.d0/(3.d0*volT)
+                  GkT(:, in1) = vf2k(:)*ss
+                  GkT(:, in2) = v1fk(:)*ss
+                  GkT(:, inf) = v12k(:)*ss
+
+               else
 
                   ss = 1.d0/(3.d0*volT*dble(nbNodeFace))
 
@@ -307,24 +316,16 @@ contains
                   end do
 
                   ss = 1.d0/(3.d0*volT)
-
                   GkT(:, in1) = GkT(:, in1) + vf2k(:)*ss
                   GkT(:, in2) = GkT(:, in2) + v1fk(:)*ss
 
-                  ! this face i (i is num (local) of face) is a frac
-               else
-
-                  ss = 1.d0/(3.d0*volT)
-
-                  GkT(:, in1) = vf2k(:)*ss
-                  GkT(:, in2) = v1fk(:)*ss
-                  GkT(:, inf) = v12k(:)*ss
                end if
 
                ! ! Test Gradient in debug mode
                ! call VAGFrac_TestGkT(i, xk, xf, GkT)
 
                ! calcul des Tkij node
+
                do k1 = 1, nbUnkFace
                   kn1 = UnkFaceToUnkCell(k1)
 
