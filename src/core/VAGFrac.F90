@@ -328,20 +328,14 @@ contains
 
                do k1 = 1, nbUnkFace
                   kn1 = UnkFaceToUnkCell(k1)
-
                   do k2 = 1, nbUnkFace
                      kn2 = UnkFaceToUnkCell(k2)
-
-                     if ((kn1 /= 0) .and. (kn2 /= 0)) then ! kn1, kn2=0 if i is not frac
-                        do mm = 1, 3
-                           do nn = 1, 3
-                              TkLocal(k)%pt(kn1, kn2) = TkLocal(k)%pt(kn1, kn2) &
-                                                        + volT*lamda(mm, nn, k)*GkT(mm, k1)*GkT(nn, k2)
-                           enddo
+                     do mm = 1, 3
+                        do nn = 1, 3
+                           TkLocal(k)%pt(kn1, kn2) = TkLocal(k)%pt(kn1, kn2) &
+                                                     + volT*lamda(mm, nn, k)*GkT(mm, k1)*GkT(nn, k2)
                         enddo
-
-                     end if ! end of if kn1/=0...
-
+                     enddo
                   end do ! end of k2
                end do ! end of k1
 
