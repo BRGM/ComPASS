@@ -297,27 +297,22 @@ contains
                ! Grad T_12fk = 1/(3*volT) ( v12k (uf-uk) + v1fk (u1-uk) + vf2k (u2-uk) )
                ! where uf = 1/NbNodebyFace \sum_(n=node of face) u_n
 
+               ss = 1.d0/(3.d0*volT)
+               GkT(:, in1) = vf2k(:)*ss
+               GkT(:, in2) = v1fk(:)*ss
+
                if (is_fracture_face) then
 
-                  ss = 1.d0/(3.d0*volT)
-                  GkT(:, in1) = vf2k(:)*ss
-                  GkT(:, in2) = v1fk(:)*ss
                   GkT(:, inf) = v12k(:)*ss
 
                else
 
                   ss = 1.d0/(3.d0*volT*dble(nbNodeFace))
-
                   ! boucle sur les noeuds de la face pour le terme 1/(3*volT) V12k (uk-uf)
                   do ipt = NodebyFaceLocal%Pt(i) + 1, NodebyFaceLocal%Pt(i + 1)
-
                      in = ipt - NodebyFaceLocal%Pt(i) ! loop for nodes in num (face)
-                     GkT(:, in) = v12k(:)*ss
+                     GkT(:, in) = GkT(:, in) + v12k(:)*ss
                   end do
-
-                  ss = 1.d0/(3.d0*volT)
-                  GkT(:, in1) = GkT(:, in1) + vf2k(:)*ss
-                  GkT(:, in2) = GkT(:, in2) + v1fk(:)*ss
 
                end if
 
