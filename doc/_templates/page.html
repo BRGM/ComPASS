@@ -8,6 +8,12 @@
             $(this).parent().children().not(".admonition-title").toggle(400);
             $(this).parent().children(".admonition-title").toggleClass("open");
         })
+        $(".publication > *").hide();
+        $(".publication .admonition-title").show();
+        $(".publication .admonition-title").click(function() {
+            $(this).parent().children().not(".admonition-title").toggle(400);
+            $(this).parent().children(".admonition-title").toggleClass("open");
+        })
     });
 </script>
 {% endblock %}

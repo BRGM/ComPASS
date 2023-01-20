@@ -128,7 +128,7 @@ latex_elements = {
 html_theme = "sphinx_rtd_theme"
 # contains static path (to store images or style files)
 html_static_path = ["_static"]
-html_css_files = ["_static/custom.css"]  # todo to improve Solution appearance
+html_css_files = ["custom.css"]  # todo to improve Solution appearance
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = "_static/compass_logo.png"

@@ -33,14 +33,15 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-Acknowledgements
-================
+Credits
+=======
 
-.. |ANR| image:: https://anr.fr/typo3conf/ext/anr_skin/Resources/Public/assets/img/anr-logo.png
-    :height: 40px
+ComPASS is co-developped by `BRGM`_ and
+`Université Côte d'Azur`_ (`LJAD`_ - `Inria`_)
+and the main evolutions are implemented through :ref:`several projects<development_projects>`
+involving :ref:`many contributors<compass_contributors>`.
 
-|ANR|
-
-The development of ComPASS benefits from
-`ANR grant ANR-16-CE06-0009 <https://anr.fr/Projet-ANR-16-CE06-0009>`_
-allocated to the `CHARMS research project <http://www.anr-charms.org/>`_.
+.. _BRGM: https://www.brgm.fr/fr
+.. _Université Côte d'Azur: https://univ-cotedazur.fr/
+.. _LJAD: https://univ-cotedazur.fr/laboratoires/laboratoire-jean-alexandre-dieudonne-ljad
+.. _Inria: https://www.inria.fr/fr/centre-inria-universite-cote-azur
