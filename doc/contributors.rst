@@ -9,6 +9,7 @@ Contributors
 | L. Beaude (BRGM)
 | F. Smai (BRGM)
 | K. Brenner (Université Côte d'Azur)
+| M. Leconte (Andra)
 .. previous ?
 | F. Xing (Université de Nice Sophia Antipolis, INRIA COFFEE, BRGM)
 | T. Beltzung (CEA)

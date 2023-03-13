@@ -13,7 +13,7 @@ class VAGScheme:
         self.omega_Fourier = VAGVolumeDistribution(**omega_Fourier)
 
     def __str__(self):
-        return f"VAG scheme with omega Darcy = {self.omega_Darcy}, omegae Fourier = {self.omega_Fourier}"
+        return f"VAG scheme with omega Darcy = {self.omega_Darcy}, omega Fourier = {self.omega_Fourier}"
 
     def compute_transmissivities(self):
         kernel = get_kernel()

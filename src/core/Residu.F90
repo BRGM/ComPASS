@@ -413,6 +413,7 @@ contains
 
    !> \brief Reset residu for components which are not Ctilde
    !> \todo FIXME: Could be simpler if we multiply accumulations by a mask with 0 and 1 (MCP...)
+   ! Residu_clear_present_components_accumulation
    subroutine Residu_clear_absent_components_accumulation(ic, accumulations)
 
       integer, intent(in) :: ic ! context
@@ -432,7 +433,7 @@ contains
          icp = NumCompCtilde_ctx(i, ic)
          accumulations(icp) = copy(i)
       end do
-
+! Residu_clear_present_components_accumulation
    end subroutine Residu_clear_absent_components_accumulation
 
    !> \brief Compute AccVol for the present phase and component
@@ -445,6 +446,7 @@ contains
       ! Loop over all degrees of freedom (nodes, fractures, cells)
       do k = 1, size(IncAll)
          ic = IncAll(k)%ic
+         ! Residu_clear_present_components_accumulation
          call Residu_clear_absent_components_accumulation(ic, IncAll(k)%AccVol)
          do m = 1, NbPhasePresente_ctx(ic) ! Q_k
             mph = NumPhasePresente_ctx(m, ic)
