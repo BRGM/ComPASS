@@ -66,8 +66,8 @@ def on_vertical_boundaries(grid, epsilon=0):
 def on_any_boundary(grid, epsilon=0):
     return (
         lambda pts: on_vertical_boundaries(grid, epsilon)(pts)
-        | on_zmin(grid)(pts, epsilon)
-        | on_zmax(grid)(pts, epsilon)
+        | on_zmin(grid, epsilon)(pts)
+        | on_zmax(grid, epsilon)(pts)
     )
 
 
