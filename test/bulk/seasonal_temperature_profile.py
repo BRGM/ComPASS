@@ -52,7 +52,7 @@ def top_nodes():
 
 
 def set_node_flags():
-    simulation.global_nodeflags()[:] = np.asarray(top_nodes(), dtype=np.int)
+    simulation.global_nodeflags()[:] = np.asarray(top_nodes(), dtype=np.intc)
 
 
 simulation.init(

@@ -96,7 +96,7 @@ def select_dirichlet_nodes():
 
 def set_wells(n):
     toss = np.random.random(3 * n)
-    welltype = np.asarray(np.round(toss[:n], 0), dtype=np.int)
+    welltype = np.asarray(np.round(toss[:n], 0), dtype=np.intc)
     # print(welltype)
     xy = np.reshape(toss[n:], (n, 2))
     xy[:, 0] *= Lx

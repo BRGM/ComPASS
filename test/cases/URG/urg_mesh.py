@@ -12,7 +12,7 @@ Hull = urg.Hull
 
 def extract_data(filename):
     data = np.loadtxt(filename, skiprows=1, dtype=np.double)
-    index = np.asarray(data[:, 0], dtype=np.int)
+    index = np.asarray(data[:, 0], dtype=np.intc)
     return data[:, 1:], index
 
 

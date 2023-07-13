@@ -66,7 +66,7 @@ class DistributedSystem:
 
     @property
     def global_system_size(self):
-        local_size = np.array(self.local_system_size, dtype=np.int)
+        local_size = np.array(self.local_system_size, dtype=np.intc)
         global_size = np.zeros(local_size.shape, dtype=local_size.dtype)
         mpi.COMM_WORLD.Allreduce(local_size, global_size, mpi.SUM)
         return global_size[0], global_size[1]  # convert to tuple

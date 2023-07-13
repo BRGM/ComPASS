@@ -25,10 +25,10 @@ def extract_mesh(basename):
             dictionnary[property] = np.loadtxt(filename, dtype=dtype)
             # print('loaded', property, dictionnary[property].shape, 'for basename', basename)
 
-    collect("nodeflags", pointdata, np.int)
-    collect("cellflags", celldata, np.int)
+    collect("nodeflags", pointdata, np.intc)
+    collect("cellflags", celldata, np.intc)
     collect("facecenters", facedata, np.double)
-    collect("faceflags", facedata, np.int)
+    collect("faceflags", facedata, np.intc)
     vertices = np.loadtxt("nodes" + basename)
     # print('loaded', vertices.shape, 'vertices for basename', basename)
     cells = np.loadtxt("cells" + basename, dtype=np.uint64)

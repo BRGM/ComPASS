@@ -100,4 +100,4 @@ np.savez("mesh", vertices=vertices, cells=cells, reservoir=reservoir)
 
 elements = [MT.Wedge(MT.idarray(cell)) for cell in cells]
 mesh = MT.TetWedgeMesh.create(vertices, elements)
-MT.to_vtu(mesh, "mesh.vtu", celldata={"reservoir": reservoir.astype(np.int)})
+MT.to_vtu(mesh, "mesh.vtu", celldata={"reservoir": reservoir.astype(np.intc)})

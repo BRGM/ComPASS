@@ -72,7 +72,7 @@ def set_dirichlet_nodes():
     vtkw.write_vtu(
         vtkw.points_as_vtu_doc(
             vertices,
-            pointdata={"boundary": np.array(boundary, dtype=np.int)},
+            pointdata={"boundary": np.array(boundary, dtype=np.intc)},
         ),
         ComPASS.to_output_directory("boundary_vertices"),
     )
