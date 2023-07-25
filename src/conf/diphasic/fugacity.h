@@ -16,6 +16,6 @@ inline auto fugacity(const Components cp, const Phases ph, const double &p,
    Cph[enum_to_rank(Components::water)] = 1 - Cpha;
    FluidThermodynamics_fugacity(to_underlying(cp), to_underlying(ph), p, T, Cph,
                                 f, _, _, dfdC);
-   return std::make_tuple(
-       f, dfdC[enum_to_rank(Phases::gas)] - dfdC[enum_to_rank(Phases::liquid)]);
+   return std::make_tuple(f, dfdC[enum_to_rank(Components::air)] -
+                                 dfdC[enum_to_rank(Components::water)]);
 }
