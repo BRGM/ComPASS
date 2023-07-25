@@ -147,7 +147,7 @@ b. **You want to develop ComPASS**
   .. code-block:: bash
 
     cd ComPASS
-    pip install -e ComPASS
+    pip install -e .
 
   Now, you can start :ref:`using simulation scripts <Setting-up a simulation>`.
 

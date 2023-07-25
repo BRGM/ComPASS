@@ -84,7 +84,8 @@ def init(
     :param set_temperature_dirichlet_nodes: the ids of all nodes that hold constant temperature boundary conditions,
         or a mask over all nodes, or a function with no argument which constructs one of the previous lists.
     :param cell_heat_source: volumic thermal source term (will be multiplicated by the cell volume)
-        for each cell
+        for each cell. Can be a scalar or an array with as many elements as mesh cells, or a function with no argument
+        which constructs one of the previous elements.
 
     Petrophysical parameters are mandatory depending on the elements that are present (if there are no fractures,
     fracture properties are not mandatory).
