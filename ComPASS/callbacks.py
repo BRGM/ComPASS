@@ -5,6 +5,7 @@ import os
 from . import mpi
 import time
 import yaml
+import os, psutil
 
 
 class Flag:
@@ -111,6 +112,7 @@ class TimeloopLogCallback:
         self.last_timestep_start = now
         self.attempts = [{}]
         self.newton = newton
+        self.process = psutil.Process()
         os.makedirs(to_output_directory("time_step_log"), exist_ok=True)
         with open(to_output_directory("timeloop_log.yaml"), "w") as f:
             pass  # Clearing the file if it already exists
@@ -141,11 +143,13 @@ class TimeloopLogCallback:
                         sort_keys=False,
                     )
         now = time.time()
+        rss = self.process.memory_info().rss / 1024**2
         timestep_dict.update(
             {
                 "newton_iterations_per_attempt": newton_it,
                 "lsolver_iterations_per_newton": lsolver_it_attempt,
                 "success_dt": tick.latest_timestep,
+                "memory": rss,
                 "computation_time": now - self.last_timestep_start,
             }
         )
