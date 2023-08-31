@@ -17,6 +17,7 @@ from .linalg.factory import linear_solver
 from .linalg.exceptions import LinearSolverFailure
 from .callbacks import InterruptTrigger
 from .messages import error
+from .linalg import PETSc
 
 NewtonStatus = namedtuple("NewtonStatus", ["newton_iterations", "linear_iterations"])
 NewtonLoopTick = namedtuple(
@@ -167,6 +168,21 @@ class Newton:
         kernel.NN_flash_all_control_volumes()
 
     def loop(self, timeloop_tick, dt, display_contributions=False):
+        if PETSc.Sys.getVersion() >= (3, 18):
+            # PETSc garbage collection was introduced in version 3.18
+            # https://petsc.org/release/changes/318
+            # FIXME: Ideally, we should not call garbage collection by ourselves!
+            #        Yet, when using CPR-AMG preconditioner with Hypre
+            #        garbage collection is not managed correctly and memory
+            #        footprint increases until overflow
+            #        cf. issue https://gitlab.inria.fr/charms/ComPASS/-/issues/572.
+            #        The manual call to PETSC.garbage_cleanup() is a collective call
+            #        made once for each Newton loop.
+            #        Our assumption is that this is not too expensive
+            #        and currently protects us from potential overflows which do not
+            #        seem restricted to Hypre bindings
+            #        (e.g. https://gitlab.com/petsc/petsc/-/issues/1309).
+            PETSc.garbage_cleanup()
         kernel = get_kernel()
         convergence_scheme = self.convergence_scheme
         assert convergence_scheme is not None
