@@ -297,33 +297,77 @@ contains
    subroutine dump_jacobian(specific_row, specific_col)
 
       integer, optional, intent(in) :: specific_row, specific_col
-      integer :: i, j, s, n
-      double precision :: a
+      integer :: s, start
 
       do s = 1, NbNodeOwn_Ncpus(commRank + 1)
          if (present(specific_row)) then
             if (s /= specific_row) cycle
          endif
-         do n = JacBigA%Pt(s) + 1, JacBigA%Pt(s + 1)
-            if (present(specific_col)) then
-               if (JacBigA%Num(n) /= specific_col) cycle
-            endif
-            write (*, *) 'nodes', s, JacBigA%Num(n), 'nonzero', n, 'on proc', commRank
-            do j = 1, NbCompThermique
-               do i = 1, NbCompThermique
-                  a = JacBigA%Val(i, j, n)
-                  if (abs(a) <= 0.d0 .or. abs(a - 1.d0) < 1e-20) then
-                     write (*, "(I15)", advance="no") int(a)
-                  else
-                     write (*, "(E15.7)", advance="no") a
-                  end if
-               end do
-               write (*, *)
-            end do
-         end do
+         call dump_row(s, specific_col)
+      end do
+
+      start = NbNodeOwn_Ncpus(commRank + 1)
+      do s = 1, NbFracOwn_Ncpus(commRank + 1)
+         if (present(specific_row)) then
+            if (s + start /= specific_row) cycle
+         endif
+         call dump_row(s + start, specific_col)
+      end do
+
+      start = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1)
+      do s = 1, NbCellLocal_Ncpus(commRank + 1)
+         if (present(specific_row)) then
+            if (s + start /= specific_row) cycle
+         endif
+         call dump_row(s + start, specific_col)
+      end do
+
+      start = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1) &
+              + NbCellLocal_Ncpus(commRank + 1)
+      do s = 1, NbWellInjOwn_Ncpus(commRank + 1)
+         if (present(specific_row)) then
+            if (s + start /= specific_row) cycle
+         endif
+         call dump_row(s + start, specific_col)
+      end do
+
+      start = NbNodeOwn_Ncpus(commRank + 1) + NbFracOwn_Ncpus(commRank + 1) &
+              + NbCellLocal_Ncpus(commRank + 1) + NbWellInjOwn_Ncpus(commRank + 1)
+      do s = 1, NbWellProdOwn_Ncpus(commRank + 1)
+         if (present(specific_row)) then
+            if (s + start /= specific_row) cycle
+         endif
+         call dump_row(s + start, specific_col)
       end do
 
    end subroutine dump_jacobian
+
+   subroutine dump_row(s, specific_col)
+
+      integer, intent(in) :: s
+      integer, optional, intent(in) :: specific_col
+      integer :: i, j, n
+      double precision :: a
+
+      do n = JacBigA%Pt(s) + 1, JacBigA%Pt(s + 1)
+         if (present(specific_col)) then
+            if (JacBigA%Num(n) /= specific_col) cycle
+         endif
+         write (*, *) 'sites', s, JacBigA%Num(n), 'nonzero', n, 'on proc', commRank
+         do j = 1, NbCompThermique
+            do i = 1, NbCompThermique
+               a = JacBigA%Val(i, j, n)
+               if (abs(a) <= 0.d0 .or. abs(a - 1.d0) < 1e-20) then
+                  write (*, "(I15)", advance="no") int(a)
+               else
+                  write (*, "(E15.7)", advance="no") a
+               end if
+            end do
+            write (*, *)
+         end do
+      end do
+
+   end subroutine dump_row
 
    !> \brief Fill BigSm with the residual values
    !!
@@ -411,6 +455,9 @@ contains
       endif
 
       call Jacobian_JacBigA_BigSm_dirichlet_nodes
+
+      ! to print the jacobian, uncomment the following line
+      ! call dump_jacobian
 
    end subroutine Jacobian_JacBigA_BigSm
 
