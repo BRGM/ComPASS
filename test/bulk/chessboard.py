@@ -34,7 +34,7 @@ def chessboard(grid_shape, macro_grid, nbcols, loops_order):
 
 
 if __name__ == "__main__":
-    from MeshTools import vtkwriters as vtkw
+    # import vtkwriters as vtkw
 
     cb = chessboard(
         (30, 20, 6),
