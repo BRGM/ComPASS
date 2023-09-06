@@ -6,9 +6,17 @@
 
 #include <petsc/finclude/petscsys.h>
 #ifndef CMP_PETSC_CHECK
+#if defined(PETSC_HAVE_FORTRAN_FREE_LINE_LENGTH_NONE)
+#define CMP_PETSC_CHECK(ierr)      \
+   if (ierr /= 0) then;            \
+   call PetscErrorF(ierr, 0, "X"); \
+   return;                         \
+   endif
+#else
 #define CMP_PETSC_CHECK(ierr) \
    if (ierr /= 0) then;       \
    call PetscErrorF(ierr);    \
    return;                    \
    endif
+#endif
 #endif
