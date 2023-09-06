@@ -72,8 +72,7 @@ class CPRAMG(PETSc.PC):
         self.setOperators(A, A)
         self.setType(PETSc.PC.Type.COMPOSITE)
         self.setCompositeType(PETSc.PC.CompositeType.MULTIPLICATIVE)
-        PETSc_version = PETSc.Sys.getVersion()
-        if PETSc_version[0] >= 3 and PETSc_version[1] > 14:
+        if PETSc.Sys.getVersion() >= (3, 15):
             ## This function's name changed in version 3.15
             addCompositePCType = self.addCompositePCType
         else:
