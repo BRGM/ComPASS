@@ -19,7 +19,8 @@ module DefWell
       MPI_ADDRESS_KIND, &
       MPI_Abort
 
-   use mpi_f08, only: &
+   ! could also be `use petscmpi` in latest versions of PETSc
+   use petscsys, only: &
       MPI_Get_address
 
    use CommonType, only: CSR
