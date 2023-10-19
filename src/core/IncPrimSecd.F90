@@ -464,17 +464,18 @@ contains
       enddo
 
       ! SmdXs = dFsurdXs**(-1) * SmF
+      ! init SmdXs with SmF
+      do i = 1, cv_info%NbEqFermeture
+         SmdXs(i) = SmF(i)
+      end do
+      ! dgetrs solves A * x = B, where B is in/out, at the output B = x
       call dgetrs('N', cv_info%NbEqFermeture, 1, &
                   dFsurdX_secd, NbEqFermetureMax, &
-                  ipiv, SmF, NbEqFermetureMax, blas_info)
+                  ipiv, SmdXs, NbEqFermetureMax, blas_info)
       if (blas_info /= 0) then
          write (0, '(A,I0)') "dgetrs error in SmdXs, info = ", blas_info
          call MPI_Abort(ComPASS_COMM_WORLD, errcode, Ierr)
       end if
-
-      do i = 1, cv_info%NbEqFermeture
-         SmdXs(i) = SmF(i)
-      end do
 
    end subroutine IncPrimSecd_dXssurdXp_cv
 
