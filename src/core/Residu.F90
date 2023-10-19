@@ -43,7 +43,7 @@ module Residu
       NbPhase, NbComp, NbCompThermique, IndThermique, &
       LIQUID_PHASE, MCP, &
       NbEqEquilibreMax, NbIncTotalPrimMax, &
-      NbIncPTCMax, NbIncTotalMax, NbEqFermetureMax, &
+      NbIncPTCMax, NbIncTotalMax, &
       NbPhasePresente_ctx, NumPhasePresente_ctx
 #ifdef ComPASS_DIPHASIC_CONTEXT
    use DefModel, only: &
@@ -78,7 +78,7 @@ module Residu
    use NeumannContribution, only: NodeNeumannBC
 
    use NumbyContext, only: &
-      NbEqEquilibre_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx, &
+      NbEqFermeture_ctx, NumCompCtilde_ctx, NbCompCtilde_ctx, &
       NbIncPTC_ctx, &
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
 
@@ -1094,15 +1094,14 @@ contains
       real(c_double), dimension(:, :), intent(in) :: rhs
       real(c_double) :: norm
 
-      integer(c_int) :: i, k, ic, start
+      integer(c_int) :: i, k, ic
 
       norm = 0.d0
 
       do k = 1, n
          ic = X(k)%ic
-         start = NbPhasePresente_ctx(ic)
-         do i = 1, NbEqEquilibre_ctx(ic)
-            norm = norm + abs(rhs(start + i, k))
+         do i = 1, NbEqFermeture_ctx(ic)
+            norm = norm + abs(rhs(i, k))
          enddo
       enddo
 
