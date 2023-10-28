@@ -29,6 +29,7 @@ dependencies:
 - verstr
 - vtkwriters
 - sortedcontainers
+- psutil
 - pyyaml
 - pip:
   - git+https://github.com/BRGM/MeshTools.git
