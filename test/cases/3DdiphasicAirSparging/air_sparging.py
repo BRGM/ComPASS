@@ -176,7 +176,7 @@ if mpi.is_on_master_proc:
     print("zmax=", zmax, "zmin=", zmin)
 
     def select_dirichlet_nodes():
-        where = np.zeros(mesh.nb_vertices, dtype=np.bool)
+        where = np.zeros(mesh.nb_vertices, dtype=bool)
         where[TopNodes] = True
         # where[ExternNodes] = True
         return where

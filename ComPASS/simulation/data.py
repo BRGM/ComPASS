@@ -158,7 +158,7 @@ def set_fractures(faces):
 
 def set_Neumann_faces(faces, Neumann):
     faces = np.asarray(faces)
-    if faces.dtype == np.bool:
+    if faces.dtype == bool:
         faces = np.nonzero(faces)[0]
     # Fortran indexing starts at 1
     _sw.set_Neumann_faces(faces + 1, Neumann)

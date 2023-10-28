@@ -38,7 +38,7 @@ def test_simple_tetmesh():
 
     def select_dirichlet_nodes():
         print("Selecting", topnodes.shape[0], "top nodes.")
-        on_top = np.zeros(mesh.nb_vertices, dtype=np.bool)
+        on_top = np.zeros(mesh.nb_vertices, dtype=bool)
         on_top[topnodes] = True
         return on_top
 

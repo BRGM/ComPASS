@@ -153,7 +153,7 @@ def set_freeflow_faces(simulation, faces):
     faces = np.asarray(faces)
     assert faces.ndim == 1
     nf = simulation.number_of_faces()
-    if faces.dtype == np.bool:
+    if faces.dtype == bool:
         assert (
             faces.size == nf
         ), "There should be as many mask values as local mesh faces."

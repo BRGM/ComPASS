@@ -75,7 +75,7 @@ def select_global_cellflags():
 # def select_dirichlet_nodes():
 #    print('Selecting', top_nodes.shape[0], 'top nodes.')
 #
-#    dirichlet = np.zeros(mesh.nb_nodes(), dtype=np.bool)
+#    dirichlet = np.zeros(mesh.nb_nodes(), dtype=bool)
 #    dirichlet[top_nodes] = True
 #    dirichlet[bottom_nodes] = True
 #    return dirichlet

@@ -136,7 +136,7 @@ def write_mesh(simulation, basename, pointdata={}, celldata={}, ofmt="binary"):
         propdict = {k: np.ascontiguousarray(v) for k, v in propdict.items()}
         # vtkwriter does not handle arrays of boolean so we convert them to numpy.int8
         propdict = {
-            k: np.asarray(v, dtype=np.int8 if v.dtype == np.bool else v.dtype)
+            k: np.asarray(v, dtype=np.int8 if v.dtype == bool else v.dtype)
             for k, v in propdict.items()
         }
         return propdict

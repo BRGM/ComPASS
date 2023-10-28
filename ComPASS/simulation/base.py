@@ -120,7 +120,7 @@ def all_fracture_edges_tagged():
 
 
 def find_fracture_edges(faces):
-    if faces.dtype == np.bool:
+    if faces.dtype == bool:
         faces = np.nonzero(faces)[0]
     face_nodes = _sw.get_connectivity().NodebyFace
     # we do not want to store twice the same edge
@@ -346,7 +346,7 @@ def _set_property_on_global_mesh(property, location, value, fractures=None):
             property,
             location,
         )
-        if fractures.dtype == np.bool:
+        if fractures.dtype == bool:
             n = np.count_nonzero(fractures)
         else:
             assert fractures.ndim == 1

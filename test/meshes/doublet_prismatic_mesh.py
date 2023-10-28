@@ -94,7 +94,7 @@ nb_layers = 3 * 3
 vertices, cells = axis_extrusion(vertices, triangles, np.tile(thickness, nb_layers))
 nt = triangles.shape[0]
 assert cells.shape == (nb_layers * nt, 6)
-reservoir = np.zeros(cells.shape[0], dtype=np.bool)
+reservoir = np.zeros(cells.shape[0], dtype=bool)
 reservoir[nt : 2 * nt] = True
 np.savez("mesh", vertices=vertices, cells=cells, reservoir=reservoir)
 

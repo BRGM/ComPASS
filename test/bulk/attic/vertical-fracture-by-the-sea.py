@@ -72,7 +72,7 @@ def set_node_flags():
 
 
 def select_dirichlet_nodes():
-    dirichlet = np.zeros(mesh.nb_vertices(), dtype=np.bool)
+    dirichlet = np.zeros(mesh.nb_vertices(), dtype=bool)
     dirichlet[topo_nodes] = True
     dirichlet[bottom_nodes] = with_bottom_dirichlet_conditions
     return dirichlet
@@ -82,7 +82,7 @@ assert ComPASS.gravity() > 0
 
 
 def select_fractures():
-    where = np.zeros(mesh.nb_faces(), dtype=np.bool)
+    where = np.zeros(mesh.nb_faces(), dtype=bool)
     where[fault_faces_id] = with_fractures
     return where
 

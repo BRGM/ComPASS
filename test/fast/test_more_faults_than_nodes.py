@@ -55,7 +55,7 @@ def test_more_faults_than_nodes():
         return z == z.max()
 
     def select_fractures():
-        where = np.zeros(mesh.nb_faces, dtype=np.bool)
+        where = np.zeros(mesh.nb_faces, dtype=bool)
         centers = simulation.compute_global_face_centers()
         where = on_plane(centers)
         print(

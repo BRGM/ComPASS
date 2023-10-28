@@ -372,7 +372,7 @@ def close_perforations(simulation, wid, above=None, below=None):
     if below is not None:
         close_perfs(z <= float(below))
     if above is None and below is None:
-        close_perfs(np.ones(z.shape, dtype=np.bool))
+        close_perfs(np.ones(z.shape, dtype=bool))
 
 
 def set_well_model(simulation, well_model):

@@ -61,7 +61,7 @@ def get_boundary_vertices(connectivity):
     )
     vertices_id -= 1  # Fortran index...
     nbnodes = len(connectivity.CellbyNode)
-    res = np.zeros(nbnodes, dtype=np.bool)
+    res = np.zeros(nbnodes, dtype=bool)
     res[vertices_id] = True
     return res
 
@@ -74,7 +74,7 @@ def coordinates(a):
 def get_faces_nodes(connectivity, faces_selection):
     selection = np.asarray(faces_selection)
     assert selection.ndim == 1
-    if selection.dtype == np.bool:
+    if selection.dtype == bool:
         selection = np.nonzero(selection)[0]
     NodebyFace = connectivity.NodebyFace
     assert len(NodebyFace) > 0
