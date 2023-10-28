@@ -45,7 +45,7 @@ check format:
 
 conda pristine build:
   stage: build
-  image: continuumio/miniconda3:23.3.1-0-alpine
+  image: continuumio/miniconda3:23.5.2-0-alpine
   tags:
     - build
     - docker
