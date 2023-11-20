@@ -54,7 +54,6 @@ simulation.dirichlet_node_states().set(X0)
 
 # set a cell heat source close to source_pos
 source_pos = np.array([0.0, 0.0, -H / 2.0])
-# distance_from_source = np.linalg.norm(simulation.all_positions() - source_pos, axis=1)
 distance_from_source = np.linalg.norm(
     simulation.compute_cell_centers() - source_pos, axis=1
 )
@@ -78,10 +77,8 @@ simulation.standard_loop(
     final_time=final_time,
     newton=newton,
     initial_timestep=1 * day,
-    # time_step_manager=TimeStepManager(
-    #     1 * day, increase_factor=2.0, decrease_factor=0.1
-    # ),
     output_period=5 * year,
 )
+
 # prepare for paraview visu, convert temperature in celsius
 simulation.postprocess(convert_temperature=True)
