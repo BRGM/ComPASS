@@ -73,7 +73,7 @@ Step 2: Improve the script
 Step 3: Change the Physics
 ----------------------------
 
-* Change the physics from *water2ph* to *diphasic*. A small description of
+* Change the physics from *water2ph* to *diphasic*. A description of
   the disponible physics is in the :ref:`documentation<physics_section>` section.
 
 How many phases and components do we use now? Which context exist?

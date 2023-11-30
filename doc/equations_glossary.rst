@@ -109,6 +109,9 @@ Glossary and notations
   \hline
   \end{array}
 
+You can find informations about the default physical properties in the :ref:`physics section<physics_section>`.
+The default values depends on which physics you use.
+
 .. _water2ph_equations:
 
 .. warning::
@@ -128,7 +131,7 @@ Glossary and notations
   The energy balance equation remains the same because :math:`\rho^\alpha E^\alpha = \zeta^\alpha e^\alpha`
   and :math:`H^\alpha \rho^\alpha = h^\alpha \zeta^\alpha`.
 
-  To do so, the core of ComPASS stays identical and we define :math:`\zeta^\alpha = \rho^\alpha`, :math:`e^\alpha = E^\alpha`
+  To do so, the core of ComPASS remains identical and we define :math:`\zeta^\alpha = \rho^\alpha`, :math:`e^\alpha = E^\alpha`
   and :math:`h^\alpha = H^\alpha`, which is equivalent to consider that :math:`M_{H_2O}=1`
   (let us recall that :math:`C_{H_2O}^\alpha = 1` because there is only one component).
 
@@ -144,3 +147,260 @@ Glossary and notations
       Neumann.molar_flux[:] = Qm # one value by component in kg/m^2/s !
       face_centers = simulation.face_centers()
       simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
+
+
+.. _physics_section:
+Available physics
+-----------------
+
+Different physics are availables, it determines the number of phases and
+components and the matrix of presence of the components in the phases.
+It also comes with default physical properties (such as the phase densities, viscosities...).
+
+ * :ref:`linear_water<linear_water_section>`: **one phase** (by default liquid),
+   **one component** (by default water).
+ * :ref:`water2ph<water2ph_section>`: **two phases** (by default liquid and gas),
+   **one component** (by default water).
+ * :ref:`immiscible2ph<immiscible2ph_section>` : **two phases** (by default liquid and gas),
+   **two components** (by default water and air), only water in liquid phase
+   and air in gas phase.
+ * :ref:`diphasic<diphasic_section>`: **two phases** (by default liquid and gas),
+   **two components** (by default water and air), all components can be in all phases.
+
+
+For instructions to load the physics, refer to :ref:`this section<load_physics_section>`.
+
+After loading a physics, you can also :ref:`set your own physical properties<fluid physical properties>`.
+
+.. _linear_water_section:
+linear_water
+............
+
+This physics contains one phase (by default liquid),
+one component (by default water).
+
+.. The default physical properties are:
+
+.. _water2ph_section:
+water2ph
+........
+
+This physics contains two phases (by default liquid and gas),
+one component (by default water).
+
+.. warning::
+  In this physics, to solve the mass balance equation instead of the
+  molar balance equation, the molar and volumetric mass densities are considered equal,
+  and the water molar mass is set to 1.
+  For more informations, refer to :ref:`this paragraph<water2ph_equations>`.
+
+The default physical properties are:
+
+* gas molar and volumetric mass densities:
+
+.. math::
+
+    \begin{array}{ r l }
+        \zeta^g =& \rho^g  \\
+        M_{H_2O} =& 0.018016  \\
+        R =& 8.3145  \\
+        Z =& 1  \\
+        \rho^g =& {\mathbf{P^g} * M_{H_2O} \over{R * \mathbf{T} * Z}}
+    \end{array}
+
+* liquid molar and volumetric mass densities:
+
+.. math::
+
+    \begin{array}{ r l }
+      \zeta^l =& \rho^l  \\
+      rho_0 =& 780.83795  \\
+      a =& 1.6269192  \\
+      b =& -3.0635410e^{-3}  \\
+      a1 =& 2.4638e^{-9}  \\
+      a2 =& 1.1343e^{-17}  \\
+      b1 =& -1.2171e^{-11}  \\
+      b2 =& 4.8695e^{-20}  \\
+      c1 =& 1.8452e^{-14}  \\
+      c2 =& -5.9978e^{-23}  \\
+      T_{square} =& \mathbf{T}^2  \\
+      ss =& rho_0 + a * \mathbf{T} + b * T_{square}  \\
+      cw =& (
+          a1
+          + a2 * \mathbf{P^l}
+          + \mathbf{T} * (b1 + b2 * \mathbf{P^l})
+          + T_{square} * (c1 + c2 * \mathbf{P^l})
+      )  \\
+      psat =& 1e^{-3} * (\mathbf{T} - 273)^4  \\
+      p_{rel} =& \mathbf{P^l} - psat  \\
+      \rho^l =& ss * (1 + cw * p_{rel})  \\
+    \end{array}
+
+* components molar masses:
+
+.. math::
+
+  M_{H_2O} = 1
+
+* gas viscosity:
+
+.. math::
+
+  \mu^g = (0.361 * \mathbf{T} - 10.2) * 1.0e^{-7}
+
+* liquid viscosity:
+
+.. math::
+
+    \begin{array}{ r l }
+        Tref =& \mathbf{T} - 273 - 8.435  \\
+        b =& \sqrt{8078.4 + Tref^2}  \\
+        a =& 0.021482 * (Tref + b) - 1.2  \\
+        \mu^l =& 1.0e^{-3} / a  \\
+    \end{array}
+
+* gas molar enthalpy:
+
+.. math::
+
+    h^g = 1990.89e^3 + 190.16e^1 * \mathbf{T}
+
+
+* liquid molar enthalpy (pure liquid water molar enthalpy):
+
+.. math::
+
+    \begin{array}{ r l }
+        a =& -14.4319e^3 \\
+        b =& 4.70915e^3 \\
+        cc =& -4.87534 \\
+        d =& 1.45008e^{-2} \\
+        T_0 =& 273 \\
+        TdegC =& \mathbf{T} - T_0 \\
+        ss =& a + b * TdegC + cc * TdegC^{2} + d * TdegC^{3} \\
+        h^l =& M_{H_2O} * ss
+    \end{array}
+
+* saturation pressure:
+
+.. math::
+
+    psat = 1e^{-3} * (\mathbf{T} - 273)^4
+
+* relative permeabilities
+
+.. math::
+
+    kr^{\alpha} = \mathbf{S^\alpha}^2
+
+* the capillary pressure is null
+
+.. math::
+
+  \mathbf{P^g} = \mathbf{P^l}
+
+* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`)
+
+.. math::
+
+  \mathbf{P^g} = \mathbf{P^l}
+
+.. _immiscible2ph_section:
+immiscible2ph
+............
+
+This physics contains two phases (by default liquid and gas),
+two components (by default water and air), only water in liquid phase
+and air in gas phase.
+
+.. The default physical properties are:
+
+
+.. _diphasic_section:
+diphasic
+........
+
+This physics contains two phases (by default liquid and gas), two components
+(by default water and air), all components can be in all phases.
+
+The default physical properties are:
+
+* molar densities:
+
+.. math::
+
+    \begin{array}{ r l }
+        \zeta^l =& 1000 / 18e^{-3} \\
+        \zeta^g =& {\mathbf{P^g} \over{Rgp * \mathbf{T}}}
+    \end{array}
+
+* components molar masses:
+
+.. math::
+
+    \begin{array}{ r l }
+        M_{H_2O} =& 18e^{-3} \\
+        M_{air} =& 29e^{-3}
+    \end{array}
+
+* viscosities:
+
+.. math::
+
+    \begin{array}{ r l }
+        \mu^l =& 1e^{-3} \\
+        \mu^g =& 2e^{-5}
+    \end{array}
+
+* gas molar enthalpy:
+
+.. math::
+
+    \begin{array}{ r l }
+        a =& 1990.89e^3 \\
+        b =& 190.16e^3 \\
+        cc =& -1.91264e^3 \\
+        d =& 0.2997e^3 \\
+        Cp^g =& 1000 \\
+        T_s =& \mathbf{T} / 100 \\
+        ss =& a + b * T_s + cc * T_s^{2} + d * T_s^{3} \\
+        \beta_{air} =& Cp^g * M_{air} * ss \\
+        \beta_{H_2O} =& M_{H_2O} * \mathbf{T} \\
+        h^g =& \sum\limits_{i\in\mathcal{C}} \beta_i C_i^\alpha
+    \end{array}
+
+
+* liquid molar enthalpy (pure liquid water molar enthalpy):
+
+.. math::
+
+    \begin{array}{ r l }
+        a =& -14.4319e^3 \\
+        b =& 4.70915e^3 \\
+        cc =& -4.87534 \\
+        d =& 1.45008e^{-2} \\
+        T_0 =& 273 \\
+        TdegC =& \mathbf{T} - T_0 \\
+        ss =& a + b * TdegC + cc * TdegC^{2} + d * TdegC^{3} \\
+        h^l =& M_{H_2O} * ss
+    \end{array}
+
+* saturation pressure:
+
+.. math::
+
+    psat = 100 * \exp{(46.784 - 6435 / \mathbf{T} - 3.868 * \log(\mathbf{T}))}
+
+* relative permeabilities
+
+.. math::
+
+    kr^{\alpha} = \mathbf{S^\alpha}^2
+
+* the capillary pressure is null
+
+.. math::
+
+  \mathbf{P^g} = \mathbf{P^l}
+
+* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`)
