@@ -1,26 +1,48 @@
-.. _load_physics_section:
-
 Load the physics
 ================
 
-Different physics exist, it determines the number of phases and
-components and the matrix of presence of the components in the phases.
-It also comes with default physical properties (such as the phase densities, viscosities...).
+.. ifconfig:: versionlevel <= '4'
 
- * :ref:`linear_water<linear_water_section>`: **one phase** (by default liquid),
-   **one component** (by default water).
- * :ref:`water2ph<water2ph_section>`: **two phases** (by default liquid and gas),
-   **one component** (by default water).
- * :ref:`immiscible2ph<immiscible2ph_section>` : **two phases** (by default liquid and gas),
-   **two components** (by default water and air), only water in liquid phase
-   and air in gas phase.
- * :ref:`diphasic<diphasic_section>`: **two phases** (by default liquid and gas),
-   **two components** (by default water and air), all components can be in all phases.
+  .. include:: physics_summary_v4.rst
 
-Details about the physics (and their default physical properties) are in :ref:`this section <physics_section>`.
+.. ifconfig:: versionlevel > '4'
 
-.. code^{-b}lock:: python
+  .. include:: physics_summary_v5.rst
 
-    simulation = ComPASS.load_physics("linear_water")
+Details about the physics (and their default physical properties)
+are in :ref:`this section <Available physics>`.
 
-You can define your own physical properties, refer to :ref:`this section <fluid physical properties>`.
+To load the *diphasic* physics, use:
+
+.. ifconfig:: versionlevel <= '4'
+
+  .. code-block:: python
+
+      simulation = ComPASS.load_physics("diphasic")
+
+  After loading a physics, you can also
+  :ref:`set your own physical properties<Fluid properties>`.
+
+.. ifconfig:: versionlevel > '4'
+
+  .. code-block:: python
+
+      from compass_coats.models import Coats
+      model = Coats("diphasic")
+
+  You can change the phases, components, contexts names
+  to use them in your script and in the visualization.
+  **It does not modify the physical properties**, to do so refer to the
+  :ref:`the Fluid physical properties section<Fluid properties>`.
+
+  .. code-block:: python
+
+      model = Coats(
+        "diphasic",
+        # change name of components (only the name, no modif of physical prop!)
+        components=["water", "alkane"],
+        # change name of phases (only the name, no modif of physical prop!)
+        phases=["oil", "liquid"],
+        # change name of contexts
+        contexts=["oil", "diphasic", "liquid"],
+    )

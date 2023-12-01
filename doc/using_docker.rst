@@ -1,10 +1,11 @@
+.. meta::
+    :scope: version4
+
 Quick links:
 
-* :ref:`install docker<installation>`
-* :ref:`run ComPASS simulations<execute>`
+* :ref:`install docker<Install docker on your machine>`
+* :ref:`run ComPASS simulations<Execute ComPASS through docker>`
 * :ref:`develop ComPASS within a docker environment<using_compass_sdk_with_docker>`
-
-.. _installation:
 
 Install docker on your machine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -129,7 +130,6 @@ On MacOS
 Follow the instructions available
 on the official `docker website <https://docs.docker.com/desktop/mac/install/>`_.
 
-.. _execute:
 
 Execute ComPASS through docker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,4 +1,5 @@
-.. _example_scripts:
+.. meta::
+    :scope: version4
 
 ===============
 Example scripts

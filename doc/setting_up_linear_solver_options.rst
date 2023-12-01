@@ -10,7 +10,7 @@ or direct ones (for small matrix sizes or when iterative solvers do not converge
 By default the linear system is solved using the GMRES procedure
 with the :ref:`CPR-AMG <cpramg>` preconditioner.
 
-You can specify the :ref:`linear solver <linear_solvers>` options
+You can specify the :ref:`linear solver <Linear solvers>` options
 with command line options or from the script.
 
 Command line options
@@ -30,7 +30,7 @@ a Petsc direct solver and display a short view:
    :language: python
    :linenos:
 
-More informations can be found :ref:`here <linear_solvers>`.
+More informations can be found :ref:`here <Linear solvers>`.
 
 Download file:
 :download:`doublet_from_options.py <../test/linalg/doublet_from_options.py>`
@@ -48,7 +48,7 @@ In this case you can execute the file as usual
    :language: python
    :linenos:
 
-See the :ref:`linear solver section <linear_solvers>` for more details.
+See the :ref:`linear solver section <Linear solvers>` for more details.
 
 Download file:
 :download:`direct_solving.py <../test/linalg/direct_solving.py>`

@@ -1,69 +1,60 @@
-.. _setting_up_linear_solver:
+.. meta::
+    :scope: version5
 
 Setting up linear solver options
 ================================
 
-The way of solving the linear system :math:`Ax=b` is a crucial step of the ComPASS code.
-ComPASS can use two types of solvers,
+The way of solving the linear system :math:`Ax=b` is a
+crucial step of the ComPASS code.
+ComPASS can use two types of PETSc solvers,
 iterative solvers together with a preconditioner,
-or direct ones (for small matrix sizes or when iterative solvers do not converge).
+or direct ones (for small matrix sizes or
+when iterative solvers do not converge).
 By default the linear system is solved using the GMRES procedure
 with the :ref:`CPR-AMG <cpramg>` preconditioner.
+If PETSc is not available in the Loaf software brick,
+the direct Eigen solver is used instead.
 
-You can specify the :ref:`linear solver <linear_solvers>` options
-with :ref:`command line options <command_line_options>` or from the script.
+By default the iterative PETSc solver is used in the
+:code:`compass-coats.Standard_time_loop` class.
+It has default value for the tolerance, the maximum number of iterations...
 
+It is possible:
 
-Precise the linear solver options in your script
-------------------------------------------------
+* to precise to use the direct solver at the creation of the instance of
+  the :code:`Standard_time_loop` class
 
-In this case, create a `linear_solver` object with the option `direct=True`
-and give it to the Newton object. The linear solver is an option of the Newtown loop.
-Then precise the Newton in the :func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>`.
+  .. code-block:: python
 
-.. code-block:: python
+        time_loop = Standard_time_loop(
+            geom=geom,
+            model=model,
+            scheme=scheme,
+            data=data,
+            output_dir=visu_dir,
+            direct_solver=True,
+        )
 
-    from ComPASS.linalg.factory import linear_solver
-    from ComPASS.newton import Newton
+* or to give your own solver at the creation of the instance
+  of the :code:`Standard_time_loop` class
 
-    lsolver = linear_solver(simulation, direct=True)
-    newton = Newton(simulation, 1e-5, 8, lsolver)
+  .. code-block:: python
 
-    simulation.standard_loop(
-        ...
-        newton=newton,
-        ...
-    )
+        from loaf.eigen_solver import EigenSolver
+        time_loop = Standard_time_loop(
+            geom=geom,
+            model=model,
+            scheme=scheme,
+            data=data,
+            output_dir=visu_dir,
+            solver=EigenSolver(),
+        )
 
+.. * or to change the value of the iterative solver coefficients,
 
-Command line options
---------------------
+..   .. code-block:: python
 
-This uses the `inept paquage <https://pypi.org/project/inept/>`_.
+..     time_loop.loop.timestepper.step_solver.linear_solver
 
-Precise in your script that the linear solver will be set from command line options:
-
-.. code-block:: python
-
-    from ComPASS.linalg.factory import inept_linear_solver
-
-    command_line_lsolver = inept_linear_solver(simulation)
-    newton = Newton(simulation, 1e-5, 8, command_line_lsolver)
-
-    simulation.standard_loop(
-        ...
-        newton=newton,
-        ...
-    )
-
-
-You can define :ref:`various options <command_line_options>` when running your script,
-for example the following runs with
-a Petsc direct linear solver and displays a short view:
-
-.. code:: python
-
-    python3 my_script.py --lsolver.new.direct True --lsolver.view True
-
-
-For more details, refer to the :ref:`linear solver section <linear_solvers>`.
+.. TODO v5
+.. For more details, refer to the :ref:`linear solver section <Linear solvers>`.

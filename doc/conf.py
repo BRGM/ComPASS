@@ -46,9 +46,11 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
+    "sphinx.ext.ifconfig",
     "recommonmark",  # for MarkDown
     "sphinx_revealjs",
     "sphinxcontrib.tikz",  # tikz pictures
+    "scope",  #  to use meta and scope directive (skip file sometimes)
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -66,6 +68,11 @@ exclude_patterns = [
     "training/meshes",
     "README.txt",
 ]
+
+# to use custom config in .. ifconfig
+def setup(app):
+    app.add_config_value("versionlevel", "4", "env")
+
 
 # -- Options for reveal.js output --------------------------------------------
 # sphinx-build -M revealjs . .

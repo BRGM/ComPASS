@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 Tutorial
 ========
 
@@ -61,12 +64,12 @@ Step 2: Improve the script
 
 * Remove the :code:`set_initial_states` function to use the build-in
   method :code:`simulation.build_state()`
-  An example is in the :ref:`setting-initial-values` section. Don't forget to set the Dirichlet nodes,
+  An example is in the :ref:`Setting up initial values` section. Don't forget to set the Dirichlet nodes,
   they are not contained in :code:`simulation.all_states()`. Indeed, :code:`simulation.all_states()`
   contains all the states needed to initialize the VAG sites : the nodes, the cells
   and the fracture faces if any, but it does not depends on the boundary conditions.
 
-* Transform the bottom boundary into a :ref:`Neumann BC<neumann_faces_bc>` with
+* Transform the bottom boundary into a :ref:`Neumann BC<Neumann faces>` with
   heat flux only (bottom_heat_flux = :math:`0.08  W.m^{-2}`).
 
 
@@ -74,7 +77,7 @@ Step 3: Change the Physics
 ----------------------------
 
 * Change the physics from *water2ph* to *diphasic*. A description of
-  the disponible physics is in the :ref:`documentation<physics_section>` section.
+  the disponible physics is in the :ref:`documentation<Available physics>` section.
 
 How many phases and components do we use now? Which context exist?
 Which differences in the output in the terminal compared to previously?
@@ -83,7 +86,7 @@ Which differences in the output in the terminal compared to previously?
 
 * Initialize the domain with hydrostatic pressure :
   p = p0 + rho * gravity * (zTop - z), with rho = 1e3.
-  A very similar example is done in the :ref:`setting-initial-values` section.
+  A very similar example is done in the :ref:`Setting up initial values` section.
 
 * Change the top boundary condition to impose a Dirichlet diphasic state with
   Sg = 0.5 at p0 and T0. You can add :code:`Sg=0.5` in :code:`simulation.build_state`.
@@ -104,7 +107,7 @@ Step 4: Van Genuchten capillary pressure and relative permeabilities
   the relative permeabilities are in ./tutorial/data/van_genuchten_kr.py
 
 * Add a van Genuchten capillary pressure and the corresponding relative permeabilities
-  (some :ref:`documentation<pc_kr>`).
+  (some :ref:`documentation<Capillary pressure and relative permeabilities>`).
   To avoid lots of time step failures,
   you might change the initial_timestep and the increase_factor.
 
@@ -117,7 +120,7 @@ Step 4: Van Genuchten capillary pressure and relative permeabilities
   (because it calls the phase pressure function).
 
 
-* Set the cell :ref:`rocktypes<setting_rocktypes>` : the top half of the mesh has a rocktype = 1 (COX),
+* Set the cell :ref:`rocktypes<Rocktypes>` : the top half of the mesh has a rocktype = 1 (COX),
   elsewhere rocktype = 2 (CCT) (these two rocktypes values are
   implemented in the van Genuchten Pc and kr).
   You may need the :func:`simulation.compute_global_cell_centers()` method to get the
@@ -148,7 +151,7 @@ Step 5: Add a vertical fracture
   of all the face centers.
 
 * Change the Neumann boundary condition at the bottom to apply a
-  :ref:`Neumann flux at the fracture edges<frac_edges_bc>` only.
+  :ref:`Neumann flux at the fracture edges<Neumann fracture edges>` only.
   Apply a molar flux of :math:`0.1 mol.m^{-2}.s^{-1}` on the water component
   (the water component is the second one) and the corresponding heat flux
   using the :func:`simulation.liquid_molar_enthalpy()` function. In the diphasic
@@ -159,7 +162,7 @@ Step 5: Add a vertical fracture
   Does the Newton algorithm converge? Why?
 
 * To obtain the convegence, you need to change the maximum number of iterations of the
-  :ref:`Newton algorithm<setting_newton>`
+  :ref:`Newton algorithm<Setting up the Newton options>`
   using the :func:`Newton` function
   from :code:`ComPASS.newton`.
 
@@ -175,14 +178,15 @@ Step 6: Atmospheric boundary condition
 
 * Change the top boundary condition: the top nodes with coordinates x <= 0
   remains Dirichlet BC (with Sg=0.5, p=p0, T=T0),
-  the top faces with face center coordinates x >= 0 becomes :ref:`atmospheric BC<atmBC>`.
+  the top faces with face center coordinates x >= 0 becomes
+  :ref:`atmospheric BC<Atmospheric boundary condition>`.
   Initialize the porous media **nodes** where the atmospheric BC is imposed
   with Sg=0.5, p=p0 and T=T0,
   it corresponds to the :code:`simulation.Context.diphasic_FF_no_liq_outflow`
   context.
 
 * Modify the far-field value of the
-  :ref:`atmospheric boundary condition<far_field_atmBC>`
+  :ref:`atmospheric boundary condition<Change the far-field values>`
   to set the temperature to 20C.
 
 * What happends if you add the capillary pressure and
@@ -219,5 +223,5 @@ Step 6: Atmospheric boundary condition
   with a specific state to reach an equilibrium, then to adapt or change
   some parameters and run the complex execution.
   In such a case, you can also :ref:`reload any previous simulation state
-  <setting-initial-values>`
+  <Setting up initial values>`
   from an output directory using the :func:`simulation.reload_snapshot` method.

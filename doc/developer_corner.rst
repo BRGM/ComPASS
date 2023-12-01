@@ -1,5 +1,3 @@
-.. _developer's corner:
-
 ==================
 Developer's corner
 ==================

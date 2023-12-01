@@ -7,8 +7,11 @@ ComPASS |version|
    :caption: Contents:
 
    introduction
+   installation_v4
+   installation_v5
    equations_glossary
-   setting_simulation
+   setting_simulation_v4
+   setting_simulation_v5
    examples
    tutorial
    training/ComPASS_initiation

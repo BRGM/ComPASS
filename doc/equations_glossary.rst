@@ -109,7 +109,7 @@ Glossary and notations
   \hline
   \end{array}
 
-You can find informations about the default physical properties in the :ref:`physics section<physics_section>`.
+You can find informations about the default physical properties in the :ref:`physics section<Available physics>`.
 The default values depends on which physics you use.
 
 .. _water2ph_equations:
@@ -136,7 +136,7 @@ The default values depends on which physics you use.
   (let us recall that :math:`C_{H_2O}^\alpha = 1` because there is only one component).
 
   **Careful**: this can have an impact on the set-up of the simulation, especially when setting a
-  :ref:`Neumann boundary flux<neumann_faces_bc>`.
+  :ref:`Neumann boundary flux<Neumann faces>`.
   Keep in mind that, when using the *water2ph* physics, you need to give the mass flux instead of the molar flux (:math:`M_{H_2O}=1`)
   using the :code:`ComPASS.NeumannBC().molar_flux` object.
 
@@ -149,39 +149,31 @@ The default values depends on which physics you use.
       simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
 
 
-.. _physics_section:
 Available physics
 -----------------
 
-Different physics are availables, it determines the number of phases and
-components and the matrix of presence of the components in the phases.
-It also comes with default physical properties (such as the phase densities, viscosities...).
+.. ifconfig:: versionlevel <= '4'
 
- * :ref:`linear_water<linear_water_section>`: **one phase** (by default liquid),
-   **one component** (by default water).
- * :ref:`water2ph<water2ph_section>`: **two phases** (by default liquid and gas),
-   **one component** (by default water).
- * :ref:`immiscible2ph<immiscible2ph_section>` : **two phases** (by default liquid and gas),
-   **two components** (by default water and air), only water in liquid phase
-   and air in gas phase.
- * :ref:`diphasic<diphasic_section>`: **two phases** (by default liquid and gas),
-   **two components** (by default water and air), all components can be in all phases.
+  .. include:: physics_summary_v4.rst
 
+.. ifconfig:: versionlevel > '4'
 
-For instructions to load the physics, refer to :ref:`this section<load_physics_section>`.
+  .. include:: physics_summary_v5.rst
 
-After loading a physics, you can also :ref:`set your own physical properties<fluid physical properties>`.
+For instructions to load the physics,
+refer to :ref:`this section<Load the physics>`.
 
-.. _linear_water_section:
-linear_water
-............
+After loading a physics, you can also
+:ref:`set your own physical properties<Fluid physical properties>`.
 
-This physics contains one phase (by default liquid),
-one component (by default water).
+.. ifconfig:: versionlevel <= '4'
 
-.. The default physical properties are:
+  .. include:: linear_water.rst
 
-.. _water2ph_section:
+.. ifconfig:: versionlevel > '4'
+
+  .. include:: pure.rst
+
 water2ph
 ........
 
@@ -194,7 +186,7 @@ one component (by default water).
   and the water molar mass is set to 1.
   For more informations, refer to :ref:`this paragraph<water2ph_equations>`.
 
-The default physical properties are:
+The default physical properties are
 
 * gas molar and volumetric mass densities:
 
@@ -287,25 +279,21 @@ The default physical properties are:
 
     psat = 1e^{-3} * (\mathbf{T} - 273)^4
 
-* relative permeabilities
+* relative permeabilities:
 
 .. math::
 
     kr^{\alpha} = \mathbf{S^\alpha}^2
 
-* the capillary pressure is null
+* the capillary pressure is null:
 
 .. math::
 
   \mathbf{P^g} = \mathbf{P^l}
 
-* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`)
+* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`).
 
-.. math::
 
-  \mathbf{P^g} = \mathbf{P^l}
-
-.. _immiscible2ph_section:
 immiscible2ph
 ............
 
@@ -313,17 +301,21 @@ This physics contains two phases (by default liquid and gas),
 two components (by default water and air), only water in liquid phase
 and air in gas phase.
 
-.. The default physical properties are:
+.. ifconfig:: versionlevel > '4'
+
+  This physics is not implemented yet in ComPASS v5.
 
 
-.. _diphasic_section:
+.. The default physical properties are
+
+
 diphasic
 ........
 
 This physics contains two phases (by default liquid and gas), two components
 (by default water and air), all components can be in all phases.
 
-The default physical properties are:
+The default physical properties are
 
 * molar densities:
 
@@ -391,16 +383,16 @@ The default physical properties are:
 
     psat = 100 * \exp{(46.784 - 6435 / \mathbf{T} - 3.868 * \log(\mathbf{T}))}
 
-* relative permeabilities
+* relative permeabilities:
 
 .. math::
 
     kr^{\alpha} = \mathbf{S^\alpha}^2
 
-* the capillary pressure is null
+* the capillary pressure is null:
 
 .. math::
 
   \mathbf{P^g} = \mathbf{P^l}
 
-* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`)
+* the rock volumetric heat capacity is :math:`1.6e^6` (:math:`800 * 2000 \,\, J/m^3`).

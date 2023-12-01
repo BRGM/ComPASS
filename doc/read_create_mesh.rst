@@ -1,55 +1,94 @@
-.. _setting_up_mesh:
+.. meta::
+    :scope: version5
 
 Import or create a mesh
 =======================
 
 The present section gives information on how to generate or import a mesh in ComPASS.
-The mesh is a key input of the :func:`simulation.init <ComPASS.simulation.base.init>` method.
-It is possible to dump the global mesh before partitioning and properties distribution using
-the keyword :code:`dump_mesh_before_distribution` which defaults to :code:`False`.
+It is currently possible to generate 3D cartesian meshes using the
+`icmesh <https://gitlab.com/compass/compass-v5/icmesh>`_ software brick
+which creates the mesh and the
+`geom-traits <https://gitlab.com/compass/compass-v5/geom-traits>`_ brick
+which completes the mesh with geometry utilities.
 
 
-Creating a Cartesian Mesh
--------------------------
+Creating a regular Cartesian Mesh
+---------------------------------
 
-It is possible to create a cartesian uniform mesh using the :code:`Grid` from the :code:`ComPASS.Grid` module.
-Many scripts uses this grid generator, for example :download:`linear_vertical_column.py <../test/bulk/linear_vertical_column.py>`.
+Create a cartesian mesh with uniform cells size
+in the *x*, *y*, and *z* directions.
 
-Creating an extruded sector
----------------------------
-The command :code:`extruded_sector` meshes an horizontal angular sector and extrudes it in 3D.
-It is in the :code:`ComPASS.utils.angular_sector` module and it relies on MeshTools functions.
+.. code-block:: python
 
-Example: :download:`MO1.py <../test/baseline/MO1/MO1.py>`
+    from icmesh import regular_mesh
+    Nx = 1; Ny = 5; Nz = 64  # number of cells
+    Lx = 1.0; Ly = 3.0; Lz = 320.0  # cell lengths (in m)
+    Ox = 0.0; Oy = -3.0; Oz = 10.0  # origin position (in m)
 
-
-Using Salome
-------------
-
-
-Using MeshTools
----------------
-
-Several io functions are available from the MeshTools package and a MeshTools object can be
-passed as mesh to the :func:`simulation.init <ComPASS.simulation.base.init>` method.
+    # origin is optional: (0,0,0) by default
+    the_mesh = regular_mesh((Nx, Ny, Nz), extent=(Lx, Ly, Lz), origin=(Ox, Oy, Oz))
 
 
-Using Petrel/Eclipse grid format
---------------------------------
+Creating a Scottish Cartesian Mesh
+----------------------------------
 
-A faulted Petrel grid can be import and remeshed using CGAL under the hood using the :code:`PetrelGrid` from the :code:`ComPASS.utils.petrel` module.
-The faces of the Petrel cells are split on their discontinuities to keep the number of cells constant (faster computation).
-The permeability tensors are extracted from the Petrel file using the :code:`PetrelGrid.permeability` property.
+Create a cartesian mesh with non-constant cells size.
+:code:`icmesh.scottish_mesh` takes the cell lengths array
+in each direction.
 
-More information and examples in the :ref:`example scripts section<eclipse_grid>`.
+.. code-block:: python
 
-Fractures
----------
-The fractures are objects of codimension 1, they are defined as a set of faces.
-The geometry of the fractures is given with the keyword :code:`fracture_faces` in :func:`simulation.init <ComPASS.simulation.base.init>`.
-It can be a list of face indexes, or a mask over the faces.
+    from icmesh import scottish_mesh
 
-Wells
------
-Each well consists in a set of edges of the mesh. A list of well objects containing the geometry is passed via the keyword :code:`wells` in :func:`simulation.init <ComPASS.simulation.base.init>`.
-More information in the :ref:`wells section<wells_introduction>`.
+    def scottish_step(N, L):
+        factor = 2 * L / N / (N + 1)
+        return np.array([factor * (i + 1) for i in range(N)])
+
+    Nx = 1; Ny = 5; Nz = 64  # number of cells
+    Lx = 1.0; Ly = 3.0; Lz = 320.0  # cell lengths (in m)
+    Ox = 0.0; Oy = -3.0; Oz = 10.0  # origin position (in m)
+
+    # origin is optional: (0,0,0) by default
+    the_mesh = scottish_mesh(
+        scottish_step(Nx, Lx), scottish_step(Ny, Ly), scottish_step(Nz, Lz),
+        origin=(Ox, Oy, Oz),
+    )
+
+
+Visualize the mesh
+------------------
+
+The visualization of the mesh in Paraview is facilitated using
+:code:`icmesh.dump.dump_vtu_3d(the_mesh, "visu_file.vtu")`
+which creates the vtu corresponding file.
+You can add values carried by the mesh elements using *pointdata*,
+*celldata* and/or *fielddata* such as:
+
+.. code-block:: python
+
+    from icmesh.dump import dump_vtu_3d
+    assert len(rdomain) == len(the_mesh.cells)
+    dump_vtu_3d(the_mesh, "visu_file.vtu", celldata={"domain": rdomain})
+
+
+Add geometry utilities
+----------------------
+
+When loading a mesh for a whole simulation, it is necessary to add
+geometry considerations using the
+`geom-traits <https://gitlab.com/compass/compass-v5/geom-traits>`_ compass
+software:
+
+.. code-block:: python
+
+    from icmesh import regular_mesh
+    from geom_traits import GeomProperties
+    Nx = 1; Ny = 5; Nz = 64  # number of cells
+    Lx = 1.0; Ly = 3.0; Lz = 320.0  # cell lengths (in m)
+
+    geom = GeomProperties(regular_mesh((Nx, Ny, Nz), extent=(Lx, Ly, Lz)))
+    # the mesh is accessible through geom.mesh
+    dump_vtu_3d(geom.mesh, "visu_file.vtu")
+    # access mesh geometry utilities, for example
+    cell_centers = geom.cell_centers
+    cell_measures = geom.cell_measures

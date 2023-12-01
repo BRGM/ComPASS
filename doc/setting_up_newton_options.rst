@@ -1,31 +1,23 @@
-.. _setting_newton:
+.. meta::
+    :scope: version5
 
-Setting up the Newton algorithm options
-=======================================
+Setting up the Newton options
+=============================
 
 It is often necessary to adapt the Newton algorithm parameters to obtain the
-convergence of the Newton algorithm. The arguments must be the simulation object,
-the tolerance applied to consider the convergence, the maximum number of iterations
-and a linear solver object (:code:`simulation.linear_solver()` provides the default one).
-Refer to :ref:`this section<linear_solvers_script>` to modify the linear solver options.
-If the maximum number of iterations is achieved, the Newton algorithm has failed and
-the time loop may decide to try with a smaller time step.
+convergence of the Newton algorithm. Those parameters are
+the tolerance applied to consider the convergence, and
+the maximum number of iterations.
 
 .. code-block:: python
 
-    from ComPASS.newton import Newton
-    ....
-    newton = Newton(simulation, 1e-6, 20, simulation.linear_solver())
+    # Newton options
+    time_loop.loop.timestepper.step_solver.tolerance = 1e-6
+    time_loop.loop.timestepper.step_solver.maxiter = 25
 
-Then give it to the time loop as follows:
-
-.. code-block:: python
-
-    simulation.standard_loop(
-        ...,
-        newton=newton,
-        ...,
-    )
+If the maximum number of iterations is reached, the Newton algorithm
+has failed and the time loop may continue with a smaller time step
+depending on the :ref:`time-step manager <Setting up the time-step manager>`.
 
 .. warning::
 

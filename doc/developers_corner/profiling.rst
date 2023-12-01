@@ -4,42 +4,91 @@ Profiling
 You can easily profile sequential test using the `built-in python profiler
 <https://docs.python.org/3/library/profile.html>`_
 
-Supposing that you have a script that has a timeloop relying on the `standard_loop`
-function from the `timeloops` module.
+Supposing that you have a script that has a timeloop relying
+on the `Standard_time_loop` function from the `compass-coats` module.
 
-.. code-block:: python
+.. ifconfig:: versionlevel <= '4'
 
-    import ComPASS
-    from ComPASS.timeloops import standard_loop
+    .. code-block:: python
 
-    simulation = ComPASS.load_physics('water2ph')
+        import ComPASS
+        from ComPASS.timeloops import standard_loop
+        simulation = ComPASS.load_physics('water2ph')
+        # init your simulation here...
+        standard_loop(simulation, some parameters here...)
 
-    # init your simulation here...
+.. ifconfig:: versionlevel > '4'
 
-    standard_loop(simulation, some parameters here...)
+    .. code-block:: python
 
-You can easily profile only the standard_loop wrapping it with a few lines of codes:
+        from compass_coats.models import Coats
+        from compass_coats.standard_time_loop import Standard_time_loop
+        model = Coats("diphasic")
+        # init your simulation here...
+        time_loop = Standard_time_loop(
+            geom=geom,
+            model=model,
+            scheme=scheme,
+            data=data,
+        )
+        time_loop.run(
+            initial_step=dt,
+            final_time=final_time,
+        )
 
-.. code-block:: python
+You can easily profile only the :code:`time_loop.run` wrapping it
+with a few lines of codes:
 
-    import ComPASS
-    from ComPASS.timeloops import standard_loop
-    from ComPASS import mpi # to access mpi.proc_rank
+.. ifconfig:: versionlevel <= '4'
 
-    simulation = ComPASS.load_physics('water2ph')
+    .. code-block:: python
 
-    # init your simulation here...
+        import ComPASS
+        from ComPASS.timeloops import standard_loop
 
-    import cProfile
-    import ComPASS.mpi as mpi
+        simulation = ComPASS.load_physics('water2ph')
 
-    pr = cProfile.Profile()
-    pr.enable()
+        # init your simulation here...
 
-    standard_loop(simulation, some parameters here...)
+        import cProfile
+        import ComPASS.mpi as mpi  # to access mpi.proc_rank
 
-    pr.disable()
-    pr.dump_stats(f"timeloop-proc{mpi.proc_rank:05d}.profile")
+        pr = cProfile.Profile()
+        pr.enable()
+
+        standard_loop(simulation, some parameters here...)
+
+        pr.disable()
+        pr.dump_stats(f"timeloop-proc{mpi.proc_rank:05d}.profile")
+
+.. ifconfig:: versionlevel > '4'
+
+    .. code-block:: python
+
+        from compass_coats.models import Coats
+        from compass_coats.standard_time_loop import Standard_time_loop
+        model = Coats("diphasic")
+        # init your simulation here...
+        time_loop = Standard_time_loop(
+            geom=geom,
+            model=model,
+            scheme=scheme,
+            data=data,
+        )
+
+        import cProfile
+        from compass_utils import mpi  # to access mpi.proc_rank
+
+        pr = cProfile.Profile()
+        pr.enable()
+
+        time_loop.run(
+            initial_step=dt,
+            final_time=final_time,
+        )
+
+        pr.disable()
+        pr.dump_stats(f"timeloop-proc{mpi.proc_rank:05d}.profile")
 
 
 Then you can use graphics tools to explore profiling results, such as:

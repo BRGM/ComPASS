@@ -1,6 +1,4 @@
-.. _ex-setting-initial-values:
-
-Setting up initial values
+Setting up initial inputs
 =========================
 
 This script shows several ways to initialize physical values before

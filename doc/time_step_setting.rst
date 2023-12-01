@@ -1,33 +1,59 @@
-Setting up the time-step options
+.. meta::
+    :scope: version5
+
+Setting up the time-step manager
 ================================
 
-It is usually useful to manage the time-step such as the initial time-step,
-the maximum time-step or the increase (resp. decrease) factor if the time step is
-successful (resp. has failed).
-The :code:`ComPASS.timestep_management` method gathers these constants as follows:
+It is usually useful to manage the generation of the time-step :math:`dt`.
+
+Two time-step managers are availables, one with a fixed time step
+and an adaptative one. If necessary you can implement you own.
+
+Dynamic time-step manager
+-------------------------
+
+It is the default time-step manager. There is an *initial_step*; when
+the time iteration succeeds, the time step increases by the factor
+*increase_factor*; if the time step fails (no convergence of the linear
+system solver), it is reduced by the factor *decrease_factor*.
+
+It is possible to adapt the coefficients as follows
 
 .. code-block:: python
 
-    from ComPASS.timeloops import TimeStepManager
-    ...
+    time_loop.loop.timestep_manager.increase_factor = 1.5
+    time_loop.loop.timestep_manager.decrease_factor = 0.5
+    time_loop.loop.timestep_manager.minimum_step = 100  # seconds
 
-    tsmger = TimeStepManager(
-        initial_timestep=1 * year,
-        minimum_timestep=1e-1, # in s
-        maximum_timestep=50.0 * year,
-        increase_factor=2.0, # dt^{n+1} = increase_factor * dt^{n} if success
-        decrease_factor=0.2, # dt^{n+1} = decrease_factor * dt^{n} if failure
-        ...,
-    )
+The time steps are also modified to reach the output times and the final time.
 
-This object is then given to the time loop
-:func:`simulation.standard_loop <ComPASS.timeloops.standard_loop>` function
-with the keyword :code:`time_step_manager`.
+Fixed time-step manager
+-----------------------
+
+It generates constant time steps, except to reach
+the output times and the final time.
+
+Then the fixed time-step manager cannot try an other step if the linear system
+solver fails to converge.
+
+In time_loop.run
+----------------
+
+You can modify some options in :code:`time_loop.run`:
+
+* *fixed_step*: the time-step manager
+  is changed into the :ref:`fixed time-step manager<Fixed time-step manager>`.
+
+* *initial_step*: updates the initial step of the
+  :ref:`dynamic time-step manager<Dynamic time-step manager>`.
+  It is particularily useful
+  when running several times :code:`time_loop.run` to ease the first
+  time step convergence.
 
 .. code-block:: python
 
-    simulation.standard_loop(
-        ...,
-        time_step_manager=tsmger,
-        ...,
-    )
+   solution, tick = time_loop.run(
+      fixed_step=0.1 * year,
+      final_time=10 * year,
+      output_every=10,
+   )

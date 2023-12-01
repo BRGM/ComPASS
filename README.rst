@@ -1,9 +1,20 @@
 ComPASS aims at being an open, evolutive platform for hydrothermal modeling.
 It implements state of the art numerical scheme to discretize multiphase
 Darcean flows on generic unstructured meshes.
-It is currently developed in the framework of the `charms ANR project
-<http:://anr-charms@brgm.fr>`_ which has a specific
-focus on the integration of geological models and dynamic models.
+
+
+.. ifconfig:: versionlevel == '4'
+
+  It is currently developed in the framework of the `charms ANR project
+  <http:://anr-charms@brgm.fr>`_ which has a specific
+  focus on the integration of geological models and dynamic models.
+
+.. ifconfig:: versionlevel == '5'
+
+  The Compass code is developped through collaborations,
+  it is an open source platform which belongs to all the co-developpers
+  (INRIA, BRGM, ANDRA).
+
 
 Our main goals are:
 
@@ -13,8 +24,18 @@ Our main goals are:
   python script without loss of efficiency to be able
   to develop and reuse easily different physics.
 
+.. ifconfig:: versionlevel == '4'
 
-The collaborative development is made through the
-`INRIA gitlab platform <https://gitlab.inria.fr/charms/ComPASS>`_
-and the documentation is served
-`here <https://charms.gitlabpages.inria.fr/ComPASS>`_.
+  The collaborative development is made through the
+  `INRIA gitlab platform <https://gitlab.inria.fr/charms/ComPASS>`_
+  and the documentation is served
+  `here <https://compass.gitlab.io/compass-v4/doc/>`_.
+  The code is available on `gitlab.com <https://gitlab.com/compass/compass-v4>`_.
+
+.. ifconfig:: versionlevel == '5'
+
+  The collaborative development is made through the
+  `BRGM gitlab platform <https://gitlab.brgm.fr/brgm/modelisation-geologique/compass>`_
+  and the documentation is served
+  `here <https://compass.gitlab.io/compass-v5/doc/>`_.
+  The code is available on `gitlab.com <https://gitlab.com/compass/compass-v5>`_.

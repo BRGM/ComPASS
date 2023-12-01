@@ -38,7 +38,7 @@ through the
     )
 
 
-More information in the :ref:`physical properties section<setting_physical_properties>`
+More information in the :ref:`physical properties section<Setting up physical properties>`
 or about the :ref:`physical units<units>`.
 
 Examples with fractures are detailled in the :ref:`example section<classical_doublet_with_frac>`.

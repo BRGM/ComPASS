@@ -1,16 +1,25 @@
 #!/bin/bash
 
+# to create the doc with doxygen and version 5:
+# source make_the_doc --with-doxygen --version 5
+
 # we keep the starting directory to source this script
 START_DIR=$(pwd)
 
 # from: https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 POSITIONAL_ARGS=()
 USE_DOXYGEN=false
+NUM_VERSION=4
 while [[ $# -gt 0 ]]; do
   case $1 in
     --with-doxygen)
       USE_DOXYGEN=true
       shift # past argument
+      ;;
+    --version)
+      NUM_VERSION=$2
+      shift # past argument
+      shift # past value
       ;;
   esac
 done
@@ -30,10 +39,15 @@ if [[ "${USE_DOXYGEN}" = true ]]; then
     doxygen Doxyfile
 fi
 
+# VERSION will init the tag, used in meta :scope:
+# NUM_VERSION is a custom config used in .. ifconfig
+# they must coincide !
+VERSION="version${NUM_VERSION}"
 cd ${DIR}
 cp -vf ../README.rst ../LICENSE.rst .
 cp -vf ../CodingConventions.rst ./developers_corner/
 python3 -m sphinx.ext.apidoc ../ComPASS -o python_reference
-python3 -m sphinx.cmd.build . html
+python3 -m sphinx.cmd.build -t ${VERSION} -D versionlevel="${NUM_VERSION}" . html
+
 
 cd ${START_DIR}

@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 Install troubleshooting
 =======================
 

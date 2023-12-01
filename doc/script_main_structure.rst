@@ -18,7 +18,7 @@ After step 2 the mesh is partitioned and the global mesh is no longer available.
 Each proc works on its own subdomain.
 
 3. Setting-up initial values and physical states (
-:ref:`various examples here<setting-initial-values>`).
+:ref:`various examples here<Setting up initial values>`).
 
 4. Solving the temporal problem, i.e. making or using one of the provided time loops.
 Cf. for example the
