@@ -3,21 +3,21 @@ channels:
 - conda-forge
 - nodefaults
 dependencies:
-- python=3.9
+- python
 - pip
 - pkgconfig
 - git
 - setuptools>=61
 - setuptools_scm>=6.2
 - wheel
-- scikit-build
+- scikit-build-core
 - ninja
 - cmake
 - c-compiler
 - cxx-compiler
 - fortran-compiler
 - pybind11!=2.10.0
-- numpy>=1.21,<1.24
+- numpy>=1.21
 - numba>0.55
 - scipy
 - metis
@@ -25,13 +25,13 @@ dependencies:
 - openmpi
 - mpi4py
 - petsc4py
-- inept<0.2
-- verstr
-- vtkwriters
-- sortedcontainers
 - psutil
 - pyyaml
 - pip:
+  - inept<0.2
+  - verstr
+  - sortedcontainers
+  - vtkwriters>=0.0.10
   - git+https://github.com/BRGM/MeshTools.git
 variables:
   PIP_NO_BUILD_ISOLATION: false
