@@ -7,7 +7,7 @@ Using *ComPASS SDK* via docker images
 =====================================
 
 Though these docker environments are still used for Continuous Integration
-their use is discouraged in favor of conda environments (cf. :ref:`using conda environments`).
+their use is discouraged in favor of conda environments (cf. :ref:`Using conda environments`).
 
 Selecting the appropriate docker image
 --------------------------------------

@@ -1,8 +1,8 @@
 .. meta::
     :scope: version5
 
-Setting up the boundary conditions
-==================================
+Setting up boundary conditions
+==============================
 
 The boundary condition is set in the
 :code:`data.boundary_conditions` object.
@@ -73,7 +73,7 @@ with the mass flux expressed in :math:`kg.m^{-2}.s^{-1}`.
     Neumann_flux = model.physics.Accumulation()
     Neumann_flux.energy = bottom_heat_flux  # in W/m^2 = J/m^2/s
     Neumann_flux.molar[model.components["air"]] = 0  # in mol/m^2/s
-    Neumann_flux.molar[model.components["water"]] = qmass  # in mol/m^2/s
+    Neumann_flux.molar[model.components["water"]] = qmol  # in mol/m^2/s
     bottom_faces = geom_traits.bottom_boundary_faces(geom)
     # init all the bottom faces with the same Neumann flux
     data.boundary_conditions.Neumann_flux[bottom_faces] = Neumann_flux

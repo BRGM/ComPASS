@@ -135,19 +135,41 @@ The default values depends on which physics you use.
   and :math:`h^\alpha = H^\alpha`, which is equivalent to consider that :math:`M_{H_2O}=1`
   (let us recall that :math:`C_{H_2O}^\alpha = 1` because there is only one component).
 
-  **Careful**: this can have an impact on the set-up of the simulation, especially when setting a
-  :ref:`Neumann boundary flux<Neumann faces>`.
-  Keep in mind that, when using the *water2ph* physics, you need to give the mass flux instead of the molar flux (:math:`M_{H_2O}=1`)
-  using the :code:`ComPASS.NeumannBC().molar_flux` object.
+  .. ifconfig:: versionlevel <= '4'
 
-  .. code-block:: python
+    **Careful**: this can have an impact on the set-up of the simulation,
+    especially when setting a
+    :ref:`Neumann boundary flux<Neumann faces>`.
+    Keep in mind that, when using the *water2ph* physics, you need to give
+    the mass flux instead of the molar flux (:math:`M_{H_2O}=1`)
+    using the :code:`ComPASS.NeumannBC().molar_flux` object.
 
-      Neumann = ComPASS.NeumannBC()
-      Neumann.heat_flux = bottom_heat_flux # in W/m^2 = J/m^2/s
-      Neumann.molar_flux[:] = Qm # one value by component in kg/m^2/s !
-      face_centers = simulation.face_centers()
-      simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
+    .. code-block:: python
 
+        Neumann = ComPASS.NeumannBC()
+        Neumann.heat_flux = bottom_heat_flux # in W/m^2 = J/m^2/s
+        Neumann.molar_flux[:] = Qm # one value by component in kg/m^2/s !
+        face_centers = simulation.face_centers()
+        simulation.set_Neumann_faces(face_centers[:, 2] <= -H, Neumann)
+
+  .. ifconfig:: versionlevel > '4'
+
+    **Careful**: this can have an impact on the set-up of
+    the simulation, especially when setting a
+    :ref:`Neumann boundary flux<Neumann flux>`.
+    Keep in mind that, when using the *water2ph* physics, you need to give
+    the mass flux instead of the molar flux (:math:`M_{H_2O}=1`).
+
+    .. code-block:: python
+
+      model = Coats("water2ph")
+      data = model.new_data(geom.mesh.dimension)
+      Neumann_flux = model.physics.Accumulation()
+      Neumann_flux.energy = bottom_heat_flux  # in W/m^2 = J/m^2/s
+      Neumann_flux.molar[model.components["water"]] = qmass  # in kg/m^2/s !
+      bottom_faces = geom_traits.bottom_boundary_faces(geom)
+      # init all the bottom faces with the same Neumann flux
+      data.boundary_conditions.Neumann_flux[bottom_faces] = Neumann_flux
 
 Available physics
 -----------------
@@ -295,7 +317,7 @@ The default physical properties are
 
 
 immiscible2ph
-............
+.............
 
 This physics contains two phases (by default liquid and gas),
 two components (by default water and air), only water in liquid phase

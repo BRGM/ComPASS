@@ -9,7 +9,7 @@ Example scripts
    :maxdepth: 1
    :caption: Contents:
 
-   script_main_structure
+   script_main_structure_v4
    output_information
    setting_up_initial_inputs
    setting_up_linear_solver_options

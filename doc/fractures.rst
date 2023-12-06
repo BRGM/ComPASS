@@ -39,6 +39,6 @@ through the
 
 
 More information in the :ref:`physical properties section<Setting up physical properties>`
-or about the :ref:`physical units<units>`.
+or about the :ref:`physical units<Physical units>`.
 
 Examples with fractures are detailled in the :ref:`example section<classical_doublet_with_frac>`.

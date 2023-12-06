@@ -21,4 +21,5 @@ Complementary information are in the :ref:`example scripts<Example scripts>`.
 .. include:: time_step_setting_v4.rst
 .. include:: linear_solver_setting_v4.rst
 .. include:: setting_up_newton_options_v4.rst
+.. include:: units.rst
 .. include:: simulation_object.rst

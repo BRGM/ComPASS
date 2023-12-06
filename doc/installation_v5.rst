@@ -11,8 +11,6 @@ Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
 Unfortunately subtle differences may exist from one system to another.
 Please do not hesitate to submit issues/comments to improve this section.
 
-.. _using conda environments:
-
 Using conda environments
 ------------------------
 
@@ -150,7 +148,7 @@ Verbose mode for compass build
 """"""""""""""""""""""""""""""
 
 If you need details about the installation step, you can run *compass* in
-verbose mode using the :code:`-vvv` flag, just running:
+verbose mode using the :code:`--verbose` flag, just running:
 
 .. code-block:: bash
 

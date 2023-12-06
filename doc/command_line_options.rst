@@ -102,4 +102,4 @@ and will trigger constructor for an iterative solver in the new implementation, 
 with CPR-AMG preconditioning, 1e-6 relative tolerance, 150 maximum iterations and a restart of 30.
 This makes the syntax shorter when only switching between low level options.
 
-For more information on linear solving options, see :ref:`the linear solver guide <linear_solvers>`
+For more information on linear solving options, see :ref:`the linear solver guide <Linear solvers>`

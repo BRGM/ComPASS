@@ -11,8 +11,6 @@ Following `The Zen of Python <https://www.python.org/dev/peps/pep-0020/>`_:
 Unfortunately subtle differences may exist from one system to another.
 Please do not hesitate to submit issues/comments to improve this section.
 
-.. _using conda environments:
-
 Using conda environments
 ------------------------
 
@@ -198,7 +196,7 @@ Native installation on Linux
 
 Unless you know what your are doing, the preferred way to install
 ComPASS is to use conda environments for now
-(cf. :ref:`using conda environments`).
+(cf. :ref:`Using conda environments`).
 
 Requirements
 ^^^^^^^^^^^^

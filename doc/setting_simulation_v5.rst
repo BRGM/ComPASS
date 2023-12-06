@@ -8,8 +8,7 @@ Setting-up a simulation
 This section describes the main steps that are necessary to set-up a simulation
 (such as the mesh, the physical properties,...).
 
-.. A ajouter !
-.. Complementary information are in the :ref:`example scripts<Example scripts>`.
+Complementary information are in the :ref:`example scripts<Example scripts>`.
 
 .. include:: read_create_mesh.rst
 .. include:: physics.rst
@@ -21,3 +20,4 @@ This section describes the main steps that are necessary to set-up a simulation
 .. include:: time_step_setting.rst
 .. include:: linear_solver_setting.rst
 .. include:: setting_up_newton_options.rst
+.. include:: units.rst

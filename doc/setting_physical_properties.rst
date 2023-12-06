@@ -57,8 +57,7 @@ The rocktype is necessary to identify which
 are adapted at a certain location of the mesh.
 
 All the cells must be initialized, the sites (cells and nodes in VAG)
-can be deduced from cells value. Sites value can also be
-specified if necessary.
+are deduced from cells value.
 
 .. code-block:: python
 
@@ -67,12 +66,6 @@ specified if necessary.
     z_cell = Data(geom.cell_centers)[:, -1]
     # using a condition on the depth of the cells centers
     data.rocktypes[z_cell > H] = 1
-
-.. # or giving an array
-.. all_cells = Zone(geom.mesh.cells)
-.. assert len(all_cells) == len(rdomain)
-.. data.rocktypes[all_cells] = rdomain
-
 
 
 Fluid properties

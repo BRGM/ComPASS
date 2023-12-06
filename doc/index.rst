@@ -12,7 +12,8 @@ ComPASS |version|
    equations_glossary
    setting_simulation_v4
    setting_simulation_v5
-   examples
+   examples_v4
+   examples_v5
    tutorial
    training/ComPASS_initiation
    linear_solver_guide

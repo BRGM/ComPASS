@@ -1,8 +1,8 @@
 .. meta::
     :scope: version4
 
-Setting up the boundary conditions
-==================================
+Setting up boundary conditions
+==============================
 
 Dirichlet nodes
 ---------------

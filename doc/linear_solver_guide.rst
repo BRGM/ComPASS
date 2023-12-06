@@ -2,7 +2,7 @@
     :scope: version4
 
 Linear solvers
-=========================
+==============
 
 Linear systems in ComPASS are solved using specific objects called
 LinearSolver implemented in the `ComPASS.linalg` package. This document
