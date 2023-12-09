@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 Vertical convection
 ===================
 

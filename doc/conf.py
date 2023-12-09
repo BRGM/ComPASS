@@ -108,7 +108,7 @@ latex_documents = [
         "training/latex_index",
         "training_ComPASS_initiation.tex",
         "ComPASS Initiation",
-        "Laurence Beaude, Simon Lopez and various contributors",
+        "L. Beaude, S. Lopez, F. Smai and various contributors",
         "manual",
     ),
 ]

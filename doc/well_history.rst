@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 .. _setting_well_transients:
 
 Setting transient well history

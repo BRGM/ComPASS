@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 .. _eclipse_grid:
 
 Geothermal doublet on an Eclipse Grid

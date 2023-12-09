@@ -20,9 +20,9 @@ The minimal use is to specify:
 It is convenient to also specify:
 
 * *output_dir* with the output directory (where
-  the visualization files are written),
+  the visualization files are written), by default it is named *output*,
 
-* *verbosity* (0 is the less verbose, 3 the most)
+* *verbosity* (between 0 and 3, where 0 is the less verbose), 3 by default
 
 .. code-block:: python
 

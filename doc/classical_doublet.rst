@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 .. _classical_doublet:
 
 Classical geothermal doublet

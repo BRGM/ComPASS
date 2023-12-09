@@ -3,7 +3,7 @@ Main structure of the scripts
 
 A simulation script is composed of several main parts.
 
-Script is in `test_diphasic_Dirichlet.py. <https://gitlab.com/compass/compass-v5/compass-coats/-/blob/main/test/test_coats_energy.py?ref_type=heads>`_
+Script is in `test_diphasic_Dirichlet.py. <https://gitlab.com/compass/compass-v5/compass-coats/-/blob/main/test/test_diphasic_Dirichlet.py?ref_type=heads>`_
 
 * Creating or loading a :ref:`mesh <Import or create a mesh>` together with
   geometry utilities.
@@ -46,7 +46,7 @@ Script is in `test_diphasic_Dirichlet.py. <https://gitlab.com/compass/compass-v5
     data.rocktypes[...] = 0
 
 * Setting-up :ref:`initial values<Setting up initial values>`
-  and :ref:`boundary conditions <Setting up boundary conditions>`.
+  and :ref:`boundary conditions<Setting up boundary conditions>`.
 
   .. code-block:: python
 

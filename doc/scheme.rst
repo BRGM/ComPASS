@@ -6,10 +6,10 @@ Numerical scheme
 
 Two numerical schemes are currently implemented, VAG and TPFA.
 
-TPFA
-----
+TPFA scheme
+-----------
 
-The simulation can use the two point flux approximation scheme:
+Two point flux approximation scheme:
 
 .. code-block:: python
 
@@ -19,12 +19,12 @@ The simulation can use the two point flux approximation scheme:
 
 Careful, the simulation must respect the K-anisotropy.
 
-VAG
-----
+VAG scheme
+----------
 
 This is a numerical scheme where the sites are located at the cell centers
 and at the nodes. The cell unknowns can be eliminated using a Schur complement.
-Then it ends as a nodes centered numerical scheme.
+Then it ends as a nodal numerical scheme.
 
 .. code-block:: python
 

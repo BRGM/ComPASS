@@ -16,8 +16,10 @@ Complementary information are in the :ref:`example scripts<Example scripts>`.
 .. include:: setting_physical_properties.rst
 .. include:: boundary_conditions.rst
 .. include:: initial_values.rst
+.. include:: cell_heat_source.rst
 .. include:: time_loop.rst
+.. include:: outputs.rst
 .. include:: time_step_setting.rst
-.. include:: linear_solver_setting.rst
 .. include:: setting_up_newton_options.rst
+.. include:: linear_solver_setting.rst
 .. include:: units.rst

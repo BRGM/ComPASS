@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version4
+
 .. _setting_linear_solver:
 
 Setting up linear solver options
