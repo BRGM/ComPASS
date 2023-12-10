@@ -1,3 +1,6 @@
+.. meta::
+    :scope: version5
+
 Main structure of the scripts
 =============================
 

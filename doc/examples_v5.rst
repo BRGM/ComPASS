@@ -10,6 +10,7 @@ Example scripts
    :caption: Contents:
 
    script_main_structure
+   init_hydrostatic_pressure
 ..    output_information
 ..    setting_up_initial_inputs
 ..    setting_up_linear_solver_options

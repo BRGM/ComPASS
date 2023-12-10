@@ -109,7 +109,7 @@ Glossary and notations
   \hline
   \end{array}
 
-You can find informations about the default physical properties in the :ref:`physics section<Available physics>`.
+You can find information about the default physical properties in the :ref:`physics section<Available physics>`.
 The default values depends on which physics you use.
 
 .. _water2ph_equations:
@@ -164,7 +164,7 @@ The default values depends on which physics you use.
 
       model = Coats("water2ph")
       data = model.new_data(geom.mesh.dimension)
-      Neumann_flux = model.physics.Accumulation()
+      Neumann_flux = data.boundary_conditions.Neumann_flux.dtype()
       Neumann_flux.energy = bottom_heat_flux  # in W/m^2 = J/m^2/s
       Neumann_flux.molar[model.components["water"]] = qmass  # in kg/m^2/s !
       bottom_faces = geom_traits.bottom_boundary_faces(geom)
@@ -206,7 +206,7 @@ one component (by default water).
   In this physics, to solve the mass balance equation instead of the
   molar balance equation, the molar and volumetric mass densities are considered equal,
   and the water molar mass is set to 1.
-  For more informations, refer to :ref:`this paragraph<water2ph_equations>`.
+  For more information, refer to :ref:`this paragraph<water2ph_equations>`.
 
 The default physical properties are
 

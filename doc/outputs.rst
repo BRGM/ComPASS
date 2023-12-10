@@ -24,7 +24,7 @@ stores the output files in the *output-{file_name}* directory.
 The outputs contain :
 
 * states at particular time steps (those specified with *output_period* and/or
-  *output_every*). To prepare them for visualization, execute
+  *output_every* and/or *nb_output*). To prepare them for visualization, execute
 
   .. code-block:: python
 

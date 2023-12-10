@@ -70,7 +70,7 @@ with the mass flux expressed in :math:`kg.m^{-2}.s^{-1}`.
 
     model = Coats("diphasic")
     data = model.new_data(geom.mesh.dimension)
-    Neumann_flux = model.physics.Accumulation()
+    Neumann_flux = data.boundary_conditions.Neumann_flux.dtype()
     Neumann_flux.energy = bottom_heat_flux  # in W/m^2 = J/m^2/s
     Neumann_flux.molar[model.components["air"]] = 0  # in mol/m^2/s
     Neumann_flux.molar[model.components["water"]] = qmol  # in mol/m^2/s
