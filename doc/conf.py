@@ -30,6 +30,13 @@ def get_version_info():
         matches = re.match("(\d+\.\d+)(.*)", version)
         major = matches.group(1)
         version = f"{major}.x"
+    try:
+        version_num = sys.argv[sys.argv.index("-t") + 1]
+        if int(version_num[-1]) > 4:
+            version = "5.x.x"
+            scm_version = version
+    except:
+        pass
     return version, scm_version
 
 
