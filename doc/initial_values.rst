@@ -11,6 +11,11 @@ It is necessary to set both
 :code:`data.initial_states` and :code:`data.initial_contexts`.
 They are carried by mesh objects.
 
+The initial values must be given over all the sites, ie all the **cells** must
+be initialized with :ref:`TPFA<TPFA scheme>`;
+all the **cells and nodes** must be initialized
+with :ref:`VAG<VAG scheme>`.
+
 .. Have a look at :ref:`this example<Setting up initial inputs>`
 .. to discover different ways to initialize them.
 

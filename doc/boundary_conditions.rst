@@ -8,7 +8,8 @@ The boundary condition is set in the
 :code:`data.boundary_conditions` object.
 The location of the boundary sites relies on the initialized values.
 Moreover, the boundary condition objects depend on the numerical scheme,
-in TPFA it concerns the boundary faces; in VAG the boundary nodes.
+in :ref:`TPFA<TPFA scheme>` it concerns the boundary faces;
+in :ref:`VAG<VAG scheme>` the boundary nodes.
 Thus the boundary sites are the intersection between the possible boundary
 sites of the numerical scheme and the initialized values.
 
