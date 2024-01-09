@@ -162,6 +162,9 @@ void add_specific_model_wrappers(py::module &module) {
                 throw std::runtime_error(
                     "You dont need to provide gas molar fractions for liquid "
                     "state.");
+             // the liquid pressure is provided, the ref pressure is the gas
+             // pressure It is the same pressures when Pc(Sg=0) = 0, it is not
+             // always the case
              state.p = p.cast<double>();
              state.T = T.cast<double>();
              state.S.fill(0);
