@@ -54,7 +54,7 @@ def vanGenuchten(Pr, Slr, Sgr, n, Slb_reg=0.99):
 
 
 # dictionary where the key contains the rocktype and the value
-# contains two fonctions : the capillary pressure Pc(Sg)
+# contains two functions : the capillary pressure Pc(Sg)
 # and the derivative dPcdS(Sg)
 laws = {
     # rocktype=1, Pr=15e6, Slr=0.4, Sgr=0, n=1.49, Slb_reg=0.99
@@ -74,6 +74,9 @@ laws = {
 def phase_pressure(laws):
 
     # @numba.njit()
+    # compute P_alpha and its partial derivatives
+    # knowing the states X
+    # This function defines that Pref = Palpha[0] which is the gas pressure
     def phase_pressure_function(X, rocktypes, dpadS):
         for rt, (Pc, dPcdS) in laws.items():
             mask = rocktypes == rt
