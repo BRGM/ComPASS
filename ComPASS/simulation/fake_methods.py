@@ -60,7 +60,9 @@ from ..petrophysics.kr import set_kr_functions
 from ..petrophysics.phase_pressure import set_phase_pressure_functions
 from ..petrophysics.capillary import set_liquid_capillary_pressure
 from ..petrophysics.models.vanGenuchten import set_vanGenuchten_capillary_pressure
-from ..petrophysics.models.BrooksCorey import set_BrooksCorey_capillary_pressure
+from ..petrophysics.models.extendedBrooksCorey import (
+    set_extendedBrooksCorey_capillary_pressure,
+)
 from ..properties.utils import Xalpha, empty_Xalpha
 from ..properties.physical_properties_wrappers import (
     liquid_dynamic_viscosity,
