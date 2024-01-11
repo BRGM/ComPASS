@@ -1,6 +1,6 @@
 variables:
-  COMPASS_SDK: 0.1.11
-  # We assume that is fine to run mpi as root in a docker container
+  COMPASS_SDK: 0.2.7
+  # We assume that it is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
 
@@ -31,7 +31,7 @@ check format:
   stage: check
   tags:
     - linux
-    - large
+    - medium
   script:
     # We could check format only for merge requests
     # using only merge_requests
@@ -47,10 +47,11 @@ conda pristine build:
   stage: build
   image: continuumio/miniconda3:23.5.2-0-alpine
   tags:
-    - linux
-    - large
+    - build
+    - docker
   rules:
    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+   - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
     - conda install -n base -c conda-forge -y mamba
     - mamba env create --file conda/compass.yml
@@ -61,22 +62,21 @@ conda pristine build:
 build:
   stage: build
   tags:
-    - linux
-    - large
+    - build
+    - docker
+  before_script:
+    - unset CMAKE_ARGS
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
-        python setup.py bdist_wheel -j `nproc` \
-          -DComPASS_WITH_water2ph_PHYSICS=ON \
-          -DComPASS_WITH_linear_water_PHYSICS=ON \
-          -DComPASS_WITH_diphasic_PHYSICS=ON \
-          -DComPASS_WITH_immiscible2ph_PHYSICS=ON
+        python -m pip wheel --wheel-dir dist -v . --no-build-isolation
       else
-        python setup.py bdist_wheel -j `nproc` --build-type Debug \
-          -DComPASS_WITH_water2ph_PHYSICS=ON \
-          -DComPASS_WITH_linear_water_PHYSICS=ON \
-          -DComPASS_WITH_diphasic_PHYSICS=ON \
-          -DComPASS_WITH_immiscible2ph_PHYSICS=ON
+        python -m pip wheel --wheel-dir dist -v . --no-build-isolation \
+        -Ccmake.build-type=Debug \
+        -Ccmake.define.ComPASS_WITH_water2ph_PHYSICS=ON \
+        -Ccmake.define.ComPASS_WITH_diphasic_PHYSICS=ON \
+        -Ccmake.define.ComPASS_WITH_immiscible2ph_PHYSICS=ON \
+        -Ccmake.define.ComPASS_WITH_linear_water_PHYSICS=ON
       fi
   artifacts:
     paths:
@@ -362,7 +362,7 @@ pages:
   stage: documentation
   tags:
     - linux
-    - medium
+    - large
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   before_script:

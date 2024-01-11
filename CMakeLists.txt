@@ -4,12 +4,9 @@ cmake_policy(VERSION 3.13)
 project(ComPASS Fortran C CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE
-      "Release"
-      CACHE
-        STRING
-        "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
-        FORCE
+  message(
+    FATAL_ERROR
+      "Build type must explicitely be set - should be set by scikit-build-core."
   )
 endif(NOT CMAKE_BUILD_TYPE)
 

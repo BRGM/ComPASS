@@ -16,7 +16,7 @@ foreach(_conf ${CONFIGURATIONS})
   endif()
 endforeach()
 if(ComPASS_WITH_ALL_PHYSICS)
-  set(ComPASS_AT_LEAST_ONE_PHYSIC ON)
+  set(ComPASS_AT_LEAST_ONE_PHYSIC TRUE)
 endif()
 
 if(NOT ComPASS_AT_LEAST_ONE_PHYSIC)
@@ -50,6 +50,8 @@ if(${ComPASS_AT_LEAST_ONE_PHYSIC})
   )
 endif(${ComPASS_AT_LEAST_ONE_PHYSIC})
 
+set(PHYSICS_TARGETS)
+
 foreach(_conf ${CONFIGURATIONS})
   if(NOT ComPASS_WITH_ALL_PHYSICS AND NOT ${ComPASS_WITH_${_conf}_PHYSICS})
     message(NOTICE ">> Skipping ${_conf} physics")
@@ -57,6 +59,7 @@ foreach(_conf ${CONFIGURATIONS})
   endif()
   set(CONF_DIR conf/${_conf})
   set(CONF_TARGETNAME ComPASSlib-${_conf})
+  list(APPEND PHYSICS_TARGETS ${CONF_TARGETNAME})
   set(CONF_ALL_SRCS ${ComPASSCore_SRCS} ${ComPASSWells_SRCS}
                     ${ComPASSMSWells_SRCS}
   )
@@ -129,3 +132,16 @@ endforeach()
 if(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
   add_subdirectory(experimental)
 endif(ComPASS_COMPILES_EXPERIMENTAL_PARTS)
+
+# generate version info FIXME: version_info is regenerated each time (even all
+# physics targets are up to date)
+add_custom_command(
+  OUTPUT ${PROJECT_SOURCE_DIR}/ComPASS/version_info
+  COMMAND ${Python_EXECUTABLE} cmake/generate_version_info.py >
+          ComPASS/version_info
+  DEPENDS ${PHYSICS_TARGETS}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+add_custom_target(
+  version_info_file ALL SOURCES ${PROJECT_SOURCE_DIR}/ComPASS/version_info
+)
