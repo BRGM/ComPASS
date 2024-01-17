@@ -6,6 +6,8 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
+#include <ComPASS_PETSc_definitions.h>
+
 module SyncPetscMSWells
 #ifdef _COMPASS_FORTRAN_DO_NOT_USE_ONLY_
    use iso_c_binding, only: c_bool, c_int, c_double, c_ptr, c_f_pointer, c_size_t, c_long
@@ -144,7 +146,7 @@ subroutine syncpetscmswells_getsolmswell(x_s, increments_pointers)
 
    ! get values from x_s
    call VecGetArrayF90(x_s, ptr, Ierr)
-   CHKERRQ(Ierr)
+   CMP_PETSC_CHECK(Ierr)
 
    ! increment mswell_nodes
    do i = 1, NbMSWellNodeLocal
@@ -155,6 +157,6 @@ subroutine syncpetscmswells_getsolmswell(x_s, increments_pointers)
    end do
 
    call VecRestoreArrayF90(x_s, ptr, Ierr)
-   CHKERRQ(Ierr)
+   CMP_PETSC_CHECK(Ierr)
 
 end subroutine syncpetscmswells_getsolmswell

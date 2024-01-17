@@ -414,6 +414,6 @@ subroutine syncpetsc_getsolnodefracwellmswell(x_s, increments_pointers)
    end do
 
    call VecRestoreArrayF90(x_s, ptr, Ierr)
-   CHKERRQ(Ierr)
+   CMP_PETSC_CHECK(Ierr)
 
 end subroutine syncpetsc_getsolnodefracwellmswell
