@@ -103,6 +103,7 @@ all_wells = set(doublets.ravel())
 proc_requests = [(mpi.master_proc_rank, all_wells)]
 simulation.add_well_connections(well_pairs=doublets, proc_requests=proc_requests)
 
+
 # A function giving the temperature delta imposed by heat network at time t
 def network_deltaT(t):
     return 20 * (1 + np.sin(t * (2 * np.pi) / year))
@@ -136,12 +137,12 @@ if mpi.is_on_master_proc:
 
     def collect_wellhead_states(tick):
         for well in all_wells:
-            wellhead_states[well].append(
-                [tick.time, *simulation.well_connections[well]]
-            )
+            well_info = simulation.well_connections[well]
+            assert len(well_info.molar_flowrate) == simulation.number_of_components()
+            assert all(well_info[0] == well_info.molar_flowrate)
+            wellhead_states[well].append(list(well_info[0]) + list(well_info[1:]))
 
     iteration_callbacks.append(collect_wellhead_states)  # only on master proc...
-
 
 simulation.standard_loop(
     initial_timestep=day,
