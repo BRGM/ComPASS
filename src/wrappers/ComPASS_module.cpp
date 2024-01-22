@@ -25,7 +25,6 @@ void add_time_loop_wrappers(py::module &);
 void add_debug_utils_wrappers(py::module &);
 void add_model_wrappers(py::module &);
 void add_Residu_wrappers(py::module &);
-void add_Metis_wrapper(py::module &);
 void add_SolvePetsc_wrappers(py::module &);
 void add_LinearSystem_wrapper(py::module &);
 void add_Jacobian_wrappers(py::module &);
@@ -61,7 +60,6 @@ PYBIND11_MODULE(ComPASS_CONFIGURATION_NAME, module) {
    add_debug_utils_wrappers(module);
    add_model_wrappers(module);
    add_Residu_wrappers(module);
-   add_Metis_wrapper(module);
    add_SolvePetsc_wrappers(module);
    add_LinearSystem_wrapper(module);
    add_Jacobian_wrappers(module);

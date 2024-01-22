@@ -20,6 +20,7 @@ repos:
     rev: master
     hooks:
     -   id: clang-format
+        exclude: 'third-parties/.*'
         args: [-style=file]
 -   repo: https://github.com/cheshirekow/cmake-format-precommit
     rev: v0.6.10

@@ -209,7 +209,6 @@ endif()
 set(CMAKE_FIND_DIR ${CMAKE_SOURCE_DIR}/CMake)
 
 find_package(MPI REQUIRED)
-find_package(METIS REQUIRED)
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
   # Try to use pkg-config

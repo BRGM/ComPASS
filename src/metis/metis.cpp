@@ -7,16 +7,19 @@
 // version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 //
 
-#include "Metis_wrapper.h"
-
 #include <metis.h>
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
 #include <cassert>
+#include <iostream>
 #include <limits>
-#include <type_traits>
+// #include <span>
+// #include <type_traits>
 
-#include "COC.h"
+// #include "Metis_wrapper.h"
+
+namespace py = pybind11;
 
 auto part_graph(
     py::array_t<idx_t, py::array::c_style | py::array::forcecast>& neighbors,
@@ -53,18 +56,53 @@ auto part_graph(
 
    auto method = METIS_PartGraphRecursive;
    if (Kway) method = METIS_PartGraphKway;
+   //    std::cerr << "METIS: nb_vertices = " << nb_vertices << std::endl;
+   //    std::cerr << "METIS: nb_parts = " << nb_parts << std::endl;
+   //    auto offprox = offsets.template mutable_unchecked<1>();
+   //    std::cerr << "METIS: offsets = ";
+   //    for (auto&& i : std::span(offsets.data(), (std::size_t)(nb_vertices +
+   //    1))) {
+   //       std::cerr << " " << i;
+   //    }
+   //    std::cerr << std::endl;
+   //    std::cerr << "METIS: neighbors = ";
+   //    for (auto&& i :
+   //         std::span(neighbors.data(), (std::size_t)(offprox(nb_vertices))))
+   //         {
+   //       std::cerr << " " << i;
+   //    }
+   //    std::cerr << std::endl;
+   //    idx_t* res = new idx_t[nb_vertices];
    auto status =
        method(&nb_vertices, &nb_constraints, offsets.mutable_data(),
               neighbors.mutable_data(), nullptr, nullptr, nullptr, &nb_parts,
               nullptr, nullptr, options, &edge_cut, result.mutable_data());
+   //    auto status = method(&nb_vertices, &nb_constraints,
+   //    offsets.mutable_data(),
+   //                         neighbors.mutable_data(), nullptr, nullptr,
+   //                         nullptr, &nb_parts, nullptr, nullptr, options,
+   //                         &edge_cut, res);
 
    assert(status == METIS_OK);
+
+   //    std::cerr << "METIS: result = ";
+   //    for (auto&& i : std::span(res, (std::size_t)nb_vertices)) {
+   //       std::cerr << " " << i;
+   //    }
+   //    std::cerr << std::endl;
+
+   //    std::ranges::copy(std::span(res, (std::size_t)nb_vertices),
+   //                      result.mutable_data());
+
+   //    delete[] res;
 
    return result;
 }
 
-void add_Metis_wrapper(py::module& module) {
-   module.def("metis_part_graph", &part_graph,
+PYBIND11_MODULE(metis, module) {
+   module.doc() =
+       "quick and dirty wrapper to metis partitioning used in ComPASS";
+   module.def("part_graph", &part_graph,
               "call Metis part graph methods, defaults to recursive algorithm",
               py::arg("neighbors"), py::arg("offsets"), py::arg("nb_parts"),
               py::arg("Kway") = false);

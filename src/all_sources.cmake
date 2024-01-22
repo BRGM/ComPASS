@@ -106,7 +106,6 @@ set(WRAPPERS_SRCS
     MeshUtilities.h
     MeshSchema_wrappers.cpp
     MeshUtilities_wrappers.cpp
-    Metis_wrapper.cpp
     Model_wrappers.h
     Model_common_wrappers.cpp
     MeshSchema_wrappers.F90

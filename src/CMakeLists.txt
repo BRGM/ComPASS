@@ -1,3 +1,7 @@
+add_subdirectory(third-parties)
+
+add_subdirectory(metis)
+
 # Configuration to be built
 set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
 
@@ -45,7 +49,6 @@ if(${ComPASS_AT_LEAST_ONE_PHYSIC})
     ComPASSCommonCore
     PUBLIC wrappers
     PUBLIC ${MPI_Fortran_INCLUDE_PATH}
-    PUBLIC ${METIS_INCLUDE_DIR}
     PUBLIC ${PETSc_INCLUDE_DIRS}
   )
 endif(${ComPASS_AT_LEAST_ONE_PHYSIC})
@@ -100,14 +103,12 @@ foreach(_conf ${CONFIGURATIONS})
     PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/common
     PUBLIC ${PROJECT_BINARY_DIR}/bin/fortran/${_conf}
     PUBLIC ${MPI_Fortran_INCLUDE_PATH}
-    PUBLIC ${METIS_INCLUDE_DIR}
     PUBLIC ${PETSc_INCLUDE_DIRS}
   )
   target_link_libraries(${CONF_TARGETNAME} pybind11::pybind11)
   target_link_libraries(${CONF_TARGETNAME} ComPASSCommonCore)
   target_link_libraries(${CONF_TARGETNAME} ${MPI_Fortran_LIBRARIES})
-  target_link_libraries(${CONF_TARGETNAME} ${METIS_LIBRARY})
-  # FIXME: Is ${LAPACK_INCLUDE_DIR} defined?
+  # ${LAPACK_INCLUDE_DIR} defined?
   target_link_libraries(
     ${CONF_TARGETNAME} ${PETSc_LIBRARIES} ${LAPACK_LIBRARIES}
   )

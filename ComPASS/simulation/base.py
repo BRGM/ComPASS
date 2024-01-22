@@ -15,6 +15,7 @@ import MeshTools as MT
 import MeshTools.GridTools as GT
 import vtkwriters as vtkw
 
+from ComPASS import metis
 from .. import mpi
 from .. import runtime
 from ..RawMesh import RawMesh
@@ -214,9 +215,7 @@ def _part_mesh(use_Kway, connectivity_file=None):
         )
     if nparts > 1:
         # Fortran indexing of neighbors
-        cell_colors = kernel.metis_part_graph(
-            neighbors - 1, offsets, nparts, Kway=use_Kway
-        )
+        cell_colors = metis.part_graph(neighbors - 1, offsets, nparts, Kway=use_Kway)
     else:
         cell_colors = np.zeros(_sw.global_number_of_cells(), dtype=np.int32)
     return cell_colors
