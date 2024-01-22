@@ -30,8 +30,8 @@ stages:
 check format:
   stage: check
   tags:
-    - sequential
-    - docker
+    - linux
+    - large
   script:
     # We could check format only for merge requests
     # using only merge_requests
@@ -47,8 +47,8 @@ conda pristine build:
   stage: build
   image: continuumio/miniconda3:23.5.2-0-alpine
   tags:
-    - build
-    - docker
+    - linux
+    - large
   rules:
    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
@@ -61,8 +61,8 @@ conda pristine build:
 build:
   stage: build
   tags:
-    - build
-    - docker
+    - linux
+    - large
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
@@ -87,8 +87,8 @@ build:
 baseline tests:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -114,8 +114,8 @@ baseline tests:
 baseline parallel tests:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -140,8 +140,8 @@ baseline parallel tests:
 pytest:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -151,8 +151,8 @@ pytest:
 time bulk scripts:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -162,8 +162,8 @@ time bulk scripts:
 time training scripts:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -182,8 +182,8 @@ time training scripts:
 linalg:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -193,8 +193,8 @@ linalg:
 more sanity tests:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -244,8 +244,8 @@ more sanity tests:
 postprocess:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -256,8 +256,8 @@ postprocess:
 petrel:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -268,8 +268,8 @@ petrel:
 diphasic freeflow:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -282,8 +282,8 @@ diphasic freeflow:
 diphasic andra:
   stage: test
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -293,8 +293,8 @@ diphasic andra:
 various parallel tests:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -324,8 +324,8 @@ various parallel tests:
 small parallel tests:
   stage: test
   tags:
-    - parallel
-    - docker
+    - linux
+    - large
   before_script:
     - python -m pip install --no-index -f dist ComPASS
   script:
@@ -336,7 +336,8 @@ small parallel tests:
 container release:
   stage: release
   tags:
-    - shell
+    - linux
+    - medium
   rules:
     - if: $CI_COMMIT_TAG
   before_script:
@@ -360,8 +361,8 @@ container release:
 pages:
   stage: documentation
   tags:
-    - sequential
-    - docker
+    - linux
+    - medium
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   before_script:
