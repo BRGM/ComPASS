@@ -29,7 +29,7 @@ Tinterface = degC2K(290)
 Tbottom = degC2K(310)
 ptop = 1.013e5  # Pa
 gravity = 9.81
-final_time = 70 * year
+final_time = 69 * year
 output_period = year
 
 # -----------------------------------------------------------------------------
@@ -100,8 +100,10 @@ Neumann = ComPASS.NeumannBC(-mass_flux, compute_heat_flux=True, nz=-1)
 bottom_face = simulation.face_centers()[:, 2] <= 0
 simulation.set_Neumann_faces(bottom_face, Neumann)
 
-lsolver = linear_solver(simulation, direct=True)
-newton = Newton(simulation, 1e-5, 20, lsolver)
+lsolver = linear_solver(
+    simulation, direct=False, tolerance=1e-12, max_iterations=3000, restart_size=300
+)
+newton = Newton(simulation, 1e-5, 8, lsolver)
 
 simulation.standard_loop(
     initial_timestep=day,
