@@ -177,6 +177,7 @@ time training scripts:
     - cp ../../doc/training/test/TETRAS.txt .
     - cp ../../doc/training/test/GROUPS.py .
     - python init_reservoir_in_fractured_medium.py  # must execute init before doublet to reload snapshot
+    - rm init_reservoir_in_fractured_medium.py # must not be relaunched in pool context
     - python ../utilities/pool.py .  # final scripts
 
 linalg:
