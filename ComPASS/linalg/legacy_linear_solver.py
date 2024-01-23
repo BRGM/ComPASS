@@ -88,7 +88,7 @@ class LegacyIterativeSolver(IterativeSolver):
             self.activate_cpramg,
             False,
         )
-        # Good ol' Fortran doesn't set restart at initialization... We gotta do it ourselves
+        # Fortran doesn't set restart at initialization
         self.restart_size = self.my_settings.restart_size
 
     def set_settings(self, settings):
