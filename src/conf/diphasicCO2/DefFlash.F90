@@ -14,7 +14,6 @@ module DefFlash
    use DefModel, only: &
       NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
-      GAS_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
    use Thermodynamics, only: f_Fugacity, f_Fugacity_coefficient
 
@@ -49,37 +48,7 @@ contains
       endif
 #endif
 
-      context = inc%ic
-
-      if (context == GAS_FF_NO_LIQ_OUTFLOW_CONTEXT) then
-
-         call DiphasicFlash_gas_to_diphasic(inc)
-         if (inc%ic == DIPHASIC_CONTEXT) inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
-
-      elseif (context == DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT) then
-
-         ! CHECKME: we assume no entry pressure in the atmosphere
-         call DiphasicFlash_diphasic_switches(inc)
-         if (inc%ic == LIQUID_CONTEXT) then
-            inc%ic = DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT
-         elseif (inc%ic == GAS_CONTEXT) then
-            inc%ic = GAS_FF_NO_LIQ_OUTFLOW_CONTEXT
-         endif
-         ! The following always holds even at liquid outflow apparition
-         inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
-
-      elseif (context == DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT) then
-
-         if (inc%FreeFlow_flowrate(LIQUID_PHASE) < 0.d0) then ! liquid outflow vanishes
-            inc%ic = DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT
-            inc%FreeFlow_flowrate(LIQUID_PHASE) = 0.d0
-         endif
-
-      else
-
-         call DiphasicFlash_Flash_cv(inc)
-
-      endif
+      call DiphasicFlash_Flash_cv(inc)
 
       call DiphasicFlash_enforce_consistent_molar_fractions(inc)
 

@@ -75,6 +75,7 @@ build:
         -Ccmake.build-type=Debug \
         -Ccmake.define.ComPASS_WITH_water2ph_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_diphasic_PHYSICS=ON \
+        -Ccmake.define.ComPASS_WITH_diphasicCO2_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_immiscible2ph_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_linear_water_PHYSICS=ON
       fi

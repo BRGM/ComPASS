@@ -84,13 +84,15 @@ class Simulation:
         well_data_provider = partial(get_wellhead, self)
         model = (kernel.number_of_phases(), kernel.number_of_components())
         self.__dict__["base"] = SimmulationBase(model, well_data_provider)
-        self.set_viscosity_functions()
-        self.set_molar_density_functions(
-            _update_volumetric_mass_density_functions=False
-        )
-        # also updates the volumetric mass density functions
-        self.set_components_molar_mass()
-        self.set_molar_enthalpy_functions()
+        # must be avoided if diphasicCO2, properties defined in fortran
+        if self.physics_name() != "diphasicCO2":
+            self.set_viscosity_functions()
+            self.set_molar_density_functions(
+                _update_volumetric_mass_density_functions=False
+            )
+            # also updates the volumetric mass density functions
+            self.set_components_molar_mass()
+            self.set_molar_enthalpy_functions()
 
     def __setattr__(self, name, value):
         setattr(self.__dict__["base"], name, value)

@@ -3,7 +3,9 @@ add_subdirectory(third-parties)
 add_subdirectory(metis)
 
 # Configuration to be built
-set(CONFIGURATIONS brine diphasic immiscible2ph linear_water water2ph)
+set(CONFIGURATIONS brine diphasic diphasicCO2 immiscible2ph linear_water
+                   water2ph
+)
 
 option(ComPASS_WITH_ALL_PHYSICS "build all physics modules" OFF)
 foreach(_conf ${CONFIGURATIONS})
@@ -70,6 +72,12 @@ foreach(_conf ${CONFIGURATIONS})
     foreach(_src ${ComPASSFreeFlow_SRCS})
       list(APPEND CONF_ALL_SRCS ${_src})
     endforeach()
+  endif()
+  if(NOT ${_conf} STREQUAL diphasicCO2)
+    list(APPEND CONF_ALL_SRCS conf/common/Thermodynamics_interface.F90
+         wrappers/Thermodynamics_wrappers.cpp
+         wrappers/Thermodynamics_register.F90
+    )
   endif()
   foreach(_src ${CONF_SRCS})
     list(APPEND CONF_ALL_SRCS ${CONF_DIR}/${_src})

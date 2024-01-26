@@ -16,7 +16,7 @@ module IncPrimSecdMSWells
    use DefModel
    use NumbyContext
    use MeshSchema
-   use Thermodynamics
+   ! use Thermodynamics
    use IncPrimSecdTypes
    use IncPrimSecd
    use IncCVMSWells
@@ -47,7 +47,8 @@ module IncPrimSecdMSWells
       NodebyMSWellLocal, NodeDatabyMSWellLocal, &
       DataMSWellLocal, NbMSWellLocal_Ncpus
 
-   use Thermodynamics, only: f_Fugacity
+   ! use Thermodynamics, only: f_Fugacity
+
    use IncPrimSecdTypes, only: ControlVolumeInfo, IncPrimSecdTypes_collect_cv_info
 
    use IncPrimSecd, only: &
@@ -191,7 +192,7 @@ contains
       integer :: s, l, nbwells, unk_idx_s
       integer ::  ic, i, iph
       integer :: &
-         NbPhasePresente, NbEqFermeture, NbNodeLocal, &
+         NbPhasePresente, NbEqFermeture, &
          NbIncPTC, NbIncTotal, NbIncPTCPrim, NbIncTotalPrim
 
       double precision :: &

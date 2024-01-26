@@ -81,9 +81,7 @@ foreach(_src ${ComPASSFreeFlow_SRCS})
 endforeach()
 set(ComPASSFreeFlow_SRCS ${_tmp})
 
-set(CONF_SRCS DefFlash.F90 DefModel.F90 ../common/Thermodynamics_interface.F90
-              Thermodynamics.F90
-)
+set(CONF_SRCS DefFlash.F90 DefModel.F90 Thermodynamics.F90)
 
 set(WRAPPERS_SRCS
     COC.h
@@ -128,8 +126,6 @@ set(WRAPPERS_SRCS
     LinearSystemBuilderMSWells.h
     LinearSystemMSWells_wrapper.cpp
     LinearSystemMSWells_wrapper.cpp
-    Thermodynamics_wrappers.cpp
-    Thermodynamics_register.F90
 )
 
 unset(_tmp)

@@ -152,8 +152,7 @@ contains
    subroutine f_VolumetricMassDensity_with_derivatives(iph, p, T, C, f, dfdP, dfdT, dfdC) &
       bind(C, name="FluidThermodynamics_volumetric_mass_density_with_derivatives")
       integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
       type(Xalpha) :: dfdX
