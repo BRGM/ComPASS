@@ -508,8 +508,18 @@ contains
                end do
                BigSm(:, s) = 0.d0
             else
-               JacBigA%Val(:, NbCompThermique, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
-               JacBigA%Val(NbCompThermique, NbCompThermique, nz) = 1.d0
+               ! carefull : the index order of JacBigA%Val(:,:,nz) is (col, row)
+               ! 2 because the temperature is the second primary unknown
+               ! of all sites in the stencil
+               ! reset the temperature contribution to all balance equations
+               JacBigA%Val(2, :, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
+               ! at the Dirichlet node:
+               ! instead of the thermal balance equation, solve 1 * dT = 0
+               ! reset all contributions to the thermal balance equation
+               JacBigA%Val(:, NbCompThermique, nz) = 0.d0
+               ! add 1 aligned with the temperature primary unknown
+               JacBigA%Val(2, NbCompThermique, nz) = 1.d0
+               ! write(*, *) "nz", nz, JacBigA%Val(NbCompThermique, :, nz)
                BigSm(NbCompThermique, s) = 0.d0
             end if
          else
