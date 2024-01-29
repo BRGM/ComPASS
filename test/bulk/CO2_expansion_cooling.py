@@ -13,7 +13,6 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.timestep_management import TimeStepManager
-from ComPASS.mpi import master_print
 
 
 Lz = 4000.0
@@ -33,36 +32,22 @@ Tall = 700.0  # top Temperature
 Tbot_dir = 700.0  # bottom Temperature
 gravity = 0.0
 
-bot_flag = 4
-
 simulation = ComPASS.load_physics("diphasicCO2")
 simulation.set_gravity(gravity)
 ComPASS.set_output_directory_and_logfile(__file__)
 
-gas_context = simulation.Context.gas
 
-if ComPASS.mpi.is_on_master_proc:
-
-    grid = ComPASS.Grid(
-        shape=(nx, ny, nz),
-        extent=(Lx, Ly, Lz),
-        origin=(Ox, Oy, Oz),
-    )
-
-    def Dirichlet_node():
-        vertices = np.rec.array(simulation.global_vertices())
-        return vertices[:, 2] <= Oz
-
-    def set_global_flags():
-        vertices = np.rec.array(simulation.global_vertices())
-        nodeflags = simulation.global_nodeflags()
-        nodeflags[vertices[:, 2] <= Oz] = bot_flag
+grid = ComPASS.Grid(
+    shape=(nx, ny, nz),
+    extent=(Lx, Ly, Lz),
+    origin=(Ox, Oy, Oz),
+)
 
 
-if not ComPASS.mpi.is_on_master_proc:
-    grid = (
-        Dirichlet_node
-    ) = omega_reservoir = k_reservoir = cell_thermal_cond = set_global_flags = None
+def Dirichlet_node():
+    vertices = np.rec.array(simulation.global_vertices())
+    return vertices[:, 2] <= Oz
+
 
 simulation.init(
     mesh=grid,
@@ -70,39 +55,14 @@ simulation.init(
     cell_porosity=omega_reservoir,
     cell_permeability=k_reservoir,
     cell_thermal_conductivity=cell_thermal_cond,
-    set_global_flags=set_global_flags,
 )
 
-sys.stdout.write("Maillage distribue" + "\n")
-sys.stdout.flush()
+X0 = simulation.build_state(simulation.Context.gas, p=pall, T=Tall, Cag=0.8)
+simulation.all_states().set(X0)
+XDir = simulation.build_state(simulation.Context.gas, p=pbot_dir, T=Tbot_dir, Cag=0.8)
+simulation.dirichlet_node_states().set(XDir)
 
-
-def set_Dirichlet_state(state):
-    node_flags = simulation.nodeflags()
-    # bottom
-    state.context[node_flags == bot_flag] = gas_context
-    state.p[node_flags == bot_flag] = pbot_dir
-    state.T[node_flags == bot_flag] = Tbot_dir
-    state.S[node_flags == bot_flag] = [1, 0]
-    state.C[node_flags == bot_flag] = [[0.8, 0.2], [0, 1.0]]
-
-
-def set_states(state):
-    state.context[:] = gas_context
-    state.p[:] = pall
-    state.T[:] = Tall
-    state.S[:] = [1, 0]
-    state.C[:] = [[0.8, 0.2], [0, 1.0]]  # FIXME air=0
-
-
-def set_initial_bc_values():
-    set_states(simulation.node_states())
-    set_states(simulation.cell_states())
-    set_Dirichlet_state(simulation.dirichlet_node_states())
-
-
-sys.stdout.write("set initial and BC" + "\n")
-set_initial_bc_values()
+mol_enth_ex = simulation.cpp_liquid_molar_enthalpy(pall, Tall, [0.8, 0.2])
 
 timestep = TimeStepManager(
     initial_timestep=100.0,
