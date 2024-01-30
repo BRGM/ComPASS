@@ -73,6 +73,12 @@ simulation.init(
     cell_heat_source=cell_heat_source,
 )
 
+# copy is important, it is a pointer
+final_molar_sources = simulation.all_molar_sources_vol().copy()
+# reset the molar sources to begin without sources
+molar_source = simulation.all_molar_sources_vol()
+molar_source *= 0.0
+
 # ******************************************************************************
 initial_state = simulation.build_state(simulation.Context.liquid, p=p0, T=T0)
 
@@ -87,12 +93,20 @@ init_dt = 0.01 * hour
 final_time = 1 * hour
 
 
+def increase_molar_sources(tick):
+    tick_mol_sources = tick.time / final_time * final_molar_sources
+    molar_source = simulation.all_molar_sources_vol()
+    # to modify the simulation.all_molar_sources_vol() object, use += or *=
+    molar_source *= 0
+    molar_source += tick_mol_sources
+
+
 standard_loop(
     simulation,
     initial_timestep=init_dt,
     final_time=final_time,
-    output_period=2 * minute,
-    nitermax=300,
+    output_period=10 * minute,
+    iteration_callbacks=[increase_molar_sources],
 )
 
 # # For visualization, results can be postprocessed here
