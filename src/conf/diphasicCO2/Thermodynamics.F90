@@ -149,27 +149,55 @@ contains
    end subroutine
 
    pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double), parameter :: Rgp = 8.314d0
+      real(c_double) :: Z, dZ
+      real(c_double), parameter :: u = 0.018016d0
+      real(c_double), parameter :: R = 8.3145d0
 
-      f = p/(Rgp*T)
-      dPf = 1/(Rgp*T)
-      dTf = -p/Rgp/T**2
+      Z = 1.d0 ! CHECKME: ?
+      dZ = 0.d0
+
+      f = p*u/(R*T*Z)
+      dPf = u/(R*T*Z)
+      dTf = -p*u/(R*T*Z)**2*(R*T*dZ + R*Z)
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_gas
 
    pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
+      real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      f = 1000.d0/M_H2O
-      dPf = 0.d0
-      dTf = 0.d0
+      real(c_double), parameter :: rho0 = 780.83795d0
+      real(c_double), parameter :: a = 1.6269192d0
+      real(c_double), parameter :: b = -3.0635410d-3
+      real(c_double), parameter :: a1 = 2.4638d-9
+      real(c_double), parameter :: a2 = 1.1343d-17
+      real(c_double), parameter :: b1 = -1.2171d-11
+      real(c_double), parameter :: b2 = 4.8695d-20
+      real(c_double), parameter :: c1 = 1.8452d-14
+      real(c_double), parameter :: c2 = -5.9978d-23
+      real(c_double) :: Cs, cw, dcwp, dcwt
+      real(c_double) :: ds, ss, rs
+      real(c_double) :: Psat, dT_Psat, prel
+
+      Cs = 0.d0 ! salinity
+      rs = 0.d0
+
+      call FluidThermodynamics_Psat(T, Psat, dT_Psat)
+
+      ss = (rho0 + a*T + b*T**2)*(1.d0 + 6.51d-4*Cs)
+      ds = (a + b*T*2.d0)*(1.d0 + 6.51d-4*Cs)
+      cw = (1.d0 + 5.d-2*rs) &
+           *(a1 + a2*p + T*(b1 + b2*p) + T**2*(c1 + c2*p))
+      dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
+      dcwt = (1.d0 + 5.d-2*rs)*((b1 + b2*p) + T*2.d0*(c1 + c2*p))
+      prel = p - Psat
+      f = ss*(1.d0 + cw*prel)
+      dPf = ss*dcwp*prel + ss*cw
+      dTf = ds*(1.d0 + cw*prel) + ss*dcwt*prel - ss*cw*dT_Psat
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_liquid
@@ -307,11 +335,21 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
 
+      real(c_double) :: Tref, a, da, b
+
       if (iph == GAS_PHASE) then
-         f = 15.d-6
+         f = (0.361d0*T - 10.2d0)*1.d-7
       else if (iph == LIQUID_PHASE) then
-         f = 1.d-3
-      endif
+         Tref = T - 273.d0 - 8.435d0
+         b = sqrt(8078.4d0 + Tref**2)
+         a = 0.021482d0*(Tref + b) - 1.2d0
+         f = 1.d-3/a
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('Unknow phase in f_Viscosite')
+#endif
+
+      end if
 
    end function f_Viscosity
 
@@ -328,15 +366,28 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      if (iph == GAS_PHASE) then
-         f = 15.d-6
-      else if (iph == LIQUID_PHASE) then
-         f = 1.d-3
-      endif
+      real(c_double) :: Tref, a, da, b
 
-      dfdP = 0.d0
-      dfdT = 0.d0
-      dfdC = 0.d0
+      if (iph == GAS_PHASE) then
+         f = (0.361d0*T - 10.2d0)*1.d-7
+         dfdP = 0.d0
+         dfdT = 0.361*1.d-7
+         dfdC = 0.d0
+      else if (iph == LIQUID_PHASE) then
+         Tref = T - 273.d0 - 8.435d0
+         b = sqrt(8078.4d0 + Tref**2)
+         a = 0.021482d0*(Tref + b) - 1.2d0
+         da = 0.021482d0*(1.d0 + Tref/b)
+         f = 1.d-3/a
+         dfdP = 0.d0
+         dfdT = -f*(da/a)
+         dfdC = 0.d0
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('Unknow phase in f_Viscosite')
+#endif
+
+      end if
 
    end subroutine f_Viscosity_with_derivatives
 
