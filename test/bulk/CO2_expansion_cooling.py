@@ -24,10 +24,10 @@ nx = ny = 1
 Topz = Oz + Lz
 
 omega_reservoir = 0.35  # reservoir porosity
-k_reservoir = 1e-12 * np.eye(3)  # reservoir permeability in m^2, 1D = 10^-12 m^
+k_reservoir = 1e-12  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity
 pall = 1.0e6  # top Pressure
-pbot_dir = 1.0e5  # top Pressure
+pbot_dir = 1.0e5  # bottom Pressure
 Tall = 700.0  # top Temperature
 Tbot_dir = 700.0  # bottom Temperature
 gravity = 0.0
@@ -62,7 +62,8 @@ simulation.all_states().set(X0)
 XDir = simulation.build_state(simulation.Context.gas, p=pbot_dir, T=Tbot_dir, Cag=0.8)
 simulation.dirichlet_node_states().set(XDir)
 
-mol_enth_ex = simulation.cpp_liquid_molar_enthalpy(pall, Tall, [0.8, 0.2])
+# example on how to get the liquid molar enthalpy with Cal=0.8, Cwl=0.2
+# mol_enth_ex = simulation.cpp_liquid_molar_enthalpy(pall, Tall, [0.8, 0.2])
 
 timestep = TimeStepManager(
     initial_timestep=100.0,

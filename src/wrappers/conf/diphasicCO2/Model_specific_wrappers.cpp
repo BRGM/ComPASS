@@ -234,6 +234,7 @@ Parameters
 :param Sg: gaz phase saturation
 :param Cag: gaz phase air molar fraction
 :param Cal: liquid phase air molar fraction
+:param rocktype: rocktype of the site
 
 )doc");
 }
