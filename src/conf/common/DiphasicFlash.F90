@@ -48,7 +48,7 @@
       call DiphasicFlash_liquid_fugacities(inc, fa, fw)
 
       ! WARNING: the following relies on the ideal gas assumption
-      !          and assumes fa = PaCag and fw = PgCwg
+      !          and assumes fa = PgCag and fw = PgCwg
       ! WARNING: don't divide inequality by Pg (migth be negative during Newton iteration)
       if (fa + fw > inc%phase_pressure(GAS_PHASE)) then
          ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)

@@ -20,7 +20,7 @@ module Thermodynamics
    implicit none
 
    public :: &
-      f_Fugacity, &  !< Fucacity
+      f_Fugacity, &  !< Fugacity
       f_MolarDensity, &  !< \zeta^alpha(P,T,C,S)
       f_MolarDensity_with_derivatives, &  !< \zeta^alpha(P,T,C,S)
       f_VolumetricMassDensity, &  !< \xi^alpha(P,T,C,S)
@@ -193,11 +193,11 @@ contains
       cw = (1.d0 + 5.d-2*rs) &
            *(a1 + a2*p + T*(b1 + b2*p) + T**2*(c1 + c2*p))
       dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
-      dcwt = (1.d0 + 5.d-2*rs)*((b1 + b2*p) + T*2.d0*(c1 + c2*p))
+      dcwt = (1.d0 + 5.d-2*rs)*(b1 + b2*p + T*2.d0*(c1 + c2*p))
       prel = p - Psat
       f = ss*(1.d0 + cw*prel)
-      dPf = ss*dcwp*prel + ss*cw
-      dTf = ds*(1.d0 + cw*prel) + ss*dcwt*prel - ss*cw*dT_Psat
+      dPf = ss*(dcwp*prel + cw)
+      dTf = ds*(1.d0 + cw*prel) + ss*(dcwt*prel - cw*dT_Psat)
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_liquid
@@ -285,14 +285,14 @@ contains
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
-      real(c_double) :: zeta, M
+      real(c_double) :: zeta, M_CO2, M
       ! not necessary, just to use f_MolarDensity_with_derivatives (no distinction without der)
       real(c_double) :: dfdP, dfdT, dfdC(NbComp)
 
       call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
-      call CO2_MasseMolaire(m)
+      call CO2_MasseMolaire(M_CO2)
 
-      M = m*C(AIR_COMP) + M_H2O*C(WATER_COMP)
+      M = M_CO2*C(AIR_COMP) + M_H2O*C(WATER_COMP)
       f = zeta*M
 
    end function f_VolumetricMassDensity
@@ -309,16 +309,16 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      real(c_double) :: zeta, M
+      real(c_double) :: zeta, M_CO2, M
 
       call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
-      CALL CO2_MasseMolaire(m)
+      CALL CO2_MasseMolaire(M_CO2)
 
-      M = m*C(AIR_COMP) + M_H2O*C(WATER_COMP)
+      M = M_CO2*C(AIR_COMP) + M_H2O*C(WATER_COMP)
       f = zeta*M
       dfdP = dfdP*M
       dfdT = dfdT*M
-      dfdC(AIR_COMP) = dfdC(AIR_COMP)*M + zeta*m
+      dfdC(AIR_COMP) = dfdC(AIR_COMP)*M + zeta*M_CO2
       dfdC(WATER_COMP) = dfdC(WATER_COMP)*M + zeta*M_H2O
 
    end subroutine f_VolumetricMassDensity_with_derivatives
@@ -380,7 +380,7 @@ contains
          da = 0.021482d0*(1.d0 + Tref/b)
          f = 1.d-3/a
          dfdP = 0.d0
-         dfdT = -f*(da/a)
+         dfdT = -f*da/a
          dfdC = 0.d0
 #ifndef NDEBUG
       else
