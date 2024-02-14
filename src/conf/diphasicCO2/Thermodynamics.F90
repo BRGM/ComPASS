@@ -152,16 +152,11 @@ contains
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: Z, dZ
-      real(c_double), parameter :: u = 0.018016d0
-      real(c_double), parameter :: R = 8.3145d0
+      real(c_double), parameter :: Rgp = 8.3145d0
 
-      Z = 1.d0 ! CHECKME: ?
-      dZ = 0.d0
-
-      f = p*u/(R*T*Z)
-      dPf = u/(R*T*Z)
-      dTf = -p*u/(R*T*Z)**2*(R*T*dZ + R*Z)
+      f = p/(Rgp*T)
+      dPf = 1/(Rgp*T)
+      dTf = -p/Rgp/T**2
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_gas
@@ -183,6 +178,8 @@ contains
       real(c_double) :: ds, ss, rs
       real(c_double) :: Psat, dT_Psat, prel
 
+      ! the formula gives the volumetric mass density, divide by M_H2O
+      ! to get the molar density
       Cs = 0.d0 ! salinity
       rs = 0.d0
 
@@ -195,9 +192,9 @@ contains
       dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
       dcwt = (1.d0 + 5.d-2*rs)*(b1 + b2*p + T*2.d0*(c1 + c2*p))
       prel = p - Psat
-      f = ss*(1.d0 + cw*prel)
-      dPf = ss*(dcwp*prel + cw)
-      dTf = ds*(1.d0 + cw*prel) + ss*(dcwt*prel - cw*dT_Psat)
+      f = ss*(1.d0 + cw*prel)/M_H2O
+      dPf = ss*(dcwp*prel + cw)/M_H2O
+      dTf = (ds*(1.d0 + cw*prel) + ss*(dcwt*prel - cw*dT_Psat))/M_H2O
       dCf = 0.d0
 
    end subroutine f_DensiteMolaire_liquid
