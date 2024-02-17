@@ -498,29 +498,49 @@ contains
       call CommonMPI_abort("Jacobian_JacBigA_BigSm_dirichlet_nodes assumes thermal transfer is on.")
 #endif
 
+      ! NB: all arrays have C memory layout (i.e. row major)
+      !     but sen with Fortran col major mode that is
+      !     JacBigA%Val(c, r, k) is the element on row r, col c
+      !     of the kth jacobian small block
+      !     these small blocks being stored using CSR storage
+#ifndef NDEBUG
+      ! CHECKME: the following should be utility test functions at model level
+      if (NbComp + 1 /= NbCompThermique) &
+         call CommonMPI_abort("Jacobian_JacBigA_BigSm_dirichlet_nodes: model inconsistency!")
+      if (NbCompThermique < 2) &
+         call CommonMPI_abort("Jacobian_JacBigA_BigSm_dirichlet_nodes: we expect at least 2 primary variables!")
+#endif
       do s = 1, NbNodeOwn_Ncpus(commRank + 1)
          if (IdNodeLocal(s)%T == "d") then
+            ! find the diagonal (block) element of dof s and store index in nz
             call Jacobian_JacBigA_BigSm_find_diagonal_nz(JacBigA, s, s, nz)
             if (IdNodeLocal(s)%P == "d") then
+               ! NB: The following implements *true* Dirichlet boundary conditions,
+               !     on primary variables, i.e. all primary variables are fixed
+               !     and the boundary context will not change
+               !     (check that flash skip Dirichlet conditions)
+               ! First cancel out contributions to all balance equations
+               ! CHECKME: it could be more efficient to explicit the nested loops
                JacBigA%Val(:, :, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
+               BigSm(:, s) = 0.d0
+               ! Then on each row the equations become
+               ! X = X0 (X being a primary variable that depends on the context)
                do i = 1, NbCompThermique
                   JacBigA%Val(i, i, nz) = 1.d0
                end do
-               BigSm(:, s) = 0.d0
             else
-               ! carefull : the index order of JacBigA%Val(:,:,nz) is (col, row)
-               ! 2 because the temperature is the second primary unknown
-               ! of all sites in the stencil
-               ! reset the temperature contribution to all balance equations
-               JacBigA%Val(2, :, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
-               ! at the Dirichlet node:
-               ! instead of the thermal balance equation, solve 1 * dT = 0
-               ! reset all contributions to the thermal balance equation
-               JacBigA%Val(:, NbCompThermique, nz) = 0.d0
-               ! add 1 aligned with the temperature primary unknown
-               JacBigA%Val(2, NbCompThermique, nz) = 1.d0
-               ! write(*, *) "nz", nz, JacBigA%Val(NbCompThermique, :, nz)
+               ! FIXME: in the following we assume that T is the second primary variable
+               !        we should have a test function (at least in Debug mode)
+               !        to check that this is actually the case
+               !        the best would be to ensure that the context of the dirichlet node s
+               !        is compliant with our assumptions and cannot change
+               !        (e.g skip Dirichlet nodes in flash)
+               ! First cancel out contributions to the energy balance only (row NbCompThermique)
+               ! CHECKME: it could be more efficient to explicit the nested loops
+               JacBigA%Val(:, NbCompThermique, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
                BigSm(NbCompThermique, s) = 0.d0
+               ! Then the equation on row NbCompThermique becomes: T = T0
+               JacBigA%Val(2, NbCompThermique, nz) = 1.d0
             end if
          else
             if (IdNodeLocal(s)%P == "d") &
