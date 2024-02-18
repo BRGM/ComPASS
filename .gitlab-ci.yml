@@ -243,6 +243,17 @@ more sanity tests:
         ( cd ${f%/*}; python ${f##*/} )
       done
 
+check bug fixes:
+  stage: test
+  tags:
+    - linux
+    - medium
+  before_script:
+    - python -m pip install --no-index -f dist ComPASS
+  script:
+    - cd test/bugs/578
+    - python 578.py
+
 postprocess:
   stage: test
   tags:
