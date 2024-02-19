@@ -33,7 +33,7 @@ Tgrad = 0.1  # 30°C/km à 65°C/km # Geothermal gradient
 
 
 """ ComPASS simulation """
-simulation = ComPASS.load_eos("water2ph")
+simulation = ComPASS.load_physics("water2ph")
 # simulation.info.activate_direct_solver = True
 
 sw = SalomeWrapper(simulation)
