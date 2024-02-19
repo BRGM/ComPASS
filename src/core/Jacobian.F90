@@ -3743,15 +3743,13 @@ contains
       ! rows of node own
       do k = 1, NbNodeOwn_Ncpus(commRank + 1)
 
-         ! WARNING: l'alignement avec alignemat ne s'applique qu'aux eqs de conservation
-         ! donc pas aux noeuds DIR DIR
-         ! TODO: le cas DIR Neu ou Neu Dir reste a faire
+         ! WARNING: the alignment with alignemat applies only on balance equations
+         ! thus not when Dirichlet P and T
+         ! TODO: the hybrid case (Dirichlet/Neumann) is not implemented
 
          if ((IdNodeLocal(k)%P .ne. "d") .and. (IdNodeLocal(k)%T .ne. "d")) then
             call Jacobian_Alignment_man_row(k, IncNode(k)%ic)
-         else if ((IdNodeLocal(k)%P .eq. "d") .and. (IdNodeLocal(k)%T .ne. "d")) then
-            call CommonMPI_abort('in manual alignment Jacobian mix Dir/Neu node are not implemented')
-         else if ((IdNodeLocal(k)%T .eq. "d") .and. (IdNodeLocal(k)%P .ne. "d")) then
+         else if (((IdNodeLocal(k)%P .ne. "d") .or. (IdNodeLocal(k)%T .ne. "d"))) then
             call CommonMPI_abort('in manual alignment Jacobian mix Dir/Neu node are not implemented')
          endif
       end do
