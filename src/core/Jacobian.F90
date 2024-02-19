@@ -523,8 +523,8 @@ contains
                ! CHECKME: it could be more efficient to explicit the nested loops
                JacBigA%Val(:, :, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
                BigSm(:, s) = 0.d0
-               ! Then on each row the equations become
-               ! X = X0 (X being a primary variable that depends on the context)
+               ! Then on each row the equations become X = X0 and the linearized form is
+               ! dX = 0 (X being a primary variable that depends on the context)
                do i = 1, NbCompThermique
                   JacBigA%Val(i, i, nz) = 1.d0
                end do
@@ -540,6 +540,7 @@ contains
                JacBigA%Val(:, NbCompThermique, JacBigA%Pt(s) + 1:JacBigA%Pt(s + 1)) = 0.d0
                BigSm(NbCompThermique, s) = 0.d0
                ! Then the equation on row NbCompThermique becomes: T = T0
+               ! and the linearized form is dT = 0
                JacBigA%Val(2, NbCompThermique, nz) = 1.d0
             end if
          else
