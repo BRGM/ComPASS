@@ -2,18 +2,9 @@ ComPASS aims at being an open, evolutive platform for hydrothermal modeling.
 It implements state of the art numerical scheme to discretize multiphase
 Darcean flows on generic unstructured meshes.
 
-
-.. ifconfig:: versionlevel == '4'
-
-  It is currently developed in the framework of the `charms ANR project
-  <http:://anr-charms@brgm.fr>`_ which has a specific
-  focus on the integration of geological models and dynamic models.
-
-.. ifconfig:: versionlevel == '5'
-
-  The Compass code is developped through collaborations,
-  it is an open source platform which belongs to all the co-developpers
-  (INRIA, BRGM, ANDRA).
+The Compass code is developped through collaborations,
+it is an open source platform which belongs to all the co-developpers:
+Université Côte d'Azur (LJAD - Inria); BRGM; ANDRA.
 
 
 Our main goals are:
