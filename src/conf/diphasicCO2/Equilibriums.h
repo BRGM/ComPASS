@@ -1,36 +1,32 @@
 #pragma once
 
-#include "fugacity.h"
+#include "Thermodynamics.h"
+#include "enum_to_rank.h"
 
 // there is no gas water, the equilibrium writes for the CO2 component:
-// fug(CO2, gas) = fug(CO2, liq)
+// fug(CO2, gas) = fug(CO2, liq),
+// fug(CO2, gas) is known and fug(CO2, liq) = coeff_CO2_liquid_fug * Cl(CO2)
 template <typename Components, typename Phases, typename PhaseVector>
-double CO2_liquid_molar_fraction(const PhaseVector& pa, const double& T,
-                                 const double atol = 1e-7,
-                                 std::size_t maxiter = 1000) {
+double CO2_liquid_molar_fraction(const PhaseVector& pa, const double& T) {
    static_assert(std::is_enum_v<Components>);
    static_assert(std::is_enum_v<Phases>);
 
    const double pg = pa[enum_to_rank(Phases::gas)];
    const double pl = pa[enum_to_rank(Phases::liquid)];
-   double Cga = 1.e0;  // there is no gas water
-   double Cla = 0.e0;  // Newton start: no CO2 in liquid
-   double fg, dfg, f, df, Jag, Ra;
+   double Cg[2], fg, fl, _, dfdC[2];
 
-   // constant during the loop, because Cga is cst
-   std::tie(fg, dfg) = fugacity(Components::air, Phases::gas, pg, T, Cga);
-   for (; maxiter != 0; --maxiter) {
-      std::tie(f, df) = fugacity(Components::air, Phases::liquid, pl, T, Cla);
-      //   residual = fug(CO2, gas) - fug(CO2, liq)
-      Ra = fg - f;
-      //   derivative wrt CO2
-      Jag = dfg - df;
-      if (fabs(Ra) < atol) return Cla;
-      // Newton: X -> X - J^-1 R
-      assert(Jag != 0);
-      Cla -= Ra / Jag;
-   }
+   Cg[enum_to_rank(Components::CO2)] = 1.e0;    // there is no gas water
+   Cg[enum_to_rank(Components::water)] = 0.e0;  // there is no gas water
 
-   throw std::runtime_error(
-       "Maximum number of iterations in CO2_liquid_molar_fraction exceeded.");
+   // fug(CO2, gas)
+   FluidThermodynamics_fugacity(to_underlying(Components::CO2),
+                                to_underlying(Phases::gas), pg, T, Cg, fg, _, _,
+                                dfdC);
+
+   // Fugacity is coeff_CO2_liquid_fug * Cl(CO2)
+   // coeff_CO2_liquid_fug does not depend on C
+   FluidThermodynamics_coeff_CO2_liquid_fug(pl, T, fl, _, _);
+
+   // return Cl(CO2) s.t. fug(CO2, gas) = coeff_CO2_liquid_fug * Cl(CO2)
+   return fg / fl;
 }

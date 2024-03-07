@@ -39,6 +39,26 @@ void finalize_model() {}
 // nothing to add, all the physical properties are defined in fortran
 void add_physical_properties_wrappers(py::module &module) {}
 
+double phase_fugacity(const Component &Component, const Phase &phase, double p,
+                      double T, py::array_t<double, py::array::c_style> &C) {
+   double xsi, dxsidp, dxsidT;
+   Component_vector dxsidC;
+   FluidThermodynamics_fugacity(to_underlying(Component), to_underlying(phase),
+                                p, T, C.data(), xsi, dxsidp, dxsidT,
+                                dxsidC.data());
+   return xsi;
+}
+
+inline double cpp_gas_CO2_fugacity(double p, double T,
+                                   py::array_t<double, py::array::c_style> &C) {
+   return phase_fugacity(Component::CO2, Phase::gas, p, T, C);
+}
+
+inline double cpp_liquid_CO2_fugacity(
+    double p, double T, py::array_t<double, py::array::c_style> &C) {
+   return phase_fugacity(Component::CO2, Phase::liquid, p, T, C);
+}
+
 inline double phase_molar_density(const Phase &phase, double p, double T,
                                   py::array_t<double, py::array::c_style> &C) {
    return FluidThermodynamics_molar_density(to_underlying(phase), p, T,
@@ -108,6 +128,9 @@ inline double Tsat(double p) {
 }
 
 void add_specific_model_wrappers(py::module &module) {
+   module.def("cpp_liquid_CO2_fugacity",
+              py::vectorize(cpp_liquid_CO2_fugacity));
+   module.def("cpp_gas_CO2_fugacity", py::vectorize(cpp_gas_CO2_fugacity));
    module.def("cpp_liquid_molar_enthalpy",
               py::vectorize(cpp_liquid_molar_enthalpy));
    module.def("cpp_gas_molar_enthalpy", py::vectorize(cpp_gas_molar_enthalpy));
@@ -122,7 +145,7 @@ void add_specific_model_wrappers(py::module &module) {
    module.def("Tsat", py::vectorize(Tsat));
 
    py::enum_<Component>(module, "Component")
-       .value("air", Component::air)
+       .value("CO2", Component::CO2)
        .value("water", Component::water);
 
    py::enum_<Context>(module, "Context")
@@ -140,7 +163,7 @@ void add_specific_model_wrappers(py::module &module) {
           py::object Cag, py::object Cal, py::object rocktype) {
           constexpr auto gas = enum_to_rank(Phase::gas);
           constexpr auto liquid = enum_to_rank(Phase::liquid);
-          constexpr auto air = enum_to_rank(Component::air);
+          constexpr auto CO2 = enum_to_rank(Component::CO2);
           constexpr auto water = enum_to_rank(Component::water);
 
           if (!Cag.is_none())
@@ -160,7 +183,7 @@ void add_specific_model_wrappers(py::module &module) {
              state.T = T.cast<double>();
              state.S.fill(0);
              state.S[gas] = 1;
-             state.C[liquid][air] = 0;
+             state.C[liquid][CO2] = 0;
              // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
@@ -173,7 +196,7 @@ void add_specific_model_wrappers(py::module &module) {
              state.T = T.cast<double>();
              state.S.fill(0);
              state.S[liquid] = 1;
-             state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             state.C[liquid][CO2] = Cal.is_none() ? 0 : Cal.cast<double>();
              // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
@@ -197,7 +220,7 @@ void add_specific_model_wrappers(py::module &module) {
              }
              auto Cla =
                  CO2_liquid_molar_fraction<Component, Phase>(state.pa, state.T);
-             state.C[liquid][air] = Cla;
+             state.C[liquid][CO2] = Cla;
              // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
@@ -234,8 +257,8 @@ Parameters
 :param p: pressure
 :param T: temperature
 :param Sg: gaz phase saturation
-:param Cag: gaz phase air molar fraction
-:param Cal: liquid phase air molar fraction
+:param Cag: gaz phase CO2 molar fraction
+:param Cal: liquid phase CO2 molar fraction
 :param rocktype: rocktype of the site
 
 )doc");

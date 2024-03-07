@@ -20,8 +20,8 @@ module DefFlash
    use DefModel, only: &
       NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
-      GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity, f_Fugacity_coefficient
+      GAS_PHASE, LIQUID_PHASE, CO2_COMP, WATER_COMP
+   use Thermodynamics, only: f_Fugacity
 
    implicit none
 
@@ -37,7 +37,7 @@ contains
       real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
 
       ! compute liquid fugacity of CO2 in liquid
-      call f_Fugacity(AIR_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+      call f_Fugacity(CO2_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
                       inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
       if (fa > inc%phase_pressure(GAS_PHASE)) then
          ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
@@ -117,12 +117,12 @@ contains
       real(c_double) :: Cal
 
       ! there is no gas water
-      inc%Comp(AIR_COMP, GAS_PHASE) = 1.d0
+      inc%Comp(CO2_COMP, GAS_PHASE) = 1.d0
       inc%Comp(WATER_COMP, GAS_PHASE) = 0.d0
 
       ! enforce Cl in [0,1] and sum equal to 1
-      Cal = min(max(inc%Comp(AIR_COMP, LIQUID_PHASE), 0.d0), 1.d0)
-      inc%Comp(AIR_COMP, LIQUID_PHASE) = Cal
+      Cal = min(max(inc%Comp(CO2_COMP, LIQUID_PHASE), 0.d0), 1.d0)
+      inc%Comp(CO2_COMP, LIQUID_PHASE) = Cal
       inc%Comp(WATER_COMP, LIQUID_PHASE) = 1.d0 - Cal
 
    end subroutine DiphasicFlash_enforce_consistent_molar_fractions

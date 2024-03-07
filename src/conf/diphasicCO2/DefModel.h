@@ -1,7 +1,7 @@
 #pragma once
 
 enum struct Component {
-   air = ComPASS_AIR_COMPONENT,
+   CO2 = ComPASS_CO2_COMPONENT,
    water = ComPASS_WATER_COMPONENT
 };
 

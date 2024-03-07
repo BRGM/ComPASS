@@ -10,7 +10,7 @@
 !
 ! Gas and Liquid
 !
-! 1: Air
+! 1: CO2
 ! 2: H2O
 
 module DefModel
@@ -24,7 +24,7 @@ module DefModel
    ! --------------------------------------------------------------
    !      Definition of the components
    integer, parameter :: NbComp = ComPASS_NUMBER_OF_COMPONENTS
-   integer, parameter :: AIR_COMP = ComPASS_AIR_COMPONENT ! (defined in cmake.conf)
+   integer, parameter :: CO2_COMP = ComPASS_CO2_COMPONENT ! (defined in cmake.conf)
    integer, parameter :: WATER_COMP = ComPASS_WATER_COMPONENT ! (defined in cmake.conf) CHECKME: does the water has to be at the end?
 
    integer, parameter :: NbPhase = ComPASS_NUMBER_OF_PHASES

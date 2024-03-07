@@ -10,9 +10,9 @@ module Thermodynamics
 
    use iso_c_binding, only: c_double, c_int
    use CommonMPI, only: CommonMPI_abort
-   use PhysicalConstants, only: M_H2O, M_air
+   use PhysicalConstants, only: M_H2O
    use DefModel, only: NbPhase, NbComp, IndThermique, &
-                       GAS_PHASE, LIQUID_PHASE, WATER_COMP, AIR_COMP, &
+                       GAS_PHASE, LIQUID_PHASE, WATER_COMP, CO2_COMP, &
                        get_model_configuration, MCP
    use CommonType, only: ModelConfiguration
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
@@ -27,7 +27,7 @@ module Thermodynamics
       f_VolumetricMassDensity_with_derivatives, &  !< \xi^alpha(P,T,C,S)
       f_Viscosity, &  !< \mu^alpha(P,T,C,S)
       f_Viscosity_with_derivatives  !< \mu^alpha(P,T,C,S)
-   ! CO2_henry, &  !< Henry coef for air comp
+   ! CO2_henry, &  !< Henry coef for CO2 comp
    ! f_PermRel, &  ! k_{r_alpha}(S)
 
 #ifdef _THERMIQUE_
@@ -42,46 +42,147 @@ module Thermodynamics
 
 contains
 
-   ! Fugacity coefficient of the water in liquid phase
+   pure subroutine equilibriumConstantH2O(T, f, dfdT)
+      real(c_double), intent(in) :: T
+      real(c_double), intent(out) :: f, dfdT
+
+      ! Constants for equilibrium constant calculation
+      real(c_double) :: TinC, logk0_H2O
+      real(c_double), parameter :: c(4) = [-2.209d0, 3.097d-2, -1.098d-4, 2.048d-7]
+
+      TinC = T - 273.15d0 ! temperature in °C
+      logk0_H2O = c(1) + c(2)*TinC + c(3)*TinC**2 + c(4)*TinC**3
+
+      f = 10**logk0_H2O
+      ! ddx(10**u) = ln(10)*ddx(u)*10**u
+      dfdT = log(10.d0)*f*(c(2) + 2.d0*c(3)*TinC + 3.d0*c(4)*TinC**2)
+   end subroutine equilibriumConstantH2O
+
+   pure subroutine equilibriumConstantCO2(T, f, dfdT)
+      real(c_double), intent(in) :: T
+      real(c_double), intent(out) :: f, dfdT
+
+      ! Constants for equilibrium constant calculation
+      real(c_double) :: TinC, logk0_CO2
+      ! FIXE ME : add a condition for to switch in KCO2(l) 0 when the temperature
+      ! is subcritical and the pressure is above the CO2 saturation pressure
+      !c[3] = [ 1.189, 1.304e-2, -5.446e-5 ] ! KCO2(g) for the CO2g
+      real(c_double), parameter :: c(3) = [1.169d0, 1.368d-2, -5.380d-5] ! KCO2(l) for the CO2l
+
+      TinC = T - 273.15d0 ! temperature in °C
+      logk0_CO2 = c(1) + c(2)*TinC + c(3)*TinC**2
+
+      f = 1.d5*10.d0**logk0_CO2 !converted from bar to Pa
+      ! ddx(10**u) = ln(10)*ddx(u)*10**u
+      dfdT = 1.d5*log(10.d0)*f*(c(2) + 2.d0*c(3)*TinC)
+   end subroutine equilibriumConstantCO2
+
+   pure subroutine f_linear_volume(p, T, f, dfdp, dfdT)
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(out) :: f, dfdp, dfdT
+
+      real(c_double) :: MCO2
+
+      call CO2_MasseMolaire(MCO2)
+
+      ! -1.167d-5*(p/1.d6) + ...
+      f = (-1.167d-11*p + 6.539d-6*T - 0.00059d0)*MCO2 ! volume m^3/mol
+
+      dfdp = -1.167d-11*MCO2
+      dfdT = 6.539d-6*MCO2
+
+   end subroutine f_linear_volume
+
+   ! Fugacity is f_coeff_CO2_liquid_fug * Cl(CO2)
+   !< p is the phase pressure
+   !< T is the temperature
+   !< does not depend on C (phase molar fractions)
+   !< if f_coeff_CO2_liquid_fug depends on C, change the algo in Equilibrium.h
+   subroutine f_coeff_CO2_liquid_fug(p, T, f, dfdp, dfdT) &
+      bind(C, name="FluidThermodynamics_coeff_CO2_liquid_fug")
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(out) :: f, dfdp, dfdT
+
+      real(c_double), parameter :: v_av_CO2 = 3.26d-5 ! [m^3/mol] average partial molar volume of CO2 over the pressure range
+      real(c_double), parameter :: R = 8.314d0
+      real(c_double) :: k0_CO2, dk0_CO2dT, deltaP, v_av_CO2RT, dv_av_CO2RTdT, c0T, dc0TdT, e_u
+
+      ! IMPORTANT: at subcritical temperatures and pressures above saturation values,
+      ! K0_CO2(T) needs to be replaced with another equilibrium constant, K0_CO2(l)
+      call equilibriumConstantCO2(T, k0_CO2, dk0_CO2dT) ! equilibrium constant for CO2 at 1 bar
+      deltaP = p - 1.d5 ! pressure range converted from reference pressure p0 = 1bar to pg[bar]
+      v_av_CO2RT = v_av_CO2/(R*T)
+      dv_av_CO2RTdT = -v_av_CO2/(R*T**2)
+      c0T = 55.508d0*k0_CO2
+      dc0TdT = 55.508d0*dk0_CO2dT
+      !dc0TdT = 0.
+      e_u = exp(deltaP*v_av_CO2RT)
+      f = c0T*e_u
+
+      dfdp = c0T*v_av_CO2RT*e_u
+      dfdT = e_u*(dc0TdT &
+                  + c0T*deltaP*dv_av_CO2RTdT)
+
+   end subroutine f_coeff_CO2_liquid_fug
+
+   !> Fugacity coefficient of the CO2 under the gas phase
+   ! Fug = Fugacity coefficient * p^g * C^g(CO2)
+   pure subroutine f_Fugacity_coeff_CO2_gas(p, T, C, f, dfdp, dfdT, dfdC)
+
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
+      real(c_double), parameter :: b_CO2 = 2.78d-5 !converted from cm3/mol
+      real(c_double), parameter :: R = 8.314d0
+      real(c_double) :: a_CO2, da_CO2_dT, V, dVdp, dVdT, p_bar, c0T, c1T, sum_cT, ddTc0, ddTc1, &
+                        ln_phi, ddp_ln_phi, ddT_ln_phi, phi
+
+      call f_linear_volume(p, T, V, dVdp, dVdT)
+      p_bar = p/1.d5 ! gas phase pressure in bar
+      ! a_CO2 = (7.54d7 - 4.13d4*T)*1d-12 a_CO2 is originally in bar cm6 K0.5 mol–2
+      !a_CO2 = 7.54d-5 - 4.13d-8*T ! mixture parameter of Redlich-Kwong equation [N. Spycher, K. Pruess, and J. Ennis-King 2003]
+      !FIXME
+      a_CO2 = 7.54 - 4.13d-3*T
+
+      c0T = 2.d0*a_CO2/(R*T**1.5*b_CO2)
+      ddTc0 = -2.d0*(4.13d-3*T**1.5 + 1.5d0*a_CO2*T**0.5)/(R*b_CO2*T**3)
+      c1T = a_CO2/(R*T**1.5)
+      ! ddTc1 = (-4.13d-3*T**1.5 - a_CO2*1.5d0*T**0.5)/(R*T**3)
+      ddTc1 = (-4.13d-3/T**1.5 - a_CO2*1.5d0/T**2.5)/R
+      sum_cT = c1T/b_CO2 - c0T
+
+      ln_phi = log(V/(V - b_CO2)) &
+               + b_CO2/(V - b_CO2) &
+               + sum_cT*log((V + b_CO2)/V) &
+               - c1T/(V + b_CO2) &
+               - log(p_bar*V/(R*T))
+
+      ! ddx(ln(u)) = ddx(u)/u
+      ddp_ln_phi = dVdp/V - dVdp/(V - b_CO2) &
+                   - b_CO2*dVdp/(V - b_CO2)**2 &
+                   + sum_cT*(dVdp/(V + b_CO2) - dVdp/V) &
+                   + c1T*dVdp/(V + b_CO2)**2 &
+                   - 1.d0/p - dVdp/V
+
+      ddT_ln_phi = dVdT/V - dVdT/(V - b_CO2) &
+                   - b_CO2*dVdT/(V - b_CO2)**2 &
+                   + (ddTc1/b_CO2 - ddTc0)*log((V + b_CO2)/V) + sum_cT*(dVdT/(V + b_CO2) - dVdT/V) &
+                   - (ddTc1*(V + b_CO2) - c1T*dVdT)/(V + b_CO2)**2 &
+                   - dVdT/V + 1.d0/T
+
+      f = exp(ln_phi)
+      dfdp = ddp_ln_phi*f
+      dfdT = ddT_ln_phi*f
+      dfdC(:) = 0.d0
+
+   end subroutine f_Fugacity_coeff_CO2_gas
+
+   !< icp component identifier (must be CO2)
+   !< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
    !< p is the phase pressure
    !< T is the temperature
    !< C is the phase molar fractions
-   subroutine f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
-
-      integer :: i
-      real(c_double) :: Psat, dPsatdT
-      real(c_double) :: beta, dbetadp, dbetadT
-      real(c_double) :: zeta, dzetadp, dzetadT, dzetadC(NbComp)
-      real(c_double) :: deltap, RTzeta, ebeta
-      real(c_double), parameter :: R = 8.314d0
-
-      call FluidThermodynamics_Psat(T, Psat, dPsatdT)
-      call f_MolarDensity_with_derivatives(LIQUID_PHASE, p, T, C, zeta, dzetadp, dzetadT, dzetadC)
-
-      deltap = p - Psat ! p is the phase pressure ie pl
-      RTzeta = R*T*zeta
-      beta = deltap/RTzeta
-      dbetadp = (1.d0 - deltap*dzetadp/zeta)/RTzeta
-      dbetadT = (-dPsatdT - deltap*(1./T + dzetadT/zeta))/RTzeta
-      ebeta = exp(beta)
-      f = Psat*ebeta
-      dfdp = dbetadp*f ! with respect to the phase pressure
-      dfdT = (dPsatdT + dbetadT*Psat)*ebeta
-      do i = 1, NbComp
-         dfdC(i) = -deltap*dzetadC(i)/zeta/RTzeta*f
-      enddo
-
-   end subroutine f_Fugacity_water_liquid
-
-! Fugacity coefficient
-!< icp component identifier
-!< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-!< p is the phase pressure
-!< T is the temperature
-!< C is the phase molar fractions
-   subroutine f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
+   subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
+      bind(C, name="FluidThermodynamics_fugacity")
       integer(c_int), intent(in) :: icp, iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
@@ -90,114 +191,99 @@ contains
       dfdT = 0.d0
       dfdC = 0.d0
 
-      if (iph == GAS_PHASE) then
-         f = p
-         dfdp = 1.d0
-      else if (iph == LIQUID_PHASE) then
-         if (icp == AIR_COMP) then
-            call CO2_henry(T, f, dfdT)
-         else if (icp == WATER_COMP) then
-            call f_Fugacity_water_liquid(p, T, C, f, dfdp, dfdT, dfdC)
-         endif
+#ifndef NDEBUG
+      if (icp == WATER_COMP) then
+         call CommonMPI_abort('f_Fugacity not implemented for water comp')
+      elseif (icp .ne. CO2_COMP) then
+         call CommonMPI_abort('f_Fugacity called with a wrong component')
       endif
+#endif
 
-   end subroutine f_Fugacity_coefficient
-
-! Fugacity = fugacity coefficient * component phase molar fraction
-!< icp component identifier
-!< iph is the phase identifier : GAS_PHASE or LIQUID_PHASE
-!< p is the phase pressure
-!< T is the temperature
-!< C is the phase molar fractions
-   subroutine f_Fugacity(icp, iph, p, T, C, f, dfdp, dfdT, dfdC) &
-      bind(C, name="FluidThermodynamics_fugacity")
-      integer(c_int), intent(in) :: icp, iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dfdp, dfdT, dfdC(NbComp)
-
-      ! fugacity coefficient of comp icp and phase iph
-      call f_Fugacity_coefficient(icp, iph, p, T, C, f, dfdp, dfdT, dfdC)
-
-      ! here f = C(icp)
-      ! we compute f = f * C(icp) in place
-      ! so the order of operations below is important
-      dfdp = dfdp*C(icp)
-      dfdT = dfdT*C(icp)
-      ! d (f(P,T,C)*C_i)/dC_i = f + df/dC_i*C_i
-      ! d (f(P,T,C)*C_i)/dC_j =     df/dC_j*C_i, j!=i
-      dfdC = dfdC*C(icp) ! df/dC_j*C_i (for all j)
-      dfdC(icp) = dfdC(icp) + f ! add f when j=i
-      f = f*C(icp)
+      ! icp is CO2
+      if (iph == GAS_PHASE) then
+         ! Fug = Fugacity coefficient * p^g * C^g(icp)
+         call f_Fugacity_coeff_CO2_gas(p, T, C, f, dfdp, dfdT, dfdC)
+         f = 1.
+         dfdp = 0.
+         dfdT = 0.
+         dfdC = 0.
+         ! we compute f = f * C(icp) * p^g in place
+         ! so the order of operations below is important
+         dfdp = C(icp)*(dfdp*p + f)
+         dfdT = dfdT*C(icp)*p
+         ! d (f(P,T,C)*C_i*p)/dC_i = p*(f + df/dC_i*C_i)
+         ! d (f(P,T,C)*C_i*p)/dC_j = p*(    df/dC_j*C_i), j!=i
+         dfdC = dfdC*C(icp) ! df/dC_j*C_i (for all j)
+         dfdC(icp) = dfdC(icp) + f ! add f when j=i
+         dfdC = dfdC*p ! p*(...) for all j
+         f = f*C(icp)*p
+      else if (iph == LIQUID_PHASE) then
+         ! Fug = ctx * C^l(icp), ctx does not depend on C^l
+         call f_coeff_CO2_liquid_fug(p, T, f, dfdp, dfdT)
+         ! we compute f = f * C(icp) in place
+         ! so the order of operations below is important
+         dfdp = dfdp*C(icp)
+         dfdT = dfdT*C(icp)
+         dfdC = 0.d0
+         ! d (f(P,T,C)*C_i)/dC_j
+         dfdC(icp) = f ! derivative is f when j=i
+         f = f*C(icp)
+      endif
 
    end subroutine f_Fugacity
 
-   !> \brief Henry coef for co2 comp
-   pure subroutine CO2_henry(T, H, dHdT)
-
-      real(c_double), intent(in) :: T
-      real(c_double), intent(out) :: H
-      real(c_double), intent(out) :: dHdT
-
-      real(c_double), parameter :: T1 = 293.d0
-      real(c_double), parameter :: T2 = 353.d0
-      real(c_double), parameter :: H1 = 1.6e8
-      real(c_double), parameter :: H2 = 5.6e8
-
-      dHdT = (H2 - H1)/(T2 - T1)
-      H = H1 + (T - T1)*dHdT
-
-   end subroutine
-
-   pure subroutine f_DensiteMolaire_gas(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T, C(NbComp)
+   pure subroutine f_DensiteMass_gas(p, T, C, f, dPf, dTf, dCf)
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double), parameter :: Rgp = 8.3145d0
+      real(c_double) :: u, usquare
 
-      f = p/(Rgp*T)
-      dPf = 1/(Rgp*T)
-      dTf = -p/Rgp/T**2
-      dCf = 0.d0
+      u = -1.167d-11*p + 6.539d-6*T - 0.00059d0
+      usquare = u**2
+      f = 1/u
+      dPf = 1.167d-11/usquare
+      dTf = -6.539d-6/usquare
+      dCf(:) = 0.d0
 
-   end subroutine f_DensiteMolaire_gas
+   end subroutine f_DensiteMass_gas
 
-   pure subroutine f_DensiteMolaire_liquid(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T, C(NbComp)
+   ! defined in SPE11 benchmark, taken from Garcia 2001
+   pure subroutine f_DensiteMass_liquid(p, T, C, f, dPf, dTf, dCf)
+      real(c_double), intent(in) :: p, T
+      real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double), parameter :: rho0 = 780.83795d0
-      real(c_double), parameter :: a = 1.6269192d0
-      real(c_double), parameter :: b = -3.0635410d-3
-      real(c_double), parameter :: a1 = 2.4638d-9
-      real(c_double), parameter :: a2 = 1.1343d-17
-      real(c_double), parameter :: b1 = -1.2171d-11
-      real(c_double), parameter :: b2 = 4.8695d-20
-      real(c_double), parameter :: c1 = 1.8452d-14
-      real(c_double), parameter :: c2 = -5.9978d-23
-      real(c_double) :: Cs, cw, dcwp, dcwt
-      real(c_double) :: ds, ss, rs
-      real(c_double) :: Psat, dT_Psat, prel
+      real(c_double) :: V_theta, V_H2O, M_CO2, rho_CO2, ddTrho_CO2, rho_H20, ddTrho_H20, &
+                        ddprho_H20, one_over_f, ddTone_over_f, ddpone_over_f, ddCO2one_over_f, ddH2Oone_over_f, &
+                        one_over_f_square, TinC
 
-      ! the formula gives the volumetric mass density, divide by M_H2O
-      ! to get the molar density
-      Cs = 0.d0 ! salinity
-      rs = 0.d0
+      TinC = T - 273.15d0 ! temperature in °C
+      call CO2_MasseMolaire(M_CO2)
 
-      call FluidThermodynamics_Psat(T, Psat, dT_Psat)
+      V_theta = 1.d-6*(37.51d0 - 9.585d-2*TinC + 8.740d-4*TinC**2 - 5.044d-7*TinC**3)
+      V_H2O = -4.12258d-13*p + 4.8881d-7*T + 0.00085d0
+      rho_CO2 = M_CO2/V_theta
+      ddTrho_CO2 = M_CO2*1.d-6*(9.585d-2 - 2.d0*8.740d-4*TinC + 3.d0*5.044d-7*TinC**2)/V_theta**2
+      rho_H20 = 1.d0/V_H2O
+      ddTrho_H20 = -4.8881d-7/V_H2O**2
+      ddprho_H20 = 4.12258d-13/V_H2O**2
 
-      ss = (rho0 + a*T + b*T**2)*(1.d0 + 6.51d-4*Cs)
-      ds = (a + b*T*2.d0)*(1.d0 + 6.51d-4*Cs)
-      cw = (1.d0 + 5.d-2*rs) &
-           *(a1 + a2*p + T*(b1 + b2*p) + T**2*(c1 + c2*p))
-      dcwp = (1.d0 + 5.d-2*rs)*(a2 + T*b2 + T**2*c2)
-      dcwt = (1.d0 + 5.d-2*rs)*(b1 + b2*p + T*2.d0*(c1 + c2*p))
-      prel = p - Psat
-      f = ss*(1.d0 + cw*prel)/M_H2O
-      dPf = ss*(dcwp*prel + cw)/M_H2O
-      dTf = (ds*(1.d0 + cw*prel) + ss*(dcwt*prel - cw*dT_Psat))/M_H2O
-      dCf = 0.d0
+      ! C(WATER_COMP) is 1 - C(CO2_COMP)
+      one_over_f = C(WATER_COMP)/rho_H20 + C(CO2_COMP)/rho_CO2
+      ddTone_over_f = -C(WATER_COMP)*ddTrho_H20/rho_H20**2 - C(CO2_COMP)*ddTrho_CO2/rho_CO2**2
+      ddpone_over_f = -C(WATER_COMP)*ddprho_H20/rho_H20**2
+      ddCO2one_over_f = 1.d0/rho_CO2
+      ddH2Oone_over_f = 1.d0/rho_H20
 
-   end subroutine f_DensiteMolaire_liquid
+      f = 1.d0/one_over_f
+      one_over_f_square = one_over_f**2
+      dTf = -ddTone_over_f/one_over_f_square
+      dPf = -ddpone_over_f/one_over_f_square
+      dCf(CO2_COMP) = -ddCO2one_over_f/one_over_f_square
+      dCf(WATER_COMP) = -ddH2Oone_over_f/one_over_f_square
+
+   end subroutine f_DensiteMass_liquid
 
    ! Phase molar density
    !< iph is an identifier for each phase
@@ -210,21 +296,15 @@ contains
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
-      ! not necessary, just to use f_DensiteMolaire_gas and
-      ! f_DensiteMolaire_liquid (no distinction without der)
+
+      real(c_double) :: rho, M, M_CO2
       real(c_double) :: dfdP, dfdT, dfdC(NbComp)
 
-      if (iph == GAS_PHASE) then
-         call f_DensiteMolaire_gas( &
-            p, T, C, f, dfdP, dfdT, dfdC)
-      else if (iph == LIQUID_PHASE) then
-         call f_DensiteMolaire_liquid( &
-            p, T, C, f, dfdP, dfdT, dfdC)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_MolarDensity')
-#endif
-      endif
+      call f_VolumetricMassDensity_with_derivatives(iph, p, T, C, rho, dfdP, dfdT, dfdC)
+      call CO2_MasseMolaire(M_CO2)
+
+      M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+      f = rho/M
 
    end function f_MolarDensity
 
@@ -244,29 +324,25 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      if (iph == GAS_PHASE) then
-         call f_DensiteMolaire_gas( &
-            p, T, C, f, dfdP, dfdT, dfdC)
-      else if (iph == LIQUID_PHASE) then
-         call f_DensiteMolaire_liquid( &
-            p, T, C, f, dfdP, dfdT, dfdC)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('unknow phase in f_MolarDensity_with_derivatives')
-#endif
-      endif
+      real(c_double) :: rho, M_CO2, M
 
+      call f_VolumetricMassDensity_with_derivatives(iph, p, T, C, rho, dfdP, dfdT, dfdC)
+      CALL CO2_MasseMolaire(M_CO2)
+
+      M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+      f = rho/M
+      dfdP = dfdP/M
+      dfdT = dfdT/M
+      dfdC(CO2_COMP) = dfdC(CO2_COMP)/M - f*M_CO2/M
+      dfdC(WATER_COMP) = dfdC(WATER_COMP)/M - f*M_H2O/M
    end subroutine f_MolarDensity_with_derivatives
 
-#ifdef NDEBUG
-   pure &
-#endif
-      SUBROUTINE CO2_MasseMolaire(m)
+   pure subroutine CO2_MasseMolaire(m)
 
       DOUBLE PRECISION, INTENT(OUT) :: m
 
-      m = 44d-3
-   END SUBROUTINE CO2_MasseMolaire
+      m = 44.01d-3
+   end subroutine CO2_MasseMolaire
 
    ! Volumetric mass density (no derivatives)
    !< iph is an identifier for each phase: GAS_PHASE or LIQUID_PHASE
@@ -282,16 +358,21 @@ contains
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
-      real(c_double) :: zeta, M_CO2, M
-      ! not necessary, just to use f_MolarDensity_with_derivatives (no distinction without der)
+      ! not necessary, just to use f_DensiteMolaire_gas and
+      ! f_DensiteMolaire_liquid (no distinction without der)
       real(c_double) :: dfdP, dfdT, dfdC(NbComp)
 
-      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
-      call CO2_MasseMolaire(M_CO2)
-
-      M = M_CO2*C(AIR_COMP) + M_H2O*C(WATER_COMP)
-      f = zeta*M
-
+      if (iph == GAS_PHASE) then
+         call f_DensiteMass_gas( &
+            p, T, C, f, dfdP, dfdT, dfdC)
+      else if (iph == LIQUID_PHASE) then
+         call f_DensiteMass_liquid( &
+            p, T, C, f, dfdP, dfdT, dfdC)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_MolarDensity')
+#endif
+      endif
    end function f_VolumetricMassDensity
 
    ! Volumetric mass density (with derivatives)
@@ -299,24 +380,27 @@ contains
    !< P is the Reference Pressure
    !< T is the Temperature
    !< C is the phase molar fractions
-   subroutine f_VolumetricMassDensity_with_derivatives(iph, p, T, C, f, dfdP, dfdT, dfdC) &
+#ifdef NDEBUG
+   pure &
+#endif
+      subroutine f_VolumetricMassDensity_with_derivatives(iph, p, T, C, f, dfdP, dfdT, dfdC) &
       bind(C, name="FluidThermodynamics_volumetric_mass_density_with_derivatives")
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      real(c_double) :: zeta, M_CO2, M
-
-      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dfdP, dfdT, dfdC)
-      CALL CO2_MasseMolaire(M_CO2)
-
-      M = M_CO2*C(AIR_COMP) + M_H2O*C(WATER_COMP)
-      f = zeta*M
-      dfdP = dfdP*M
-      dfdT = dfdT*M
-      dfdC(AIR_COMP) = dfdC(AIR_COMP)*M + zeta*M_CO2
-      dfdC(WATER_COMP) = dfdC(WATER_COMP)*M + zeta*M_H2O
+      if (iph == GAS_PHASE) then
+         call f_DensiteMass_gas( &
+            p, T, C, f, dfdP, dfdT, dfdC)
+      else if (iph == LIQUID_PHASE) then
+         call f_DensiteMass_liquid( &
+            p, T, C, f, dfdP, dfdT, dfdC)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_MolarDensity_with_derivatives')
+#endif
+      endif
 
    end subroutine f_VolumetricMassDensity_with_derivatives
 
@@ -332,21 +416,11 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
 
-      real(c_double) :: Tref, a, da, b
-
       if (iph == GAS_PHASE) then
-         f = (0.361d0*T - 10.2d0)*1.d-7
+         f = 15.d-6
       else if (iph == LIQUID_PHASE) then
-         Tref = T - 273.d0 - 8.435d0
-         b = sqrt(8078.4d0 + Tref**2)
-         a = 0.021482d0*(Tref + b) - 1.2d0
-         f = 1.d-3/a
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('Unknow phase in f_Viscosite')
-#endif
-
-      end if
+         f = 1.d-3
+      endif
 
    end function f_Viscosity
 
@@ -363,28 +437,15 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      real(c_double) :: Tref, a, da, b
-
       if (iph == GAS_PHASE) then
-         f = (0.361d0*T - 10.2d0)*1.d-7
-         dfdP = 0.d0
-         dfdT = 0.361*1.d-7
-         dfdC = 0.d0
+         f = 15.d-6
       else if (iph == LIQUID_PHASE) then
-         Tref = T - 273.d0 - 8.435d0
-         b = sqrt(8078.4d0 + Tref**2)
-         a = 0.021482d0*(Tref + b) - 1.2d0
-         da = 0.021482d0*(1.d0 + Tref/b)
-         f = 1.d-3/a
-         dfdP = 0.d0
-         dfdT = -f*da/a
-         dfdC = 0.d0
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort('Unknow phase in f_Viscosite')
-#endif
+         f = 1.d-3
+      endif
 
-      end if
+      dfdP = 0.d0
+      dfdT = 0.d0
+      dfdC = 0.d0
 
    end subroutine f_Viscosity_with_derivatives
 
@@ -405,87 +466,36 @@ contains
       real(c_double), intent(in) :: p, T, C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: paovzeta2
-      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
-      real(c_double) :: enth, denthdP, denthdT, denthdC(NbComp)
+      real(c_double) :: Cp, dCpdP, dCpdT, dCpdC(NbComp)
 
-      call f_MolarEnthalpy_with_derivatives(iph, p, T, C, enth, denthdP, denthdT, denthdC)
-      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
-      f = enth - p/zeta
-      paovzeta2 = p/(zeta**2)
-      dPf = denthdP - 1.d0/zeta + paovzeta2*dzetadP
-      dTf = denthdT + paovzeta2*dzetadT
-      dCf = denthdC + paovzeta2*dzetadC
+      call f_linear_cp(iph, p, T, C, Cp, dCpdP, dCpdT, dCpdC)
+      f = Cp*T
+      dPf = dCpdP*T
+      dTf = dCpdT*T + Cp
+      dCf(:) = 0.
 
    end subroutine f_EnergieInterne
 
-   pure subroutine f_gas_specific_enthalpy(p, T, f, dPf, dTf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(out) :: f(NbComp), dPf(NbComp), dTf(NbComp)
-
-      real(c_double), parameter :: a = 1990.89d+3
-      real(c_double), parameter :: b = 190.16d+3
-      real(c_double), parameter :: cc = -1.91264d+3
-      real(c_double), parameter :: d = 0.2997d+3
-      real(c_double) :: Ts, ss, dTss, cp, beta_air, beta_water
-
-      call f_CpGaz(cp)
-
-      Ts = T/100.d0
-      ss = a + b*Ts + cc*Ts**2.d0 + d*Ts**3.d0
-      dTss = (b + 2.d0*cc*Ts + 3.d0*d*Ts**2.d0)/100.d0
-      ! CHECKME: could we assume that MCP(AIR_COMP, iph)==.false. => C(AIR_COMP) = 0
-      beta_air = MCP(AIR_COMP, GAS_PHASE)*cp*M_air
-      beta_water = MCP(WATER_COMP, GAS_PHASE)*M_H2O
-      f(AIR_COMP) = beta_air*T
-      f(WATER_COMP) = beta_water*ss
-      dPf = 0.d0
-      dTf(AIR_COMP) = beta_air
-      dTf(WATER_COMP) = beta_water*dTss
-
-   end subroutine f_gas_specific_enthalpy
-
-   pure subroutine f_gas_enthalpy(p, T, C, f, dPf, dTf, dCf)
+   pure subroutine f_linear_cp(iph, p, T, C, f, dPf, dTf, dCf)
+      integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
 
-      real(c_double) :: fspec(NbComp), dfspecdP(NbComp), dfspecdT(NbComp)
+      if (iph == GAS_PHASE) then
+         f = -1.2896d-6*p + 0.1907d0*T + 67.0627d0
+         dPf = -1.2896d-6
+         dTf = 0.1907d0
+         dCf(:) = 0.d0
+      else if (iph == LIQUID_PHASE) then
+         f = -0.0345d-6*P + 0.0105d0*T + 71.8364d0
+         dPf = -0.0345d-6
+         dTf = 0.0105d0
+         dCf(:) = 0.d0
+      end if
+   end subroutine f_linear_cp
 
-      call f_gas_specific_enthalpy(p, T, fspec, dfspecdP, dfspecdT)
-
-      f = fspec(AIR_COMP)*C(AIR_COMP) + fspec(WATER_COMP)*C(WATER_COMP)
-      dPf = dfspecdP(AIR_COMP)*C(AIR_COMP) + dfspecdP(WATER_COMP)*C(WATER_COMP)
-      dTf = dfspecdT(AIR_COMP)*C(AIR_COMP) + dfspecdT(WATER_COMP)*C(WATER_COMP)
-      dCf(AIR_COMP) = fspec(AIR_COMP)
-      dCf(WATER_COMP) = fspec(WATER_COMP)
-
-   end subroutine f_gas_enthalpy
-
-   pure subroutine f_liquid_enthalpy(p, T, C, f, dPf, dTf, dCf)
-      real(c_double), intent(in) :: p, T
-      real(c_double), intent(in) :: C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double), parameter :: a = -14.4319d+3
-      real(c_double), parameter :: b = +4.70915d+3
-      real(c_double), parameter :: cc = -4.87534
-      real(c_double), parameter :: d = 1.45008d-2
-      real(c_double), parameter :: T0 = 273.d0
-      real(c_double) :: ss, dTss, TdegC
-
-      TdegC = T - T0
-      ss = a + b*TdegC + cc*(TdegC**2) + d*(TdegC**3)
-      dTss = b + 2.d0*cc*TdegC + 3*d*(TdegC**2)
-      ! FIXME: all components have the same contributions
-      f = ss*M_H2O
-      dPf = 0.d0
-      dTf = dTss*M_H2O
-      dCf = 0.d0
-
-   end subroutine f_liquid_enthalpy
-
-   ! Phase molar enthalpy
+   ! Phase molar enthalpy (J/mol)
    !< iph is an identifier for each phase
    !< P is the phase Pressure
    !< T is the Temperature
@@ -496,18 +506,13 @@ contains
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
-      ! not necessary, just to use f_gas_enthalpy and f_liquid_enthalpy (no distinction without der)
-      real(c_double) :: dfdP, dfdT, dfdC(NbComp)
 
-      if (iph == GAS_PHASE) then
-         call f_gas_enthalpy(p, T, C, f, dfdP, dfdT, dfdC)
-      else if (iph == LIQUID_PHASE) then
-         call f_liquid_enthalpy(p, T, C, f, dfdP, dfdT, dfdC)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort("Unknow phase in f_MolarEnthalpy.")
-#endif
-      endif
+      real(c_double) :: U, dPU, dTU, dCU(NbComp)
+      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
+
+      call f_EnergieInterne(iph, p, T, C, U, dPU, dTU, dCU)
+      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
+      f = U + p/zeta
 
    end function f_MolarEnthalpy
 
@@ -527,15 +532,18 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      if (iph == GAS_PHASE) then
-         call f_gas_enthalpy(p, T, C, f, dfdP, dfdT, dfdC)
-      else if (iph == LIQUID_PHASE) then
-         call f_liquid_enthalpy(p, T, C, f, dfdP, dfdT, dfdC)
-#ifndef NDEBUG
-      else
-         call CommonMPI_abort("Unknow phase in f_MolarEnthalpy_with_derivatives.")
-#endif
-      endif
+      real(c_double) :: paovzeta2
+      real(c_double) :: U, dPU, dTU, dCU(NbComp)
+      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
+
+      call f_EnergieInterne(iph, p, T, C, U, dPU, dTU, dCU)
+      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
+
+      f = U + p/zeta
+      paovzeta2 = p/(zeta**2)
+      dfdP = dPU + 1.d0/zeta - paovzeta2*dzetadP
+      dfdT = dTU - paovzeta2*dzetadT
+      dfdC = dCU - paovzeta2*dzetadC
 
    end subroutine f_MolarEnthalpy_with_derivatives
 
@@ -559,7 +567,7 @@ contains
       ! valid between -50C and 200C
       ! Psat = 100.d0*dexp(46.784d0 - 6435.d0/T - 3.868d0*dlog(T))
       ! dT_PSat = (6435.d0/T**2.d0 - 3.868d0/T)*Psat
-      Psat = 1.013E+5*dexp(13.7d0 - 5120.d0/T)
+      Psat = 1.013d5*dexp(13.7d0 - 5120.d0/T)
       dT_PSat = 5120.d0*Psat/T**2
 
    end subroutine FluidThermodynamics_Psat
