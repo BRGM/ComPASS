@@ -224,7 +224,7 @@ contains
 
       do ic = 1, NbContexte
 
-         n = 1 + configuration%IndThermique ! P and T
+         n = 1 + configuration%IndThermique ! Pref (and T)
 
          ! loop of phase
          do i = 1, configuration%NbPhasePresente_ctx(ic)

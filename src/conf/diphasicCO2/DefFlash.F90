@@ -5,6 +5,12 @@
 ! of the GNU General Public License version 3 (https://www.gnu.org/licenses/gpl.html),
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
+! Model: 2 phase 2 comp, thermal well
+! water can be present only in the liquid phase
+
+!> \brief Define the flash to determine the phases
+!! which are actualy present in each cell, and
+!! the mode of the well (flowrate or pressure).
 
 module DefFlash
 
@@ -24,7 +30,96 @@ module DefFlash
 
 contains
 
-#include "../common/DiphasicFlash.F90"
+   subroutine DiphasicFlash_liquid_to_diphasic(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      real(c_double) :: fa
+      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
+
+      ! compute liquid fugacity of CO2 in liquid
+      call f_Fugacity(AIR_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
+      if (fa > inc%phase_pressure(GAS_PHASE)) then
+         ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
+         inc%ic = DIPHASIC_CONTEXT
+         inc%Saturation(GAS_PHASE) = 0.d0
+         inc%Saturation(LIQUID_PHASE) = 1.d0
+      endif
+
+   end subroutine DiphasicFlash_liquid_to_diphasic
+
+   pure subroutine DiphasicFlash_diphasic_switches(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      if (inc%Saturation(GAS_PHASE) < 0.d0) then ! gas vanishes
+         inc%ic = LIQUID_CONTEXT
+         inc%Saturation(GAS_PHASE) = 0.d0
+         inc%Saturation(LIQUID_PHASE) = 1.d0
+      else if (inc%Saturation(LIQUID_PHASE) < 0.d0) then ! liquid vanishes
+         inc%ic = GAS_CONTEXT
+         inc%Saturation(GAS_PHASE) = 1.d0
+         inc%Saturation(LIQUID_PHASE) = 0.d0
+      endif
+
+   end subroutine DiphasicFlash_diphasic_switches
+
+   subroutine DiphasicFlash_gas_to_diphasic(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      ! Here we test the existence of liquid with the existence of water
+      ! There is no water in the gas phase
+      if (inc%AccVol(WATER_COMP) > 0.d0) then
+         inc%ic = DIPHASIC_CONTEXT
+         inc%Saturation(GAS_PHASE) = 1.d0
+         inc%Saturation(LIQUID_PHASE) = 0.d0
+      endif
+
+   end subroutine DiphasicFlash_gas_to_diphasic
+
+   !> \brief Determine the phases
+   !! which are actualy present.
+   !!
+   !! Applied to IncNode, IncFrac and IncCell.
+   !! \param[in]      porovol   porous Volume ?????
+   !! \param[inout]   inc       Unknown (IncNode, IncFrac or IncCell)
+   subroutine DiphasicFlash_Flash_cv(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      integer(c_int) :: context
+
+      context = inc%ic
+
+      if (context == LIQUID_CONTEXT) then
+
+         call DiphasicFlash_liquid_to_diphasic(inc)
+
+      elseif (context == DIPHASIC_CONTEXT) then
+
+         call DiphasicFlash_diphasic_switches(inc)
+
+      elseif (context == GAS_CONTEXT) then
+
+         call DiphasicFlash_gas_to_diphasic(inc)
+
+      endif
+
+   end subroutine DiphasicFlash_Flash_cv
+
+   !< enforce C in [0,1] and sum equal to 1
+   pure subroutine DiphasicFlash_enforce_consistent_molar_fractions(inc) &
+      bind(C, name="DiphasicFlash_enforce_consistent_molar_fractions")
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      integer :: alpha
+      real(c_double) :: Ca
+
+      do alpha = 1, NbPhase ! NbPhase = 2
+         Ca = min(max(inc%Comp(AIR_COMP, alpha), 0.d0), 1.d0)
+         inc%Comp(AIR_COMP, alpha) = Ca
+         inc%Comp(WATER_COMP, alpha) = 1.d0 - Ca
+      enddo
+
+   end subroutine DiphasicFlash_enforce_consistent_molar_fractions
 
    !> \brief Determine the phases
    !! which are actualy present.

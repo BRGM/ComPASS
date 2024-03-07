@@ -6,7 +6,7 @@
 ! and the CeCILL License Agreement version 2.1 (http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html).
 !
 
-! Model: 2 phase 2 comp thermal, MCP=(1,1,1,1)
+! Model: 2 phase 2 comp thermal, MCP=(1,0,1,1) (no gas water)
 !
 ! Gas and Liquid
 !
@@ -59,8 +59,8 @@ module DefModel
    ! MCP: the components are potentially present in which phase(s) ?
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = RESHAPE((/ &
-                    1, 1, & ! AIR_COMP = 1 is present in both phases
-                    1, 1 & ! WATER_COMP = 2 is present in both phases
+                    1, 0, & ! gas phase : only CO2
+                    1, 1 & ! liquid phase : both components
                     /), (/NbComp, NbPhase/))
 
 #ifdef _THERMIQUE_
@@ -112,9 +112,9 @@ module DefModel
 
    integer, parameter :: pschoice = 1
 ! Global unknowns depending on the context (in the thermal case)
-! ic=1 GAS_CONTEXT:       P=1, T=2, Cga=3, Cgw=4
+! ic=1 GAS_CONTEXT:       P=1, T=2, Cga=3, nw_tilde=4 (water comp is absent, no gas water)
 ! ic=2 LIQUID_CONTEXT:    P=1, T=2, Cla=3, Clw=4
-! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
+! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cga=3, Cla=4, Clw=5, Sprincipal=6        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
 !
 #ifdef _THERMIQUE_
    integer, parameter, private :: P = 1, T = 2
@@ -127,26 +127,26 @@ module DefModel
    integer, parameter, dimension(NbIncTotalPrimMax, NbContexte) :: &
       psprim = RESHAPE((/ &
 #ifdef _THERMIQUE_
-                       P, T, 3, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
+                       P, T, 4, & ! GAS_CONTEXT=1       Cga=3, nw_tilde=4
                        P, T, 4, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-                       P, T, 7 & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
+                       P, T, 6 & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
 #else
-                       P, 2, & ! GAS_CONTEXT=1        Cga=2, Cgw=3
+                       P, 2, & ! GAS_CONTEXT=1        Cga=2, nw_tilde=3
                        P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
-                       P, 6 & ! DIPHASIC_CONTEXT=3   Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
+                       P, 5 & ! DIPHASIC_CONTEXT=3   Cga=2, Cla=3, Clw=4, Sprincipal=5
 #endif
                        /), (/NbIncTotalPrimMax, NbContexte/))
 
    integer, parameter, dimension(NbEqFermetureMax, NbContexte) :: &
       pssecd = RESHAPE((/ &
 #ifdef _THERMIQUE_
-                       4, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, Cgw=4
+                       3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, nw_tilde=4
                        3, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-                       3, 4, 5, 6 & ! DIPHASIC_CONTEXT=3  Cga=3, Cgw=4, Cla=5, Clw=6, Sprincipal=7
+                       3, 4, 5, 0 & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
 #else
-                       3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, Cgw=3
+                       3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, nw_tilde=3
                        2, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
-                       2, 3, 4, 5 & ! DIPHASIC_CONTEXT=3  Cga=2, Cgw=3, Cla=4, Clw=5, Sprincipal=6
+                       2, 3, 4, 0 & ! DIPHASIC_CONTEXT=3  Cga=2, Cla=3, Clw=4, Sprincipal=5
 #endif
                        /), (/NbEqFermetureMax, NbContexte/))
 
