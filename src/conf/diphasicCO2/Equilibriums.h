@@ -2,8 +2,10 @@
 
 #include "fugacity.h"
 
+// there is no gas water, the equilibrium writes for the CO2 component:
+// fug(CO2, gas) = fug(CO2, liq)
 template <typename Components, typename Phases, typename PhaseVector>
-PhaseVector diphasic_equilibrium(const PhaseVector& pa, const double& T,
+double CO2_liquid_molar_fraction(const PhaseVector& pa, const double& T,
                                  const double atol = 1e-7,
                                  std::size_t maxiter = 1000) {
    static_assert(std::is_enum_v<Components>);
@@ -11,26 +13,24 @@ PhaseVector diphasic_equilibrium(const PhaseVector& pa, const double& T,
 
    const double pg = pa[enum_to_rank(Phases::gas)];
    const double pl = pa[enum_to_rank(Phases::liquid)];
-   double Cga = 1, Cla = 0;  // Newton start: no water in gas no air in liquid
-   double f, df, Jag, Jal, Jwg, Jwl, det, Ra, Rw;
+   double Cga = 1.e0;  // there is no gas water
+   double Cla = 0.e0;  // Newton start: no CO2 in liquid
+   double fg, dfg, f, df, Jag, Ra;
 
+   // constant during the loop, because Cga is cst
+   std::tie(fg, dfg) = fugacity(Components::air, Phases::gas, pg, T, Cga);
    for (; maxiter != 0; --maxiter) {
-      std::tie(Ra, Jag) = fugacity(Components::air, Phases::gas, pg, T, Cga);
       std::tie(f, df) = fugacity(Components::air, Phases::liquid, pl, T, Cla);
-      Ra -= f;
-      Jal = -df;
-      std::tie(Rw, Jwg) = fugacity(Components::water, Phases::gas, pg, T, Cga);
-      std::tie(f, df) = fugacity(Components::water, Phases::liquid, pl, T, Cla);
-      Rw -= f;
-      Jwl = -df;
-      if (fabs(Ra) + fabs(Rw) < atol) return PhaseVector{{Cga, Cla}};
+      //   residual = fug(CO2, gas) - fug(CO2, liq)
+      Ra = fg - f;
+      //   derivative wrt CO2
+      Jag = dfg - df;
+      if (fabs(Ra) < atol) return Cla;
       // Newton: X -> X - J^-1 R
-      det = Jag * Jwl - Jwg * Jal;
-      assert(det != 0);
-      Cga -= (Jwl * Ra - Jal * Rw) / det;
-      Cla -= (-Jwg * Ra + Jag * Rw) / det;
+      assert(Jag != 0);
+      Cla -= Ra / Jag;
    }
 
    throw std::runtime_error(
-       "Maximum number of iterations in diphasic_equilibrium exceeded.");
+       "Maximum number of iterations in CO2_liquid_molar_fraction exceeded.");
 }

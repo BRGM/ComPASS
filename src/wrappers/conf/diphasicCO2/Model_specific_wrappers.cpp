@@ -143,6 +143,11 @@ void add_specific_model_wrappers(py::module &module) {
           constexpr auto air = enum_to_rank(Component::air);
           constexpr auto water = enum_to_rank(Component::water);
 
+          if (!Cag.is_none())
+             throw std::runtime_error(
+                 "You dont need to provide CO2 gas molar fraction, "
+                 "there is no water in gas (Cag=1).");
+
           auto set_gas_state = [&](X &state) {
              if (!Sg.is_none())
                 throw std::runtime_error(
@@ -155,8 +160,8 @@ void add_specific_model_wrappers(py::module &module) {
              state.T = T.cast<double>();
              state.S.fill(0);
              state.S[gas] = 1;
-             state.C[gas][air] = Cag.is_none() ? 1. : Cag.cast<double>();
              state.C[liquid][air] = 0;
+             // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
@@ -164,21 +169,20 @@ void add_specific_model_wrappers(py::module &module) {
              if (!Sg.is_none())
                 throw std::runtime_error(
                     "You dont need to provide saturation for liquid state.");
-             if (!Cag.is_none())
-                throw std::runtime_error(
-                    "You dont need to provide gas molar fractions for liquid "
-                    "state.");
              state.p = p.cast<double>();
              state.T = T.cast<double>();
              state.S.fill(0);
              state.S[liquid] = 1;
-             state.C[gas][air] = 1;
              state.C[liquid][air] = Cal.is_none() ? 0 : Cal.cast<double>();
+             // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
           auto set_diphasic_state = [&](X &state) {
-             if (!(Cag.is_none() && Cal.is_none()))
+             if (Sg.is_none())
+                throw std::runtime_error(
+                    "You forgot to provide the gas saturation Sg.");
+             if (!Cal.is_none())
                 throw std::runtime_error(
                     "Don't prescribe molar fractions for diphasic contexts.");
              state.p = p.cast<double>();
@@ -191,12 +195,10 @@ void add_specific_model_wrappers(py::module &module) {
              } else {
                 update_phase_pressures(state, rocktype.cast<int>());
              }
-             auto [Cga, Cla] =
-                 diphasic_equilibrium<Component, Phase>(state.pa, state.T);
-             state.C[gas][air] = Cga;
-             state.C[gas][water] = 1. - Cga;
+             auto Cla =
+                 CO2_liquid_molar_fraction<Component, Phase>(state.pa, state.T);
              state.C[liquid][air] = Cla;
-             state.C[liquid][water] = 1. - Cla;
+             // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
           };
 
