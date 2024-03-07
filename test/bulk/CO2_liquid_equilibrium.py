@@ -8,28 +8,25 @@
 
 import ComPASS
 import numpy as np
-import sys
 from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.timestep_management import TimeStepManager
 
-
-Lz = 4000.0
-nz = 400
+Lz = 1000.0
+nz = 200
 dz = Lz / nz
-Lx = Ly = dz
-Ox, Oy, Oz = 0.0, 0.0, -3000.0
+Lx = Ly = 2 * dz
+Ox, Oy, Oz = 0.0, 0.0, -800.0
 nx = ny = 1
-Topz = Oz + Lz
 
 omega_reservoir = 0.35  # reservoir porosity
 k_reservoir = 1e-12  # reservoir permeability in m^2, 1D = 10^-12 m^
 cell_thermal_cond = 3.0  # reservoir thermal conductivity
-pall = 1.0e5  # init Pressure
-pbot_dir = 1.2e5  # bottom Pressure
-Tall = 700.0  # top Temperature
-Tbot_dir = 750.0  # bottom Temperature
+pall = 1.0e7  # top Pressure
+pbot_dir = 2.0e7  # bottom Pressure
+Tall = degC2K(5.0)  # top Temperature
+Tbot_dir = degC2K(150.0)  # bottom Temperature
 gravity = 9.81
 
 simulation = ComPASS.load_physics("diphasicCO2")
@@ -57,25 +54,23 @@ simulation.init(
     cell_thermal_conductivity=cell_thermal_cond,
 )
 
-X0 = simulation.build_state(simulation.Context.gas, p=pall, T=Tall, Cag=1)
+X0 = simulation.build_state(simulation.Context.liquid, p=pall, T=Tall)
 simulation.all_states().set(X0)
-XDir = simulation.build_state(simulation.Context.gas, p=pbot_dir, T=Tbot_dir, Cag=1)
+XDir = simulation.build_state(simulation.Context.liquid, p=pbot_dir, T=Tbot_dir)
 simulation.dirichlet_node_states().set(XDir)
 
 # example on how to get the liquid molar enthalpy with Cal=0.8, Cwl=0.2
 # mol_enth_ex = simulation.cpp_liquid_molar_enthalpy(pall, Tall, [0.8, 0.2])
 
 timestep = TimeStepManager(
-    initial_timestep=100.0,
+    initial_timestep=1.0 * day,
     minimum_timestep=1e-1,
-    maximum_timestep=50.0 * year,
     increase_factor=1.2,
     decrease_factor=0.2,
 )
 
-final_time = 1000.0 * year
-output_period = 0.01 * final_time
-
+final_time = 100.0 * year
+output_period = 0.1 * final_time
 
 current_time = standard_loop(
     simulation,
