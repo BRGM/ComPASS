@@ -63,12 +63,15 @@ contains
 
    end subroutine DiphasicFlash_diphasic_switches
 
-   subroutine DiphasicFlash_gas_to_diphasic(inc)
+   pure subroutine DiphasicFlash_gas_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
+      real(c_double), parameter :: eps = 1.0d-20
 
       ! Here we test the existence of liquid with the existence of water
+      ! inc%AccVol contains ni when the component is not present in the context
       ! There is no water in the gas phase
-      if (inc%AccVol(WATER_COMP) > 0.d0) then
+      ! eps=0 creates oscillations with values such as ni = 1e-90...
+      if (inc%AccVol(WATER_COMP) > eps) then
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 1.d0
          inc%Saturation(LIQUID_PHASE) = 0.d0
