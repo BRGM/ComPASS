@@ -70,8 +70,8 @@ module DefModel
    ! MCP: the components are potentially present in which phase(s) ?
    integer, parameter, dimension(NbComp, NbPhase) :: &
       MCP = RESHAPE((/ &
-                    1, 1, & ! AIR_COMP = 1 is present in both phases
-                    1, 1 & ! WATER_COMP = 2 is present in both phases
+                    1, 1, & ! ! gas phase : both components
+                    1, 1 & ! liquid phase : both components
                     /), (/NbComp, NbPhase/))
 
    ! Thermique
