@@ -26,7 +26,7 @@ nx, ny, nz = 1, 1, 100  # discretization
 ds = H / nz
 
 ComPASS.set_output_directory_and_logfile(__file__)
-simulation = ComPASS.load_physics("diphasic")
+simulation = ComPASS.load_physics("diphasicCO2")
 simulation.set_gravity(gravity)
 
 grid = ComPASS.Grid(
@@ -57,18 +57,15 @@ from data.kr import kr_functions
 
 simulation.set_kr_functions(kr_functions)
 
-# p is the ref pressure, ie the gas pressure
-# when the entry pressure is non zero, the liquid pressure is
-# not equal p0
+# set the correct capillary pressure **before** using build_state
+# p is the **liquid pressure**, takes the pc into account
 X0 = simulation.build_state(simulation.Context.liquid, p=p0, T=T0, rocktype=1)
+# p is the **gas pressure**, takes the pc into account
 Xgas = simulation.build_state(simulation.Context.gas, p=p0, T=T0)
-# diphasic states will call phase pressure function
-# set the correct capillary pressure before using this function
+# p is the **reference pressure**, ie the gas pressure
 Xdiph = simulation.build_state(
     simulation.Context.diphasic, p=p0, T=T0, Sg=0.5, rocktype=1
 )
-# rocktype=1 has no impact yet
-Xliq = simulation.build_state(simulation.Context.liquid, p=p0, T=T0, rocktype=1)
 
 
 simulation.all_states().set(X0)
@@ -98,13 +95,10 @@ run_loop = lambda initial_time: simulation.standard_loop(
 )
 
 
-# simulation.dirichlet_node_states().set(Xgas)
-# current_time = run_loop(current_time)
-
 simulation.dirichlet_node_states().set(Xdiph)
 current_time = run_loop(current_time)
 
-# simulation.dirichlet_node_states().set(Xliq)
-# current_time = run_loop(current_time)
+simulation.dirichlet_node_states().set(Xgas)
+current_time = run_loop(current_time)
 
 simulation.postprocess()

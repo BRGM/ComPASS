@@ -122,7 +122,7 @@
 
    end subroutine DiphasicFlash_Flash_cv
 
-   !< enforce C in [0,1] and sum equal to 1
+   !< enforce C in [0,1] and sum equal to 1 (Cw = 1 - Ca)
    pure subroutine DiphasicFlash_enforce_consistent_molar_fractions(inc) &
       bind(C, name="DiphasicFlash_enforce_consistent_molar_fractions")
       type(Type_IncCVReservoir), intent(inout) :: inc

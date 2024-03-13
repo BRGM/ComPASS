@@ -179,6 +179,8 @@ void add_specific_model_wrappers(py::module &module) {
                 throw std::runtime_error(
                     "You dont need to provide liquid molar fractions for gas "
                     "state.");
+             // with or without capillary pressure, the reference pressure is
+             // the gas pressure, then pref = pg
              state.p = p.cast<double>();
              state.T = T.cast<double>();
              state.S.fill(0);
@@ -192,10 +194,17 @@ void add_specific_model_wrappers(py::module &module) {
              if (!Sg.is_none())
                 throw std::runtime_error(
                     "You dont need to provide saturation for liquid state.");
-             state.p = p.cast<double>();
              state.T = T.cast<double>();
              state.S.fill(0);
              state.S[liquid] = 1;
+             // may have capillary pressure, find pref knowing pl
+             // Pref is the gas pressure, then Pref = Pl + Pc(Sg)
+             // I cheat ! I call update_phase_pressures with Pref=0 to get
+             // state.pa[liquid] = - Pc(Sg),
+             // then Pref = Pl - state.pa[liquid]
+             state.p = 0.e0;
+             update_phase_pressures(state, rocktype.cast<int>());
+             state.p = p.cast<double>() - state.pa[liquid];
              state.C[liquid][CO2] = Cal.is_none() ? 0 : Cal.cast<double>();
              // enforce gas molar fractions and Cwl = 1-Cal with 0<=cal<=1
              DiphasicFlash_enforce_consistent_molar_fractions(state);
@@ -213,11 +222,9 @@ void add_specific_model_wrappers(py::module &module) {
              const double S = Sg.cast<double>();
              state.S[gas] = S;
              state.S[liquid] = 1. - S;
-             if (rocktype.is_none()) {
-                update_phase_pressures(state);
-             } else {
-                update_phase_pressures(state, rocktype.cast<int>());
-             }
+             //  update state.pa (with pc), needed to determine the molar
+             //  fractions
+             update_phase_pressures(state, rocktype.cast<int>());
              auto Cla =
                  CO2_liquid_molar_fraction<Component, Phase>(state.pa, state.T);
              state.C[liquid][CO2] = Cla;
@@ -246,7 +253,7 @@ void add_specific_model_wrappers(py::module &module) {
        py::arg("context").none(false), py::arg("p") = py::none{},
        py::arg("T") = py::none{}, py::arg("Sg") = py::none{},
        py::arg("Cag") = py::none{}, py::arg("Cal") = py::none{},
-       py::arg("rocktype") = py::none{},
+       py::arg("rocktype") = 0,
        R"doc(
 Construct a state given a specific context and physical parameters.
 
@@ -254,7 +261,7 @@ Parameters
 ----------
 
 :param context: context (i.e. liquid, gas or diphasic)
-:param p: pressure
+:param p: phase pressure in monophasic context, reference pressure (Pg) in diphasic
 :param T: temperature
 :param Sg: gaz phase saturation
 :param Cag: gaz phase CO2 molar fraction
