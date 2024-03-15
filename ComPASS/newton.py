@@ -70,6 +70,7 @@ class Newton:
         tol,
         maxit,
         lsolver,
+        maxit_before_decrease=None,
         convergence_scheme=None,
         iteration_callbacks=None,
         failure_callbacks=None,
@@ -78,6 +79,7 @@ class Newton:
         :param simulation: The simulation object.
         :param tol: The tolerance used for convergence.
         :param maxit: The maximum number of newton iteration.
+        :param maxit_before_decrease: after this number of iterations, residual must decrease or failure
         :param lsolver: The linear solver to be used (cf. :class:`ComPASS.petsc.LinearSolver`).
         :param convergence_scheme: The convergence scheme to be used (defaults to :class:`ComPASS.newton_convergence.Legacy`).
         """
@@ -86,6 +88,8 @@ class Newton:
         self.lsolver = lsolver
         self.tolerance = tol
         self.maximum_number_of_iterations = maxit
+        maxit_before_decrease = maxit_before_decrease or maxit
+        self.maxit_before_decrease = max(1, maxit_before_decrease)
         self.failures = 0
         self.lsolver_iterations = []
         self.number_of_useless_iterations = 0
@@ -256,6 +260,13 @@ class Newton:
                     self.check_well_residuals()
                 self.number_of_succesful_iterations += iteration + 1
                 return self.status
+            # after a certain amount of iterations, test that the residu decreases
+            # otherwise failure
+            if iteration > self.maxit_before_decrease:
+                if relative_residuals[-1] / relative_residuals[-2] > 1.0:
+                    self.number_of_useless_iterations += iteration + 1
+                    raise IterationExhaustion(self.status)
+
         self.number_of_useless_iterations += iteration + 1
         raise IterationExhaustion(self.status)
 
