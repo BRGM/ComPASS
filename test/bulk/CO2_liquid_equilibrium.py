@@ -65,7 +65,7 @@ simulation.dirichlet_node_states().set(XDir)
 timestep = TimeStepManager(
     initial_timestep=1.0 * day,
     minimum_timestep=1e-1,
-    increase_factor=1.2,
+    increase_factor=2,
     decrease_factor=0.2,
 )
 

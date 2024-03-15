@@ -48,11 +48,6 @@ print(
 # )
 
 
-# def Dirichlet_node():
-#     vertices = np.rec.array(simulation.global_vertices())
-#     return vertices[:, 2] <= Oz
-
-
 # simulation.init(
 #     mesh=grid,
 #     set_dirichlet_nodes=Dirichlet_node,
