@@ -268,8 +268,6 @@ contains
          ! fugacity and derivative
          call f_Fugacity(icp, iph1, inc%phase_pressure(iph1), inc%Temperature, inc%Comp(:, iph1), f1, df1dpa, df1dT, df1dC)
          call f_Fugacity(icp, iph2, inc%phase_pressure(iph2), inc%Temperature, inc%Comp(:, iph2), f2, df2dpa, df2dT, df2dC)
-         write (*, *) "THE PRINT OF FUGACITY IN INC IN", iph1, f1, df1dpa, df1dT, df1dC(1), df1dC(2)
-         write (*, *) "THE PRINT OF FUGACITY IN INC IN", iph2, f2, df2dpa, df2dT, df2dC(1), df2dC(2)
          ! derivative wrt reference pressure
          ! f(pa, ....) -> df/dP = dpa/dP * df/dpa = df/dpa because pa = P - Pc(S)
          dFsurdX(1, i + mi) = df1dpa - df2dpa

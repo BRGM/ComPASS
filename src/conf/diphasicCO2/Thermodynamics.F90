@@ -21,6 +21,7 @@ module Thermodynamics
 
    public :: &
       f_Fugacity, &  !< Fugacity
+      f_Fugacity_coeff_CO2_gas, & ! phi : correction of the ???
       f_MolarDensity, &  !< \zeta^alpha(P,T,C,S)
       f_MolarDensity_with_derivatives, &  !< \zeta^alpha(P,T,C,S)
       f_VolumetricMassDensity, &  !< \xi^alpha(P,T,C,S)
@@ -63,7 +64,7 @@ contains
       real(c_double), intent(out) :: f, dfdT
 
       ! Constants for equilibrium constant calculation
-      real(c_double) :: TinC, logk0_CO2
+      real(c_double) :: TinC, logk0_CO2, dlogk0_CO2dT
       ! FIXE ME : add a condition for to switch in KCO2(l) 0 when the temperature
       ! is subcritical and the pressure is above the CO2 saturation pressure
       !c[3] = [ 1.189, 1.304e-2, -5.446e-5 ] ! KCO2(g) for the CO2g
@@ -71,10 +72,11 @@ contains
 
       TinC = T - 273.15d0 ! temperature in °C
       logk0_CO2 = c(1) + c(2)*TinC + c(3)*TinC**2
+      dlogk0_CO2dT = c(2) + 2.d0*c(3)*TinC
 
       f = 1.d5*10.d0**logk0_CO2 !converted from bar to Pa
       ! ddx(10**u) = ln(10)*ddx(u)*10**u
-      dfdT = 1.d5*log(10.d0)*f*(c(2) + 2.d0*c(3)*TinC)
+      dfdT = log(10.d0)*f*dlogk0_CO2dT
    end subroutine equilibriumConstantCO2
 
    pure subroutine f_linear_volume(p, T, f, dfdp, dfdT)
@@ -110,18 +112,16 @@ contains
       ! IMPORTANT: at subcritical temperatures and pressures above saturation values,
       ! K0_CO2(T) needs to be replaced with another equilibrium constant, K0_CO2(l)
       call equilibriumConstantCO2(T, k0_CO2, dk0_CO2dT) ! equilibrium constant for CO2 at 1 bar
-      deltaP = p - 1.d5 ! pressure range converted from reference pressure p0 = 1bar to pg[bar]
+      deltaP = p - 1.d5 ! pressure difference [MPa] between reference pressure p0 = 1bar and pg
       v_av_CO2RT = v_av_CO2/(R*T)
       dv_av_CO2RTdT = -v_av_CO2/(R*T**2)
       c0T = 55.508d0*k0_CO2
       dc0TdT = 55.508d0*dk0_CO2dT
-      !dc0TdT = 0.
       e_u = exp(deltaP*v_av_CO2RT)
       f = c0T*e_u
 
       dfdp = c0T*v_av_CO2RT*e_u
-      dfdT = e_u*(dc0TdT &
-                  + c0T*deltaP*dv_av_CO2RTdT)
+      dfdT = e_u*(dc0TdT + c0T*deltaP*dv_av_CO2RTdT)
 
    end subroutine f_coeff_CO2_liquid_fug
 
@@ -203,10 +203,6 @@ contains
       if (iph == GAS_PHASE) then
          ! Fug = Fugacity coefficient * p^g * C^g(icp)
          call f_Fugacity_coeff_CO2_gas(p, T, C, f, dfdp, dfdT, dfdC)
-         f = 1.
-         dfdp = 0.
-         dfdT = 0.
-         dfdC = 0.
          ! we compute f = f * C(icp) * p^g in place
          ! so the order of operations below is important
          dfdp = C(icp)*(dfdp*p + f)

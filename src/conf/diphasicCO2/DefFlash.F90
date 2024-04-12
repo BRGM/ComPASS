@@ -21,7 +21,7 @@ module DefFlash
       NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, CO2_COMP, WATER_COMP
-   use Thermodynamics, only: f_Fugacity
+   use Thermodynamics, only: f_Fugacity, f_Fugacity_coeff_CO2_gas
 
    implicit none
 
@@ -33,13 +33,14 @@ contains
    subroutine DiphasicFlash_liquid_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
-      real(c_double) :: fa
+      real(c_double) :: fa, phi
       real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
 
       ! compute liquid fugacity of CO2 in liquid
       call f_Fugacity(CO2_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
                       inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
-      if (fa > inc%phase_pressure(GAS_PHASE)) then
+      call f_Fugacity_coeff_CO2_gas(inc%phase_pressure(GAS_PHASE), inc%Temperature, inc%Comp(:, GAS_PHASE), phi, dPf, dTf, dCf)
+      if (fa > phi*inc%phase_pressure(GAS_PHASE)) then
          ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 0.d0
