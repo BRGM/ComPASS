@@ -137,7 +137,7 @@ Execute ComPASS through docker
 Basic usage
 ~~~~~~~~~~~
 
-Login to the gitlab docker registry (cf. `Packages & Registries icon on the left <https://gitlab.inria.fr/charms/ComPASS/container_registry>`_\ )
+Login to the gitlab docker registry (cf. `Packages & Registries icon on the left <https://gitlab.inria.fr/compass/v4/ComPASS/container_registry>`_\ )
 
 .. code-block:: shell
 
@@ -147,7 +147,7 @@ If you only want to retrieve the latest (develop) container image just pull it:
 
 .. code-block:: shell
 
-   docker pull registry.gitlab.inria.fr/charms/compass:latest
+   docker pull registry.gitlab.inria.fr/compass/v4/compass:latest
 
 Now the latest version should be among your local docker container images that can be listed with:
 
@@ -159,7 +159,7 @@ In the following we suppose that you gave your container a shorter name using an
 
 .. code-block:: shell
 
-   docker tag registry.gitlab.inria.fr/charms/compass:latest compass
+   docker tag registry.gitlab.inria.fr/compass/v4/compass:latest compass
 
 Then, if you list again all images available (\ ``docker image ls``\ ), you should see the original image and the alias.
 
@@ -222,7 +222,7 @@ If you only want to download (or update) the image you can use the ``pull`` dock
 
 .. code-block:: shell
 
-   docker pull registry.gitlab.inria.fr/charms/compass:latest
+   docker pull registry.gitlab.inria.fr/compass/v4/compass:latest
 
 
 **Parallel runs**
@@ -240,7 +240,7 @@ To reduce typing work you can encapsulate calls to ``docker run`` inside a comma
 
    #!/bin/bash
    current_directory=`pwd`
-   docker run -it --privileged -v ${current_directory}:/localfs registry.gitlab.inria.fr/charms/compass:develop $@
+   docker run -it --privileged -v ${current_directory}:/localfs registry.gitlab.inria.fr/compass/v4/compass:develop $@
 
 **Mapping volumes on Windows 7**
 

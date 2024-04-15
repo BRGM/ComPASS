@@ -2,7 +2,7 @@
 Coding/Versioning conventions
 =============================
 
-Do not hesitate to start discussions on `GitLab <https://gitlab.inria.fr/charms/ComPASS>`_ using issues or merge request. This should be the preferred way.
+Do not hesitate to start discussions on `GitLab <https://gitlab.inria.fr/compass/v4/ComPASS>`_ using issues or merge request. This should be the preferred way.
 
 Versioning conventions
 ----------------------

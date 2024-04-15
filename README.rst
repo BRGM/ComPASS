@@ -18,7 +18,7 @@ Our main goals are:
 .. ifconfig:: versionlevel == '4'
 
   The collaborative development is made through the
-  `INRIA gitlab platform <https://gitlab.inria.fr/charms/ComPASS>`_
+  `INRIA gitlab platform <https://gitlab.inria.fr/compass/v4/ComPASS>`_
   and the documentation is served
   `here <https://compass.gitlab.io/compass-v4/doc/>`_.
   The code is available on `gitlab.com <https://gitlab.com/compass/compass-v4>`_.

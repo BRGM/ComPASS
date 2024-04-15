@@ -108,7 +108,7 @@ n = 0  # iteration counter FIXME: global variable
 shooter = None  # FIXME: global variable
 
 # FIXME: temporary workaround for bug #280
-# https://gitlab.inria.fr/charms/ComPASS/-/issues/280
+# https://gitlab.inria.fr/compass/v4/ComPASS/-/issues/280
 default_newton_instance = None
 
 

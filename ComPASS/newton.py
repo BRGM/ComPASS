@@ -175,7 +175,7 @@ class Newton:
             #        Yet, when using CPR-AMG preconditioner with Hypre
             #        garbage collection is not managed correctly and memory
             #        footprint increases until overflow
-            #        cf. issue https://gitlab.inria.fr/charms/ComPASS/-/issues/572.
+            #        cf. issue https://gitlab.inria.fr/compass/v4/ComPASS/-/issues/572.
             #        The manual call to PETSC.garbage_cleanup() is a collective call
             #        made once for each Newton loop.
             #        Our assumption is that this is not too expensive

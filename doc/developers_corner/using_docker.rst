@@ -18,15 +18,15 @@ located in the root directory.
 It is the value of the `COMPASS_SDK` variable.
 
 The docker images are generated via a
-`separate gitlab project <https://gitlab.inria.fr/charms/compass-images>`_
-and can be found under the `Container Registry header <https://gitlab.inria.fr/charms/compass-images/container_registry>`_.
+`separate gitlab project <https://gitlab.inria.fr/compass/v4/compass-images>`_
+and can be found under the `Container Registry header <https://gitlab.inria.fr/compass/v4/compass-images/container_registry>`_.
 The value of the `COMPASS_SDK` variable can then be used
 to select the appropriate docker image.
 
 Work environment
 ----------------
 
-The `charms/compass-mages/work <https://gitlab.inria.fr/charms/compass-images/container_registry/1149>`_
+The `compass/v4/compass-mages/work <https://gitlab.inria.fr/compass/v4/compass-images/container_registry/1149>`_
 containers are designed to
 **compile and modify ComPASS and run simulations**.
 They ship all what is needed: compilation environment
@@ -42,14 +42,14 @@ If not already done clone the ComPASS git repository:
 .. code-block:: shell
 
    cd /my/local/dir
-   git clone git@gitlab.inria.fr:charms/ComPASS.git
+   git clone git@gitlab.inria.fr:compass/v4/ComPASS.git
 
 or via https if you prefer:
 
 .. code-block:: shell
 
    cd /my/local/dir
-   git clone https://gitlab.inria.fr/charms/ComPASS.git
+   git clone https://gitlab.inria.fr/compass/v4/ComPASS.git
 
 Once you have installed docker you can pull the container
 from the registry (log in with you gitlab id and password):
@@ -57,13 +57,13 @@ from the registry (log in with you gitlab id and password):
 .. code-block:: shell
 
    docker login registry.gitlab.inria.fr
-   docker pull registry.gitlab.inria.fr/charms/compass-images/work:0.1.5
+   docker pull registry.gitlab.inria.fr/compass/v4/compass-images/work:0.1.5
 
 Then you can possibly tag it to use shorter name:
 
 .. code-block:: shell
 
-   docker tag registry.gitlab.inria.fr/charms/compass-images/work:0.1.5 compass-work
+   docker tag registry.gitlab.inria.fr/compass/v4/compass-images/work:0.1.5 compass-work
 
 Container are created with a default user which is called *compass* and has uid 1000.
 When mounting a a volume you may experience problems if your host uid is not the user uid.

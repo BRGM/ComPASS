@@ -57,7 +57,7 @@ simulation.init(
     cell_permeability=permeability,
     cell_porosity=porosity,
     cell_thermal_conductivity=Keq,
-    # FIXME: should be an outflow condition cf. issue https://gitlab.inria.fr/charms/ComPASS/issues/129
+    # FIXME: should be an outflow condition cf. issue https://gitlab.inria.fr/compass/v4/ComPASS/issues/129
     set_dirichlet_nodes=outlet_nodes,
 )
 

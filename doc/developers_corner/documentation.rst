@@ -13,7 +13,7 @@ using the sphinx `autodoc <https://www.sphinx-doc.org/en/master/usage/extensions
 extension and C++ and Fortran code using `doxygen <https://www.doxygen.nl/index.html>`_.
 
 For test purpose, documentation can be generated using the
-`registry.gitlab.inria.fr/charms/compass/doc-environment`
+`registry.gitlab.inria.fr/compass/v4/compass-images`
 docker image and executing the generate `make_the_doc` script
 from within the `doc` directory:
 

@@ -103,7 +103,7 @@ To access all perforations state you can use
 the `simulation.get_well_perforations_state` function.
 Then, there is no array wrapper to access underlying
 property yet (this is a work in progress cf. issue
-`298 <https://gitlab.inria.fr/charms/ComPASS/-/issues/298>`_
+`298 <https://gitlab.inria.fr/compass/v4/ComPASS/-/issues/298>`_
 ). But you can easily build a copy :
 
 .. code:: python

@@ -25,7 +25,7 @@ class VAGScheme:
         """
         VAG volumes are computed locally on each proc.
         There is no need to synchronise volume of ghost control volumes.
-        cf. https://gitlab.inria.fr/charms/ComPASS/-/issues/301
+        cf. https://gitlab.inria.fr/compass/v4/ComPASS/-/issues/301
         """
         kernel = get_kernel()
         kernel.VAGFrac_VolsDarcy(self.omega_Darcy.cell, self.omega_Darcy.fracture)

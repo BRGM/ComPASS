@@ -113,7 +113,7 @@ if(pybind11_FOUND)
       FATAL_ERROR
         "\nThere is a critical bug with pybind11 version 2.10.0\n"
         "Cf. ComPASS issue #558 at: "
-        "https://gitlab.inria.fr/charms/ComPASS/-/issues/558"
+        "https://gitlab.inria.fr/compass/v4/ComPASS/-/issues/558"
     )
   endif()
 endif()
