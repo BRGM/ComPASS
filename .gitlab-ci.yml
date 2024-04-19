@@ -1,11 +1,11 @@
 variables:
-  COMPASS_SDK: 0.2.7
+  COMPASS_SDK: 0.3.0
   # We assume that it is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
 
 image:
-  name: "registry.gitlab.inria.fr/charms/compass-images/sdk:${COMPASS_SDK}"
+  name: "${COMPASS_SDK_REGISTRY}:${COMPASS_SDK}"
 
 # Pipelines will always be triggered when scheduled,
 # triggered manually using the web API or in the context of a merge request.
