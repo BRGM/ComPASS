@@ -66,18 +66,20 @@ build:
     - docker
   before_script:
     - unset CMAKE_ARGS
+    - python -m pip install build
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
-        python -m pip wheel --wheel-dir dist -v . --no-build-isolation
+        python -m build --outdir dist --no-isolation .
       else
-        python -m pip wheel --wheel-dir dist -v . --no-build-isolation \
+        python -m build --outdir dist --no-isolation \
         -Ccmake.build-type=Debug \
         -Ccmake.define.ComPASS_WITH_water2ph_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_diphasic_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_diphasicCO2_PHYSICS=ON \
         -Ccmake.define.ComPASS_WITH_immiscible2ph_PHYSICS=ON \
-        -Ccmake.define.ComPASS_WITH_linear_water_PHYSICS=ON
+        -Ccmake.define.ComPASS_WITH_linear_water_PHYSICS=ON \
+        .
       fi
   artifacts:
     paths:
