@@ -71,7 +71,7 @@ build:
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
-        python -m build --outdir dist --no-isolation .
+        python -m build --outdir dist --no-isolation -Ccmake.define.ComPASS_WITH_ALL_PHYSICS=ON .
       else
         python -m build --outdir dist --no-isolation \
         -Ccmake.build-type=Debug \
