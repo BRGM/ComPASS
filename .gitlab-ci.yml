@@ -67,6 +67,7 @@ build:
   before_script:
     - unset CMAKE_ARGS
     - python -m pip install build
+    - python -m pip install pybind11
   script:
     - >
       if [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ] || [ -n "$CI_COMMIT_TAG" ]; then
