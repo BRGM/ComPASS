@@ -497,11 +497,7 @@ contains
    !< T is the Temperature
    !< C is the phase molar fractions
    !< S is all the saturations
-
-#ifdef NDEBUG
-   pure &
-#endif
-      pure subroutine f_linear_cp(iph, p, T, C, f, dPf, dTf, dCf)
+   pure subroutine f_linear_cp(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
