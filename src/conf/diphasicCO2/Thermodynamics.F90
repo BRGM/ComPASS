@@ -88,11 +88,25 @@ contains
       call CO2_MasseMolaire(MCO2)
 
       ! -1.167d-5*(p/1.d6) + ...
-      f = (-1.167d-11*p + 6.539d-6*T - 0.00059d0)*MCO2 ! volume m^3/mol
-
-      dfdp = -1.167d-11*MCO2
-      dfdT = 6.539d-6*MCO2
-
+      !f = (-1.167d-11*p + 6.539d-6*T - 0.00059d0)*MCO2 ! volume m^3/mol
+      !dfdp = -1.167d-11*MCO2
+      !dfdT = 6.539d-6*MCO2
+      ! test with a mixed term P and T
+      !f = (9.682709259446859d-11*p &
+      !   + 1.643090334166191d-5*T &
+      !   -3.297337244828735d-13*p*T&
+      !   - 0.003850396226719975 &
+      !)*MCO2
+      !dfdp = 9.682709259446859d-11*MCO2 - 3.297337244828735d-13*T*MCO2
+      !dfdT = 1.643090334166191d-5*MCO2 - 3.297337244828735d-13*p*MCO2
+      ! test with a wider range of T
+      f = (8.271046832872992d-11*p &
+           + 1.4722010876444494d-5*T &
+           - 2.8733291908818404d-13*p*T &
+           - 0.00328128373967034 &
+           )*MCO2
+      dfdp = 8.271046832872992d-11*MCO2 - 2.8733291908818404d-13*T*MCO2
+      dfdT = 1.4722010876444494d-5*MCO2 - 2.8733291908818404d-13*p*MCO2
    end subroutine f_linear_volume
 
    ! Fugacity is f_coeff_CO2_liquid_fug * Cl(CO2)
@@ -137,7 +151,9 @@ contains
                         ln_phi, ddp_ln_phi, ddT_ln_phi, phi
 
       call f_linear_volume(p, T, V, dVdp, dVdT)
-      p_bar = p/1.d5 ! gas phase pressure in bar
+      !p_bar = p/1.d5 ! gas phase pressure in bar
+      !FIXME:TEST
+      p_bar = p
       ! a_CO2 = (7.54d7 - 4.13d4*T)*1d-12 a_CO2 is originally in bar cm6 K0.5 mol–2
       !a_CO2 = 7.54d-5 - 4.13d-8*T ! mixture parameter of Redlich-Kwong equation [N. Spycher, K. Pruess, and J. Ennis-King 2003]
       !FIXME
@@ -235,11 +251,25 @@ contains
 
       real(c_double) :: u, usquare
 
-      u = -1.167d-11*p + 6.539d-6*T - 0.00059d0
+      !u = -1.167d-11*p + 6.539d-6*T - 0.00059d0
+      !u = 9.682709259446859d-11*p &
+      !   + 1.643090334166191d-5*T &
+      !  -3.297337244828735d-13*p*T&
+      !   - 0.003850396226719975
+      ! test with a wider range of T
+      u = 8.271046832872992d-11*p &
+          + 1.4722010876444494d-5*T &
+          - 2.8733291908818404d-13*p*T &
+          - 0.00328128373967034
+
       usquare = u**2
       f = 1/u
-      dPf = 1.167d-11/usquare
-      dTf = -6.539d-6/usquare
+      !dPf = 1.167d-11/usquare
+      !dTf = -6.539d-6/usquare
+      !dPf = 9.682709259446859d-11 - 3.297337244828735d-13*T
+      !dTf = 1.643090334166191d-5 - 3.297337244828735d-13*p
+      dPf = (8.271046832872992d-11 - 2.8733291908818404d-13*T)/usquare
+      dTf = (1.4722010876444494d-5 - 2.8733291908818404d-13*p)/usquare
       dCf(:) = 0.d0
 
    end subroutine f_DensiteMass_gas
@@ -257,8 +287,8 @@ contains
       TinC = T - 273.15d0 ! temperature in °C
       call CO2_MasseMolaire(M_CO2)
 
-      V_theta = 1.d-6*(37.51d0 - 9.585d-2*TinC + 8.740d-4*TinC**2 - 5.044d-7*TinC**3)
-      V_H2O = -4.12258d-13*p + 4.8881d-7*T + 0.00085d0
+      V_theta = 1.d-6*(37.51d0 - 9.585d-2*TinC + 8.740d-4*TinC**2 - 5.044d-7*TinC**3) !Volume in 1.d-6*(cm3/mole)
+      V_H2O = -4.12258d-13*p + 4.8881d-7*T + 0.00085d0 !Volume (m3/kg)
       rho_CO2 = M_CO2/V_theta
       ddTrho_CO2 = M_CO2*1.d-6*(9.585d-2 - 2.d0*8.740d-4*TinC + 3.d0*5.044d-7*TinC**2)/V_theta**2
       rho_H20 = 1.d0/V_H2O
@@ -298,8 +328,15 @@ contains
 
       call f_VolumetricMassDensity_with_derivatives(iph, p, T, C, rho, dfdP, dfdT, dfdC)
       call CO2_MasseMolaire(M_CO2)
-
-      M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+      if (iph == GAS_PHASE) then
+         M = M_CO2
+      else if (iph == LIQUID_PHASE) then
+         M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_MolarDensity')
+#endif
+      endif
       f = rho/M
 
    end function f_MolarDensity
@@ -324,8 +361,15 @@ contains
 
       call f_VolumetricMassDensity_with_derivatives(iph, p, T, C, rho, dfdP, dfdT, dfdC)
       CALL CO2_MasseMolaire(M_CO2)
-
-      M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+      if (iph == GAS_PHASE) then
+         M = M_CO2
+      else if (iph == LIQUID_PHASE) then
+         M = M_CO2*C(CO2_COMP) + M_H2O*C(WATER_COMP)
+#ifndef NDEBUG
+      else
+         call CommonMPI_abort('unknow phase in f_MolarDensity')
+#endif
+      endif
       f = rho/M
       dfdP = dfdP/M
       dfdT = dfdT/M
@@ -457,22 +501,7 @@ contains
 #ifdef NDEBUG
    pure &
 #endif
-      subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
-      integer(c_int), intent(in) :: iph
-      real(c_double), intent(in) :: p, T, C(NbComp)
-      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
-
-      real(c_double) :: Cp, dCpdP, dCpdT, dCpdC(NbComp)
-
-      call f_linear_cp(iph, p, T, C, Cp, dCpdP, dCpdT, dCpdC)
-      f = Cp*T
-      dPf = dCpdP*T
-      dTf = dCpdT*T + Cp
-      dCf(:) = 0.
-
-   end subroutine f_EnergieInterne
-
-   pure subroutine f_linear_cp(iph, p, T, C, f, dPf, dTf, dCf)
+      pure subroutine f_linear_cp(iph, p, T, C, f, dPf, dTf, dCf)
       integer(c_int), intent(in) :: iph
       real(c_double), intent(in) :: p, T
       real(c_double), intent(in) :: C(NbComp)
@@ -503,13 +532,18 @@ contains
       real(c_double), intent(in) :: C(NbComp)
       real(c_double) :: f
 
-      real(c_double) :: U, dPU, dTU, dCU(NbComp)
-      real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
+      !real(c_double) :: Cp, dCpdP, dCpdT, dCpdC(NbComp)
 
-      call f_EnergieInterne(iph, p, T, C, U, dPU, dTU, dCU)
-      call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
-      f = U + p/zeta
-
+      !call f_linear_cp(iph, p, T, C, Cp, dCpdP, dCpdT, dCpdC)
+      !f = Cp*T
+      ! test of linear function for enthalpy (No enthalpy for mixture!!)
+      if (iph == GAS_PHASE) then
+         f = 0.38243394899581634d-6*p + 0.1291528158488924d0*T &
+             - 0.0012765670455401057d-6*T*p - 27.99194543799301d0
+      else if (iph == LIQUID_PHASE) then
+         f = 0.015156424118806432d-6*p + 0.07425560400438522d0*T &
+             - 20.215678254623178d0
+      end if
    end function f_MolarEnthalpy
 
    ! Phase molar enthalpy and its derivatives
@@ -528,20 +562,48 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
+      !real(c_double) :: Cp, dCpdP, dCpdT, dCpdC(NbComp)
+
+      !call f_linear_cp(iph, p, T, C, Cp, dCpdP, dCpdT, dCpdC)
+      !f = Cp*T
+      !dfdP = dCpdP*T
+      !dfdT = dCpdT*T + Cp
+      !dfdC(:) = 0.
+      ! test of linear function for enthalpy (No enthalpy for mixture!!)
+      if (iph == GAS_PHASE) then
+         f = 0.38243394899581634d-6*p + 0.1291528158488924d0*T &
+             - 0.0012765670455401057d-6*T*p - 27.99194543799301d0
+         dfdP = 0.38243394899581634d-6 - 0.0012765670455401057d-6*T
+         dfdT = 0.1291528158488924d0 - 0.0012765670455401057d-6*p
+         dfdC(:) = 0.
+      else if (iph == LIQUID_PHASE) then
+         f = 0.015156424118806432d-6*p + 0.07425560400438522d0*T &
+             - 20.215678254623178d0
+         dfdP = 0.015156424118806432d-6
+         dfdT = 0.07425560400438522d0
+         dfdC(:) = 0.
+      end if
+   end subroutine f_MolarEnthalpy_with_derivatives
+
+   subroutine f_EnergieInterne(iph, p, T, C, f, dPf, dTf, dCf)
+      integer(c_int), intent(in) :: iph
+      real(c_double), intent(in) :: p, T, C(NbComp)
+      real(c_double), intent(out) :: f, dPf, dTf, dCf(NbComp)
+
       real(c_double) :: paovzeta2
-      real(c_double) :: U, dPU, dTU, dCU(NbComp)
+      real(c_double) :: H, dPH, dTH, dCH(NbComp)
       real(c_double) :: zeta, dzetadP, dzetadT, dzetadC(NbComp)
 
-      call f_EnergieInterne(iph, p, T, C, U, dPU, dTU, dCU)
+      call f_MolarEnthalpy_with_derivatives(iph, p, T, C, H, dPH, dTH, dCH)
       call f_MolarDensity_with_derivatives(iph, p, T, C, zeta, dzetadP, dzetadT, dzetadC)
+      f = H - p/zeta
 
-      f = U + p/zeta
       paovzeta2 = p/(zeta**2)
-      dfdP = dPU + 1.d0/zeta - paovzeta2*dzetadP
-      dfdT = dTU - paovzeta2*dzetadT
-      dfdC = dCU - paovzeta2*dzetadC
+      dPf = dPH - 1.d0/zeta + paovzeta2*dzetadP
+      dTf = dTH + paovzeta2*dzetadT
+      dCf = dCH + paovzeta2*dzetadC
 
-   end subroutine f_MolarEnthalpy_with_derivatives
+   end subroutine f_EnergieInterne
 
    !> \brief Rock volumetric heat capacity
    pure subroutine f_CpGaz(c)
