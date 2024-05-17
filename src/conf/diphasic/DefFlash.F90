@@ -16,6 +16,7 @@ module DefFlash
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
       GAS_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_NO_LIQ_OUTFLOW_CONTEXT, DIPHASIC_FF_LIQ_OUTFLOW_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, AIR_COMP, WATER_COMP
+   ! f_Fugacity_coefficient called in ../common/DiphasicFlash.F90
    use Thermodynamics, only: f_Fugacity, f_Fugacity_coefficient
 
    implicit none
