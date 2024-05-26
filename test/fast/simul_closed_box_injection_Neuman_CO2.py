@@ -10,7 +10,6 @@
 #  Adding quantity to the model conduct to the phase change and apparition of CO2 under the liquid phase
 #
 #%%
-from cmath import nan
 import ComPASS
 from ComPASS.utils.grid import on_zmin
 from ComPASS.timestep_management import TimeStepManager
@@ -31,7 +30,7 @@ nxy = 1
 T_init = 260
 P_init = 10.0 * bar
 debit_vol = 1e-7  # (m/s)
-Composition_inj = [1, 0]
+Composition_inj = [1, 0]  # inject CO2, no water
 
 omega = 0.15  # reservoir porosity
 kh = 5e-14  # reservoir horizontal permeability in m^2
@@ -94,26 +93,32 @@ simulation.set_Neumann_faces(on_zmin(grid)(face_centers), Neumann)
 
 # *************************************************************************************
 
-petrophysics = simulation.petrophysics()
-# pointdata – a dictionnary of point based properties
-pointdata = {
-    "dirichlet": simulation.dirichlet_nodes(),
-    "dirichlet pressure": simulation.pressure_dirichlet_values(),
-    "dirichlet temperature": simulation.temperature_dirichlet_values(),
-}
-# celldata – a dictionnary of cell based properties
-celldata = {
-    "Pressure": simulation.cell_states().p,
-    "phi": petrophysics.cell_porosity,
-}
-celldata.update(
-    tensor_coordinates(petrophysics.cell_permeability, "k", diagonal_only=True)
-)
-celldata.update(
-    tensor_coordinates(petrophysics.cell_thermal_conductivity, "K", diagonal_only=True)
-)
-io.write_mesh(simulation, "simulation_mesh2", pointdata=pointdata, celldata=celldata)
-# output a VTU mesh file with point propreties
+# output a VTU mesh file with point properties
+def write_properties(filename):
+    petrophysics = simulation.petrophysics()
+    # pointdata – a dictionnary of point based properties
+    pointdata = {
+        "dirichlet": simulation.dirichlet_nodes(),
+        "dirichlet pressure": simulation.pressure_dirichlet_values(),
+        "dirichlet temperature": simulation.temperature_dirichlet_values(),
+    }
+    # celldata – a dictionnary of cell based properties
+    celldata = {
+        "Pressure": simulation.cell_states().p,
+        "phi": petrophysics.cell_porosity,
+    }
+    celldata.update(
+        tensor_coordinates(petrophysics.cell_permeability, "k", diagonal_only=True)
+    )
+    celldata.update(
+        tensor_coordinates(
+            petrophysics.cell_thermal_conductivity, "K", diagonal_only=True
+        )
+    )
+    io.write_mesh(simulation, filename, pointdata=pointdata, celldata=celldata)
+
+
+# write_properties("simulation_mesh2")
 
 
 def is_correct(*args):
@@ -122,22 +127,17 @@ def is_correct(*args):
     assert correct
 
 
-lsolver = linear_solver(simulation, direct=True)
-# lsolver = linear_solver(simulation, direct=False)
-newton = Newton(simulation, 1e-6, 20, lsolver)
+newton = Newton(simulation, 1e-6, 20, linear_solver(simulation))
 
-Nb_snap = 100
+Nb_snap = 30
 
 final_time = 50 * day
-# final_time = 2.8 * hour
-# final_time = 10192
 simulation.standard_loop(
     time_step_manager=TimeStepManager(
         initial_timestep=1 * minute,
-        increase_factor=1.2,
+        increase_factor=1.5,
         decrease_factor=0.5,
-        minimum_timestep=0.001,
-        maximum_timestep=1 * hour,
+        minimum_timestep=0.1,
     ),
     newton=newton,
     final_time=final_time,
@@ -146,4 +146,4 @@ simulation.standard_loop(
 )
 
 # Simulation results can be directly postprocessed here
-simulation.postprocess()
+# simulation.postprocess()
