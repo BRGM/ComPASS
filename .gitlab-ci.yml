@@ -45,7 +45,7 @@ check format:
 
 conda pristine build:
   stage: build
-  image: continuumio/miniconda3:23.5.2-0-alpine
+  image: condaforge/miniforge3:latest
   tags:
     - build
     - docker
@@ -53,7 +53,6 @@ conda pristine build:
    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
    - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
-    - conda install -n base -c conda-forge -y mamba
     - mamba env create --file conda/compass.yml
     - conda run -n compass python -m pip -vvv install .
     - cd test/bulk
