@@ -1107,6 +1107,7 @@ contains
 
       do k = 1, n
          ic = X(k)%ic
+         ! SmF contains only the value of the closure laws
          do i = 1, NbEqFermeture_ctx(ic)
             norm = norm + abs(rhs(i, k))
          enddo
@@ -1119,6 +1120,7 @@ contains
       bind(C, name="Residu_RelativeNorm_local_closure")
       real(c_double) :: ResClosLocal
 
+      ! SmF contains only the value of the closure laws
       ResClosLocal = Residu_dof_closure_relative_norm(IncNode, NbNodeOwn_Ncpus(commRank + 1), SmFNode)
       ResClosLocal = ResClosLocal + Residu_dof_closure_relative_norm(IncFrac, NbFracOwn_Ncpus(commRank + 1), SmFFrac)
       ResClosLocal = ResClosLocal + Residu_dof_closure_relative_norm(IncCell, NbCellOwn_Ncpus(commRank + 1), SmFCell)
