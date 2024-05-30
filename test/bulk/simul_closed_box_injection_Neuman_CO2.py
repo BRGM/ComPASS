@@ -1,15 +1,14 @@
 # This script is a test case for the flash routine put in place
-# to simulate two phases (liquid, gas) two component (CO2, H2O) flows in porous media.
-# It represents a simple geometry corresponding to a 1-D flow filled with liquid H2O.
-# There is a CO2 injection (debit_vol) represented through Neumann
+# to simulate two phases (liquid, gas) One component (CO2) flows in porous media.
+# It represents a simple geometry corresponding to a 1-D flow filled with CO2. The fluid is present here under
+# the gas phase with CO2 injection (debit_vol) represented through Neumann
 #
-#                   |--------------------------|
-#  debit_vol  CO2  =>       P_init water       |
-#                   |--------------------------|
+#                |--------------------------|
+#  debit_vol  =>       P_init CO2_gas       |
+#                |--------------------------|
 #
-# Adding quantity to the model conduct to the gas phase appearance (there is no water vapour,
-# so only CO2 in the gas phase); together with the liquid phase (diphasic_context)
-# gas_context = 1; liquid_context = 2; diphasic_context = 3
+#  Adding quantity to the model conduct to the phase change and apparition of CO2 under the liquid phase
+#
 #%%
 import ComPASS
 from ComPASS.utils.grid import on_zmin
@@ -28,9 +27,9 @@ H = 10
 dh = 0.1
 nxy = 1
 
-T_init = 260
-P_init = 10.0 * bar
-debit_vol = 1e-8  # (m/s)
+T_init = 330
+P_init = 100.0 * bar
+debit_vol = 1e-7  # (m/s)
 Composition_inj = [1, 0]  # inject CO2, no water
 
 omega = 0.15  # reservoir porosity
@@ -53,24 +52,19 @@ grid = ComPASS.Grid(
     origin=(-L, -L, 0),
 )
 
-# energie init
+# energie init CO2
 E_inj = s.cpp_gas_molar_enthalpy(P_init, T_init, Composition_inj)
 dens_inj = s.cpp_gas_molar_density(P_init, T_init, Composition_inj)
-# print(dens_inj, E_inj)
-
-
-def permeability():
-    return kh * np.eye(3, dtype="d")
 
 
 simulation.init(
     mesh=grid,
     cell_porosity=omega,
-    cell_permeability=permeability,
+    cell_permeability=kh,
     cell_thermal_conductivity=K,
 )
 
-init_state = simulation.build_state(simulation.Context.liquid, P_init, T_init)
+init_state = simulation.build_state(simulation.Context.gas, P_init, T_init)
 
 
 def set_states(states, X):
@@ -92,7 +86,6 @@ Neumann = ComPASS.NeumannBC(
 )
 face_centers = simulation.face_centers()
 simulation.set_Neumann_faces(on_zmin(grid)(face_centers), Neumann)
-
 
 # *************************************************************************************
 
@@ -130,22 +123,21 @@ def is_correct(*args):
     assert correct
 
 
-lsolver = linear_solver(simulation, direct=False)
-newton = Newton(simulation, 1e-6, 20, lsolver)
+newton = Newton(simulation, 1e-6, 20, linear_solver(simulation))
 
-Nb_snap = 22
+Nb_snap = 20
 
 final_time = 50 * day
 simulation.standard_loop(
     time_step_manager=TimeStepManager(
         initial_timestep=1 * day,
-        increase_factor=1.2,
-        decrease_factor=0.2,
-        minimum_timestep=10,
+        increase_factor=1.5,
+        decrease_factor=0.5,
+        minimum_timestep=1,
     ),
     newton=newton,
     final_time=final_time,
-    nb_output=Nb_snap,
+    output_period=final_time / Nb_snap,
     newton_iteration_callbacks=[is_correct],
 )
 
