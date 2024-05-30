@@ -99,6 +99,15 @@ class Newton:
         self.iteration_callbacks = iteration_callbacks or ()
         self.failure_callbacks = failure_callbacks or ()
 
+        # when the values are incremented thanks to the solution
+        # X^{m+1} = X^{m} + alpha * dX, alpha <= 1
+        # alpha is determined to have an impact on the different unknowns
+        # less or equal to incre_obj_u
+        self.incre_obj_P = 5.001e6
+        self.incre_obj_T = 20.0
+        self.incre_obj_C = 1.0
+        self.incre_obj_S = 0.2
+
         self.iterations = 0
 
     def reset_loop(self):
@@ -158,8 +167,16 @@ class Newton:
         kernel.Jacobian_GetSolCell(self.increments)
         # mpi.master_print('after\n', self.increments.cells())
         kernel.IncPrimSecd_PrimToSecd(self.increments)
-        relaxation = kernel.Newton_compute_relaxation(self.increments)
-        # mpi.master_print('relaxation:', relaxation)
+        Pmax = self.incre_obj_P
+        Tmax = self.incre_obj_T
+        Cmax = self.incre_obj_C
+        Smax = self.incre_obj_S
+        relaxation = kernel.Newton_compute_relaxation(
+            self.increments, Pmax, Tmax, Cmax, Smax
+        )
+        # if relaxation < 1.0:
+        #     mpi.master_print("relaxation:", relaxation)
+
         kernel.IncCV_NewtonIncrement(self.increments, relaxation)
         kernel.DirichletContribution_update()
         # phase pressures are needed in IncPrimSecd_update_secondary_dependencies (fugacities)

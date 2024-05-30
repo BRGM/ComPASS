@@ -28,10 +28,6 @@ module IncCVReservoir
       NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx, &
       NumCompCtilde_ctx, NbCompCtilde_ctx
 
-   use SchemeParameters, only: &
-      NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, &
-      eps
-
    use IncCVReservoirTypes, only: TYPE_IncCVReservoir
    use Thermodynamics, only: f_VolumetricMassDensity
 

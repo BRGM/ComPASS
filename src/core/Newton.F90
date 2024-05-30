@@ -35,8 +35,7 @@ module Newton
    use NumbyContext, only: &
       NbIncPTC_ctx, NumIncPTC2NumIncComp_comp_ctx, NumIncPTC2NumIncComp_phase_ctx
 
-   use SchemeParameters, only: &
-      NewtonIncreObj_C, NewtonIncreObj_P, NewtonIncreObj_S, NewtonIncreObj_T, eps
+   use SchemeParameters, only: eps
 
    use IncCVReservoir, only: &
       IncNode, IncCell, IncFrac
@@ -110,16 +109,17 @@ contains
    end subroutine Newton_pointers_to_values
 
    !This function does not compute any relaxation for MSWellNodes
-   function Newton_compute_relaxation_C(increments_pointers) &
+   function Newton_compute_relaxation_C(increments_pointers, Pmax, Tmax, Cmax, Smax) &
       result(relaxation) &
       bind(C, name="Newton_compute_relaxation")
 
       type(Newton_increments_pointers), intent(in), value :: increments_pointers
+      real(c_double), intent(in), value :: Pmax, Tmax, Cmax, Smax
       real(c_double) :: relaxation
       type(Newton_increments) :: increments
 
       call Newton_pointers_to_values(increments_pointers, increments)
-      call Newton_compute_relaxation(increments, relaxation)
+      call Newton_compute_relaxation(increments, Pmax, Tmax, Cmax, Smax, relaxation)
 
    end function Newton_compute_relaxation_C
 
@@ -129,8 +129,9 @@ contains
    !! where IncreObj is set by the user in SchemeParameters.F90 <br>
    !! and NewtonIncreObjMax is the maximum of the Nemton increment
    !! in current iteration
-   subroutine Newton_compute_relaxation(increments, relax)
+   subroutine Newton_compute_relaxation(increments, Pmax, Tmax, Cmax, Smax, relax)
       type(Newton_increments), intent(in) :: increments
+      real(c_double), intent(in) :: Pmax, Tmax, Cmax, Smax
       real(c_double), intent(out) :: relax
 
       double precision :: &
@@ -243,31 +244,31 @@ contains
       ! -- Compute relaxation value --
 
       ! relax local = min(1, increobj/incremax)
-      relaxlocal = min(1.d0, NewtonIncreObj_P/incremaxlocal_P) ! P
-      ! if(NewtonIncreObj_P<incremaxlocal_P) &
-      !    write(*,*) "Local pressure relaxation on", commRank, ":", incremaxlocal_P, "->", NewtonIncreObj_P, "relax=", relaxlocal
+      relaxlocal = min(1.d0, Pmax/incremaxlocal_P) ! P
+      ! if(Pmax<incremaxlocal_P) &
+      !    write(*,*) "Local pressure relaxation on", commRank, ":", incremaxlocal_P, "->", Pmax, "relax=", relaxlocal
 
 #ifdef _THERMIQUE_
-      relaxlocal = min(relaxlocal, NewtonIncreObj_T/incremaxlocal_T) ! T
-      ! if(NewtonIncreObj_T<incremaxlocal_T) &
+      relaxlocal = min(relaxlocal, Tmax/incremaxlocal_T) ! T
+      ! if(Tmax<incremaxlocal_T) &
       !    write(*,*) "Local pressure relaxation on", commRank, ":", incremaxlocal_T, "->", &
-      !    NewtonIncreObj_T, "relax=", NewtonIncreObj_T/incremaxlocal_T
+      !    Tmax, "relax=", Tmax/incremaxlocal_T
 #endif
 
       do i = 1, NbPhase ! C_i^alpha
          do j = 1, NbComp
 
             if (MCP(j, i) == 1 .and. abs(incremaxlocal_C(j, i)) > eps) then
-               relaxlocal = min(relaxlocal, NewtonIncreObj_C/incremaxlocal_C(j, i))
+               relaxlocal = min(relaxlocal, Cmax/incremaxlocal_C(j, i))
             end if
          end do
       end do
 
       do i = 1, NbPhase ! S^alpha
          if (abs(incremaxlocal_S(i)) > eps) then
-            ! if(relaxlocal>NewtonIncreObj_S/incremaxlocal_S(i)) &
-            !     write(*,*) "Relaxation induced by delta S max = ", incremaxlocal_S(i), " > ", NewtonIncreObj_S, " for phase ", i
-            relaxlocal = min(relaxlocal, NewtonIncreObj_S/incremaxlocal_S(i))
+            ! if(relaxlocal>Smax/incremaxlocal_S(i)) &
+            !     write(*,*) "Relaxation induced by delta S max = ", incremaxlocal_S(i), " > ", Smax, " for phase ", i
+            relaxlocal = min(relaxlocal, Smax/incremaxlocal_S(i))
          end if
       end do
 
