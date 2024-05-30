@@ -24,6 +24,13 @@ class Legacy:
         self.residuals = self.simulation.Residuals()
         self.reference_pv = np.zeros(self.simulation.Residuals.npv(), dtype=np.double)
         self.reference_closure = 0
+        self.closure_scale = 1.0
+        # for the diphasicCO2 physics, the closure laws contains the fugacity equality
+        # which value is about 1e5 Pa or more. Then scale with 1e4,
+        # could scale with 1.0e5 but not necessary
+        if simulation.physics_name() == "diphasicCO2":
+            # todo, fixme: 1.e4 is arbitrary ! Find a better scale
+            self.closure_scale = 1.0e4
 
     def pv_norms(self):
         residuals = self.residuals
@@ -78,7 +85,9 @@ class Legacy:
         self.reference_pv = np.maximum(self.pv_norms(), global_reference)
 
     def reset_closure_reference(self):
-        self.reference_closure = max(1.0, self.closure_norm())  # FIXME: ?
+        self.reference_closure = max(
+            self.closure_scale, self.closure_norm()
+        )  # FIXME: ?
 
     def reset_references(self, dt):
         self.reset_conservation_reference(dt)
