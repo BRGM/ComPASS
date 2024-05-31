@@ -21,6 +21,7 @@ import GROUPS as groups
 ComPASS.set_output_directory_and_logfile(__file__)
 
 """ Parameters"""
+year: float = 31536.0e3  # seconds
 p0: float = 211.74 * bar  # 221.74434 * bar # Pressure approximation at the top
 T0: float = degC2K(70.0)  # Temperature at the bottom (zmin = 0)
 pwell: float = 300 * bar  # Pressure at well1
@@ -117,7 +118,7 @@ elements = [MT.Wedge(cell) for cell in cells]
 
 mesh = MT.WedgeMesh.create(vertices, elements)
 
-MT.to_vtu(mesh, "my_wedge_mesh")
+# MT.to_vtu(mesh, "my_wedge_mesh")
 
 # Limits
 vertices = mesh.vertices_array()
@@ -187,7 +188,7 @@ BottomRightflag = 7
 simulation = ComPASS.load_physics("diphasicCO2")
 # simulation.info.activate_direct_solver = True
 
-""" Capillary function """
+""" kr and Capillary functions """
 # simulation.set_liquid_capillary_pressure("Beaude2018")
 # set pc for rocktypes from 1 to 6
 simulation.set_extendedBrooksCorey_pc_SPE11b()
@@ -264,7 +265,7 @@ def subdomains_porosity(display=True):
     return phi_cells
 
 
-def subdomains_conductivity(display=True):
+def subdomains_conductivity(display=False):
     kth_cells = np.zeros(mesh.nb_cells)
     kth_cells[Facies1_Layer] = kth_Facies1
     kth_cells[Facies2_Layer] = kth_Facies2
@@ -565,7 +566,7 @@ reset_well_sources(wells_coord[1])
 lsolver = linear_solver(simulation, direct=False)
 newton = Newton(simulation, 1e-5, 50, lsolver, maxit_before_decrease=20)
 tsmger.current_step = 0.01 * year
-tsmger.maximum_timestep = 0.05 * year
+# tsmger.maximum_timestep = 0.05 * year
 tsmger.increase_factor = 1.2
 tsmger.decrease_factor = 0.3
 
@@ -574,7 +575,7 @@ simu_time = simulation.standard_loop(
     initial_time=simu_time,
     final_time=final_time1,
     time_step_manager=tsmger,
-    nb_output=50,
+    output_period=year,
     newton=newton,
     dumper=dumper,
 )
@@ -592,10 +593,28 @@ simu_time = simulation.standard_loop(
     initial_time=simu_time,
     final_time=final_time2,
     time_step_manager=tsmger,
-    nb_output=49,
+    output_period=year,
     newton=newton,
     dumper=dumper,
 )
 simulation.postprocess()
 # export also the densities...
 export_states("states_1050yr")
+
+# reset the molar and heat sources to end without sources
+simulation.all_molar_sources_vol()[:] = 0.0
+simulation.all_thermal_sources()[:] = 0.0
+
+# final_time3 = 2000 * year
+# simu_time = simulation.standard_loop(
+#     initial_time=simu_time,
+#     final_time=final_time3,
+#     time_step_manager=tsmger,
+#     output_period=50 * year,
+#     newton=newton,
+#     dumper=dumper,
+#     # nitermax=20,
+# )
+# simulation.postprocess()
+# # export also the densities...
+# export_states("states_2000yr")
