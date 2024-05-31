@@ -20,6 +20,7 @@ module DefFlash
    use DefModel, only: &
       NbPhase, NbComp, &
       DIPHASIC_CONTEXT, LIQUID_CONTEXT, GAS_CONTEXT, &
+      LIQUID2DIPHASIC_CONTEXT, DIPHASIC2LIQUID_CONTEXT, &
       GAS_PHASE, LIQUID_PHASE, CO2_COMP, WATER_COMP
    use Thermodynamics, only: f_Fugacity, f_Fugacity_coeff_CO2_gas
 
@@ -30,7 +31,7 @@ module DefFlash
 
 contains
 
-   subroutine DiphasicFlash_liquid_to_diphasic(inc)
+   subroutine DiphasicFlash_liquid_to_liq2diph(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       real(c_double) :: fa, phi
@@ -41,28 +42,69 @@ contains
                       inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
       call f_Fugacity_coeff_CO2_gas(inc%phase_pressure(GAS_PHASE), inc%Temperature, inc%Comp(:, GAS_PHASE), phi, dPf, dTf, dCf)
       if (fa > phi*inc%phase_pressure(GAS_PHASE)) then
+         ! gas should appear, change into intermediate liq2diph
+         ! write(*, *) "liquid to liq2diph"
+         inc%ic = LIQUID2DIPHASIC_CONTEXT
+      endif
+
+   end subroutine DiphasicFlash_liquid_to_liq2diph
+
+   subroutine DiphasicFlash_liq2diph_switches(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      real(c_double) :: fa, phi
+      real(c_double) :: dPf, dTf, dCf(NbComp) ! dummy values
+
+      ! compute liquid fugacity of CO2 in liquid
+      call f_Fugacity(CO2_COMP, LIQUID_PHASE, inc%phase_pressure(LIQUID_PHASE), &
+                      inc%Temperature, inc%Comp(:, LIQUID_PHASE), fa, dPf, dTf, dCf)
+      call f_Fugacity_coeff_CO2_gas(inc%phase_pressure(GAS_PHASE), inc%Temperature, inc%Comp(:, GAS_PHASE), phi, dPf, dTf, dCf)
+      if (fa > phi*inc%phase_pressure(GAS_PHASE)) then
+         ! write(*, *) "liq2diph to diphasic"
          ! FIXME: is it ok to compare to Pg when gas is not ideal? (cf. issue #159)
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 0.d0
          inc%Saturation(LIQUID_PHASE) = 1.d0
+      else
+         ! write(*, *) "leave liq2diph (go back to liquid) "
+         ! leave this intermediate context, go back to liquid_ctx
+         inc%ic = LIQUID_CONTEXT
       endif
 
-   end subroutine DiphasicFlash_liquid_to_diphasic
+   end subroutine DiphasicFlash_liq2diph_switches
 
    pure subroutine DiphasicFlash_diphasic_switches(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
 
       if (inc%Saturation(GAS_PHASE) < 0.d0) then ! gas vanishes
-         inc%ic = LIQUID_CONTEXT
+         ! write(*, *) "diphasic to diph2liq"
+         inc%ic = DIPHASIC2LIQUID_CONTEXT
          inc%Saturation(GAS_PHASE) = 0.d0
          inc%Saturation(LIQUID_PHASE) = 1.d0
       else if (inc%Saturation(LIQUID_PHASE) < 0.d0) then ! liquid vanishes
+         ! write(*, *) "diphasic to gas"
          inc%ic = GAS_CONTEXT
          inc%Saturation(GAS_PHASE) = 1.d0
          inc%Saturation(LIQUID_PHASE) = 0.d0
       endif
 
    end subroutine DiphasicFlash_diphasic_switches
+
+   pure subroutine DiphasicFlash_diph2liq_switches(inc)
+      type(Type_IncCVReservoir), intent(inout) :: inc
+
+      if (inc%Saturation(GAS_PHASE) < 0.d0) then ! gas vanishes
+         ! write(*, *) "diph2liq to liquid"
+         inc%ic = LIQUID_CONTEXT
+         inc%Saturation(GAS_PHASE) = 0.d0
+         inc%Saturation(LIQUID_PHASE) = 1.d0
+      else
+         ! write(*, *) "leave diph2liq (go back to diphasic) "
+         ! leave this intermediate context, go back to diphasic_ctx
+         inc%ic = DIPHASIC_CONTEXT
+      endif
+
+   end subroutine DiphasicFlash_diph2liq_switches
 
    pure subroutine DiphasicFlash_gas_to_diphasic(inc)
       type(Type_IncCVReservoir), intent(inout) :: inc
@@ -73,6 +115,7 @@ contains
       ! There is no water in the gas phase
       ! eps=0 creates oscillations with values such as ni = 1e-90...
       if (inc%AccVol(WATER_COMP) > eps) then
+         ! write(*, *) "gas to diphasic"
          inc%ic = DIPHASIC_CONTEXT
          inc%Saturation(GAS_PHASE) = 1.d0
          inc%Saturation(LIQUID_PHASE) = 0.d0
@@ -95,11 +138,19 @@ contains
 
       if (context == LIQUID_CONTEXT) then
 
-         call DiphasicFlash_liquid_to_diphasic(inc)
+         call DiphasicFlash_liquid_to_liq2diph(inc)
+
+      elseif (context == LIQUID2DIPHASIC_CONTEXT) then
+
+         call DiphasicFlash_liq2diph_switches(inc)
 
       elseif (context == DIPHASIC_CONTEXT) then
 
          call DiphasicFlash_diphasic_switches(inc)
+
+      elseif (context == DIPHASIC2LIQUID_CONTEXT) then
+
+         call DiphasicFlash_diph2liq_switches(inc)
 
       elseif (context == GAS_CONTEXT) then
 

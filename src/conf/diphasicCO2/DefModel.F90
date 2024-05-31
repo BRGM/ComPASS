@@ -34,18 +34,28 @@ module DefModel
 
    ! --------------------------------------------------------------
    !      Definition of the contexts (sets of present phases)
-   integer, parameter :: NbContexte = ComPASS_NUMBER_OF_CONTEXTS ! NbContexte = 2**NbPhase - 1
+   integer, parameter :: NbContexte = ComPASS_NUMBER_OF_CONTEXTS ! NbContexte
 
    integer, parameter :: GAS_CONTEXT = ComPASS_GAS_CONTEXT
    integer, parameter :: LIQUID_CONTEXT = ComPASS_LIQUID_CONTEXT
    integer, parameter :: DIPHASIC_CONTEXT = ComPASS_DIPHASIC_CONTEXT
+   ! the next contexts are intermediate contexts to avoid contexts oscillations
+   ! for example LIQUID to LIQUID2DIPHASIC to DIPHASIC
+   integer, parameter :: LIQUID2DIPHASIC_CONTEXT = ComPASS_LIQUID2DIPHASIC
+   integer, parameter :: GAS2DIPHASIC_CONTEXT = ComPASS_GAS2DIPHASIC_CONTEXT  ! not used
+   integer, parameter :: DIPHASIC2GAS_CONTEXT = ComPASS_DIPHASIC2GAS_CONTEXT  ! not used
+   integer, parameter :: DIPHASIC2LIQUID_CONTEXT = ComPASS_DIPHASIC2LIQUID_CONTEXT
 
    ! Number of phases that are present in each context
 ! careful, the lignes must coincide with index defined in cmake.conf
    integer, parameter, dimension(NbContexte) :: NbPhasePresente_ctx = (/ &
                                                 1, & ! GAS_CONTEXT
                                                 1, & ! LIQUID_CONTEXT
-                                                2 & ! DIPHASIC_CONTEXT
+                                                2, & ! DIPHASIC_CONTEXT
+                                                1, & ! LIQUID2DIPHASIC_CONTEXT
+                                                1, & ! GAS2DIPHASIC_CONTEXT
+                                                2, & ! DIPHASIC2GAS_CONTEXT
+                                                2 & ! DIPHASIC2LIQUID_CONTEXT
                                                 /)
    ! Index of the phase(s) which is/are present in each context
    ! FIXME: NB: we could deduce NbPhasePresente_ctx from this array
@@ -53,7 +63,11 @@ module DefModel
                                                          reshape((/ &
                                                                  GAS_PHASE, 0, & ! GAS_CONTEXT
                                                                  LIQUID_PHASE, 0, & ! LIQUID_CONTEXT
-                                                                 GAS_PHASE, LIQUID_PHASE & ! DIPHASIC_CONTEXT
+                                                                 GAS_PHASE, LIQUID_PHASE, & ! DIPHASIC_CONTEXT
+                                                                 LIQUID_PHASE, 0, & ! LIQUID2DIPHASIC_CONTEXT
+                                                                 GAS_PHASE, 0, & ! GAS2DIPHASIC_CONTEXT
+                                                                 GAS_PHASE, LIQUID_PHASE, & ! DIPHASIC2GAS_CONTEXT
+                                                                 GAS_PHASE, LIQUID_PHASE &   ! DIPHASIC2LIQUID_CONTEXT
                                                                  /), (/NbPhase, NbContexte/))
 
    ! MCP: the components are potentially present in which phase(s) ?
@@ -115,7 +129,10 @@ module DefModel
 ! ic=1 GAS_CONTEXT:       P=1, T=2, Cga=3, nw_tilde=4 (water comp is absent, no gas water)
 ! ic=2 LIQUID_CONTEXT:    P=1, T=2, Cla=3, Clw=4
 ! ic=3 DIPHASIC_CONTEXT:  P=1, T=2, Cga=3, Cla=4, Clw=5, Sprincipal=6        (Sg+Sl=1 is not a closure law, it is forced in the implementation)
-!
+! ic=4 LIQUID2DIPHASIC_CONTEXT = LIQUID_CONTEXT
+! ic=5 GAS2DIPHASIC_CONTEXT = GAS_CONTEXT
+! ic=6 DIPHASIC2GAS_CONTEXT = DIPHASIC_CONTEXT
+! ic=7 DIPHASIC2LIQUID_CONTEXT = DIPHASIC_CONTEXT
 #ifdef _THERMIQUE_
    integer, parameter, private :: P = 1, T = 2
 #else
@@ -129,7 +146,11 @@ module DefModel
 #ifdef _THERMIQUE_
                        P, T, 4, & ! GAS_CONTEXT=1       Cga=3, nw_tilde=4
                        P, T, 4, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-                       P, T, 6 & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       P, T, 6, & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       P, T, 4, & ! LIQUID2DIPHASIC_CONTEXT=4    Cla=3, Clw=4
+                       P, T, 4, & ! GAS2DIPHASIC_CONTEXT=5       Cga=3, nw_tilde=4
+                       P, T, 6, & ! DIPHASIC2GAS_CONTEXT=6  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       P, T, 6 & ! DIPHASIC2LIQUID_CONTEXT=7  Cga=3, Cla=4, Clw=5, Sprincipal=6
 #else
                        P, 2, & ! GAS_CONTEXT=1        Cga=2, nw_tilde=3
                        P, 3, & ! LIQUID_CONTEXT=2     Cla=2, Clw=3
@@ -142,7 +163,11 @@ module DefModel
 #ifdef _THERMIQUE_
                        3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=3, nw_tilde=4
                        3, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=3, Clw=4
-                       3, 4, 5, 0 & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       3, 4, 5, 0, & ! DIPHASIC_CONTEXT=3  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       3, 0, 0, 0, & ! LIQUID2DIPHASIC_CONTEXT=4    Cla=3, Clw=4
+                       3, 0, 0, 0, & ! GAS2DIPHASIC_CONTEXT=5       Cga=3, nw_tilde=4
+                       3, 4, 5, 0, & ! DIPHASIC2GAS_CONTEXT=6  Cga=3, Cla=4, Clw=5, Sprincipal=6
+                       3, 4, 5, 0 & ! DIPHASIC2LIQUID_CONTEXT=7  Cga=3, Cla=4, Clw=5, Sprincipal=6
 #else
                        3, 0, 0, 0, & ! GAS_CONTEXT=1       Cga=2, nw_tilde=3
                        2, 0, 0, 0, & ! LIQUID_CONTEXT=2    Cla=2, Clw=3
@@ -182,6 +207,18 @@ module DefModel
                         0.d0, 0.d0, 1.d0, &
                         0.d0, 1.d0, 0.d0, &
                         1.d0, 1.d0, 0.d0, & ! DIPHASIC_CONTEXT=3
+                        0.d0, 0.d0, 1.d0, &
+                        0.d0, 1.d0, 0.d0, &
+                        1.d0, 1.d0, 0.d0, & ! LIQUID2DIPHASIC_CONTEXT=4
+                        0.d0, 0.d0, 1.d0, &
+                        0.d0, 1.d0, 0.d0, &
+                        1.d0, 1.d0, 0.d0, & ! GAS2DIPHASIC_CONTEXT=5
+                        0.d0, 0.d0, 1.d0, &
+                        1.d0, 0.d0, 0.d0, &
+                        1.d0, 1.d0, 0.d0, & ! DIPHASIC2GAS_CONTEXT=6
+                        0.d0, 0.d0, 1.d0, &
+                        0.d0, 1.d0, 0.d0, &
+                        1.d0, 1.d0, 0.d0, & ! DIPHASIC2LIQUID_CONTEXT=7
                         0.d0, 0.d0, 1.d0, &
                         0.d0, 1.d0, 0.d0 &
                         /), (/NbCompThermique, NbCompThermique, NbContexte/))
