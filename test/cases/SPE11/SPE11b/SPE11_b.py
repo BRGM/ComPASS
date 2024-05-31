@@ -9,6 +9,7 @@ from ComPASS.timeloops import TimeStepManager
 from ComPASS.utils.various import tensor_coordinates
 from ComPASS.newton import Newton
 from ComPASS.linalg.factory import linear_solver
+from ComPASS.dumps_spe11 import DumperSPE11
 from pathlib import Path
 import MeshTools as MT
 import GROUPS as groups
@@ -393,6 +394,8 @@ def cell_molar_source():
 #     return wells
 
 
+dumper = DumperSPE11(simulation)
+
 simulation.init(
     mesh=mesh,
     # it seems that the well has very little impact on the results,
@@ -533,6 +536,7 @@ simu_time = simulation.standard_loop(
     nb_output=2,
     output_after_loop=True,
     output_before_start=True,
+    dumper=dumper,
 )
 
 simulation.postprocess()
@@ -572,6 +576,7 @@ simu_time = simulation.standard_loop(
     time_step_manager=tsmger,
     nb_output=50,
     newton=newton,
+    dumper=dumper,
 )
 simulation.postprocess()
 # export also the densities...
@@ -589,6 +594,7 @@ simu_time = simulation.standard_loop(
     time_step_manager=tsmger,
     nb_output=49,
     newton=newton,
+    dumper=dumper,
 )
 simulation.postprocess()
 # export also the densities...

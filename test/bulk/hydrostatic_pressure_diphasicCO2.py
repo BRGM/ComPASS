@@ -13,6 +13,7 @@ from ComPASS.utils.units import *
 from ComPASS.timeloops import standard_loop
 import ComPASS.messages
 from ComPASS.timestep_management import TimeStepManager
+from ComPASS.dumps_spe11 import DumperSPE11
 
 
 Lz = 4000.0
@@ -80,12 +81,12 @@ timestep = TimeStepManager(
 final_time = 10.0 * year
 output_period = 0.1 * final_time
 
-
 current_time = standard_loop(
     simulation,
     final_time=final_time,
     time_step_manager=timestep,
     output_period=output_period,
+    dumper=DumperSPE11(simulation),
 )
 
 simulation.postprocess()
