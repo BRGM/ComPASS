@@ -52,7 +52,7 @@ simulation.init(
 
 
 # Set petrophyics functions after initialization
-simulation.set_extendedBrooksCorey_capillary_pressure()
+simulation.set_extendedBrooksCorey_pc_SPE11a()
 from data.kr import kr_functions
 
 simulation.set_kr_functions(kr_functions)

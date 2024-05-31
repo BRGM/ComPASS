@@ -56,7 +56,7 @@ def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax):
 # dictionary where the key contains the rocktype and the value
 # contains two functions : the capillary pressure Pc(Sg)
 # and the derivative dPcdS(Sg)
-laws = {
+SPE11a_laws = {
     0: no_pc(),
     # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=2, Pcmax=9.5e4)
     1: extendedBrooksCorey(0.32, 0.1, 1500, 2, 9.5e4),
@@ -65,6 +65,17 @@ laws = {
     4: extendedBrooksCorey(0.12, 0.1, 25, 2, 9.5e4),
     5: extendedBrooksCorey(0.12, 0.1, 10, 2, 9.5e4),
     6: extendedBrooksCorey(0.10, 0.1, 1, 2, 9.5e4),
+}
+
+SPE11b_laws = {
+    0: no_pc(),
+    # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=1.5, Pcmax=3.e7)
+    1: extendedBrooksCorey(0.32, 0.1, 1500, 1.5, 3.0e7),
+    2: extendedBrooksCorey(0.14, 0.1, 300, 1.5, 3.0e7),
+    3: extendedBrooksCorey(0.12, 0.1, 100, 1.5, 3.0e7),
+    4: extendedBrooksCorey(0.12, 0.1, 25, 1.5, 3.0e7),
+    5: extendedBrooksCorey(0.12, 0.1, 10, 1.5, 3.0e7),
+    6: extendedBrooksCorey(0.10, 0.1, 1, 1.5, 3.0e7),
 }
 
 
@@ -88,11 +99,19 @@ def phase_pressure(laws):
     return phase_pressure_function
 
 
-def set_extendedBrooksCorey_capillary_pressure(simulation):
+def set_extendedBrooksCorey_pc_SPE11a(simulation):
     # FIXME: cf. holder definition above
     global holder
 
-    holder = phase_pressure(laws)
+    holder = phase_pressure(SPE11a_laws)
+    simulation.set_phase_pressure_functions(holder)
+
+
+def set_extendedBrooksCorey_pc_SPE11b(simulation):
+    # FIXME: cf. holder definition above
+    global holder
+
+    holder = phase_pressure(SPE11b_laws)
     simulation.set_phase_pressure_functions(holder)
 
 
@@ -101,16 +120,17 @@ if __name__ == "__main__":
 
     n = 1000
     Sg = np.linspace(0, 1, n)
-    pc1 = laws[1][0](Sg)
-    pc3 = laws[3][0](Sg)
-    pc4 = laws[4][0](Sg)
-    pc5 = laws[5][0](Sg)
-    plt.plot(1.0 - Sg, pc1, ".")
-    plt.plot(1.0 - Sg, pc3, ".")
-    plt.plot(1.0 - Sg, pc4, ".")
-    plt.plot(1.0 - Sg, pc5, ".")
+    pc1 = SPE11b_laws[1][0](Sg)
+    pc3 = SPE11b_laws[3][0](Sg)
+    pc4 = SPE11b_laws[4][0](Sg)
+    pc5 = SPE11b_laws[5][0](Sg)
+    plt.plot(1.0 - Sg, pc1, ".", label="rt=1")
+    plt.plot(1.0 - Sg, pc3, ".", label="rt=3")
+    plt.plot(1.0 - Sg, pc4, ".", label="rt=4")
+    plt.plot(1.0 - Sg, pc5, ".", label="rt=5")
     # plt.ylim(1e3, 1.2e5)
     plt.yscale("log")
     plt.xlabel("Sl")
-    plt.ylabel("extended Brooks Corey Pc (rt = 1, 3, 4, 5)")
+    plt.ylabel("SPE11b extended Brooks Corey Pc")
+    plt.legend()
     plt.savefig("Pc.png")

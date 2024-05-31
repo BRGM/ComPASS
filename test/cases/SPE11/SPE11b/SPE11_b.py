@@ -75,7 +75,7 @@ kth_Facies6: float = 0.26  # rock heat conductivity in W/m/K
 kth_Facies7: float = 2.0  # rock heat conductivity in W/m/K
 
 
-heat_capacity_rock: float = 850.0  # [J.kg-1.K-1] spe_heat_capacity_rock
+heat_capacity_rock: float = 850.0  # [J.kg-1.K-1] spe11b 0.85 kJ.kg-1.K-1
 rho_rock_density: float = 2500.0  # [kg.m-3]
 
 gravity: float = 9.80665
@@ -187,12 +187,14 @@ simulation = ComPASS.load_physics("diphasicCO2")
 # simulation.info.activate_direct_solver = True
 
 """ Capillary function """
-simulation.set_liquid_capillary_pressure("Beaude2018")
+# simulation.set_liquid_capillary_pressure("Beaude2018")
 # set pc for rocktypes from 1 to 6
-# simulation.set_extendedBrooksCorey_capillary_pressure()
-from data.kr import kr_functions
-
+simulation.set_extendedBrooksCorey_pc_SPE11b()
 # kr = S^2
+# from data.kr import kr_functions
+# Brooks Corey kr
+from data.brooks_corey_kr import kr_functions_SPE11b as kr_functions
+
 simulation.set_kr_functions(kr_functions)
 
 
@@ -410,7 +412,7 @@ simulation.init(
     # cell_heat_source=cell_heat_source,
     set_global_flags=set_global_flags,
     # init the rocktypes (for the pc)
-    # set_global_rocktype=set_global_rocktype,
+    set_global_rocktype=set_global_rocktype,
 )
 
 """ Initial conditions """
@@ -467,6 +469,7 @@ set_initial_states()
 
 def export_states(filename):
     """Function to export values as vtufile"""
+    cellrocktype = simulation.cell_rocktypes()
     node_states = simulation.node_states()
     cell_states = simulation.cell_states()
     rho_l = simulation.cpp_liquid_molar_density
@@ -490,6 +493,7 @@ def export_states(filename):
         # "Tsat for p reservoir": K2degC(simulation.Tsat(node_states.p)),
     }
     celldata = {
+        "rocktype": cellrocktype,
         "pressure": cell_states.p,
         # "saturation": cell_states.S,
         "temperature": K2degC(cell_states.T),
@@ -556,8 +560,9 @@ reset_well_sources(wells_coord[1])
 """ Update Solver parameters """
 lsolver = linear_solver(simulation, direct=False)
 newton = Newton(simulation, 1e-5, 50, lsolver, maxit_before_decrease=20)
-tsmger.current_step = 0.4 * year
-tsmger.increase_factor = 2
+tsmger.current_step = 0.01 * year
+tsmger.maximum_timestep = 0.05 * year
+tsmger.increase_factor = 1.2
 tsmger.decrease_factor = 0.3
 
 final_time1 = 1025 * year
@@ -565,7 +570,7 @@ simu_time = simulation.standard_loop(
     initial_time=simu_time,
     final_time=final_time1,
     time_step_manager=tsmger,
-    nb_output=24,
+    nb_output=50,
     newton=newton,
 )
 simulation.postprocess()
@@ -575,7 +580,7 @@ export_states("states_1025yr")
 # reactivate the CO2 and heat sources for the 2 wells
 simulation.all_molar_sources_vol()[:] = final_molar_sources
 simulation.all_thermal_sources()[:] = final_heat_source
-tsmger.current_step = 0.4 * year
+tsmger.current_step = 0.01 * year
 
 final_time2 = 1050 * year
 simu_time = simulation.standard_loop(
