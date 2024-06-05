@@ -457,7 +457,8 @@ contains
       real(c_double) :: f
 
       if (iph == GAS_PHASE) then
-         f = 15.d-6
+         !f = 15.d-6
+         f = 1.d-4
       else if (iph == LIQUID_PHASE) then
          f = 1.d-3
       endif
@@ -478,7 +479,8 @@ contains
       real(c_double), intent(out), target :: f
 
       if (iph == GAS_PHASE) then
-         f = 15.d-6
+         !f = 15.d-6
+         f = 1.d-4
       else if (iph == LIQUID_PHASE) then
          f = 1.d-3
       endif
