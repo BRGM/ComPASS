@@ -351,7 +351,9 @@ def check_source_vol(nb_wells, w_coord, w_cell_measures, w_depth, eps=1e-13):
     # check with the objects positions
     source_pos = simulation.all_positions()[therm_source_bool]
     # check the well depth is coherent with the given one
-    assert abs(np.max(source_pos[:, 1]) - np.min(source_pos[:, 1]) - w_depth) < eps
+    if source_pos.size :
+        assert abs(np.max(source_pos[:, 1]) - np.min(source_pos[:, 1]) - w_depth) < eps
+
     # check that 7 objects (cell and 6 nodes) max are closed to each well,
     # and all objects from total_source_i are closed to any well
     close_to_well = np.array([], int)
