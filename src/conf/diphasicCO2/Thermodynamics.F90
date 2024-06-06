@@ -458,7 +458,10 @@ contains
 
       if (iph == GAS_PHASE) then
          !f = 15.d-6
-         f = 1.d-4
+         !f = 1.d-4 ! Value for CO2
+         ! Linear model for CO2
+         f = 8.150657587292315d-14*p - 9.483270717014074d-07*T &
+             + 4.250176084439237d-15*p*T + 0.0003481359413684678d0
       else if (iph == LIQUID_PHASE) then
          f = 1.d-3
       endif
@@ -480,14 +483,19 @@ contains
 
       if (iph == GAS_PHASE) then
          !f = 15.d-6
-         f = 1.d-4
+         !f = 1.d-4 ! Value for CO2
+         ! Linear model for CO2
+         f = 8.150657587292315d-14*p - 9.483270717014074d-07*T &
+             + 4.250176084439237d-15*p*T + 0.0003481359413684678d0
+         dfdP = 8.150657587292315d-14 + 4.250176084439237d-15*T
+         dfdT = -9.483270717014074d-07 + 4.250176084439237d-15*p
+         dfdC(:) = 0.d0
       else if (iph == LIQUID_PHASE) then
          f = 1.d-3
+         dfdP = 0.d0
+         dfdT = 0.d0
+         dfdC = 0.d0
       endif
-
-      dfdP = 0.d0
-      dfdT = 0.d0
-      dfdC = 0.d0
 
    end subroutine f_Viscosity_with_derivatives
 
@@ -536,11 +544,12 @@ contains
       !f = Cp*T
       ! test of linear function for enthalpy (No enthalpy for mixture!!)
       if (iph == GAS_PHASE) then
-         f = 0.38243394899581634d-6*p + 0.1291528158488924d0*T &
-             - 0.0012765670455401057d-6*T*p - 27.99194543799301d0
+         ! convert Phase molar enthalpy to (J/mol)
+         f = 0.38243394899581634d-3*p + 129.1528158488924d0*T &
+             - 1.2765670455401057d-6*T*p - 27991.94543799301d0
       else if (iph == LIQUID_PHASE) then
-         f = 0.015156424118806432d-6*p + 0.07425560400438522d0*T &
-             - 20.215678254623178d0
+         f = 0.015156424118806432d-3*p + 0.07425560400438522d3*T &
+             - 20.215678254623178d3
       end if
    end function f_MolarEnthalpy
 
@@ -560,25 +569,19 @@ contains
       real(c_double), intent(out) :: dfdP, dfdT, dfdC(NbComp)
       real(c_double), intent(out), target :: f
 
-      !real(c_double) :: Cp, dCpdP, dCpdT, dCpdC(NbComp)
-
-      !call f_linear_cp(iph, p, T, C, Cp, dCpdP, dCpdT, dCpdC)
-      !f = Cp*T
-      !dfdP = dCpdP*T
-      !dfdT = dCpdT*T + Cp
-      !dfdC(:) = 0.
-      ! test of linear function for enthalpy (No enthalpy for mixture!!)
+      ! linear approximation from NIST (No enthalpy for mixture!!)
       if (iph == GAS_PHASE) then
-         f = 0.38243394899581634d-6*p + 0.1291528158488924d0*T &
-             - 0.0012765670455401057d-6*T*p - 27.99194543799301d0
-         dfdP = 0.38243394899581634d-6 - 0.0012765670455401057d-6*T
-         dfdT = 0.1291528158488924d0 - 0.0012765670455401057d-6*p
+         ! convert Phase molar enthalpy to (J/mol)
+         f = 0.38243394899581634d-3*p + 129.1528158488924d0*T &
+             - 1.2765670455401057d-6*T*p - 27991.94543799301d0
+         dfdP = 0.38243394899581634d-3 - 1.2765670455401057d-6*T
+         dfdT = 129.1528158488924d0 - 1.2765670455401057d-6*p
          dfdC(:) = 0.
       else if (iph == LIQUID_PHASE) then
-         f = 0.015156424118806432d-6*p + 0.07425560400438522d0*T &
-             - 20.215678254623178d0
-         dfdP = 0.015156424118806432d-6
-         dfdT = 0.07425560400438522d0
+         f = 0.015156424118806432d-3*p + 0.07425560400438522d3*T &
+             - 20.215678254623178d3
+         dfdP = 0.015156424118806432d-3
+         dfdT = 0.07425560400438522d3
          dfdC(:) = 0.
       end if
    end subroutine f_MolarEnthalpy_with_derivatives
