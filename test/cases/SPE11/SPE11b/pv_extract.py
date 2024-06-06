@@ -1,4 +1,11 @@
 """ python pv_extract.py -h
+
+How to use it with a isolated paraview installation:
+    1. install paraview in a dedicated virtual environment:
+        conda create -c conda-forge -n paraview-5.12 paraview=5.12
+    2. run the script with `pvpython` from the env:
+        conda run -n paraview-5.12 pvpython pv_extract.py
+
 """
 
 import pathlib
@@ -287,44 +294,34 @@ dataovertime_1.OnlyReportSelectionStatistics = 0
 
 # create extractor
 cSV1 = CreateExtractor("CSV", dataovertime_1, registrationName="CSV1")
-# trace defaults for the extractor.
-cSV1.Trigger = "Time Step"
-
 # init the 'CSV' selected for 'Writer'
 cSV1.Writer.FileName = "Box-A.csv"
 cSV1.Writer.FieldAssociation = "Row Data"
 
 # create extractor
 cSV2 = CreateExtractor("CSV", dataovertime, registrationName="CSV2")
-# trace defaults for the extractor.
-cSV2.Trigger = "Time Step"
-
 # init the 'CSV' selected for 'Writer'
 cSV2.Writer.FileName = "Box-B.csv"
 cSV2.Writer.FieldAssociation = "Row Data"
 
 # create extractor
 cSV4 = CreateExtractor("CSV", pressureovertime, registrationName="CSV4")
-# trace defaults for the extractor.
-cSV4.Trigger = "Time Step"
-
 # init the 'CSV' selected for 'Writer'
 cSV4.Writer.FileName = "POP2.csv"
 cSV4.Writer.FieldAssociation = "Row Data"
 
 # create extractor
 cSV3 = CreateExtractor("CSV", pressureovertime_1, registrationName="CSV3")
-# trace defaults for the extractor.
-cSV3.Trigger = "Time Step"
-
 # init the 'CSV' selected for 'Writer'
 cSV3.Writer.FileName = "POP1.csv"
 cSV3.Writer.FieldAssociation = "Row Data"
 
-# ----------------------------------------------------------------
-# restore active source
-SetActiveSource(observation)
-# ----------------------------------------------------------------
+# create extractor
+cSV5 = CreateExtractor("CSV", observation, registrationName="CSV5")
+# init the 'CSV' selected for 'Writer'
+cSV5.Writer.FileName = "dense_data_{time:6e}.csv"
+# trace defaults for the extractor.
+cSV5.Trigger = "Time Step"
 
 
 ##--------------------------------------------
