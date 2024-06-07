@@ -351,7 +351,7 @@ def check_source_vol(nb_wells, w_coord, w_cell_measures, w_depth, eps=1e-13):
     # check with the objects positions
     source_pos = simulation.all_positions()[therm_source_bool]
     # check the well depth is coherent with the given one
-    if source_pos.size :
+    if source_pos.size:
         assert abs(np.max(source_pos[:, 1]) - np.min(source_pos[:, 1]) - w_depth) < eps
 
     # check that 7 objects (cell and 6 nodes) max are closed to each well,
@@ -542,7 +542,7 @@ simu_time = simulation.standard_loop(
     dumper=dumper,
 )
 
-simulation.postprocess()
+simulation.postprocess(time_unit="second")
 
 """ Export values as vtufile"""
 export_states("states_1e3yr")
@@ -581,7 +581,7 @@ simu_time = simulation.standard_loop(
     newton=newton,
     dumper=dumper,
 )
-simulation.postprocess()
+simulation.postprocess(time_unit="second")
 # export also the densities...
 export_states("states_1025yr")
 
@@ -599,7 +599,7 @@ simu_time = simulation.standard_loop(
     newton=newton,
     dumper=dumper,
 )
-simulation.postprocess()
+simulation.postprocess(time_unit="second")
 # export also the densities...
 export_states("states_1050yr")
 
@@ -617,6 +617,6 @@ simulation.all_thermal_sources()[:] = 0.0
 #     dumper=dumper,
 #     # nitermax=20,
 # )
-# simulation.postprocess()
+# simulation.postprocess(time_unit = "second")
 # # export also the densities...
 # export_states("states_2000yr")
