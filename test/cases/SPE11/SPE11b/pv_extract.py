@@ -139,7 +139,9 @@ boxB.CellLocator = "Static Cell Locator"
 # create a new 'Calculator'
 massCO2ingas = Calculator(registrationName="mass CO2 in gas", Input=boxB)
 massCO2ingas.ResultArrayName = "mCO2 gas"
-massCO2ingas.Function = '"node CO2 mass fraction in gas"*"node gas mass density"'
+massCO2ingas.Function = (
+    '"node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"'
+)
 
 # create a new 'Calculator'
 massfreeCO2ingas = Calculator(
@@ -160,16 +162,15 @@ massCO2inliquid = Calculator(
     registrationName="mass CO2 in liquid", Input=masstrappedCO2ingas
 )
 massCO2inliquid.ResultArrayName = "dissB"
-massCO2inliquid.Function = (
-    '"node CO2 mass fraction in liquid"*"node liquid mass density"'
-)
+massCO2inliquid.Function = '"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation")'
 
 # create a new 'Calculator'
 massCO2insealrtk1 = Calculator(
     registrationName="mass CO2 in seal (rtk==1)", Input=massCO2inliquid
 )
 massCO2insealrtk1.ResultArrayName = "sealB"
-massCO2insealrtk1.Function = '("node CO2 mass fraction in liquid"*"node liquid mass density"+"node CO2 mass fraction in gas"*"node gas mass density")*(rkt==1)'
+# massCO2insealrtk1.Function = '("node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation")+"node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation")*(rkt==1)'
+massCO2insealrtk1.Function = '("mCO2 gas" + "dissB")*(rkt==1)'
 
 # create a new 'Integrate Variables'
 integration = IntegrateVariables(
@@ -245,7 +246,9 @@ pressureovertime_1.OnlyReportSelectionStatistics = 0
 # create a new 'Calculator'
 massC02ingas = Calculator(registrationName="mass C02 in gas", Input=boxA)
 massC02ingas.ResultArrayName = "mCO2 gas"
-massC02ingas.Function = '"node CO2 mass fraction in gas"*"node gas mass density"'
+massC02ingas.Function = (
+    '"node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"'
+)
 
 # create a new 'Calculator'
 massfreeC02ingas = Calculator(
@@ -266,16 +269,14 @@ massCO2inliquid_1 = Calculator(
     registrationName="mass CO2 in liquid", Input=masstrappedCO2ingas_1
 )
 massCO2inliquid_1.ResultArrayName = "dissA"
-massCO2inliquid_1.Function = (
-    '"node CO2 mass fraction in liquid"*"node liquid mass density"'
-)
+massCO2inliquid_1.Function = '"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation")'
 
 # create a new 'Calculator'
 massCO2insealrtk1_1 = Calculator(
     registrationName="mass CO2 in seal (rtk==1)", Input=massCO2inliquid_1
 )
 massCO2insealrtk1_1.ResultArrayName = "sealA"
-massCO2insealrtk1_1.Function = '("node CO2 mass fraction in liquid"*"node liquid mass density"+"node CO2 mass fraction in gas"*"node gas mass density")*(rkt==1)'
+massCO2insealrtk1_1.Function = '("mCO2 gas" + "dissA")*(rkt==1)'
 
 # create a new 'Integrate Variables'
 integration_1 = IntegrateVariables(
@@ -287,6 +288,45 @@ dataovertime_1 = PlotDataOverTime(
     registrationName="data over time", Input=integration_1
 )
 dataovertime_1.OnlyReportSelectionStatistics = 0
+
+# create a new 'Cell Data to Point Data'
+rktonnodes = CellDatatoPointData(
+    registrationName="rkt on nodes", Input=stateswithmassandrocktypes
+)
+rktonnodes.ProcessAllArrays = 0
+rktonnodes.CellDataArraytoprocess = ["rkt"]
+
+# create a new 'Calculator'
+sealCO2mass = Calculator(registrationName="seal CO2 mass", Input=rktonnodes)
+sealCO2mass.ResultArrayName = "SealTot [kg]"
+sealCO2mass.Function = '("node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"+"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation"))*(rkt==1)'
+
+# create a new 'Integrate Variables'
+sealTot = IntegrateVariables(registrationName="SealTot", Input=sealCO2mass)
+
+# create a new 'Plot Data Over Time'
+dataovertime_2 = PlotDataOverTime(registrationName="data over time", Input=sealTot)
+dataovertime_2.OnlyReportSelectionStatistics = 0
+
+# create a new 'Gradient'
+gradient1 = Gradient(registrationName="Gradient1", Input=stateswithmassandrocktypes)
+gradient1.ScalarArray = ["POINTS", "node CO2 solubility ratio"]
+
+# create a new 'Calculator'
+calculator1 = Calculator(registrationName="Calculator1", Input=gradient1)
+calculator1.ResultArrayName = "M_C [kg]"
+calculator1.Function = "(Gradient[0]^2 + Gradient[1]^2 + Gradient[2]^2)^.5"
+
+# create a new 'Integrate Variables'
+integrateVariables1 = IntegrateVariables(
+    registrationName="IntegrateVariables1", Input=calculator1
+)
+
+# create a new 'Plot Data Over Time'
+plotDataOverTime1 = PlotDataOverTime(
+    registrationName="PlotDataOverTime1", Input=integrateVariables1
+)
+plotDataOverTime1.OnlyReportSelectionStatistics = 0
 
 # ----------------------------------------------------------------
 # setup extractors
@@ -323,6 +363,21 @@ cSV5.Writer.FileName = "dense_data_{time:6e}.csv"
 # trace defaults for the extractor.
 cSV5.Trigger = "Time Step"
 
+# create extractor
+cSV6 = CreateExtractor("CSV", dataovertime_2, registrationName="CSV1")
+# init the 'CSV' selected for 'Writer'
+cSV6.Writer.FileName = "SealTot.csv"
+# trace defaults for the extractor.
+cSV6.Trigger = "Time Step"
+cSV6.Writer.FieldAssociation = "Row Data"
+
+# create extractor
+cSV7 = CreateExtractor("CSV", plotDataOverTime1, registrationName="CSV2")
+# init the 'CSV' selected for 'Writer'
+cSV7.Writer.FileName = "convC.csv"
+# trace defaults for the extractor.
+cSV7.Trigger = "Time Step"
+cSV7.Writer.FieldAssociation = "Row Data"
 
 ##--------------------------------------------
 ## You may need to add some code at the end of this python script depending on your usage, eg:

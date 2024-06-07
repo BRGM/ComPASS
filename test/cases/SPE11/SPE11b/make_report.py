@@ -1,23 +1,41 @@
 import pathlib
 import string
 import re
+import click
 import pandas as pd
 
 
 YEAR = 3.1536e7  # seconds
 
 
-def main():
-    src = pathlib.Path("extracts")
-    out = pathlib.Path("report")
-    case = "b"
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
+@click.argument("case", type=click.Choice(["a", "b", "c"], case_sensitive=False))
+@click.option("--src", default="extracts")
+@click.option("--out", default="report")
+def cli(case, src, out):
+    proceed(case, src, out)
 
+
+def standard_files():
     dense_file_pattern = r"dense_data_(.*)\.csv"
     box_files = ["Box-A.csv", "Box-B.csv"]
     pop_files = ["POP1.csv", "POP2.csv"]
+    convc_file = "convC.csv"
+    seal_file = "SealTot.csv"
+    return dense_file_pattern, box_files, pop_files, convc_file, seal_file
 
+
+def proceed(case, src, out, *files):
+    src = pathlib.Path(src)
+    out = pathlib.Path(out)
+
+    if not files:
+        files = standard_files()
+    dense_file_pattern, box_files, pop_files, convc_file, seal_file = files
     pop_files = [src / f for f in pop_files]
     box_files = [src / f for f in box_files]
+    convc_file = src / convc_file
+    seal_file = src / seal_file
 
     match case:
         case "a":
@@ -46,13 +64,15 @@ def main():
             ]
             dV2 = 50 * 50 * 10
             out2 = lambda s: out / f"spe11c_spatial_map_{s:.0f}y.csv"
+        case _:
+            raise ValueError(f"case (={case!r}) must be 'a', 'b' or 'c'.")
 
-    make_time_series(pop_files, box_files, dt1, unit1, out1)
+    make_time_series(pop_files, box_files, convc_file, seal_file, dt1, unit1, out1)
     make_spatial_maps(src, dense_file_pattern, dt2, dV2, out2)
     make_performance_time_series()
 
 
-def make_time_series(pop_files, box_files, dt, unit, out):
+def make_time_series(pop_files, box_files, convc_file, seal_file, dt, unit, out):
     box_cols = lambda a: {
         f"mob{a}": f"mob{a} [kg]",
         f"imm{a}": f"imm{a} [kg]",
@@ -80,7 +100,11 @@ def make_time_series(pop_files, box_files, dt, unit, out):
         axis=1,
     )
 
-    df = pd.concat([pop, box], axis=1).reset_index(names="t [s]")
+    convC = pd.read_csv(convc_file, index_col=False).set_index("Time")["M_C [kg]"]
+
+    seal = pd.read_csv(seal_file, index_col=False).set_index("Time")["SealTot [kg]"]
+
+    df = pd.concat([pop, box, convC, seal], axis=1).reset_index(names="t [s]")
 
     fake_unit = "s"
     one = pd.to_datetime(1, unit=fake_unit) - pd.to_datetime(0)
@@ -90,9 +114,6 @@ def make_time_series(pop_files, box_files, dt, unit, out):
     df = df.dropna()
     df["t [s]"] = (df.index - pd.to_datetime(0)) / one * unit
     df = df.reset_index(drop=True)
-
-    df["M_C [m]"] = 0.0
-    df["sealTot [kg]"] = 0.0
 
     out.parent.mkdir(exist_ok=True)
     names = [" " + n for n in df.columns]
@@ -181,4 +202,5 @@ def make_performance_time_series():
 
 
 if __name__ == "__main__":
-    main()
+    # proceed("b", "extracts", "report")
+    cli()
