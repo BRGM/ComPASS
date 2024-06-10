@@ -146,7 +146,8 @@ class CompiledPhaseProperty:
 
     def _compile_c_without_derivatives(self):
         function_signature = double(p(self.phase_state_type.Xt))  # val = func(Xalpha)
-        make_func_cfunc = cfunc(function_signature, nopython=True, cache=True)
+        # the function signature is too complex to be reusable with the cache
+        make_func_cfunc = cfunc(function_signature, nopython=True, cache=False)
         c_f = jit(
             self.py_without_derivatives, nopython=True
         )  # nopython=True by default (soon)
@@ -163,7 +164,8 @@ class CompiledPhaseProperty:
             p(double),  # f
             p(self.phase_state_type.Xt),  # dfdXalpha
         )
-        make_sub_cfunc = cfunc(subroutine_signature, nopython=True, cache=True)
+        # the function signature is too complex to be reusable with the cache
+        make_sub_cfunc = cfunc(subroutine_signature, nopython=True, cache=False)
         c_f = jit(self.py_with_derivatives, nopython=True)
 
         def c_wrapped_subroutine(X_, val_, dfdX_):
