@@ -5,7 +5,8 @@ import click
 import pandas as pd
 
 
-YEAR = 3.1536e7  # seconds
+YEAR = int(3.1536e7)  # seconds
+HOUR = 3600  # seconds
 
 
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
@@ -42,28 +43,28 @@ def proceed(case, src, out, *files):
             unit1 = 1
             dt1 = 600
             out1 = out / "spe11a_time_series.csv"
-            dt2 = range(0, 200, 1)
+            dt2 = range(0, 200 * HOUR, 1 * HOUR)
             dV2 = 0.01 * 0.01 * 1
-            out2 = lambda s: out / f"spe11a_spatial_map_{s:.0f}h.csv"
+            out2 = lambda s: out / f"spe11a_spatial_map_{s/HOUR:.0f}h.csv"
         case "b":
             unit1 = YEAR
             dt1 = 0.1
             out1 = out / "spe11b_time_series.csv"
-            dt2 = [0, *range(1000, 1201, 5)]
+            dt2 = [0, *range(1000 * YEAR, 1201 * YEAR, 5 * YEAR)]
             dV2 = 10 * 10 * 1
-            out2 = lambda s: out / f"spe11b_spatial_map_{s:.0f}y.csv"
+            out2 = lambda s: out / f"spe11b_spatial_map_{s/YEAR:.0f}y.csv"
         case "c":
             unit1 = YEAR
             dt1 = 0.1
             out1 = out / "spe11c_time_series.csv"
             dt2 = [
-                *range(1000, 1050, 5),
-                *range(1050, 1100, 25),
-                *range(1100, 1500, 50),
-                *range(1500, 2001, 100),
+                *range(1000 * YEAR, 1050 * YEAR, 5 * YEAR),
+                *range(1050 * YEAR, 1100 * YEAR, 25 * YEAR),
+                *range(1100 * YEAR, 1500 * YEAR, 50 * YEAR),
+                *range(1500 * YEAR, 2001 * YEAR, 100 * YEAR),
             ]
             dV2 = 50 * 50 * 10
-            out2 = lambda s: out / f"spe11c_spatial_map_{s:.0f}y.csv"
+            out2 = lambda s: out / f"spe11c_spatial_map_{s/YEAR:.0f}y.csv"
         case _:
             raise ValueError(f"case (={case!r}) must be 'a', 'b' or 'c'.")
 
@@ -139,6 +140,10 @@ def make_spatial_maps(src, dense_file_pattern, dt, dV, out):
         lambda f: float(m.group(1)) if (m := re.match(dense_file_pattern, f)) else None
     )
     tags = {f: k for f in src.glob("*") if (k := get_time(f.name)) is not None}
+    print(f"Found {len(tags)} files matching the pattern.")
+
+    for file, time in tags.items():
+        print(f"Processing file: {file} at time {time}")
 
     for time, df in iter_times(dt, list(tags), tags.get, load):
         df["mass fraction of H2O in vapor [-]"] = (
@@ -178,9 +183,12 @@ def iter_times(times, files, get_time, load, eps=1e-8):
     """
     # FIXME on fait du "nearest" mais on pourrait faire mieux
     for time in times:
+        print(f"Checking for time: {time}")
         dist = lambda f: abs(get_time(f) - time)
         res = min(files, key=dist)
         if dist(res) <= eps:
+            print(f"Selected file: {res} for time: {time} with distance: {dist(res)}")
+            print(f"Time: {time} - Using file: {res}")
             yield time, load(res)
 
 
