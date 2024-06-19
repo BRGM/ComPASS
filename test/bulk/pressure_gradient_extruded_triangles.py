@@ -34,7 +34,6 @@ simulation.set_gravity(0)  # no gravity
 
 mesh = None
 if mpi.is_on_master_proc:
-    # quads
     assert nx >= 2 and nz >= 2  # 2 points for at least one cell
     x = np.linspace(0, Lx, nx)
     dx = x[1] - x[0]
