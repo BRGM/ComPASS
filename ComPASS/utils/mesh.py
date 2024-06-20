@@ -65,7 +65,7 @@ def extrude(points, cells, thickness=1.0, axis=2):
     )
 
 
-def extrude_triangle_strips(Lx, nx, dz, nbstrips=1):
+def extrude_triangle_strips(Lx, nx, dz, nbstrips=1, move2D=None):
     """
     :param Lx: length of the strips along Ox
     :param nx: number of points along Ox
@@ -87,6 +87,8 @@ def extrude_triangle_strips(Lx, nx, dz, nbstrips=1):
         else:
             pts.append(np.vstack([xs, np.tile(k * dz, nx + 1)]).T)
     pts = np.vstack(pts)
+    if move2D is not None:
+        pts = move2D(pts)
     triangles = []
     for k in range(nz - 1):
         O = k * nx + k // 2
@@ -117,7 +119,7 @@ def extrude_triangle_strips(Lx, nx, dz, nbstrips=1):
     return extrude(pts, triangles, axis=1, thickness=dz)
 
 
-def extrude_quad_strips(Lx, nx, dz, nbstrips=1):
+def extrude_quad_strips(Lx, nx, dz, nbstrips=1, move2D=None):
     """
     :param Lx: length of the strips along Ox
     :param nx: number of points along Ox
@@ -134,6 +136,8 @@ def extrude_quad_strips(Lx, nx, dz, nbstrips=1):
     for k in range(nz):
         pts.append(np.vstack([x, np.tile(k * dz, nx)]).T)
     pts = np.vstack(pts)
+    if move2D is not None:
+        pts = move2D(pts)
     row = np.vstack([np.array([0, 1, nx + 1, nx]) + k for k in range(nx - 1)])
     quads = np.vstack([row + k * nx for k in range(nz - 1)])
     return extrude(pts, quads, axis=1, thickness=dz)
