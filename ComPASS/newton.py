@@ -114,6 +114,11 @@ class Newton:
 
         self.iterations = 0
 
+        # create the timeloop_log_callback object, will contains info to store convegence data
+        # store it to avoid erasing the file at each standard time loop call
+        # (erase it only wheen creating a new newton object)
+        self.timeloop_log_callback = None
+
     def reset_loop(self):
         kernel = get_kernel()
         kernel.IncCV_LoadIncPreviousTimeStep()

@@ -245,14 +245,22 @@ def get_callbacks_from_options(
 
     # avoid if no_output=True (write in two files at each time step)
     if not no_output and compass_config.get("callbacks.timeloop_log"):
-        timeloop_log_filename = compass_config["callbacks.timeloop_log"]
-        timeloop_log_callback = TimeloopLogCallback(timeloop_log_filename, newton)
-        timestep_callbacks.append(timeloop_log_callback.timeloop_callback)
-        newton.iteration_callbacks += (timeloop_log_callback.newton_iteration_callback,)
-        newton.lsolver.failure_callbacks += (
-            timeloop_log_callback.linear_failure_callback,
-        )
-        newton.failure_callbacks += (timeloop_log_callback.newton_failure_callback,)
+        # avoid if already done
+        if newton.timeloop_log_callback is None:
+            timeloop_log_filename = compass_config["callbacks.timeloop_log"]
+            newton.timeloop_log_callback = TimeloopLogCallback(
+                timeloop_log_filename, newton
+            )
+            timestep_callbacks.append(newton.timeloop_log_callback.timeloop_callback)
+            newton.iteration_callbacks += (
+                newton.timeloop_log_callback.newton_iteration_callback,
+            )
+            newton.lsolver.failure_callbacks += (
+                newton.timeloop_log_callback.linear_failure_callback,
+            )
+            newton.failure_callbacks += (
+                newton.timeloop_log_callback.newton_failure_callback,
+            )
 
     if compass_config.get("callbacks.abort") is not None:
         t_kill = compass_config["callbacks.abort"]
