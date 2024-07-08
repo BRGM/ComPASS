@@ -193,7 +193,7 @@ def reload_snapshot(
             mpi.master_print(
                 f"Dirichlet node states were updated according to reloaded snapshot."
             )
-    return t
+    return float(t)
 
 
 if __name__ == "__main__":
