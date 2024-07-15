@@ -12,11 +12,11 @@ from ComPASS.linalg.factory import linear_solver
 from ComPASS.dumps_spe11 import DumperSPE11
 from pathlib import Path
 import MeshTools as MT
+import ComPASS.mpi as mpi
 from geometries.msh2compass import convert_mesh
 
 
 # from ComPASS.utils.salome import SalomeWrapper
-# import ComPASS.mpi as mpi
 # from ComPASS.linalg.petsc_linear_solver import *
 
 ComPASS.set_output_directory_and_logfile(__file__)
@@ -30,6 +30,7 @@ Twell: float = degC2K(10.0)  # Temperature at the well1
 pure_phase_molar_fraction = [[1.0, 0.0], [0.0, 1.0]]  # [[CO2_g, W_g], [CO2_l, W_l]]
 bottom_boundary: float = 0.0
 top_boundary: float = 1200.0
+xmin_boundary: float = 0.0
 xmax_boundary: float = 8400.0
 
 # Wellnodes coordinates: well1(2700, 1000, 300) and well2(2700, 4000, 300)
@@ -152,6 +153,11 @@ Tgrad = -0.025  # 25°C/km # Geothermal gradient
 # mesh = MT.WedgeMesh.create(vertices, elements)
 
 grid, rocktype = convert_mesh("./geometries/spe11b_structured.msh", well_depth)
+# identify the nodes in Dirichlet rocktype cells
+if mpi.is_on_master_proc:
+    dir_rkt = (rocktype >= 2) & (rocktype <= 5)
+    dir_nodes_mask = np.zeros(len(grid.vertices), dtype=bool)
+    dir_nodes_mask[np.unique(grid.cell_nodes[dir_rkt])] = True
 
 # MT.to_vtu(mesh, "my_wedge_mesh")
 
@@ -219,6 +225,7 @@ Bottomflag = 4
 Well1flag = 5
 Well2flag = 6
 BottomRightflag = 7
+DirichletVerticalflag = 8
 
 """ ComPASS simulation """
 simulation = ComPASS.load_physics("diphasicCO2")
@@ -246,11 +253,11 @@ simulation.set_rock_volumetric_heat_capacity(rho_rock_density * heat_capacity_ro
 
 
 def set_global_flags():
-    z = simulation.global_vertices()[:, 2]
     # nodes
     nodeflags = simulation.global_nodeflags()
-    nodeflags[z >= top_boundary] = Topflag
-    nodeflags[z <= bottom_boundary] = Bottomflag
+    x = simulation.global_vertices()[:, 0]
+    nodeflags[dir_nodes_mask & (x <= xmin_boundary)] = DirichletVerticalflag
+    nodeflags[dir_nodes_mask & (x >= xmax_boundary)] = DirichletVerticalflag
 
     cellflags = simulation.global_cellflags()
     # get the global index of the cell containing each well
@@ -453,17 +460,16 @@ simu_time = simulation.standard_loop(
 simulation.postprocess(time_unit="second")
 
 
-""" Export values as vtufile"""
-export_states(ComPASS.to_output_directory("states_1e3yr"))
-
-
-""" Set Dirichlet nodes at top and bottom boundaries with initial states """
+""" Set Dirichlet nodes at xmin and xmax boundaries with initial states """
 nodeflags = simulation.nodeflags()
 dirichlet_nodes = np.zeros(len(nodeflags), dtype=bool)
-dirichlet_nodes[nodeflags == Topflag] = True
-dirichlet_nodes[nodeflags == Bottomflag] = True
+dirichlet_nodes[nodeflags == DirichletVerticalflag] = True
 
 simulation.reset_dirichlet_nodes(dirichlet_nodes)
+
+
+""" Export values as vtufile"""
+export_states(ComPASS.to_output_directory("states_1e3yr"))
 
 
 # set CO2 and heat sources for well 1
