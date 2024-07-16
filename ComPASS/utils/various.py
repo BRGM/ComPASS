@@ -161,7 +161,8 @@ def reload_snapshot(
         times = np.loadtxt(snapfile, usecols=(1,), dtype="d")
         if iteration is None:
             assert len(iterations) > 0, "Snapshots file is empty..."
-            index = len(iterations) - 1
+            iteration = iterations[-1]
+            t = times[-1]
         else:
             index = np.nonzero(iterations == iteration)[0]
             assert (
@@ -171,15 +172,16 @@ def reload_snapshot(
                 len(index) < 2
             ), f"Found several times iteration {iteration} in snapshots (cf. {str(snapfile)})."
             index = index[0]
-        snapshot_info = (index, times[index])
-    index, t = mpi.communicator().bcast(snapshot_info, root=mpi.master_proc_rank)
+            t = times[index]
+        snapshot_info = (iteration, t)
+    iteration, t = mpi.communicator().bcast(snapshot_info, root=mpi.master_proc_rank)
     snapshot = np.load(
-        snapdir / "states" / f"state_{index:05d}_proc_{mpi.proc_rank:06d}.npz"
+        snapdir / "states" / f"state_{iteration:05d}_proc_{mpi.proc_rank:06d}.npz"
     )
     _reload(simulation, snapshot, mapping, old_style)
     if verbose:
         mpi.master_print(
-            f"Reloaded snapshot {index} from {str(snapdir)} directory corresponding to time {t} s = {t/year} y"
+            f"Reloaded snapshot {iteration} from {str(snapdir)} directory corresponding to time {t} s = {t/year} y"
         )
     if old_style:
         mpi.master_print(
