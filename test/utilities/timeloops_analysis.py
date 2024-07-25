@@ -132,9 +132,12 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
 
     print(f"Number of time step iterations: {n_time_steps}")
 
-    duration = conv_log.success_dt.sum() - conv_log.time[0]
+    duration = conv_log.success_dt.sum()
     min_dt = conv_log.success_dt.min()
     max_dt = conv_log.success_dt.max()
+
+    # the computation time for each timestep
+    timeloop_comp_time = conv_log.comp_time.sum()
 
     print(f"Physical duration: {duration:6g} s = {duration/year:6g} y")
     # the timeloop computation time is the sum of the time of each time step
@@ -228,6 +231,15 @@ def plot_timeloop_analysis(yaml_directory, plot_directory):
         figfile = plot_directory / "LinearSolver-useless-iterations"
         plt.savefig(figfile)
         print(f"Figure {figfile} has been created")
+
+    # Plotting the computation time for each timestep
+    plt.clf()
+    plt.plot(conv_log.time / year, conv_log.comp_time)
+    plt.xlabel("time (y)")
+    plt.ylabel("computation time per timestep (s)")
+    figfile = plot_directory / "computation-time-per-timestep"
+    plt.savefig(figfile)
+    print(f"Figure {figfile} has been created")
 
     return conv_log
 
