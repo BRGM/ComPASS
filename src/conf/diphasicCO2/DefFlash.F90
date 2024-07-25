@@ -177,6 +177,10 @@ contains
       inc%Comp(CO2_COMP, LIQUID_PHASE) = Cal
       inc%Comp(WATER_COMP, LIQUID_PHASE) = 1.d0 - Cal
 
+      ! enforce sat between 0 and 1
+      inc%Saturation(LIQUID_PHASE) = min(max(inc%Saturation(LIQUID_PHASE), 0.d0), 1.d0)
+      inc%Saturation(GAS_PHASE) = min(max(inc%Saturation(GAS_PHASE), 0.d0), 1.d0)
+
    end subroutine DiphasicFlash_enforce_consistent_molar_fractions
 
    !> \brief Determine the phases
