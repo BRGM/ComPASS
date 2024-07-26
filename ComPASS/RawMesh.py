@@ -47,6 +47,7 @@ class RawMesh:
             self.build(**kwds)
 
     def build(self, **kwds):
+        # check that the keywords are present and not already set
         for param in ["vertices", "cell_nodes", "cell_faces", "face_nodes"]:
             if param not in kwds:
                 raise RuntimeError(
@@ -54,6 +55,7 @@ class RawMesh:
                 )
             if hasattr(self, param):
                 raise RuntimeError(f"RawMesh object already has a {param} attribute.")
+        # sett all the attributes
         for name, value in kwds.items():
             setattr(self, name, value)
 
@@ -95,7 +97,7 @@ class RawMesh:
             RawMesh.fill_types(
                 res,
                 self.cell_nodes.get_subsizes(),
-                [[4, "tet"], [8, "voxel"]],
+                [[4, "tet"], [6, "wedge"], [8, "voxel"]],
             )
 
     def fill_face_types(self, res):
