@@ -8,7 +8,10 @@ def fkr(S, Simm, alpha):
     Sn[mask] = Sred[mask]
     # derivative of Sn**alpha
     dfkrdS = np.zeros_like(S)
-    dfkrdS[mask] = alpha / (1.0 - Simm) * Sn[mask] ** (alpha - 1)
+    if np.isscalar(Simm):
+        dfkrdS[mask] = alpha / (1.0 - Simm) * Sn[mask] ** (alpha - 1)
+    else:
+        dfkrdS[mask] = alpha / (1.0 - Simm[mask]) * Sn[mask] ** (alpha - 1)
     return Sn**alpha, dfkrdS
 
 
