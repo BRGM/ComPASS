@@ -18,12 +18,21 @@ def cli(case, src, out):
 
 
 def standard_files():
-    dense_file_pattern = r"dense_data_(.*)\.csv"
+    dense_file_pattern = r"dense_data_([\d.e+-]+)\.csv"
     box_files = ["Box-A.csv", "Box-B.csv"]
     pop_files = ["POP1.csv", "POP2.csv"]
     convc_file = "convC.csv"
     seal_file = "SealTot.csv"
-    return dense_file_pattern, box_files, pop_files, convc_file, seal_file
+    # FixMe: the boundaryCO2_file is only for case b and c
+    boundaryCO2_file = "BoundaryCO2.csv"
+    return (
+        dense_file_pattern,
+        box_files,
+        pop_files,
+        convc_file,
+        seal_file,
+        boundaryCO2_file,
+    )
 
 
 def proceed(case, src, out, *files):
@@ -32,11 +41,19 @@ def proceed(case, src, out, *files):
 
     if not files:
         files = standard_files()
-    dense_file_pattern, box_files, pop_files, convc_file, seal_file = files
+    (
+        dense_file_pattern,
+        box_files,
+        pop_files,
+        convc_file,
+        seal_file,
+        boundaryCO2_file,
+    ) = files
     pop_files = [src / f for f in pop_files]
     box_files = [src / f for f in box_files]
     convc_file = src / convc_file
     seal_file = src / seal_file
+    boundaryCO2_file = src / boundaryCO2_file
 
     match case:
         case "a":
@@ -50,7 +67,8 @@ def proceed(case, src, out, *files):
             unit1 = YEAR
             dt1 = 0.1
             out1 = out / "spe11b_time_series.csv"
-            dt2 = [0, *range(1000 * YEAR, 1201 * YEAR, 5 * YEAR)]
+            # dt2 = [0, *range(1000 * YEAR, 1201 * YEAR, 5 * YEAR)]
+            dt2 = [0, *range(1000, 1201, 5)]
             dV2 = 10 * 10 * 1
             out2 = lambda s: out / f"spe11b_spatial_map_{s/YEAR:.0f}y.csv"
         case "c":
@@ -68,12 +86,16 @@ def proceed(case, src, out, *files):
         case _:
             raise ValueError(f"case (={case!r}) must be 'a', 'b' or 'c'.")
 
-    make_time_series(pop_files, box_files, convc_file, seal_file, dt1, unit1, out1)
+    make_time_series(
+        pop_files, box_files, convc_file, seal_file, boundaryCO2_file, dt1, unit1, out1
+    )
     make_spatial_maps(src, dense_file_pattern, dt2, dV2, out2)
     make_performance_time_series()
 
 
-def make_time_series(pop_files, box_files, convc_file, seal_file, dt, unit, out):
+def make_time_series(
+    pop_files, box_files, convc_file, seal_file, boundaryCO2_file, dt, unit, out
+):
     box_cols = lambda a: {
         f"mob{a}": f"mob{a} [kg]",
         f"imm{a}": f"imm{a} [kg]",
@@ -105,16 +127,26 @@ def make_time_series(pop_files, box_files, convc_file, seal_file, dt, unit, out)
 
     seal = pd.read_csv(seal_file, index_col=False).set_index("Time")["SealTot [kg]"]
 
-    df = pd.concat([pop, box, convC, seal], axis=1).reset_index(names="t [s]")
+    boundaryCO2 = pd.read_csv(boundaryCO2_file, index_col=False).set_index("Time")[
+        "BoundaryCO2 [kg]"
+    ]
+
+    df = pd.concat([pop, box, convC, seal, boundaryCO2], axis=1).reset_index(
+        names="t [s]"
+    )
 
     fake_unit = "s"
-    one = pd.to_datetime(1, unit=fake_unit) - pd.to_datetime(0)
+    one = pd.to_datetime(1, unit=fake_unit) - pd.to_datetime(1)
     df["datetime"] = pd.to_datetime(df["t [s]"], unit=fake_unit)
     groupby = df.groupby(pd.Grouper(key="datetime", freq=dt * one))
     df = groupby.mean()  # FIXME devrait dépendre de l'espacement des temps
     df = df.dropna()
-    df["t [s]"] = (df.index - pd.to_datetime(0)) / one * unit
+    df["t [s]"] = (df.index - pd.to_datetime(1)) / one * unit
     df = df.reset_index(drop=True)
+    df["t [s]"] = df["t [s]"] - (999.3 * YEAR)
+    df = df[df["t [s]"] >= 0].reset_index(drop=True)
+    first_value = df["t [s]"].iloc[0]
+    df["t [s]"] = df["t [s]"] - first_value
 
     out.parent.mkdir(exist_ok=True)
     names = [" " + n for n in df.columns]
@@ -137,15 +169,22 @@ def make_spatial_maps(src, dense_file_pattern, dt, dV, out):
 
     load = lambda f: pd.read_csv(f)[fields.keys()].rename(columns=fields).astype(float)
     get_time = (
-        lambda f: float(m.group(1)) if (m := re.match(dense_file_pattern, f)) else None
+        # lambda f: float(m.group(1)) if (m := re.match(dense_file_pattern, f)) else None
+        lambda f: float(f"{float(m.group(1))}")
+        if (m := re.match(dense_file_pattern, f))
+        else None
     )
-    tags = {f: k for f in src.glob("*") if (k := get_time(f.name)) is not None}
+    tags = {
+        f: k
+        for f in src.glob("dense_data_*.csv")
+        if (k := get_time(f.name)) is not None
+    }
     print(f"Found {len(tags)} files matching the pattern.")
 
     for file, time in tags.items():
         print(f"Processing file: {file} at time {time}")
 
-    for time, df in iter_times(dt, list(tags), tags.get, load):
+    for time, df in iter_times(dt, tags.keys(), get_time, load):
         df["mass fraction of H2O in vapor [-]"] = (
             1 - df["mass fraction of CO2 in vapor [-]"]
         )
@@ -184,7 +223,7 @@ def iter_times(times, files, get_time, load, eps=1e-8):
     # FIXME on fait du "nearest" mais on pourrait faire mieux
     for time in times:
         print(f"Checking for time: {time}")
-        dist = lambda f: abs(get_time(f) - time)
+        dist = lambda f: abs(get_time(f.name) - time)
         res = min(files, key=dist)
         if dist(res) <= eps:
             print(f"Selected file: {res} for time: {time} with distance: {dist(res)}")

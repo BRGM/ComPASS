@@ -101,7 +101,9 @@ observationgeometry.YResolution = 120
 rocktypes = XMLUnstructuredGridReader(
     registrationName="rocktypes", FileName=[str(rocktype_vtu_file)]
 )
-rocktypes.CellArrayStatus = ["rkt"]
+
+rocktypes.CellArrayStatus = ["rocktype"]
+print(rocktypes.CellArrayStatus)
 rocktypes.TimeArray = "None"
 
 # create a new 'Append Attributes'
@@ -166,11 +168,11 @@ massCO2inliquid.Function = '"node CO2 mass fraction in liquid"*"node liquid mass
 
 # create a new 'Calculator'
 massCO2insealrtk1 = Calculator(
-    registrationName="mass CO2 in seal (rtk==1)", Input=massCO2inliquid
+    registrationName="mass CO2 in seal (rkt==1)", Input=[rocktypes, massCO2inliquid]
 )
 massCO2insealrtk1.ResultArrayName = "sealB"
 # massCO2insealrtk1.Function = '("node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation")+"node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation")*(rkt==1)'
-massCO2insealrtk1.Function = '("mCO2 gas" + "dissB")*(rkt==1)'
+massCO2insealrtk1.Function = '("mCO2 gas" + "dissB")*(rocktype==1)'
 
 # create a new 'Integrate Variables'
 integration = IntegrateVariables(
@@ -273,10 +275,10 @@ massCO2inliquid_1.Function = '"node CO2 mass fraction in liquid"*"node liquid ma
 
 # create a new 'Calculator'
 massCO2insealrtk1_1 = Calculator(
-    registrationName="mass CO2 in seal (rtk==1)", Input=massCO2inliquid_1
+    registrationName="mass CO2 in seal (rkt==1)", Input=massCO2inliquid_1
 )
 massCO2insealrtk1_1.ResultArrayName = "sealA"
-massCO2insealrtk1_1.Function = '("mCO2 gas" + "dissA")*(rkt==1)'
+massCO2insealrtk1_1.Function = '("mCO2 gas" + "dissA")*(rocktype==1)'
 
 # create a new 'Integrate Variables'
 integration_1 = IntegrateVariables(
@@ -294,12 +296,12 @@ rktonnodes = CellDatatoPointData(
     registrationName="rkt on nodes", Input=stateswithmassandrocktypes
 )
 rktonnodes.ProcessAllArrays = 0
-rktonnodes.CellDataArraytoprocess = ["rkt"]
+rktonnodes.CellDataArraytoprocess = ["rocktype"]
 
 # create a new 'Calculator'
 sealCO2mass = Calculator(registrationName="seal CO2 mass", Input=rktonnodes)
 sealCO2mass.ResultArrayName = "SealTot [kg]"
-sealCO2mass.Function = '("node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"+"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation"))*(rkt==1)'
+sealCO2mass.Function = '("node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"+"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation"))*(rocktype==1)'
 
 # create a new 'Integrate Variables'
 sealTot = IntegrateVariables(registrationName="SealTot", Input=sealCO2mass)
@@ -307,6 +309,22 @@ sealTot = IntegrateVariables(registrationName="SealTot", Input=sealCO2mass)
 # create a new 'Plot Data Over Time'
 dataovertime_2 = PlotDataOverTime(registrationName="data over time", Input=sealTot)
 dataovertime_2.OnlyReportSelectionStatistics = 0
+
+# create a new 'Calculator'
+massCO2inboundary = Calculator(
+    registrationName="mass CO2 in boundary (rocktypes 2-5)", Input=rktonnodes
+)
+massCO2inboundary.ResultArrayName = "BoundaryCO2 [kg]"
+massCO2inboundary.Function = '("node CO2 mass fraction in gas"*"node gas mass density"*"node gas saturation"+"node CO2 mass fraction in liquid"*"node liquid mass density"*(1-"node gas saturation"))* ((rocktype >= 2) * (rocktype <= 5))'
+
+# create a new 'Integrate Variables'
+BoundaryCO2 = IntegrateVariables(
+    registrationName="BoundaryCO2", Input=massCO2inboundary
+)
+
+# create a new 'Plot Data Over Time'
+dataovertime_3 = PlotDataOverTime(registrationName="data over time2", Input=BoundaryCO2)
+dataovertime_3.OnlyReportSelectionStatistics = 0
 
 # create a new 'Gradient'
 gradient1 = Gradient(registrationName="Gradient1", Input=stateswithmassandrocktypes)
@@ -378,6 +396,14 @@ cSV7.Writer.FileName = "convC.csv"
 # trace defaults for the extractor.
 cSV7.Trigger = "Time Step"
 cSV7.Writer.FieldAssociation = "Row Data"
+
+# create extractor
+cSV8 = CreateExtractor("CSV", dataovertime_3, registrationName="CSV3")
+# init the 'CSV' selected for 'Writer'
+cSV8.Writer.FileName = "BoundaryCO2.csv"
+# trace defaults for the extractor.
+cSV8.Trigger = "Time Step"
+cSV8.Writer.FieldAssociation = "Row Data"
 
 ##--------------------------------------------
 ## You may need to add some code at the end of this python script depending on your usage, eg:
