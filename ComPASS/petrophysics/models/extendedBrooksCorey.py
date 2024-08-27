@@ -22,33 +22,63 @@ def no_pc():
     return Pc, dPcdS
 
 
-def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax):
+# S_tilde is a value chosen to smooth the asymptote
+# introduce a line to extend the curve
+def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax, S_tilde):
+    # S_tilde must be greater than Slimm
+    assert S_tilde > Slimm
     scale_l = 1.0 - Slimm
     c2_pow = -1.0 / c2
     erf_scale = math.sqrt(math.pi) / 2.0 / Pcmax
     ddSerf_scale = Pcmax * 2.0 / math.sqrt(math.pi)
 
+    # determine line parameters such that the derivative is continius
+    def compute_a_b():
+        norm_s_tilde = (S_tilde - Slimm) / scale_l
+        Pc_tilde_s_tilde = Pe * norm_s_tilde**c2_pow
+        Pc_s_tilde = Pcmax * math.erf(Pc_tilde_s_tilde * erf_scale)
+        ddSPctilde_s_tilde = c2_pow * Pe / scale_l * norm_s_tilde ** (c2_pow - 1)
+        a = (
+            ddSerf_scale
+            * math.exp(-((Pc_tilde_s_tilde * erf_scale) ** 2))
+            * ddSPctilde_s_tilde
+            * erf_scale
+        )
+        b = Pc_s_tilde
+        return a, b
+
+    # lines paramters
+    a, b = compute_a_b()
+
     @numba.vectorize(["float64(float64)"])
     def Pc(Sg):
-        norm_s = (1.0 - Sg - Slimm) / scale_l
-        if norm_s < 0.0:
-            return Pcmax
-        Pc_tilde = Pe * norm_s**c2_pow
-        return Pcmax * math.erf(Pc_tilde * erf_scale)
+        if (1.0 - Sg) >= S_tilde:
+            norm_s = (1.0 - Sg - Slimm) / scale_l
+            Pc_tilde = Pe * norm_s**c2_pow
+            return Pcmax * math.erf(Pc_tilde * erf_scale)
+        else:
+            return a * ((1.0 - Sg) - S_tilde) + b
 
     @numba.vectorize(["float64(float64)"])
     def dPcdS(Sg):
-        norm_s = (1.0 - Sg - Slimm) / scale_l
-        if norm_s < 0.0:
-            return 0.0
-        Pc_tilde = Pe * norm_s**c2_pow
-        ddSPctilde = -c2_pow * Pe / scale_l * norm_s ** (c2_pow - 1)
-        return (
-            ddSerf_scale
-            * math.exp(-((Pc_tilde * erf_scale) ** 2))
-            * ddSPctilde
-            * erf_scale
-        )
+        if (1.0 - Sg) >= S_tilde:
+            norm_s = (1.0 - Sg - Slimm) / scale_l
+            Pc_tilde = Pe * norm_s**c2_pow
+            ddSPctilde = -c2_pow * Pe / scale_l * norm_s ** (c2_pow - 1)
+            return (
+                ddSerf_scale
+                * np.exp(-((Pc_tilde * erf_scale) ** 2))
+                * ddSPctilde
+                * erf_scale
+            )
+        else:
+            # todo:
+            # error: the derivative wrt Sg should be -a, but the convergence
+            # is not obtained with -a whereas it is quite easy with a.
+            # The derivative value should have an impact on the convergence
+            # behaviour but not on the value after convergence.
+            # todo: write a 1D test
+            return a
 
     return Pc, dPcdS
 
@@ -59,23 +89,33 @@ def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax):
 SPE11a_laws = {
     0: no_pc(),
     # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=2, Pcmax=9.5e4)
-    1: extendedBrooksCorey(0.32, 0.1, 1500, 2, 9.5e4),
-    2: extendedBrooksCorey(0.14, 0.1, 300, 2, 9.5e4),
-    3: extendedBrooksCorey(0.12, 0.1, 100, 2, 9.5e4),
-    4: extendedBrooksCorey(0.12, 0.1, 25, 2, 9.5e4),
-    5: extendedBrooksCorey(0.12, 0.1, 10, 2, 9.5e4),
-    6: extendedBrooksCorey(0.10, 0.1, 1, 2, 9.5e4),
+    1: extendedBrooksCorey(0.32, 0.1, 1500, 2, 9.5e4, 0.325),
+    2: extendedBrooksCorey(0.14, 0.1, 300, 2, 9.5e4, 0.145),
+    3: extendedBrooksCorey(0.12, 0.1, 100, 2, 9.5e4, 0.125),
+    4: extendedBrooksCorey(0.12, 0.1, 25, 2, 9.5e4, 0.125),
+    5: extendedBrooksCorey(0.12, 0.1, 10, 2, 9.5e4, 0.125),
+    6: extendedBrooksCorey(0.10, 0.1, 1, 2, 9.5e4, 0.105),
 }
 
+# SPE11b_laws = {
+#     0: no_pc(),
+#     # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=1.5, Pcmax=3.e7, S_tilde=0.38)
+#     1: extendedBrooksCorey(0.32, 0.1, 1500, 1.5, 3.0e7, 0.327),
+#     2: extendedBrooksCorey(0.14, 0.1, 300, 1.5, 3.0e7, 0.147),
+#     3: extendedBrooksCorey(0.12, 0.1, 100, 1.5, 3.0e7, 0.127),
+#     4: extendedBrooksCorey(0.12, 0.1, 25, 1.5, 3.0e7, 0.127),
+#     5: extendedBrooksCorey(0.12, 0.1, 10, 1.5, 3.0e7, 0.127),
+#     6: extendedBrooksCorey(0.10, 0.1, 1, 1.5, 3.0e7, 0.107),
+# }
 SPE11b_laws = {
     0: no_pc(),
-    # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=1.5, Pcmax=3.e7)
-    1: extendedBrooksCorey(0.32, 0.1, 1500, 1.5, 3.0e7),
-    2: extendedBrooksCorey(0.14, 0.1, 300, 1.5, 3.0e7),
-    3: extendedBrooksCorey(0.12, 0.1, 100, 1.5, 3.0e7),
-    4: extendedBrooksCorey(0.12, 0.1, 25, 1.5, 3.0e7),
-    5: extendedBrooksCorey(0.12, 0.1, 10, 1.5, 3.0e7),
-    6: extendedBrooksCorey(0.10, 0.1, 1, 1.5, 3.0e7),
+    # rocktype=1: (Slimm=0.32, Sgimm=0.1, Pe=1500, c2=1.5, Pcmax=3.e7, S_tilde=0.38)
+    1: extendedBrooksCorey(0.32, 0.1, 1500, 1.5, 3.0e7, 0.35),
+    2: extendedBrooksCorey(0.14, 0.1, 300, 1.5, 3.0e7, 0.145),
+    3: extendedBrooksCorey(0.12, 0.1, 100, 1.5, 3.0e7, 0.127),
+    4: extendedBrooksCorey(0.12, 0.1, 25, 1.5, 3.0e7, 0.127),
+    5: extendedBrooksCorey(0.12, 0.1, 10, 1.5, 3.0e7, 0.122),
+    6: extendedBrooksCorey(0.10, 0.1, 1, 1.5, 3.0e7, 0.112),
 }
 
 
@@ -121,16 +161,22 @@ if __name__ == "__main__":
     n = 1000
     Sg = np.linspace(0, 1, n)
     pc1 = SPE11b_laws[1][0](Sg)
+    pc2 = SPE11b_laws[2][0](Sg)
     pc3 = SPE11b_laws[3][0](Sg)
     pc4 = SPE11b_laws[4][0](Sg)
     pc5 = SPE11b_laws[5][0](Sg)
+    pc6 = SPE11b_laws[6][0](Sg)
     plt.plot(1.0 - Sg, pc1, ".", label="rt=1")
+    plt.plot(1.0 - Sg, pc2, ".", label="rt=2")
     plt.plot(1.0 - Sg, pc3, ".", label="rt=3")
     plt.plot(1.0 - Sg, pc4, ".", label="rt=4")
     plt.plot(1.0 - Sg, pc5, ".", label="rt=5")
+    plt.plot(1.0 - Sg, pc6, ".", label="rt=6")
     # plt.ylim(1e3, 1.2e5)
+    # plt.xlim(0.1, 0.35)
+    # plt.xticks(np.arange(0.1, 0.35, 0.02))
     plt.yscale("log")
     plt.xlabel("Sl")
     plt.ylabel("SPE11b extended Brooks Corey Pc")
     plt.legend()
-    plt.savefig("Pc.png")
+    plt.savefig("Pc_1.png")
