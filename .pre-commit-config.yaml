@@ -14,7 +14,7 @@ repos:
     rev: 22.10.0
     hooks:
     -   id: black
--   repo: https://github.com/pseewald/fprettify
+-   repo: https://github.com/fortran-lang/fprettify
     rev: v0.3.5
     hooks:
     -   id: fprettify
