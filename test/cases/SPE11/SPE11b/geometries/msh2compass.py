@@ -1,9 +1,10 @@
 import numpy as np
 import meshio
 from ComPASS.utils.mesh import extrude
+import ComPASS.mpi as mpi
 
 
-def convert_mesh(filename, thickness=None):
+def convert_mesh(filename, thickness=None, vtufile=None):
     mesh = meshio.read(filename)
     points = np.copy(mesh.points)
     # points are already 3D but coordinate along 3rd dimension is 0
@@ -19,14 +20,17 @@ def convert_mesh(filename, thickness=None):
     nb_cells = len(raw_mesh.cell_nodes)
     raw_mesh.cell_types = np.full((nb_cells,), 12, dtype=int)
     rocktype = np.array(mesh.cell_data["gmsh:physical"])[0]
-    # rocktype[rocktype == 7] = 0
-    # meshio.write_points_cells(
-    # "cells_rkt_RawMesh.vtu",
-    # points=mesh.points,
-    # cells=mesh.cells,
-    # cell_data={"rocktype": [rocktype]},
-    # )
-    # print(f"VTU file with rock types written to cells rtk")
+
+    if vtufile is not None and mpi.is_on_master_proc:
+        rkt = np.copy(rocktype)
+        rkt[rocktype == 7] = 0
+        meshio.write_points_cells(
+            vtufile,
+            points=points,
+            cells=mesh.cells,
+            cell_data={"rocktype": [rkt]},
+        )
+        # print(f"VTU file with cells rocktypes written")
     return raw_mesh, rocktype
 
 

@@ -36,14 +36,14 @@ def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax, S_tilde):
     def compute_a_b():
         norm_s_tilde = (S_tilde - Slimm) / scale_l
         Pc_tilde_s_tilde = Pe * norm_s_tilde**c2_pow
-        Pc_s_tilde = Pcmax * math.erf(Pc_tilde_s_tilde * erf_scale)
         ddSPctilde_s_tilde = c2_pow * Pe / scale_l * norm_s_tilde ** (c2_pow - 1)
         a = (
             ddSerf_scale
-            * math.exp(-((Pc_tilde_s_tilde * erf_scale) ** 2))
+            * np.exp(-((Pc_tilde_s_tilde * erf_scale) ** 2))
             * ddSPctilde_s_tilde
             * erf_scale
         )
+        Pc_s_tilde = Pcmax * math.erf(Pc_tilde_s_tilde * erf_scale)
         b = Pc_s_tilde
         return a, b
 
@@ -57,10 +57,11 @@ def extendedBrooksCorey(Slimm, Sgimm, Pe, c2, Pcmax, S_tilde):
             Pc_tilde = Pe * norm_s**c2_pow
             return Pcmax * math.erf(Pc_tilde * erf_scale)
         else:
-            return a * ((1.0 - Sg) - S_tilde) + b
+            return a * (1.0 - Sg - S_tilde) + b
 
     @numba.vectorize(["float64(float64)"])
     def dPcdS(Sg):
+        # derivative wrt Sg
         if (1.0 - Sg) >= S_tilde:
             norm_s = (1.0 - Sg - Slimm) / scale_l
             Pc_tilde = Pe * norm_s**c2_pow
