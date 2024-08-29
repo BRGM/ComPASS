@@ -1,8 +1,18 @@
+import numpy as np
 import pathlib
 import string
 import re
 import click
 import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_df_over_time(df, col, filename, tscale=1):
+
+    plt.figure()
+    plt.plot(df["t [s]"] / tscale, df[col])
+    plt.xscale("log")
+    plt.savefig(filename)
 
 
 YEAR = int(3.1536e7)  # seconds
@@ -67,8 +77,7 @@ def proceed(case, src, out, *files):
             unit1 = YEAR
             dt1 = 0.1
             out1 = out / "spe11b_time_series.csv"
-            # dt2 = [0, *range(1000 * YEAR, 1201 * YEAR, 5 * YEAR)]
-            dt2 = [0, *range(1000, 1201, 5)]
+            dt2 = [*range(1000 * YEAR, 2001 * YEAR, 5 * YEAR)]
             dV2 = 10 * 10 * 1
             out2 = lambda s: out / f"spe11b_spatial_map_{s/YEAR:.0f}y.csv"
         case "c":
@@ -135,23 +144,47 @@ def make_time_series(
         names="t [s]"
     )
 
-    fake_unit = "s"
-    one = pd.to_datetime(1, unit=fake_unit) - pd.to_datetime(1)
-    df["datetime"] = pd.to_datetime(df["t [s]"], unit=fake_unit)
-    groupby = df.groupby(pd.Grouper(key="datetime", freq=dt * one))
-    df = groupby.mean()  # FIXME devrait dépendre de l'espacement des temps
-    df = df.dropna()
-    df["t [s]"] = (df.index - pd.to_datetime(1)) / one * unit
-    df = df.reset_index(drop=True)
-    df["t [s]"] = df["t [s]"] - (999.3 * YEAR)
-    df = df[df["t [s]"] >= 0].reset_index(drop=True)
+    # eliminate first value (initial state)
     first_value = df["t [s]"].iloc[0]
-    df["t [s]"] = df["t [s]"] - first_value
+    df = df[df["t [s]"] >= first_value + 1].reset_index(drop=True)
+    # remove the first 1000 years (initialization phase)
+    df["t [s]"] = df["t [s]"] - 1e3 * YEAR
+
+    # time interpolation (get nearest value, could be more precise here)
+    df_report = df.iloc[:0, :].copy()
+    for t in range(0, int(1000.001 * YEAR), int(0.1 * YEAR)):
+        df_line = (abs(df["t [s]"] - t)).idxmin()
+        df_data = df.iloc[df_line].copy()
+        df_data["t [s]"] = t
+        df_report = df_report._append(df_data, ignore_index=True)
+
+    df_report["BoundaryCO2 [kg]"] = 0.0
+
+    # # strange, convert into years to reconvert into second
+    # df["t [s]"] = df["t [s]"]/YEAR
+    # first_value = df["t [s]"].iloc[0]
+    # # remove the first 1000 years (initialization phase)
+    # df["t [s]"] = df["t [s]"] - 1e3
+    # #  convert into seconds and ???
+    # fake_unit = "s"
+    # one = pd.to_datetime(1, unit=fake_unit) - pd.to_datetime(1)
+    # df["datetime"] = pd.to_datetime(df["t [s]"], unit=fake_unit)
+    # # groupby = df.groupby(pd.Grouper(key="datetime", freq=dt * one))
+    # # df = groupby.mean()  # FIXME devrait dépendre de l'espacement des temps
+    # # df = df.dropna()
+    # df["t [s]"] = (df.index - pd.to_datetime(1)) / one * unit
+    # df = df.reset_index(drop=True)
+    # # df = df[df["t [s]"] >= 0].reset_index(drop=True)
+    # # first_value = df["t [s]"].iloc[0]
+    # # df["t [s]"] = df["t [s]"] - first_value
 
     out.parent.mkdir(exist_ok=True)
     names = [" " + n for n in df.columns]
     names[0] = "#" + names[0]
-    df.to_csv(out, index=False, float_format="% .6e", header=names)
+    df_report.to_csv(out, index=False, float_format="% .6e", header=names)
+
+    # plot_df_over_time(df_report, "p1 [Pa]", "pressure.png", tscale=YEAR)
+    # plot_df_over_time(df_report, "mobA [kg]", "mobA.png", tscale=YEAR)
 
 
 def make_spatial_maps(src, dense_file_pattern, dt, dV, out):
@@ -179,10 +212,10 @@ def make_spatial_maps(src, dense_file_pattern, dt, dV, out):
         for f in src.glob("dense_data_*.csv")
         if (k := get_time(f.name)) is not None
     }
-    print(f"Found {len(tags)} files matching the pattern.")
+    # print(f"Found {len(tags)} files matching the pattern.")
 
-    for file, time in tags.items():
-        print(f"Processing file: {file} at time {time}")
+    # for file, time in tags.items():
+    #     print(f"Processing file: {file} at time {time}")
 
     for time, df in iter_times(dt, tags.keys(), get_time, load):
         df["mass fraction of H2O in vapor [-]"] = (
@@ -213,21 +246,26 @@ def make_spatial_maps(src, dense_file_pattern, dt, dV, out):
         #
         names = [" " + n for n in df.columns]
         names[0] = "#" + names[0]
-        df.to_csv(out(time), index=False, float_format="% .6e", header=names)
+        df_filtred = df[(df["# x [m]"] != 0) & (df[" z [m]"] != 0)]
+        df_filtred.to_csv(
+            out(time - 1000 * YEAR), index=False, float_format="% .6e", header=names
+        )
 
 
-def iter_times(times, files, get_time, load, eps=1e-8):
+def iter_times(times, files, get_time, load, eps=1e16):
     """yield (time, df) for each time in times
     df is mixture of files close to time
     """
     # FIXME on fait du "nearest" mais on pourrait faire mieux
     for time in times:
-        print(f"Checking for time: {time}")
+        # print(f"Checking for time: {time/YEAR}")
         dist = lambda f: abs(get_time(f.name) - time)
         res = min(files, key=dist)
         if dist(res) <= eps:
-            print(f"Selected file: {res} for time: {time} with distance: {dist(res)}")
-            print(f"Time: {time} - Using file: {res}")
+            print(
+                f"Selected file: {res} for time: {time/YEAR} with distance: {dist(res)/YEAR}"
+            )
+            # print(f"Time: {time/YEAR} - Using file: {res}")
             yield time, load(res)
 
 

@@ -4,7 +4,7 @@ How to use it with a isolated paraview installation:
     1. install paraview in a dedicated virtual environment:
         conda create -c conda-forge -n paraview-5.12 paraview=5.12
     2. run the script with `pvpython` from the env:
-        conda run -n paraview-5.12 pvpython pv_extract.py
+        conda run -n paraview-5.12 pvpython pv_extract.py "PATH/states.pvd" cells_rkt.vtu -o "RESULTS_PATH"
 
 """
 
@@ -73,27 +73,30 @@ stateswithmasspvd.PointArrays = [
     "node temperature",
 ]
 
+# *** WARNING ***:
+# FOR SPE11B: since we have an extension in the Y direction we need to adapt the box geometries
+# IF CHANGING THE MESH, CHANGE THE Y to coincide boxCgeometry.Origin = [X, Y, Z]
 # create a new 'Plane'
 boxCgeometry = Plane(registrationName="Box C geometry")
-boxCgeometry.Origin = [3300.0, 50.0, 100.0]
-boxCgeometry.Point1 = [7800.0, 50.0, 100.0]
-boxCgeometry.Point2 = [3300.0, 50.0, 400.0]
+boxCgeometry.Origin = [3300.0, 2.0, 100.0]
+boxCgeometry.Point1 = [7800.0, 2.0, 100.0]
+boxCgeometry.Point2 = [3300.0, 2.0, 400.0]
 boxCgeometry.XResolution = 900
 boxCgeometry.YResolution = 60
 
 # create a new 'Plane'
 boxBgeometry = Plane(registrationName="Box B geometry")
-boxBgeometry.Origin = [100.0, 50.0, 600.0]
-boxBgeometry.Point1 = [3300.0, 50.0, 600.0]
-boxBgeometry.Point2 = [100.0, 50.0, 1200.0]
+boxBgeometry.Origin = [100.0, 2.0, 600.0]
+boxBgeometry.Point1 = [3300.0, 2.0, 600.0]
+boxBgeometry.Point2 = [100.0, 2.0, 1200.0]
 boxBgeometry.XResolution = 640
 boxBgeometry.YResolution = 120
 
 # create a new 'Plane'
 observationgeometry = Plane(registrationName="observation geometry")
-observationgeometry.Origin = [0.0, 50.0, 0.0]
-observationgeometry.Point1 = [8400.0, 50.0, 0.0]
-observationgeometry.Point2 = [0.0, 50.0, 1200.0]
+observationgeometry.Origin = [0.0, 2.0, 0.0]
+observationgeometry.Point1 = [8400.0, 2.0, 0.0]
+observationgeometry.Point2 = [0.0, 2.0, 1200.0]
 observationgeometry.XResolution = 840
 observationgeometry.YResolution = 120
 
@@ -191,7 +194,7 @@ pOP2 = ProbeLocation(
 )
 
 # init the 'Fixed Radius Point Source' selected for 'ProbeType'
-pOP2.ProbeType.Center = [5100.0, 50.0, 1100.0]
+pOP2.ProbeType.Center = [5100.0, 2.0, 1100.0]
 
 # create a new 'Plot Data Over Time'
 pressureovertime = PlotDataOverTime(registrationName="pressure over time", Input=pOP2)
@@ -199,9 +202,9 @@ pressureovertime.OnlyReportSelectionStatistics = 0
 
 # create a new 'Plane'
 boxAgeometry = Plane(registrationName="Box A geometry")
-boxAgeometry.Origin = [3300.0, 50.0, 0.0]
-boxAgeometry.Point1 = [8300.0, 50.0, 0.0]
-boxAgeometry.Point2 = [3300.0, 50.0, 600.0]
+boxAgeometry.Origin = [3300.0, 2.0, 0.0]
+boxAgeometry.Point1 = [8300.0, 2.0, 0.0]
+boxAgeometry.Point2 = [3300.0, 2.0, 600.0]
 boxAgeometry.XResolution = 1000
 boxAgeometry.YResolution = 120
 
@@ -239,7 +242,7 @@ pOP1 = ProbeLocation(
 )
 
 # init the 'Fixed Radius Point Source' selected for 'ProbeType'
-pOP1.ProbeType.Center = [4500.0, 50.0, 500.0]
+pOP1.ProbeType.Center = [4500.0, 2.0, 500.0]
 
 # create a new 'Plot Data Over Time'
 pressureovertime_1 = PlotDataOverTime(registrationName="pressure over time", Input=pOP1)

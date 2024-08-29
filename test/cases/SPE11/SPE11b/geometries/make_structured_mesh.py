@@ -6,6 +6,7 @@ Generate a structured mesh in gmsh file format version 2 (.msh) for one of the S
 This script is to be executed from the same folder that contains the .geo files of the variants.
 """
 # python make_structured_mesh.py --variant B -nx 300 -ny 100
+# python make_structured_mesh.py --variant B -nx 450 -ny 150
 from __future__ import annotations
 
 import os
