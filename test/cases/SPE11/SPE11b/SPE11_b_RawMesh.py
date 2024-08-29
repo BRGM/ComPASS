@@ -457,7 +457,7 @@ simu_time = simulation.standard_loop(
     dumper=dumper,
 )
 
-simulation.postprocess(time_unit="second")
+# simulation.postprocess(time_unit="second")
 
 
 """ Set Dirichlet nodes at xmin and xmax boundaries with initial states """
@@ -500,7 +500,7 @@ simu_time = simulation.standard_loop(
     newton=newton,
     dumper=dumper,
 )
-simulation.postprocess()
+# simulation.postprocess(time_unit="second")
 # export also the densities...
 export_states(ComPASS.to_output_directory("states_1025yr"))
 
@@ -519,7 +519,7 @@ simu_time = simulation.standard_loop(
     newton=newton,
     dumper=dumper,
 )
-simulation.postprocess()
+# simulation.postprocess(time_unit="second")
 # export also the densities...
 export_states(ComPASS.to_output_directory("states_1050yr"))
 
@@ -537,6 +537,6 @@ simu_time = simulation.standard_loop(
     dumper=dumper,
     # nitermax=20,
 )
-simulation.postprocess()
+# simulation.postprocess(time_unit="second")
 # export also the densities...
 export_states(ComPASS.to_output_directory("states_2000yr"))

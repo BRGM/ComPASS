@@ -34,6 +34,9 @@ class DumperSPE11(Dumper):
             phases = ["fluid"]
         components = simulation.components()
         for location, states in states_locations:
+            # do not store cell states to save memory
+            if location == "cell":
+                continue
             result[f"{location} context"] = states.context
             result[f"{location} pressure"] = states.p
             result[f"{location} temperature"] = states.T
@@ -75,12 +78,18 @@ class DumperSPE11(Dumper):
         if dump_fluxes:
             mass_fluxes_locations = simulation.mass_fluxes_locations()
             for location, fluxes in mass_fluxes_locations:
+                # do not store cell states to save memory
+                if location == "cell":
+                    continue
                 result[f"{location} total mass flux"] = fluxes.sum(axis=1)
                 if len(components) > 1:
                     for ci, comp in enumerate(components):
                         result[f"{location} {comp} mass flux"] = fluxes[:, ci, :]
             enthalpy_fluxes_locations = simulation.enthalpy_fluxes_locations()
             for location, fluxes in enthalpy_fluxes_locations:
+                # do not store cell states to save memory
+                if location == "cell":
+                    continue
                 result[f"{location} enthalpy flux"] = fluxes
             for mf, hf in zip(mass_fluxes_locations, enthalpy_fluxes_locations):
                 location, mfluxes = mf
@@ -89,6 +98,9 @@ class DumperSPE11(Dumper):
                 h = np.linalg.norm(hfluxes, axis=1) / np.linalg.norm(
                     mfluxes.sum(axis=1), axis=1
                 )
+                # do not store cell states to save memory
+                if location == "cell":
+                    continue
                 result[f"{location} flowing enthalpy"] = h
         np.savez(self.states_filename(mpi.proc_rank, tag), **result)
         dw.dump_all_wells(simulation, self.to_wells_directory(), tag)
