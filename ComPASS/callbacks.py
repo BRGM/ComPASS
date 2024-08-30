@@ -113,7 +113,7 @@ class TimeloopLogCallback:
         self.attempts = [{}]
         self.newton = newton
         self.process = psutil.Process()
-        os.makedirs(to_output_directory("time_step_log"), exist_ok=True)
+        # os.makedirs(to_output_directory("time_step_log"), exist_ok=True)
         with open(to_output_directory("timeloop_log.yaml"), "w") as f:
             pass  # Clearing the file if it already exists
 
@@ -122,11 +122,11 @@ class TimeloopLogCallback:
         timestep_dict = {"time": tick.time - tick.latest_timestep}
         newton_it = []
         lsolver_it_attempt = []
-        ts_log_filename = to_output_directory(
-            f"time_step_log/time_step_{tick.iteration}_log.yaml"
-        )
-        with open(ts_log_filename, "w") as f:
-            pass
+        # ts_log_filename = to_output_directory(
+        #     f"time_step_log/time_step_{tick.iteration}_log.yaml"
+        # )
+        # with open(ts_log_filename, "w") as f:
+        #     pass
         for i, attempt_dict in enumerate(self.attempts):
             newton_it.append(len(attempt_dict) - 2)
             lsolver_it = []
@@ -134,14 +134,14 @@ class TimeloopLogCallback:
                 ni += 1
                 lsolver_it.append(attempt_dict[f"newton {ni}"]["linear_iterations"])
             lsolver_it_attempt.append(lsolver_it)
-            if mpi.is_on_master_proc:
-                with open(ts_log_filename, "a") as f:
-                    yaml.safe_dump(
-                        {f"attempt {i+1}": attempt_dict},
-                        f,
-                        default_flow_style=False,
-                        sort_keys=False,
-                    )
+            # if mpi.is_on_master_proc:
+            #     with open(ts_log_filename, "a") as f:
+            #         yaml.safe_dump(
+            #             {f"attempt {i+1}": attempt_dict},
+            #             f,
+            #             default_flow_style=False,
+            #             sort_keys=False,
+            #         )
         now = time.time()
         rss = self.process.memory_info().rss / 1024**2
         timestep_dict.update(
