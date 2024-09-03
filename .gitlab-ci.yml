@@ -222,7 +222,6 @@ more sanity tests:
         unit/display_model_elements.py \
         unit/one_wedge_cell_with_well.py \
         unit/check_well_information.py \
-        unit/display_model_elements.py \
         unit/test_diphasic_equilibrium.py \
         unit/test_dump_residuals.py \
         unit/phase_pressure_absent_phase.py \
