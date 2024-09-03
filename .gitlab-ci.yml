@@ -1,5 +1,5 @@
 variables:
-  COMPASS_SDK: 0.3.1
+  COMPASS_SDK: 0.3.2
   # We assume that it is fine to run mpi as root in a docker container
   OMPI_ALLOW_RUN_AS_ROOT: 1
   OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
@@ -228,6 +228,7 @@ more sanity tests:
         unit/two_cells_time_step_manager.py \
         unit/two_cells_fracture_zero.py \
         unit/two_cells_boundary_faces.py \
+        unit/test_vtk2RawMesh.py \
         unit/salome/test_standalone.py \
         unit/salome/test_with_compass.py \
         unit/chair_well.py \

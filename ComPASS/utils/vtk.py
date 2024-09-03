@@ -18,6 +18,7 @@ def vtk2RawMesh(
         nb_cells = len(c_nodes)
         # tetrahedral cells
         if vtktype == "tet" or vtktype == "tetra":
+            n_Kfaces = 4
             c_types = np.full((nb_cells,), 10, dtype=int)
             cells_types.extend(c_types)
             cells_nodes.extend(c_nodes)
@@ -26,10 +27,12 @@ def vtk2RawMesh(
                 faces_nodes.append([nodes[0], nodes[1], nodes[3]])
                 faces_nodes.append([nodes[1], nodes[2], nodes[3]])
                 faces_nodes.append([nodes[2], nodes[0], nodes[3]])
-                cells_faces.append(np.arange(fi, fi + 4))
-                fi += 4
+                cells_faces.append(np.arange(fi, fi + n_Kfaces))
+                fi += n_Kfaces
 
+        # voxel is a regular hexahedron (not the same nodes numbering)
         elif vtktype == "voxel":
+            n_Kfaces = 6
             c_types = np.full((nb_cells,), 11, dtype=int)
             cells_types.extend(c_types)
             cells_nodes.extend(c_nodes)
@@ -40,11 +43,28 @@ def vtk2RawMesh(
                 faces_nodes.append([nodes[1], nodes[3], nodes[7], nodes[5]])
                 faces_nodes.append([nodes[3], nodes[2], nodes[6], nodes[7]])
                 faces_nodes.append([nodes[2], nodes[0], nodes[4], nodes[6]])
-                cells_faces.append(np.arange(fi, fi + 6))
-                fi += 6
+                cells_faces.append(np.arange(fi, fi + n_Kfaces))
+                fi += n_Kfaces
+
+        # hexahedron cells
+        elif vtktype == "hexahedron":
+            n_Kfaces = 6
+            c_types = np.full((nb_cells,), 12, dtype=int)
+            cells_types.extend(c_types)
+            cells_nodes.extend(c_nodes)
+            for nodes in c_nodes:
+                faces_nodes.append(nodes[:4])
+                faces_nodes.append(nodes[4:])
+                faces_nodes.append([nodes[0], nodes[1], nodes[5], nodes[4]])
+                faces_nodes.append([nodes[3], nodes[2], nodes[6], nodes[7]])
+                faces_nodes.append([nodes[0], nodes[3], nodes[7], nodes[4]])
+                faces_nodes.append([nodes[1], nodes[2], nodes[6], nodes[5]])
+                cells_faces.append(np.arange(fi, fi + n_Kfaces))
+                fi += n_Kfaces
 
         # wedge cells
         elif vtktype == "wedge":
+            n_Kfaces = 5
             c_types = np.full((nb_cells,), 13, dtype=int)
             cells_types.extend(c_types)
             cells_nodes.extend(c_nodes)
@@ -54,11 +74,12 @@ def vtk2RawMesh(
                 faces_nodes.append([nodes[0], nodes[1], nodes[4], nodes[3]])
                 faces_nodes.append([nodes[0], nodes[3], nodes[5], nodes[2]])
                 faces_nodes.append([nodes[1], nodes[4], nodes[5], nodes[2]])
-                cells_faces.append(np.arange(fi, fi + 5))
-                fi += 5
+                cells_faces.append(np.arange(fi, fi + n_Kfaces))
+                fi += n_Kfaces
 
         # check the pyramid keyword !
         elif vtktype == "pyramid":
+            n_Kfaces = 5
             c_types = np.full((nb_cells,), 14, dtype=int)
             cells_types.extend(c_types)
             cells_nodes.extend(c_nodes)
@@ -68,11 +89,11 @@ def vtk2RawMesh(
                 faces_nodes.append([nodes[1], nodes[2], nodes[4]])
                 faces_nodes.append([nodes[2], nodes[3], nodes[4]])
                 faces_nodes.append([nodes[3], nodes[0], nodes[4]])
-                cells_faces.append(np.arange(fi, fi + 5))
-                fi += 5
+                cells_faces.append(np.arange(fi, fi + n_Kfaces))
+                fi += n_Kfaces
 
         else:
-            error("cell type not recognized in vtk2RawMesh")
+            error(f"cell type {vtktype} not recognized in vtk2RawMesh")
 
     # get mesh data
     # cell data
@@ -84,6 +105,8 @@ def vtk2RawMesh(
             if data_celltype == "tet" or data_celltype == "tetra":
                 cells_data.extend(data)
             elif data_celltype == "voxel":
+                cells_data.extend(data)
+            elif data_celltype == "hexahedron":
                 cells_data.extend(data)
             elif data_celltype == "wedge":
                 cells_data.extend(data)
