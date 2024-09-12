@@ -13,7 +13,7 @@ The minimal use is to specify:
 
 * *model* with the model and the physics,
 
-* *scheme* with the numerical scheme,
+* *scheme* with the numerical scheme definition,
 
 * *data* with the petrophysics, the boundary conditions, the initial states...
 
@@ -32,7 +32,7 @@ It is convenient to also specify:
    time_loop = Standard_time_loop(
       geom=geom,
       model=model,
-      scheme=scheme,
+      scheme=scheme_def,
       data=data,
       output_dir=visu_dir,
       verbosity=3,

@@ -28,7 +28,7 @@ on the `Standard_time_loop` function from the `compass-coats` module.
         time_loop = Standard_time_loop(
             geom=geom,
             model=model,
-            scheme=scheme,
+            scheme=scheme_def,
             data=data,
         )
         time_loop.run(
@@ -72,7 +72,7 @@ with a few lines of codes:
         time_loop = Standard_time_loop(
             geom=geom,
             model=model,
-            scheme=scheme,
+            scheme=scheme_def,
             data=data,
         )
 

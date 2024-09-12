@@ -25,7 +25,7 @@ Script is in `test_diphasic_Dirichlet.py. <https://gitlab.com/compass/compass-v5
   .. code-block:: python
 
     from compass_coats.schemes import TPFA, VAG
-    scheme = TPFA()  # or VAG()
+    scheme_def = TPFA()  # or VAG()
 
 * Loading a model from one of the :ref:`available physics <Load the physics>`, e.g.:
 
@@ -85,7 +85,7 @@ Script is in `test_diphasic_Dirichlet.py. <https://gitlab.com/compass/compass-v5
     time_loop = Standard_time_loop(
         geom=geom,
         model=model,
-        scheme=scheme,
+        scheme=scheme_def,
         data=data,
         output_dir=visu_dir,
     )

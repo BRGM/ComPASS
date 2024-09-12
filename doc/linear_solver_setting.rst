@@ -29,7 +29,7 @@ It is possible:
         time_loop = Standard_time_loop(
             geom=geom,
             model=model,
-            scheme=scheme,
+            scheme=scheme_def,
             data=data,
             output_dir=visu_dir,
             direct_solver=True,
@@ -44,7 +44,7 @@ It is possible:
         time_loop = Standard_time_loop(
             geom=geom,
             model=model,
-            scheme=scheme,
+            scheme=scheme_def,
             data=data,
             output_dir=visu_dir,
             solver=EigenSolver(),

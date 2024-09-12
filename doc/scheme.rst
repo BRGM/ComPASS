@@ -16,7 +16,7 @@ It is a scheme widly used (for example in Though).
 .. code-block:: python
 
     from compass_coats.schemes import TPFA
-    scheme = TPFA()
+    scheme_def = TPFA()
 
 
 Careful, the simulation must respect the K-orthogonality.
@@ -33,7 +33,7 @@ much more cells than nodes.
 .. code-block:: python
 
     from compass_coats.schemes import VAG
-    scheme = VAG()
+    scheme_def = VAG()
 
 Impact on the script
 --------------------
