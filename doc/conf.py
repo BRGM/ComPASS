@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "ComPASS"
-copyright = "2013-2019, various contributors"
+copyright = "2013-2024, various contributors"
 author = "various contributors"
 
 
@@ -56,7 +56,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "recommonmark",  # for MarkDown
     "sphinx_revealjs",
-    "sphinxcontrib.tikz",  # tikz pictures
+    # "sphinxcontrib.tikz",  # tikz pictures, error with revealjs
     "scope",  #  to use meta and scope directive (skip file sometimes)
 ]
 
@@ -71,6 +71,8 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "revealjs",
+    "training/revealjs",
+    "training/conf.py",
     "training/test",
     "training/meshes",
     "README.txt",
@@ -96,15 +98,15 @@ revealjs_script_conf = {
 revealjs_script_plugins = [
     {
         "name": "RevealNotes",
-        "src": "revealjs4/plugin/notes/notes.js",
+        "src": "revealjs/plugin/notes/notes.js",
     },
     {
         "name": "RevealHighlight",
-        "src": "revealjs4/plugin/highlight/highlight.js",
+        "src": "revealjs/plugin/highlight/highlight.js",
     },
 ]
 revealjs_css_files = [
-    "revealjs4/plugin/highlight/zenburn.css",
+    "revealjs/plugin/highlight/zenburn.css",
 ]
 
 # Grouping the document tree into LaTeX files. List of tuples
