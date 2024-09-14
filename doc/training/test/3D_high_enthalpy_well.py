@@ -1,4 +1,4 @@
-# Documentation : https://charms.gitlabpages.inria.fr/ComPASS/
+# Documentation : https://compass.gitlab.io/v4/doc/
 
 import itertools
 import numpy as np

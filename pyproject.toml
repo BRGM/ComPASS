@@ -13,7 +13,7 @@ dependencies = [
 dynamic = ["version"]
 name = "ComPASS"
 urls.git = "https://gitlab.com/compass/compass-v4/compass"
-urls.documentation = "https://charms.gitlabpages.inria.fr/ComPASS/"
+urls.documentation = "https://compass.gitlabpages.inria.fr/v4/ComPASS/"
 maintainers = [
   { name = "BRGM", email="compass@brgm.fr"},
   { name = "INRIA", email="roland.masson@inria.fr" }

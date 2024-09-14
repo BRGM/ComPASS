@@ -95,7 +95,7 @@ def store_T(iteration, time):
     T.append((time, K2degC(simulation.cell_states().T)))
 
 
-# https://charms.gitlabpages.inria.fr/ComPASS/python_reference/ComPASS.html#ComPASS.timestep_management.TimeStepManager
+# https://compass.gitlabpages.inria.fr/v4/ComPASS/python_reference/ComPASS.html#ComPASS.timestep_management.TimeStepManager
 ts = TimeStepManager(initial_timestep=1 * hour, maximum_timestep=0.2 * output_period)
 
 # Construct the linear solver and newton objects outside the time loop

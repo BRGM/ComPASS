@@ -1,4 +1,4 @@
-# Documentation : https://charms.gitlabpages.inria.fr/ComPASS/
+# Documentation : https://compass.gitlab.io/v4/doc/
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
