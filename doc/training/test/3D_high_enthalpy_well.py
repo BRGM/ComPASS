@@ -57,12 +57,12 @@ simulation.init(
 X0 = simulation.build_state(simulation.Context.liquid, p=ptop, T=Ttop)
 simulation.all_states().set(X0)
 x, y, z = simulation.vertices().T
-simulation.reset_dirichlet_nodes(
-    (np.abs(x) > L / 2 - epsilon) | (np.abs(y) > L / 2 - epsilon)
-)
+# set Dirichlet with the initialized states
+simulation.reset_dirichlet_nodes(np.abs(z - H / 2) < epsilon)
 
+# run the time loop with specific_outputs
 outputs = np.logspace(np.log10(60), np.log10(5 * day))
-outputs = [float(x) for x in outputs]  # bug workaround
+outputs = [float(x) for x in outputs]  # outputs must be float
 simulation.standard_loop(
     initial_time=0,
     initial_timestep=30,
@@ -70,4 +70,4 @@ simulation.standard_loop(
     final_time=5 * day,
 )
 
-simulation.postprocess()
+simulation.postprocess(time_unit="day")

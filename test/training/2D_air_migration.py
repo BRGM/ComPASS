@@ -16,6 +16,7 @@ ptop = 1 * bar
 T0 = degC2K(20)
 gravity = 10.0
 seed = 1234  # change this to generate your own mesh !
+rho_water = 1000.0  # water density approximation at 1 bar, 20°C
 
 # -------------------------------------------------------------------
 # Reservoir petrophysics
@@ -88,7 +89,7 @@ def tag_fracture_faces():
 
 
 def matrix_permeability():
-    # set the overburden permeability
+    # set the permeabilities with the overburden
     cell_centers = simulation.compute_global_cell_centers()
     zc = cell_centers[:, 2]
     nc = cell_centers.shape[0]
@@ -113,14 +114,11 @@ simulation.init(
 # Initialize the domain with liquid phase
 
 Xl = simulation.build_state(simulation.Context.diphasic, p=ptop, T=T0, Sg=0)
-Xg = simulation.build_state(simulation.Context.diphasic, p=ptop, T=T0, Sg=1)
-
-rho = 1000.0  # water density approximation at 1 bar, 20°C
-
 all_states = simulation.all_states()
-all_states.set(Xl)
+all_states.set(Xl)  # set Xl everywhere
+# modify the pressure to impose hydrostatic pressure
 z = simulation.all_positions()[:, 2]
-all_states.p[:] = ptop - rho * gravity * z
+all_states.p[:] = ptop - rho_water * gravity * z
 
 # -------------------------------------------------------------------
 # Identify and set the Dirichlet nodes
@@ -138,15 +136,35 @@ lsolver = linear_solver(simulation, direct=True)
 newton = Newton(simulation, 1e-5, 8, lsolver)
 
 # -------------------------------------------------------------------
+# save the state of one node
+node_id = 250
+the_node_states = []
+
+
+def save_states(tick):
+    the_node_states.append([tick.time, simulation.node_states()[node_id]])
+
+
+# -------------------------------------------------------------------
 # Execute the time loop with solver parameters
 simulation.standard_loop(
     initial_timestep=day,
     final_time=2 * year,
     output_period=10 * day,
     newton=newton,
+    iteration_callbacks=[save_states],
 )
 
 
 # -------------------------------------------------------------------
+# save the node state into a file
+if len(the_node_states) > 0:
+    filename = simulation.runtime.to_output_directory("the_node_states.yaml")
+    with open(filename, "w") as f:
+        for time, states in the_node_states:
+            f.write(f"time (in year): {time/year}, node_states: {states}\n")
+
+
+# -------------------------------------------------------------------
 # Some postprocesses, it allows to visualize with Paraview
-simulation.postprocess()
+simulation.postprocess(time_unit="day")

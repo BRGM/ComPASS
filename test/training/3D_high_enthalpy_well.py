@@ -145,4 +145,4 @@ simulation.standard_loop(
     final_time=100 * day,
 )
 
-simulation.postprocess()
+simulation.postprocess(time_unit="day")

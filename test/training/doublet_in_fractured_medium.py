@@ -25,7 +25,7 @@ simulation = ComPASS.load_physics("water2ph")
 
 
 # -------------------------------------------------------------------
-# Import a very coarse mesh created with Salome
+# Import a coarse mesh created with Salome
 sw = SalomeWrapper(
     simulation,
     nodes_file="NODES.txt",
@@ -37,12 +37,12 @@ sw = SalomeWrapper(
 # -------------------------------------------------------------------
 # If necessary you can write the mesh importation (matrix and faces blocks)
 # to visualize it
-# sw.info.to_vtu_block("salome-block")
-# sw.info.faces_to_multiblock("salome-faults")
+# sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+# sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 
 # -------------------------------------------------------------------
-# Create the two wells using the list of there ordered nodes
+# Create the two wells using the list of their ordered nodes
 injector_id = 0  # you chose the id you want
 producer_id = 1  # you chose the id you want
 Qm = 200.0 * ton / hour  # flowrate
@@ -88,7 +88,7 @@ simulation.init(
 
 # -------------------------------------------------------------------
 # Initialize the domain with the last states saved in snapshot_directory
-snapshot_directory = "output-init_reservoir_in_fractured_medium"
+snapshot_directory = "output-init_fractured_reservoir"
 simulation.reload_snapshot(snapshot_directory)
 
 # -------------------------------------------------------------------
@@ -117,9 +117,8 @@ def chain_wells(tick):
     for source, target in doublet:
         injector_data = simulation.get_well_data(target)
         producer_wellhead = simulation.well_connections[source]
-        molar_flowrate = producer_wellhead.molar_flowrate[
-            0
-        ]  # "0" because there is a single component
+        # "0" because there is a single component
+        molar_flowrate = producer_wellhead.molar_flowrate[0]
         assert (
             molar_flowrate >= 0
         ), f"source well {source} with flowrate {molar_flowrate} should be a producer"

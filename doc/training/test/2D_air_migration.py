@@ -16,6 +16,7 @@ ptop = 1 * bar
 T0 = degC2K(20)
 gravity = 10.0
 seed = 1234  # change this to generate your own mesh !
+rho_water = 1000.0  # water density approximation at 1 bar, 20°C
 
 # -------------------------------------------------------------------
 # Reservoir petrophysics
@@ -33,7 +34,6 @@ ComPASS.set_output_directory_and_logfile(__file__)
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("immiscible2ph")
 simulation.set_gravity(gravity)
-
 
 # -------------------------------------------------------------------
 # Create a Cartesian grid with cubic cells
@@ -88,7 +88,7 @@ def tag_fracture_faces():
 
 
 def matrix_permeability():
-    # set the overburden permeability
+    # set the permeabilities with the overburden
     return something
 
 
@@ -108,14 +108,11 @@ simulation.init(
 # Initialize the domain with liquid phase
 
 Xl = simulation.build_state(simulation.Context.diphasic, p=ptop, T=T0, Sg=0)
-Xg = simulation.build_state(simulation.Context.diphasic, p=ptop, T=T0, Sg=1)
-
-rho = 1000.0  # water density approximation at 1 bar, 20°C
-
 all_states = simulation.all_states()
-all_states.set(Xl)
+all_states.set(Xl)  # set Xl everywhere
+# modify the pressure to impose hydrostatic pressure
 z = simulation.all_positions()[:, 2]
-all_states.p[:] = ptop - rho * gravity * z
+all_states.p[:] = ptop - rho_water * gravity * z
 
 # -------------------------------------------------------------------
 # Identify and set the Dirichlet nodes
@@ -139,7 +136,6 @@ simulation.standard_loop(
     newton=newton,
 )
 
-
 # -------------------------------------------------------------------
 # Some postprocesses, it allows to visualize with Paraview
-simulation.postprocess()
+simulation.postprocess(time_unit="day")

@@ -171,14 +171,14 @@ time training scripts:
     - cd doc/training/test
     - rm doublet_in_fractured_medium.py  # contains holes (does not execute)
     - rm 2D_air_migration.py  # contains holes (does not execute)
-    - rm init_reservoir_in_fractured_medium.py  # contains holes (does not execute)
+    - rm init_fractured_reservoir.py  # contains holes (does not execute)
     - python ../../../test/utilities/pool.py .  # starting scripts
     - cd ../../../test/training
     - cp ../../doc/training/test/NODES.txt .  # copy the mesh
     - cp ../../doc/training/test/TETRAS.txt .
     - cp ../../doc/training/test/GROUPS.py .
-    - python init_reservoir_in_fractured_medium.py  # must execute init before doublet to reload snapshot
-    - rm init_reservoir_in_fractured_medium.py # must not be relaunched in pool context
+    - python init_fractured_reservoir.py  # must execute init before doublet to reload snapshot
+    - rm init_fractured_reservoir.py # must not be relaunched in pool context
     - python ../utilities/pool.py .  # final scripts
 
 linalg:

@@ -25,14 +25,14 @@ simulation = ComPASS.load_physics("water2ph")
 
 
 # -------------------------------------------------------------------
-# Import a very coarse mesh created with Salome
+# Import a coarse mesh created with Salome
 
 
 # -------------------------------------------------------------------
 # If necessary you can write the mesh importation (matrix and faces blocks)
 # to visualize it
-# sw.info.to_vtu_block("salome-block")
-# sw.info.faces_to_multiblock("salome-faults")
+# sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+# sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 # -------------------------------------------------------------------
 # Fracture factory

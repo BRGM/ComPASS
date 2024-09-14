@@ -67,15 +67,20 @@ You will find two examples in the :ref:`example scripts section<classical_double
 Setting well history
 --------------------
 
-You can set well transients using the
-`simulation.well_production_history` and `simulation.well_injection_history`
-functions. You will find two examples in the :ref:`example scripts section<setting_well_transients>`.
+You can close a well using `simulation.close_well(wid)` **after** `simulation.init`.
+Then it is possible te reopen it with `simulation.open_well(wid)`.
+You can modify the well property using `simulation.set_well_property(wid, imposed_flowrate=Qm)`
+(in the case of an injector well).
 
 .. warning::
     For the time being, closed wells are discarded during simulation setup.
     `simulation.init` will issue a warning not to distribute closed wells,
     but it's possible to close a well after `simulation.init` to start the simulation
     with a closed well.
+
+You can also set well transients using the
+`simulation.well_production_history` and `simulation.well_injection_history`
+functions. You will find two examples in the :ref:`example scripts section<setting_well_transients>`.
 
 
 Monitoring well state

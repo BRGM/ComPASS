@@ -17,6 +17,7 @@ nb_fractures = 20
 ptop = 1 * bar
 T0 = degC2K(20)
 gravity = 10.0
+seed = 1234  # change this to generate your own mesh !
 rho_water = 1000.0  # water density approximation at 1 bar, 20°C
 
 # -------------------------------------------------------------------
@@ -98,7 +99,7 @@ def tag_fracture_faces():
         (nx + 1, nz + 1),
         (dx, dz),
         max(nx, nz) // 2,
-        seed=1234,
+        seed=seed,
     )
     # keep x, z center coordinates
     points = face_centers[interior_faces][:, (0, 2)]
@@ -134,13 +135,15 @@ simulation.init(
 # -------------------------------------------------------------------
 # Initialize the domain with liquid phase
 
-
 Xl = simulation.build_state(simulation.Context.diphasic, p=ptop, T=T0, Sg=0)
 all_states = simulation.all_states()
-all_states.set(Xl)
+all_states.set(Xl)  # set Xl everywhere
+# modify the pressure to impose hydrostatic pressure
 z = simulation.all_positions()[:, 2]
 all_states.p[:] = ptop - rho_water * gravity * z
 
+# -------------------------------------------------------------------
+# Identify and set the Dirichlet nodes
 dirichlet = simulation.dirichlet_node_states()
 z = simulation.vertices()[:, 2]
 dirichlet.set(Xl)
@@ -162,7 +165,7 @@ newton = Newton(simulation, 1e-5, 8, lsolver)
 # -------------------------------------------------------------------
 # Execute the time loop with solver parameters
 simulation.standard_loop(
-    initial_timestep=hour,
+    initial_timestep=day,
     final_time=5 * year,
     output_period=0.1 * year,
     newton=newton,
