@@ -33,12 +33,17 @@ epsilon = 1e-3
 # fmt: on
 
 # -- Mesh generation --------------------------------------
-mesh = ComPASS.Grid(
-    shape=(2 * nc, 2 * nc, 2 * nv),
-    extent=(L, L, H),
-    origin=(-L / 2, -L / 2, -H / 2),
-)
-
+assert nc > 0
+assert nv > 0
+x = (L / (2 * nc)) * np.arange(-nc, nc + 1)
+vertices = np.array(list(itertools.product(x, x, (-H / 2,))), dtype="d")
+cells = np.array([1, 0, 2 * nc + 1, 2 * nc + 2])  # one cell
+cells = np.vstack([cells + k for k in range(2 * nc)])  # one column along Oy
+cells = np.vstack([cells + k * (2 * nc + 1) for k in range(2 * nc)])  # all cells
+# layers ticknesses
+thicknesses = np.tile(H / (2 * nv), 2 * nv)
+vertices, cells = axis_extrusion(vertices, cells, offsets=thicknesses)
+mesh = HexMesh.make(vertices, cells)
 
 # -- Setup simulation --------------------------------------
 

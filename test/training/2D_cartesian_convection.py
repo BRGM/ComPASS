@@ -2,7 +2,6 @@
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
-from ComPASS.utils.grid import on_zmin, on_zmax
 
 #  |------------------------------------|
 #  |            Overburden              |
@@ -54,9 +53,13 @@ grid = ComPASS.Grid(
 
 # -------------------------------------------------------------------
 # Identify the Dirichlet nodes
+ztop = 0
+zbot = -total_depth
+
+
 def dirichlet_boundaries_function():
-    pts = simulation.global_vertices()
-    return on_zmax(grid)(pts) | on_zmin(grid)(pts)
+    z_nodes = simulation.global_vertices()[:, 2]
+    return (z_nodes >= ztop) | (z_nodes <= zbot)
 
 
 # -------------------------------------------------------------------
@@ -115,9 +118,18 @@ set_linear_gradients_state(
 
 # -------------------------------------------------------------------
 # Set the Dirichlet boundary condition values
+Xtop = simulation.build_state(
+    simulation.Context.liquid, p=top_pressure, T=top_temperature
+)
+# can use X0, same state
+Xbottom = simulation.build_state(
+    simulation.Context.liquid, p=bottom_pressure, T=bottom_temperature
+)
+
 dirichlet = simulation.dirichlet_node_states()
-dirichlet.set(X0)
-set_linear_gradients_state(dirichlet, z_top - simulation.vertices()[:, 2])
+z_nodes = simulation.vertices()[:, 2]
+dirichlet.set(z_nodes >= ztop, Xtop)
+dirichlet.set(z_nodes <= zbot, Xbottom)
 
 # -------------------------------------------------------------------
 # Construct the linear solver and newton objects outside the time loop
