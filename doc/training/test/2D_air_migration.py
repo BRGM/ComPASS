@@ -1,8 +1,8 @@
 # Documentation : https://compass.gitlab.io/v4/doc/
+
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
-from ComPASS.utils.grid import on_zmin, on_zmax
 from ComPASS.messages import warning
 
 from fracture_factory import AASFractureNetwork
@@ -34,6 +34,7 @@ ComPASS.set_output_directory_and_logfile(__file__)
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("immiscible2ph")
 simulation.set_gravity(gravity)
+
 
 # -------------------------------------------------------------------
 # Create a Cartesian grid with cubic cells

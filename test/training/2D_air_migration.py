@@ -1,8 +1,8 @@
 # Documentation : https://compass.gitlab.io/v4/doc/
+
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
-from ComPASS.utils.grid import on_zmin, on_zmax
 from ComPASS.messages import warning
 
 from fracture_factory import AASFractureNetwork
@@ -34,7 +34,6 @@ ComPASS.set_output_directory_and_logfile(__file__)
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("immiscible2ph")
 simulation.set_gravity(gravity)
-
 
 # -------------------------------------------------------------------
 # Create a Cartesian grid with cubic cells
@@ -123,7 +122,7 @@ all_states.p[:] = ptop - rho_water * gravity * z
 # -------------------------------------------------------------------
 # Identify and set the Dirichlet nodes
 pts = simulation.vertices()
-simulation.reset_dirichlet_nodes(on_zmax(grid)(pts) | on_zmin(grid)(pts))
+simulation.reset_dirichlet_nodes((pts[:, 2] >= 0.0) | (pts[:, 2] <= -depth))
 
 # -------------------------------------------------------------------
 # Construct the linear solver and newton objects outside the time loop

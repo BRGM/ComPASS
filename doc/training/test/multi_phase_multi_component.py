@@ -1,4 +1,5 @@
 # Documentation : https://compass.gitlab.io/v4/doc/
+
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *
@@ -113,7 +114,7 @@ run_loop = lambda initial_time=0, final_time=1000 * year, nb_output=10, nitermax
     newton=newton,
 )
 
-# execute first time loop without Neumann flux
+# execute first time loop without Neumann flux (reservoir init)
 current_time = run_loop(
     final_time=1 * year,
     nb_output=4,

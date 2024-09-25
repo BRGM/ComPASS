@@ -135,7 +135,6 @@ simulation.reset_dirichlet_nodes(
 )
 
 simulation.open_well(wid)
-simulation.set_well_property(wid, imposed_flowrate=Qm)
 
 simulation.standard_loop(
     initial_time=0,

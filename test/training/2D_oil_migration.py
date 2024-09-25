@@ -3,7 +3,6 @@
 import numpy as np
 import ComPASS
 from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
-from ComPASS.utils.grid import on_zmin, on_zmax
 from ComPASS.messages import warning
 from ComPASS.properties.utils import constant_physical_property
 
@@ -67,13 +66,6 @@ grid = ComPASS.Grid(
 )
 
 # -------------------------------------------------------------------
-# Identify the Dirichlet nodes
-def dirichlet_boundaries_function():
-    pts = simulation.global_vertices()
-    return on_zmax(grid)(pts) | on_zmin(grid)(pts)
-
-
-# -------------------------------------------------------------------
 # Initialize the fracture network setting returning true
 # for face centers that are fracture faces
 def tag_fracture_faces():
@@ -111,6 +103,7 @@ def tag_fracture_faces():
 
 
 def matrix_permeability():
+    # set the permeabilities with the overburden
     cell_centers = simulation.compute_global_cell_centers()
     zc = cell_centers[:, 2]
     nc = cell_centers.shape[0]
@@ -121,7 +114,6 @@ def matrix_permeability():
 
 simulation.init(
     mesh=grid,
-    set_dirichlet_nodes=dirichlet_boundaries_function,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
     cell_permeability=matrix_permeability,
@@ -144,13 +136,17 @@ all_states.p[:] = ptop - rho_water * gravity * z
 
 # -------------------------------------------------------------------
 # Identify and set the Dirichlet nodes
+pts = simulation.vertices()
+simulation.reset_dirichlet_nodes((pts[:, 2] >= 0.0) | (pts[:, 2] <= -depth))
 dirichlet = simulation.dirichlet_node_states()
-z = simulation.vertices()[:, 2]
-dirichlet.set(Xl)
+# modify the bottom value to impose gas phase
 Xg = simulation.build_state(
-    simulation.Context.diphasic, p=ptop - rho_water * gravity * depth, T=T0, Sg=1
+    simulation.Context.diphasic,
+    p=ptop - rho_water * gravity * depth,
+    T=T0,
+    Sg=1,
 )
-dirichlet.set(z <= -depth, Xg)
+dirichlet.set(pts[:, 2] <= -depth, Xg)
 
 # -------------------------------------------------------------------
 # Construct the linear solver and newton objects outside the time loop
@@ -174,4 +170,4 @@ simulation.standard_loop(
 
 # -------------------------------------------------------------------
 # Some postprocesses, it allows to visualize with Paraview
-simulation.postprocess()
+simulation.postprocess(time_unit="day")
