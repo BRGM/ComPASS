@@ -71,6 +71,8 @@ simulation.init(
     fracture_thermal_conductivity=K,
     set_global_flags=sw.flags_setter,
 )
+# rebuild local salome mesh info
+sw.rebuild_locally()
 
 
 # -------------------------------------------------------------------
@@ -78,12 +80,16 @@ simulation.init(
 
 # -------------------------------------------------------------------
 # Identify the Dirichlet nodes (all vertical walls)
-sw.rebuild_locally()
 dirichlet_nodes = np.zeros(sw.mesh.nb_vertices, dtype=bool)
-dirichlet_nodes[sw.info.east.nodes] = True
-dirichlet_nodes[sw.info.north.nodes] = True
-dirichlet_nodes[sw.info.west.nodes] = True
-dirichlet_nodes[sw.info.south.nodes] = True
+for bound in [
+    sw.info.east.nodes,
+    sw.info.north.nodes,
+    sw.info.west.nodes,
+    sw.info.south.nodes,
+]:
+    # depending on the distribution, boundary nodes can be empty
+    if bound is not None:
+        dirichlet_nodes[bound] = True
 
 # the Dirichlet node states are copied from the actual states values
 simulation.reset_dirichlet_nodes(dirichlet_nodes)

@@ -14,6 +14,9 @@ K = 2.0  # bulk thermal conductivity in W/m/K (same in fracture)
 # Fracture
 k_fracture = 1e-10  # fracture permeability in m^2
 omega_fracture = 0.3  # fracture porosity
+# mesh boundaries
+xmin, ymin, zmin = 0.0, 0.0, 0.0
+xmax, ymax, zmax = 500.0, 500.0, 500.0
 
 
 # -------------------------------------------------------------------
@@ -30,9 +33,10 @@ simulation = ComPASS.load_physics("water2ph")
 
 # -------------------------------------------------------------------
 # If necessary you can write the mesh importation (matrix and faces blocks)
-# to visualize it
-# sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
-# sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
+# to visualize it (only master proc know the mesh)
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 # -------------------------------------------------------------------
 # Fracture factory
@@ -40,6 +44,32 @@ simulation = ComPASS.load_physics("water2ph")
 fracture_thickness = 0.3  # m
 simulation.set_fracture_thickness(fracture_thickness)
 # the list of fracture faces is in sw.info.fault.faces
+
+
+# -------------------------------------------------------------------
+# It is MANDATORY to build the wells (even if they are closed during this initiation)
+# because the domain must be exactly identical with the reloaded one
+# ie, the unknowns must be the same :
+#   same nodes, same cells, same fracture faces, same wells, same well model
+injector_id = 0  # you chose the id you want
+producer_id = 1  # you chose the id you want
+Qm = 200.0 * ton / hour  # flowrate
+well_radius = 0.115  # well radius
+injection_temperature = degC2K(40.0)
+
+
+# Create the two wells using the list of their ordered nodes
+def create_wells():
+    injector = simulation.create_single_branch_well(sw.info.well1.nodes, well_radius)
+    injector.id = injector_id
+    injector.operate_on_flowrate = -Qm, 1.0e8 * bar
+    injector.inject(injection_temperature)
+    producer = simulation.create_single_branch_well(sw.info.well2.nodes, well_radius)
+    producer.id = producer_id
+    producer.operate_on_flowrate = Qm, 1 * bar
+    producer.produce()
+    return [injector, producer]
+
 
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
@@ -53,7 +83,14 @@ simulation.init(
     fracture_thermal_conductivity=K,
     set_global_flags=sw.flags_setter,
 )
+# rebuild local salome mesh info
+sw.rebuild_locally()
 
+
+# -------------------------------------------------------------------
+# close both wells
+simulation.close_well(0)
+simulation.close_well(1)
 
 # -------------------------------------------------------------------
 # Initialize the domain with liquid phase
@@ -76,19 +113,19 @@ def linear_gradients(bottom_value, top_value, domain_depth, depth):
 
 
 z = simulation.all_positions()[:, 2]
-z_top = np.max(z)
-total_depth = z_top - np.min(z)
+total_depth = zmax - zmin
 assert total_depth > 0.0
 simulation.all_states().T[:] = linear_gradients(
-    bottom_temperature, top_temperature, total_depth, z_top - z
+    bottom_temperature, top_temperature, total_depth, zmax - z
 )
 
 
 # -------------------------------------------------------------------
 # Identify the Dirichlet nodes (at the top)
-sw.rebuild_locally()
 dirichlet_nodes = np.zeros(sw.mesh.nb_vertices, dtype=bool)
-dirichlet_nodes[sw.info.top.nodes] = True
+# depending on the distribution, sw.info.top.nodes can be empty
+if sw.info.top.nodes is not None:
+    dirichlet_nodes[sw.info.top.nodes] = True
 
 # the Dirichlet node states are copied from the actual states values
 simulation.reset_dirichlet_nodes(dirichlet_nodes)
