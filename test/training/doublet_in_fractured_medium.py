@@ -73,7 +73,7 @@ simulation.set_fracture_thickness(fracture_thickness)
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
 simulation.init(
-    mesh=sw.mesh,
+    salome_wrapper=sw,
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
@@ -82,11 +82,7 @@ simulation.init(
     fracture_porosity=omega_fracture,
     fracture_thermal_conductivity=K,
     wells=create_wells,
-    set_global_flags=sw.flags_setter,
 )
-# rebuild local salome mesh info
-sw.rebuild_locally()
-
 
 # -------------------------------------------------------------------
 # Initialize the domain with the last states saved in snapshot_directory
@@ -94,20 +90,11 @@ snapshot_directory = "output-init_fractured_reservoir"
 simulation.reload_snapshot(snapshot_directory)
 
 # -------------------------------------------------------------------
-# Identify the Dirichlet nodes (all vertical walls)
-dirichlet_nodes = np.zeros(sw.mesh.nb_vertices, dtype=bool)
-for bound in [
-    sw.info.east.nodes,
-    sw.info.north.nodes,
-    sw.info.west.nodes,
-    sw.info.south.nodes,
-]:
-    # depending on the distribution, boundary nodes can be empty
-    if bound is not None:
-        dirichlet_nodes[bound] = True
-
 # the Dirichlet node states are copied from the actual states values
-simulation.reset_dirichlet_nodes(dirichlet_nodes)
+vertical_boundaries = np.hstack(
+    [sw.info.east.nodes, sw.info.north.nodes, sw.info.west.nodes, sw.info.south.nodes]
+)
+simulation.reset_dirichlet_nodes(vertical_boundaries)
 
 
 # -------------------------------------------------------------------

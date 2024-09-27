@@ -63,7 +63,7 @@ def fracture_factory():
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
 simulation.init(
-    mesh=sw.mesh,
+    salome_wrapper=sw,
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
@@ -71,11 +71,7 @@ simulation.init(
     fracture_permeability=k_fracture,
     fracture_porosity=omega_fracture,
     fracture_thermal_conductivity=K,
-    set_global_flags=sw.flags_setter,
 )
-
-# linked to the data distribution and flags
-sw.rebuild_locally()
 
 # -------------------------------------------------------------------
 # Initialize the domain with liquid phase
@@ -93,8 +89,7 @@ simulation.all_states().set(Xtop)
 # -------------------------------------------------------------------
 # Apply Dirichlet BC at the top nodes
 # the Dirichlet node states are copied from the actual states values
-if sw.info.top.nodes is not None:
-    simulation.reset_dirichlet_nodes(sw.info.top.nodes)
+simulation.reset_dirichlet_nodes(sw.info.top.nodes)
 
 
 # -------------------------------------------------------------------
@@ -133,18 +128,17 @@ water_qmol = 0.1  # surface molar flux for each component (kg/m^2)
 bottom_pressure = 70 * bar
 bottom_temperature = top_temperature + 100
 
-if sw.info.bottom.faces is not None:
-    Neumann = ComPASS.NeumannBC()
-    Neumann.molar_flux[:] = [
-        air_qmol,
-        water_qmol,
-    ]  # one value by component (air, water) !
-    Neumann.heat_flux = water_qmol * simulation.liquid_molar_enthalpy(
-        bottom_pressure, bottom_temperature, [0.0, 1.0]
-    )
-    # Identify the fracture edges of the faces contained in sw.info.bottom.faces
-    bottom_fracture_edges = simulation.find_fracture_edges(sw.info.bottom.faces)
-    simulation.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann)
+Neumann = ComPASS.NeumannBC()
+Neumann.molar_flux[:] = [
+    air_qmol,
+    water_qmol,
+]  # one value by component (air, water) !
+Neumann.heat_flux = water_qmol * simulation.liquid_molar_enthalpy(
+    bottom_pressure, bottom_temperature, [0.0, 1.0]
+)
+# Identify the fracture edges of the faces contained in sw.info.bottom.faces
+bottom_fracture_edges = simulation.find_fracture_edges(sw.info.bottom.faces)
+simulation.set_Neumann_fracture_edges(bottom_fracture_edges, Neumann)
 
 # execute second time loop with Neumann flux
 tsm.current_step = day / 100
