@@ -158,9 +158,10 @@ class PostProcessor:
         )
         # FIXME: we could optimize selecting only fracture nodes and skipping empty files
         if fracdata:
-            fracdata_size = int(
-                np.unique([a.shape[0] for a in fracdata.values()])
-            )  # will triger a TypeError if array sizes are not the same
+            # will triger a TypeError if array sizes are not the same
+            fracdata_size = np.unique([a.shape[0] for a in fracdata.values()])
+            assert len(fracdata_size) == 1
+            fracdata_size = int(fracdata_size[0])
             if fracdata_size > 0:
                 fracpiecefile = self.to_vtu_directory(
                     "fracture_%s_%s.vtp" % (basename, proc_label)
