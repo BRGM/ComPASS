@@ -32,8 +32,6 @@ k_burden = 1e-18  # burden permeability in m^2
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")

@@ -20,8 +20,6 @@ xmax, ymax, zmax = 500.0, 500.0, 500.0
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")
@@ -38,11 +36,11 @@ sw = SalomeWrapper(
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
+# You can write the mesh importation (matrix and faces blocks)
 # to visualize it (only master proc know the mesh)
-if mpi.is_on_master_proc:
-    sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
-    sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 # -------------------------------------------------------------------
 # Fracture factory
@@ -51,7 +49,7 @@ fracture_thickness = 0.3  # m
 simulation.set_fracture_thickness(fracture_thickness)
 # the list of fracture faces is in sw.info.fault.faces
 # It is necessary to define a fonction for the parallelism
-# (sw.info.fault.faces could be None in some proc)
+# (sw.info.fault.faces exists only on the master proc)
 def select_fracture_function():
     return sw.info.fault.faces
 
@@ -88,6 +86,9 @@ simulation.init(
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
+    # cannot write fracture_faces=sw.info.fault.faces
+    # because sw.info.fault.faces exists only on the master proc
+    # and simulation.init is called by every procs
     fracture_faces=select_fracture_function,
     fracture_permeability=k_fracture,
     fracture_porosity=omega_fracture,

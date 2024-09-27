@@ -23,8 +23,6 @@ K_fracture = 2  # fracture bulk thermal conductivity in W/m/K
 
 
 # -------------------------------------------------------------------
-# set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")

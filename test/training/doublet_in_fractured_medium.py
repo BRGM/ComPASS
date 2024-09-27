@@ -17,8 +17,6 @@ omega_fracture = 0.3  # fracture porosity
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")
@@ -35,10 +33,11 @@ sw = SalomeWrapper(
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
-# to visualize it
-# sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
-# sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
+# You can write the mesh importation (matrix and faces blocks)
+# to visualize it (only master proc know the mesh)
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 
 # -------------------------------------------------------------------
@@ -67,7 +66,6 @@ def create_wells():
 # set the fracture thickness (global variable)
 fracture_thickness = 0.3  # m
 simulation.set_fracture_thickness(fracture_thickness)
-# the list of fracture faces is in sw.info.fault.faces
 
 
 # -------------------------------------------------------------------
@@ -106,7 +104,7 @@ simulation.add_well_connections(doublet)
 # Update imposed_flowrate and injection_temperature
 # of the target well (injector one) knowing the information
 # of the connected source well (producer one).
-def chain_wells(tick):
+def chain_wells(time_info):
     for source, target in doublet:
         injector_data = simulation.get_well_data(target)
         producer_wellhead = simulation.well_connections[source]

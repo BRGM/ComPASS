@@ -13,10 +13,6 @@ from ComPASS.utils.units import *  # contains MPa, degC2K, km, year...
 #  |------------------------------------|
 
 
-#%% Set the output directory
-ComPASS.set_output_directory_and_logfile(__file__)
-
-
 #%% Load the water2ph physics : water component in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")
 

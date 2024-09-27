@@ -20,8 +20,6 @@ xmax, ymax, zmax = 500.0, 500.0, 500.0
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")
@@ -32,7 +30,7 @@ simulation = ComPASS.load_physics("water2ph")
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
+# You can write the mesh importation (matrix and faces blocks)
 # to visualize it (only master proc know the mesh)
 # if mpi.is_on_master_proc:
 #     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
@@ -74,17 +72,14 @@ def create_wells():
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
 simulation.init(
-    mesh=sw.mesh,
+    salome_wrapper=sw,
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
     fracture_permeability=k_fracture,
     fracture_porosity=omega_fracture,
     fracture_thermal_conductivity=K,
-    set_global_flags=sw.flags_setter,
 )
-# rebuild local salome mesh info
-sw.rebuild_locally()
 
 
 # -------------------------------------------------------------------
@@ -123,12 +118,8 @@ simulation.all_states().T[:] = linear_gradients(
 # -------------------------------------------------------------------
 # Identify the Dirichlet nodes (at the top)
 dirichlet_nodes = np.zeros(sw.mesh.nb_vertices, dtype=bool)
-# depending on the distribution, sw.info.top.nodes can be empty
-if sw.info.top.nodes is not None:
-    dirichlet_nodes[sw.info.top.nodes] = True
-
 # the Dirichlet node states are copied from the actual states values
-simulation.reset_dirichlet_nodes(dirichlet_nodes)
+simulation.reset_dirichlet_nodes(sw.info.top.nodes)
 
 
 # -------------------------------------------------------------------

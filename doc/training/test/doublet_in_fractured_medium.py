@@ -17,8 +17,6 @@ omega_fracture = 0.3  # fracture porosity
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("water2ph")
@@ -35,10 +33,11 @@ sw = SalomeWrapper(
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
-# to visualize it
-# sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
-# sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
+# You can write the mesh importation (matrix and faces blocks)
+# to visualize it (only master proc know the mesh)
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 
 # -------------------------------------------------------------------
@@ -55,13 +54,12 @@ injection_temperature = degC2K(40.0)
 # set the fracture thickness (global variable)
 fracture_thickness = 0.3  # m
 simulation.set_fracture_thickness(fracture_thickness)
-# the list of fracture faces is in sw.info.fault.faces
 
 
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
 simulation.init(
-    mesh=sw.mesh,
+    salome_wrapper=sw,
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
@@ -69,10 +67,7 @@ simulation.init(
     fracture_permeability=k_fracture,
     fracture_porosity=omega_fracture,
     fracture_thermal_conductivity=K,
-    set_global_flags=sw.flags_setter,
 )
-# rebuild local salome mesh info
-sw.rebuild_locally()
 
 
 # -------------------------------------------------------------------
@@ -80,19 +75,11 @@ sw.rebuild_locally()
 
 # -------------------------------------------------------------------
 # Identify the Dirichlet nodes (all vertical walls)
-dirichlet_nodes = np.zeros(sw.mesh.nb_vertices, dtype=bool)
-for bound in [
-    sw.info.east.nodes,
-    sw.info.north.nodes,
-    sw.info.west.nodes,
-    sw.info.south.nodes,
-]:
-    # depending on the distribution, boundary nodes can be empty
-    if bound is not None:
-        dirichlet_nodes[bound] = True
-
 # the Dirichlet node states are copied from the actual states values
-simulation.reset_dirichlet_nodes(dirichlet_nodes)
+vertical_boundaries = np.hstack(
+    [sw.info.east.nodes, sw.info.north.nodes, sw.info.west.nodes, sw.info.south.nodes]
+)
+simulation.reset_dirichlet_nodes(vertical_boundaries)
 
 
 # -------------------------------------------------------------------
@@ -102,13 +89,12 @@ simulation.reset_dirichlet_nodes(dirichlet_nodes)
 # Update imposed_flowrate and injection_temperature
 # of the target well (injector one) knowing the information
 # of the connected source well (producer one).
-# def chain_wells(tick):
+# def chain_wells(time_info):
 #     for source, target in doublet:
 #         injector_data = simulation.get_well_data(target)
 #         producer_wellhead = simulation.well_connections[source]
-#         molar_flowrate = producer_wellhead.molar_flowrate[
-#             0
-#         ]  # "0" because there is a single component
+#         # "0" because there is a single component
+#         molar_flowrate = producer_wellhead.molar_flowrate[0]
 #         assert (
 #             molar_flowrate >= 0
 #         ), f"source well {source} with flowrate {molar_flowrate} should be a producer"

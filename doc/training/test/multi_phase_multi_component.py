@@ -19,8 +19,6 @@ omega_fracture = 0.5  # fracture porosity
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("diphasic")
@@ -37,10 +35,11 @@ sw = SalomeWrapper(
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
-# to visualize it
-# sw.info.to_vtu_block("salome-block")
-# sw.info.faces_to_multiblock("salome-faults")
+# You can write the mesh importation (matrix and faces blocks)
+# to visualize it (only master proc know the mesh)
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 
 # -------------------------------------------------------------------
@@ -48,27 +47,21 @@ sw = SalomeWrapper(
 # set the fracture thickness (global variable)
 fracture_thickness = 1  # m
 simulation.set_fracture_thickness(fracture_thickness)
-# the list of fracture faces is in sw.info.fault.faces
-def fracture_factory():
-    return sw.info.fault.faces
 
 
 # -------------------------------------------------------------------
 # Initialize the regionalized values and distribute the domain
 simulation.init(
-    mesh=sw.mesh,
+    salome_wrapper=sw,
     cell_permeability=k_matrix,
     cell_porosity=omega_matrix,
     cell_thermal_conductivity=K,
-    fracture_faces=fracture_factory,
+    fracture_faces=lambda: sw.info.fault.faces,
     fracture_permeability=k_fracture,
     fracture_porosity=omega_fracture,
     fracture_thermal_conductivity=K,
-    set_global_flags=sw.flags_setter,
 )
 
-# linked to the data distribution and flags
-sw.rebuild_locally()
 
 # -------------------------------------------------------------------
 # Initialize the domain with liquid phase
@@ -86,8 +79,7 @@ simulation.all_states().set(Xtop)
 # -------------------------------------------------------------------
 # Apply Dirichlet BC at the top nodes
 # the Dirichlet node states are copied from the actual states values
-if sw.info.top.nodes is not None:
-    simulation.reset_dirichlet_nodes(sw.info.top.nodes)
+simulation.reset_dirichlet_nodes(sw.info.top.nodes)
 
 
 # -------------------------------------------------------------------

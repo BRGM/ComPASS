@@ -19,8 +19,6 @@ omega_fracture = 0.5  # fracture porosity
 
 
 # -------------------------------------------------------------------
-# Set output informations
-ComPASS.set_output_directory_and_logfile(__file__)
 # Load the water2ph physics : it contains the water component
 # which can be in liquid and/or gas phase
 simulation = ComPASS.load_physics("diphasic")
@@ -44,10 +42,11 @@ sw = SalomeWrapper(
 
 
 # -------------------------------------------------------------------
-# If necessary you can write the mesh importation (matrix and faces blocks)
-# to visualize it
-# sw.info.to_vtu_block("salome-block")
-# sw.info.faces_to_multiblock("salome-faults")
+# You can write the mesh importation (matrix and faces blocks)
+# to visualize it (only master proc know the mesh)
+# if mpi.is_on_master_proc:
+#     sw.info.to_vtu_block("salome-block")  # creates salome-block.vtu
+#     sw.info.faces_to_multiblock("salome-faults")  # creates salome-faults.vtm
 
 
 # -------------------------------------------------------------------

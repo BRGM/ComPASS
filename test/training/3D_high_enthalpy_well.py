@@ -49,7 +49,6 @@ mesh = HexMesh.make(vertices, cells)
 # -- Setup simulation --------------------------------------
 
 simulation = ComPASS.load_physics("water2ph")
-ComPASS.set_output_directory_and_logfile(__file__)
 simulation.set_gravity(gravity)
 
 
