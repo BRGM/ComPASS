@@ -158,6 +158,14 @@ class SalomeGroupData:
         self.ids = ids
         self.mask = None
 
+    def none(self):
+        return self.ids is None
+
+    def as_idarray(self):
+        if self.ids is None:
+            return MT.idarray([])
+        return self.ids
+
 
 class SalomeGroup:
     _cells_id_map = defaultdict(lambda: None)
@@ -198,11 +206,7 @@ class SalomeGroup:
 
     @property
     def has_no_ids(self):
-        return (
-            self._nodes.ids is None
-            and self._faces.ids is None
-            and self._cells.ids is None
-        )
+        return self._nodes.none() and self._faces.none() and self._cells.none()
 
     def _add_facenodes(self, faces):
         assert self.has_no_ids
@@ -242,17 +246,29 @@ class SalomeGroup:
     @property
     def nodes(self):
         # No conversion implemtented yet
-        return self._nodes.ids
+        return self._nodes.as_idarray()
+
+    @property
+    def has_nodes(self):
+        return not self._nodes.none()
 
     @property
     def faces(self):
         # No conversion implemtented yet
-        return self._faces.ids
+        return self._faces.as_idarray()
+
+    @property
+    def has_faces(self):
+        return not self._faces.none()
 
     @property
     def cells(self):
         # No conversion implemtented yet
-        return self._cells.ids
+        return self._cells.as_idarray()
+
+    @property
+    def has_cells(self):
+        return not self._cells.none()
 
 
 def _extract_groups_module_info(groups_module="GROUPS"):
@@ -318,11 +334,11 @@ class SalomeMeshInfo:
         celldata = {}
         for name in self.groups():
             group = getattr(self, name)
-            if group.nodes is not None:
+            if group.has_nodes:
                 where = np.zeros(mesh.nb_vertices, dtype=np.int32)
                 where[group.nodes] = 1
                 pointdata[name] = where
-            if group.cells is not None:
+            if group.has_cells:
                 where = np.zeros(mesh.nb_cells, dtype=np.int32)
                 where[group.cells] = 1
                 celldata[name] = where
@@ -339,7 +355,7 @@ class SalomeMeshInfo:
         elements = []
         for name in self.groups():
             group = getattr(self, name)
-            if group.faces is not None:
+            if group.has_faces:
                 facenodes = mesh.facenodes
                 group_faces = np.array([np.array(facenodes[fk]) for fk in group.faces])
                 group_vertices, group_faces = np.unique(
@@ -355,8 +371,8 @@ class SalomeMeshInfo:
     def _compute_node_masks(self):
         mask = 1
         for name, group in self.items():
-            if group.nodes is not None:
-                if group.faces is None and group.cells is None:
+            if group.has_nodes:
+                if not (group.has_faces or group.has_cells):
                     group._nodes.mask = mask
                     mask *= 2
                 else:
@@ -365,8 +381,8 @@ class SalomeMeshInfo:
     def _compute_face_masks(self):
         mask = 1
         for name, group in self.items():
-            if group.faces is not None:
-                if group.cells is None:
+            if group.has_faces:
+                if not group.has_cells:
                     group._faces.mask = mask
                     mask *= 2
                 else:
@@ -375,7 +391,7 @@ class SalomeMeshInfo:
     def _compute_cell_masks(self):
         mask = 1
         for name, group in self.items():
-            if group.cells is not None:
+            if group.has_cells:
                 group._cells.mask = mask
                 mask *= 2
             else:
@@ -390,7 +406,7 @@ class SalomeMeshInfo:
         # find highest mask in nodes group
         mask = 1
         for name, group in masks.items():
-            if group.nodes is not None:
+            if group.has_nodes:
                 mask = max(mask, 2 * group.nodes)
         masks[new_name] = ElementValues(mask, None, None)
 
@@ -398,7 +414,7 @@ class SalomeMeshInfo:
         # find highest mask in faces group
         mask = 1
         for name, group in masks.items():
-            if group.faces is not None:
+            if group.has_faces:
                 mask = max(mask, 2 * group.faces)
         masks[new_name] = ElementValues(None, mask, None)
 
@@ -406,7 +422,7 @@ class SalomeMeshInfo:
         # find highest mask in cells group
         mask = 1
         for name, group in masks.items():
-            if group.cells is not None:
+            if group.has_cells:
                 mask = max(mask, 2 * group.cells)
         masks[new_name] = ElementValues(None, None, mask)
 
@@ -458,16 +474,17 @@ class SalomeMeshInfo:
             self.compute_masks()
         for name, group in self.items():
             for location in _locations:
-                where = getattr(group, location)
-                if where is not None:
-                    mask = getattr(group, f"_{location}").mask
+                data = getattr(group, f"_{location}")
+                if not data.none():
+                    mask = data.mask
                     if mask is not None:
                         location_flags = getattr(flags, location)
                         maxmask = 2 ** (8 * location_flags.dtype.itemsize)
                         assert (
                             mask <= maxmask
                         ), "Cannot encode more than {maxmask} groups!"
-                        location_flags[where] |= mask
+                        assert data.ids is not None
+                        location_flags[data.ids] |= mask
 
     def rebuild_from_flags(self, flags, masks, mesh=None):
         self._mesh = mesh
