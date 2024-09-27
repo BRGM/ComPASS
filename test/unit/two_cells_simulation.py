@@ -20,7 +20,6 @@ def make(**init_args):
     K_matrix = 2.0
 
     simulation = ComPASS.load_physics("water2ph")
-    ComPASS.set_output_directory_and_logfile(__file__)
 
     grid = ComPASS.Grid(
         shape=(2, 1, 1),

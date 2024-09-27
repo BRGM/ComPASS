@@ -10,9 +10,12 @@ import os
 
 from .utils.filenames import output_directory_and_logfile
 
-# output_directory, logfile = output_directory_and_logfile()
-output_directory = None
-logfile = None
+import __main__
+
+try:
+    output_directory, logfile = output_directory_and_logfile(__main__.__file__)
+except AttributeError:
+    output_directory = logfile = None
 
 
 def to_output_directory(filename):

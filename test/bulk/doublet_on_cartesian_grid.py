@@ -26,7 +26,7 @@ Ox, Oy, Oz = -1500.0, -1000.0, -1600.0
 nx, ny, nz = 30, 20, 10
 
 simulation = ComPASS.load_physics("water2ph")
-ComPASS.set_output_directory_and_logfile(__file__)
+
 simulation.set_gravity(0)
 
 grid = ComPASS.Grid(
