@@ -33,6 +33,7 @@ def init(
     simulation,
     grid=None,
     mesh=None,
+    salome_wrapper=None,
     cell_porosity=lambda: None,
     cell_permeability=lambda: None,
     cell_thermal_conductivity=lambda: None,
@@ -126,6 +127,14 @@ def init(
     assert not simulation.mesh_is_local
     # here properties will just be used as a namespace
     properties = {}
+
+    if salome_wrapper is not None:
+        if not (mesh is None and grid is None and set_global_flags is None):
+            messages.error(
+                "When using salome_wrapper you cannot use grid, mesh or set_global_flags keywords."
+            )
+        mesh = salome_wrapper.mesh
+        set_global_flags = salome_wrapper.flags_setter
 
     def call_if_callable(f):
         if callable(f):
@@ -234,4 +243,6 @@ def init(
     assert simulation.unknown_producers_density
     # FUTURE: This could be managed through a context manager ?
     simulation.initialized = True
+    if salome_wrapper is not None:
+        salome_wrapper.rebuild_locally()
     atexit.register(_exit_physics_and_finalize)
