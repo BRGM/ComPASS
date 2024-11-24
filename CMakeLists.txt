@@ -221,6 +221,8 @@ endif(NOT PETSc_FOUND OR NOT PKG_CONFIG_FOUND)
 
 if(NOT PETSc_FOUND)
   message(FATAL_ERROR "PETSc could not be found")
+else(NOT PETSc_FOUND)
+  message("Using PETSc ${PETSc_VERSION}")
 endif(NOT PETSc_FOUND)
 
 if(${PETSc_VERSION} VERSION_LESS 3.8)
