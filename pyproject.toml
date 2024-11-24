@@ -1,8 +1,12 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
+  "numpy",
+  "pybind11",
   "scikit-build-core",
-  "pybind11"
+  "setuptools>=59.6",
+  "setuptools-scm>=8.1",
+  "wheel"
 ]
 
 [project]
