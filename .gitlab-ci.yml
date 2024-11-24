@@ -43,6 +43,21 @@ check format:
     - echo "Changed files:" ${changed_files}
     - pre-commit run --files ${changed_files}
 
+conda stable build:
+  stage: build
+  image: condaforge/miniforge3:latest
+  tags:
+    - build
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - mamba env create --file conda/compass-stable.yml
+    - conda run -n compass python -m pip -vvv install . --no-build-isolation
+    - cd test/bulk
+    - conda run -n compass python doublet_on_cartesian_grid.py
+
 conda pristine build:
   stage: build
   image: condaforge/miniforge3:latest
@@ -53,10 +68,11 @@ conda pristine build:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
-    - mamba env create --file conda/compass.yml
-    - conda run -n compass python -m pip -vvv install .
+    - mamba env create --file conda/compass-pristine.yml
+    - conda run -n compass python -m pip -vvv install . --no-build-isolation
     - cd test/bulk
     - conda run -n compass python doublet_on_cartesian_grid.py
+  allow_failure: true
 
 build:
   stage: build

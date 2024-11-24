@@ -1,0 +1,36 @@
+name: compass
+channels:
+  - conda-forge
+dependencies:
+  - c-compiler=1.8.0
+  - cmake=3.31.1
+  - cxx-compiler=1.8.0
+  - fortran-compiler=1.8.0
+  - git=2.47.0
+  - mpi4py=4.0.1
+  - ninja=1.12.1
+  - numba=0.60.0
+  - numpy=2.0.2
+  - openmpi=5.0.6
+  - openssh=9.9p1
+  - petsc4py=3.21.6
+  - pip=24.3.1
+  - pkgconfig=1.5.5
+  - psutil=6.1.0
+  - pybind11=2.13.6
+  - python=3.12.7
+  - pyyaml=6.0.2
+  - scikit-build-core=0.10.7
+  - scipy=1.14.1
+  - setuptools=75.6.0
+  - setuptools-scm=8.1.0
+  - wheel=0.45.1
+  - pip:
+      - click==8.1.7
+      - inept==0.1.1
+      - sortedcontainers==2.4.0
+      - verstr==0.1.2
+      - vtkwriters==0.0.10
+      - git+https://github.com/BRGM/MeshTools.git@v0.0.9
+variables:
+  PIP_NO_BUILD_ISOLATION: false
