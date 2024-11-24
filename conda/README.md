@@ -22,7 +22,9 @@ If you want the latest version from the main branch, just add the following line
 
 You can also add a specific version tag, e.g.:
 ```
-  - git+https://github.com/BRGM/ComPASS.git@v4.5.6
+  - git+https://github.com/BRGM/ComPASS.git@v4.5.7
 ```
+
+`compass-4.5.7.yml` is such an environment built upon `compass-stable.yml`
 
 Be aware that older versions may need a bit of manual tuning to achieve a successful build.

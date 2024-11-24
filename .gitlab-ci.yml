@@ -58,6 +58,20 @@ conda stable build:
     - cd test/bulk
     - conda run -n compass python doublet_on_cartesian_grid.py
 
+specific version build:
+  stage: build
+  image: condaforge/miniforge3:latest
+  tags:
+    - build
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - mamba env create --file conda/compass-4.5.7.yml
+    - cd test/bulk
+    - conda run -n compass-4.5.7 python doublet_on_cartesian_grid.py
+
 conda pristine build:
   stage: build
   image: condaforge/miniforge3:latest
