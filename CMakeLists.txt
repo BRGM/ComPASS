@@ -236,7 +236,7 @@ if(${PETSc_VERSION} VERSION_LESS 3.22)
   add_compile_definitions(COMPASS_PETSC_VERSION_LESS_3_22)
 endif()
 
-find_package(LAPACK REQUIRED)
+find_package(LAPACK REQUIRED Fortran)
 
 enable_testing()
 
