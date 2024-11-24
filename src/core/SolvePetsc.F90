@@ -683,7 +683,7 @@ contains
 
                idxm(1) = row
                idxn(1) = col
-               call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
+               call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1, 1, j:j), INSERT_VALUES, Ierr)
                CMP_PETSC_CHECK(Ierr)
             end if
          end do
