@@ -91,10 +91,15 @@ Create the *compass* `conda environment <https://github.com/BRGM/ComPASS/tree/ma
 
 .. code-block:: bash
 
-  conda env create -f https://raw.githubusercontent.com/BRGM/ComPASS/main/conda/compass.yml
+  conda env create -f https://raw.githubusercontent.com/BRGM/ComPASS/main/conda/compass-stable.yml
 
 The whole process may be a bit long because many packages will be
 downloaded and MeshTools will be compiled under the hood.
+
+You may check for additional subtleties in the
+`README.md <https://github.com/BRGM/ComPASS/tree/main/conda/README.md>`_
+file of the conda folder.
+
 Once it is finished, you can activate the *compass* environment with:
 
 .. code-block:: bash
