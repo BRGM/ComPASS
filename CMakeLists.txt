@@ -232,6 +232,10 @@ if(${PETSc_VERSION} VERSION_LESS 3.8)
   )
 endif(${PETSc_VERSION} VERSION_LESS 3.8)
 
+if(${PETSc_VERSION} VERSION_LESS 3.22)
+  add_compile_definitions(COMPASS_PETSC_VERSION_LESS_3_22)
+endif()
+
 find_package(LAPACK REQUIRED)
 
 enable_testing()

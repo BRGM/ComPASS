@@ -864,7 +864,12 @@ contains
             allocate (kspHistory(kspitmax + 1))
          end if
       end if
+      ! FIXME: KSPSetResidualHistory API change seems not to be clearly documented
+#ifdef COMPASS_PETSC_VERSION_LESS_3_22
       call KSPSetResidualHistory(ksp_mpi, kspHistory, kspitmax, PETSC_TRUE, Ierr)
+#else
+      call KSPSetResidualHistory(ksp_mpi, kspHistory, int(kspitmax, c_size_t), PETSC_TRUE, Ierr)
+#endif
       CMP_PETSC_CHECK(Ierr)
       ! CHECKME: no restart!!!
       call KSPGMRESSetRestart(ksp_mpi, restart_iteration, Ierr)
