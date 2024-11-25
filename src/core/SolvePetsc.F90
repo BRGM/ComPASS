@@ -681,9 +681,7 @@ contains
 
             else ! col is wellinj or wellprod, insert JacA%Val(1,1,j)
 
-               idxm(1) = row
-               idxn(1) = col
-               call MatSetValues(A_mpi, 1, idxm, 1, idxn, JacA%Val(1, 1, j:j), INSERT_VALUES, Ierr)
+               call MatSetValue(A_mpi, row, col, JacA%Val(1, 1, j), INSERT_VALUES, Ierr)
                CMP_PETSC_CHECK(Ierr)
             end if
          end do
