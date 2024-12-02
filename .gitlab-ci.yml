@@ -55,9 +55,8 @@ conda stable build:
   script:
     - mamba env create --file conda/compass-stable.yml
     - conda run -n compass python -m pip -vvv install . --no-build-isolation
-    - cd test/bulk
-    - conda run -n compass python doublet_on_cartesian_grid.py
-    - conda run -n compass python doublet_on_cartesian_grid_petsc4py_amg.py
+    - cd test
+    - conda run -n compass python utilities/pool.py bulk
 
 specific version build:
   stage: build
@@ -70,9 +69,8 @@ specific version build:
     - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
     - mamba env create --file conda/compass-4.5.7.yml
-    - cd test/bulk
-    - conda run -n compass-4.5.7 python doublet_on_cartesian_grid.py
-    - conda run -n compass-4.5.7 python doublet_on_cartesian_grid_petsc4py_amg.py
+    - cd test
+    - conda run -n compass-4.5.7 python utilities/pool.py bulk
 
 conda pristine build:
   stage: build
@@ -86,9 +84,8 @@ conda pristine build:
   script:
     - mamba env create --file conda/compass-pristine.yml
     - conda run -n compass python -m pip -vvv install . --no-build-isolation
-    - cd test/bulk
-    - conda run -n compass python doublet_on_cartesian_grid.py
-    - conda run -n compass python doublet_on_cartesian_grid_petsc4py_amg.py
+    - cd test
+    - conda run -n compass python utilities/pool.py bulk
   allow_failure: true
 
 build:
