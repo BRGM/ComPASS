@@ -57,6 +57,7 @@ conda stable build:
     - conda run -n compass python -m pip -vvv install . --no-build-isolation
     - cd test/bulk
     - conda run -n compass python doublet_on_cartesian_grid.py
+    - conda run -n compass python doublet_on_cartesian_grid_petsc4py_amg.py
 
 specific version build:
   stage: build
@@ -71,6 +72,7 @@ specific version build:
     - mamba env create --file conda/compass-4.5.7.yml
     - cd test/bulk
     - conda run -n compass-4.5.7 python doublet_on_cartesian_grid.py
+    - conda run -n compass-4.5.7 python doublet_on_cartesian_grid_petsc4py_amg.py
 
 conda pristine build:
   stage: build
@@ -86,6 +88,7 @@ conda pristine build:
     - conda run -n compass python -m pip -vvv install . --no-build-isolation
     - cd test/bulk
     - conda run -n compass python doublet_on_cartesian_grid.py
+    - conda run -n compass python doublet_on_cartesian_grid_petsc4py_amg.py
   allow_failure: true
 
 build:
