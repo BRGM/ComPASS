@@ -1,10 +1,6 @@
 import numpy as np
-from pathlib import Path
-import matplotlib.pyplot as plt
 import ComPASS
 from ComPASS.utils.units import *
-import sys
-from ComPASS.postprocess import postprocess
 from ComPASS.timeloops import standard_loop
 from ComPASS.properties.densities import build_pure_phase_volumetric_mass_density
 from ComPASS.properties.utils import constant_physical_property
@@ -116,11 +112,18 @@ abs_centers = abs(simulation.compute_cell_centers())
 where = np.logical_and(abs_centers[:, 1] < 0.1, abs_centers[:, 2] < 0.1)
 x_cell_pressure = simulation.cell_states().p[where]
 
-plt.plot(x_cell_pressure)
-plt.xlabel("X cells")
-plt.ylabel("Pressure (Pa)")
-plt.title("Overpressure profile along X cells")
-plt.savefig(
-    "cells_overpressure.png",
-    format="png",
-)
+if ComPASS.mpi.communicator().size == 1:
+    assert ComPASS.mpi.is_on_master_proc
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("WARNING - matplotlib was not found - no graphics will be generated")
+    else:
+        plt.plot(x_cell_pressure)
+        plt.xlabel("X cells")
+        plt.ylabel("Pressure (Pa)")
+        plt.title("Overpressure profile along X cells")
+        plt.savefig(
+            "cells_overpressure.png",
+            format="png",
+        )

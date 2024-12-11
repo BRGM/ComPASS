@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-import matplotlib.tri as tri
 import numpy as np
 
 import mCGAL.kernels.Epick.Mesh_2 as Mesh_2
@@ -76,6 +74,7 @@ vertices[x > x.max() - epsilon, 0] = 0.5 * L
 vertices[y < epsilon, 1] = 0
 vertices[y > y.max() - epsilon, 1] = h
 
+# import matplotlib.pyplot as plt
 # plt.gca().set_aspect("equal")
 # plt.triplot(vertices[:, 0], vertices[:, 1], triangles)
 # plt.plot([-0.5*d, 0.5*d], [0, 0], 'rx')

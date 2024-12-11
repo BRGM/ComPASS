@@ -91,7 +91,6 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     print("No figure is drawn as matpplotlib is not installed.")
-    raise
 else:
     plt.clf()
     # Draw last time
