@@ -27,6 +27,10 @@ stages:
   - release
   - documentation
 
+default:
+  artifacts:
+    expire_in: 1 yrs
+
 check format:
   stage: check
   tags:
@@ -114,6 +118,7 @@ build:
     - dist/
     expose_as: wheel
     when: on_success
+    expire_in: 1 yrs
 
 baseline tests:
   stage: test
